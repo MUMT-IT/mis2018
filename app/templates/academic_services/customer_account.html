@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "academic_services/service_base.html" %}
 {% include "academic_services/customer_nav.html" %}
 {% block head %}
     {{ super() }}
@@ -25,7 +25,7 @@
                                     <span class="has-text-danger">*</span>
                                 </label>
                                 <div class="select">
-                                    {{ form.type(onchange="updateLabel()") }}
+                                    {{ form.type(onchange="updateLabel(); syncContactInfo()") }}
                                 </div>
                             </div>
                             <div class="field">
@@ -46,7 +46,8 @@
                                     <span class="has-text-danger">*</span>
                                 </label>
                                 <div class="control has-icons-left is-expanded">
-                                    {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X') }}
+                                    {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X',
+                                            oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
                                     <span class="icon is-small is-left">
                                         <i class="fa-solid fa-list-ol"></i>
                                     </span>
@@ -58,7 +59,8 @@
                                     <span class="has-text-danger">*</span>
                                 </label>
                                 <div class="control has-icons-left is-expanded">
-                                    {{ form.phone_number(class="input", id="cus_phone", placeholder='08X-XXX-XXXX', oninput="syncContactInfo()") }}
+                                    {{ form.phone_number(class="input", id="cus_phone", placeholder='08X-XXX-XXXX',
+                                        oninput="this.value=this.value.replace(/[^0-9\-]/g,''); syncContactInfo();") }}
                                     <span class="icon is-small is-left">
                                         <i class="fas fa-phone"></i>
                                     </span>
@@ -67,7 +69,8 @@
                             <div class="field">
                                 <label class="label">{{ form.fax_no.label }}</label>
                                 <div class="control has-icons-left is-expanded">
-                                    {{ form.fax_no(class='input', placeholder='02-XXX-XXXX') }}
+                                    {{ form.fax_no(class='input', placeholder='02-XXX-XXXX',
+                                            oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
                                     <span class="icon is-small is-left">
                                         <i class="fas fa-fax"></i>
                                     </span>
@@ -103,7 +106,8 @@
                                         <span class="has-text-danger">*</span>
                                     </label>
                                     <div class="control has-icons-left is-expanded">
-                                        {{ c_form.phone_number(class="input", id="contact_phone", placeholder='08X-XXX-XXXX') }}
+                                        {{ c_form.phone_number(class="input", id="contact_phone", placeholder='08X-XXX-XXXX',
+                                                oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
                                         <span class="icon is-small is-left">
                                         <i class="fas fa-phone"></i>
                                     </span>
@@ -154,33 +158,44 @@
             const typeSelect = document.querySelector('[name="type"]');
             const label = document.getElementById("cus-name-label");
             if (typeSelect.value === "1") {
-                label.innerHTML = '<h1 class="subtitle">ชื่อ-นามสกุล</h1>';
+                label.innerHTML = '<label class="label">ชื่อ-นามสกุล<span class="has-text-danger ml-1">*</span></label>';
             } else if (typeSelect.value === "2") {
-                label.innerHTML = '<h1 class="subtitle">ชื่อบริษัท</h1>';
+                label.innerHTML = '<label class="label">ชื่อบริษัท<span class="has-text-danger ml-1">*</span></label>';
+            } else if (typeSelect.value === "2") {
+                label.innerHTML = '<label class="label">ชื่อหน่วยงาน<span class="has-text-danger ml-1">*</span></label>';
             } else {
-                label.innerHTML = '<h1 class="subtitle">ชื่อหน่วยงาน</h1>';
+                label.innerHTML = '<label class="label">ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน<span class="has-text-danger ml-1">*</span></label>'
             }
         }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            updateLabel();
+        });
     </script>
     <script>
         function syncContactInfo() {
             const typeSelect = document.querySelector('[name="type"]');
-            if (!typeSelect || typeSelect.value !== "1") return;
             const cusName = document.getElementById("cus_name");
             const cusPhone = document.getElementById("cus_phone");
             const cusEmail = document.getElementById("cus_email");
             const contactName = document.getElementById("contact_name");
             const contactPhone = document.getElementById("contact_phone");
             const contactEmail = document.getElementById("contact_email");
-            if (cusName && contactName) {
-                contactName.value = cusName.value;
-            }
-            if (cusPhone && contactPhone) {
-                contactPhone.value = cusPhone.value;
-            }
-            if (cusEmail && contactEmail) {
-                contactEmail.value = cusEmail.value
+            if (!typeSelect) return;
+
+            if (typeSelect.value === "1") {
+                if (cusName && contactName) contactName.value = cusName.value;
+                if (cusPhone && contactPhone) contactPhone.value = cusPhone.value;
+                if (cusEmail && contactEmail) contactEmail.value = cusEmail.value;
+            } else {
+                if (contactName) contactName.value = "";
+                if (contactPhone) contactPhone.value = "";
+                if (contactEmail) contactEmail.value = "";
             }
         }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            syncContactInfo();
+        });
     </script>
 {% endblock %}

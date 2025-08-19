@@ -24,7 +24,7 @@
                     <table id='samples' class="table is-fullwidth">
                         <thead>
                         <th>เลขใบคำร้องขอ</th>
-                        <th>เลขพัสดุ</th>
+                        <th>หมายเลขติดตามพัสดุ</th>
                         <th>วัน-เวลาที่นัดหมาย</th>
                         <th>วัน-เวลาที่รับ</th>
                         <th>รายการ</th>
@@ -113,31 +113,31 @@
                             const isReceived = row.received_at;
                             return `<ul class="steps">
                                         <li class="steps-segment ${!hasAppointmentOrTracking && !isReceived ? 'is-active' : ''}">
-                                                <span class="steps-marker">
-                                                    <span class="icon">
-                                                        <i class="fas fa-box-open"></i>
-                                                    </span>
+                                            <span class="steps-marker">
+                                                <span class="icon">
+                                                    <i class="fas fa-calendar"></i>
                                                 </span>
+                                            </span>
                                             <div class="steps-content">
-                                                <p>รอดำเนินการรส่งตัวอย่าง</p>
+                                                <p>รอการนัดหมายส่งตัวอย่าง</p>
                                             </div>
                                         </li>
                                         <li class="steps-segment ${hasAppointmentOrTracking && !isReceived ? 'is-active' : ''}">
-                                                <span class="steps-marker">
-                                                    <span class="icon">
-                                                        <i class="fas fa-truck"></i>
-                                                    </span>
+                                            <span class="steps-marker">
+                                                <span class="icon">
+                                                    <i class="fas fa-shipping-fast"></i>
                                                 </span>
+                                            </span>
                                             <div class="steps-content">
-                                                <p>กำลังดำเนินการส่งตัวอย่าง</p>
+                                                <p>รอรับตัวอย่าง</p>
                                             </div>
                                         </li>
                                         <li class="steps-segment ${isReceived ? 'is-active' : ''}">
-                                                <span class="steps-marker">
-                                                    <span class="icon">
-                                                        <i class="fa fa-check"></i>
-                                                    </span>
+                                            <span class="steps-marker">
+                                                <span class="icon">
+                                                    <i class="fa fa-check"></i>
                                                 </span>
+                                            </span>
                                             <div class="steps-content">
                                                 <p>ได้รับตัวอย่างแล้ว</p>
                                             </div>
@@ -147,7 +147,19 @@
                     },
                     {data: 'location'},
                     {data: 'ship_type'},
-                    {data: 'sample_condition'},
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            var color = row.sample_condition_status_color
+                            var status = row.sample_condition_status
+                            if (row.sample_condition_status !== null) {
+                                return `<span class="tag ${color}">${status}</span>`;
+                            }
+                            else {
+                                return `<span class="tag is-danger">ยังไม่ได้รับตัวอย่าง</span>`;
+                            }
+                        }
+                    },
                     {data: 'note'},
                     {data: 'received_by'},
                     {

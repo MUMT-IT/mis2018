@@ -59,18 +59,55 @@
                         </div>
                         <hr>
                         <div class="mb-4">
+                            <div class="columns">
+                                <div class="column" style="border-right: 1px solid #ddd;">
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                        <span class="icon"><i class="fas fa-receipt"></i></span> ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
+                                    </p>
+                                    <div style="margin-left: 1.75rem;">
+                                        <p>ออกในนาม : {{ service_request.quotation_address.name }}</p>
+                                        <p>ที่อยู่ : {{ service_request.quotation_address.address }}
+                                            {{ 'แขวง' if 'กรุงเทพมหานคร' in service_request.quotation_address.province.name else 'ตำบล' }}{{ service_request.quotation_address.subdistrict }}
+                                            {{ 'เขต' if 'กรุงเทพมหานคร' in service_request.quotation_address.province.name else 'อำเภอ' }}{{ service_request.quotation_address.district }}
+                                            จังหวัด{{ service_request.quotation_address.province }} {{ service_request.quotation_address.zipcode }}
+                                        </p>
+                                        <p>เลขประจำตัวผู้เสียภาษีอากร : {{ service_request.quotation_address.taxpayer_identification_no }}</p>
+                                        <p>เบอร์โทรศัพท์ : {{ service_request.quotation_address.phone_number }}</p>
+                                        <p>อีเมล : {{ service_request.customer.contact_email }}</p>
+                                    </div>
+                                </div>
+                                <div class="column">
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                        <span class="icon"><i class="fas fa-map-marker-alt"></i></span> ข้อมูลที่อยู่จัดส่งเอกสาร
+                                    </p>
+                                    <div style="margin-left: 1.75rem;">
+                                        <p>ถึง : {{ service_request.document_address.name }}</p>
+                                         <p>ที่อยู่ : {{ service_request.document_address.address }}
+                                            {{ 'แขวง' if 'กรุงเทพมหานคร' in service_request.document_address.province.name else 'ตำบล' }}{{ service_request.document_address.subdistrict }}
+                                            {{ 'เขต' if 'กรุงเทพมหานคร' in service_request.document_address.province.name else 'อำเภอ' }}{{ service_request.document_address.district }}
+                                            จังหวัด{{ service_request.document_address.province }} {{ service_request.document_address.zipcode }}
+                                        </p>
+                                        <p>เบอร์โทรศัพท์ : {{ service_request.document_address.phone_number }}</p>
+                                        <p>อีเมล : {{ service_request.customer.contact_email }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="mb-4">
                             <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                <span class="icon"><i class="fas fa-user"></i></span> ข้อมูลผู้ส่งตรวจ
+                                <span class="icon"><i class="fas fa-user"></i></span> ข้อมูลผู้ประสานงาน
                             </p>
                             <div style="margin-left: 1.75rem;">
-                                <p>ผู้ส่ง : {{ service_request.document_address.name }}</p>
-                                <p>ที่อยู่ : {{ service_request.document_address.address }}
-                                    {{ 'แขวง' if 'กรุงเทพมหานคร' in service_request.document_address.province.name else 'ตำบล' }}{{ service_request.document_address.subdistrict }}
-                                    {{ 'เขต' if 'กรุงเทพมหานคร' in service_request.document_address.province.name else 'อำเภอ' }}{{ service_request.document_address.district }}
-                                    จังหวัด{{ service_request.document_address.province }} {{ service_request.document_address.zipcode }}
-                                </p>
-                                <p>เบอร์โทรศัพท์ : {{ service_request.customer.customer_info.phone_number }}</p>
-                                <p>อีเมล : {{ service_request.customer.email }}</p>
+                                {% for cus_contact in service_request.customer.customer_info.customer_contacts %}
+                                    <p>ชื่อ-นามสกุล : {{ cus_contact.contact_name }}</p>
+                                    <p>เลขประจำตัวผู้เสียภาษี : {{ service_request.customer.customer_info.taxpayer_identification_no }}</p>
+                                    <p>เบอร์โทรศัพท์ : {{ cus_contact.phone_number }}</p>
+                                    <p>อีเมล : {{ cus_contact.email }}</p>
+                                    {% if cus_contact.remark %}
+                                        <p>หมายเหตุ : {{ cus_contact.remark }}</p>
+                                    {% endif %}
+                                {% endfor %}
                             </div>
                         </div>
                         <hr>
@@ -132,22 +169,14 @@
                                 สถานะ
                             </p>
                             <ul class="menu-list">
-                                <li><span class="tag is-primary is-light">{{ service_request.status }}</span></li>
-                            </ul>
-                            <hr>
-                            <p class="menu-label">
-                                ข้อมูลลูกค้า
-                            </p>
-                            <ul class="menu-list">
-                                <li>ชื่อ : {{ service_request.customer.customer_info.cus_name }}</li>
-                                <li>วันที่ขอ : {{ service_request.created_at.strftime('%d/%m/%Y') }}</li>
+                                <li><span class="tag {{ service_request.status.customer_status_color }}">{{ service_request.status.customer_status }}</span></li>
                             </ul>
                             <hr>
                             <p class="menu-label">
                                 การดำเนินการ
                             </p>
                             <ul class="menu-list">
-                                {% if service_request.status == 'รอลูกค้าส่งคำขอใบเสนอราคา' %}
+                                {% if service_request.status.status_id == 1 %}
                                     <li>
                                         <form method="post"
                                               action="{{ url_for('academic_services.request_quotation',

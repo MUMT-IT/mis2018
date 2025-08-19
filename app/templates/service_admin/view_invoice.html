@@ -22,17 +22,29 @@
             <div class="columns is-flex is-align-items-stretch">
                 <div class="column">
                     <ul class="steps">
-                        <li class="steps-segment {% if invoice.status == 'อยู่ระหว่างการตรวจสอบ' %} is-active {% endif %}">
+                        <li class="steps-segment
+                            {% if not invoice.sent_at and not invoice.head_approved_at and not invoice.assistant_approved_at
+                                and not invoice.dean_approved_at and not invoice.mhesi_issued_at and not invoice.paid_at
+                                and not invoice.is_paid %}
+                                is-active
+                            {% endif %}"
+                        >
                             <span class="steps-marker">
                                 <span class="icon">
                                     <i class="fas fa-search"></i>
                                 </span>
                             </span>
                             <div class="steps-content">
-                                <p>อยู่ระหว่างการตรวจสอบ</p>
+                                <p>ร่างใบแจ้งหนี้</p>
                             </div>
                         </li>
-                        <li class="steps-segment {% if invoice.status == 'รอหัวหน้าอนุมัติ' %} is-active {% endif %}">
+                        <li class="steps-segment
+                            {% if invoice.sent_at and not invoice.head_approved_at and not invoice.assistant_approved_at
+                                and not invoice.dean_approved_at and not invoice.mhesi_issued_at and not invoice.paid_at
+                                and not invoice.is_paid %}
+                                is-active
+                            {% endif %}"
+                        >
                             <span class="steps-marker">
                                 <span class="icon">
                                     <i class="fas fa-hourglass-half"></i>
@@ -42,7 +54,13 @@
                                 <p>รอหัวหน้าอนุมัติ</p>
                             </div>
                         </li>
-                        <li class="steps-segment {% if invoice.status == 'รอผู้ช่วยคณบดีอนุมัติ' %} is-active {% endif %}">
+                        <li class="steps-segment
+                            {% if invoice.sent_at and invoice.head_approved_at and not invoice.assistant_approved_at
+                                and not invoice.dean_approved_at and not invoice.mhesi_issued_at and not invoice.paid_at
+                                and not invoice.is_paid %}
+                                is-active
+                            {% endif %}"
+                        >
                             <span class="steps-marker">
                                 <span class="icon">
                                     <i class="fas fa-clock"></i>
@@ -52,7 +70,13 @@
                                 <p>รอผู้ช่วยคณบดีอนุมัติ</p>
                             </div>
                         </li>
-                        <li class="steps-segment {% if invoice.status == 'รอคณบดีเซ็นอนุมัติ' %} is-active {% endif %}">
+                        <li class="steps-segment
+                            {% if invoice.sent_at and invoice.head_approved_at and invoice.assistant_approved_at
+                                and not invoice.dean_approved_at and not invoice.mhesi_issued_at and not invoice.paid_at
+                                and not invoice.is_paid %}
+                                is-active
+                            {% endif %}"
+                        >
                             <span class="steps-marker">
                                 <span class="icon">
                                     <i class="fas fa-pen-nib"></i>
@@ -62,7 +86,13 @@
                                 <p>รอคณบดีเซ็นอนุมัติ</p>
                             </div>
                         </li>
-                        <li class="steps-segment {% if invoice.status == 'รอเจ้าหน้าที่ออกเลข อว.' %} is-active {% endif %}">
+                        <li class="steps-segment
+                            {% if invoice.sent_at and invoice.head_approved_at and invoice.assistant_approved_at
+                                and invoice.dean_approved_at and not invoice.mhesi_issued_at and not invoice.paid_at
+                                and not invoice.is_paid %}
+                                is-active
+                            {% endif %}"
+                        >
                             <span class="steps-marker">
                                 <span class="icon">
                                     <i class="fas fa-file-signature"></i>
@@ -72,14 +102,50 @@
                                 <p>รอเจ้าหน้าที่ออกเลข อว.</p>
                             </div>
                         </li>
-                        <li class="steps-segment {% if invoice.status == 'ออกใบแจ้งหนี้เรียบร้อยแล้ว' %} is-active {% endif %}">
+                        <li class="steps-segment
+                            {% if invoice.sent_at and invoice.head_approved_at and invoice.assistant_approved_at
+                                and invoice.dean_approved_at and invoice.mhesi_issued_at and not invoice.paid_at
+                                and not invoice.is_paid %}
+                                is-active
+                            {% endif %}"
+                        >
+                            <span class="steps-marker">
+                                <span class="icon">
+                                    <i class="fas fa-hourglass-half"></i>
+                                </span>
+                            </span>
+                            <div class="steps-content">
+                                <p>รอการชำระเงิน</p>
+                            </div>
+                        </li>
+                        <li class="steps-segment
+                            {% if invoice.sent_at and invoice.head_approved_at and invoice.assistant_approved_at
+                                and invoice.dean_approved_at and invoice.mhesi_issued_at and invoice.paid_at and
+                                not invoice.is_paid %}
+                                is-active
+                            {% endif %}"
+                        >
+                            <span class="steps-marker">
+                                <span class="icon">
+                                    <i class="fas fa-search-dollar"></i>
+                                </span>
+                            </span>
+                            <div class="steps-content">
+                                <p>รอตรวจสอบชำระเงิน</p>
+                            </div>
+                        </li>
+                        <li class="steps-segment
+                            {% if invoice.is_paid %}
+                                is-active
+                            {% endif %}"
+                        >
                             <span class="steps-marker">
                                 <span class="icon">
                                     <i class="fas fa-check"></i>
                                 </span>
                             </span>
                             <div class="steps-content">
-                                <p>ออกใบแจ้งหนี้แล้ว</p>
+                                <p>ชำระเงินแล้ว</p>
                             </div>
                         </li>
                     </ul>
@@ -95,17 +161,24 @@
                                 {{ invoice.invoice_no }}
                             </div>
                         </div>
-                        {% if invoice.mhesi_no %}
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่</p>
+                            <div style="margin-left: 1.75rem;">
+                                อว. {{ invoice.mhesi_no or '78.04/' }}
+                            </div>
+                        </div>
+                        {% if invoice.mhesi_issued_at %}
                             <div class="mb-4 is-flex is-align-items-center">
-                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่</p>
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่</p>
                                 <div style="margin-left: 1.75rem;">
-                                    อว. {{ invoice.mhesi_no }}
+                                    {{ invoice.mhesi_issued_at.strftime('%d/%m/%Y') }}
                                 </div>
                             </div>
+                        {% else %}
                             <div class="mb-4 is-flex is-align-items-center">
-                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">เลขที่</p>
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่ร่าง</p>
                                 <div style="margin-left: 1.75rem;">
-                                    {{ invoice.approved_at.strftime('%d/%m/%Y') }}
+                                    {{ invoice.created_at.strftime('%d/%m/%Y') }}
                                 </div>
                             </div>
                         {% endif %}
@@ -151,7 +224,7 @@
                             {% for item in invoice.invoice_items|sort(attribute='sequence') %}
                                 <tr>
                                     <td class="has-text-centered">{{ item.sequence }}</td>
-                                    <td>{{ item.item }}</td>
+                                    <td>{{ item.item|safe }}</td>
                                     <td class="has-text-centered">{{ item.quantity }}</td>
                                     <td class="has-text-right">
                                         {{ "{:,.2f}".format(item.unit_price) }}
@@ -193,17 +266,17 @@
                             </ul>
                             <hr>
                             <p class="menu-label">
-                                วันที่อนุมัติ
+                                วันที่ส่งใบแจ้งหนี้
                             </p>
                             <ul class="menu-list">
                                 <li>
-                                    {% if invoice.approved_at %}
+                                    {% if invoice.mhesi_issued_at %}
                                         <span class="icon">
                                             <i class="fas fa-clock"></i>
                                         </span>
-                                        {{ invoice.approved_at.strftime('%d/%m/%Y') }}
+                                        {{ invoice.mhesi_issued_at.strftime('%d/%m/%Y') }}
                                     {% else %}
-                                        ยังไม่ดำเนินการอนุมัติ
+                                        ยังไม่ดำเนินการส่ง
                                     {% endif %}
                                 </li>
                             </ul>
@@ -213,20 +286,8 @@
                             </p>
                             <ul class="menu-list">
                                 <li>
-                                    <span class="tag
-                                        {% if invoice.status == 'รอหัวหน้าอนุมัติ' %}
-                                            is-light
-                                        {% elif invoice.status == 'รอผู้ช่วยคณบดีอนุมัติ' %}
-                                            is-info
-                                        {% elif invoice.status == 'รอคณบดีอนุมัติ' %}
-                                            is-primary
-                                        {% elif invoice.status == 'รอเจ้าหน้าทีออกเลข อว.' %}
-                                            is-warning
-                                        {% else %}
-                                            is-success
-                                        {% endif %}
-                                    ">
-                                        {{ invoice.status }}
+                                    <span class="tag {{ invoice.admin_status_color }}">
+                                        {{ invoice.admin_status }}
                                     </span>
                                 </li>
                             </ul>
@@ -235,8 +296,8 @@
                                 การดำเนินการ
                             </p>
                             <ul class="menu-list">
-                                {% if invoice.status == 'อยู่ระหว่างการตรวจสอบ' and admin%}
-                                     <li>
+                                {% if invoice.quotation.request.status.status_id == 14 and admin %}
+                                    <li>
                                         <a class="button is-success is-rounded is-full-height mb-2"
                                            href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id, admin='admin', menu=menu) }}"
                                         >
@@ -246,20 +307,20 @@
                                             <span>เสนอหัวหน้าอนุมัติ</span>
                                         </a>
                                     </li>
-                                {% elif (invoice.status == 'รอหัวหน้าอนุมัติ' and supervisor) or
-                                        (invoice.status == 'รอผู้ช่วยคณบดีอนุมัติ' and assistant) or
-                                        (invoice.status == 'รอคณบดีอนุมัติ' and dean) %}
+                                {% elif (invoice.quotation.request.status.status_id == 15 and supervisor) or
+                                        (invoice.quotation.request.status.status_id == 16 and assistant) or
+                                        (invoice.quotation.request.status.status_id == 17 and dean) %}
                                     <li>
                                         <a class="button is-success is-rounded is-full-height mb-2"
                                                 {% if supervisor %}
-                                           href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
-                                           admin='supervisor', menu=menu) }}"
-                                                {% elif approver %}
-                                           href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
-                                           admin='assistant', menu=menu) }}"
-                                                {% elif signer %}
-                                           href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
-                                           admin='dean', menu=menu) }}"
+                                                   href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
+                                                   admin='supervisor', menu=menu) }}"
+                                                {% elif assistant %}
+                                                   href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
+                                                   admin='assistant', menu=menu) }}"
+                                                {% elif dean %}
+                                                   href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
+                                                   admin='dean', menu=menu) }}"
                                                 {% endif %}
                                         >
                                             <span class="icon">
@@ -268,10 +329,10 @@
                                             <span>อนุมัติ</span>
                                         </a>
                                     </li>
-                                {% elif invoice.status == 'รอเจ้าหน้าที่ออกเลข อว.' and central_admin %}
+                                {% elif invoice.quotation.request.status.status_id == 18 and central_admin %}
                                     <li>
                                         <div id="mhesi_number"></div>
-                                        <a class="button is-info"
+                                        <a class="button is-info is-rounded is-full-height mb-2"
                                            hx-swap="innerHTML"
                                            hx-target="#mhesi_number"
                                            hx-get="{{ url_for('service_admin.add_mhesi_number', invoice_id=invoice.id,

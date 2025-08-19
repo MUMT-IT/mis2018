@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "academic_services/service_base.html" %}
 {% block head %}
     {{ super() }}
     <style>
@@ -71,7 +71,7 @@
                             {% for item in quotation.quotation_items|sort(attribute='sequence') %}
                                 <tr>
                                     <td class="has-text-centered">{{ item.sequence }}</td>
-                                    <td>{{ item.item }}</td>
+                                    <td>{{ item.item|safe }}</td>
                                     <td class="has-text-centered">{{ item.quantity }}</td>
                                     <td class="has-text-right">
                                         {{ "{:,.2f}".format(item.unit_price) }}
@@ -94,10 +94,40 @@
                             </p>
                             <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ "{:,.2f}".format(quotation.grand_total()) }}</p>
                         </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่สำหรับจัดส่งเอกสาร</p>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ถึง</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.request.document_address.name }}
+                            </div>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.request.document_address.address }}
+                                {{ 'แขวง' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'ตำบล' }}{{ quotation.request.document_address.subdistrict }}
+                                {{ 'เขต' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'อำเภอ' }}{{ quotation.request.document_address.district }}
+                                จังหวัด{{ quotation.request.document_address.province }} {{ quotation.request.document_address.zipcode }}
+                            </div>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เบอร์โทรศัพท์</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.request.document_address.phone_number }}
+                            </div>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">อีเมล</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.request.customer.contact_email }}
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="column is-one-quarter ">
-                    <div class="box is-full-height">
+                    <div class="box">
                         <aside class="menu">
                             <p class="menu-label">
                                 งานบริการ
@@ -127,20 +157,8 @@
                             </p>
                             <ul class="menu-list">
                                 <li>
-                                    <span class="tag
-                                        {% if quotation.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา' %}
-                                            is-light
-                                        {% elif quotation.status == 'รออนุมัติใบเสนอราคา' %}
-                                            is-info
-                                        {% elif quotation.status == 'รอยืนยันใบเสนอราคาจากลูกค้า' %}
-                                            is-warning
-                                        {% elif quotation.status == 'ลูกค้าไม่อนุมัติใบเสนอราคา' %}
-                                            is-danger
-                                        {% else %}
-                                           is-success
-                                        {% endif %}
-                                    ">
-                                        {{ quotation.status }}
+                                    <span class="tag {{ quotation.customer_status_color }}">
+                                        {{ quotation.customer_status }}
                                     </span>
                                 </li>
                             </ul>
@@ -149,7 +167,7 @@
                                 การดำเนินการ
                             </p>
                             <ul class="menu-list">
-                                {% if quotation.status == 'รอยืนยันใบเสนอราคาจากลูกค้า' %}
+                                {% if not quotation.confirmed_at %}
                                     <li>
                                         <a class="button is-success is-rounded is-fullwidth mb-2" style="margin-right: .3em"
                                            href="{{ url_for('academic_services.confirm_quotation',

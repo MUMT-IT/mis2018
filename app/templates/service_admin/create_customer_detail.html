@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% block page_content %}
     {% include "service_admin/admin_nav.html" %}
@@ -65,7 +66,7 @@
                             {% if customer.customer_contacts %}
                                 {% for c in customer.customer_contacts %}
                                     <div class="field">
-                                        <label class="label">ชื่อผู้ประสานงาน</label>
+                                        <label class="label">ชื่อ-นามสกุล</label>
                                         <div class="control">
                                             {{ c.contact_name or 'ไม่ระบุ' }}
                                         </div>
@@ -90,7 +91,52 @@
                                     </div>
                                 {% endfor %}
                             {% else %}
-                                ไม่มีข้อมูลผู้ประสานงาน
+                                <div class="field">
+                                    <label class="label">
+                                        {{ form.contact_name.label }}
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ form.contact_name(class="input", placeholder='Name') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-user"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">
+                                        {{ form.phone_number.label }}
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ form.phone_number(class="input", placeholder='08X-XXX-XXXX',
+                                                oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-phone"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">
+                                        {{ form.email.label }}
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ form.email(class="input", placeholder='ex. example@example.com') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-envelope"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.remark.label }}</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ form.remark(class="input", placeholder='Note') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fa-solid fa-text-height"></i>
+                                        </span>
+                                    </div>
+                                </div>
                             {% endif %}
                             <h1 class="title is-size-5" style="margin-top: 1em">ข้อมูลที่อยู่</h1>
                             <hr style="background-color: gainsboro">
@@ -144,13 +190,14 @@
                                style="margin-bottom: 1.5em"
                                hx-swap="innerHTML"
                                hx-target="#address-form"
-                               hx-get="{{ url_for('academic_services.create_address', type='quotation', menu=menu) }}"
+                               hx-get="{{ url_for('service_admin.edit_customer_address', type='quotation',
+                               customer_id=customer_id) }}"
                             >
                                 <span class="icon">
                                     <i class="fas fa-plus"></i>
                                 </span>
                                 <span>
-                                    เพิ่มที่อยู่
+                                    เพิ่มที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
                                 </span>
                             </a>
                             <h1 class="subtitle">
@@ -176,8 +223,6 @@
                                                                 {{ 'แขวง' if 'กรุงเทพมหานคร' in address.province.name else 'ตำบล' }}{{ address.subdistrict }}
                                                                 {{ 'เขต' if 'กรุงเทพมหานคร' in address.province.name else 'อำเภอ' }}{{ address.district }}
                                                                 จังหวัด{{ address.province }} {{ address.zipcode }}<br>
-                                                                เลขประจำตัวผู้เสียภาษีอากร
-                                                                : {{ address.taxpayer_identification_no }}<br>
                                                                 เบอร์โทรศัพท์ : {{ address.phone_number }}<br>
                                                                 {% if address.remark %}
                                                                     หมายเหตุ : {{ address.remark }}<br>
@@ -188,6 +233,19 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        <div class="mt-3">
+                                            <a class="button is-warning is-rounded"
+                                               hx-swap="innerHTML"
+                                               hx-target="#address-form"
+                                               hx-get="{{ url_for('service_admin.edit_customer_address',
+                                               address_id=address.id) }}"
+                                            >
+                                                <span class="icon">
+                                                    <i class="fas fa-edit"></i>
+                                                </span>
+                                                <span>แก้ไขที่อยู่จัดส่งเอกสาร</span>
+                                            </a>
+                                        </div>
                                     {% endif %}
                                 {% endfor %}
                             </div>
@@ -196,8 +254,8 @@
                                     <div class="control">
                                         <a class='button is-light is-success is-rounded'
                                                 {% for address in customer.addresses %}
-                                                   hx-post="{{ url_for('academic_services.submit_same_address', address_id=address.id,
-                                                   customer_id=customer_id) }}"
+                                                   hx-post="{{ url_for('service_admin.submit_same_address',
+                                                   address_id=address.id, customer_id=customer_id) }}"
                                                 {% endfor %}
                                                    hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
                                                    hx-confirm="ท่านต้องการใช้ที่อยู่เดียวกันหรือไม่"
@@ -213,7 +271,8 @@
                                            style="margin-bottom: 1.5em; width: 14em"
                                            hx-swap="innerHTML"
                                            hx-target="#address-form"
-                                           hx-get="{{ url_for('academic_services.create_address', type='document', menu=menu) }}"
+                                           hx-get="{{ url_for('service_admin.edit_customer_address', type='document',
+                                           customer_id=customer_id) }}"
                                         >
                                             <span class="icon">
                                                 <i class="fas fa-plus"></i>
@@ -241,6 +300,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             function setupCardSelection(groupClass) {

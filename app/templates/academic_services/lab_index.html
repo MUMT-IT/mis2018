@@ -9,9 +9,6 @@
             opacity: 1 !important;
             transition: none !important;
         }
-        .is-full-height {
-            height: 100%;
-        }
     </style>
 {% endblock %}
 {% block page_content %}
@@ -26,7 +23,7 @@
                     <div class="columns is-centered">
                         <div class="column is-11">
                             <div class="columns is-multiline">
-                                {% for lab in labs %}
+                                {% for lab in labs|sort(attribute='no')  %}
                                     <div class="column is-one-third">
                                         <div class="card" style="height: 100%;">
                                             <div class="card-image">
@@ -39,33 +36,33 @@
                                                 <ul>
 
                                                 </ul>
-                                                <div class="buttons mt-3 is-centered">
+                                                <div class="field is-grouped is-grouped-centered">
                                                     <a href="{{ url_for('academic_services.detail_lab_index', cat='form', code=lab.code) }}"
-                                                       class="button is-light is-full-height"
+                                                       class="button is-light is-small mr-1"
                                                     >
                                                         เรียนรู้เพิ่มเติม
                                                     </a>
                                                     {% if current_user.verify_datetime %}
                                                         {% if lab.sub_labs|length > 1  %}
                                                             <a href="{{ url_for('academic_services.detail_lab_index', cat='form', code=lab.code) }}"
-                                                               class="button is-info is-full-height"
+                                                               class="button is-info is-small"
                                                             >
                                                                 ส่งคำขอรับบริการ
                                                             </a>
                                                         {% else %}
                                                             {% for sub_lab in lab.sub_labs %}
                                                                 <a href="{{ url_for('academic_services.create_service_request', code=sub_lab.code) }}"
-                                                                   class="button is-info is-full-height"
+                                                                   class="button is-info is-small"
                                                                 >
                                                                     ส่งคำขอรับบริการ
                                                                 </a>
                                                             {% endfor %}
                                                         {% endif %}
                                                     {% elif current_user.verify_datetime == None %}
-                                                        <a id="Warn" class="button is-info is-full-height">ส่งคำขอรับบริการ</a>
+                                                        <a id="Warn" class="button is-info is-small">ส่งคำขอรับบริการ</a>
                                                     {% else %}
                                                         <a href="{{ url_for('academic_services.login') }}"
-                                                           class="button is-info is-full-height"
+                                                           class="button is-info is-small"
                                                         >
                                                             ส่งคำขอรับบริการ
                                                         </a>

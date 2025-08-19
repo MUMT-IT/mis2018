@@ -95,7 +95,7 @@
                                 invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '?menu=invoice';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
-                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + invoice_url + '>' +
+                                    '<a class="button is-small is-success is-rounded" ' + 'href=' + invoice_url + '>' +
                                     '<span class="icon">' +
                                     '<i class="fas fa-file-download"></i>' +
                                     '</span>' +
@@ -104,7 +104,17 @@
                                     '</div>' +
                                     '</div>'
                             } else {
-                               return ''
+                               invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + invoice_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-eye"></i>' +
+                                    '</span>' +
+                                    '<span>ดูใบแจ้งหนี้</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
                             }
                         }
                     }

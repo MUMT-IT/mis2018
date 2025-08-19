@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import FileField, FieldList, FormField, RadioField, FloatField, PasswordField
+from wtforms import FileField, FieldList, FormField, RadioField, FloatField, PasswordField, StringField
 from wtforms.validators import DataRequired, Length, Optional
 from wtforms_alchemy import model_form_factory, QuerySelectField
 
@@ -21,12 +21,25 @@ class PasswordOfSignDigitalForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
 
 
+class ServiceCustomerContactForm(ModelForm):
+    class Meta:
+        model = ServiceCustomerContact
+
+    contact_name = StringField('ชื่อผู้ประสานงาน', validators=[DataRequired()])
+    phone_number = StringField('เบอร์โทรศัพท์', validators=[DataRequired()])
+    email = StringField('อีเมล', validators=[DataRequired()])
+
+
 class ServiceCustomerInfoForm(ModelForm):
     class Meta:
         model = ServiceCustomerInfo
 
     type = QuerySelectField('ประเภท', query_factory=lambda: ServiceCustomerType.query.all(), allow_blank=True,
-                                blank_text='กรุณาเลือกประเภท', get_label='type')
+                            blank_text='กรุณาเลือกประเภท', get_label='type',
+                            validators=[DataRequired(message='กรุณาเลือกประเภท')])
+    cus_name = StringField(validators=[DataRequired()])
+    taxpayer_identification_no = StringField('เลขประจำตัวผู้เสียภาษีอากร', validators=[DataRequired()])
+    phone_number = StringField('เบอร์โทรศัพท์', validators=[DataRequired()])
     customer_contacts = FieldList(FormField(ServiceCustomerContactForm, default=ServiceCustomerContact), min_entries=1)
 
 
@@ -52,12 +65,23 @@ def crate_address_form(use_type=False):
         if use_type==True:
             address_type = RadioField('ประเภทที่อยู่', choices=[(c, c) for c in ['ที่อยู่จัดส่งเอกสาร', 'ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี']],
                               validators=[DataRequired()])
-        province = QuerySelectField('จังหวัด', query_factory=lambda: Province.query.all(), allow_blank=True,
-                                    blank_text='กรุณาเลือกจังหวัด', get_label='name')
-        district = QuerySelectField('เขต/อำเภอ', query_factory=lambda: District.query.all(), allow_blank=True,
-                                    blank_text='กรุณาเลือกเขต/อำเภอ', get_label='name')
-        subdistrict = QuerySelectField('แขวง/ตำบล', query_factory=lambda: Subdistrict.query.all(), allow_blank=True,
-                                       blank_text='กรุณาเลือกแขวง/ตำบล', get_label='name')
+        name = StringField(validators=[DataRequired()])
+        address = StringField('ที่อยู่', validators=[DataRequired()])
+        province = QuerySelectField('จังหวัด', query_factory=lambda: Province.query.order_by(Province.name).all(),
+                                    allow_blank=True,
+                                    blank_text='กรุณาเลือกจังหวัด', get_label='name',
+                                    validators=[DataRequired(message='กรุณาเลือกจังหวัด')])
+        district = QuerySelectField('เขต/อำเภอ', query_factory=lambda: District.query.order_by(District.name).all(),
+                                    allow_blank=True,
+                                    blank_text='กรุณาเลือกเขต/อำเภอ', get_label='name',
+                                    validators=[DataRequired(message='กรุณาเลือกเขต/อำเภอ')])
+        subdistrict = QuerySelectField('แขวง/ตำบล',
+                                       query_factory=lambda: Subdistrict.query.order_by(Subdistrict.name).all(),
+                                       allow_blank=True,
+                                       blank_text='กรุณาเลือกแขวง/ตำบล', get_label='name',
+                                       validators=[DataRequired(message='กรุณาเลือกแขวง/ตำบล')])
+        zipcode = StringField('รหัสไปรษณีย์', validators=[DataRequired()])
+        phone_number = StringField('เบอร์โทรศัพท์', validators=[DataRequired()])
     return ServiceCustomerAddressForm
 
 

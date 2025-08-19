@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "academic_services/service_base.html" %}
 {% block title %}MUMT Internal Information System{% endblock %}
 {% include "academic_services/customer_nav.html" %}
 {% block page_content %}
@@ -39,7 +39,7 @@
             delimiters: ['<%', '%>'],
             methods: {
                 printRequest: function () {
-                    printJS({{ url_for('service_admin.export_request_pdf', request_id=request_id)|tojson|safe }});
+                    printJS({{ url_for('academic_services.export_request_pdf', request_id=request_id)|tojson|safe }});
                 }
             },
         });

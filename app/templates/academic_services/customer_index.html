@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "academic_services/service_base.html" %}
 {% block title %}Analysis Service System{% endblock %}
 {% include "academic_services/customer_nav.html" %}
 {% block head %}
@@ -8,33 +8,7 @@
     {% include "messages.html" %}
     <section class="section-padding" id="hero">
         <div class="container is-fullhd">
-            <div class="columns">
-                <div class="column is-8 {% if current_user.is_authenticated %}is-offset-2{% endif %}">
-                    <section class="hero">
-                        <div class="hero-body">
-                            <p class="title">งานบริการตรวจวิเคราะห์</p>
-                            <p class="subtitle">Description</p>
-                        </div>
-                    </section>
-                    <div class="columns is-multiline">
-                        {% for lab in labs %}
-                            <div class="column is-one-third">
-                                <a class="card" href="{{ url_for('academic_services.detail_lab_index', code=lab.code) }}"
-                                   style="border: none; box-shadow: none;"
-                                >
-                                    <div class="card-image">
-                                        <figure class="image is-4by3">
-                                            <img src="{{ url_for('static', filename=lab.image) }}" alt="Logo"/>
-                                        </figure>
-                                    </div>
-                                    <div class="card-content">
-                                        <p class="title is-5">{{ lab.lab }}</p>
-                                    </div>
-                                </a>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
+            <div class="columns{% if is_mobile %}is-mobile is-flex is-justify-content-center{% endif %}" >
                 {% if not current_user.is_authenticated %}
                     <div class="column is-4 is-align-item-center">
                         <section class="hero">
@@ -57,31 +31,91 @@
                                             {{ form.email(placeholder='ex. example@example.com', class='input') }}
                                         </div>
                                     </div>
-                                        <div class="field">
-                                            <label class="label">รหัสผ่าน</label>
-                                            <div class="control">
-                                                {{ form.password(placeholder='Password', class='input') }}
+                                    <div class="field">
+                                        <label class="label">รหัสผ่าน</label>
+                                        <div class="control">
+                                            {{ form.password(placeholder='Password', class='input') }}
+                                        </div>
+                                    </div>
+                                    <a href="{{ url_for('academic_services.forget_password') }}">คุณลืมรหัสผ่านใช่หรือไม่?</a>
+                                    <br>
+                                    <br>
+                                    <div class="field is-grouped is-grouped-centered">
+                                        <div class="control">
+                                            {{ form.submit(class='button is-info') }}
+                                        </div>
+                                        <a class="button" href="{{ url_for('academic_services.pdpa_index') }}">
+                                            สมัครสมาชิก
+                                        </a>
+                                    </div>
+                                    <hr>
+                                    <label class="label">วิธีใช้งานระบบ</label>
+                                    <a>คู่มือการใช้งานระบบบริการวิเคราะห์</a>
+                                </form>
+                            </div>
+                        </article>
+                    </div>
+                {% endif %}
+                {% if not is_mobile %}
+                    <div class="column is-8 {% if current_user.is_authenticated %}is-offset-2{% endif %}" style="margin-bottom: 5em">
+                        <section class="hero">
+                            <div class="hero-body">
+                                <p class="title has-text-centered">งานบริการตรวจวิเคราะห์</p>
+                                <p class="subtitle"></p>
+                            </div>
+                        </section>
+                        <div class="columns is-multiline">
+                            {% for lab in labs|sort(attribute='no') %}
+                                <div class="column is-one-third">
+                                    <div class="card" style="height: 100%;">
+                                        <div class="card-image">
+                                            <figure class="image is-4by3">
+                                                <img src="{{ url_for('static', filename=lab.image) }}" alt="Logo"/>
+                                            </figure>
+                                        </div>
+                                        <div class="card-content">
+                                            <p class="title is-5">{{ lab.lab }}</p>
+                                            <ul>
+
+                                            </ul>
+                                            <div class="field is-grouped is-grouped-centered">
+                                                <a href="{{ url_for('academic_services.detail_lab_index', cat='form', code=lab.code) }}"
+                                                   class="button is-light is-small mr-1"
+                                                >
+                                                    เรียนรู้เพิ่มเติม
+                                                </a>
+                                                {% if current_user.verify_datetime %}
+                                                    {% if lab.sub_labs|length > 1 %}
+                                                        <a href="{{ url_for('academic_services.detail_lab_index', cat='form', code=lab.code) }}"
+                                                           class="button is-info is-small"
+                                                        >
+                                                            ส่งคำขอรับบริการ
+                                                        </a>
+                                                    {% else %}
+                                                        {% for sub_lab in lab.sub_labs %}
+                                                            <a href="{{ url_for('academic_services.create_service_request', code=sub_lab.code) }}"
+                                                               class="button is-info is-small"
+                                                            >
+                                                                ส่งคำขอรับบริการ
+                                                            </a>
+                                                        {% endfor %}
+                                                    {% endif %}
+                                                {% elif current_user.verify_datetime == None %}
+                                                    <a id="Warn" class="button is-info is-small">ส่งคำขอรับบริการ</a>
+                                                {% else %}
+                                                    <a href="{{ url_for('academic_services.login') }}"
+                                                       class="button is-info is-small"
+                                                    >
+                                                        ส่งคำขอรับบริการ
+                                                    </a>
+                                                {% endif %}
                                             </div>
                                         </div>
-                                        <a href="{{ url_for('academic_services.forget_password') }}">คุณลืมรหัสผ่านใช่หรือไม่?</a>
-                                        <br>
-                                        <br>
-                                        <div class="field is-grouped is-grouped-centered">
-                                            <div class="control">
-                                                {{ form.submit(class='button is-info') }}
-                                            </div>
-                                        </div>
-                                        <hr>
-                                        <div class="field has-text-centered">
-                                            <label class="label">หากท่านยังไม่ได้เป็นสมาชิก</label>
-                                            <a href="{{ url_for('academic_services.pdpa_index') }}">สมัครสมาชิก</a>
-                                        </div>
-                                        <label class="label">วิธีใช้งานระบบ</label>
-                                        <a>คู่มือการใช้งานระบบบริการวิเคราะห์</a>
-                                    </form>
+                                    </div>
                                 </div>
-                            </article>
+                            {% endfor %}
                         </div>
+                    </div>
                 {% endif %}
             </div>
         </div>
@@ -106,7 +140,7 @@
                     <span>0800000000</span>
                 </div>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center" >
+            <div style="display: flex; justify-content: space-between; align-items: center">
                 <div class="field has-text-left">
                     <span>เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล</span>
                 </div>
@@ -115,7 +149,7 @@
                     <span>mumt@gmail.com</span>
                 </div>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center" >
+            <div style="display: flex; justify-content: space-between; align-items: center">
                 <div class="field has-text-left">
                     <span>จังหวัดนครปฐม 73170</span>
                 </div>
