@@ -261,22 +261,20 @@ def create_customer(customer_id=None):
 @login_required
 def request_index():
     menu = request.args.get('menu')
-    today = datetime.today().date()
-    service_requests = ServiceRequest.query.all()
-    new_request_count = len([r for r in service_requests if r.status.status_id == 1])
-    confirm_request_count = len([r for r in service_requests if r.status.status_id != 1])
-    quotation_pending_approval_count = len([q for r in service_requests for q in r.quotations if q.sent_at and q.approved_at is None])
-    quotation_approved_count = len([q for r in service_requests for q in r.quotations if q.approved_at])
-    testing_count = len([r for r in service_requests if r.status.status_id == 11])
-    not_testing_count = len([r for r in service_requests if r.status.status_id == 10])
-    unpaid_count = len(
-        [n for r in service_requests for q in r.quotations if q.confirmed_at for n in q.invoices if not n.paid_at])
-    overdue_count = len([n for r in service_requests for q in r.quotations if q.confirmed_at for n in q.invoices if
-                         n.due_date.date() < today])
-    return render_template('service_admin/request_index.html', menu=menu, service_requests=service_requests,
-                           new_request_count=new_request_count, confirm_request_count=confirm_request_count,
-                           quotation_approved_count=quotation_approved_count, quotation_pending_approval_count=quotation_pending_approval_count,
-                           unpaid_count=unpaid_count, overdue_count=overdue_count, not_testing_count=not_testing_count,
+    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    sub_labs = []
+    for a in admin:
+        sub_labs.append(a.sub_lab.code)
+    quotation_request_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=2),
+        or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(sub_labs)))])
+    quotation_pending_approval_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=5),
+        or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(sub_labs)))])
+    waiting_sample_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=9),
+        or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(sub_labs)))])
+    testing_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=11),
+        or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(sub_labs)))])
+    return render_template('service_admin/request_index.html', menu=menu,quotation_request_count=quotation_request_count,
+                           quotation_pending_approval_count=quotation_pending_approval_count, waiting_sample_count=waiting_sample_count,
                            testing_count=testing_count)
 
 
