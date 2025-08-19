@@ -3024,7 +3024,8 @@ def seminar_add_approval(attend_id):
 def seminar_pre_register_upcoming_records():
     pre_seminars = StaffSeminar.query.filter(StaffSeminar.closed_at != None,
                                              StaffSeminar.end_datetime >= arrow.now('Asia/Bangkok').datetime).all()
-    return render_template('staff/seminar_pre_register.html', pre_seminars=pre_seminars)
+    is_secretary = True if secretary_permission else False
+    return render_template('staff/seminar_pre_register.html', pre_seminars=pre_seminars, is_secretary=is_secretary)
 
 
 @staff.route('/seminar/pre-register/my-records')
@@ -3959,14 +3960,6 @@ def staff_edit_info(staff_id):
             )
             db.session.add(createstaff)
 
-        if form.getlist("rejoined"):
-            create_resign = StaffResignation(
-                staff_account_id=staff_account.id,
-                hire_date=staff_account.personal_info.employed_date,
-                resign_date=staff_account.personal_info.resignation_date,
-            )
-            db.session.add(create_resign)
-            db.session.commit()
         start_d = form.get('employed_date')
         start_date = datetime.strptime(start_d, '%d/%m/%Y') if start_d else None
         resign_date = datetime.strptime(form.get('resignation_date'), '%d/%m/%Y') \
@@ -3992,6 +3985,15 @@ def staff_edit_info(staff_id):
         academic_staff = True if form.getlist("academic_staff") else False
         staff.academic_staff = academic_staff
         retired = True if form.getlist("retired") else False
+        if form.getlist("rejoined"):
+            create_resign = StaffResignation(
+                staff_account_id=staff_account.id,
+                hire_date=staff_account.personal_info.employed_date,
+                resign_date=staff_account.personal_info.resignation_date,
+            )
+            db.session.add(create_resign)
+            db.session.commit()
+            retired = False
         staff.retired = retired
         if not staff.retired:
             if staff.resignation_date:
