@@ -1908,7 +1908,7 @@ def edit_confirm_scoresheet(scoresheet_id):
 
 @pa.route('/hr/all-pa', methods=['GET', 'POST'])
 @login_required
-@hr_permission.require()
+@hr_confidential.require()
 def all_pa():
     pa = PAAgreement.query.all()
     rounds = PARound.query.order_by(PARound.id.desc()).all()
@@ -1918,17 +1918,28 @@ def all_pa():
     pending_pa_staff = []
     if org_id is None:
         if round_id:
-            pa = PAAgreement.query.filter_by(round_id=round_id).all()
+            org_round_pa = []
+            all_pa = PAAgreement.query.filter_by(round_id=round_id).all()
+            for pa in all_pa:
+                if not pa.staff.is_retired:
+                    org_round_pa.append(pa)
+                pa = org_round_pa
         else:
+            org_round_pa = []
             round = PARound.query.order_by(PARound.id.desc()).first()
-            pa = PAAgreement.query.filter_by(round_id=round.id).all()
+            all_pa = PAAgreement.query.filter_by(round_id=round.id).all()
+            for pa in all_pa:
+                if not pa.staff.is_retired:
+                    org_round_pa.append(pa)
+                pa = org_round_pa
     else:
         if round_id:
             org_round_pa = []
             all_pa = PAAgreement.query.filter_by(round_id=round_id).all()
             for pa in all_pa:
                 if pa.staff.personal_info.org_id == org_id:
-                    org_round_pa.append(pa)
+                    if not pa.staff.is_retired:
+                        org_round_pa.append(pa)
                 pa = org_round_pa
             pending_pa_staff = []
             round = PARound.query.get(round_id)
@@ -1950,7 +1961,8 @@ def all_pa():
             all_pa = PAAgreement.query.all()
             for pa in all_pa:
                 if pa.staff.personal_info.org_id == org_id:
-                    org_round_pa.append(pa)
+                    if not pa.staff.is_retired:
+                        org_round_pa.append(pa)
                 pa = org_round_pa
             pending_pa_staff = []
             for staff in StaffAccount.query.join(StaffPersonalInfo).\
@@ -2094,7 +2106,7 @@ def add_kpi_job_position_item(job_kpi_id):
 
 @pa.route('/hr/all-kpis-all-items', methods=['GET', 'POST'])
 @login_required
-@hr_permission.require()
+@hr_confidential.require()
 def all_kpi_all_item():
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
@@ -2166,7 +2178,7 @@ def all_kpi_all_item():
 
 @pa.route('/hr/all-kpis', methods=['GET', 'POST'])
 @login_required
-@hr_permission.require()
+@hr_confidential.require()
 def all_kpis():
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
