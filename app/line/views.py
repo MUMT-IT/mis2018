@@ -259,20 +259,20 @@ def notify_room_booking():
             .filter(RoomEvent.datetime.op('&&')
                         (DateTimeRange(lower=start.datetime, upper=end.datetime, bounds='[]'))) \
             .filter(RoomEvent.cancelled_at == None):
-        if when == 'today':
-            message = 'รายการจองห้องที่ท่านดูแลในวันนี้:\n'
-        elif when == 'tomorrow':
-            message = 'รายการจองห้องที่ท่านดูแลในวันพรุ่งนี้:\n'
-
-        if evt.creator.line_id:
-            try:
-                booker = evt.creator.personal_info.fullname if evt.created_by else ""
-                comment = f"({evt.comment})" or ""
-                message += f"ห้อง {evt.room.number} เวลา {tz.localize(evt.datetime.lower).strftime('%H:%M')}" \
-                           f" - {tz.localize(evt.datetime.upper).strftime('%H:%M')} {booker} {comment}\n"
-                line_bot_api.push_message(to=evt.creator.line_id,
-                                          messages=TextSendMessage(text=message))
-            except LineBotApiError as e:
-                return jsonify({'message': str(e)})
+        for co in evt.room.coordinators:
+            if when == 'today':
+                message = 'รายการจองห้องที่ท่านดูแลในวันนี้:\n'
+            elif when == 'tomorrow':
+                message = 'รายการจองห้องที่ท่านดูแลในวันพรุ่งนี้:\n'
+            if co.line_id:
+                try:
+                    booker = evt.creator.personal_info.fullname if evt.created_by else ""
+                    comment = f"({evt.comment})" or ""
+                    message += f"ห้อง {evt.room.number} เวลา {tz.localize(evt.datetime.lower).strftime('%H:%M')}" \
+                               f" - {tz.localize(evt.datetime.upper).strftime('%H:%M')} {booker} {comment}\n"
+                    line_bot_api.push_message(to=co.line_id,
+                                              messages=TextSendMessage(text=message))
+                except LineBotApiError as e:
+                    return jsonify({'message': str(e)})
 
     return jsonify({'message': 'success'}), 200
