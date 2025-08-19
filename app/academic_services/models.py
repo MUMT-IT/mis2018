@@ -364,21 +364,7 @@ class ServiceRequest(db.Model):
             'admin_status_color': self.status.admin_status_color if self.status else None,
             'customer_status': self.status.customer_status if self.status else None,
             'customer_status_color': self.status.customer_status_color if self.status else None,
-            'quotation' : self.get_quotations()
         }
-
-    def get_quotations(self):
-        if self.quotations:
-            for quotation in self.quotations:
-                if quotation.approved_at:
-                    status = 'ส่งใบเสนอราคาแล้ว'
-                elif quotation.sent_at and not quotation.approved_at:
-                    status = 'ส่งให้หัวหน้าอนุมัติแล้ว'
-                else:
-                    status = 'ร่างใบเสนอราคา'
-        else:
-            status = 'ยังไม่ออกใบเสนอราคา'
-        return status
 
 
 class ServiceReqReportLanguageAssoc(db.Model):
