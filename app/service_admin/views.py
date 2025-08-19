@@ -262,7 +262,12 @@ def create_customer(customer_id=None):
 def request_index():
     menu = request.args.get('menu')
     today = datetime.today().date()
-    service_requests = ServiceRequest.query.all()
+    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    sub_labs = []
+    for a in admin:
+        sub_labs.append(a.sub_lab.code)
+    service_requests = ServiceRequest.query.filter(or_(ServiceRequest.admin.has(id=current_user.id),
+                                                       ServiceRequest.lab.in_(sub_labs)))
     new_request_count = len([r for r in service_requests if r.status.status_id == 1])
     confirm_request_count = len([r for r in service_requests if r.status.status_id != 1])
     quotation_pending_approval_count = len([q for r in service_requests for q in r.quotations if q.sent_at and q.approved_at is None])
