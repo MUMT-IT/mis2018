@@ -1569,110 +1569,57 @@ def approve_invoice(invoice_id):
                           _scheme=scheme)
     customer_name = invoice.customer_name.replace(' ', '_')
     title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
-    if admin == 'dean':
-        status_id = get_status(18)
-        invoice.quotation.request.status_id = status_id
-        invoice.dean_approved_at = arrow.now('Asia/Bangkok').datetime
-        invoice.dean_id = current_user.id
-        if admins:
-            email = [a.admin.email for a in admins if a.is_central_admin]
-            msg = ('แจ้งดำเนินการออกเลข อว. ใบแจ้งหนี้เลขที่ {}' \
-                   '\n\nเรียน เจ้าหน้าที่' \
-                   '\n\nใบแจ้งหนี้เลขที่ : {}' \
-                   '\nลูกค้า : {}' \
-                   '\nในนาม : {}' \
-                   '\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
-                   '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
-                   '\n{}' \
-                   '\n\nขอบคุณค่ะ' \
-                   '\nระบบบริการวิชาการ'\
-                   '\n\n{}' \
-                   '\nผู้ประสานงาน' \
-                   '\nเบอร์โทร {}'.format(invoice.invoice_no, invoice.invoice_no, invoice.customer_name, invoice.name,
-                                          invoice_url, invoice.customer_name, invoice.contact_phone_number))
-            title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งดำเนินการออกเลข อว. ใบแจ้งหนี้'
-            message = f'''เรียน เจ้าหน้าที่\n\n'''
-            message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no}'''
-            message += f'''ลูกค้า : {invoice.customer_name}\n'''
-            message += f'''ในนาม : {invoice.name}\n'''
-            message += f'''ที่รอดำเนินการออกเลข อว.\n'''
-            message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
-            message += f'''{invoice_url}\n\n'''
-            message += f'''ขอบคุณค่ะ\n'''
-            message += f'''ระบบบริการวิชาการ\n\n'''
-            message += f'''{invoice.customer_name}\n'''
-            message += f'''ผู้ประสานงาน\n'''
-            message += f'''เบอร์โทร {invoice.contact_phone_number}'''
-            if email:
-                send_mail(email, title, message)
-                if not current_app.debug:
-                    for a in admins:
-                        if a.is_central_admin:
-                            try:
-                                line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                            except LineBotApiError:
-                                pass
-    elif admin == 'assistant':
+    if admin == 'assistant':
         status_id = get_status(17)
         invoice.quotation.request.status_id = status_id
         invoice.assistant_approved_at = arrow.now('Asia/Bangkok').datetime
         invoice.assistant_id = current_user.id
         db.session.add(invoice)
         db.session.commit()
-        if sub_lab.signer:
-            msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
-                   '\n\nเรียน คณบดี' \
-                   '\n\nใบแจ้งหนี้เลขที่ : {}' \
-                   '\nลูกค้า : {}' \
-                   '\nในนาม : {}' \
-                   '\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
-                   '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
-                   '\n{}' \
-                   '\n\nขอบคุณค่ะ' \
-                   '\nระบบบริการวิชาการ'\
-                   '\n\n{}' \
-                   '\nผู้ประสานงาน' \
-                   '\nเบอร์โทร {}'.format(invoice.invoice_no, invoice.invoice_no, invoice.customer_name,
-                                          invoice.name, invoice_url, invoice.customer_name, invoice.contact_phone_number))
-            title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอนุมัติใบแจ้งหนี้'
-            message = f'''เรียน คณบดี\n\n'''
-            message += f'''ใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
+        if admins:
+            invoice_file_url = url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id, _external=True,
+                          _scheme=scheme)
+            title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้'
+            message = f'''เรียน แอดมินส่วนกลาง\n\n'''
+            message += f'''ตามที่มีการออกใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
             message += f'''ลูกค้า : {invoice.customer_name}\n'''
             message += f'''ในนาม : {invoice.name}\n'''
-            message += f'''ที่รอดำเนินการอนุมัติใบแจ้งหนี้\n'''
-            message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
-            message += f'''{invoice_url}\n\n'''
+            message += f'''กรุณาดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้ดังกล่าวเข้าสู่ระบบ e-Office เพื่อให้คณบดีลงนามและออกเลข อว. ต่อไป '''
+            message += f'''หลังจากดำเนินการแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้กลับเข้าสู่ระบบบริการวิชาการ\n'''
+            message += f'''สามารถพิมพ์ใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'''
+            message += f'''{invoice_file_url}\n\n'''
             message += f'''ขอบคุณค่ะ\n'''
             message += f'''ระบบบริการวิชาการ'''
             message += f'''{invoice.customer_name}\n'''
-            message += f'''ผู้ประสานงาน\n'''
-            message += f'''เบอร์โทร {invoice.contact_phone_number}'''
-            send_mail([sub_lab.signer.email + '@mahidol.ac.th'], title, message)
+            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_central_admin], title, message)
             if not current_app.debug:
-                try:
-                    line_bot_api.push_message(to=sub_lab.approver.line_id, messages=TextSendMessage(text=msg))
-                except LineBotApiError:
-                    pass
+                msg = (
+                    'แจ้งแอดมินส่วนกลางดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้เลขที่ {}\n\n'
+                    'เรียน แอดมินส่วนกลาง\n\n'
+                    'ตามที่มีการออกใบแจ้งหนี้เลขที่ : {}\n'
+                    'ลูกค้า : {}\n'
+                    'ในนาม : {}\n\n'
+                    'กรุณาดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้ดังกล่าวเข้าสู่ระบบ e-Office'
+                    'เพื่อให้คณบดีลงนามและออกเลข อว. ต่อไป'
+                    'หลังจากดำเนินการแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้กลับเข้าสู่ระบบบริการวิชาการ\n\n'
+                    'สามารถพิมพ์ใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'
+                    '{}\n\n'
+                    'ขอขอบคุณค่ะ\n'
+                    'ระบบบริการวิชาการ\n\n'
+                    .format(invoice.invoice_no, invoice.invoice_no, invoice.customer_name,
+                            invoice.name, invoice_file_url))
+                for a in admins:
+                    if a.is_central_admin:
+                        try:
+                            line_bot_api.push_message(to=sub_lab.approver.line_id, messages=TextSendMessage(text=msg))
+                        except LineBotApiError:
+                            pass
     elif admin == 'supervisor':
         status_id = get_status(16)
         invoice.quotation.request.status_id = status_id
         invoice.head_approved_at = arrow.now('Asia/Bangkok').datetime
         invoice.head_id = current_user.id
         if sub_lab.approver:
-            msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
-                   '\n\nเรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ' \
-                   '\n\nใบแจ้งหนี้เลขที่ : {}' \
-                   '\nลูกค้า : {}' \
-                   '\nในนาม : {}' \
-                   '\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
-                   '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
-                   '\n{}' \
-                   '\n\nขอบคุณค่ะ' \
-                   '\nระบบบริการวิชาการ'\
-                   '\n\n{}' \
-                   '\nผู้ประสานงาน' \
-                   '\nเบอร์โทร {}'.format(invoice.invoice_no, invoice.invoice_no, invoice.customer_name, invoice.name,
-                                          invoice_url, invoice.customer_name, invoice.contact_phone_number))
             title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอนุมัติใบแจ้งหนี้'
             message = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n'''
             message += f'''ใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
@@ -1688,6 +1635,20 @@ def approve_invoice(invoice_id):
             message += f'''เบอร์โทร {invoice.contact_phone_number}'''
             send_mail([sub_lab.approver.email + '@mahidol.ac.th'], title, message)
         if not current_app.debug:
+            msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
+                   '\n\nเรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ' \
+                   '\n\nใบแจ้งหนี้เลขที่ : {}' \
+                   '\nลูกค้า : {}' \
+                   '\nในนาม : {}' \
+                   '\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
+                   '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
+                   '\n{}' \
+                   '\n\nขอบคุณค่ะ' \
+                   '\nระบบบริการวิชาการ' \
+                   '\n\n{}' \
+                   '\nผู้ประสานงาน' \
+                   '\nเบอร์โทร {}'.format(invoice.invoice_no, invoice.invoice_no, invoice.customer_name, invoice.name,
+                                          invoice_url, invoice.customer_name, invoice.contact_phone_number))
             try:
                 line_bot_api.push_message(to=sub_lab.approver.line_id, messages=TextSendMessage(text=msg))
             except LineBotApiError:
@@ -1711,7 +1672,7 @@ def approve_invoice(invoice_id):
             message += f'''{invoice.customer_name}\n'''
             message += f'''ผู้ประสานงาน\n'''
             message += f'''เบอร์โทร {invoice.contact_phone_number}'''
-            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
+            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor], title, message)
             if not current_app.debug:
                 msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
                        '\n\nเรียน หัวหน้าห้องปฏิบัติการ' \
@@ -1728,10 +1689,11 @@ def approve_invoice(invoice_id):
                        '\nเบอร์โทร {}'.format(invoice.invoice_no, invoice.invoice_no, invoice.customer_name,
                                               invoice.name, invoice_url, invoice.customer_name, invoice.contact_phone_number))
                 for a in admins:
-                    try:
-                        line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                    except LineBotApiError:
-                        pass
+                    if a.is_supervisor:
+                        try:
+                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                        except LineBotApiError:
+                            pass
     db.session.add(invoice)
     db.session.commit()
     flash('อนุมัติใบแจ้งหนี้สำเร็จ', 'success')
