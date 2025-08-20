@@ -1489,7 +1489,9 @@ def address_index(customer_id):
 @login_required
 def invoice_index():
     menu = request.args.get('menu')
-    return render_template('service_admin/invoice_index.html', menu=menu)
+    is_central_admin = ServiceAdmin.query.filter_by(admin_id=current_user.id, is_central_admin=True).first()
+    return render_template('service_admin/invoice_index.html', menu=menu,
+                           is_central_admin=is_central_admin)
 
 
 @service_admin.route('/api/invoice/index')
