@@ -71,6 +71,13 @@
                                 table.className = "showtable";
                             } else {
                                 table.className = "hiddentable";
+                                $(table).find('input, select, textarea').each(function () {
+                                    if (this.type === 'checkbox' || this.type === 'radio') {
+                                        this.checked = false;
+                                    } else {
+                                        this.value = '';
+                                    }
+                                });
                             }
                         });
                     }
