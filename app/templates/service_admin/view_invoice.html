@@ -308,8 +308,7 @@
                                         </a>
                                     </li>
                                 {% elif (invoice.quotation.request.status.status_id == 15 and supervisor) or
-                                        (invoice.quotation.request.status.status_id == 16 and assistant) or
-                                        (invoice.quotation.request.status.status_id == 17 and dean) %}
+                                        (invoice.quotation.request.status.status_id == 16 and assistant) %}
                                     <li>
                                         <a class="button is-success is-rounded is-full-height mb-2"
                                                 {% if supervisor %}
@@ -318,9 +317,6 @@
                                                 {% elif assistant %}
                                                    href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
                                                    admin='assistant', menu=menu) }}"
-                                                {% elif dean %}
-                                                   href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
-                                                   admin='dean', menu=menu) }}"
                                                 {% endif %}
                                         >
                                             <span class="icon">
@@ -329,7 +325,7 @@
                                             <span>อนุมัติ</span>
                                         </a>
                                     </li>
-                                {% elif invoice.quotation.request.status.status_id == 18 and central_admin %}
+                                {% elif invoice.quotation.request.status.status_id == 17 and central_admin %}
                                     <li>
                                         <div id="mhesi_number"></div>
                                         <a class="button is-info is-rounded is-full-height mb-2"
@@ -344,23 +340,15 @@
                                             <span>ออกเลข อว.</span>
                                         </a>
                                     </li>
+                                    <li>
+                                        <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
+                                           href="{{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id) }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                            <span>ดาวน์โหลด PDF</span>
+                                        </a>
+                                    </li>
                                 {% endif %}
-                                <li>
-                                    <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
-                                       @click="printInvoice()"
-                                    >
-                                        <span class="icon"><i class="fas fa-print"></i></span>
-                                        <span>พิมพ์ใบแจ้งหนี้</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
-                                       href="{{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id) }}"
-                                    >
-                                        <span class="icon"><i class="fas fa-download"></i></span>
-                                        <span>ดาวน์โหลด PDF</span>
-                                    </a>
-                                </li>
                             </ul>
                         </aside>
                     </div>
