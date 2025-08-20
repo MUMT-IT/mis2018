@@ -972,14 +972,14 @@ class ServiceInvoice(db.Model):
     assistant_id = db.Column('assistant_id', db.ForeignKey('staff_account.id'))
     assistant = db.relationship(StaffAccount, backref=db.backref('assistant_approved_invoices'),
                                 foreign_keys=[assistant_id])
-    dean_approved_at = db.Column('dean_approved_at', db.DateTime(timezone=True))
-    dean_id = db.Column('dean_id', db.ForeignKey('staff_account.id'))
-    dean = db.relationship(StaffAccount, backref=db.backref('dean_approved_invoices', lazy='dynamic'),
-                           foreign_keys=[dean_id])
-    mhesi_issued_at = db.Column('mhesi_issued_at', db.DateTime(timezone=True))
-    mhesi_issuer_id = db.Column('mhesi_issuer_id', db.ForeignKey('staff_account.id'))
-    mhesi_issuer = db.relationship(StaffAccount, backref=db.backref('mhesi_issued_invoices', lazy='dynamic'),
-                                   foreign_keys=[mhesi_issuer_id])
+    # dean_approved_at = db.Column('dean_approved_at', db.DateTime(timezone=True))
+    # dean_id = db.Column('dean_id', db.ForeignKey('staff_account.id'))
+    # dean = db.relationship(StaffAccount, backref=db.backref('dean_approved_invoices', lazy='dynamic'),
+    #                        foreign_keys=[dean_id])
+    # mhesi_issued_at = db.Column('mhesi_issued_at', db.DateTime(timezone=True))
+    # mhesi_issuer_id = db.Column('mhesi_issuer_id', db.ForeignKey('staff_account.id'))
+    # mhesi_issuer = db.relationship(StaffAccount, backref=db.backref('mhesi_issued_invoices', lazy='dynamic'),
+    #                                foreign_keys=[mhesi_issuer_id])
     due_date = db.Column('due_date', db.DateTime(timezone=True))
     paid_at = db.Column('paid_at', db.DateTime(timezone=True))
     is_paid = db.Column('is_paid', db.Boolean())
