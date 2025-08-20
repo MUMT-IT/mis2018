@@ -845,7 +845,26 @@ def create_customer_detail(request_id):
 @login_required
 def request_index():
     menu = request.args.get('menu')
-    return render_template('academic_services/request_index.html', menu=menu)
+    waiting_approved_request_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
+                                                                                 ServiceRequest.status.has(ServiceStatus.status_id==1))])
+    quotation_pending_approval_count = len(
+        [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
+                                                ServiceRequest.status.has(ServiceStatus.status_id == 5))])
+    waiting_sample_count = len(
+        [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
+                                                ServiceRequest.status.has(or_(ServiceStatus.status_id == 8,
+                                                                              ServiceStatus.status_id == 9)))])
+    testing_count = len(
+        [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
+                                                ServiceRequest.status.has(ServiceStatus.status_id == 11))])
+    unpaid_count = len(
+        [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
+                                                ServiceRequest.status.has(ServiceStatus.status_id == 19))])
+    return render_template('academic_services/request_index.html', menu=menu,
+                           waiting_approved_request_count=waiting_approved_request_count,
+                           quotation_pending_approval_count=quotation_pending_approval_count,
+                           waiting_sample_count=waiting_sample_count, testing_count=testing_count,
+                           unpaid_count=unpaid_count)
 
 
 @academic_services.route('/api/request/index')
