@@ -972,14 +972,10 @@ class ServiceInvoice(db.Model):
     assistant_id = db.Column('assistant_id', db.ForeignKey('staff_account.id'))
     assistant = db.relationship(StaffAccount, backref=db.backref('assistant_approved_invoices'),
                                 foreign_keys=[assistant_id])
-    # dean_approved_at = db.Column('dean_approved_at', db.DateTime(timezone=True))
-    # dean_id = db.Column('dean_id', db.ForeignKey('staff_account.id'))
-    # dean = db.relationship(StaffAccount, backref=db.backref('dean_approved_invoices', lazy='dynamic'),
-    #                        foreign_keys=[dean_id])
-    # mhesi_issued_at = db.Column('mhesi_issued_at', db.DateTime(timezone=True))
-    # mhesi_issuer_id = db.Column('mhesi_issuer_id', db.ForeignKey('staff_account.id'))
-    # mhesi_issuer = db.relationship(StaffAccount, backref=db.backref('mhesi_issued_invoices', lazy='dynamic'),
-    #                                foreign_keys=[mhesi_issuer_id])
+    file = db.Column('file', db.String())
+    file_attached_at = db.Column('file_attached_at', db.DateTime(timezone=True))
+    file_attached_id = db.Column('file_attached_id', db.ForeignKey('staff_account.id'))
+    file_attached_by = db.relationship(StaffAccount, backref=db.backref('file_attached_invoices'), foreign_keys=[file_attached_id])
     due_date = db.Column('due_date', db.DateTime(timezone=True))
     paid_at = db.Column('paid_at', db.DateTime(timezone=True))
     is_paid = db.Column('is_paid', db.Boolean())
@@ -1003,7 +999,7 @@ class ServiceInvoice(db.Model):
             'created_at': self.created_at,
             'due_date': self.due_date if self.due_date else None,
             'creator': self.creator.fullname if self.creator else None,
-            'mhesi_issued_at': self.mhesi_issued_at if self.mhesi_issued_at else None
+            'file_attached_at': self.file_attached_at if self.file_attached_at else None
         }
 
     # @property
@@ -1029,12 +1025,10 @@ class ServiceInvoice(db.Model):
             status = 'ชำระเงินแล้ว'
         elif self.paid_at:
             status = 'รอตรวจสอบการชำระเงิน'
-        elif self.mhesi_issued_at:
+        elif self.file_attached_at:
             status = 'ส่งใบแจ้งหนี้แล้ว รอการชำระเงิน'
-        elif self.dean_approved_at:
-            status = 'รอออกเลข อว.'
         elif self.assistant_approved_at:
-            status = 'รอคณบดีอนุมัติใบแจ้งหนี้'
+            status = 'รอคณบดีอนุมัติและออกเลข อว.'
         elif self.head_approved_at:
             status = 'รอผู้ช่วยคณบดีอนุมัติใบแจ้งหนี้'
         elif self.sent_at:
@@ -1049,10 +1043,8 @@ class ServiceInvoice(db.Model):
             color = 'is-success'
         elif self.paid_at:
             color = 'is-warning'
-        elif self.mhesi_issued_at:
+        elif self.file_attached_at:
             color = 'is-link'
-        elif self.dean_approved_at:
-            color = 'is-primary'
         elif self.assistant_approved_at:
             color = 'is-warning'
         elif self.head_approved_at:
@@ -1069,7 +1061,7 @@ class ServiceInvoice(db.Model):
             status = 'ชำระเงินแล้ว'
         elif self.paid_at:
             status = 'รอตรวจสอบการชำระเงิน'
-        elif self.mhesi_issued_at:
+        elif self.file_attached_at:
             status = 'รอการชำระเงิน'
         else:
             status = 'อยู่ระหว่างการจัดทำใบแจ้งหนี้'
@@ -1081,7 +1073,7 @@ class ServiceInvoice(db.Model):
             color = 'is-success'
         elif self.paid_at:
             color = 'is-warning'
-        elif self.mhesi_issued_at:
+        elif self.file_attached_at:
             color = 'is-danger'
         else:
             color = 'is-info'
