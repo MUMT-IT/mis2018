@@ -41,13 +41,13 @@
                 columns: [
                     { data : 'invoice_no' },
                     {
-                        data : 'mhesi_issued_at',
+                        data : 'file_attached_at',
                         render: function(data) {
                             if (data !== '') {
                                 let d = moment(data)
                                 return d.format('lll')
                             } else {
-                                return '-'
+                                return ''
                             }
                         }
                     },
