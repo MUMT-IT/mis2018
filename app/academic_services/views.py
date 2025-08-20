@@ -1970,7 +1970,6 @@ def create_sample_appointment(sample_id):
                     message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
                     if sample.appointment_date:
                         message += f'''วันที่นัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
-                        message += f'''เวลานัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n'''
                     message += f'''สถานที่นัดหมาย : {sample.location}\n'''
                     message += f'''รายละเอียดสถานที่ : {sub_lab.short_address}\n'''
                     message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
@@ -1991,7 +1990,6 @@ def create_sample_appointment(sample_id):
                     message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
                     if sample.appointment_date:
                         message += f'''วันที่นัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
-                        message += f'''เวลานัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n'''
                     message += f'''สถานที่นัดหมาย : {sample.location}\n'''
                     message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n'''
                     message += f'''รายละเอียดสถานที่ : {sub_lab.short_address}\n'''
@@ -2013,6 +2011,9 @@ def create_sample_appointment(sample_id):
                                     request_id=sample.request_id))
         else:
             flash('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('academic_services/create_sample_appointment.html', form=form,
                            sample=sample, menu=menu, sample_id=sample_id, sub_lab=sub_lab, datas=datas,
                            appointment_date=appointment_date, service_request=service_request, holidays=holidays)
