@@ -618,7 +618,7 @@ def sample_verification(sample_id):
         sample.request.status_id = status_id
         db.session.add(sample)
         test_item = ServiceTestItem(request_id=sample.request_id, customer_id=sample.request.customer_id,
-                                    sample_id=sample_id, status='รออัปโหลดผล', creator_id=current_user.id,
+                                    sample_id=sample_id, creator_id=current_user.id,
                                     created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(test_item)
         db.session.commit()
@@ -1280,6 +1280,7 @@ def create_result(result_id=None):
         if uploaded_all:
             status_id = get_status(12)
             result.status_id = status_id
+            service_request.status_id = status_id
             scheme = 'http' if current_app.debug else 'https'
             if not result.is_sent_email:
                 invoice_data = result.get_invoice
@@ -1312,7 +1313,9 @@ def create_result(result_id=None):
         else:
             status_id = get_status(11)
             result.status_id = status_id
+            service_request.status_id = status_id
         db.session.add(result)
+        db.session.add(service_request)
         db.session.commit()
         flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
         return redirect(url_for('service_admin.test_item_index', menu='test_item'))
