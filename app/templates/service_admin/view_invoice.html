@@ -24,8 +24,7 @@
                     <ul class="steps">
                         <li class="steps-segment
                             {% if not invoice.sent_at and not invoice.head_approved_at and not invoice.assistant_approved_at
-                                and not invoice.dean_approved_at and not invoice.mhesi_issued_at and not invoice.paid_at
-                                and not invoice.is_paid %}
+                                and not invoice.file_attached_at and not invoice.paid_at and not invoice.is_paid %}
                                 is-active
                             {% endif %}"
                         >
@@ -40,8 +39,7 @@
                         </li>
                         <li class="steps-segment
                             {% if invoice.sent_at and not invoice.head_approved_at and not invoice.assistant_approved_at
-                                and not invoice.dean_approved_at and not invoice.mhesi_issued_at and not invoice.paid_at
-                                and not invoice.is_paid %}
+                                and not invoice.file_attached_at and not invoice.paid_at and not invoice.is_paid %}
                                 is-active
                             {% endif %}"
                         >
@@ -56,8 +54,7 @@
                         </li>
                         <li class="steps-segment
                             {% if invoice.sent_at and invoice.head_approved_at and not invoice.assistant_approved_at
-                                and not invoice.dean_approved_at and not invoice.mhesi_issued_at and not invoice.paid_at
-                                and not invoice.is_paid %}
+                                and not invoice.file_attached_at and not invoice.paid_at and not invoice.is_paid %}
                                 is-active
                             {% endif %}"
                         >
@@ -72,24 +69,7 @@
                         </li>
                         <li class="steps-segment
                             {% if invoice.sent_at and invoice.head_approved_at and invoice.assistant_approved_at
-                                and not invoice.dean_approved_at and not invoice.mhesi_issued_at and not invoice.paid_at
-                                and not invoice.is_paid %}
-                                is-active
-                            {% endif %}"
-                        >
-                            <span class="steps-marker">
-                                <span class="icon">
-                                    <i class="fas fa-pen-nib"></i>
-                                </span>
-                            </span>
-                            <div class="steps-content">
-                                <p>รอคณบดีเซ็นอนุมัติ</p>
-                            </div>
-                        </li>
-                        <li class="steps-segment
-                            {% if invoice.sent_at and invoice.head_approved_at and invoice.assistant_approved_at
-                                and invoice.dean_approved_at and not invoice.mhesi_issued_at and not invoice.paid_at
-                                and not invoice.is_paid %}
+                                and not invoice.file_attached_at and not invoice.paid_at and not invoice.is_paid %}
                                 is-active
                             {% endif %}"
                         >
@@ -99,13 +79,12 @@
                                 </span>
                             </span>
                             <div class="steps-content">
-                                <p>รอเจ้าหน้าที่ออกเลข อว.</p>
+                                <p>รอคณบดีอนุมัติและออกเลข อว.</p>
                             </div>
                         </li>
                         <li class="steps-segment
                             {% if invoice.sent_at and invoice.head_approved_at and invoice.assistant_approved_at
-                                and invoice.dean_approved_at and invoice.mhesi_issued_at and not invoice.paid_at
-                                and not invoice.is_paid %}
+                                and invoice.file_attached_at and not invoice.paid_at and not invoice.is_paid %}
                                 is-active
                             {% endif %}"
                         >
@@ -120,8 +99,7 @@
                         </li>
                         <li class="steps-segment
                             {% if invoice.sent_at and invoice.head_approved_at and invoice.assistant_approved_at
-                                and invoice.dean_approved_at and invoice.mhesi_issued_at and invoice.paid_at and
-                                not invoice.is_paid %}
+                                and invoice.file_attached_at and invoice.paid_at and not invoice.is_paid %}
                                 is-active
                             {% endif %}"
                         >
@@ -167,11 +145,11 @@
                                 อว. {{ invoice.mhesi_no or '78.04/' }}
                             </div>
                         </div>
-                        {% if invoice.mhesi_issued_at %}
+                        {% if invoice.file_attached_at %}
                             <div class="mb-4 is-flex is-align-items-center">
                                 <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่</p>
                                 <div style="margin-left: 1.75rem;">
-                                    {{ invoice.mhesi_issued_at.strftime('%d/%m/%Y') }}
+                                    {{ invoice.file_attached_at.strftime('%d/%m/%Y') }}
                                 </div>
                             </div>
                         {% else %}
