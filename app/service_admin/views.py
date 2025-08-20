@@ -1287,15 +1287,8 @@ def create_result(result_id=None):
             service_request.status_id = status_id
             scheme = 'http' if current_app.debug else 'https'
             if not result.is_sent_email:
-                invoice_data = result.get_invoice
-                if invoice_data:
-                    total_items, invoice_no, grand_total, due_date, invoice_id = invoice_data
-                else:
-                    total_items, invoice_no, grand_total, due_date, invoice_id = 0, '-', 0.0, '-', '-'
                 customer_name = result.request.customer.customer_name.replace(' ', '_')
                 contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
-                invoice_link = url_for("academic_services.export_invoice_pdf", invoice_id=invoice_id, _external=True,
-                                       _scheme=scheme)
                 title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
                 title = f'''แจ้งรายงานผลการทดสอบของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
                 message = f'''เรียน {title_prefix}{customer_name}\n\n'''
