@@ -1,0 +1,25 @@
+{% extends "academic_services/service_base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "academic_services/customer_nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container has-text-centered">
+            <div class="box">
+                <span class="icon is-large has-text-success">
+                    <i class="fas fa-check-circle fa-3x"></i>
+                </span>
+                <h1 class="title is-3 mt-3">ตรวจสอบและรับตัวอย่างเรียบร้อยแล้ว</h1>
+                <div class="notification is-info is-light mt-4">
+                    ใบคำขอรับบริการเลขที่ {{ request_no }} ได้ผ่านการตรวจสอบและรับตัวอย่างเรียบร้อยแล้ว กรุณาดำเนินการในขั้นตอนถัดไป
+                </div>
+                <div class="buttons is-centered mt-5">
+                    <a href='{{ url_for('service_admin.sample_index', menu=menu) }}'
+                       class="button is-link is-light"
+                    >
+                        กลับหน้าหลัก
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
