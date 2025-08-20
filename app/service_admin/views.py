@@ -1325,9 +1325,7 @@ def create_result(result_id=None):
 
 @service_admin.route('/result/delete/<int:item_id>', methods=['GET', 'POST'])
 def delete_result_file(item_id):
-    menu = request.args.get('menu')
     status_id = get_status(11)
-    result_id = request.args.get('result_id')
     item = ServiceResultItem.query.get(item_id)
     item.url = None
     item.modified_at = arrow.now('Asia/Bangkok').datetime
@@ -1336,7 +1334,9 @@ def delete_result_file(item_id):
     db.session.add(item)
     db.session.commit()
     flash("ลบไฟล์เรียบร้อยแล้ว", "success")
-    return redirect(url_for('service_admin.create_result', menu=menu, result_id=result_id))
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
 
 
 @service_admin.route('/result/tracking_number/add/<int:result_id>', methods=['GET', 'POST'])
