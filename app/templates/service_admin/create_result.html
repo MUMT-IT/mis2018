@@ -47,8 +47,9 @@
                                     </span>
                                 </label>
                                 {% if item.url %}
-                                    <a id='delete-button' class="button is-danger is-outlined" style="margin-left: .5em"
-                                       @click="warn({{ item.id }}, {{ result.id }})"
+                                    <a class="button is-danger is-outlined" style="margin-left: .5em"
+                                       hx-post="{{ url_for('service_admin.delete_result_file', item_id=item.id) }}"
+                                       hx-confirm="ท่านต้องการลบไฟล์นี้หรือไม่?"
                                     >
                                         <span class="icon"><i class="fas fa-trash"></i></span>
                                     </a>
@@ -88,24 +89,6 @@
                     span.textContent = 'ยังไม่อัปโหลดไฟล์';
                 }
             });
-        });
-    </script>
-    <script>
-        var vm = new Vue({
-            el: "#delete-button",
-            delimiters: ['<%', '%>'],
-            methods: {
-                warn: function (item_id, result_id) {
-                    var menu = '{{ menu }}'
-                    this.$buefy.dialog.confirm({
-                        message: 'ท่านต้องการลบไฟล์นี้หรือไม่?',
-                        confirmText: 'ยืนยัน',
-                        cancelText: 'ยกเลิก',
-                        onConfirm: () => window.location.href = `/service_admin/result/delete/${item_id}?result_id=${result_id}&menu=${menu}`,
-                        type: 'is-success'
-                    });
-                }
-            },
         });
     </script>
 {% endblock %}
