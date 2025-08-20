@@ -61,7 +61,7 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.has_result) {
+                            if (row.status_id != 10) {
                                 var result_url = '/service_admin/result/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -91,7 +91,7 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.has_invoice_for_admin == false) {
+                            if (row.status_id == 13) {
                                 invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '?menu=invoice';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -103,7 +103,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else {
+                            } else if (row.status_id == 19 || row.status_id == 20 || row.status_id == 21) {
                                invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -115,6 +115,15 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
+                            } else {
+                                return `<span class="tag is-danger">
+                                            <span class="icon">
+                                                <i class='fas fa-times-circle'></i>
+                                            </span>
+                                            <span>
+                                                ยังไม่ออกใบแจ้งหนี้
+                                            </span>
+                                        </span>`;
                             }
                         }
                     }
