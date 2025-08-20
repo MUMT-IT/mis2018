@@ -1,3 +1,17 @@
+<style>
+    .fixed-bottom-notification {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        z-index: 999;
+        box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    body {
+        padding-bottom: 100px;
+    }
+</style>
 {% extends "base.html" %}
 {% include "PA/nav.html" %}
 
@@ -6,16 +20,24 @@
         <div class="container">
             {% include "messages.html" %}
              {% if for_self == 'false' %}
-             <div class="columns">
+             <div class="columns notification is-info is-light">
                 <div class="column is-half is-offset-3 has-text-centered">
-                    <div class="notification is-info is-light">
                         <h1 class="subtitle">
                             ผู้รับการประเมิน {{ scoresheet.pa.staff.personal_info.fullname }}<br>
                             รอบ {{ scoresheet.pa.round.desc }}: {{ scoresheet.pa.round }}
                         </h1>
-                    </div>
                 </div>
             </div>
+             </div>
+             <div class="fixed-bottom-notification">
+                 <div class="notification is-info is-light has-text-centered">
+                     <h1 class="subtitle">
+                         ผู้รับการประเมิน {{ scoresheet.pa.staff.personal_info.fullname }}<br>
+                         {{ scoresheet.pa.staff.personal_info.job_position }}
+                     </h1>
+                 </div>
+            </div>
+             </div>
             <div id="pa-seminar-modal-container"></div>
             <div class="columns">
                 <div class="column">
