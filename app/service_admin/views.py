@@ -1857,19 +1857,15 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
-    issued_date = arrow.get(invoice.mhesi_issued_at.astimezone(localtz)).format(fmt='DD MMMM YYYY',
-                                                                            locale='th-th') if invoice.mhesi_issued_at else'-'
     customer = '''<para><font size=11>
-                    ที่ อว. {mhesi_no}<br/>
-                    วันที่ {issued_date}<br/>
+                    ที่ อว. <br/>
+                    วันที่ <br/>
                     เรื่อง ใบแจ้งหนี้ค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ<br/>
                     เรียน {customer}<br/>
                     ที่อยู่ {address}<br/>
                     เลขประจำตัวผู้เสียภาษี {taxpayer_identification_no}
                     </font></para>
-                    '''.format(mhesi_no=invoice.mhesi_no if invoice.mhesi_no else '',
-                               issued_date=issued_date if invoice.mhesi_no else '',
-                               customer=invoice.name,
+                    '''.format(customer=invoice.name,
                                address=invoice.address,
                                taxpayer_identification_no=invoice.taxpayer_identification_no)
 
