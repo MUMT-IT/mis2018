@@ -269,19 +269,15 @@
             }
             $('input[name="appointment_date"]').daterangepicker({
                 singleDatePicker: true,
-                timePicker: true,
-                timePickerIncrement: 15,
-                timePicker24Hour: true,
                 showDropdowns: true,
                 autoUpdateInput: true,
-
                 {% if form.appointment_date.data %}
-                    startDate: {{ appointment_date.isoformat()|tojson|safe }},
+                    startDate: {{ appointment_date.date().isoformat()|tojson|safe }},  // แค่วัน
                 {% else %}
-                    startDate: moment().startOf('hour').add(1, 'hours'),
+                    startDate: moment().startOf('day'),
                 {% endif %}
                 locale: {
-                    format: 'YYYY-MM-DD HH:mm:ss'
+                    format: 'YYYY-MM-DD'
                 },
                 isInvalidDate: function(date) {
                     const formatted = date.format('YYYY-MM-DD');
@@ -290,15 +286,9 @@
                     return isWeekend || isHoliday;
                 }
             });
-
-             $('input[name="appointment_date"]').on('apply.daterangepicker', function(ev, picker) {
-                 const selectedTime = picker.startDate.format("HH:mm");
-                 if (!isAllowedTime(selectedTime)) {
-                     alert("โปรดเลือกเวลาในช่วงที่กำหนด เพื่อความสะดวกในการให้บริการ ขอบคุณค่ะ");
-                     $(this).val('');
-                 }
+            $('input[name="appointment_date"]').on('apply.daterangepicker', function(ev, picker) {
+                $(this).val(picker.startDate.format('YYYY-MM-DD') + ' 00:00:00');
             });
-
             function showAppointmentDate() {
                 var shipType = document.querySelector('[name="ship_type"]').value;
                 var appointmentDateField = document.getElementById("appointment-date-field");
