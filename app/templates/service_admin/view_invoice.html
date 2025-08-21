@@ -324,7 +324,7 @@
                                             <span>ดาวน์โหลด PDF</span>
                                         </a>
                                     </li>
-                                {% else %}
+                                {% elif invoice.file %}
                                     <li>
                                         <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
                                            href="{{ url_for('service_admin.download_file', key=invoice.file,
