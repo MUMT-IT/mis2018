@@ -1002,7 +1002,10 @@ class ServiceInvoice(db.Model):
             'file_attached_at': self.file_attached_at if self.file_attached_at else None,
             'assistant_approved_at': self.assistant_approved_at if self.assistant_approved_at else None,
             'payment_type': [payment.payment_type for payment in self.payments] if self.payments else None,
-            'paid_at': [payment.paid_at for payment in self.payments] if self.payments else None,
+            'paid_at': [payment.paid_at.isoformat() if payment.paid_at else '' for payment in self.payments]
+                        if self.payments else [],
+            'slip': [payment.slip if payment.slip else '' for payment in self.payments]
+                    if self.payments else ''
         }
 
     # @property
@@ -1159,7 +1162,7 @@ class ServicePayment(db.Model):
                                                                 })
     amount_paid = db.Column('amount_paid', db.Numeric())
     paid_at = db.Column('paid_at', db.DateTime(timezone=True))
-    slip = db.Column('slip', db.String(255))
+    slip = db.Column('slip', db.String())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     customer_id = db.Column('customer_id', db.ForeignKey('service_customer_accounts.id'))
     customer = db.relationship(ServiceCustomerAccount, backref=db.backref("created_payments"), foreign_keys=[customer_id])
