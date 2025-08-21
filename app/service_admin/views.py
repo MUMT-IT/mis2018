@@ -1702,50 +1702,64 @@ def approve_invoice(invoice_id):
     return render_template('service_admin/invoice_index.html', menu=menu)
 
 
-@service_admin.route('/invoice/number/add/<int:invoice_id>', methods=['GET', 'POST'])
-def add_mhesi_number(invoice_id):
+@service_admin.route('/invoice/file/add/<int:invoice_id>', methods=['GET', 'POST'])
+def upload_invoice_file(invoice_id):
+    menu = request.args.get('menu')
     invoice = ServiceInvoice.query.get(invoice_id)
     form = ServiceInvoiceForm(obj=invoice)
-    if not form.mhesi_no.data:
-        form.mhesi_no.data = '78.04/'
     if form.validate_on_submit():
         form.populate_obj(invoice)
-        status_id = get_status(19)
+        status_id = get_status(18)
+        file = form.file_upload.data
         invoice.quotation.request.status_id = status_id
-        invoice.mhesi_issued_at = arrow.now('Asia/Bangkok').datetime
-        invoice.due_date = arrow.get(invoice.mhesi_issued_at).shift(days=+30).datetime
+        invoice.file_attached_id = current_user.id
+        invoice.file_attached_at = arrow.now('Asia/Bangkok').datetime
+        invoice.due_date = arrow.get(invoice.file_attached_at).shift(days=+30).datetime
         payment = ServicePayment(invoice_id=invoice_id, amount_due=invoice.grand_total())
-        db.session.add(invoice)
-        db.session.add(payment)
-        db.session.commit()
-        scheme = 'http' if current_app.debug else 'https'
-        contact_email = invoice.quotation.request.customer.contact_email if invoice.quotation.request.customer.contact_email else invoice.quotation.request.customer.email
-        org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
-        staff = StaffAccount.get_account_by_email(org.head)
-        sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
-        invoice_url = url_for("academic_services.view_invoice", invoice_id=invoice.id, menu='invoice', _external=True,
-                              _scheme=scheme)
-        msg = ('หน่วย{} ได้ดำเนินการออกใบแจ้งหนี้เลขที่่ {} เรียบร้อยแล้ว' \
-               '\nกรุณาดำเนินการเตรียมออกใบเสร็จรับเงินเมื่อลูกค้าชำระเงิน'.format(sub_lab.sub_lab, invoice.invoice_no))
-        title = 'แจ้งออกใบแจ้งหนี้'
-        message = f'''เรียนผู้ใช้บริการ\n\n'''
-        message += f'''ทางหน่วยงานได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว กรุณาดำเนินการชำระเงินภายใน 30 วันนับจากวันที่ออกใบแจ้งหนี้\n\n'''
-        message += f'''ท่านสามารถตรวจสอบรายละเอียดใบแจ้งหนี้ได้จากลิงก์ด้านล่าง\n\n'''
-        message += f'''{invoice_url}\n\n'''
-        message += f'''หากมีข้อสงสัยหรือสอบถามเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ตามช่องทางที่ให้ไว้\n\n'''
-        message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-        message += f'''ขอขอบคุณที่ใช้บริการ'''
-        send_mail([contact_email], title, message)
-        if not current_app.debug:
-            try:
-                line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
-            except LineBotApiError:
-                pass
-        flash('บันทึกข้อมูลสำเร็จ', 'success')
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
-        return resp
-    return render_template('service_admin/modal/add_mhesi_number_modal.html', form=form, invoice_id=invoice_id)
+        if file and allowed_file(file.filename):
+            mime_type = file.mimetype
+            file_name = '{}.{}'.format(uuid.uuid4().hex, file.filename.split('.')[-1])
+            file_data = file.stream.read()
+            response = s3.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=file_name,
+                Body=file_data,
+                ContentType=mime_type
+            )
+            invoice.file = file_name
+            db.session.add(invoice)
+            db.session.add(payment)
+            db.session.commit()
+            scheme = 'http' if current_app.debug else 'https'
+            contact_email = invoice.quotation.request.customer.contact_email if invoice.quotation.request.customer.contact_email else invoice.quotation.request.customer.email
+            org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
+            staff = StaffAccount.get_account_by_email(org.head)
+            sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
+            invoice_url = url_for("academic_services.view_invoice", invoice_id=invoice.id, menu='invoice', _external=True,
+                                  _scheme=scheme)
+            msg = ('หน่วย{} ได้ดำเนินการออกใบแจ้งหนี้เลขที่่ {} เรียบร้อยแล้ว' \
+                   '\nกรุณาดำเนินการเตรียมออกใบเสร็จรับเงินเมื่อลูกค้าชำระเงิน'.format(sub_lab.sub_lab, invoice.invoice_no))
+            title = 'แจ้งออกใบแจ้งหนี้'
+            message = f'''เรียนผู้ใช้บริการ\n\n'''
+            message += f'''ทางหน่วยงานได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว กรุณาดำเนินการชำระเงินภายใน 30 วันนับจากวันที่ออกใบแจ้งหนี้\n\n'''
+            message += f'''ท่านสามารถตรวจสอบรายละเอียดใบแจ้งหนี้ได้จากลิงก์ด้านล่าง\n\n'''
+            message += f'''{invoice_url}\n\n'''
+            message += f'''หากมีข้อสงสัยหรือสอบถามเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ตามช่องทางที่ให้ไว้\n\n'''
+            message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+            message += f'''ขอขอบคุณที่ใช้บริการ'''
+            send_mail([contact_email], title, message)
+            if not current_app.debug:
+                try:
+                    line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
+            flash('บันทึกข้อมูลสำเร็จ', 'success')
+            return redirect(url_for('service_admin.invoice_admin', menu=menu))
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template('service_admin/upload_invoice_file.html', form=form, invoice_id=invoice_id,
+                           menu=menu, invoice=invoice)
 
 
 @service_admin.route('/invoice/view/<int:invoice_id>', methods=['GET'])
