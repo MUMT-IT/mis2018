@@ -133,6 +133,10 @@
                     <th>วัน-เวลาทีส่ง</th>
                     <th>รายการ</th>
                     <th>สถานะ</th>
+                    <th>ใบเสนอราคา</th>
+                    <th>นัดหมายส่งตัวอย่าง</th>
+                    <th>การทดสอบ</th>
+                    <th>ใบแจ้งหนี้</th>
                     <th>หมายเหตุ</th>
                     <th>รายละเอียด</th>
                     <th></th>
@@ -155,6 +159,8 @@
                     url: {{ url_for('academic_services.get_requests')|tojson|safe}},
                 },
                 order: [[1, 'desc']],
+                scrollX: true,
+                autoWidth: false,
                 columns: [
                     {data: 'request_no'},
                     {
@@ -178,6 +184,83 @@
                                 return `<span class="tag ${color}">${status}</span>`;
                             } else {
                                 return `<span class="tag is-info">ร่างใบเสนอราคา</span>`;
+                            }
+                        }
+                    },
+                    {
+                        data: 'quotation_status_for_customer',
+                        render: function (data, type, row) {
+                            if (data.status == 'อนุมัติ' || data.status == 'รออนุมัติ') {
+                                var url = '/academic_services/quotation/view/' + data.id + '?menu=quotation';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-outlined is-rounded is-link" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-file-invoice"></i></span>' +
+                                    '<span>ใบเสนอราคา</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (data.status == 'ไม่อนุมัติ'){
+                                return 'เหตุผลที่ยกเลิก เนื่องจาก' + data.reason;
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'sample_appointment_status_for_customer',
+                        render: function (data, type, row) {
+                            if (data !== null && data.status != 'รอการนัดหมายส่งตัวอย่าง') {
+                                return `<span class="tag ${data.color}">
+                                            <span class="icon">${data.icon}</span>
+                                            <span>${data.status}</span>
+                                        </span>`;
+                            } else if (data.status == 'รอการนัดหมายส่งตัวอย่าง') {
+                                var url = '/academic_services/customer/sample/add/' + data.id + '?menu=sample';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-rounded is-warning" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>นัดหมายส่งตัวอย่าง</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            }
+                                else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'test_item_status',
+                        render: function (data, type, row) {
+                            if (data !== null) {
+                                return `<span class="tag ${data.color}">
+                                            <span class="icon">${data.icon}</span>
+                                            <span>${data.status}</span>
+                                        </span>`;
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if (row.has_invoice) {
+                                dowload_url = '/academic_services/aws-s3/download/' + row.invoice_file + '?download_filename=' + row.invoice_no;
+                                    return `
+                                        <div class="field has-addons">
+                                           <div class="control">
+                                              <a class="button is-small is-outlined is-info is-rounded"
+                                                 href="${dowload_url}">
+                                                 <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
+                                                 <span>ใบแจ้งหนี้</span>
+                                              </a>
+                                           </div>
+                                         </div>`;
+                            } else {
+                                return ''
                             }
                         }
                     },
