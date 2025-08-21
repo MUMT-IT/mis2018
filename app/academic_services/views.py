@@ -1648,7 +1648,6 @@ def generate_quotation_pdf(quotation, sign=False):
                                )
 
     document_address_table = Table([[Paragraph(document_address, style=style_sheet['ThaiStyle'])]], colWidths=[200])
-    document_address_table.hAlign = 'LEFT'
 
     sign_style = ParagraphStyle(
         'SignStyle',
@@ -1681,7 +1680,7 @@ def generate_quotation_pdf(quotation, sign=False):
     data.append(KeepTogether(item_table))
     data.append(KeepTogether(Spacer(1, 15)))
     data.append(KeepTogether(document_address_table))
-    data.append(KeepTogether(Spacer(1, 5)))
+    data.append(KeepTogether(Spacer(1, 3)))
     data.append(KeepTogether(sign_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)

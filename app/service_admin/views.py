@@ -1608,43 +1608,45 @@ def approve_invoice(invoice_id):
         db.session.add(invoice)
         db.session.commit()
         if admins:
-            invoice_file_url = url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id, _external=True,
-                          _scheme=scheme)
-            title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้'
-            message = f'''เรียน แอดมินส่วนกลาง\n\n'''
-            message += f'''ตามที่มีการออกใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
-            message += f'''ลูกค้า : {invoice.customer_name}\n'''
-            message += f'''ในนาม : {invoice.name}\n'''
-            message += f'''กรุณาดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้ดังกล่าวเข้าสู่ระบบ e-Office เพื่อให้คณบดีลงนามและออกเลข อว. ต่อไป '''
-            message += f'''หลังจากดำเนินการแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้กลับเข้าสู่ระบบบริการวิชาการ\n'''
-            message += f'''สามารถพิมพ์ใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'''
-            message += f'''{invoice_file_url}\n\n'''
-            message += f'''ขอบคุณค่ะ\n'''
-            message += f'''ระบบบริการวิชาการ'''
-            message += f'''{invoice.customer_name}\n'''
-            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_central_admin], title, message)
-            if not current_app.debug:
-                msg = (
-                    'แจ้งแอดมินส่วนกลางดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้เลขที่ {}\n\n'
-                    'เรียน แอดมินส่วนกลาง\n\n'
-                    'ตามที่มีการออกใบแจ้งหนี้เลขที่ : {}\n'
-                    'ลูกค้า : {}\n'
-                    'ในนาม : {}\n\n'
-                    'กรุณาดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้ดังกล่าวเข้าสู่ระบบ e-Office'
-                    'เพื่อให้คณบดีลงนามและออกเลข อว. ต่อไป'
-                    'หลังจากดำเนินการแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้กลับเข้าสู่ระบบบริการวิชาการ\n\n'
-                    'สามารถพิมพ์ใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'
-                    '{}\n\n'
-                    'ขอขอบคุณค่ะ\n'
-                    'ระบบบริการวิชาการ\n\n'
-                    .format(invoice.invoice_no, invoice.invoice_no, invoice.customer_name,
-                            invoice.name, invoice_file_url))
-                for a in admins:
-                    if a.is_central_admin:
-                        try:
-                            line_bot_api.push_message(to=sub_lab.approver.line_id, messages=TextSendMessage(text=msg))
-                        except LineBotApiError:
-                            pass
+            email = [a.admin.email + '@mahidol.ac.th' for a in admins if a.is_central_admin]
+            if email:
+                invoice_file_url = url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id, _external=True,
+                              _scheme=scheme)
+                title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้'
+                message = f'''เรียน แอดมินส่วนกลาง\n\n'''
+                message += f'''ตามที่มีการออกใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
+                message += f'''ลูกค้า : {invoice.customer_name}\n'''
+                message += f'''ในนาม : {invoice.name}\n'''
+                message += f'''กรุณาดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้ดังกล่าวเข้าสู่ระบบ e-Office เพื่อให้คณบดีลงนามและออกเลข อว. ต่อไป '''
+                message += f'''หลังจากดำเนินการแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้กลับเข้าสู่ระบบบริการวิชาการ\n'''
+                message += f'''สามารถพิมพ์ใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'''
+                message += f'''{invoice_file_url}\n\n'''
+                message += f'''ขอบคุณค่ะ\n'''
+                message += f'''ระบบบริการวิชาการ'''
+                message += f'''{invoice.customer_name}\n'''
+                send_mail(email, title, message)
+                if not current_app.debug:
+                    msg = (
+                        'แจ้งแอดมินส่วนกลางดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้เลขที่ {}\n\n'
+                        'เรียน แอดมินส่วนกลาง\n\n'
+                        'ตามที่มีการออกใบแจ้งหนี้เลขที่ : {}\n'
+                        'ลูกค้า : {}\n'
+                        'ในนาม : {}\n\n'
+                        'กรุณาดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้ดังกล่าวเข้าสู่ระบบ e-Office'
+                        'เพื่อให้คณบดีลงนามและออกเลข อว. ต่อไป'
+                        'หลังจากดำเนินการแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้กลับเข้าสู่ระบบบริการวิชาการ\n\n'
+                        'สามารถพิมพ์ใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'
+                        '{}\n\n'
+                        'ขอขอบคุณค่ะ\n'
+                        'ระบบบริการวิชาการ\n\n'
+                        .format(invoice.invoice_no, invoice.invoice_no, invoice.customer_name,
+                                invoice.name, invoice_file_url))
+                    for a in admins:
+                        if a.is_central_admin:
+                            try:
+                                line_bot_api.push_message(to=sub_lab.approver.line_id, messages=TextSendMessage(text=msg))
+                            except LineBotApiError:
+                                pass
     elif admin == 'supervisor':
         status_id = get_status(16)
         invoice.quotation.request.status_id = status_id
@@ -1690,41 +1692,43 @@ def approve_invoice(invoice_id):
         invoice.sender_id = current_user.id
         invoice.quotation.request.status_id = status_id
         if admins:
-            title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอนุมัติใบแจ้งหนี้'
-            message = f'''เรียน หัวหน้าห้องปฏิบัติการ\n\n'''
-            message += f'''ใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
-            message += f'''ลูกค้า : {invoice.customer_name}\n'''
-            message += f'''ในนาม : {invoice.name}\n'''
-            message += f'''ที่รอดำเนินการอนุมัติใบแจ้งหนี้\n'''
-            message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
-            message += f'''{invoice_url}\n\n'''
-            message += f'''ขอบคุณค่ะ\n'''
-            message += f'''ระบบบริการวิชาการ'''
-            message += f'''{invoice.customer_name}\n'''
-            message += f'''ผู้ประสานงาน\n'''
-            message += f'''เบอร์โทร {invoice.contact_phone_number}'''
-            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor], title, message)
-            if not current_app.debug:
-                msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
-                       '\n\nเรียน หัวหน้าห้องปฏิบัติการ' \
-                       '\n\nใบแจ้งหนี้เลขที่ : {}' \
-                       '\nลูกค้า : {}' \
-                       '\nในนาม : {}' \
-                       '\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
-                       '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
-                       '\n{}' \
-                       '\n\nขอบคุณค่ะ' \
-                       '\nระบบบริการวิชาการ'\
-                       '\n\n{}' \
-                       '\nผู้ประสานงาน' \
-                       '\nเบอร์โทร {}'.format(invoice.invoice_no, invoice.invoice_no, invoice.customer_name,
-                                              invoice.name, invoice_url, invoice.customer_name, invoice.contact_phone_number))
-                for a in admins:
-                    if a.is_supervisor:
-                        try:
-                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                        except LineBotApiError:
-                            pass
+            email = [a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor]
+            if email:
+                title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอนุมัติใบแจ้งหนี้'
+                message = f'''เรียน หัวหน้าห้องปฏิบัติการ\n\n'''
+                message += f'''ใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
+                message += f'''ลูกค้า : {invoice.customer_name}\n'''
+                message += f'''ในนาม : {invoice.name}\n'''
+                message += f'''ที่รอดำเนินการอนุมัติใบแจ้งหนี้\n'''
+                message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
+                message += f'''{invoice_url}\n\n'''
+                message += f'''ขอบคุณค่ะ\n'''
+                message += f'''ระบบบริการวิชาการ'''
+                message += f'''{invoice.customer_name}\n'''
+                message += f'''ผู้ประสานงาน\n'''
+                message += f'''เบอร์โทร {invoice.contact_phone_number}'''
+                send_mail(email, title, message)
+                if not current_app.debug:
+                    msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
+                           '\n\nเรียน หัวหน้าห้องปฏิบัติการ' \
+                           '\n\nใบแจ้งหนี้เลขที่ : {}' \
+                           '\nลูกค้า : {}' \
+                           '\nในนาม : {}' \
+                           '\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
+                           '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
+                           '\n{}' \
+                           '\n\nขอบคุณค่ะ' \
+                           '\nระบบบริการวิชาการ'\
+                           '\n\n{}' \
+                           '\nผู้ประสานงาน' \
+                           '\nเบอร์โทร {}'.format(invoice.invoice_no, invoice.invoice_no, invoice.customer_name,
+                                                  invoice.name, invoice_url, invoice.customer_name, invoice.contact_phone_number))
+                    for a in admins:
+                        if a.is_supervisor:
+                            try:
+                                line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                            except LineBotApiError:
+                                pass
     db.session.add(invoice)
     db.session.commit()
     flash('อนุมัติใบแจ้งหนี้สำเร็จ', 'success')
@@ -1781,7 +1785,7 @@ def upload_invoice_file(invoice_id):
                 except LineBotApiError:
                     pass
             flash('บันทึกข้อมูลสำเร็จ', 'success')
-            return redirect(url_for('service_admin.invoice_admin', menu=menu))
+            return redirect(url_for('service_admin.invoice_index', menu=menu))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
@@ -1986,18 +1990,33 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
         ('TOPPADDING', (0, 0), (-1, -1), 0),
         ('BOTTOMPADDING', (0, 1), (-1, 1), 0),
     ]))
-    # text_info = Paragraph('<br/><font size=16>ขอแสดงความนับถือ<br/></font>', style=style_sheet['ThaiStyle'])
-    # text = [[text_info, Paragraph('<font size=16></font>', style=style_sheet['ThaiStyle'])]]
-    # text_table = Table(text, colWidths=[0, 155, 155])
-    # text_table.hAlign = 'RIGHT'
-    # sign_info = Paragraph('<font size=16>(ผู้ช่วยศาตราจารย์ ดร.โชติรส พลับพลึง)</font>', style=style_sheet['ThaiStyle'])
-    # sign = [[sign_info, Paragraph('<font size=16></font>', style=style_sheet['ThaiStyle'])]]
-    # sign_table = Table(sign, colWidths=[0, 185, 185])
-    # sign_table.hAlign = 'RIGHT'
-    # position_info = Paragraph('<font size=12>คณบดีคณะเทคนิคการแพทย์</font>', style=style_sheet['ThaiStyle'])
-    # position = [[position_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    # position_table = Table(position, colWidths=[0, 168, 168])
-    # position_table.hAlign = 'RIGHT'
+
+    sign_style = ParagraphStyle(
+        'SignStyle',
+        parent=style_sheet['ThaiStyleCenter'],
+        fontSize=16,
+        leading=20,
+    )
+
+    sign = [
+        [Paragraph('<font size=12>ขอแสดงความนับถือ<br/></font>', style=sign_style)],
+        [Paragraph(f'<font size=12><br/></font>', style=sign_style)],
+        [Paragraph(f'<font size=12><br/></font>', style=sign_style)],
+        [Paragraph(f'<font size=12><br/></font>', style=sign_style)],
+        [Paragraph(f'<font size=12><br/></font>', style=sign_style)],
+        [Paragraph(f'<font size=12><br/></font>', style=sign_style)],
+        [Paragraph(f'<font size=12>((ู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)<br/></font>', style=sign_style)],
+        [Paragraph('<font size=12>คณบดีคณะเทคนิคการแพทย์</font>', style=sign_style)]
+    ]
+    sign_table = Table(sign, colWidths=[200])
+    sign_table.hAlign = 'RIGHT'
+    sign_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 50),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ]))
 
     data.append(KeepTogether(Spacer(7, 7)))
     data.append(KeepTogether(header_ori))
@@ -2007,10 +2026,8 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     data.append(KeepTogether(item_table))
     data.append(KeepTogether(Spacer(1, 16)))
     data.append(KeepTogether(remark_table))
-    # data.append(KeepTogether(text_table))
-    # data.append(KeepTogether(Spacer(1, 25)))
-    # data.append(KeepTogether(sign_table))
-    # data.append(KeepTogether(position_table))
+    data.append(KeepTogether(Spacer(1, 15)))
+    data.append(KeepTogether(sign_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
