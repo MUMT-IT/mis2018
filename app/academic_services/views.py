@@ -2184,7 +2184,7 @@ def invoice_index():
 
 @academic_services.route('/api/invoice/index')
 def get_invoices():
-    query = ServiceInvoice.query.filter(ServiceInvoice.mhesi_issued_at!=None)
+    query = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at!=None)
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
