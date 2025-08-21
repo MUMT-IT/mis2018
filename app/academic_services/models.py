@@ -999,7 +999,8 @@ class ServiceInvoice(db.Model):
             'created_at': self.created_at,
             'due_date': self.due_date if self.due_date else None,
             'creator': self.creator.fullname if self.creator else None,
-            'file_attached_at': self.file_attached_at if self.file_attached_at else None
+            'file_attached_at': self.file_attached_at if self.file_attached_at else None,
+            'assistant_approved_at': self.assistant_approved_at if self.assistant_approved_at else None
         }
 
     # @property
@@ -1148,33 +1149,16 @@ class ServiceInvoiceItem(db.Model):
 class ServicePayment(db.Model):
     __tablename__ = 'service_payments'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    amount_due = db.Column('amount_due', db.Float(), nullable=False)
-    status = db.Column('status', db.String())
+    # amount_due = db.Column('amount_due', db.Float(), nullable=False)
     paid_at = db.Column('paid_at', db.DateTime(timezone=True))
-    bill = db.Column('bill', db.String(255))
-    url = db.Column('url', db.String(255))
+    # bill = db.Column('bill', db.String(255))
+    # sent_at = db.Column('sent_at', db.DateTime(timezone=True))
     sender_id = db.Column('sender_id', db.ForeignKey('service_customer_accounts.id'))
     sender = db.relationship(ServiceCustomerAccount, backref=db.backref('payments'))
     verifier_id = db.Column('verifier_id', db.ForeignKey('staff_account.id'))
     verifier = db.relationship(StaffAccount, backref=db.backref('service_payments'))
     invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
     invoice = db.relationship(ServiceInvoice, backref=db.backref('payments', cascade="all, delete-orphan"))
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'request_id': self.invoice.quotation.request_id if self.invoice else None,
-            'product': ", ".join(
-                [p.strip().strip('"') for p in self.invoice.quotation.request.product.strip("{}").split(",") if
-                 p.strip().strip('"')])
-            if self.invoice else None,
-            'amount_due': self.amount_due,
-            'status': self.status,
-            'paid_at': self.paid_at,
-            'sender': self.sender.customer_info.cus_name if self.sender else None,
-            'verifier': self.verifier.fullname if self.verifier else None,
-            'invoice_no': self.invoice.invoice_no if self.invoice else None
-        }
 
 
 class ServiceReceipt(db.Model):
