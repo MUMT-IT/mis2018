@@ -115,7 +115,7 @@
                     },
                     { data: 'id',
                         render: function (data, type, row) {
-                            if (row.paid_at) {
+                            if (row.slip) {
                                 dowload_url = '/academic_services/aws-s3/download/' + row.slip + '?download_filename=สลิปใบแจ้งหนี้'
                                 return `
                                     <div class="field has-addons">
