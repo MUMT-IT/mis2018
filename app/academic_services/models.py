@@ -1162,8 +1162,8 @@ class ServicePayment(db.Model):
     # admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
     # admin = db.relationship(StaffAccount, backref=db.backref('created_payments'), foreign_keys=[admin_id])
     verified_at = db.Column('verified_at', db.DateTime(timezone=True))
-    verifier_id = db.Column('verifier_id', db.ForeignKey('staff_account.id'))
-    verifier = db.relationship(StaffAccount, backref=db.backref('verified_payments'))
+    # verifier_id = db.Column('verifier_id', db.ForeignKey('staff_account.id'))
+    # verifier = db.relationship(StaffAccount, backref=db.backref('verified_payments'))
     invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
     invoice = db.relationship(ServiceInvoice, backref=db.backref('payments', cascade="all, delete-orphan"))
 
