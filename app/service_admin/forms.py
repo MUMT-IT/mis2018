@@ -126,6 +126,7 @@ class ServiceSampleForm(ModelForm):
 class ServiceInvoiceForm(ModelForm):
     class Meta:
         model = ServiceInvoice
+    file_upload = FileField('File Upload')
 
 
 class ServiceResultForm(ModelForm):
