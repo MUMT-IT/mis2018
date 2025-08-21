@@ -2196,6 +2196,16 @@ def get_invoices():
     data = []
     for item in query:
         item_data = item.to_dict()
+        download_file = url_for('academic_services.download_file', key=item.file, download_filename=f"{item.invoice_no}.pdf")
+        item_data['file'] = f'''<div class="field has-addons">
+                        <div class="control">
+                            <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
+                                <span>ใบแจ้งหนี้</span>
+                            </a>
+                        </div>
+                    </div>
+                '''
         data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
