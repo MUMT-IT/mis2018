@@ -75,6 +75,8 @@
                     url: {{ url_for('academic_services.get_invoices')|tojson|safe}},
                 },
                 order: [[1, 'desc']],
+                scrollX: true,
+                autoWidth: false,
                 columns: [
                     { data : 'invoice_no' },
                     {

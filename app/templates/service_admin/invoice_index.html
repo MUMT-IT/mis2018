@@ -46,6 +46,8 @@
                     url: {{ url_for('service_admin.get_invoices')|tojson|safe}},
                 },
                 order: [[1, 'desc']],
+                scrollX: true,
+                autoWidth: false,
                 columns: [
                     {data: 'invoice_no'},
                     {
@@ -80,16 +82,16 @@
                                 }
                                 else if (row.file_attached_at) {
                                     dowload_url = '/service_admin/aws-s3/download/' + row.invoice_file + '?download_filename=' + row.invoice_no;
-                                return `
-                                    <div class="field has-addons">
-                                       <div class="control">
-                                          <a class="button is-small is-outlined is-link is-rounded"
-                                             href="${dowload_url}">
-                                             <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
-                                             <span>ใบแจ้งหนี้</span>
-                                          </a>
-                                       </div>
-                                     </div>`;
+                                    return `
+                                        <div class="field has-addons">
+                                           <div class="control">
+                                              <a class="button is-small is-outlined is-link is-rounded"
+                                                 href="${dowload_url}">
+                                                 <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
+                                                 <span>ใบแจ้งหนี้</span>
+                                              </a>
+                                           </div>
+                                         </div>`;
                                 } else {
                                     return ''
                                 }
