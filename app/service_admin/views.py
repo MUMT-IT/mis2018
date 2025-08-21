@@ -1715,7 +1715,6 @@ def upload_invoice_file(invoice_id):
         invoice.file_attached_id = current_user.id
         invoice.file_attached_at = arrow.now('Asia/Bangkok').datetime
         invoice.due_date = arrow.get(invoice.file_attached_at).shift(days=+30).datetime
-        payment = ServicePayment(invoice_id=invoice_id, amount_due=invoice.grand_total())
         if file and allowed_file(file.filename):
             mime_type = file.mimetype
             file_name = '{}.{}'.format(uuid.uuid4().hex, file.filename.split('.')[-1])
@@ -1728,7 +1727,6 @@ def upload_invoice_file(invoice_id):
             )
             invoice.file = file_name
             db.session.add(invoice)
-            db.session.add(payment)
             db.session.commit()
             scheme = 'http' if current_app.debug else 'https'
             contact_email = invoice.quotation.request.customer.contact_email if invoice.quotation.request.customer.contact_email else invoice.quotation.request.customer.email
