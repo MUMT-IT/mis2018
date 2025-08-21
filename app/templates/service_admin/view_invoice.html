@@ -306,16 +306,14 @@
                                 {% elif invoice.quotation.request.status.status_id == 17 and central_admin %}
                                     <li>
                                         <div id="mhesi_number"></div>
-                                        <a class="button is-info is-rounded is-full-height mb-2"
-                                           hx-swap="innerHTML"
-                                           hx-target="#mhesi_number"
-                                           hx-get="{{ url_for('service_admin.add_mhesi_number', invoice_id=invoice.id,
+                                        <a class="button is-warning is-rounded is-full-height mb-2"
+                                           href="{{ url_for('service_admin.upload_invoice_file', invoice_id=invoice.id,
                                            menu=menu) }}"
                                         >
                                             <span class="icon">
-                                                <i class="fas fa-pencil"></i>
+                                                <i class="fas fa-pen"></i>
                                             </span>
-                                            <span>ออกเลข อว.</span>
+                                            <span>อัปโหลดไฟล์</span>
                                         </a>
                                     </li>
                                     <li>
@@ -324,6 +322,16 @@
                                         >
                                             <span class="icon"><i class="fas fa-download"></i></span>
                                             <span>ดาวน์โหลด PDF</span>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li>
+                                        <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
+                                           href="{{ url_for('service_admin.download_file', key=invoice.file,
+                                            download_filename='invoice.invoice_no.pdf') }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                            <span>ดาวน์โหลดใบแจ้งหนี้</span>
                                         </a>
                                     </li>
                                 {% endif %}
