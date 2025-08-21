@@ -1,5 +1,15 @@
  {% extends "academic_services/service_base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <style>
+        .toast {
+            opacity: 1 !important;
+            transition: none !important;
+        }
+    </style>
+{% endblock %}
 {% block page_content %}
 {% include"academic_services/customer_nav.html" %}
 <section class="section">
@@ -17,8 +27,11 @@
                         <th>วันครบกำหนดชำระ</th>
                         <th>รายการ</th>
                         <th>ราคา</th>
+                        <th>วิธีการชำระเงิน</th>
+                        <th>วันที่ชำระเงิน</th>
+                        <th>หลักฐานการชำระเงิน</th>
                         <th>สถานะ</th>
-                        <th></th>
+                        <th>รายละเอียด</th>
                     </thead>
                     <tbody>
                     </tbody>
@@ -30,6 +43,30 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+    <script>
+        function showToast(category, message) {
+            if (category === 'success') {
+                toastr.success(message);
+            } else if (category === 'danger') {
+                toastr.error(message);
+            } else if (category === 'warning') {
+                toastr.warning(message);
+            } else {
+                toastr.info(message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        showToast('{{ category }}', {{ message|tojson }});
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
     <script>
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
@@ -58,12 +95,53 @@
                                 let d = moment(data)
                                 return d.format('ll')
                             } else {
-                                return '-'
+                                return ''
                             }
                         }
                     },
                     { data: 'product' },
                     { data: 'total_price' },
+                    { data: 'payment_type'},
+                    {
+                        data : 'paid_at',
+                        render: function(data) {
+                            if (data !== '') {
+                                let d = moment(data)
+                                return d.format('ll')
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    { data: 'id',
+                        render: function (data, type, row) {
+                            if (row.paid_at) {
+                                dowload_url = '/academic_services/aws-s3/download/' + row.slip + '?download_filename=สลิปใบแจ้งหนี้'
+                                return `
+                                    <div class="field has-addons">
+                                       <div class="control">
+                                          <a class="button is-small is-outlined is-link is-rounded"
+                                             href="${dowload_url}">
+                                             <span class="icon is-small"><i class="fas fa-receipt"></i></span>
+                                             <span>หลักฐานการชำระเงิน</span>
+                                          </a>
+                                       </div>
+                                     </div>`;
+                            } else {
+                                add_payment_url = '/academic_services/customer/payment/add?invoice_id=' + data +'&menu=invoice';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + add_payment_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-plus"></i>' +
+                                    '</span>' +
+                                    '<span>อัปโหลดหลักฐานการชำระเงิน</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            }
+                        }
+                    },
                     {
                         data: 'id',
                         render: function (data, type, row) {
@@ -73,25 +151,11 @@
                                 return `<span class="tag ${color}">${status}</span>`;
                             }
                             else {
-                                return `<span class="tag is-info">ร่างใบแจ้งหนี้</span>`;
+                                return `<span class="tag is-info">อยู่ระหว่างการจัดทำใบแจ้งหนี้</span>`;
                             }
                         }
                     },
-                    {
-                        data: 'id',
-                        render: function (data) {
-                            var menu = '{{ menu }}'
-                            var url = '/academic_services/invoice/view/' + data +'?menu=' + menu;
-                            return '<div class="field has-addons">' +
-                                        '<div class="control">' +
-                                            '<a class="button is-small is-info is-light is-rounded" ' + 'href=' + url + '>' +
-                                                '<span class="icon"><i class="fas fa-eye"></i></span>' +
-                                                '<span>รายละเอียด</span>' +
-                                            '</a>' +
-                                        '</div>' +
-                                    '</div>'
-                        }
-                    }
+                    { data: 'file' }
                 ]
             });
         });
