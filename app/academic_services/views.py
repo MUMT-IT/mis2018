@@ -881,6 +881,25 @@ def get_requests():
     data = []
     for item in query:
         item_data = item.to_dict()
+        html_blocks = []
+        if item.status.status_id == 20:
+            for result in item.results:
+                for i in result.result_items:
+                    if i.url:
+                        download_file = url_for('service_admin.download_file', key=i.url,
+                                                download_filename=f"{i.report_language}.pdf")
+                        html = f'''
+                                    <div class="field has-addons">
+                                        <div class="control">
+                                            <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                                <span>{i.report_language}</span>
+                                                <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                '''
+                        html_blocks.append(html)
+        item_data['files'] = ''.join(html_blocks) if html_blocks else ''
         data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
