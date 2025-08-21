@@ -535,16 +535,12 @@ class ServiceRequest(db.Model):
                             status = 'รอตรวจสอบการชำระเงิน'
                             color = 'is-warning'
                             icon = '<i class="fas fa-search-dollar"></i>'
-                        elif invoice.mhesi_issued_at:
+                        elif invoice.file_attached_at:
                             status = 'รอการชำระเงิน'
                             color = 'is-link'
                             icon = '<i class="fas fa-hourglass-half"></i>'
-                        elif invoice.dean_approved_at:
-                            status = 'รอออกเลข อว.'
-                            color = 'is-primary'
-                            icon = '<i class="fas fa-file-signature"></i>'
                         elif invoice.assistant_approved_at:
-                            status = 'รอคณบดีอนุมัติใบแจ้งหนี้'
+                            status = 'รอคณบดีอนุมัติและออกเลข อว.'
                             color = 'is-warning'
                             icon = '<i class="fas fa-pen-nib"></i>'
                         elif invoice.head_approved_at:
@@ -583,7 +579,7 @@ class ServiceRequest(db.Model):
                             status = 'รอตรวจสอบการชำระเงิน'
                             color = 'is-warning'
                             icon = '<i class="fas fa-hourglass-half"></i>'
-                        elif invoice.mhesi_issued_at:
+                        elif invoice.file_attached_at:
                             status = 'รอการชำระเงิน'
                             color = 'is-danger'
                             icon = '<i class="fas fa-clock"></i>'
@@ -1005,7 +1001,8 @@ class ServiceInvoice(db.Model):
             'paid_at': [payment.paid_at.isoformat() if payment.paid_at else '' for payment in self.payments]
                         if self.payments else [],
             'slip': [payment.slip if payment.slip else '' for payment in self.payments]
-                    if self.payments else ''
+                    if self.payments else '',
+            'invoice_file': self.file if self.file else None
         }
 
     # @property
