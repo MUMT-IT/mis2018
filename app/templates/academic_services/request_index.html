@@ -211,7 +211,7 @@
                     {
                         data: 'sample_appointment_status_for_customer',
                         render: function (data, type, row) {
-                            if (data !== null && data.status != 'รอการนัดหมายส่งตัวอย่าง') {
+                            if (data.status !== null && data.status != 'รอการนัดหมายส่งตัวอย่าง') {
                                 return `<span class="tag ${data.color}">
                                             <span class="icon">${data.icon}</span>
                                             <span>${data.status}</span>
@@ -226,8 +226,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            }
-                                else {
+                            } else {
                                 return ''
                             }
                         }
@@ -235,7 +234,7 @@
                     {
                         data: 'test_item_status',
                         render: function (data, type, row) {
-                            if (data !== null) {
+                            if (data.status !== null) {
                                 return `<span class="tag ${data.color}">
                                             <span class="icon">${data.icon}</span>
                                             <span>${data.status}</span>
