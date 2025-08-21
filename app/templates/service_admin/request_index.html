@@ -192,7 +192,7 @@
                         }
                     },
                     {
-                        data: 'sample_appointment_status_for_customer',
+                        data: 'sample_appointment_status_for_admin',
                         render: function (data, type, row) {
                             if (data.status !== null && data.status != 'รอรับตัวอย่าง') {
                                 return `<span class="tag ${data.color}">
@@ -233,7 +233,7 @@
                     {
                         data: 'invoice_status_for_admin',
                         render: function (data, type, row) {
-                            if (data != null) {
+                            if (data.id !== null) {
                                 var url = '/service_admin/invoice/view/' + data.id + '?menu=invoice';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +

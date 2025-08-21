@@ -234,7 +234,7 @@
                     {
                         data: 'test_item_status',
                         render: function (data, type, row) {
-                            if (data.status !== null) {
+                            if (data !== null) {
                                 return `<span class="tag ${data.color}">
                                             <span class="icon">${data.icon}</span>
                                             <span>${data.status}</span>
