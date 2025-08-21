@@ -1149,12 +1149,22 @@ class ServiceInvoiceItem(db.Model):
 class ServicePayment(db.Model):
     __tablename__ = 'service_payments'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    # amount_due = db.Column('amount_due', db.Float(), nullable=False)
+    payment_type = db.Column('payment_type', db.String(), info={'label': 'วิธีการชำระเงิน',
+                                                                'choices': [('', 'กรุณาเลือกวิธีการชำระเงิน'),
+                                                                              ('เปอร์เซ็นต์', 'เปอร์เซ็นต์'),
+                                                                              ('จำนวนเงิน', 'จำนวนเงิน')
+                                                                              ]})
+    amount_paid = db.Column('amount_paid', db.Float(), nullable=False)
     paid_at = db.Column('paid_at', db.DateTime(timezone=True))
-    # bill = db.Column('bill', db.String(255))
-    # sent_at = db.Column('sent_at', db.DateTime(timezone=True))
-    sender_id = db.Column('sender_id', db.ForeignKey('service_customer_accounts.id'))
+    slip = db.Column('slip', db.String(255))
+    # customer_id = db.Column('customer_id', db.ForeignKey('service_customer_accounts.id'))
+    # customer = db.relationship(ServiceCustomerAccount, backref=db.backref("created_payments"), foreign_keys=[customer_id])
+    # admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
+    # admin = db.relationship(StaffAccount, backref=db.backref('created_payments'), foreign_keys=[admin_id])
+    sent_at = db.Column('sent_at', db.DateTime(timezone=True))
+    sender_id = db.Column('sender_id', db.ForeignKey('service_customer_accounts.id'), )
     sender = db.relationship(ServiceCustomerAccount, backref=db.backref('payments'))
+    verified_at = db.Column('verified_at', db.DateTime(timezone=True))
     verifier_id = db.Column('verifier_id', db.ForeignKey('staff_account.id'))
     verifier = db.relationship(StaffAccount, backref=db.backref('service_payments'))
     invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
