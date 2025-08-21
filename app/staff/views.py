@@ -953,7 +953,9 @@ def pending_leave_approval(req_id):
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(req.start_datetime)
     quota = StaffLeaveUsedQuota.query.filter_by(leave_type_id=req.quota.leave_type_id,
                                                      staff=req.staff, fiscal_year=END_FISCAL_DATE.year).first()
-    used_quota = quota.used_days - quota.pending_days
+    used_quota = 0
+    if quota:
+        used_quota = quota.used_days - quota.pending_days
     last_req = None
     for last_req in StaffLeaveRequest.query.filter_by(staff_account_id=req.staff_account_id, cancelled_at=None). \
             order_by(desc(StaffLeaveRequest.start_datetime)):

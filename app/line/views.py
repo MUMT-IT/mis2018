@@ -270,7 +270,7 @@ def notify_room_booking():
         for room_number, datetime, creator, comment in coords[co]:
             start = tz.localize(datetime.lower).strftime("%H:%M")
             end = tz.localize(datetime.upper).strftime('%H:%M')
-            message += f'ห้อง {room_number} เวลา {start} - {end} ผู้จอง {creator} ' + (f'({comment})' if comment else '')
+            message += f'ห้อง {room_number} เวลา {start} - {end} ผู้จอง {creator} ' + (f'({comment})' if comment else '')+'\n'
         if co.line_id:
             try:
                 line_bot_api.push_message(to=co.line_id, messages=TextSendMessage(text=message))
