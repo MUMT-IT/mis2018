@@ -1157,7 +1157,7 @@ class ServicePayment(db.Model):
                                                                               ('โอนเงิน', 'โอนเงิน'),
                                                                               ('เช็คเงินสด', 'เช็คเงินสด')]
                                                                 })
-    # amount_paid = db.Column('amount_paid', db.Float(), nullable=False)
+    amount_paid = db.Column('amount_paid', db.Numeric())
     paid_at = db.Column('paid_at', db.DateTime(timezone=True))
     slip = db.Column('slip', db.String(255))
     created_at = db.Column('created_at', db.DateTime(timezone=True))
