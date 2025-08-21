@@ -137,6 +137,7 @@
                     <th>นัดหมายส่งตัวอย่าง</th>
                     <th>การทดสอบ</th>
                     <th>ใบแจ้งหนี้</th>
+                    <th>รายงานผลการทดสอบ</th>
                     <th>หมายเหตุ</th>
                     <th>รายละเอียด</th>
                     <th></th>
@@ -201,7 +202,7 @@
                                     '</div>' +
                                     '</div>'
                             } else if (data.status == 'ไม่อนุมัติ'){
-                                return 'เหตุผลที่ยกเลิก เนื่องจาก' + data.reason;
+                                return 'เหตุผลที่ไม่อนุมัติ เนื่องจาก' + data.reason;
                             } else {
                                 return ''
                             }
@@ -248,7 +249,7 @@
                         data: 'id',
                         render: function (data, type, row) {
                             if (row.has_invoice) {
-                                dowload_url = '/academic_services/aws-s3/download/' + row.invoice_file + '?download_filename=' + row.invoice_no;
+                                dowload_url = '/academic_services/aws-s3/download/' + row.invoice_file + '?download_filename=' + row.invoice_no + '.pdf';
                                     return `
                                         <div class="field has-addons">
                                            <div class="control">
@@ -264,6 +265,7 @@
                             }
                         }
                     },
+                    { data: 'files' },
                     {
                         data: 'id',
                         render: function (data, type, row) {

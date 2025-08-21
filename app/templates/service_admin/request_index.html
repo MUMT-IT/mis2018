@@ -87,6 +87,11 @@
                     <th>รายการ</th>
                     <th>ผู้ส่ง</th>
                     <th>สถานะ</th>
+                    <th>ใบเสนอราคา</th>
+                    <th>นัดหมายส่งตัวอย่าง</th>
+                    <th>รายการทดสอบ</th>
+                    <th>ใบแจ้งหนี้</th>
+                    <th>รายงานผลการทดสอบ</th>
                     <th>รายละเอียด</th>
                     </thead>
                     <tbody>
@@ -106,6 +111,8 @@
                     url: {{ url_for('service_admin.get_requests')|tojson|safe}},
                 },
                 order: [[1, 'desc']],
+                scrollX: true,
+                autoWidth: false,
                 columns: [
                     {data: 'request_no'},
                     {
@@ -142,6 +149,106 @@
                             }
                         }
                     },
+                    {
+                        data: 'quotation_status_for_admin',
+                        render: function (data, type, row) {
+                            var admin = '{{ admin }}';
+                            var supervisor = '{{ supervisor }}';
+                            if (data.status == 'ร่างใบเสนอราคา' && admin) {
+                                var url = '/service_admin/admin/quotation/add/' + data.id + '?tab=draft' + '&menu=quotation';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>แก้ไข</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (data.status == 'รออนุมัติใบเสนอราคา' && supervisor) {
+                                var url = '/service_admin/quotation/supervisor/approve/' + data + '?tab=pending_approval&menu=quotation';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>ตรวจสอบ</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (data.status == 'รอลูกค้าอนุมัติใบเสนอราคา' || data.status == 'ลูกค้าอนุมัติใบเสนอราคา') {
+                                var url = '/service_admin/quotation/view/' + data.id + '?menu=quotation';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-outlined is-rounded is-link" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-file-invoice"></i></span>' +
+                                    '<span>ใบเสนอราคา</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (data.status == 'ลูกค้าไม่อนุมัติใบเสนอราคา'){
+                                return 'เหตุผลที่ลูกค้าไม่อนุมัติ เนื่องจาก' + data.reason;
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'sample_appointment_status_for_customer',
+                        render: function (data, type, row) {
+                            if (data !== null && data.status != 'รอรับตัวอย่าง') {
+                                return `<span class="tag ${data.color}">
+                                            <span class="icon">${data.icon}</span>
+                                            <span>${data.status}</span>
+                                        </span>`;
+                            } else if (data.status == 'รอรับตัวอย่าง') {
+                                var sample_url = '/service_admin/sample/verification/add/' + data.id + '?menu=sample';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-warning is-rounded" ' + 'href=' + sample_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-clipboard-check"></i>' +
+                                    '</span>' +
+                                    '<span>ดำเนินการและยืนยันรับตัวอย่าง</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            }
+                                else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'test_item_status',
+                        render: function (data, type, row) {
+                            if (data !== null) {
+                                return `<span class="tag ${data.color}">
+                                            <span class="icon">${data.icon}</span>
+                                            <span>${data.status}</span>
+                                        </span>`;
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'invoice_status_for_admin',
+                        render: function (data, type, row) {
+                            if (data != null) {
+                                var url = '/service_admin/invoice/view/' + data.id + '?menu=invoice';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-outlined is-rounded is-link" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>' +
+                                    '<span>ใบแจ้งหนี้</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    { data: 'files'},
                     {
                         data: 'id',
                         render: function (data) {
