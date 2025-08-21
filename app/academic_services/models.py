@@ -1002,6 +1002,7 @@ class ServiceInvoice(db.Model):
             'file_attached_at': self.file_attached_at if self.file_attached_at else None,
             'assistant_approved_at': self.assistant_approved_at if self.assistant_approved_at else None,
             'payment_type': [payment.payment_type for payment in self.payments] if self.payments else None,
+            'paid_at': [payment.paid_at for payment in self.payments] if self.payments else None,
         }
 
     # @property
@@ -1152,10 +1153,11 @@ class ServicePayment(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     payment_type = db.Column('payment_type', db.String(), info={'label': 'วิธีการชำระเงิน',
                                                                 'choices': [('', 'กรุณาเลือกวิธีการชำระเงิน'),
-                                                                              ('เปอร์เซ็นต์', 'เปอร์เซ็นต์'),
-                                                                              ('จำนวนเงิน', 'จำนวนเงิน')
-                                                                              ]})
-    amount_paid = db.Column('amount_paid', db.Float(), nullable=False)
+                                                                              ('QR Code Payment', 'QR Code Payment'),
+                                                                              ('โอนเงิน', 'โอนเงิน'),
+                                                                              ('เช็คเงินสด', 'เช็คเงินสด')]
+                                                                })
+    # amount_paid = db.Column('amount_paid', db.Float(), nullable=False)
     paid_at = db.Column('paid_at', db.DateTime(timezone=True))
     slip = db.Column('slip', db.String(255))
     created_at = db.Column('created_at', db.DateTime(timezone=True))
