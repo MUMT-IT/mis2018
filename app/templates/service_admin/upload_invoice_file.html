@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% include "service_admin/admin_nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <h1 class="title has-text-centered">อัปโหลดไฟล์ใบแจ้งหนี้</h1>
+                    <form method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="box">
+                            <div class="field">
+                                <label class="label">เลขที่ใบแจ้งหนี้</label>
+                                <div class="control">
+                                    {{ invoice.invoice_no }}
+                                </div>
+                            </div>
+                            <div class="file">
+                                <label class="file-label">
+                                    {{ form.file_upload(class="file-input", id="file_upload") }}
+                                    <span class="file-cta">
+                                        <span class="file-icon">
+                                            <i class="fas fa-upload"></i>
+                                        </span>
+                                        <span class="file-label">เลือกไฟล์…</span>
+                                    </span>
+                                    <span class="file-name" id="filename">None</span>
+                                </label>
+                            </div>
+                            <div class="column">
+                                <div class="field is-grouped is-grouped-centered">
+                                    <div class="control">
+                                        <a href="{{ url_for('service_admin.invoice_index', menu=menu) }}"
+                                           class="button">ยกเลิก</a>
+                                    </div>
+                                    <div class="control">
+                                        <input type="submit" value="บันทึก" class="button is-success">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        </form>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $('.js-example-basic-single').select2({
+            width: '100%',
+        });
+    </script>
+    <script>
+        $(document).ready(() => {
+            $('#filename').text('None');
+        })
+        $('#file_upload').change(function (e) {
+            let fileName = e.target.files[0].name;
+            $('#filename').text(fileName);
+        });
+    </script>
+{% endblock %}
