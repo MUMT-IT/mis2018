@@ -533,9 +533,9 @@ class ServiceRequest(db.Model):
                     icon = '<i class="fas fa-file-signature"></i>'
                 id = sample.id
         else:
-            status = 'ยังไม่ดำเนินการนัดหมายส่งตัวอย่าง'
-            color = 'is-danger is-light'
-            icon = '<i class="fas fa-times-circle"></i>'
+            status = None
+            color = None
+            icon = None
         return {'status': status, 'color': color, 'icon': icon, 'id': id}
 
     @property
@@ -552,9 +552,9 @@ class ServiceRequest(db.Model):
                     color = 'is-warning is-light'
                     icon = '<i class="fas fa-hourglass-half"></i>'
         else:
-            status = 'ยังไม่ดำเนินการทดสอบตัวอย่าง'
-            color = 'is-danger is-light'
-            icon = '<i class="fas fa-times-circle"></i>'
+            status = None
+            color = None
+            icon = None
         return {'status': status, 'color': color, 'icon': icon}
 
     @property
