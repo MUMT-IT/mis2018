@@ -91,11 +91,11 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.status_id == 13) {
+                            if (row.status_id == 12) {
                                 invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '?menu=invoice';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
-                                    '<a class="button is-small is-success is-rounded" ' + 'href=' + invoice_url + '>' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + invoice_url + '>' +
                                     '<span class="icon">' +
                                     '<i class="fas fa-file-download"></i>' +
                                     '</span>' +
