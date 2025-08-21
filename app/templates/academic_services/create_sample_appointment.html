@@ -15,7 +15,7 @@
     <section class="section">
         <div class="container">
             <div class="columns is-centered">
-                <div class="column is-half">
+                <div class="column is-two-fifths">
                     <h1 class="title has-text-centered">ข้อมูลคำขอรับบริการ</h1>
                     <div class="box">
                         <h1 class="title is-4">ใบคำขอรับบริการ <em>{{ sample.request.request_no }}</em></h1>
@@ -272,12 +272,12 @@
                 showDropdowns: true,
                 autoUpdateInput: true,
                 {% if form.appointment_date.data %}
-                    startDate: {{ appointment_date.date().isoformat()|tojson|safe }},  // แค่วัน
+                    startDate: {{ appointment_date.date().isoformat()|tojson|safe }},
                 {% else %}
                     startDate: moment().startOf('day'),
                 {% endif %}
                 locale: {
-                    format: 'YYYY-MM-DD'
+                    format: 'YYYY-MM-DD HH:mm:ss'
                 },
                 isInvalidDate: function(date) {
                     const formatted = date.format('YYYY-MM-DD');
@@ -285,9 +285,6 @@
                     const isHoliday = holidays.includes(formatted);
                     return isWeekend || isHoliday;
                 }
-            });
-            $('input[name="appointment_date"]').on('apply.daterangepicker', function(ev, picker) {
-                $(this).val(picker.startDate.format('YYYY-MM-DD') + ' 00:00:00');
             });
             function showAppointmentDate() {
                 var shipType = document.querySelector('[name="ship_type"]').value;
