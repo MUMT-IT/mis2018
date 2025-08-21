@@ -21,7 +21,7 @@ from wtforms import FormField, FieldList
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from app.auth.views import line_bot_api
-from app.academic_services.forms import create_request_form, ServiceRequestForm
+from app.academic_services.forms import create_request_form, ServiceRequestForm, ServicePaymentForm
 from app.e_sign_api import e_sign
 from app.models import Org
 from app.service_admin import service_admin
@@ -1834,14 +1834,15 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     header_ori.setStyle(header_styles)
 
     customer = '''<para><font size=11>
-                    ที่ อว. <br/>
+                    ที่ อว. {mhesi_no}<br/>
                     วันที่ <br/>
                     เรื่อง ใบแจ้งหนี้ค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ<br/>
                     เรียน {customer}<br/>
                     ที่อยู่ {address}<br/>
                     เลขประจำตัวผู้เสียภาษี {taxpayer_identification_no}
                     </font></para>
-                    '''.format(customer=invoice.name,
+                    '''.format(mhesi_no='78.04/',
+                                customer=invoice.name,
                                address=invoice.address,
                                taxpayer_identification_no=invoice.taxpayer_identification_no)
 
@@ -1993,6 +1994,50 @@ def export_invoice_pdf(invoice_id):
     invoice = ServiceInvoice.query.get(invoice_id)
     buffer = generate_invoice_pdf(invoice)
     return send_file(buffer, download_name='Invoice.pdf', as_attachment=True)
+
+
+@service_admin.route('/payment/add', methods=['GET', 'POST'])
+def add_payment():
+    menu = request.args.get('menu')
+    invoice_id = request.args.get('invoice_id')
+    invoice = ServiceInvoice.query.get(invoice_id)
+    form = ServicePaymentForm()
+    if form.validate_on_submit():
+        payment = ServicePayment()
+        form.populate_obj(payment)
+        status_id = get_status(20)
+        file = form.file_upload.data
+        payment.invoice_id = invoice_id
+        payment.created_at = arrow.now('Asia/Bangkok').datetime
+        payment.customer_id = invoice.quotation.request.customer_id
+        payment.admin_id = current_user.id
+        payment.paid_at = arrow.get(form.paid_at.data, 'Asia/Bangkok').datetime
+        if file and allowed_file(file.filename):
+            mime_type = file.mimetype
+            file_name = '{}.{}'.format(uuid.uuid4().hex, file.filename.split('.')[-1])
+            file_data = file.stream.read()
+            response = s3.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=file_name,
+                Body=file_data,
+                ContentType=mime_type
+            )
+            payment.slip = file_name
+            db.session.add(payment)
+            invoice.is_paid = True
+            invoice.paid_at = arrow.now('Asia/Bangkok').datetime
+            invoice.quotation.request.status_id = status_id
+            db.session.add(invoice)
+            result = ServiceResult.query.filter_by(request_id=invoice.quotation.request_id).first()
+            result.status_id = status_id
+            db.session.add(result)
+            db.session.commit()
+        flash('อัพเดตสลิปสำเร็จ', 'success')
+        return redirect(url_for('service_admin.invoice_index', menu=menu))
+    else:
+        for field, error in form.errors.items():
+            flash(f'{field}: {error}', 'danger')
+    return render_template('service_admin/add_payment.html', menu=menu, form=form, invoice=invoice)
 
 
 @service_admin.route('/quotation/index')
