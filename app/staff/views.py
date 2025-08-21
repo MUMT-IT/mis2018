@@ -3026,8 +3026,10 @@ def seminar_add_approval(attend_id):
 def seminar_pre_register_upcoming_records():
     pre_seminars = StaffSeminar.query.filter(StaffSeminar.closed_at != None,
                                              StaffSeminar.end_datetime >= arrow.now('Asia/Bangkok').datetime).all()
+    all_created_seminars = StaffSeminar.query.filter_by(created_by=current_user).all()
     is_secretary = True if secretary_permission else False
-    return render_template('staff/seminar_pre_register.html', pre_seminars=pre_seminars, is_secretary=is_secretary)
+    return render_template('staff/seminar_pre_register.html', pre_seminars=pre_seminars, is_secretary=is_secretary,
+                           all_created_seminars=all_created_seminars)
 
 
 @staff.route('/seminar/pre-register/my-records')
