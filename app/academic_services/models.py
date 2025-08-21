@@ -621,9 +621,9 @@ class ServiceRequest(db.Model):
                     color = 'is-warning'
                     icon = '<i class="fas fa-hourglass-half"></i>'
         else:
-            status = 'ยังไม่ดำเนินการทดสอบตัวอย่าง'
-            color = 'is-danger'
-            icon = '<i class="fas fa-times-circle"></i>'
+            status = None
+            color = None
+            icon = None
         return {'status': status, 'color': color, 'icon': icon}
 
     @property
