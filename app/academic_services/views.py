@@ -1626,6 +1626,30 @@ def generate_quotation_pdf(quotation, sign=False):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
     ]))
 
+    district_title = 'เขต' if quotation.request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
+    subdistrict_title = 'แขวง' if quotation.request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล',
+
+    document_address = '''<para><font size=12>ที่อยู่สำหรับจัดส่งเอกสาร<br/>
+                    ถึง {name}<br/>
+                    ที่อยู่ {address} {subdistrict_title}{subdistrict} {district_title}{district} จังหวัด{province} {zipcode}<br/>
+                    เบอร์โทรศัพท์ : {phone_number}<br/>
+                    อีเมล : {email}
+                    </font></para>
+                    '''.format(name=quotation.request.document_address.name,
+                               address=quotation.request.document_address.address,
+                               subdistrict_title=subdistrict_title,
+                               subdistrict=quotation.request.document_address.subdistrict,
+                               district_title=district_title,
+                               district=quotation.request.document_address.district,
+                               province=quotation.request.document_address.province,
+                               zipcode=quotation.request.document_address.zipcode,
+                               phone_number=quotation.request.document_address.phone_number,
+                               email=quotation.request.customer.contact_email
+                               )
+
+    document_address_table = Table([[Paragraph(document_address, style=style_sheet['ThaiStyle'])]], colWidths=[200])
+    document_address_table.hAlign = 'LEFT'
+
     sign_style = ParagraphStyle(
         'SignStyle',
         parent=style_sheet['ThaiStyleCenter'],
@@ -1656,6 +1680,8 @@ def generate_quotation_pdf(quotation, sign=False):
     data.append(KeepTogether(Spacer(1, 16)))
     data.append(KeepTogether(item_table))
     data.append(KeepTogether(Spacer(1, 15)))
+    data.append(KeepTogether(document_address_table))
+    data.append(KeepTogether(Spacer(1, 5)))
     data.append(KeepTogether(sign_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
