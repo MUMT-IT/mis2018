@@ -328,7 +328,7 @@
                                     <li>
                                         <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
                                            href="{{ url_for('service_admin.download_file', key=invoice.file,
-                                            download_filename='ใบแจ้งหนี้.pdf') }}"
+                                            download_filename=invoice.invoice_no ~ '.pdf') }}"
                                         >
                                             <span class="icon"><i class="fas fa-download"></i></span>
                                             <span>ดาวน์โหลดใบแจ้งหนี้</span>
