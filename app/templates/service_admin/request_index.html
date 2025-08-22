@@ -152,8 +152,8 @@
                     {
                         data: 'quotation_status_for_admin',
                         render: function (data, type, row) {
-                            var admin = '{{ admin }}';
-                            var supervisor = '{{ supervisor }}';
+                            var admin = '{{ admin|tojson }}';
+                            var supervisor = '{{ supervisor|tojson }}';
                             if (admin == 'true'  && data.status === 'ร่างใบเสนอราคา') {
                                 var url = '/service_admin/admin/quotation/add/' + data.id + '?tab=draft' + '&menu=quotation';
                                 return '<div class="field has-addons">' +
