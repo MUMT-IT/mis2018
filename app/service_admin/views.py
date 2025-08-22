@@ -518,7 +518,7 @@ def create_customer_detail(request_id):
                                                      subdistrict_id=quotation_address.subdistrict_id)
                 db.session.add(address)
                 db.session.commit()
-        status_id = get_status(1)
+        status_id = get_status(2)
         service_request.status_id = status_id
         service_request.admin_id = current_user.id
         db.session.commit()
