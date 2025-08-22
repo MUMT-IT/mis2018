@@ -187,6 +187,32 @@
                                 </li>
                             </ul>
                             <hr>
+                            {% if service_request.status.status_id == 13 or service_request.status.status_id == 14
+                                        or service_request.status.status_id == 15 or service_request.status.status_id == 15
+                                        or service_request.status.status_id == 16 or service_request.status.status_id == 17
+                                        or service_request.status.status_id == 18 or service_request.status.status_id == 19
+                                        or service_request.status.status_id == 20 %}
+                                <p class="menu-label">
+                                    ใบรายงานผล
+                                </p>
+                                <ul class="menu-list">
+                                    <li>
+                                    {% for result in service_request.results %}
+                                            {% for item in result.result_items %}
+                                                <a class="button is-small is-link is-light is-rounded is-fullwidth mb-2"
+                                                   href="{{ url_for('service_admin.download_file', key=item.url,
+                                                   download_filename=item.report_language ~ '.pdf') }}"
+                                                >
+                                                    <span>{{ item.report_language or 'ไม่ระบุภาษา' }}</span>
+                                                    <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                </a>
+
+                                            {% endfor %}
+                                        {% endfor %}
+                                    </li>
+                                </ul>
+                                <hr>
+                            {% endif %}
                             <p class="menu-label">
                                 การดำเนินการ
                             </p>
@@ -219,23 +245,6 @@
                                             <span>ออกใบรายงานผล</span>
                                         </a>
                                     </li>
-                                {% elif service_request.status.status_id == 13 or service_request.status.status_id == 14
-                                        or service_request.status.status_id == 15 or service_request.status.status_id == 15
-                                        or service_request.status.status_id == 16 or service_request.status.status_id == 17
-                                        or service_request.status.status_id == 18 or service_request.status.status_id == 19
-                                        or service_request.status.status_id == 20 %}
-                                    {% for result in service_request.results %}
-                                        {% for item in result.result_items %}
-                                            <a class="button is-small is-link is-light is-rounded is-fullwidth mb-2"
-                                               href="{{ url_for('service_admin.download_file', key=item.url,
-                                               download_filename=item.report_language ~ '.pdf') }}"
-                                            >
-                                                <span>{{ item.report_language or 'ไม่ระบุภาษา' }}</span>
-                                                <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                            </a>
-
-                                        {% endfor %}
-                                    {% endfor %}
                                 {% endif %}
                                 <li>
                                     <a class="button is-info is-outlined is-rounded is-small is-fullwidth mb-2"
