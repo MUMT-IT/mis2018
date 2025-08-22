@@ -232,10 +232,11 @@
                                                 </a>
                                             </li>
                                             {% for invoice in quotation.invoices %}
-                                                {% if invoice.mhesi_no %}
+                                                {% if invoice.file %}
                                                     <li>
                                                         <a class="button is-link is-outlined is-rounded is-small is-fullwidth mb-2"
-                                                           href="{{ url_for('academic_services.export_invoice_pdf', invoice_id=invoice.id) }}"
+                                                           href="{{ url_for('service_admin.download_file', key=invoice.file,
+                                                            download_filename=invoice.invoice_no ~ '.pdf') }}"
                                                         >
                                                             <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>
                                                             <span>พิมพ์ใบแจ้งหนี้</span>
