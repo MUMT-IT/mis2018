@@ -198,19 +198,18 @@
                                             <span>แก้ไขข้อมูลคำขอ</span>
                                         </a>
                                     </li>
-                                {% endif %}
-                                {% if service_request.samples %}
-                                    {% for sample in service_request.samples %}
-                                        {% if sample.received_at %}
-                                            <li>
-                                                <a class="button is-outlined is-rounded is-small is-fullwidth mb-2"
-                                                   href="{{ url_for('academic_services.result_index', menu='report') }}"
-                                                >
-                                                    <span class="icon"><i class="fas fa-file-alt"></i></span>
-                                                    <span>ดูรายงานผลการทดสอบ</span>
-                                                </a>
-                                            </li>
-                                        {% endif %}
+                                {% elif service_request.status.status_id == 20 %}
+                                    {% for result in service_request.results %}
+                                        {% for item in result.result_items %}
+                                            <a class="button is-small is-link is-light is-rounded is-fullwidth mb-2"
+                                               href="{{ url_for('service_admin.download_file', key=item.url,
+                                               download_filename=item.report_language ~ '.pdf') }}"
+                                            >
+                                                <span>{{ item.report_language or 'ไม่ระบุภาษา' }}</span>
+                                                <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                            </a>
+
+                                        {% endfor %}
                                     {% endfor %}
                                 {% endif %}
                                 <li>
