@@ -125,7 +125,7 @@
                                           </a>
                                        </div>
                                      </div>`;
-                            } else {
+                            } else if (row.file_attached_at) {
                                 add_payment_url = '/service_admin/payment/add?invoice_id=' + data +'&menu=invoice';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -137,6 +137,8 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
+                            } else {
+                                return ''
                             }
                         }
                     },
