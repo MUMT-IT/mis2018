@@ -1985,16 +1985,11 @@ def create_sample_appointment(sample_id):
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     form = ServiceSampleForm(obj=sample)
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=sample.request.lab)).all()
-    appointment_date = form.appointment_date.data.astimezone(localtz) if form.appointment_date.data else None
     holidays = Holidays.query.all()
     if form.validate_on_submit():
         form.populate_obj(sample)
         if ((form.ship_type.data == 'ส่งด้วยตนเอง' and form.location.data and form.appointment_date.data) or
             (form.ship_type.data == 'ส่งทางไปรษณีย์' and form.location.data)):
-            if form.ship_type.data == 'ส่งด้วยตนเอง':
-                sample.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').datetime
-            else:
-                sample.appointment_date = None
             db.session.add(sample)
             db.session.commit()
             scheme = 'http' if current_app.debug else 'https'
@@ -2012,7 +2007,7 @@ def create_sample_appointment(sample_id):
                     message += f'''ได้ดำเนินการแก้ไขข้อมูลการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
                     message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
                     if sample.appointment_date:
-                        message += f'''วันที่นัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
+                        message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
                     message += f'''สถานที่นัดหมาย : {sample.location}\n'''
                     message += f'''รายละเอียดสถานที่ : {sub_lab.short_address}\n'''
                     message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
@@ -2032,7 +2027,7 @@ def create_sample_appointment(sample_id):
                     message += f'''ได้ดำเนินการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
                     message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
                     if sample.appointment_date:
-                        message += f'''วันที่นัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
+                        message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
                     message += f'''สถานที่นัดหมาย : {sample.location}\n'''
                     message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n'''
                     message += f'''รายละเอียดสถานที่ : {sub_lab.short_address}\n'''
@@ -2059,7 +2054,7 @@ def create_sample_appointment(sample_id):
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('academic_services/create_sample_appointment.html', form=form,
                            sample=sample, menu=menu, sample_id=sample_id, sub_lab=sub_lab, datas=datas,
-                           appointment_date=appointment_date, service_request=service_request, holidays=holidays)
+                           service_request=service_request, holidays=holidays)
 
 
 @academic_services.route('/customer/sample-appointment/confirm/page/<int:request_id>', methods=['GET', 'POST'])
