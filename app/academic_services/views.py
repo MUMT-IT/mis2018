@@ -1,5 +1,6 @@
 import os
 import re
+import uuid
 
 import qrcode
 from bahttext import bahttext
@@ -40,10 +41,6 @@ from flask_admin.helpers import is_safe_url
 from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
 from app.main import mail
 from flask_mail import Message
-from werkzeug.utils import secure_filename
-from pydrive.auth import ServiceAccountCredentials, GoogleAuth
-from pydrive.drive import GoogleDrive
-
 from app.models import Holidays
 from app.service_admin.forms import ServiceQuotationForm
 
@@ -66,10 +63,13 @@ bangkok = pytz.timezone('Asia/Bangkok')
 S3_BUCKET_NAME = os.getenv('BUCKETEER_BUCKET_NAME')
 
 
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
 def generate_url(file_url):
     url = s3.generate_presigned_url('get_object',
-                                    Params={'Bucket': S3_BUCKET_NAME, 'Key': file_url},
-                                    ExpiresIn=3600)
+                                    Params={'Bucket': S3_BUCKET_NAME, 'Key': file_url})
     return url
 
 
@@ -845,7 +845,27 @@ def create_customer_detail(request_id):
 @login_required
 def request_index():
     menu = request.args.get('menu')
-    return render_template('academic_services/request_index.html', menu=menu)
+    new_request_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
+                                                                                 ServiceRequest.status.has(or_(ServiceStatus.status_id==1,
+                                                                                                               ServiceStatus.status_id==2)))])
+    quotation_pending_approval_count = len(
+        [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
+                                                ServiceRequest.status.has(ServiceStatus.status_id == 5))])
+    waiting_sample_count = len(
+        [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
+                                                ServiceRequest.status.has(or_(ServiceStatus.status_id == 8,
+                                                                              ServiceStatus.status_id == 9)))])
+    testing_count = len(
+        [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
+                                                ServiceRequest.status.has(ServiceStatus.status_id == 11))])
+    unpaid_count = len(
+        [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
+                                                ServiceRequest.status.has(ServiceStatus.status_id == 19))])
+    return render_template('academic_services/request_index.html', menu=menu,
+                           new_request_count=new_request_count,
+                           quotation_pending_approval_count=quotation_pending_approval_count,
+                           waiting_sample_count=waiting_sample_count, testing_count=testing_count,
+                           unpaid_count=unpaid_count)
 
 
 @academic_services.route('/api/request/index')
@@ -862,6 +882,25 @@ def get_requests():
     data = []
     for item in query:
         item_data = item.to_dict()
+        html_blocks = []
+        if item.status.status_id == 20:
+            for result in item.results:
+                for i in result.result_items:
+                    if i.url:
+                        download_file = url_for('service_admin.download_file', key=i.url,
+                                                download_filename=f"{i.report_language}.pdf")
+                        html = f'''
+                                    <div class="field has-addons">
+                                        <div class="control">
+                                            <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                                <span>{i.report_language}</span>
+                                                <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                '''
+                        html_blocks.append(html)
+        item_data['files'] = ''.join(html_blocks) if html_blocks else ''
         data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
@@ -1588,6 +1627,29 @@ def generate_quotation_pdf(quotation, sign=False):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
     ]))
 
+    district_title = 'เขต' if quotation.request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
+    subdistrict_title = 'แขวง' if quotation.request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล',
+
+    document_address = '''<para><font size=12>ที่อยู่สำหรับจัดส่งเอกสาร<br/>
+                    ถึง {name}<br/>
+                    ที่อยู่ {address} {subdistrict_title}{subdistrict} {district_title}{district} จังหวัด{province} {zipcode}<br/>
+                    เบอร์โทรศัพท์ : {phone_number}<br/>
+                    อีเมล : {email}
+                    </font></para>
+                    '''.format(name=quotation.request.document_address.name,
+                               address=quotation.request.document_address.address,
+                               subdistrict_title=subdistrict_title,
+                               subdistrict=quotation.request.document_address.subdistrict,
+                               district_title=district_title,
+                               district=quotation.request.document_address.district,
+                               province=quotation.request.document_address.province,
+                               zipcode=quotation.request.document_address.zipcode,
+                               phone_number=quotation.request.document_address.phone_number,
+                               email=quotation.request.customer.contact_email
+                               )
+
+    document_address_table = Table([[Paragraph(document_address, style=style_sheet['ThaiStyle'])]], colWidths=[200])
+
     sign_style = ParagraphStyle(
         'SignStyle',
         parent=style_sheet['ThaiStyleCenter'],
@@ -1618,6 +1680,8 @@ def generate_quotation_pdf(quotation, sign=False):
     data.append(KeepTogether(Spacer(1, 16)))
     data.append(KeepTogether(item_table))
     data.append(KeepTogether(Spacer(1, 15)))
+    data.append(KeepTogether(document_address_table))
+    data.append(KeepTogether(Spacer(1, 3)))
     data.append(KeepTogether(sign_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
@@ -1951,7 +2015,6 @@ def create_sample_appointment(sample_id):
                     message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
                     if sample.appointment_date:
                         message += f'''วันที่นัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
-                        message += f'''เวลานัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n'''
                     message += f'''สถานที่นัดหมาย : {sample.location}\n'''
                     message += f'''รายละเอียดสถานที่ : {sub_lab.short_address}\n'''
                     message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
@@ -1972,7 +2035,6 @@ def create_sample_appointment(sample_id):
                     message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
                     if sample.appointment_date:
                         message += f'''วันที่นัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
-                        message += f'''เวลานัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n'''
                     message += f'''สถานที่นัดหมาย : {sample.location}\n'''
                     message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n'''
                     message += f'''รายละเอียดสถานที่ : {sub_lab.short_address}\n'''
@@ -1994,6 +2056,9 @@ def create_sample_appointment(sample_id):
                                     request_id=sample.request_id))
         else:
             flash('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('academic_services/create_sample_appointment.html', form=form,
                            sample=sample, menu=menu, sample_id=sample_id, sub_lab=sub_lab, datas=datas,
                            appointment_date=appointment_date, service_request=service_request, holidays=holidays)
@@ -2083,70 +2148,6 @@ def payment_index():
     return render_template('academic_services/payment_index.html', menu=menu)
 
 
-@academic_services.route('/api/payment/index')
-def get_payments():
-    query = ServicePayment.query.filter(ServicePayment.invoice.has(
-        ServiceInvoice.quotation.has(
-            ServiceQuotation.request.has(customer_id=current_user.id))))
-    records_total = query.count()
-    search = request.args.get('search[value]')
-    if search:
-        query = query.filter(ServicePayment.invoice_no.contains(search))
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    total_filtered = query.count()
-    query = query.offset(start).limit(length)
-    data = []
-    for item in query:
-        item_data = item.to_dict()
-        if item.url:
-            file_upload = drive.CreateFile({'id': item.url})
-            file_upload.FetchMetadata()
-            item_data['file'] = f"https://drive.google.com/uc?export=download&id={item.url}"
-        else:
-            item_data['file'] = None
-        data.append(item_data)
-    return jsonify({'data': data,
-                    'recordFiltered': total_filtered,
-                    'recordTotal': records_total,
-                    'draw': request.args.get('draw', type=int)
-                    })
-
-
-@academic_services.route('/customer/payment/add/<int:payment_id>', methods=['GET', 'POST'])
-def add_payment(payment_id):
-    menu = request.args.get('menu')
-    payment = ServicePayment.query.get(payment_id)
-    form = ServicePaymentForm(obj=payment)
-    if form.validate_on_submit():
-        form.populate_obj(payment)
-        file = form.file_upload.data
-        payment.paid_at = arrow.now('Asia/Bangkok').datetime
-        payment.sender_id = current_user.id
-        payment.status = 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน'
-        payment.invoice.quotation.request.status = 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน'
-        drive = initialize_gdrive()
-        if file:
-            file_name = secure_filename(file.filename)
-            file.save(file_name)
-            file_drive = drive.CreateFile({'title': file_name,
-                                           'parents': [{'id': FOLDER_ID, "kind": "drive#fileLink"}]})
-            file_drive.SetContentFile(file_name)
-            file_drive.Upload()
-            permission = file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
-            payment.url = file_drive['id']
-            payment.bill = file_name
-        db.session.add(payment)
-        db.session.commit()
-        flash('อัพเดตสลิปสำเร็จ', 'success')
-        return redirect(url_for('academic_services.payment_index', menu=menu))
-    else:
-        for field, error in form.errors.items():
-            flash(f'{field}: {error}', 'danger')
-    return render_template('academic_services/add_payment.html', payment_id=payment_id, payment=payment,
-                           menu=menu, form=form)
-
-
 @academic_services.route('/customer/result/index')
 @login_required
 def result_index():
@@ -2164,7 +2165,7 @@ def invoice_index():
 
 @academic_services.route('/api/invoice/index')
 def get_invoices():
-    query = ServiceInvoice.query.filter(ServiceInvoice.mhesi_issued_at!=None)
+    query = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at!=None)
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -2176,12 +2177,65 @@ def get_invoices():
     data = []
     for item in query:
         item_data = item.to_dict()
+        download_file = url_for('academic_services.download_file', key=item.file, download_filename=f"{item.invoice_no}.pdf")
+        item_data['file'] = f'''<div class="field has-addons">
+                        <div class="control">
+                            <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
+                                <span>ใบแจ้งหนี้</span>
+                            </a>
+                        </div>
+                    </div>
+                '''
         data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
                     'recordTotal': records_total,
                     'draw': request.args.get('draw', type=int)
                     })
+
+
+@academic_services.route('/customer/payment/add', methods=['GET', 'POST'])
+def add_payment():
+    menu = request.args.get('menu')
+    invoice_id = request.args.get('invoice_id')
+    invoice = ServiceInvoice.query.get(invoice_id)
+    form = ServicePaymentForm()
+    if form.validate_on_submit():
+        payment = ServicePayment()
+        form.populate_obj(payment)
+        status_id = get_status(20)
+        file = form.file_upload.data
+        payment.invoice_id = invoice_id
+        payment.created_at = arrow.now('Asia/Bangkok').datetime
+        payment.customer_id = current_user.id
+        payment.paid_at = arrow.get(form.paid_at.data, 'Asia/Bangkok').datetime
+        if file and allowed_file(file.filename):
+            mime_type = file.mimetype
+            file_name = '{}.{}'.format(uuid.uuid4().hex, file.filename.split('.')[-1])
+            file_data = file.stream.read()
+            response = s3.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=file_name,
+                Body=file_data,
+                ContentType=mime_type
+            )
+            payment.slip = file_name
+            db.session.add(payment)
+            invoice.is_paid = True
+            invoice.paid_at = arrow.now('Asia/Bangkok').datetime
+            invoice.quotation.request.status_id = status_id
+            db.session.add(invoice)
+            result = ServiceResult.query.filter_by(request_id=invoice.quotation.request_id).first()
+            result.status_id = status_id
+            db.session.add(result)
+            db.session.commit()
+        flash('อัพเดตสลิปสำเร็จ', 'success')
+        return redirect(url_for('academic_services.invoice_index', menu=menu))
+    else:
+        for field, error in form.errors.items():
+            flash(f'{field}: {error}', 'danger')
+    return render_template('academic_services/add_payment.html', menu=menu, form=form, invoice=invoice)
 
 
 @academic_services.route('/invoice/view/<int:invoice_id>')

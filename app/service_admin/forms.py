@@ -126,6 +126,7 @@ class ServiceSampleForm(ModelForm):
 class ServiceInvoiceForm(ModelForm):
     class Meta:
         model = ServiceInvoice
+    file_upload = FileField('File Upload')
 
 
 class ServiceResultForm(ModelForm):
@@ -136,4 +137,10 @@ class ServiceResultForm(ModelForm):
 class ServiceResultItemForm(ModelForm):
     class Meta:
         model = ServiceResultItem
+    file_upload = FileField('File Upload')
+
+
+class ServicePaymentForm(ModelForm):
+    class Meta:
+        model = ServicePayment
     file_upload = FileField('File Upload')
