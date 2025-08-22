@@ -171,7 +171,7 @@
                                     <span class="has-text-danger">*</span>
                                 </label>
                                 <div class="control">
-                                    {{ form.appointment_date(class='input') }}
+                                    {{ form.appointment_date(class='input', type='text') }}
                                 </div>
                             </div>
                             <div class="field" id="convenient-time-field" style="display: none;">
@@ -272,12 +272,12 @@
                 showDropdowns: true,
                 autoUpdateInput: true,
                 {% if form.appointment_date.data %}
-                    startDate: {{ appointment_date.date().isoformat()|tojson|safe }},
+                    startDate: {{ form.appointment_date.data.isoformat()|tojson|safe }},
                 {% else %}
                     startDate: moment().startOf('day'),
                 {% endif %}
                 locale: {
-                    format: 'YYYY-MM-DD HH:mm:ss'
+                    format: 'YYYY-MM-DD'
                 },
                 isInvalidDate: function(date) {
                     const formatted = date.format('YYYY-MM-DD');
