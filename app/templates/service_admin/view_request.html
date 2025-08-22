@@ -61,27 +61,30 @@
                             <div class="columns">
                                 <div class="column">
                                     <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                        <span class="icon"><i class="fas fa-receipt"></i></span> ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
+                                        <span class="icon"><i class="fas fa-receipt"></i></span>
+                                        ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
                                     </p>
                                     <div style="margin-left: 1.75rem;">
                                         <p>ออกในนาม : {{ service_request.quotation_address.name }}</p>
-                                         <p>ที่อยู่ : {{ service_request.quotation_address.address }}
+                                        <p>ที่อยู่ : {{ service_request.quotation_address.address }}
                                             {{ 'แขวง' if 'กรุงเทพมหานคร' in service_request.quotation_address.province.name else 'ตำบล' }}{{ service_request.quotation_address.subdistrict }}
                                             {{ 'เขต' if 'กรุงเทพมหานคร' in service_request.quotation_address.province.name else 'อำเภอ' }}{{ service_request.quotation_address.district }}
                                             จังหวัด{{ service_request.quotation_address.province }} {{ service_request.quotation_address.zipcode }}
                                         </p>
-                                        <p>เลขประจำตัวผู้เสียภาษีอากร : {{ service_request.quotation_address.taxpayer_identification_no }}</p>
+                                        <p>เลขประจำตัวผู้เสียภาษีอากร
+                                            : {{ service_request.quotation_address.taxpayer_identification_no }}</p>
                                         <p>เบอร์โทรศัพท์ : {{ service_request.quotation_address.phone_number }}</p>
                                         <p>อีเมล : {{ service_request.customer.contact_email }}</p>
                                     </div>
                                 </div>
                                 <div class="column" style="border-right: 1px solid #ddd;">
                                     <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                        <span class="icon"><i class="fas fa-map-marker-alt"></i></span> ข้อมูลที่อยู่จัดส่งเอกสาร
+                                        <span class="icon"><i class="fas fa-map-marker-alt"></i></span>
+                                        ข้อมูลที่อยู่จัดส่งเอกสาร
                                     </p>
                                     <div class="column">
                                         <p>ถึง : {{ service_request.document_address.name }}</p>
-                                         <p>ที่อยู่ : {{ service_request.document_address.address }}
+                                        <p>ที่อยู่ : {{ service_request.document_address.address }}
                                             {{ 'แขวง' if 'กรุงเทพมหานคร' in service_request.document_address.province.name else 'ตำบล' }}{{ service_request.document_address.subdistrict }}
                                             {{ 'เขต' if 'กรุงเทพมหานคร' in service_request.document_address.province.name else 'อำเภอ' }}{{ service_request.document_address.district }}
                                             จังหวัด{{ service_request.document_address.province }} {{ service_request.document_address.zipcode }}
@@ -100,7 +103,8 @@
                             <div style="margin-left: 1.75rem;">
                                 {% for cus_contact in service_request.customer.customer_info.customer_contacts %}
                                     <p>ชื่อ-นามสกุล : {{ cus_contact.contact_name }}</p>
-                                    <p>เลขประจำตัวผู้เสียภาษี : {{ service_request.customer.customer_info.taxpayer_identification_no }}</p>
+                                    <p>เลขประจำตัวผู้เสียภาษี
+                                        : {{ service_request.customer.customer_info.taxpayer_identification_no }}</p>
                                     <p>เบอร์โทรศัพท์ : {{ cus_contact.phone_number }}</p>
                                     <p>อีเมล : {{ cus_contact.email }}</p>
                                     {% if cus_contact.remark %}
@@ -151,7 +155,7 @@
                                 <ul>
                                     {% if service_request.report_languages %}
                                         {% for rl in service_request.report_languages %}
-                                                <li>{{ rl.report_language.item }}</li>
+                                            <li>{{ rl.report_language.item }}</li>
                                         {% endfor %}
                                     {% else %}
                                         ไม่ได้เลือกใบรายงานผล
@@ -199,25 +203,38 @@
                                             <span>ออกใบเสนอราคา</span>
                                         </a>
                                     </li>
-                                {% endif %}
-                                {% if service_request.samples %}
-                                    {% for sample in service_request.samples %}
-                                        {% if sample.received_at %}
-                                            <li>
-                                                <a class="button is-warning is-rounded is-small is-fullwidth mb-2"
-                                                   {% if result_id %}
-                                                        href="{{ url_for('service_admin.create_result',
+                                {% elif service_request.status.status_id == 10 or service_request.status.status_id == 11
+                                        or service_request.status.status_id == 12 %}
+                                    <li>
+                                        <a class="button is-warning is-rounded is-small is-fullwidth mb-2"
+                                                {% if result_id %}
+                                           href="{{ url_for('service_admin.create_result',
                                                         result_id=result_id, request_id=service_request.id, menu='test_item') }}"
-                                                   {% else %}
-                                                        href="{{ url_for('service_admin.create_result',
+                                                {% else %}
+                                           href="{{ url_for('service_admin.create_result',
                                                         request_id=service_request.id, menu='test_item') }}"
-                                                   {% endif %}
-                                                >
-                                                    <span class="icon"><i class="fas fa-download"></i></span>
-                                                    <span>ออกใบรายงานผล</span>
-                                                </a>
-                                            </li>
-                                        {% endif %}
+                                                {% endif %}
+                                        >
+                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                            <span>ออกใบรายงานผล</span>
+                                        </a>
+                                    </li>
+                                {% elif service_request.status.status_id == 13 or service_request.status.status_id == 14
+                                        or service_request.status.status_id == 15 or service_request.status.status_id == 15
+                                        or service_request.status.status_id == 16 or service_request.status.status_id == 17
+                                        or service_request.status.status_id == 18 or service_request.status.status_id == 19
+                                        or service_request.status.status_id == 20 %}
+                                    {% for result in service_request.results %}
+                                        {% for item in result.result_items %}
+                                            <a class="button is-small is-link is-light is-rounded is-fullwidth mb-2"
+                                               href="{{ url_for('service_admin.download_file', key=item.url,
+                                               download_filename=item.report_language ~ '.pdf') }}"
+                                            >
+                                                <span>{{ item.report_language or 'ไม่ระบุภาษา' }}</span>
+                                                <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                            </a>
+
+                                        {% endfor %}
                                     {% endfor %}
                                 {% endif %}
                                 <li>
@@ -239,14 +256,17 @@
                                             </a>
                                         </li>
                                         {% for invoice in quotation.invoices %}
-                                            <li>
-                                                <a class="button is-link is-outlined is-rounded is-small is-fullwidth mb-2"
-                                                   href="{{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id) }}"
-                                                >
-                                                    <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>
-                                                    <span>พิมพ์ใบแจ้งหนี้</span>
-                                                </a>
-                                            </li>
+                                            {% if invoice.file %}
+                                                <li>
+                                                    <a class="button is-link is-outlined is-rounded is-small is-fullwidth mb-2"
+                                                       href="{{ url_for('service_admin.download_file', key=invoice.file,
+                                                        download_filename=invoice.invoice_no ~ '.pdf') }}"
+                                                    >
+                                                        <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                                                        <span>พิมพ์ใบแจ้งหนี้</span>
+                                                    </a>
+                                                </li>
+                                            {% endif %}
                                         {% endfor %}
                                     {% endfor %}
                                 {% endif %}
