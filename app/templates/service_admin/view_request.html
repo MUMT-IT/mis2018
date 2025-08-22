@@ -187,8 +187,7 @@
                                 การดำเนินการ
                             </p>
                             <ul class="menu-list">
-                                {% if (service_request.status.status_id == 1 and service_request.admin) or
-                                        (service_request.status.status_id == 2)%}
+                                {% if service_request.status.status_id == 2 %}
                                     <li>
                                         <a class="button is-success is-rounded is-fullwidth mb-2"
                                            href="{{ url_for('service_admin.generate_quotation',
