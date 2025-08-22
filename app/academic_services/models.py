@@ -830,7 +830,7 @@ class ServiceQuotationItem(db.Model):
 class ServiceSample(db.Model):
     __tablename__ = 'service_samples'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    appointment_date = db.Column('appointment_date', db.DateTime(timezone=True), info={'label': 'วันนัดหมาย'})
+    appointment_date = db.Column('appointment_date', db.Date(), info={'label': 'วันนัดหมาย'})
     ship_type = db.Column('ship_type', db.String(),
                           info={'label': 'วิธีการส่งตัวอย่าง', 'choices': [('None', 'กรุณาเลือกการส่งตัวอย่าง'),
                                                                            ('ส่งด้วยตนเอง', 'ส่งด้วยตนเอง'),
