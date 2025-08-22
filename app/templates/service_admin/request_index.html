@@ -194,7 +194,7 @@
                     {
                         data: 'sample_appointment_status_for_admin',
                         render: function (data, type, row) {
-                            if (data.status !== null && data.status != 'รอรับตัวอย่าง') {
+                            if (data.id !== null && data.status != 'รอรับตัวอย่าง') {
                                 return `<span class="tag ${data.color}">
                                             <span class="icon">${data.icon}</span>
                                             <span>${data.status}</span>
