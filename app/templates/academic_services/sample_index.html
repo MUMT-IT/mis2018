@@ -74,7 +74,7 @@
                                         {{ sample.tracking_number or '' }}
                                     {% endif %}
                                 </td>
-                                <td>{{ sample.appointment_date|localdatetime or '' }}</td>
+                                <td>{{ sample.appointment_date.strftime('%d/%m/%Y') or '' }}</td>
                                 <td>{{ sample.received_at|localdatetime or '' }}</td>
                                 <td>
                                     {% set product = sample.request.product | replace('{', '') | replace('}', '') | replace('"', '') %}
