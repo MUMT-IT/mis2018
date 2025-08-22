@@ -294,7 +294,7 @@ def get_requests():
     sub_labs = []
     for a in admin:
         sub_labs.append(a.sub_lab.code)
-    query = ServiceRequest.query.filter(
+    query = ServiceRequest.query.filter(ServiceRequest.status.has(ServiceStatus.status_id!=1),
         or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(sub_labs)))
     records_total = query.count()
     search = request.args.get('search[value]')
