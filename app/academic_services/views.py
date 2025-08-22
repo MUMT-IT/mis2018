@@ -1375,18 +1375,17 @@ def request_quotation(request_id):
     contact_email = current_user.contact_email if current_user.contact_email else current_user.email
     if admins:
         title = f'''[{service_request.request_no}] ใบคำขอรับบริการ - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | แจ้งขอใบเสนอราคา'''
-        message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}่\n\n'''
+        message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
         message += f'''ใบคำขอบริการเลขที่ : {service_request.request_no}\n'''
-        message += f'''ลูกค้า : {customer_name}\n'''
-        message += f'''ในนาม : {service_request.customer.customer_name}\n'''
+        message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
+        message += f'''ในนาม : {service_request.quotation_address.name}\n'''
         message += f'''ที่รอการดำเนินการจัดทำใบเสนอราคา\n'''
         message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
         message += f'''{link}\n\n'''
-        message += f'''ขอบคุณค่ะ\n'''
-        message += f'''ระบบงานบริการวิชาการ\n\n'''
-        message += f'''{service_request.customer.customer_name}\n'''
         message += f'''ผู้ประสานงาน\n'''
-        message += f'''เบอร์โทร {service_request.customer.contact_phone_number}'''
+        message += f'''{service_request.customer.customer_name}\n'''
+        message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n\n'''
+        message += f'''ระบบงานบริการวิชาการ'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
         msg = ('แจ้งขอใบเสนอราคา' \
                '\n\nเรียน เจ้าหน้าที{}'
@@ -1396,11 +1395,10 @@ def request_quotation(request_id):
                '\nที่รอการดำเนินการออกใบเสนอราคา' \
                '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
                '\n{}' \
-               '\n\nขอบคุณค่ะ' \
-               '\nระบบงานบริการวิชาการ' \
-               '\n\n{}' \
-               '\nผู้ประสานงาน' \
-               '\nเบอร์โทร {}'.format(sub_lab.sub_lab, service_request.request_no,
+               '\n\nผู้ประสานงาน' \
+               '\n{}' \
+               '\nเบอร์โทร {}'\
+               '\n\nระบบงานบริการวิชาการ'.format(sub_lab.sub_lab, service_request.request_no,
                                       service_request.customer.customer_name,
                                       service_request.quotation_address.name, link,
                                       service_request.customer.customer_name,
