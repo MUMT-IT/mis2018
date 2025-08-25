@@ -2278,7 +2278,7 @@ def create_quotation_for_admin(quotation_id):
                            '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
                            '\n{}' \
                            '\n\n{}' \
-                           '\nเจ้าหน้าที่ Admin' \ 
+                           '\nเจ้าหน้าที่ Admin' \
                            '\nระบบงานบริการวิชาการ'
                            .format(quotation.quotation_no, quotation.quotation_no,
                                    quotation.request.customer.customer_info.cus_name,
