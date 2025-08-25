@@ -1744,6 +1744,8 @@ def upload_invoice_file(invoice_id):
                     line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
                 except LineBotApiError:
                     pass
+            else:
+                print('m', msg, staff.line_id)
             flash('บันทึกข้อมูลสำเร็จ', 'success')
             return redirect(url_for('service_admin.invoice_index', menu=menu))
     else:
@@ -2277,7 +2279,7 @@ def create_quotation_for_admin(quotation_id):
                            '\n{}' \
                            '\n\n{}' \
                            '\nเจ้าหน้าที่ Admin' \ 
-                           '\nระบบงานบริการวิชาการ' \
+                           '\nระบบงานบริการวิชาการ'
                            .format(quotation.quotation_no, quotation.quotation_no,
                                    quotation.request.customer.customer_info.cus_name,
                                    quotation.name, quotation_link, quotation.creator.fullname)
