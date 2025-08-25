@@ -186,68 +186,70 @@ def closing_page():
 def edit_record_admin(record_id):
     tab = request.args.get('tab')
     record = ComplaintRecord.query.get(record_id)
-    topic = record.topic
-    admins = True if ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first() else False
-    investigators = []
-    coordinators = ComplaintCoordinator.query.filter_by(coordinator=current_user, record_id=record_id).first() \
-        if ComplaintCoordinator.query.filter_by(coordinator=current_user, record_id=record_id).first() else None
-    for i in record.investigators:
-        if i.admin.admin == current_user:
-            investigators.append(i)
-    if record.repair_approvals:
-        for repair_approval in record.repair_approvals:
-            repair_approval_id = repair_approval.id
-    else:
-        repair_approval_id = None
-    ComplaintRecordForm = create_record_form(record_id=record_id, topic_id=None)
-    form = ComplaintRecordForm(obj=record)
-    form.deadline.data = form.deadline.data.astimezone(localtz) if form.deadline.data else None
-    if record.url and len(record.url) > 0:
-        file_url = generate_url(record.url)
-    else:
-        file_url = None
-    if request.method == 'PATCH':
-        if record.closed_at is None:
-            record.closed_at = arrow.now('Asia/Bangkok').datetime
-            flash('ปิดรายการเรียบร้อย', 'success')
+    if record:
+        admins = True if ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first() else False
+        investigators = []
+        coordinators = ComplaintCoordinator.query.filter_by(coordinator=current_user, record_id=record_id).first() \
+            if ComplaintCoordinator.query.filter_by(coordinator=current_user, record_id=record_id).first() else None
+        for i in record.investigators:
+            if i.admin.admin == current_user:
+                investigators.append(i)
+        if record.repair_approvals:
+            for repair_approval in record.repair_approvals:
+                repair_approval_id = repair_approval.id
         else:
-            record.closed_at = None
-            flash('เปิดรายการอีกครั้งเรียบร้อย', 'success')
-        db.session.add(record)
-        db.session.commit()
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
-        return resp
-    if form.validate_on_submit():
-        old_priority = record.priority.priority if record.priority else None
-        form.populate_obj(record)
-        record.deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
-        db.session.add(record)
-        db.session.commit()
-        flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
-        new_priority = record.priority.priority if record.priority else None
-        if old_priority != 2 and new_priority == 2:
-            if not current_app.debug:
-                complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record_id, _external=True
-                                         , _scheme='https')
-                create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
-                msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
-                       '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
-                       '\nซึ่งมีรายละเอียด ดังนี้ {}' \
-                       '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(record.topic.category, record.topic,
-                                                                 create_at.astimezone(localtz).strftime('%d/%m/%Y'),
-                                                                 create_at.astimezone(localtz).strftime('%H:%M'),
-                                                                 record.desc, complaint_link)
-                       )
-                for a in record.topic.admins:
-                    if a.is_supervisor:
-                        try:
-                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                        except LineBotApiError:
-                            pass
-    return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
-                           file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
-                           repair_approval_id=repair_approval_id)
+            repair_approval_id = None
+        ComplaintRecordForm = create_record_form(record_id=record_id, topic_id=None)
+        form = ComplaintRecordForm(obj=record)
+        form.deadline.data = form.deadline.data.astimezone(localtz) if form.deadline.data else None
+        if record.url and len(record.url) > 0:
+            file_url = generate_url(record.url)
+        else:
+            file_url = None
+        if request.method == 'PATCH':
+            if record.closed_at is None:
+                record.closed_at = arrow.now('Asia/Bangkok').datetime
+                flash('ปิดรายการเรียบร้อย', 'success')
+            else:
+                record.closed_at = None
+                flash('เปิดรายการอีกครั้งเรียบร้อย', 'success')
+            db.session.add(record)
+            db.session.commit()
+            resp = make_response()
+            resp.headers['HX-Refresh'] = 'true'
+            return resp
+        if form.validate_on_submit():
+            old_priority = record.priority.priority if record.priority else None
+            form.populate_obj(record)
+            record.deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
+            db.session.add(record)
+            db.session.commit()
+            flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
+            new_priority = record.priority.priority if record.priority else None
+            if old_priority != 2 and new_priority == 2:
+                if not current_app.debug:
+                    complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record_id, _external=True
+                                             , _scheme='https')
+                    create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
+                    msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
+                           '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
+                           '\nซึ่งมีรายละเอียด ดังนี้ {}' \
+                           '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(record.topic.category, record.topic,
+                                                                     create_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                                                     create_at.astimezone(localtz).strftime('%H:%M'),
+                                                                     record.desc, complaint_link)
+                           )
+                    for a in record.topic.admins:
+                        if a.is_supervisor:
+                            try:
+                                line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                            except LineBotApiError:
+                                pass
+        return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
+                               file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
+                               repair_approval_id=repair_approval_id)
+    else:
+        return render_template('complaint_tracker/record_cancelled_page.html', record_id=record_id, tab=tab)
 
 
 @complaint_tracker.route('/admin', methods=['GET', 'POST'])
