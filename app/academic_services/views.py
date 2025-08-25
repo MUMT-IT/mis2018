@@ -1413,12 +1413,12 @@ def request_quotation(request_id):
                         pass
     request_link = url_for("academic_services.view_request", request_id=request_id, menu='request',
                            _external=True, _scheme=scheme)
-    title_for_customer = f'''แจ้งรับใบคำขอรับบริการ [{service_request.request_no}] – คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    title_for_customer = f'''แจ้งรับใบคำขอรับบริการ [{service_request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
     message_for_customer = f'''เรียน {title_prefix}{current_user.customer_info.cus_name}\n\n'''
-    message_for_customer += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ขณะนี้ทางเจ้าหน้าที่ได้รับข้อมูลคำขอรับบริการเป็นที่เรียบร้อยแล้ว\n'''
+    message_for_customer += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ขณะนี้ทางเจ้าหน้าที่ได้รับข้อมูลคำขอรับบริการเป็นที่เรียบร้อยแล้ว'''
     message_for_customer += f'''ทางเจ้าหน้าที่จะพิจารณารายละเอียดและจัดทำใบเสนอราคาอย่างเป็นทางการต่อไป เมื่อใบเสนอราคาออกเรียบร้อยแล้ว ท่านจะได้รับอีเมลแจ้งอีกครั้งหนึ่ง พร้อมลิงก์สำหรับตรวจสอบและยืนยันใบเสนอราคา\n'''
     message_for_customer += f'''ท่านสามารถดูรายละเอียดใบคำขอรับบริการได้ที่ลิงก์ด้างล่างนี้\n'''
-    message_for_customer += f'''{request_link}\n'''
+    message_for_customer += f'''{request_link}\n\n'''
     message_for_customer += f'''ขอขอบพระคุณที่ใช้บริการจากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n\n'''
     message_for_customer += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
     message_for_customer += f'''ขอแสดงความนับถือ\n'''
@@ -1723,11 +1723,10 @@ def confirm_quotation(quotation_id):
         message += f'''ได้รับการยืนยันจากลูกค้าแล้ว\n'''
         message += f'''ท่านสามารถดูรายละเอียดได้ที่ลิงก์ด้านล่าง\n'''
         message += f'''{link}\n\n'''
-        message += f'''ขอบคุณค่ะ\n'''
-        message += f'''ระบบบริการวิชาการ\n\n'''
-        message += f'''{quotation.customer_name}\n'''
         message += f'''ผู้ประสานงาน\n'''
-        message += f'''เบอร์โทร {quotation.request.customer.contact_phone_number}'''
+        message += f'''{quotation.customer_name}\n'''
+        message += f'''เบอร์โทร {quotation.request.customer.contact_phone_number}\n'''
+        message += f'''ระบบบริการวิชาการ'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
     return redirect(url_for('academic_services.confirm_quotation_page', menu=menu, sample_id=sample.id))
 
@@ -1765,11 +1764,10 @@ def reject_quotation(quotation_id):
             message += f'''เหตุผลที่ยกเลิก : {quotation.note or ''}'''
             message += f'''ได้รับการปฏิเสธจากลูกค้า\n'''
             message += f'''กรุณาตรวจสอบและดำเนินขั้นตอนที่เหมาะสมต่อไป\n\n'''
-            message += f'''ขอบคุณค่ะ\n'''
-            message += f'''ระบบบริการวิชาการ\n\n'''
-            message += f'''{quotation.customer_name}\n'''
             message += f'''ผู้ประสานงาน\n'''
-            message += f'''เบอร์โทร {quotation.request.customer.contact_phone_number}'''
+            message += f'''{quotation.customer_name}\n'''
+            message += f'''เบอร์โทร {quotation.request.customer.contact_phone_number}\n'''
+            message += f'''ระบบบริการวิชาการ'''
             send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
         resp = make_response()
         resp.headers['HX-Redirect'] = url_for('academic_services.quotation_index', menu=menu)
@@ -2013,11 +2011,10 @@ def create_sample_appointment(sample_id):
                     message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
                     message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
                     message += f'''{link}\n\n'''
-                    message += f'''ขอบคุณค่ะ\n'''
-                    message += f'''ระบบงานบริการวิชาการ\n\n'''
-                    message += f'''{service_request.customer.customer_name}\n'''
                     message += f'''ผู้ประสานงาน\n'''
-                    message += f'''เบอร์โทร {service_request.customer.contact_phone_number}'''
+                    message += f'''{service_request.customer.customer_name}\n'''
+                    message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n'''
+                    message += f'''ระบบงานบริการวิชาการ'''
                 else:
                     title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งนัดหมายส่งตัวอย่าง)'''
                     message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
@@ -2033,11 +2030,10 @@ def create_sample_appointment(sample_id):
                     message += f'''รายละเอียดสถานที่ : {sub_lab.short_address}\n'''
                     message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
                     message += f'''{link}\n\n'''
-                    message += f'''ขอบคุณค่ะ\n'''
-                    message += f'''ระบบงานบริการวิชาการ\n\n'''
-                    message += f'''{service_request.customer.customer_name}\n'''
                     message += f'''ผู้ประสานงาน\n'''
-                    message += f'''เบอร์โทร {service_request.customer.contact_phone_number}'''
+                    message += f'''{service_request.customer.customer_name}\n'''
+                    message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n'''
+                    message += f'''ระบบงานบริการวิชาการ'''
                 send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
             if service_request.status.status_id == 6:
                 status_id = get_status(9)

@@ -2265,8 +2265,8 @@ def create_quotation_for_admin(quotation_id):
                     message += f'''ที่รอการอนุมัติใบเสนอราคา\n'''
                     message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
                     message += f'''{quotation_link}\n\n'''
-                    message += f'''{quotation.creator.fullname}\n'''
                     message += f'''เจ้าหน้าที่ Admin\n'''
+                    message += f'''{quotation.creator.fullname}\n'''
                     message += f'''ระบบงานบริการวิชาการ'''
                     send_mail(email, title, message)
                     msg = ('แจ้งขออนุมัติใบเสนอราคาเลขที่ {}' \
@@ -2277,8 +2277,8 @@ def create_quotation_for_admin(quotation_id):
                            '\nที่รอการอนุมัติใบเสนอราคา' \
                            '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
                            '\n{}' \
-                           '\n\n{}' \
                            '\nเจ้าหน้าที่ Admin' \
+                           '\n\n{}' \
                            '\nระบบงานบริการวิชาการ'
                            .format(quotation.quotation_no, quotation.quotation_no,
                                    quotation.request.customer.customer_info.cus_name,
@@ -2368,8 +2368,8 @@ def approval_quotation_for_supervisor(quotation_id):
                         message_for_assistant += f'''อนุมัติโดย คุณ{quotation.approver.fullname}\n\n'''
                         message_for_assistant += f'''โดยสามารถดูรายละเอียดใบเสนอราคาเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
                         message_for_assistant += f'''{quotation_link_for_assistant}\n\n'''
-                        message += f'''{quotation.approver.fullname}\n'''
                         message += f'''หัวหน้าห้องปฏิบัติการ\n'''
+                        message += f'''{quotation.approver.fullname}\n'''
                         message += f'''ระบบงานบริการวิชาการ'''
                         send_mail([sub_lab.approver.email + '@mahidol.ac.th'], title_for_assistant,
                                   message_for_assistant)
