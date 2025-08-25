@@ -1,5 +1,5 @@
-{% extends "academic_services/service_base.html" %}
-{% include "academic_services/customer_nav.html" %}
+{% extends "base.html" %}
+{% include "service_admin/admin_nav.html" %}
 {% block head %}
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -8,7 +8,7 @@
 {% block page_content %}
     <section class="section">
         <div class="columns">
-            {% include 'academic_services/menu.html' %}
+            {% include 'service_admin/menu.html' %}
             <div class="column is-9">
                 <div class="column is-12">
                     {% include "messages.html" %}
@@ -64,7 +64,7 @@
                                 <div class="buttons is-centered">
                                     <a
                                        class="button"
-                                       href="{{ url_for('academic_services.invoice_index', menu=menu) }}"
+                                       href="{{ url_for('service_admin.invoice_index', menu=menu) }}"
                                     >
                                         ยกเลิก
                                     </a>

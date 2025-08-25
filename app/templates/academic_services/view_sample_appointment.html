@@ -75,7 +75,7 @@
                             {% elif sample.appointment_date %}
                                 <p>
                                     <label class="label">วัน-เวลาที่นัดหมายส่งตังอย่าง</label>
-                                    {{ sample.appointment_date|localdatetime }}
+                                    {{ sample.appointment_date.strftime('%d/%m/%Y') }}
                                 </p>
                             {% endif %}
                             <p>

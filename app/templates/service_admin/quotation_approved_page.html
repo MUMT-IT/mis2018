@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "academic_services/service_base.html" %}
 {% block title %}MUMT Internal Information System{% endblock %}
 {% include "academic_services/customer_nav.html" %}
 {% block page_content %}
@@ -8,17 +8,17 @@
                 <span class="icon is-large has-text-success">
                     <i class="fas fa-check-circle fa-3x"></i>
                 </span>
-                <h1 class="title is-3 mt-3">ออกใบเสนอราคาเรียบร้อยแล้ว</h1>
+                <h1 class="title is-3 mt-3">อนุมัติใบเสนอราคาแล้ว</h1>
                 <div class="notification is-info is-light mt-4">
-                    ใบคำขอรับบริการเลขที่ {{ request_no }} ได้ถูกออกใบเสนอราคาแล้ว กรุณาดำเนินการขั้นตอนถัดไป
+                    ใบเสนอราคาเลขที่ {{ quotation_no }} ได้รับการอนุมัติเรียบร้อยแล้ว กรุณารอการยืนยันจากลูกค้า
                 </div>
                 <div class="buttons is-centered mt-5">
-                    <a href='{{ url_for('service_admin.quotation_index', menu=menu, tab='all') }}'
+                    <a href='{{ url_for('service_admin.quotation_index', menu=menu, tab=tab) }}'
                        class="button is-link is-light"
                     >
                         กลับหน้าหลัก
                     </a>
-                    <a href='{{ url_for('service_admin.view_quotation', menu=menu, quotation_id=quotation_id, tab='all') }}'
+                    <a href='{{ url_for('service_admin.view_quotation', menu=menu, quotation_id=quotation_id, tab=tab) }}'
                        class="button is-primary"
                     >
                         รายละเอียด

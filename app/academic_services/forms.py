@@ -187,5 +187,4 @@ class ServiceSampleForm(ModelForm):
 class ServicePaymentForm(ModelForm):
     class Meta:
         model = ServicePayment
-        exclude = ['amount_due']
     file_upload = FileField('File Upload')

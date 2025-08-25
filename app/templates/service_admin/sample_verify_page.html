@@ -8,20 +8,15 @@
                 <span class="icon is-large has-text-success">
                     <i class="fas fa-check-circle fa-3x"></i>
                 </span>
-                <h1 class="title is-3 mt-3">ออกใบเสนอราคาเรียบร้อยแล้ว</h1>
+                <h1 class="title is-3 mt-3">ตรวจสอบและรับตัวอย่างเรียบร้อยแล้ว</h1>
                 <div class="notification is-info is-light mt-4">
-                    ใบคำขอรับบริการเลขที่ {{ request_no }} ได้ถูกออกใบเสนอราคาแล้ว กรุณาดำเนินการขั้นตอนถัดไป
+                    ใบคำขอรับบริการเลขที่ {{ request_no }} ได้ผ่านการตรวจสอบและรับตัวอย่างเรียบร้อยแล้ว กรุณาดำเนินการในขั้นตอนถัดไป
                 </div>
                 <div class="buttons is-centered mt-5">
-                    <a href='{{ url_for('service_admin.quotation_index', menu=menu, tab='all') }}'
+                    <a href='{{ url_for('service_admin.sample_index', menu=menu) }}'
                        class="button is-link is-light"
                     >
                         กลับหน้าหลัก
-                    </a>
-                    <a href='{{ url_for('service_admin.view_quotation', menu=menu, quotation_id=quotation_id, tab='all') }}'
-                       class="button is-primary"
-                    >
-                        รายละเอียด
                     </a>
                 </div>
             </div>

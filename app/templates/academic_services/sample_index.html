@@ -5,7 +5,7 @@
     <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet"/>
     <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
     <style>
-        toast {
+        .toast {
             opacity: 1 !important;
             transition: none !important;
         }
@@ -74,7 +74,7 @@
                                         {{ sample.tracking_number or '' }}
                                     {% endif %}
                                 </td>
-                                <td>{{ sample.appointment_date|localdatetime or '' }}</td>
+                                <td>{{ sample.appointment_date.strftime('%d/%m/%Y') or '' }}</td>
                                 <td>{{ sample.received_at|localdatetime or '' }}</td>
                                 <td>
                                     {% set product = sample.request.product | replace('{', '') | replace('}', '') | replace('"', '') %}
@@ -152,7 +152,7 @@
                                                     class="button is-small is-info is-outlined is-rounded"
                                                 {% endif %}
                                                     href="{{ url_for('academic_services.create_sample_appointment',
-                                                               sample_id=sample.id, menu=menu, tab=tab) }}">
+                                                               sample_id=sample.id, menu=menu) }}">
                                                     {% if sample.location %}
                                                         <span class="icon"><i class="fas fa-pen"></i></span>
                                                         <span>แก้ไขการนัดหมาย</span>

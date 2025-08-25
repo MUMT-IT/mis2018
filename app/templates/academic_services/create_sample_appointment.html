@@ -15,7 +15,7 @@
     <section class="section">
         <div class="container">
             <div class="columns is-centered">
-                <div class="column is-half">
+                <div class="column is-two-fifths">
                     <h1 class="title has-text-centered">ข้อมูลคำขอรับบริการ</h1>
                     <div class="box">
                         <h1 class="title is-4">ใบคำขอรับบริการ <em>{{ sample.request.request_no }}</em></h1>
@@ -171,7 +171,7 @@
                                     <span class="has-text-danger">*</span>
                                 </label>
                                 <div class="control">
-                                    {{ form.appointment_date(class='input') }}
+                                    {{ form.appointment_date(class='input', type='text') }}
                                 </div>
                             </div>
                             <div class="field" id="convenient-time-field" style="display: none;">
@@ -269,19 +269,15 @@
             }
             $('input[name="appointment_date"]').daterangepicker({
                 singleDatePicker: true,
-                timePicker: true,
-                timePickerIncrement: 15,
-                timePicker24Hour: true,
                 showDropdowns: true,
                 autoUpdateInput: true,
-
                 {% if form.appointment_date.data %}
-                    startDate: {{ appointment_date.isoformat()|tojson|safe }},
+                    startDate: {{ form.appointment_date.data.isoformat()|tojson|safe }},
                 {% else %}
-                    startDate: moment().startOf('hour').add(1, 'hours'),
+                    startDate: moment().startOf('day'),
                 {% endif %}
                 locale: {
-                    format: 'YYYY-MM-DD HH:mm:ss'
+                    format: 'YYYY-MM-DD'
                 },
                 isInvalidDate: function(date) {
                     const formatted = date.format('YYYY-MM-DD');
@@ -290,15 +286,6 @@
                     return isWeekend || isHoliday;
                 }
             });
-
-             $('input[name="appointment_date"]').on('apply.daterangepicker', function(ev, picker) {
-                 const selectedTime = picker.startDate.format("HH:mm");
-                 if (!isAllowedTime(selectedTime)) {
-                     alert("โปรดเลือกเวลาในช่วงที่กำหนด เพื่อความสะดวกในการให้บริการ ขอบคุณค่ะ");
-                     $(this).val('');
-                 }
-            });
-
             function showAppointmentDate() {
                 var shipType = document.querySelector('[name="ship_type"]').value;
                 var appointmentDateField = document.getElementById("appointment-date-field");

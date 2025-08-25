@@ -10,23 +10,19 @@
                 <div class="column is-11">
                     <h1 class="title has-text-centered">รายการคำขอรับบริการ</h1>
                 </div>
-                <div class="columns is-centered is-gapless mb-6">
+                <div class="is-flex mb-5">
                     <div class="column is-one-quarter mx-3">
                         <div class="box card-hover">
                         <span class="icon is-large has-text-info">
                             <i class="fa-solid fa-file-signature fa-2x"></i>
                         </span>
                             <h2 class="title is-4 has-text-weight-bold mt-2">คำขอรับบริการ</h2>
-                            <div class="is-size-3 has-text-weight-bold has-text-info">{{ new_request_count }}</div>
-                            <p class="is-size-7 has-text-grey">รายการใหม่</p>
-                            <div class="is-flex is-align-items-center mt-4">
-                            <span class="icon is-small has-text-info mr-1">
-                                <i class="fa-solid fa-paper-plane"></i>
-                            </span>
-                                <span class="is-size-7 has-text-grey has-text-weight-semibold">{{ confirm_request_count }} รายการที่ขอใบเสนอราคาแล้ว</span>
-                            </div>
+                            <div class="is-size-3 has-text-weight-bold has-text-info">{{ quotation_request_count }}</div>
+                            <p class="is-size-7 has-text-grey">รายการที่รอทำใบเสนอราคา</p>
                             <div class="buttons is-centered mt-4">
-                                <a href="{{ url_for('service_admin.request_index', menu='request') }}" class="button is-info is-rounded is-small">
+                                <a href="{{ url_for('service_admin.request_index', menu='request') }}"
+                                   class="button is-info is-rounded is-small is-fullwidth"
+                                >
                                     ดูทั้งหมด
                                 </a>
                             </div>
@@ -34,20 +30,16 @@
                     </div>
                     <div class="column is-one-quarter mx-3">
                         <div class="box card-hover">
-                        <span class="icon is-large has-text-success">
-                            <i class="fa-solid fa-handshake fa-2x"></i>
-                        </span>
+                            <span class="icon is-large has-text-success">
+                                <i class="fa-solid fa-file-invoice fa-2x"></i>
+                            </span>
                             <h2 class="title is-4 has-text-weight-bold mt-2">ใบเสนอราคา</h2>
                             <div class="is-size-3 has-text-weight-bold has-text-success">{{ quotation_pending_approval_count }}</div>
-                            <p class="is-size-7 has-text-grey">รายการที่รอการอนุมัติ</p>
-                            <div class="is-flex is-align-items-center mt-4">
-                            <span class="icon is-small has-text-success mr-1">
-                                <i class="fa-solid fa-check-circle"></i>
-                            </span>
-                                <span class="is-size-7 has-text-grey has-text-weight-semibold">{{ quotation_approved_count }} รายการที่อนุมัติแล้ว</span>
-                            </div>
+                            <p class="is-size-7 has-text-grey">รายการที่รอลูกค้าอนุมัติ</p>
                             <div class="buttons is-centered mt-4">
-                                <a href="{{ url_for('service_admin.quotation_index', menu='quotation', tab='all') }}" class="button is-success is-rounded is-small">
+                                <a href="{{ url_for('service_admin.quotation_index', menu='quotation', tab='all') }}"
+                                   class="button is-success is-rounded is-small is-fullwidth"
+                                >
                                     ดูทั้งหมด
                                 </a>
                             </div>
@@ -55,41 +47,33 @@
                     </div>
                     <div class="column is-one-quarter mx-3">
                         <div class="box card-hover">
-                        <span class="icon is-large has-text-warning">
+                            <span class="icon is-large has-text-warning">
+                                <i class="fa-solid fa-truck fa-2x"></i>
+                            </span>
+                            <h2 class="title is-4 has-text-weight-bold mt-2">นัดหมายส่งตัวอย่าง</h2>
+                            <div class="is-size-3 has-text-weight-bold has-text-warning">{{ waiting_sample_count }}</div>
+                            <p class="is-size-7 has-text-grey">รายการที่รอนัดหมายรับตัวอย่าง</p>
+                            <div class="buttons is-centered mt-4">
+                                <a href="{{ url_for('service_admin.sample_index', menu='sample') }}"
+                                   class="button is-warning is-rounded is-small is-fullwidth"
+                                >
+                                    ดูทั้งหมด
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-one-quarter mx-3">
+                        <div class="box card-hover">
+                        <span class="icon is-large has-text-primary">
                             <i class="fa-solid fa-flask fa-2x"></i>
                         </span>
                             <h2 class="title is-4 has-text-weight-bold mt-2">รายการทดสอบ</h2>
-                            <div class="is-size-3 has-text-weight-bold has-text-warning">{{ testing_count }}</div>
+                            <div class="is-size-3 has-text-weight-bold has-text-primary">{{ testing_count }}</div>
                             <p class="is-size-7 has-text-grey">รายการที่กำลังทดสอบ</p>
-                            <div class="is-flex is-align-items-center mt-4">
-                            <span class="icon is-small has-text-warning mr-1">
-                                <i class="fa-solid fa-times-circle"></i>
-                            </span>
-                                <span class="is-size-7 has-text-grey has-text-weight-semibold">{{ not_testing_count }} รายการยังไม่ดำเนินการทดสอบ</span>
-                            </div>
                             <div class="buttons is-centered mt-4">
-                                <a href="{{ url_for('service_admin.test_item_index', menu='test_item') }}" class="button is-warning is-rounded is-small">
-                                    ดูทั้งหมด
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="column is-one-quarter mx-3">
-                        <div class="box card-hover">
-                        <span class="icon is-large has-text-danger">
-                            <i class="fa-solid fa-receipt fa-2x"></i>
-                        </span>
-                            <h2 class="title is-4 has-text-weight-bold mt-2">ใบแจ้งหนี้</h2>
-                            <div class="is-size-3 has-text-weight-bold has-text-danger">{{ unpaid_count }}</div>
-                            <p class="is-size-7 has-text-grey">รายการที่ยังไม่ชำระ</p>
-                            <div class="is-flex is-align-items-center mt-4">
-                            <span class="icon is-small has-text-danger mr-1">
-                                <i class="fa-solid fa-exclamation-triangle"></i>
-                            </span>
-                                <span class="is-size-7 has-text-grey has-text-weight-semibold">{{ overdue_count }} รายการที่เกินกำหนดชำระ</span>
-                            </div>
-                            <div class="buttons is-centered mt-4">
-                                <a href="{{ url_for('service_admin.invoice_index', menu='invoice') }}" class="button is-danger is-rounded is-small">
+                                <a href="{{ url_for('service_admin.test_item_index', menu='test_item') }}"
+                                   class="button is-primary is-rounded is-small is-fullwidth"
+                                >
                                     ดูทั้งหมด
                                 </a>
                             </div>
@@ -104,6 +88,10 @@
                     <th>ผู้ส่ง</th>
                     <th>สถานะ</th>
                     <th>ใบเสนอราคา</th>
+                    <th>นัดหมายส่งตัวอย่าง</th>
+                    <th>รายการทดสอบ</th>
+                    <th>ใบแจ้งหนี้</th>
+                    <th>รายงานผลการทดสอบ</th>
                     <th>รายละเอียด</th>
                     </thead>
                     <tbody>
@@ -123,6 +111,8 @@
                     url: {{ url_for('service_admin.get_requests')|tojson|safe}},
                 },
                 order: [[1, 'desc']],
+                scrollX: true,
+                autoWidth: false,
                 columns: [
                     {data: 'request_no'},
                     {
@@ -159,7 +149,116 @@
                             }
                         }
                     },
-                    {data: 'quotation',},
+                    {
+                        data: 'quotation_status_for_admin',
+                        render: function (data, type, row) {
+                            var admin = '{{ admin|tojson }}';
+                            var supervisor = '{{ supervisor|tojson }}';
+                            if (admin == 'true' && row.status_id == 2) {
+                                var url = '/service_admin/quotation/generate?request_id=' + row.id + '&tab=draft' + '&menu=quotation';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-rounded is-info" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-file-signature"></span>' +
+                                    '<span>ออกใบเสนอราคา</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (admin == 'true'  && data.status === 'ร่างใบเสนอราคา') {
+                                var url = '/service_admin/admin/quotation/add/' + data.id + '?tab=draft' + '&menu=quotation';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>แก้ไข</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (supervisor == 'true' && data.status === 'รออนุมัติใบเสนอราคา') {
+                                var url = '/service_admin/quotation/supervisor/approve/' + data.id + '?tab=pending_approval&menu=quotation';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>ตรวจสอบ</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (data.status == 'รอลูกค้าอนุมัติใบเสนอราคา' || data.status == 'ลูกค้าอนุมัติใบเสนอราคา') {
+                                var url = '/service_admin/quotation/view/' + data.id + '?menu=quotation';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-outlined is-rounded is-link" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-file-invoice"></i></span>' +
+                                    '<span>ใบเสนอราคา</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (data.status == 'ลูกค้าไม่อนุมัติใบเสนอราคา'){
+                                return 'เหตุผลที่ลูกค้าไม่อนุมัติ เนื่องจาก' + data.reason;
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'sample_appointment_status_for_admin',
+                        render: function (data, type, row) {
+                            if (data.id !== null && data.status != 'รอรับตัวอย่าง') {
+                                return `<span class="tag ${data.color}">
+                                            <span class="icon">${data.icon}</span>
+                                            <span>${data.status}</span>
+                                        </span>`;
+                            } else if (data.status == 'รอรับตัวอย่าง') {
+                                var sample_url = '/service_admin/sample/verification/add/' + data.id + '?menu=sample';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-warning is-rounded" ' + 'href=' + sample_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-clipboard-check"></i>' +
+                                    '</span>' +
+                                    '<span>ดำเนินการและยืนยันรับตัวอย่าง</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            }
+                                else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'test_item_status',
+                        render: function (data, type, row) {
+                            if (data.status !== null) {
+                                return `<span class="tag ${data.color}">
+                                            <span class="icon">${data.icon}</span>
+                                            <span>${data.status}</span>
+                                        </span>`;
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'invoice_status_for_admin',
+                        render: function (data, type, row) {
+                            if (data.id !== null) {
+                                var url = '/service_admin/invoice/view/' + data.id + '?menu=invoice';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-outlined is-rounded is-link" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>' +
+                                    '<span>ใบแจ้งหนี้</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    { data: 'files'},
                     {
                         data: 'id',
                         render: function (data) {

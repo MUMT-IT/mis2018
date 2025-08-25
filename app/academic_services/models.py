@@ -82,6 +82,29 @@ class ServiceSequenceQuotationID(db.Model):
         return u'{}'.format(self.count + 1)
 
 
+class ServiceSequenceReportLanguageID(db.Model):
+    __tablename__ = 'service_sequence_report_language_ids'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    code = db.Column('code', db.String(), nullable=False)
+    count = db.Column('count', db.Integer, default=0)
+
+    def next(self):
+        return u'{}'.format(self.count + 1)
+
+    @classmethod
+    def get_number(cls, code, db):
+        number = cls.query.filter_by(code=code).first()
+        if not number:
+            number = cls(code=code, count=0)
+            db.session.add(number)
+            db.session.commit()
+        return number
+
+    @property
+    def number(self):
+        return u'{}'.format(self.count + 1)
+
+
 class ServiceCustomerAccount(db.Model):
     __tablename__ = 'service_customer_accounts'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -351,6 +374,25 @@ class ServiceRequest(db.Model):
         return self.request_no
 
     def to_dict(self):
+        invoice_file = None
+        invoice_no = None
+        has_invoice = False
+        if self.quotations:
+            for quotation in self.quotations:
+                for invoice in quotation.invoices:
+                    if invoice.file_attached_at:
+                        invoice_file = invoice.file
+                        invoice_no = invoice.invoice_no
+                        has_invoice = True
+                    else:
+                        invoice_file = None
+                        invoice_no = None
+                        has_invoice = False
+        else:
+            invoice_file = None
+            invoice_no = None
+            has_invoice = False
+
         return {
             'id': self.id,
             'request_no': self.request_no,
@@ -364,21 +406,244 @@ class ServiceRequest(db.Model):
             'admin_status_color': self.status.admin_status_color if self.status else None,
             'customer_status': self.status.customer_status if self.status else None,
             'customer_status_color': self.status.customer_status_color if self.status else None,
-            'quotation' : self.get_quotations()
+            'quotation_status_for_admin': self.quotation_status_for_admin if self.quotation_status_for_admin else None,
+            'quotation_status_for_customer': self.quotation_status_for_customer if self.quotation_status_for_customer else None,
+            'sample_appointment_status_for_admin': self.sample_appointment_status_for_admin if self.sample_appointment_status_for_admin else None,
+            'sample_appointment_status_for_customer': self.sample_appointment_status_for_customer if self.sample_appointment_status_for_customer else None,
+            'test_item_status': self.test_item_status if self.test_item_status else None,
+            'invoice_status_for_admin': self.invoice_status_for_admin if self.invoice_status_for_admin else None,
+            'result_status_for_admin': self.result_status_for_admin if self.result_status_for_admin else None,
+            'result_status_for_customer': self.result_status_for_customer if self.result_status_for_customer else None,
+            'invoice_no': invoice_no,
+            'invoice_file': invoice_file,
+            'has_invoice': has_invoice
         }
 
-    def get_quotations(self):
+    @property
+    def quotation_status_for_admin(self):
+        reason = None
         if self.quotations:
             for quotation in self.quotations:
-                if quotation.approved_at:
-                    status = 'ส่งใบเสนอราคาแล้ว'
-                elif quotation.sent_at and not quotation.approved_at:
-                    status = 'ส่งให้หัวหน้าอนุมัติแล้ว'
+                if quotation.cancelled_at:
+                    status = 'ลูกค้าไม่อนุมัติใบเสนอราคา'
+                    color = 'is-danger'
+                    icon = '<i class="fas fa-times-circle"></i>'
+                elif quotation.confirmed_at:
+                    status = 'ลูกค้าอนุมัติใบเสนอราคา'
+                    color = 'is-success'
+                    icon = '<i class="fas fa-check-circle"></i>'
+                elif quotation.approved_at:
+                    status = 'รอลูกค้าอนุมัติใบเสนอราคา'
+                    color = 'is-primary'
+                    icon = '<i class="fas fa-hourglass-half"></i>'
+                elif quotation.sent_at:
+                    status = 'รออนุมัติใบเสนอราคา'
+                    color = 'is-warning'
+                    icon = '<i class="fas fa-clock"></i>'
                 else:
                     status = 'ร่างใบเสนอราคา'
+                    color = 'is-info'
+                    icon = '<i class="fas fa-file-signature"></i>'
+                id = quotation.id
+                if quotation.cancel_reason:
+                    reason = quotation.reason
         else:
-            status = 'ยังไม่ออกใบเสนอราคา'
-        return status
+            status = 'ยังไม่ดำเนินการการขอ/ออกใบเสนอราคา'
+            color = 'is-danger'
+            icon = '<i class="fas fa-times-circle"></i>'
+            id = None
+        return {'status': status, 'color': color, 'icon': icon, 'id': id, 'reason': reason}
+
+    @property
+    def quotation_status_for_customer(self):
+        reason = None
+        if self.quotations:
+            for quotation in self.quotations:
+                if quotation.cancelled_at:
+                    status = 'ไม่อนุมัติ'
+                    color = 'is-danger'
+                    icon = '<i class="fas fa-times-circle"></i>'
+                elif quotation.confirmed_at:
+                    status = 'อนุมัติ'
+                    color = 'is-success'
+                    icon = '<i class="fas fa-check-circle"></i>'
+                elif quotation.approved_at:
+                    status = 'รออนุมัติ'
+                    color = 'is-warning'
+                    icon = '<i class="fas fa-hourglass-half"></i>'
+                else:
+                    status = 'อยู่ระหว่างการจัดทำใบเสนอราคา'
+                    color = 'is-info'
+                    icon = '<i class="fas fa-file-signature"></i>'
+                id = quotation.id
+                if quotation.cancel_reason:
+                    reason = quotation.reason
+        elif self.status.status_id == 2:
+            status = 'รอเจ้าหน้าที่ออกใบเสนอราคา'
+            color = 'is-info'
+            icon = '<i class="fas fa-clock"></i>'
+            id = None
+        else:
+            status = 'ยังไม่ดำเนินการขอใบเสนอราคา'
+            color = 'is-danger'
+            icon = '<i class="fas fa-times-circle"></i>'
+            id = None
+        return {'status': status, 'color': color, 'icon': icon, 'id': id, 'reason': reason}
+
+    @property
+    def sample_appointment_status_for_admin(self):
+        id = None
+        if self.samples:
+            for sample in self.samples:
+                if sample.received_at:
+                    status = 'รับตัวอย่างแล้ว'
+                    color = 'is-success is-light'
+                    icon = '<i class="fas fa-check-circle"></i>'
+                elif sample.appointment_date or sample.tracking_number:
+                    status = 'รอรับตัวอย่าง'
+                    color = 'is-warning is-light'
+                    icon = '<i class="fas fa-hourglass-half"></i>'
+                else:
+                    status = 'รอการนัดหมายส่งตัวอย่าง'
+                    color = 'is-info is-light'
+                    icon = '<i class="fas fa-file-signature"></i>'
+                id = sample.id
+        else:
+            status = 'ยังไม่มีการนัดหมายส่งตัวอย่าง'
+            color = 'is-danger is-light'
+            icon = '<i class="fas fa-times-circle"></i>'
+        return {'status': status, 'color': color, 'icon': icon, 'id': id}
+
+    @property
+    def sample_appointment_status_for_customer(self):
+        id = None
+        if self.samples:
+            for sample in self.samples:
+                if sample.received_at:
+                    status = 'ส่งตัวอย่างแล้ว'
+                    color = 'is-success is-light'
+                    icon = '<i class="fas fa-check-circle"></i>'
+                elif sample.appointment_date or sample.tracking_number:
+                    status = 'รอส่งตัวอย่าง'
+                    color = 'is-warning is-light'
+                    icon = '<i class="fas fa-hourglass-half"></i>'
+                else:
+                    status = 'รอการนัดหมายส่งตัวอย่าง'
+                    color = 'is-info is-light'
+                    icon = '<i class="fas fa-file-signature"></i>'
+                id = sample.id
+        else:
+            status = None
+            color = None
+            icon = None
+        return {'status': status, 'color': color, 'icon': icon, 'id': id}
+
+    @property
+    def test_item_status(self):
+        if self.results:
+            for result in self.results:
+                uploaded_all = all(item.url for item in result.result_items)
+                if uploaded_all:
+                    status = 'ดำเนินการทดสอบเสร็จสิ้น'
+                    color = 'is-success is-light'
+                    icon = '<i class="fas fa-check-circle"></i>'
+                else:
+                    status = 'กำลังทดสอบตัวอย่าง'
+                    color = 'is-warning is-light'
+                    icon = '<i class="fas fa-hourglass-half"></i>'
+        else:
+            status = None
+            color = None
+            icon = None
+        return {'status': status, 'color': color, 'icon': icon}
+
+    @property
+    def invoice_status_for_admin(self):
+        id = None
+        if self.quotations:
+            for quotation in self.quotations:
+                if quotation.invoices:
+                    for invoice in quotation.invoices:
+                        if invoice.is_paid:
+                            status = 'ชำระเงินแล้ว'
+                            color = 'is-success'
+                            icon = '<i class="fas fa-check-circle"></i>'
+                        elif invoice.paid_at:
+                            status = 'รอตรวจสอบการชำระเงิน'
+                            color = 'is-warning'
+                            icon = '<i class="fas fa-search-dollar"></i>'
+                        elif invoice.file_attached_at:
+                            status = 'รอการชำระเงิน'
+                            color = 'is-link'
+                            icon = '<i class="fas fa-hourglass-half"></i>'
+                        elif invoice.assistant_approved_at:
+                            status = 'รอคณบดีอนุมัติและออกเลข อว.'
+                            color = 'is-warning'
+                            icon = '<i class="fas fa-pen-nib"></i>'
+                        elif invoice.head_approved_at:
+                            status = 'รอผู้ช่วยคณบดีอนุมัติใบแจ้งหนี้'
+                            color = 'is-warning'
+                            icon = '<i class="fas fa-clock"></i>'
+                        elif invoice.sent_at:
+                            status = 'รอหัวหน้าอนุมัติใบแจ้งหนี้'
+                            color = 'is-warning'
+                            icon = '<i class="fas fa-hourglass-half"></i>'
+                        else:
+                            status = 'ร่างใบแจ้งหนี้'
+                            color = 'is-info'
+                            icon = '<i class="fas fa-search"></i>'
+                        id = invoice.id
+                else:
+                    status = 'ยังไม่ออกใบแจ้งหนี้'
+                    color = 'is-danger'
+                    icon = '<i class="fas fa-times-circle"></i>'
+        else:
+            status = 'ยังไม่ออกใบแจ้งหนี้'
+            color = 'is-danger'
+            icon = '<i class="fas fa-times-circle"></i>'
+        return {'status': status, 'color': color, 'icon': icon, 'id': id}
+
+    @property
+    def result_status_for_admin(self):
+        if self.results:
+            for result in self.results:
+                uploaded_all = all(item.url for item in result.result_items)
+                if self.status.status_id == 13:
+                    status = 'รายงานพร้อมดาวน์โหลด'
+                    color = 'is-success'
+                    icon = '<i class="fas fa-check-circle"></i>'
+                elif uploaded_all:
+                    status = 'ผลการทดสอบออกแล้ว รอชำระเงิน'
+                    color = 'is-primary'
+                    icon = '<i class="fas fa-clock"></i>'
+                else:
+                    status = 'กำลังทดสอบตัวอย่าง'
+                    color = 'is-warning'
+                    icon = '<i class="fas fa-hourglass-half"></i>'
+        else:
+            status = None
+            color = None
+            icon = None
+        return {'status': status, 'color': color, 'icon': icon}
+
+    @property
+    def result_status_for_customer(self):
+        if self.results:
+            for result in self.results:
+                uploaded_all = all(item.url for item in result.result_items)
+                if uploaded_all:
+                    status = 'แนบผลครบทั้งหมดแล้ว'
+                    color = 'is-success'
+                    icon = '<i class="fas fa-check-circle"></i>'
+                else:
+                    status = 'แนบผลบางส่วนแล้ว รอแนบผลที่เหลือ'
+                    color = 'is-warning'
+                    icon = '<i class="fas fa-hourglass-half"></i>'
+        else:
+            status = 'ยังไม่ดำเนินการทดสอบตัวอย่าง'
+            color = 'is-danger'
+            icon = '<i class="fas fa-times-circle"></i>'
+        return {'status': status, 'color': color, 'icon': icon}
 
 
 class ServiceReqReportLanguageAssoc(db.Model):
@@ -565,7 +830,7 @@ class ServiceQuotationItem(db.Model):
 class ServiceSample(db.Model):
     __tablename__ = 'service_samples'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    appointment_date = db.Column('appointment_date', db.DateTime(timezone=True), info={'label': 'วันนัดหมาย'})
+    appointment_date = db.Column('appointment_date', db.Date(), info={'label': 'วันนัดหมาย'})
     ship_type = db.Column('ship_type', db.String(),
                           info={'label': 'วิธีการส่งตัวอย่าง', 'choices': [('None', 'กรุณาเลือกการส่งตัวอย่าง'),
                                                                            ('ส่งด้วยตนเอง', 'ส่งด้วยตนเอง'),
@@ -671,31 +936,12 @@ class ServiceTestItem(db.Model):
     creator = db.relationship(StaffAccount, backref=db.backref('test_items'))
 
     def to_dict(self):
-        has_invoice = False
-        for q in self.request.quotations:
-            if q.confirmed_at and q.invoices:
-                has_invoice = True
-            else:
-                has_invoice = False
-
-        has_result = False
-        if self.request.results:
-            for result in self.request.results:
-                for item in result.result_items:
-                    if item.url:
-                        has_result = True
-                    else:
-                        has_result = False
-        else:
-            has_result = False
-
         return {
             'id': self.id,
             'request_id': self.request_id if self.request_id else None,
             'request_no': self.request.request_no if self.request else None,
             'customer': self.customer.customer_info.cus_name if self.customer else None,
-            'has_invoice': has_invoice,
-            'has_result': has_result,
+            'status_id': self.request.status.status_id if self.request else None,
             'created_at': self.created_at,
             'result_id': [result.id for result in self.request.results] if self.request.results else None,
             'invoice_id': [invoice.id for quotation in self.request.quotations
@@ -728,14 +974,10 @@ class ServiceInvoice(db.Model):
     assistant_id = db.Column('assistant_id', db.ForeignKey('staff_account.id'))
     assistant = db.relationship(StaffAccount, backref=db.backref('assistant_approved_invoices'),
                                 foreign_keys=[assistant_id])
-    dean_approved_at = db.Column('dean_approved_at', db.DateTime(timezone=True))
-    dean_id = db.Column('dean_id', db.ForeignKey('staff_account.id'))
-    dean = db.relationship(StaffAccount, backref=db.backref('dean_approved_invoices', lazy='dynamic'),
-                           foreign_keys=[dean_id])
-    mhesi_issued_at = db.Column('mhesi_issued_at', db.DateTime(timezone=True))
-    mhesi_issuer_id = db.Column('mhesi_issuer_id', db.ForeignKey('staff_account.id'))
-    mhesi_issuer = db.relationship(StaffAccount, backref=db.backref('mhesi_issued_invoices', lazy='dynamic'),
-                                   foreign_keys=[mhesi_issuer_id])
+    file = db.Column('file', db.String())
+    file_attached_at = db.Column('file_attached_at', db.DateTime(timezone=True))
+    file_attached_id = db.Column('file_attached_id', db.ForeignKey('staff_account.id'))
+    file_attached_by = db.relationship(StaffAccount, backref=db.backref('file_attached_invoices'), foreign_keys=[file_attached_id])
     due_date = db.Column('due_date', db.DateTime(timezone=True))
     paid_at = db.Column('paid_at', db.DateTime(timezone=True))
     is_paid = db.Column('is_paid', db.Boolean())
@@ -759,7 +1001,14 @@ class ServiceInvoice(db.Model):
             'created_at': self.created_at,
             'due_date': self.due_date if self.due_date else None,
             'creator': self.creator.fullname if self.creator else None,
-            'mhesi_issued_at': self.mhesi_issued_at if self.mhesi_issued_at else None
+            'file_attached_at': self.file_attached_at if self.file_attached_at else None,
+            'assistant_approved_at': self.assistant_approved_at if self.assistant_approved_at else None,
+            'payment_type': [payment.payment_type for payment in self.payments] if self.payments else None,
+            'paid_at': [payment.paid_at.isoformat() if payment.paid_at else '' for payment in self.payments]
+                        if self.payments else [],
+            'slip': [payment.slip if payment.slip else '' for payment in self.payments]
+                    if self.payments else '',
+            'invoice_file': self.file if self.file else None
         }
 
     # @property
@@ -785,18 +1034,16 @@ class ServiceInvoice(db.Model):
             status = 'ชำระเงินแล้ว'
         elif self.paid_at:
             status = 'รอตรวจสอบการชำระเงิน'
-        elif self.mhesi_issued_at:
+        elif self.file_attached_at:
             status = 'ส่งใบแจ้งหนี้แล้ว รอการชำระเงิน'
-        elif self.dean_approved_at:
-            status = 'รอออกเลข อว.'
         elif self.assistant_approved_at:
-            status = 'รอคณบดีอนุมัติใบแจ้งหนี้'
+            status = 'รอคณบดีอนุมัติและออกเลข อว.'
         elif self.head_approved_at:
             status = 'รอผู้ช่วยคณบดีอนุมัติใบแจ้งหนี้'
         elif self.sent_at:
             status = 'รอหัวหน้าอนุมัติใบแจ้งหนี้'
         else:
-            status = 'ร่างใบเสนอแจ้งหนี้'
+            status = 'ร่างใบแจ้งหนี้'
         return status
 
     @property
@@ -805,10 +1052,8 @@ class ServiceInvoice(db.Model):
             color = 'is-success'
         elif self.paid_at:
             color = 'is-warning'
-        elif self.mhesi_issued_at:
+        elif self.file_attached_at:
             color = 'is-link'
-        elif self.dean_approved_at:
-            color = 'is-primary'
         elif self.assistant_approved_at:
             color = 'is-warning'
         elif self.head_approved_at:
@@ -825,7 +1070,7 @@ class ServiceInvoice(db.Model):
             status = 'ชำระเงินแล้ว'
         elif self.paid_at:
             status = 'รอตรวจสอบการชำระเงิน'
-        elif self.mhesi_issued_at:
+        elif self.file_attached_at:
             status = 'รอการชำระเงิน'
         else:
             status = 'อยู่ระหว่างการจัดทำใบแจ้งหนี้'
@@ -837,8 +1082,8 @@ class ServiceInvoice(db.Model):
             color = 'is-success'
         elif self.paid_at:
             color = 'is-warning'
-        elif self.mhesi_issued_at:
-            color = 'is-link'
+        elif self.file_attached_at:
+            color = 'is-danger'
         else:
             color = 'is-info'
         return color
@@ -912,33 +1157,25 @@ class ServiceInvoiceItem(db.Model):
 class ServicePayment(db.Model):
     __tablename__ = 'service_payments'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    amount_due = db.Column('amount_due', db.Float(), nullable=False)
-    status = db.Column('status', db.String())
+    payment_type = db.Column('payment_type', db.String(), info={'label': 'วิธีการชำระเงิน',
+                                                                'choices': [('', 'กรุณาเลือกวิธีการชำระเงิน'),
+                                                                              ('QR Code Payment', 'QR Code Payment'),
+                                                                              ('โอนเงิน', 'โอนเงิน'),
+                                                                              ('เช็คเงินสด', 'เช็คเงินสด')]
+                                                                })
+    amount_paid = db.Column('amount_paid', db.Numeric())
     paid_at = db.Column('paid_at', db.DateTime(timezone=True))
-    bill = db.Column('bill', db.String(255))
-    url = db.Column('url', db.String(255))
-    sender_id = db.Column('sender_id', db.ForeignKey('service_customer_accounts.id'))
-    sender = db.relationship(ServiceCustomerAccount, backref=db.backref('payments'))
+    slip = db.Column('slip', db.String())
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    customer_id = db.Column('customer_id', db.ForeignKey('service_customer_accounts.id'))
+    customer = db.relationship(ServiceCustomerAccount, backref=db.backref("created_payments"), foreign_keys=[customer_id])
+    admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
+    admin = db.relationship(StaffAccount, backref=db.backref('created_payments'), foreign_keys=[admin_id])
+    verified_at = db.Column('verified_at', db.DateTime(timezone=True))
     verifier_id = db.Column('verifier_id', db.ForeignKey('staff_account.id'))
-    verifier = db.relationship(StaffAccount, backref=db.backref('service_payments'))
+    verifier = db.relationship(StaffAccount, backref=db.backref('verified_payments'), foreign_keys=[verifier_id])
     invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
     invoice = db.relationship(ServiceInvoice, backref=db.backref('payments', cascade="all, delete-orphan"))
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'request_id': self.invoice.quotation.request_id if self.invoice else None,
-            'product': ", ".join(
-                [p.strip().strip('"') for p in self.invoice.quotation.request.product.strip("{}").split(",") if
-                 p.strip().strip('"')])
-            if self.invoice else None,
-            'amount_due': self.amount_due,
-            'status': self.status,
-            'paid_at': self.paid_at,
-            'sender': self.sender.customer_info.cus_name if self.sender else None,
-            'verifier': self.verifier.fullname if self.verifier else None,
-            'invoice_no': self.invoice.invoice_no if self.invoice else None
-        }
 
 
 class ServiceReceipt(db.Model):

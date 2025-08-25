@@ -24,8 +24,7 @@
                     <ul class="steps">
                         <li class="steps-segment
                             {% if not invoice.sent_at and not invoice.head_approved_at and not invoice.assistant_approved_at
-                                and not invoice.dean_approved_at and not invoice.mhesi_issued_at and not invoice.paid_at
-                                and not invoice.is_paid %}
+                                and not invoice.file_attached_at and not invoice.paid_at and not invoice.is_paid %}
                                 is-active
                             {% endif %}"
                         >
@@ -40,8 +39,7 @@
                         </li>
                         <li class="steps-segment
                             {% if invoice.sent_at and not invoice.head_approved_at and not invoice.assistant_approved_at
-                                and not invoice.dean_approved_at and not invoice.mhesi_issued_at and not invoice.paid_at
-                                and not invoice.is_paid %}
+                                and not invoice.file_attached_at and not invoice.paid_at and not invoice.is_paid %}
                                 is-active
                             {% endif %}"
                         >
@@ -56,8 +54,7 @@
                         </li>
                         <li class="steps-segment
                             {% if invoice.sent_at and invoice.head_approved_at and not invoice.assistant_approved_at
-                                and not invoice.dean_approved_at and not invoice.mhesi_issued_at and not invoice.paid_at
-                                and not invoice.is_paid %}
+                                and not invoice.file_attached_at and not invoice.paid_at and not invoice.is_paid %}
                                 is-active
                             {% endif %}"
                         >
@@ -72,24 +69,7 @@
                         </li>
                         <li class="steps-segment
                             {% if invoice.sent_at and invoice.head_approved_at and invoice.assistant_approved_at
-                                and not invoice.dean_approved_at and not invoice.mhesi_issued_at and not invoice.paid_at
-                                and not invoice.is_paid %}
-                                is-active
-                            {% endif %}"
-                        >
-                            <span class="steps-marker">
-                                <span class="icon">
-                                    <i class="fas fa-pen-nib"></i>
-                                </span>
-                            </span>
-                            <div class="steps-content">
-                                <p>รอคณบดีเซ็นอนุมัติ</p>
-                            </div>
-                        </li>
-                        <li class="steps-segment
-                            {% if invoice.sent_at and invoice.head_approved_at and invoice.assistant_approved_at
-                                and invoice.dean_approved_at and not invoice.mhesi_issued_at and not invoice.paid_at
-                                and not invoice.is_paid %}
+                                and not invoice.file_attached_at and not invoice.paid_at and not invoice.is_paid %}
                                 is-active
                             {% endif %}"
                         >
@@ -99,13 +79,12 @@
                                 </span>
                             </span>
                             <div class="steps-content">
-                                <p>รอเจ้าหน้าที่ออกเลข อว.</p>
+                                <p>รอคณบดีอนุมัติและออกเลข อว.</p>
                             </div>
                         </li>
                         <li class="steps-segment
                             {% if invoice.sent_at and invoice.head_approved_at and invoice.assistant_approved_at
-                                and invoice.dean_approved_at and invoice.mhesi_issued_at and not invoice.paid_at
-                                and not invoice.is_paid %}
+                                and invoice.file_attached_at and not invoice.paid_at and not invoice.is_paid %}
                                 is-active
                             {% endif %}"
                         >
@@ -120,8 +99,7 @@
                         </li>
                         <li class="steps-segment
                             {% if invoice.sent_at and invoice.head_approved_at and invoice.assistant_approved_at
-                                and invoice.dean_approved_at and invoice.mhesi_issued_at and invoice.paid_at and
-                                not invoice.is_paid %}
+                                and invoice.file_attached_at and invoice.paid_at and not invoice.is_paid %}
                                 is-active
                             {% endif %}"
                         >
@@ -167,11 +145,11 @@
                                 อว. {{ invoice.mhesi_no or '78.04/' }}
                             </div>
                         </div>
-                        {% if invoice.mhesi_issued_at %}
+                        {% if invoice.file_attached_at %}
                             <div class="mb-4 is-flex is-align-items-center">
                                 <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่</p>
                                 <div style="margin-left: 1.75rem;">
-                                    {{ invoice.mhesi_issued_at.strftime('%d/%m/%Y') }}
+                                    {{ invoice.file_attached_at.strftime('%d/%m/%Y') }}
                                 </div>
                             </div>
                         {% else %}
@@ -308,8 +286,7 @@
                                         </a>
                                     </li>
                                 {% elif (invoice.quotation.request.status.status_id == 15 and supervisor) or
-                                        (invoice.quotation.request.status.status_id == 16 and assistant) or
-                                        (invoice.quotation.request.status.status_id == 17 and dean) %}
+                                        (invoice.quotation.request.status.status_id == 16 and assistant) %}
                                     <li>
                                         <a class="button is-success is-rounded is-full-height mb-2"
                                                 {% if supervisor %}
@@ -318,9 +295,6 @@
                                                 {% elif assistant %}
                                                    href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
                                                    admin='assistant', menu=menu) }}"
-                                                {% elif dean %}
-                                                   href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
-                                                   admin='dean', menu=menu) }}"
                                                 {% endif %}
                                         >
                                             <span class="icon">
@@ -329,38 +303,38 @@
                                             <span>อนุมัติ</span>
                                         </a>
                                     </li>
-                                {% elif invoice.quotation.request.status.status_id == 18 and central_admin %}
+                                {% elif invoice.quotation.request.status.status_id == 17 and central_admin %}
                                     <li>
                                         <div id="mhesi_number"></div>
-                                        <a class="button is-info is-rounded is-full-height mb-2"
-                                           hx-swap="innerHTML"
-                                           hx-target="#mhesi_number"
-                                           hx-get="{{ url_for('service_admin.add_mhesi_number', invoice_id=invoice.id,
+                                        <a class="button is-warning is-rounded is-full-height mb-2"
+                                           href="{{ url_for('service_admin.upload_invoice_file', invoice_id=invoice.id,
                                            menu=menu) }}"
                                         >
                                             <span class="icon">
-                                                <i class="fas fa-pencil"></i>
+                                                <i class="fas fa-pen"></i>
                                             </span>
-                                            <span>ออกเลข อว.</span>
+                                            <span>อัปโหลดไฟล์</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
+                                           href="{{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id) }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                            <span>ดาวน์โหลด PDF</span>
+                                        </a>
+                                    </li>
+                                {% elif invoice.file %}
+                                    <li>
+                                        <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
+                                           href="{{ url_for('service_admin.download_file', key=invoice.file,
+                                            download_filename=invoice.invoice_no ~ '.pdf') }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                            <span>ดาวน์โหลดใบแจ้งหนี้</span>
                                         </a>
                                     </li>
                                 {% endif %}
-                                <li>
-                                    <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
-                                       @click="printInvoice()"
-                                    >
-                                        <span class="icon"><i class="fas fa-print"></i></span>
-                                        <span>พิมพ์ใบแจ้งหนี้</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
-                                       href="{{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id) }}"
-                                    >
-                                        <span class="icon"><i class="fas fa-download"></i></span>
-                                        <span>ดาวน์โหลด PDF</span>
-                                    </a>
-                                </li>
                             </ul>
                         </aside>
                     </div>
