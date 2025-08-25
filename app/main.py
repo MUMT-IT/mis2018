@@ -1592,21 +1592,24 @@ def import_seminar_attend_data():
         start_date = pandas.to_datetime(row['start_date'], format='%d/%m/%Y')
         end_date = pandas.to_datetime(row['end_date'], format='%d/%m/%Y')
         if staff_account:
-            attend = StaffSeminarAttend(
-                seminar_id=seminar.id,
-                staff_account_id=staff_account.id,
-                start_datetime=tz.localize(start_date),
-                end_datetime=tz.localize(end_date),
-                created_at=tz.localize(datetime.today()),
-                role=role,
-                budget_type=budget_type,
-                budget=budget
-            )
-            db.session.add(attend)
-            if objective:
-                objective.objective_attends.append(attend)
-            if mission:
-                mission.mission_attends.append(attend)
+            if seminar.id:
+                attend = StaffSeminarAttend(
+                    seminar_id=seminar.id,
+                    staff_account_id=staff_account.id,
+                    start_datetime=tz.localize(start_date),
+                    end_datetime=tz.localize(end_date),
+                    created_at=tz.localize(datetime.today()),
+                    role=role,
+                    budget_type=budget_type,
+                    budget=budget
+                )
+                db.session.add(attend)
+                if objective:
+                    objective.objective_attends.append(attend)
+                if mission:
+                    mission.mission_attends.append(attend)
+            else:
+                print('Not found seminar topic of {} {}'.format(staff_account.email, tz.localize(start_date)))
         else:
             print(u'Cannot save data of email: {} start date: {}'.format(row['seminar'], start_date))
     db.session.commit()
