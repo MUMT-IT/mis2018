@@ -1006,6 +1006,7 @@ class ServiceInvoice(db.Model):
             'payment_type': [payment.payment_type for payment in self.payments] if self.payments else None,
             'paid_at': [payment.paid_at.isoformat() if payment.paid_at else '' for payment in self.payments]
                         if self.payments else [],
+            'is_paid': self.is_paid if self.is_paid else None,
             'slip': [payment.slip if payment.slip else '' for payment in self.payments]
                     if self.payments else '',
             'invoice_file': self.file if self.file else None
