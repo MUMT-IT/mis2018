@@ -2336,7 +2336,7 @@ def create_quotation_for_admin(quotation_id):
                                 except LineBotApiError:
                                     pass
             flash('ส่งข้อมูลให้หัวหน้าอนุมัติเรียบร้อยแล้ว กรุณารอดำเนินการ', 'success')
-            return redirect(url_for('service_admin.quotation_index', tab='pending_approval', menu=menu))
+            return redirect(url_for('service_admin.quotation_index', tab='pending_supervisor_approval', menu=menu))
         else:
             flash('บันทึกข้อมูลแบบร่างเรียบร้อยแล้ว', 'success')
     else:
