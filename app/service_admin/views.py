@@ -1353,6 +1353,7 @@ def delete_result_file(item_id):
 
 @service_admin.route('/result/tracking_number/add/<int:result_id>', methods=['GET', 'POST'])
 def add_tracking_number(result_id):
+    menu = request.args.get('menu')
     result = ServiceResult.query.get(result_id)
     form = ServiceResultForm(obj=result)
     if form.validate_on_submit():
@@ -1360,11 +1361,12 @@ def add_tracking_number(result_id):
         db.session.add(result)
         db.session.commit()
         flash('อัพเดตข้อมูลสำเร็จ', 'success')
-        return redirect(url_for('service_admin.result_index'))
+        return redirect(url_for('service_admin.result_index', menu=menu))
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-    return render_template('service_admin/add_tracking_number_for_result.html', form=form, result_id=result_id)
+    return render_template('service_admin/add_tracking_number_for_result.html', form=form, menu=menu,
+                           result_id=result_id)
 
 
 @service_admin.route('/payment/confirm/<int:payment_id>', methods=['GET'])
