@@ -152,19 +152,19 @@
                     {
                         data: 'quotation_status_for_admin',
                         render: function (data, type, row) {
-                            var admin = '{{ admin|tojson }}';
-                            var supervisor = '{{ supervisor|tojson }}';
-                            if (admin == 'true' && row.status_id == 2) {
+                            var admin = '{{ admin }}';
+                            var supervisor = '{{ supervisor }}';
+                            if (admin == 'True' && row.status_id == 2) {
                                 var url = '/service_admin/quotation/generate?request_id=' + row.id + '&tab=draft' + '&menu=quotation';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-rounded is-info" ' + 'href=' + url + '>' +
-                                    '<span class="icon"><i class="fas fa-file-signature"></span>' +
+                                    '<span class="icon"><i class="fas fa-file-signature"></i></span>' +
                                     '<span>ออกใบเสนอราคา</span>' +
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (admin == 'true'  && data.status === 'ร่างใบเสนอราคา') {
+                            } else if (admin == 'True'  && row.status_id == 3) {
                                 var url = '/service_admin/admin/quotation/add/' + data.id + '?tab=draft' + '&menu=quotation';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -174,7 +174,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (supervisor == 'true' && data.status === 'รออนุมัติใบเสนอราคา') {
+                            } else if (supervisor == 'True' && row.status_id == 4) {
                                 var url = '/service_admin/quotation/supervisor/approve/' + data.id + '?tab=pending_approval&menu=quotation';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
