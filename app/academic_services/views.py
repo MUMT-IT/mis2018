@@ -1388,7 +1388,7 @@ def request_quotation(request_id):
         message += f'''ระบบงานบริการวิชาการ'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
         msg = ('แจ้งขอใบเสนอราคา' \
-               '\n\nเรียน เจ้าหน้าที{}'
+               '\n\nเรียน เจ้าหน้าที่{}'
                '\n\nใบคำขอบริการเลขที่ {}' \
                '\nลูกค้า : {}' \
                '\nในนาม : {}' \
