@@ -15,7 +15,7 @@
     </style>
 {% endblock %}
 {% block page_content %}
-    {% include"academic_services/customer_nav.html" %}
+    {% include "academic_services/customer_nav.html" %}
     <section class="section" id="sample">
         <div class="columns is-centered">
             {% include 'academic_services/menu.html' %}
@@ -74,7 +74,13 @@
                                         {{ sample.tracking_number or '' }}
                                     {% endif %}
                                 </td>
-                                <td>{{ sample.appointment_date.strftime('%d/%m/%Y') or '' }}</td>
+                                <td>
+                                    {% if sample.appointment_date %}
+                                        {{ sample.appointment_date.strftime('%d/%m/%Y') }}
+                                    {% else %}
+                                        {{ '' }}
+                                    {% endif %}
+                                </td>
                                 <td>{{ sample.received_at|localdatetime or '' }}</td>
                                 <td>
                                     {% set product = sample.request.product | replace('{', '') | replace('}', '') | replace('"', '') %}
@@ -133,7 +139,7 @@
                                     <div class="field has-addons">
                                         <div class="control">
                                             <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
-                                               @click="printRequest()"
+                                               @click="printRequest({{ sample.request_id }})"
                                             >
                                                 <span class="icon"><i class="fas fa-print"></i></span>
                                                 <span>พิมพ์ใบนำส่งตัวอย่าง</span>
@@ -204,17 +210,16 @@
         });
     </script>
     <script type="text/javascript">
-        {% if request_id %}
-            var vm = new Vue({
-                el: "#sample",
-                delimiters: ['<%', '%>'],
-                methods: {
-                    printRequest: function () {
-                        printJS({{ url_for('academic_services.export_request_pdf', request_id=request_id)|tojson|safe }});
-                    }
-                },
-            });
-        {% endif %}
+        var vm = new Vue({
+            el: "#sample",
+            delimiters: ['<%', '%>'],
+            methods: {
+                printRequest: function (request_id) {
+                    var url = "/academic_services/request/pdf/" + request_id;
+                    printJS(url);
+                }
+            },
+        });
     </script>
     <script>
         function showToast(category, message) {

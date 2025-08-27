@@ -1388,7 +1388,7 @@ def request_quotation(request_id):
         message += f'''ระบบงานบริการวิชาการ'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
         msg = ('แจ้งขอใบเสนอราคา' \
-               '\n\nเรียน เจ้าหน้าที{}'
+               '\n\nเรียน เจ้าหน้าที่{}'
                '\n\nใบคำขอบริการเลขที่ {}' \
                '\nลูกค้า : {}' \
                '\nในนาม : {}' \
@@ -1963,14 +1963,7 @@ def submit_same_address(address_id):
 def sample_index():
     menu = request.args.get('menu')
     samples = ServiceSample.query.filter(ServiceSample.request.has(customer_id=current_user.id))
-    request_id = None
-    if samples:
-        for sample in samples:
-            request_id = sample.request_id
-    else:
-        request_id = None
-    return render_template('academic_services/sample_index.html', samples=samples, menu=menu,
-                           request_id=request_id)
+    return render_template('academic_services/sample_index.html', samples=samples, menu=menu)
 
 
 @academic_services.route('/customer/sample/add/<int:sample_id>', methods=['GET', 'POST'])

@@ -1,49 +1,41 @@
 import itertools
-import os
 import re
 import uuid
 import qrcode
 from collections import Counter
-
 import arrow
-import requests
 import pandas
 from io import BytesIO
-
-from _decimal import Decimal
 from bahttext import bahttext
 from markupsafe import Markup
 from pytz import timezone
-from datetime import datetime, date
-
+from datetime import date
+from base64 import b64decode
 from sqlalchemy.orm import make_transient
 from wtforms import FormField, FieldList
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from app.auth.views import line_bot_api
-from app.academic_services.forms import create_request_form, ServiceRequestForm, ServicePaymentForm
+from app.academic_services.forms import create_request_form, ServicePaymentForm
 from app.e_sign_api import e_sign
 from app.models import Org
+from app.scb_payment_service.views import generate_qrcode
 from app.service_admin import service_admin
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, session, make_response, jsonify, current_app, \
     send_file
 from flask_login import current_user, login_required
-from sqlalchemy import or_, and_, case
+from sqlalchemy import or_
 from app.service_admin.forms import (ServiceCustomerInfoForm, crate_address_form, create_quotation_item_form,
                                      ServiceInvoiceForm, ServiceQuotationForm, ServiceSampleForm,
                                      PasswordOfSignDigitalForm,
-                                     ServiceResultForm, ServiceResultItemForm, ServiceCustomerContactForm)
+                                     ServiceResultForm, ServiceCustomerContactForm)
 from app.main import app, get_credential, json_keyfile
 from app.main import mail
 from flask_mail import Message
-from werkzeug.utils import secure_filename
-from pydrive.auth import ServiceAccountCredentials, GoogleAuth
-from pydrive.drive import GoogleDrive
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak
@@ -1361,6 +1353,7 @@ def delete_result_file(item_id):
 
 @service_admin.route('/result/tracking_number/add/<int:result_id>', methods=['GET', 'POST'])
 def add_tracking_number(result_id):
+    menu = request.args.get('menu')
     result = ServiceResult.query.get(result_id)
     form = ServiceResultForm(obj=result)
     if form.validate_on_submit():
@@ -1368,11 +1361,12 @@ def add_tracking_number(result_id):
         db.session.add(result)
         db.session.commit()
         flash('อัพเดตข้อมูลสำเร็จ', 'success')
-        return redirect(url_for('service_admin.result_index'))
+        return redirect(url_for('service_admin.result_index', menu=menu))
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-    return render_template('service_admin/add_tracking_number_for_result.html', form=form, result_id=result_id)
+    return render_template('service_admin/add_tracking_number_for_result.html', form=form, menu=menu,
+                           result_id=result_id)
 
 
 @service_admin.route('/payment/confirm/<int:payment_id>', methods=['GET'])
@@ -1561,8 +1555,8 @@ def approve_invoice(invoice_id):
         if admins:
             email = [a.admin.email + '@mahidol.ac.th' for a in admins if a.is_central_admin]
             if email:
-                invoice_file_url = url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id, _external=True,
-                              _scheme=scheme)
+                # invoice_file_url = url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id, _external=True,
+                #               _scheme=scheme)
                 title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้'
                 message = f'''เรียน แอดมินส่วนกลาง\n\n'''
                 message += f'''ตามที่มีการออกใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
@@ -1571,7 +1565,7 @@ def approve_invoice(invoice_id):
                 message += f'''กรุณาดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้ดังกล่าวเข้าสู่ระบบ e-Office เพื่อให้คณบดีลงนามและออกเลข อว. ต่อไป '''
                 message += f'''หลังจากดำเนินการแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้กลับเข้าสู่ระบบบริการวิชาการ\n'''
                 message += f'''สามารถพิมพ์ใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'''
-                message += f'''{invoice_file_url}\n\n'''
+                message += f'''{invoice_url}\n\n'''
                 message += f'''ผู้ประสานงาน\n'''
                 message += f'''{invoice.customer_name}\n'''
                 message += f'''เบอร์โทร {invoice.contact_phone_number}\n'''
@@ -1771,8 +1765,8 @@ def view_invoice(invoice_id):
                            central_admin=central_admin, menu=menu)
 
 
-def generate_invoice_pdf(invoice, sign=False, cancel=False):
-    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
+def generate_invoice_pdf(invoice, qr_image_base64=None):
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 70, 70)
 
     lab = ServiceLab.query.filter_by(code=invoice.quotation.request.lab).first()
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
@@ -1792,7 +1786,14 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
                             )
     data = []
 
-    affiliation = '''<para><font size=10>
+    bold_style = ParagraphStyle(
+        'BoldStyle',
+        parent=style_sheet['ThaiStyleBold'],
+        leading=15,
+        alignment=TA_RIGHT
+    )
+
+    affiliation = '''<para><font size=12>
                            คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
                            999 ต.ศาลายา อ.พุทธมณฑล จ.นครปฐม 73170<br/>
                            โทร 0-2441-4371-9 ต่อ 2820 2830<br/>
@@ -1800,19 +1801,19 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
                            </font></para>
                            '''
 
-    lab_address = '''<para><font size=12>
+    lab_address = '''<para><font size=13>
                         {address}
                         </font></para>'''.format(address=lab.address if lab else sub_lab.address)
 
-    invoice_no = '''<br/><br/><font size=10>
-                    เลขที่/No. {invoice_no}<br/>
+    invoice_no = '''<br/><font size=12>
+                    เลขที่/No. {invoice_no}
                     </font>
                     '''.format(invoice_no=invoice.invoice_no)
 
     header_content_ori = [[[],
                            [logo],
                            [],
-                           [Paragraph(affiliation, style=style_sheet['ThaiStyleRight']),
+                           [Paragraph(affiliation, style=bold_style),
                             Paragraph(invoice_no, style=style_sheet['ThaiStyleRight'])]]]
 
     header_styles = TableStyle([
@@ -1821,12 +1822,18 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
         ('ALIGN', (-1, 0), (-1, -1), 'RIGHT'),
     ])
 
-    header_ori = Table(header_content_ori, colWidths=[150, 200, 0, 150])
+    header_ori = Table(header_content_ori, colWidths=[180, 200, 0, 180])
 
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
-    customer = '''<para><font size=11>
+    detail_style = ParagraphStyle(
+        'DetailStyle',
+        parent=style_sheet['ThaiStyle'],
+        leading=17
+    )
+
+    customer = '''<para><font size=14>
                     ที่ อว. {mhesi_no}<br/>
                     วันที่ <br/>
                     เรื่อง ใบแจ้งหนี้ค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ<br/>
@@ -1839,16 +1846,21 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
                                address=invoice.address,
                                taxpayer_identification_no=invoice.taxpayer_identification_no)
 
-    customer_table = Table([[Paragraph(customer, style=style_sheet['ThaiStyle'])]], colWidths=[540, 280])
+    customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[540, 280])
 
     customer_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                                         ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
 
-    items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>จำนวน / Quantity</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>ราคา / Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>จำนวนเงิน / Amount</font>', style=style_sheet['ThaiStyleCenter']),
+    label_style = ParagraphStyle(
+        'LabelStyle',
+        parent=style_sheet['ThaiStyleBold'],
+        alignment=TA_CENTER
+    )
+    items = [[Paragraph('<font size=13>ลำดับ<br/>No</font>', style=label_style),
+              Paragraph('<font size=13>รายการ<br/>Description</font>', style=label_style),
+              Paragraph('<font size=13>จำนวน<br/>Quantity</font>', style=label_style),
+              Paragraph('<font size=13>ราคา<br/>Unit Price</font>', style=label_style),
+              Paragraph('<font size=13>จำนวนเงิน<br/>Amount</font>', style=label_style),
               ]]
 
     for n, item in enumerate(sorted(invoice.invoice_items, key=lambda x: x.sequence), start=1):
@@ -1863,40 +1875,29 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
                        ]
         items.append(item_record)
 
-    n = len(items)
-
-    for i in range(n):
-        items.append([
-            Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-        ])
-
     items.append([
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>รวมเป็นเงิน</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>รวมเป็นเงิน</font>', style=style_sheet['ThaiStyleBold']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(invoice.subtotal()), style=style_sheet['ThaiStyleNumber']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(invoice.subtotal()), style=bold_style),
     ])
 
     items.append([
-        Paragraph('<font size=12>{}</font>'.format(bahttext(invoice.grand_total())),
-                  style=style_sheet['ThaiStyleCenter']),
+        Paragraph('<font size=13>รวมเป็นเงินทั้งสิ้น/Grand Total ({})</font>'.format(bahttext(invoice.grand_total())),
+                  style=label_style),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyleBold']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(invoice.discount()), style=style_sheet['ThaiStyleNumber']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(invoice.discount()), style=bold_style),
     ])
 
     items.append([
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>รวมเป็นเงินทั้งสิ้น/Grand Total</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>รวมเป็นเงินทั้งสิ้น/Grand Total</font>', style=style_sheet['ThaiStyleBold']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(invoice.grand_total()), style=style_sheet['ThaiStyleNumber']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(invoice.grand_total()), style=bold_style),
     ])
 
     item_table = Table(items, colWidths=[50, 250, 75, 75])
@@ -1917,31 +1918,39 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
         ('SPAN', (2, -2), (3, -2)),
         ('SPAN', (0, -1), (1, -1)),
         ('SPAN', (2, -1), (3, -1)),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (0, -1), 6),
     ]))
 
+    head_remark_style = ParagraphStyle(
+        'HeadRemarkStyle',
+        parent=style_sheet['ThaiStyleBold'],
+        leading=17
+    )
     remark_table = Table([
-        [Paragraph("<font size=14>หมายเหตุ/Remark<br/></font>", style=style_sheet['ThaiStyleBold'])],
+        [Paragraph("<font size=14>หมายเหตุ/Remark<br/></font>", style=head_remark_style)],
         [Paragraph(
             "<font size=12>1. โปรดโอนเงินเข้าบัญชีออมทรัพย์ ในนาม <u>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ธนาคารไทยพาณิชย์ จำกัด (มหาชน) "
             "สาขาศิริราช เลขที่บัญชี 016-433468-4</u> หรือ บัญชีกระแสรายวัน <u>เลขที่บัญชี 016-300-325-6</u> ชื่อบัญชี <u>มหาวิทยาลัยมหิดล</u> "
             "หรือ<u> Scan QR Code ด้านล่าง</u> หรือ <u>โปรดสั่งจ่ายเช็คในนาม มหาวิทยาลัยมหิดล</u><br/></font>",
-            style=style_sheet['ThaiStyle'])],
+            style=detail_style)],
         [Paragraph(
             "<font size=12>2. จัดส่งหลักฐานการชำระเงินทาง E-mail : <u>mumtfinance@gmail.com</u> หรือ แจ้งผ่านโดยการ <u>Scan QR Code</u> "
-            "ด้านล่าง<br/></font>", style=style_sheet['ThaiStyle'])],
+            "ด้านล่าง<br/></font>", style=detail_style)],
         [Paragraph(
             "<font size=12>3. โปรดชำระค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ <u><b>ภายใน 30 วัน</b></u> นับถัดจากวันที่ลงนามใน"
-            "หนังสือแจ้งชำระค่าบริการฉบับนี้<br/></font>", style=style_sheet['ThaiStyle'])],
+            "หนังสือแจ้งชำระค่าบริการฉบับนี้<br/></font>", style=detail_style)],
         [Paragraph(
             "<font size=12>4. โปรดตรวจสอบรายละเอียดข้อมูลการชำระเงิน หากพบข้อมูลไม่ถูกต้อง โปรดทำหนังสือแจ้งกลับมายัง <u><b>หน่วย"
             "การเงินและบัญชี งานคลังและพัสดุ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</b></u><br/></font>",
-            style=style_sheet['ThaiStyle'])],
+            style=detail_style)],
         [Paragraph("<font size=12>5. <u>หากชำระเงินแล้วจะไม่สามารถขอเงินคืนได้</u><br/></font>",
-                   style=style_sheet['ThaiStyle'])],
+                   style=detail_style)],
     ],
-        colWidths=[430]
+        colWidths=[500]
     )
+    remark_table.hAlign = 'LEFT'
     remark_table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
@@ -1951,10 +1960,16 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
         ('BOTTOMPADDING', (0, 1), (-1, 1), 0),
     ]))
 
+    qr_code_img = None
+    if qr_image_base64:
+        qr_bytes = b64decode(qr_image_base64)
+        qr_buffer = BytesIO(qr_bytes)
+        qr_code_img = Image(qr_buffer, width=90, height=90)
+
     sign_style = ParagraphStyle(
         'SignStyle',
         parent=style_sheet['ThaiStyleCenter'],
-        fontSize=16,
+        fontSize=17,
         leading=20,
     )
 
@@ -1965,7 +1980,8 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
         [Paragraph(f'<font size=12><br/></font>', style=sign_style)],
         [Paragraph(f'<font size=12><br/></font>', style=sign_style)],
         [Paragraph(f'<font size=12><br/></font>', style=sign_style)],
-        [Paragraph(f'<font size=12>((ู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)<br/></font>', style=sign_style)],
+        [Paragraph(f'<font size=12><br/></font>', style=sign_style)],
+        [Paragraph(f'<font size=12>(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)<br/></font>', style=sign_style)],
         [Paragraph('<font size=12>คณบดีคณะเทคนิคการแพทย์</font>', style=sign_style)]
     ]
     sign_table = Table(sign, colWidths=[200])
@@ -1986,8 +2002,32 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     data.append(KeepTogether(item_table))
     data.append(KeepTogether(Spacer(1, 16)))
     data.append(KeepTogether(remark_table))
-    data.append(KeepTogether(Spacer(1, 15)))
-    data.append(KeepTogether(sign_table))
+    if qr_code_img:
+        qr_code_text = Paragraph("QR Code<br/>ชำระเงิน", style=style_sheet['ThaiStyleCenter'])
+        qr_code_table = Table([[qr_code_img], [qr_code_text]], colWidths=[150])
+        qr_code_table.hAlign = 'LEFT'
+
+        qr_code_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]))
+
+        combined_table = Table(
+            [[qr_code_table , sign_table]],
+            colWidths=[50, 450]
+        )
+        combined_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (0, 0), 'TOP'),
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('VALIGN', (1, 0), (1, 0), 'TOP'),
+            ('ALIGN', (1, 0), (1, 0), 'RIGHT')
+        ]))
+
+        data.append(Spacer(1, 16))
+        data.append(KeepTogether(combined_table))
+    else:
+        data.append(KeepTogether(Spacer(1, 16)))
+        data.append(KeepTogether(sign_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
@@ -1998,7 +2038,15 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
 @login_required
 def export_invoice_pdf(invoice_id):
     invoice = ServiceInvoice.query.get(invoice_id)
-    buffer = generate_invoice_pdf(invoice)
+    sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
+    ref1 = re.sub(r'[^A-Z0-9]', '', invoice.invoice_no.upper())
+    ref2 = re.sub(r'[^A-Z0-9]', '', sub_lab.sub_lab.upper())
+    qrcode_data = generate_qrcode(amount=invoice.grand_total(), ref1=ref1, ref2=ref2, ref3=None)
+    if qrcode_data:
+        qr_image_base64 = qrcode_data['qrImage']
+    else:
+        qr_image_base64 = None
+    buffer = generate_invoice_pdf(invoice, qr_image_base64=qr_image_base64)
     return send_file(buffer, download_name='Invoice.pdf', as_attachment=True)
 
 
@@ -2290,7 +2338,7 @@ def create_quotation_for_admin(quotation_id):
                                 except LineBotApiError:
                                     pass
             flash('ส่งข้อมูลให้หัวหน้าอนุมัติเรียบร้อยแล้ว กรุณารอดำเนินการ', 'success')
-            return redirect(url_for('service_admin.quotation_index', tab='pending_approval', menu=menu))
+            return redirect(url_for('service_admin.quotation_index', tab='pending_supervisor_approval', menu=menu))
         else:
             flash('บันทึกข้อมูลแบบร่างเรียบร้อยแล้ว', 'success')
     else:
