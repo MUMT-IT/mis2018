@@ -815,6 +815,10 @@ admin.add_views(ModelView(ServiceReceipt, db.session, category='Academic Service
 admin.add_views(ModelView(ServiceReceiptItem, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceOrder, db.session, category='Academic Service'))
 
+from app.academic_service_payment import academic_service_payment as academic_service_payment_blueprint
+
+app.register_blueprint(academic_service_payment_blueprint)
+
 from app.software_request import software_request as software_request_blueprint
 
 app.register_blueprint(software_request_blueprint)
