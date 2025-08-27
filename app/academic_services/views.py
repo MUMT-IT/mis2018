@@ -1963,14 +1963,7 @@ def submit_same_address(address_id):
 def sample_index():
     menu = request.args.get('menu')
     samples = ServiceSample.query.filter(ServiceSample.request.has(customer_id=current_user.id))
-    request_id = None
-    if samples:
-        for sample in samples:
-            request_id = sample.request_id
-    else:
-        request_id = None
-    return render_template('academic_services/sample_index.html', samples=samples, menu=menu,
-                           request_id=request_id)
+    return render_template('academic_services/sample_index.html', samples=samples, menu=menu)
 
 
 @academic_services.route('/customer/sample/add/<int:sample_id>', methods=['GET', 'POST'])
