@@ -1553,8 +1553,8 @@ def approve_invoice(invoice_id):
         if admins:
             email = [a.admin.email + '@mahidol.ac.th' for a in admins if a.is_central_admin]
             if email:
-                invoice_file_url = url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id, _external=True,
-                              _scheme=scheme)
+                # invoice_file_url = url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id, _external=True,
+                #               _scheme=scheme)
                 title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้'
                 message = f'''เรียน แอดมินส่วนกลาง\n\n'''
                 message += f'''ตามที่มีการออกใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
@@ -1563,7 +1563,7 @@ def approve_invoice(invoice_id):
                 message += f'''กรุณาดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้ดังกล่าวเข้าสู่ระบบ e-Office เพื่อให้คณบดีลงนามและออกเลข อว. ต่อไป '''
                 message += f'''หลังจากดำเนินการแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้กลับเข้าสู่ระบบบริการวิชาการ\n'''
                 message += f'''สามารถพิมพ์ใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'''
-                message += f'''{invoice_file_url}\n\n'''
+                message += f'''{invoice_url}\n\n'''
                 message += f'''ผู้ประสานงาน\n'''
                 message += f'''{invoice.customer_name}\n'''
                 message += f'''เบอร์โทร {invoice.contact_phone_number}\n'''
