@@ -1311,11 +1311,12 @@ def create_result(result_id=None):
                 customer_name = result.request.customer.customer_name.replace(' ', '_')
                 contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
                 title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
-                title = f'''แจ้งออกรายงานผลการทดสอบของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                title = f'''แจ้งออกร่างรายงานผลการทดสอบของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
                 message = f'''เรียน {title_prefix}{customer_name}\n\n'''
                 message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
-                message += f''' ขณะนี้รายงานผลการทดสอบได้ดำเนินการเรียบร้อยแล้ว และอยู่ระหว่างการดำเนินการจัดทำใบแจ้งหนี้เพื่อใช้ในการชำระค่าบริการ'''
-                message += f''' เมื่อมีการออกใบแจ้งหนี้เรียบร้อยแล้ว ท่านจะได้รับอีเมลแจ้งอีกครั้ง พร้อมรายละเอียดการชำระค่าบริการ\n\n'''
+                message += f''' ขณะนี้ได้จัดทำร่างรายงานผลการทดสอบแล้ว และได้แนบไฟล์ร่างรายงานมาพร้อมกับอีเมลฉบับนี้'''
+                message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในร่างรายงาน และดำเนินการยืนยันตามลิงก์ด้านล่าง\n\n'''
+                message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง'''
                 message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
                 message += f'''ขอแสดงความนับถือ\n'''
                 message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
@@ -1562,6 +1563,9 @@ def approve_invoice(invoice_id):
                 message += f'''ตามที่มีการออกใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
                 message += f'''ลูกค้า : {invoice.customer_name}\n'''
                 message += f'''ในนาม : {invoice.name}\n'''
+                message += f'''อ้างอิงจาก : \n'''
+                message += f'''- ใบคำขอรับบริการเลขที่ : {invoice.quotation.request.request_no}\n'''
+                message += f'''- ใบเสนอราคาเลขที ่: {invoice.quotation.quotation_no}\n\n'''
                 message += f'''กรุณาดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้ดังกล่าวเข้าสู่ระบบ e-Office เพื่อให้คณบดีลงนามและออกเลข อว. ต่อไป '''
                 message += f'''หลังจากดำเนินการแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้กลับเข้าสู่ระบบบริการวิชาการ\n'''
                 message += f'''สามารถพิมพ์ใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'''
@@ -1576,18 +1580,22 @@ def approve_invoice(invoice_id):
                         'แจ้งแอดมินส่วนกลางดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้เลขที่ {}\n\n'
                         'เรียน แอดมินส่วนกลาง\n\n'
                         'ตามที่มีการออกใบแจ้งหนี้เลขที่ : {}\n'
+                       
                         'ลูกค้า : {}\n'
-                        'ในนาม : {}\n\n'
-                        'กรุณาดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้ดังกล่าวเข้าสู่ระบบ e-Office'
-                        'เพื่อให้คณบดีลงนามและออกเลข อว. ต่อไป'
+                        'ในนาม : {}\n' 
+                        'อ้างอิงจาก : \n'
+                        '- ใบคำขอรับบริการเลขที่ : {}\n'
+                        '- ใบเสนอราคาเลขที่ : {}\n\n'
+                        'กรุณาดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้ดังกล่าวเข้าสู่ระบบ e-Office เพื่อให้คณบดีลงนามและออกเลข อว. ต่อไป'
                         'หลังจากดำเนินการแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้กลับเข้าสู่ระบบบริการวิชาการ\n\n'
                         'สามารถพิมพ์ใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'
                         '{}\n\n'
                         '\ู้ประสานงาน\n'
                         '{}\n' 
                         'เบอร์โทร {}\n'
-                        'ระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.invoice_no, invoice.customer_name,
-                                                     invoice.name, invoice_url, invoice.customer_name, invoice.contact_phone_number))
+                        'ระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.invoice_no, invoice.quotation.request.request_no,
+                                                      invoice.quotation.quotation_no,invoice.customer_name, invoice.name,
+                                                      invoice_url, invoice.customer_name, invoice.contact_phone_number))
                     for a in admins:
                         if a.is_central_admin:
                             try:
@@ -1605,6 +1613,9 @@ def approve_invoice(invoice_id):
             message += f'''ใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
             message += f'''ลูกค้า : {invoice.customer_name}\n'''
             message += f'''ในนาม : {invoice.name}\n'''
+            message += f'''อ้างอิงจาก : \n'''
+            message += f'''- ใบคำขอรับบริการเลขที่ : {invoice.quotation.request.request_no}\n'''
+            message += f'''- ใบเสนอราคาเลขที ่: {invoice.quotation.quotation_no}\n\n'''
             message += f'''ที่รอดำเนินการอนุมัติใบแจ้งหนี้\n'''
             message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
             message += f'''{invoice_url}\n\n'''
@@ -1619,13 +1630,17 @@ def approve_invoice(invoice_id):
                    '\n\nใบแจ้งหนี้เลขที่ : {}' \
                    '\nลูกค้า : {}' \
                    '\nในนาม : {}' \
-                   '\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
+                   '\nอ้างอิงจาก : ' \
+                   '\n- ใบคำขอรับบริการเลขที่ : {}'
+                   '\n- ใบเสนอราคาเลขที่ : {}'
+                   '\n\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
                    '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
                    '\n{}' \
                    '\n\nผู้ประสานงาน' \
                    '\n{}' \
                    '\nเบอร์โทร {}'\
-                   '\nระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.invoice_no, invoice.customer_name,
+                   '\nระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.invoice_no, invoice.quotation.request.request_no,
+                                                      invoice.quotation.quotation_no, invoice.customer_name,
                                                      invoice.name, invoice_url, invoice.customer_name, invoice.contact_phone_number))
             try:
                 line_bot_api.push_message(to=sub_lab.approver.line_id, messages=TextSendMessage(text=msg))
@@ -1644,6 +1659,9 @@ def approve_invoice(invoice_id):
                 message += f'''ใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
                 message += f'''ลูกค้า : {invoice.customer_name}\n'''
                 message += f'''ในนาม : {invoice.name}\n'''
+                message += f'''อ้างอิงจาก : \n'''
+                message += f'''- ใบคำขอรับบริการเลขที่ : {invoice.quotation.request.request_no}\n'''
+                message += f'''- ใบเสนอราคาเลขที ่: {invoice.quotation.quotation_no}\n\n'''
                 message += f'''ที่รอดำเนินการอนุมัติใบแจ้งหนี้\n'''
                 message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
                 message += f'''{invoice_url}\n\n'''
@@ -1655,17 +1673,21 @@ def approve_invoice(invoice_id):
                 if not current_app.debug:
                     msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
                            '\n\nเรียน หัวหน้าห้องปฏิบัติการ' \
-                           '\n\nใบแจ้งหนี้เลขที่ : {}' \
+                            '\n\nใบแจ้งหนี้เลขที่ : {}' \
                            '\nลูกค้า : {}' \
                            '\nในนาม : {}' \
-                           '\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
+                           '\nอ้างอิงจาก : ' \
+                           '\n- ใบคำขอรับบริการเลขที่ : {}'
+                           '\n- ใบเสนอราคาเลขที่ : {}'
+                           '\n\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
                            '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
                            '\n{}' \
                            '\n\nผู้ประสานงาน' \
                            '\n{}' \
                            '\nเบอร์โทร {}'\
-                           '\nระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.invoice_no, invoice.customer_name,
-                                                          invoice.name, invoice_url, invoice.customer_name, invoice.contact_phone_number))
+                           '\nระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.invoice_no, invoice.quotation.request.request_no,
+                                                              invoice.quotation.quotation_no, invoice.customer_name,
+                                                             invoice.name, invoice_url, invoice.customer_name, invoice.contact_phone_number))
                     for a in admins:
                         if a.is_supervisor:
                             try:
@@ -1724,7 +1746,7 @@ def upload_invoice_file(invoice_id):
             title = f'''แจ้งออกใบแจ้งหนี้ [{invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
             message = f'''เรียน {title_prefix}{invoice.customer_name}\n\n'''
             message += f'''ตามที่ท่านใช้บริการจากหน่วยงานตรวจวิเคราะห์ของคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ทางเจ้าหน้าที่ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no}'''
-            message += f''' ของใบคำขอรับบริการเลขที่ {invoice.quotation.request.request_no} เรียบร้อยแล้ว กรุณาดำเนินการชำระเงินภายใน 30 วันนับจากวันที่ออกใบแจ้งหนี้\n'''
+            message += f''' ของใบคำขอรับบริการเลขที่ {invoice.quotation.request.request_no} และของใบเสนอราคาเลขที่ {invoice.quotation.quotation_no} เรียบร้อยแล้ว กรุณาดำเนินการชำระเงินภายใน 30 วันนับจากวันที่ออกใบแจ้งหนี้\n'''
             message += f'''ท่านสามารถตรวจสอบรายละเอียดใบแจ้งหนี้ได้จากลิงก์ด้านล่าง\n'''
             message += f'''{invoice_url}\n\n'''
             message += f'''ขอขอบพระคุณที่ใช้บริการจากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n\n'''
@@ -2308,6 +2330,7 @@ def create_quotation_for_admin(quotation_id):
                     message += f'''ใบเสนอราคาเลขที่ : {quotation.quotation_no}\n'''
                     message += f'''ลูกค้า : {quotation.customer_name}\n'''
                     message += f'''ในนาม : {quotation.name}\n'''
+                    message += f'''อ้างอิงจากใบคำขอรับบริการเลขที่ : {quotation.request.request_no}'''
                     message += f'''ที่รอการอนุมัติใบเสนอราคา\n'''
                     message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
                     message += f'''{quotation_link}\n\n'''
@@ -2320,6 +2343,7 @@ def create_quotation_for_admin(quotation_id):
                            '\n\nใบเสนอราคาเลขที่ {}' \
                            '\nลูกค้า : {}' \
                            '\nในนาม : {}' \
+                           '\nอ้างอิงจากใบคำขอรับบริการเลขที่ : {}'
                            '\nที่รอการอนุมัติใบเสนอราคา' \
                            '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
                            '\n{}' \
@@ -2328,7 +2352,7 @@ def create_quotation_for_admin(quotation_id):
                            '\nระบบงานบริการวิชาการ'
                            .format(quotation.quotation_no, quotation.quotation_no,
                                    quotation.request.customer.customer_info.cus_name,
-                                   quotation.name, quotation_link, quotation.creator.fullname)
+                                   quotation.name, quotation.request.request_no, quotation_link, quotation.creator.fullname)
                            )
                     if not current_app.debug:
                         for a in admins:
@@ -2390,7 +2414,8 @@ def approval_quotation_for_supervisor(quotation_id):
                     message += f'''รายละเอียดข้อมูล\n'''
                     message += f'''วันที่อนุมัติ : {quotation.approved_at.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
                     message += f'''จำนวนรายการ : {total_items} รายการ\n'''
-                    message += f'''ราคา : {"{:,.2f}".format(quotation.grand_total())} บาท\n\n'''
+                    message += f'''ราคา : {"{:,.2f}".format(quotation.grand_total())} บาท\n'''
+                    message += f'''อ้างอิงจากใบคำขอรับบริการเลขที่ : {quotation.request.request_no}\n\n'''
                     message += f'''กรุณาดำเนินการยืนยันใบเสนอราคาภายใน 7 วัน ผ่านลิงก์ด้านล่าง\n'''
                     message += f'''{quotation_link}\n\n'''
                     message += f'''หากไม่ยืนยันภายในกำหนด ใบเสนอราคาอาจถูกยกเลิกและราคาอาจเปลี่ยนแปลงได้\n\n'''
@@ -2411,6 +2436,7 @@ def approval_quotation_for_supervisor(quotation_id):
                         message_for_assistant += f'''วันที่อนุมัติ : {quotation.approved_at.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
                         message_for_assistant += f'''จำนวนรายการ : {total_items} รายการ\n'''
                         message_for_assistant += f'''ราคา : {"{:,.2f}".format(quotation.grand_total())} บาท\n'''
+                        message_for_assistant += f'''อ้างอิงจากใบคำขอรับบริการเลขที่ : {quotation.request.request_no}\n'''
                         message_for_assistant += f'''อนุมัติโดย คุณ{quotation.approver.fullname}\n\n'''
                         message_for_assistant += f'''โดยสามารถดูรายละเอียดใบเสนอราคาเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
                         message_for_assistant += f'''{quotation_link_for_assistant}\n\n'''
