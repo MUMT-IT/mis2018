@@ -1260,6 +1260,8 @@ class ServiceResultItem(db.Model):
     result = db.relationship(ServiceResult, backref=db.backref('result_items'))
     report_language = db.Column('report_language', db.String())
     url = db.Column('url', db.String())
+    draft_file = db.Column('draft_file', db.String())
+    final_file = db.Column('final_file', db.String())
     status = db.Column('status', db.String())
     released_at = db.Column('released_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
