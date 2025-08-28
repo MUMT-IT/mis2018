@@ -981,6 +981,10 @@ class ServiceInvoice(db.Model):
     due_date = db.Column('due_date', db.DateTime(timezone=True))
     paid_at = db.Column('paid_at', db.DateTime(timezone=True))
     is_paid = db.Column('is_paid', db.Boolean())
+    verify_at = db.Column('verify_at', db.DateTime(timezone=True))
+    verify_id = db.Column('verify_id', db.ForeignKey('staff_account.id'))
+    verify_by = db.relationship(StaffAccount, backref=db.backref('verify_invoices'),
+                                foreign_keys=[verify_id])
     quotation_id = db.Column('quotation_id', db.ForeignKey('service_quotations.id'))
     quotation = db.relationship(ServiceQuotation, backref=db.backref('invoices', cascade="all, delete-orphan"))
 
