@@ -136,6 +136,13 @@
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <h1 class="title has-text-centered">นัดหมายการส่งตัวอย่าง</h1>
+                            <div class="notification is-info is-light mt-4">
+                                <h1 class="title is-5 mt-3">คำแนะนำ</h1>
+                                1. เลือกวิธีการส่งตัวอย่าง<br/>
+                                2. เลือกสถานที่ส่งตัวอย่าง<br/>
+                                3. ถ้าในกรณีที่เลือกวิธีการส่งตัวอย่างด้วยตนเอง กรุณากำหนดวันนัดหมายส่งตัวอย่าง<br/>
+                                4. กรุณานำส่งตัวอย่างพร้อมใบนำส่งตัวอย่าง, ใบอนุญาตนำเข้าหรือผลิต และสูตรตำรับ/สูตร 100% ของตัวอย่าง
+                            </div>
                         <div class="box">
                             <p class="help is-danger mb-2">กรุณากรอกข้อมูลนัดหมายส่งตัวอย่าง</p>
                             <div class="field">
@@ -189,12 +196,6 @@
                                 </div>
                             </div>
                         </div>
-                        <h1 class="title is-5 mt-3 has-text-centered">รายละเอียดเพิ่มเติม</h1>
-                            <div class="notification is-info is-light mt-4">
-                                1. เลือกวิธีการส่งตัวอย่าง<br/>
-                                2. เลือกสถานที่ส่งตัวอย่าง<br/>
-                                3. ถ้าในกรณีที่เลือกวิธีการส่งตัวอย่างด้วยตนเอง กรุณากำหนดวันนัดหมายส่งตัวอย่าง และเลือกเวลาที่แสดงในระบบ
-                            </div>
                         <div class="buttons is-centered">
                             <a class="button"
                                href="{{ url_for('academic_services.sample_index', menu=menu) }}">
