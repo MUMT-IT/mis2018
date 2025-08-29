@@ -1681,13 +1681,23 @@ def pa_all_seminar(pa_id=None, idp_id=None):
         pa = PAAgreement.query.filter_by(id=pa_id).first()
         seminars = StaffSeminarAttend.query.filter_by(staff=pa.staff).filter(
                                             and_(StaffSeminarAttend.start_datetime >= pa.round.start,
-                                                 StaffSeminarAttend.end_datetime <= pa.round.end)).all()
+                                                 StaffSeminarAttend.end_datetime <= pa.round.end))
     else:
         idp = IDP.query.filter_by(id=idp_id).first()
         seminars = StaffSeminarAttend.query.filter_by(staff=idp.staff).filter(
             and_(StaffSeminarAttend.start_datetime >= idp.round.start,
-                 StaffSeminarAttend.end_datetime <= idp.round.end)).all()
-    return render_template('PA/all_seminar.html', seminars=seminars)
+                 StaffSeminarAttend.end_datetime <= idp.round.end))
+
+    total_seminars = seminars.count()
+    speaker_count = seminars.filter_by(role='วิทยากร').count()
+    consultant_count = seminars.filter_by(role='ที่ปรึกษา').count()
+    committee_count = seminars.filter_by(role='กรรมการ').count()
+    teacher_count = seminars.filter_by(role='อาจารย์พิเศษ').count()
+    participant_count = seminars.filter_by(role='ผู้เข้าร่วม').count()
+    return render_template('PA/all_seminar.html', seminars=seminars, total_seminars=total_seminars,
+                           speaker_count=speaker_count, consultant_count=consultant_count,
+                           committee_count=committee_count, teacher_count=teacher_count,
+                           participant_count=participant_count)
 
 
 @pa.route('/eva/all_performance/<int:scoresheet_id>')

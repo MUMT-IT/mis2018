@@ -20,9 +20,9 @@
         <div class="container">
             {% include "messages.html" %}
              {% if for_self == 'false' %}
-             <div class="columns notification is-info is-light">
+             <div class="columns notification is-white">
                 <div class="column is-half is-offset-3 has-text-centered">
-                        <h1 class="subtitle">
+                        <h1 class="title">
                             ผู้รับการประเมิน {{ scoresheet.pa.staff.personal_info.fullname }}<br>
                             รอบ {{ scoresheet.pa.round.desc }}: {{ scoresheet.pa.round }}
                         </h1>
@@ -41,7 +41,7 @@
             <div id="pa-seminar-modal-container"></div>
             <div class="columns">
                 <div class="column">
-                    <div class="button is-info is-light">
+                    <div class="button is-link is-light">
                         <a hx-get="{{ url_for('pa.pa_all_seminar', pa_id=scoresheet.pa.id) }}"
                            hx-target="#pa-seminar-modal-container" hx-swap="innerHTML">
                             <span>ข้อมูลการเข้าร่วมกิจกรรม</span>
@@ -53,11 +53,7 @@
                 </div>
             </div>
             {% endif %}
-            <div class="columns">
-                <div class="column has-text-centered">
-                    <h1 class="title">ประเมินผลงาน(Performance)</h1>
-                </div>
-            </div>
+            <h1 class="title">ประเมินผลงาน(Performance)</h1>
             <div class="columns">
                 <div class="column">
                     {% if for_self == 'false' %}
@@ -161,7 +157,7 @@
                             </tbody>
                         </table>
                         <progress class="progress" value="100" max="100"></progress>
-                        <h1 class="subtitle has-text-centered">ประเมินสมรรถนะหลัก(Core Competency)</h1>
+                        <h1 class="title">ประเมินสมรรถนะหลัก(Core Competency)</h1>
                         <div class="column ">
                             <div class="box">
                                 <table class="table is-fullwidth">
