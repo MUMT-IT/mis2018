@@ -18,7 +18,9 @@
                         <b-field>
                             <b-select placeholder="กรุณาเลือกรอบการประเมิน" name="round" required>
                                 {% for round in all_rounds %}
-                                <option value="{{ round.id }}">{{ round }}</option>
+                                <option value="{{ round.id }}">{{ round.desc }}: {{ round }}
+                                    {% for e in round.employments %}{{ e }},{% endfor %}
+                                </option>
                                 {% endfor %}
                             </b-select>
                         </b-field>
