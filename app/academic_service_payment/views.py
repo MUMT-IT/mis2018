@@ -91,6 +91,8 @@ def confirm_payment(invoice_id):
         payment = ServicePayment(invoice_id=invoice_id, payment_type='เช็คเงินสด',amount_paid=invoice.grand_total(),
                                  paid_at=arrow.now('Asia/Bangkok').datetime, customer_id=invoice.quotation.request.customer_id,
                                  created_at=arrow.now('Asia/Bangkok').datetime)
+        invoice.paid_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(invoice)
         db.session.add(payment)
     db.session.add(invoice)
     db.session.commit()
