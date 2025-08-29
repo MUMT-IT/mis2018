@@ -983,6 +983,7 @@ class ServiceInvoice(db.Model):
     due_date = db.Column('due_date', db.DateTime(timezone=True))
     paid_at = db.Column('paid_at', db.DateTime(timezone=True))
     is_paid = db.Column('is_paid', db.Boolean())
+    note = db.Column('note', db.Text())
     verify_at = db.Column('verify_at', db.DateTime(timezone=True))
     verify_id = db.Column('verify_id', db.ForeignKey('staff_account.id'))
     verify_by = db.relationship(StaffAccount, backref=db.backref('verify_invoices'),
