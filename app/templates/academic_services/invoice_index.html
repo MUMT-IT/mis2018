@@ -121,7 +121,7 @@
                     { data: 'total_price' },
                     { data: 'payment_type'},
                     {
-                        data : 'paid_at',
+                        data : 'payment_date',
                         render: function(data) {
                             if (data !== '') {
                                 let d = moment(data)
@@ -134,18 +134,17 @@
                     { data: 'id',
                         render: function (data, type, row) {
                             if (row.slip) {
-                                dowload_url = '/academic_services/aws-s3/download/' + row.slip + '?download_filename=สลิปใบแจ้งหนี้'
-                                return `
+                               return `
                                     <div class="field has-addons">
                                         <div class="control">
                                             <a class="button is-small is-outlined is-primary is-rounded"
-                                                onclick="showSlipPopup('${row.slip_url}')">
+                                                onclick="showSlipPopup('${row.slip}')">
                                                 <span class="icon is-small"><i class="fas fa-receipt"></i></span>
                                                 <span>หลักฐานการชำระเงิน</span>
                                             </a>
                                         </div>
                                     </div>`;
-                            } else {
+                            } else if (row.file_attached_at != null && row.paid_at == null) {
                                 add_payment_url = '/academic_services/customer/payment/add?invoice_id=' + data +'&menu=invoice';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -157,6 +156,8 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
+                            } else {
+                                return ''
                             }
                         }
                     },

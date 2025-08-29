@@ -119,7 +119,7 @@
                     {% endif %}
                     { data: 'payment_type'},
                     {
-                        data : 'paid_at',
+                        data : 'payment_date',
                         render: function(data) {
                             if (data !== '') {
                                 let d = moment(data)
@@ -136,13 +136,13 @@
                                     <div class="field has-addons">
                                         <div class="control">
                                             <a class="button is-small is-outlined is-primary is-rounded"
-                                                onclick="showSlipPopup('${row.slip_url}')">
+                                                onclick="showSlipPopup('${row.slip}')">
                                                 <span class="icon is-small"><i class="fas fa-receipt"></i></span>
                                                 <span>หลักฐานการชำระเงิน</span>
                                             </a>
                                         </div>
                                     </div>`;
-                            } else if (row.file_attached_at) {
+                            } else if (row.file_attached_at != null && row.paid_at == null) {
                                 add_payment_url = '/service_admin/payment/add?invoice_id=' + data +'&menu=invoice';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
