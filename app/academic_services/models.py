@@ -1185,6 +1185,23 @@ class ServicePayment(db.Model):
     invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
     invoice = db.relationship(ServiceInvoice, backref=db.backref('payments', cascade="all, delete-orphan"))
 
+    @property
+    def to_link(self):
+        return self.generate_presigned_url(s3, S3_BUCKET_NAME)
+
+    def generate_presigned_url(self):
+        if self.url:
+            try:
+                return s3.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': S3_BUCKET_NAME, 'Key': self.url},
+                    ExpiresIn=3600
+                )
+            except Exception as e:
+                print(f"Error generating presigned URL: {e}")
+                return None
+        return None
+
 
 class ServiceReceipt(db.Model):
     __tablename__ = 'service_receipts'
