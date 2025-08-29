@@ -1011,11 +1011,10 @@ class ServiceInvoice(db.Model):
             'file_attached_at': self.file_attached_at if self.file_attached_at else None,
             'assistant_approved_at': self.assistant_approved_at if self.assistant_approved_at else None,
             'payment_type': [payment.payment_type for payment in self.payments] if self.payments else None,
-            'paid_at': [payment.paid_at.isoformat() if payment.paid_at else '' for payment in self.payments]
+            'payment_date': [payment.paid_at.isoformat() if payment.paid_at else '' for payment in self.payments]
                         if self.payments else [],
+            'paid_at': self.paid_at if self.paid_at else None,
             'is_paid': self.is_paid if self.is_paid else None,
-            'slip': [payment.slip if payment.slip else '' for payment in self.payments]
-                    if self.payments else '',
             'invoice_file': self.file if self.file else None
         }
 
