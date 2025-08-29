@@ -1216,6 +1216,7 @@ class ServiceResult(db.Model):
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('results', cascade="all, delete-orphan"))
     is_sent_email = db.Column('is_sent_email', db.Boolean())
+    note = db.Column('note', db.Text())
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('service_results'))
 
