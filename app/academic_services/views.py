@@ -2191,7 +2191,7 @@ def add_payment():
     if form.validate_on_submit():
         payment = ServicePayment()
         form.populate_obj(payment)
-        status_id = get_status(20)
+        status_id = get_status(19)
         file = form.file_upload.data
         payment.invoice_id = invoice_id
         payment.created_at = arrow.now('Asia/Bangkok').datetime
@@ -2209,7 +2209,6 @@ def add_payment():
             )
             payment.slip = file_name
             db.session.add(payment)
-            invoice.is_paid = True
             invoice.paid_at = arrow.now('Asia/Bangkok').datetime
             invoice.quotation.request.status_id = status_id
             db.session.add(invoice)
