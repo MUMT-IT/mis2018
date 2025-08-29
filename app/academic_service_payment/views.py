@@ -1,10 +1,22 @@
+import arrow
 from io import BytesIO
-
-from flask import request, render_template, url_for, jsonify, send_file
-from flask_login import login_required
-
+from flask import request, render_template, url_for, jsonify, send_file, flash
+from flask_login import login_required, current_user
 from app.academic_service_payment import academic_service_payment
 from app.academic_services.models import *
+
+
+def get_status(s_id):
+    statuses = ServiceStatus.query.filter_by(status_id=s_id).first()
+    status_id = statuses.id
+    return status_id
+
+
+def generate_url(file_url):
+    url = s3.generate_presigned_url('get_object',
+                                    Params={'Bucket': S3_BUCKET_NAME, 'Key': file_url},
+                                    ExpiresIn=3600)
+    return url
 
 
 @academic_service_payment.route('/aws-s3/download/<key>', methods=['GET'])
@@ -53,9 +65,34 @@ def get_invoices():
                         </div>
                     </div>
                 '''
+        if item.payments:
+            for payment in item.payments:
+                if payment.slip:
+                    item_data['slip'] = generate_url(payment.slip)
+                else:
+                    item_data['slip'] = None
         data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
                     'recordTotal': records_total,
                     'draw': request.args.get('draw', type=int)
                     })
+
+
+@academic_service_payment.route('/invoice/payment/confirm/<int:invoice_id>', methods=['GET', 'POST'])
+def confirm_payment(invoice_id):
+    status_id = get_status(20)
+    invoice = ServiceInvoice.query.get(invoice_id)
+    invoice.is_paid = True
+    invoice.verify_at = arrow.now('Asia/Bangkok').datetime
+    invoice.verify_id = current_user.id
+    invoice.quotation.request.status_id = status_id
+    if not invoice.paid_at:
+        payment = ServicePayment(invoice_id=invoice_id, payment_type='เช็คเงินสด',amount_paid=invoice.grand_total(),
+                                 paid_at=arrow.now('Asia/Bangkok').datetime, customer_id=invoice.quotation.request.customer_id,
+                                 created_at=arrow.now('Asia/Bangkok').datetime)
+        db.session.add(payment)
+    db.session.add(invoice)
+    db.session.commit()
+    flash('อัพเดตการชำระเงินสำเร็จ', 'success')
+    return render_template('academic_service_payment/invoice_payment_index.html')
