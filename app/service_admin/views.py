@@ -1497,7 +1497,10 @@ def get_invoices():
         item_data = item.to_dict()
         if item.payments:
             for payment in item.payments:
-                item_data['slip_url'] = generate_url(payment.slip)
+                if payment.slip:
+                    item_data['slip'] = generate_url(payment.slip)
+                else:
+                    item_data['slip'] = None
         data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
