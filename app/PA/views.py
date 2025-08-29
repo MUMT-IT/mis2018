@@ -751,8 +751,8 @@ def consensus_scoresheets_for_hr():
         df.to_excel('pa_score.xlsx', index=False, columns=columns)
         return send_from_directory(os.getcwd(), 'pa_score.xlsx')
     else:
-        all_rounds = PARound.query.all()
-        rounds = PARound.query.all()
+        all_rounds = PARound.query.order_by(PARound.id.desc()).all()
+        rounds = PARound.query.order_by(PARound.id.desc()).all()
         employment_id = request.args.get('empid', type=int)
         round_id = request.args.get('roundid', type=int)
         employments = StaffEmployment.query.all()
