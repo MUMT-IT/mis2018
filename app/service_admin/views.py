@@ -1608,7 +1608,7 @@ def create_invoice(quotation_id):
         flash('สร้างใบแจ้งหนี้สำเร็จ', 'success')
         return redirect(url_for('service_admin.view_invoice', invoice_id=invoice.id, menu=menu))
     else:
-        return render_template('service_admin/invoice_created_confirmation _page.html', menu=menu,
+        return render_template('service_admin/invoice_created_confirmation_page.html', menu=menu,
                                invoice_id=[invoice.id for invoice in quotation.invoices])
 
 
