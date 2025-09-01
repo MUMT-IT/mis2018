@@ -76,6 +76,16 @@
                         }
                     },
                     {data: 'files'},
+                    {
+                        data: 'note',
+                        render: function (data) {
+                            if (data !== null) {
+                                return data
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
                     {data: 'creator'},
                     {
                         data: 'id',

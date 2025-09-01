@@ -29,6 +29,7 @@
                     <th>รายการ</th>
                     <th>สถานะ</th>
                     <th>ผลการทดสอบ</th>
+                    <th>หมายเหตุ</th>
                     <th></th>
                     </thead>
                     <tbody>
@@ -88,6 +89,9 @@
                                 {% else %}
                                     {{ '' }}
                                 {% endif %}
+                            </td>
+                            <td>
+                                {{ result.note or '' }}
                             </td>
                             <td>
                                 {% if result.status.status_id == 12 %}
