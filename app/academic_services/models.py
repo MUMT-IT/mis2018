@@ -1261,7 +1261,8 @@ class ServiceResult(db.Model):
             'released_at': self.released_at,
             'report_language': [item.report_language for item in self.result_items] if self.result_items else None,
             'creator': self.creator.fullname if self.creator else None,
-            'request_id': self.request_id if self.request_id else None
+            'request_id': self.request_id if self.request_id else None,
+            'note': self.note if self.note else None
         }
 
     @property
