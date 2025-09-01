@@ -1,9 +1,16 @@
 import arrow
 from io import BytesIO
-from flask import request, render_template, url_for, jsonify, send_file, flash
+from flask_mail import Message
+from flask import request, render_template, url_for, jsonify, send_file, flash, current_app
 from flask_login import login_required, current_user
 from app.academic_service_payment import academic_service_payment
 from app.academic_services.models import *
+from app.main import mail
+
+
+def send_mail(recp, title, message):
+    message = Message(subject=title, body=message, recipients=recp)
+    mail.send(message)
 
 
 def get_status(s_id):
@@ -43,7 +50,7 @@ def invoice_payment_index():
 
 @academic_service_payment.route('/api/invoice/payment/index')
 def get_invoices():
-    query = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at!=None)
+    query = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at != None)
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -55,7 +62,8 @@ def get_invoices():
     data = []
     for item in query:
         item_data = item.to_dict()
-        download_file = url_for('academic_services.download_file', key=item.file, download_filename=f"{item.invoice_no}.pdf")
+        download_file = url_for('academic_services.download_file', key=item.file,
+                                download_filename=f"{item.invoice_no}.pdf")
         item_data['file'] = f'''<div class="field has-addons">
                         <div class="control">
                             <a class="button is-small is-light is-link is-rounded" href="{download_file}">
@@ -88,8 +96,9 @@ def confirm_payment(invoice_id):
     invoice.verify_id = current_user.id
     invoice.quotation.request.status_id = status_id
     if not invoice.paid_at:
-        payment = ServicePayment(invoice_id=invoice_id, payment_type='เช็คเงินสด',amount_paid=invoice.grand_total(),
-                                 paid_at=arrow.now('Asia/Bangkok').datetime, customer_id=invoice.quotation.request.customer_id,
+        payment = ServicePayment(invoice_id=invoice_id, payment_type='เช็คเงินสด', amount_paid=invoice.grand_total(),
+                                 paid_at=arrow.now('Asia/Bangkok').datetime,
+                                 customer_id=invoice.quotation.request.customer_id,
                                  created_at=arrow.now('Asia/Bangkok').datetime)
         invoice.paid_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(payment)
@@ -98,5 +107,21 @@ def confirm_payment(invoice_id):
     result.status_id = status_id
     db.session.add(result)
     db.session.commit()
-    flash('อัพเดตการชำระเงินสำเร็จ', 'success')
+    scheme = 'http' if current_app.debug else 'https'
+    link = url_for('academic_services.receipt_index', menu='receipt', _external=True, _scheme=scheme)
+    customer_name = result.request.customer.customer_name.replace(' ', '_')
+    contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
+    title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
+    title = f'''แจ้งยืนยันการชำระเงินของใบแจ้งหนี้ [{invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+    message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
+    message += f''' ขณะนี้ทางคณะฯ ได้รับการชำระเงินของใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว'''
+    message += f'''ท่านสามารถตรวจสอบรายละเอียดใบเสร็จรับเงินได้จากลิงก์ด้านล่าง'''
+    message += f'''{link}'''
+    message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+    message += f'''ขอแสดงความนับถือ\n'''
+    message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+    message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    send_mail([contact_email], title, message)
+    flash('ยืนยันการชำระเงินเรียบร้อยแล้ว', 'success')
     return render_template('academic_service_payment/invoice_payment_index.html')
