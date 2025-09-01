@@ -42,7 +42,7 @@ from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatur
 from app.main import mail
 from flask_mail import Message
 from app.models import Holidays
-from app.service_admin.forms import ServiceQuotationForm
+from app.service_admin.forms import ServiceQuotationForm, ServiceResultForm
 
 localtz = timezone('Asia/Bangkok')
 
@@ -55,7 +55,6 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', align
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 style_sheet.add(ParagraphStyle(name='ThaiStyleRight', fontName='Sarabun', alignment=TA_RIGHT))
 style_sheet.add(ParagraphStyle(name='ThaiStyleItalic', fontName='SarabunItalic'))
-
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
@@ -822,13 +821,14 @@ def create_customer_detail(request_id):
                                                              subdistrict_id=quotation_address.subdistrict_id)
                 else:
                     address = ServiceCustomerAddress(name=quotation_address.name, address_type='document',
-                                                  taxpayer_identification_no=quotation_address.taxpayer_identification_no,
-                                                  address=quotation_address.address, zipcode=quotation_address.zipcode,
-                                                  phone_number=quotation_address.phone_number, reamerk=remark,
-                                                  customer_id=current_user.customer_info_id,
-                                                  province_id=quotation_address.province_id,
-                                                  district_id=quotation_address.district_id,
-                                                  subdistrict_id=quotation_address.subdistrict_id)
+                                                     taxpayer_identification_no=quotation_address.taxpayer_identification_no,
+                                                     address=quotation_address.address,
+                                                     zipcode=quotation_address.zipcode,
+                                                     phone_number=quotation_address.phone_number, reamerk=remark,
+                                                     customer_id=current_user.customer_info_id,
+                                                     province_id=quotation_address.province_id,
+                                                     district_id=quotation_address.district_id,
+                                                     subdistrict_id=quotation_address.subdistrict_id)
                 db.session.add(address)
                 db.session.commit()
         status_id = get_status(1)
@@ -845,9 +845,10 @@ def create_customer_detail(request_id):
 @login_required
 def request_index():
     menu = request.args.get('menu')
-    new_request_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
-                                                                                 ServiceRequest.status.has(or_(ServiceStatus.status_id==1,
-                                                                                                               ServiceStatus.status_id==2)))])
+    new_request_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
+                                                                    ServiceRequest.status.has(
+                                                                        or_(ServiceStatus.status_id == 1,
+                                                                            ServiceStatus.status_id == 2)))])
     quotation_pending_approval_count = len(
         [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
                                                 ServiceRequest.status.has(ServiceStatus.status_id == 5))])
@@ -883,23 +884,36 @@ def get_requests():
     for item in query:
         item_data = item.to_dict()
         html_blocks = []
-        if item.status.status_id == 20:
-            for result in item.results:
-                for i in result.result_items:
-                    if i.url:
-                        download_file = url_for('service_admin.download_file', key=i.url,
-                                                download_filename=f"{i.report_language}.pdf")
-                        html = f'''
-                                    <div class="field has-addons">
-                                        <div class="control">
-                                            <a class="button is-small is-light is-link is-rounded" href="{download_file}">
-                                                <span>{i.report_language}</span>
-                                                <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                            </a>
-                                        </div>
-                                    </div>
-                                '''
-                        html_blocks.append(html)
+        for result in item.results:
+            for i in result.result_items:
+                if i.final_file:
+                    download_file = url_for('service_admin.download_file', key=i.final_file,
+                                            download_filename=f"{i.report_language} (ฉบับจริง).pdf")
+                    html = f'''
+                            <div class="field has-addons">
+                                <div class="control">
+                                    <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                        <span>{i.report_language} (ฉบับจริง)</span>
+                                        <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                    </a>
+                                </div>
+                            </div>
+                        '''
+                    html_blocks.append(html)
+                elif i.draft_file:
+                    download_file = url_for('service_admin.download_file', key=i.draft_file,
+                                            download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
+                    html = f'''
+                                            <div class="field has-addons">
+                                                <div class="control">
+                                                    <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                                        <span>{i.report_language} (ฉบับร่าง)</span>
+                                                        <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        '''
+                    html_blocks.append(html)
         item_data['files'] = ''.join(html_blocks) if html_blocks else ''
         data.append(item_data)
     return jsonify({'data': data,
@@ -926,7 +940,7 @@ def generate_request_pdf(service_request):
         sample_id = int(''.join(str(s.id) for s in service_request.samples))
         qr_buffer = BytesIO()
         qr_img = qrcode.make(url_for('service_admin.sample_verification', sample_id=sample_id, menu='sample',
-                                         _external=True))
+                                     _external=True))
         qr_img.save(qr_buffer, format='PNG')
         qr_buffer.seek(0)
         qr_code = Image(qr_buffer, width=80, height=80)
@@ -1107,9 +1121,9 @@ def generate_request_pdf(service_request):
                             อีเมล : {email}
                         </para>
                         '''.format(cus_contact=service_request.customer.customer_name,
-                                    taxpayer_identification_no=service_request.customer.customer_info.taxpayer_identification_no,
-                                    phone_number=service_request.customer.contact_phone_number,
-                                    email=service_request.customer.contact_email)
+                                   taxpayer_identification_no=service_request.customer.customer_info.taxpayer_identification_no,
+                                   phone_number=service_request.customer.contact_phone_number,
+                                   email=service_request.customer.contact_email)
 
     customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[530])
 
@@ -1256,10 +1270,10 @@ def generate_request_pdf(service_request):
         total_height = current_length + height
 
         if total_height > first_page_limit and remaining_text:
-                data.append(PageBreak())
-                data.append(KeepTogether(Spacer(20, 20)))
-                data.append(KeepTogether(content_header))
-                data.append(KeepTogether(Spacer(7, 7)))
+            data.append(PageBreak())
+            data.append(KeepTogether(Spacer(20, 20)))
+            data.append(KeepTogether(content_header))
+            data.append(KeepTogether(Spacer(7, 7)))
         data.append(KeepTogether(germ_table))
 
     lab_test = '''<para><font size=12>
@@ -1397,12 +1411,12 @@ def request_quotation(request_id):
                '\n{}' \
                '\n\nผู้ประสานงาน' \
                '\n{}' \
-               '\nเบอร์โทร {}'\
+               '\nเบอร์โทร {}' \
                '\n\nระบบงานบริการวิชาการ'.format(sub_lab.sub_lab, service_request.request_no,
-                                      service_request.customer.customer_name,
-                                      service_request.quotation_address.name, link,
-                                      service_request.customer.customer_name,
-                                      service_request.customer.contact_phone_number)
+                                                 service_request.customer.customer_name,
+                                                 service_request.quotation_address.name, link,
+                                                 service_request.customer.customer_name,
+                                                 service_request.customer.contact_phone_number)
                )
         if not current_app.debug:
             for a in admins:
@@ -1439,7 +1453,7 @@ def quotation_index():
 @academic_services.route('/api/quotation/index')
 def get_quotations():
     query = ServiceQuotation.query.filter(ServiceQuotation.request.has(customer_id=current_user.id),
-                                          or_(ServiceQuotation.approved_at!=None))
+                                          or_(ServiceQuotation.approved_at != None))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -1557,7 +1571,7 @@ def generate_quotation_pdf(quotation, sign=False):
               ]]
 
     for n, item in enumerate(sorted(quotation.quotation_items, key=lambda x: x.sequence), start=1):
-        lab_item = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>",item.item )
+        lab_item = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>", item.item)
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{}</font>'.format(lab_item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
@@ -1982,7 +1996,7 @@ def create_sample_appointment(sample_id):
     if form.validate_on_submit():
         form.populate_obj(sample)
         if ((form.ship_type.data == 'ส่งด้วยตนเอง' and form.location.data and form.appointment_date.data) or
-            (form.ship_type.data == 'ส่งทางไปรษณีย์' and form.location.data)):
+                (form.ship_type.data == 'ส่งทางไปรษณีย์' and form.location.data)):
             db.session.add(sample)
             db.session.commit()
             scheme = 'http' if current_app.debug else 'https'
@@ -2132,14 +2146,6 @@ def payment_index():
     return render_template('academic_services/payment_index.html', menu=menu)
 
 
-@academic_services.route('/customer/result/index')
-@login_required
-def result_index():
-    menu = request.args.get('menu')
-    results = ServiceResult.query.filter(ServiceResult.request.has(customer_id=current_user.id))
-    return render_template('academic_services/result_index.html', results=results, menu=menu)
-
-
 @academic_services.route('/customer/invoice/index')
 @login_required
 def invoice_index():
@@ -2149,7 +2155,7 @@ def invoice_index():
 
 @academic_services.route('/api/invoice/index')
 def get_invoices():
-    query = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at!=None)
+    query = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at != None)
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -2161,7 +2167,8 @@ def get_invoices():
     data = []
     for item in query:
         item_data = item.to_dict()
-        download_file = url_for('academic_services.download_file', key=item.file, download_filename=f"{item.invoice_no}.pdf")
+        download_file = url_for('academic_services.download_file', key=item.file,
+                                download_filename=f"{item.invoice_no}.pdf")
         item_data['file'] = f'''<div class="field has-addons">
                         <div class="control">
                             <a class="button is-small is-light is-link is-rounded" href="{download_file}">
@@ -2464,38 +2471,6 @@ def edit_service_request(request_id):
     return render_template('academic_services/edit_request.html', request_id=request_id, sub_lab=sub_lab)
 
 
-@academic_services.route('/customer/result/edit/<int:result_id>', methods=['GET', 'POST'])
-def edit_result(result_id):
-    if result_id:
-        result = ServiceResult.query.get(result_id)
-        result.status = 'ขอแก้ไขรายงานผล'
-        result.file_result = None
-        result.url = None
-        result.approver_id = current_user.id
-        result.request.status = 'ขอแก้ไขรายงานผล'
-        db.session.add(result)
-        db.session.commit()
-        flash('ดำเนินการขอแก้ไขแล้ว', 'success')
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
-        return resp
-
-
-@academic_services.route('/customer/result/acknowledge/<int:result_id>', methods=['GET', 'POST'])
-def acknowledge_result(result_id):
-    if result_id:
-        result = ServiceResult.query.get(result_id)
-        result.status = 'รับทราบผลการทดสอบแล้ว'
-        result.approver_id = current_user.id
-        result.request.status = 'รับทราบผลการทดสอบแล้ว'
-        db.session.add(result)
-        db.session.commit()
-        flash('รับทราบผลเรียบร้อยแล้ว', 'success')
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
-        return resp
-
-
 @academic_services.route('/customer/payment/view/<int:payment_id>')
 @login_required
 def view_payment(payment_id):
@@ -2509,3 +2484,47 @@ def view_payment(payment_id):
 def receipt_index():
     menu = request.args.get('menu')
     return render_template('academic_services/receipt_index.html', menu=menu)
+
+
+@academic_services.route('/customer/result/index')
+@login_required
+def result_index():
+    menu = request.args.get('menu')
+    results = ServiceResult.query.filter(ServiceResult.request.has(customer_id=current_user.id))
+    return render_template('academic_services/result_index.html', results=results, menu=menu)
+
+
+@academic_services.route('/customer/result/confirm/<int:result_id>', methods=['GET', 'POST'])
+def confirm_result(result_id):
+    menu = request.args.get('menu')
+    status_id = get_status(21)
+    result = ServiceResult.query.get(result_id)
+    result.status_id = status_id
+    result.approver_id = current_user.id
+    result.approved_at = arrow.now('Asia/Bangkok').datetime
+    result.request.status_id = status_id
+    db.session.add(result)
+    db.session.commit()
+    flash('ยืนยันใบรายงานผลเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('academic_services.result_index', menu=menu))
+
+
+@academic_services.route('/customer/result/edit/<int:result_id>', methods=['GET', 'POST'])
+def edit_result(result_id):
+    menu = request.args.get('menu')
+    result = ServiceResult.query.get(result_id)
+    form = ServiceResultForm(obj=result)
+    if form.validate_on_submit():
+        form.populate_obj(result)
+        status_id = get_status(22)
+        result.status_id = status_id
+        result.edit_requester_id = current_user.id
+        result.result_edit_at = arrow.now('Asia/Bangkok').datetime
+        result.request.status_id = status_id
+        db.session.add(result)
+        db.session.commit()
+        flash('ส่งคำขอแก้ไขแล้ว', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('academic_services/modal/edit_result_modal.html', form=form, result_id=result_id, menu=menu)
