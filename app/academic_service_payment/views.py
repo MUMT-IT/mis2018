@@ -92,9 +92,11 @@ def confirm_payment(invoice_id):
                                  paid_at=arrow.now('Asia/Bangkok').datetime, customer_id=invoice.quotation.request.customer_id,
                                  created_at=arrow.now('Asia/Bangkok').datetime)
         invoice.paid_at = arrow.now('Asia/Bangkok').datetime
-        db.session.add(invoice)
         db.session.add(payment)
     db.session.add(invoice)
+    result = ServiceResult.query.filter_by(request_id=invoice.quotation.request_id).first()
+    result.status_id = status_id
+    db.session.add(result)
     db.session.commit()
     flash('อัพเดตการชำระเงินสำเร็จ', 'success')
     return render_template('academic_service_payment/invoice_payment_index.html')
