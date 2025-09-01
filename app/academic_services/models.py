@@ -1277,6 +1277,16 @@ class ServiceResult(db.Model):
                     return total_items, invoice_no, grand_total, due_date, invoice_id
         return None
 
+    @property
+    def quotation_id(self):
+        quotation_id = None
+        for quotation in self.request.quotations:
+            if quotation.confirmed_at:
+                quotation_id = quotation.id
+            else:
+                quotation_id = None
+        return quotation_id
+
 
 class ServiceResultItem(db.Model):
     __tablename__ = 'service_result_items'
