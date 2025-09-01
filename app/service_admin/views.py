@@ -1583,29 +1583,33 @@ def create_invoice(quotation_id):
     menu = request.args.get('menu')
     quotation = ServiceQuotation.query.get(quotation_id)
     sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
-    invoice_no = ServiceNumberID.get_number('IV', db, lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' \
-        else quotation.request.lab)
-    invoice = ServiceInvoice(invoice_no=invoice_no.number, quotation_id=quotation_id, name=quotation.name,
-                             address=quotation.address, taxpayer_identification_no=quotation.taxpayer_identification_no,
-                             created_at=arrow.now('Asia/Bangkok').datetime,
-                             creator_id=current_user.id)
-    invoice_no.count += 1
-    db.session.add(invoice)
-    for quotation_item in quotation.quotation_items:
-        invoice_item = ServiceInvoiceItem(sequence=quotation_item.sequence, discount_type=quotation_item.discount_type,
-                                          invoice_id=invoice.id, item=quotation_item.item,
-                                          quantity=quotation_item.quantity,
-                                          unit_price=quotation_item.unit_price, total_price=quotation_item.total_price,
-                                          discount=quotation_item.discount)
-        db.session.add(invoice_item)
+    if not quotation.invoices:
+        invoice_no = ServiceNumberID.get_number('IV', db, lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' \
+            else quotation.request.lab)
+        invoice = ServiceInvoice(invoice_no=invoice_no.number, quotation_id=quotation_id, name=quotation.name,
+                                 address=quotation.address, taxpayer_identification_no=quotation.taxpayer_identification_no,
+                                 created_at=arrow.now('Asia/Bangkok').datetime,
+                                 creator_id=current_user.id)
+        invoice_no.count += 1
+        db.session.add(invoice)
+        for quotation_item in quotation.quotation_items:
+            invoice_item = ServiceInvoiceItem(sequence=quotation_item.sequence, discount_type=quotation_item.discount_type,
+                                              invoice_id=invoice.id, item=quotation_item.item,
+                                              quantity=quotation_item.quantity,
+                                              unit_price=quotation_item.unit_price, total_price=quotation_item.total_price,
+                                              discount=quotation_item.discount)
+            db.session.add(invoice_item)
+            db.session.commit()
         db.session.commit()
-    db.session.commit()
-    status_id = get_status(14)
-    invoice.quotation.request.status_id = status_id
-    db.session.add(invoice)
-    db.session.commit()
-    flash('สร้างใบแจ้งหนี้สำเร็จ', 'success')
-    return redirect(url_for('service_admin.view_invoice', invoice_id=invoice.id, menu=menu))
+        status_id = get_status(14)
+        invoice.quotation.request.status_id = status_id
+        db.session.add(invoice)
+        db.session.commit()
+        flash('สร้างใบแจ้งหนี้สำเร็จ', 'success')
+        return redirect(url_for('service_admin.view_invoice', invoice_id=invoice.id, menu=menu))
+    else:
+        return render_template('service_admin/invoice_created_confirmation _page.html', menu=menu,
+                               invoice_id=[invoice.id for invoice in quotation.invoices])
 
 
 @service_admin.route('/invoice/approve/<int:invoice_id>', methods=['GET', 'POST'])
