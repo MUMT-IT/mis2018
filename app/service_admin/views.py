@@ -268,15 +268,23 @@ def request_index():
             admin = True
         sub_labs.append(a.sub_lab.code)
     quotation_request_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=2),
-        or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(sub_labs)))])
-    quotation_pending_approval_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=5),
-        or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(sub_labs)))])
+                                                                          or_(ServiceRequest.admin.has(
+                                                                              id=current_user.id),
+                                                                              ServiceRequest.lab.in_(sub_labs)))])
+    quotation_pending_approval_count = len(
+        [r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=5),
+                                                or_(ServiceRequest.admin.has(id=current_user.id),
+                                                    ServiceRequest.lab.in_(sub_labs)))])
     waiting_sample_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=9),
-        or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(sub_labs)))])
+                                                                       or_(ServiceRequest.admin.has(id=current_user.id),
+                                                                           ServiceRequest.lab.in_(sub_labs)))])
     testing_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=11),
-        or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(sub_labs)))])
-    return render_template('service_admin/request_index.html', menu=menu,quotation_request_count=quotation_request_count,
-                           quotation_pending_approval_count=quotation_pending_approval_count, waiting_sample_count=waiting_sample_count,
+                                                                or_(ServiceRequest.admin.has(id=current_user.id),
+                                                                    ServiceRequest.lab.in_(sub_labs)))])
+    return render_template('service_admin/request_index.html', menu=menu,
+                           quotation_request_count=quotation_request_count,
+                           quotation_pending_approval_count=quotation_pending_approval_count,
+                           waiting_sample_count=waiting_sample_count,
                            testing_count=testing_count, admin=admin, supervisor=supervisor, assistant=assistant)
 
 
@@ -286,8 +294,9 @@ def get_requests():
     sub_labs = []
     for a in admin:
         sub_labs.append(a.sub_lab.code)
-    query = ServiceRequest.query.filter(ServiceRequest.status.has(ServiceStatus.status_id!=1),
-        or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(sub_labs)))
+    query = ServiceRequest.query.filter(ServiceRequest.status.has(ServiceStatus.status_id != 1),
+                                        or_(ServiceRequest.admin.has(id=current_user.id),
+                                            ServiceRequest.lab.in_(sub_labs)))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -300,23 +309,35 @@ def get_requests():
     for item in query:
         item_data = item.to_dict()
         html_blocks = []
-        if item.status.status_id == 20:
-            for result in item.results:
-                for i in result.result_items:
-                    if i.url:
-                        download_file = url_for('service_admin.download_file', key=i.url,
-                                                download_filename=f"{i.report_language}.pdf")
-                        html = f'''
-                                    <div class="field has-addons">
-                                        <div class="control">
-                                            <a class="button is-small is-light is-link is-rounded" href="{download_file}">
-                                                <span>{i.report_language}</span>
-                                                <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                            </a>
-                                        </div>
-                                    </div>
-                                '''
-                        html_blocks.append(html)
+        for result in item.results:
+            for i in result.result_items:
+                if i.final_file:
+                    download_file = url_for('service_admin.download_file', key=i.final_file,
+                                            download_filename=f"{i.report_language} (ฉบับจริง).pdf")
+                    html = f'''
+                            <div class="field has-addons">
+                                <div class="control">
+                                    <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                        <span>{i.report_language} (ฉบับจริง)</span>
+                                        <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                    </a>
+                                </div>
+                            </div>
+                        '''
+                elif i.draft_file:
+                    download_file = url_for('service_admin.download_file', key=i.draft_file,
+                                            download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
+                    html = f'''
+                                            <div class="field has-addons">
+                                                <div class="control">
+                                                    <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                                        <span>{i.report_language} (ฉบับร่าง)</span>
+                                                        <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        '''
+                html_blocks.append(html)
         item_data['files'] = ''.join(html_blocks) if html_blocks else ''
         data.append(item_data)
     return jsonify({'data': data,
@@ -710,8 +731,41 @@ def get_test_items():
     total_filtered = query.count()
     query = query.offset(start).limit(length)
     data = []
+    html_blocks = []
     for item in query:
         item_data = item.to_dict()
+        for result in item.request.results:
+            for i in result.result_items:
+                if i.final_file:
+                    download_file = url_for('service_admin.download_file', key=i.final_file,
+                                            download_filename=f"{i.report_language} (ฉบับจริง).pdf")
+                    html = f'''
+                        <div class="field has-addons">
+                            <div class="control">
+                                <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                    <span>{i.report_language} (ฉบับจริง)</span>
+                                    <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                </a>
+                            </div>
+                        </div>
+                    '''
+                    html_blocks.append(html)
+                elif i.draft_file:
+                    download_file = url_for('service_admin.download_file', key=i.draft_file,
+                                            download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
+                    html = f'''
+                                        <div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                                    <span>{i.report_language} (ฉบับร่าง)</span>
+                                                    <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    '''
+                    html_blocks.append(html)
+        item_data['files'] = ''.join(
+            html_blocks) if html_blocks else '<span class="has-text-grey-light is-italic">ไม่มีไฟล์</span>'
         data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
@@ -1231,19 +1285,33 @@ def get_results():
         item_data = item.to_dict()
         html_blocks = []
         for i in item.result_items:
-            if i.url:
-                download_file = url_for('service_admin.download_file', key=i.url,
-                                        download_filename=f"{i.report_language}.pdf")
+            if i.final_file:
+                download_file = url_for('service_admin.download_file', key=i.final_file,
+                                        download_filename=f"{i.report_language} (ฉบับจริง).pdf")
                 html = f'''
                     <div class="field has-addons">
                         <div class="control">
                             <a class="button is-small is-light is-link is-rounded" href="{download_file}">
-                                <span>{i.report_language}</span>
+                                <span>{i.report_language} (ฉบับจริง)</span>
                                 <span class="icon is-small"><i class="fas fa-download"></i></span>
                             </a>
                         </div>
                     </div>
                 '''
+                html_blocks.append(html)
+            elif i.draft_file:
+                download_file = url_for('service_admin.download_file', key=i.draft_file,
+                                        download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
+                html = f'''
+                                    <div class="field has-addons">
+                                        <div class="control">
+                                            <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                                <span>{i.report_language} (ฉบับร่าง)</span>
+                                                <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                '''
                 html_blocks.append(html)
         item_data['files'] = ''.join(
             html_blocks) if html_blocks else '<span class="has-text-grey-light is-italic">ไม่มีไฟล์</span>'
@@ -1586,9 +1654,9 @@ def approve_invoice(invoice_id):
                         'แจ้งแอดมินส่วนกลางดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้เลขที่ {}\n\n'
                         'เรียน แอดมินส่วนกลาง\n\n'
                         'ตามที่มีการออกใบแจ้งหนี้เลขที่ : {}\n'
-                       
+
                         'ลูกค้า : {}\n'
-                        'ในนาม : {}\n' 
+                        'ในนาม : {}\n'
                         'อ้างอิงจาก : \n'
                         '- ใบคำขอรับบริการเลขที่ : {}\n'
                         '- ใบเสนอราคาเลขที่ : {}\n\n'
@@ -1597,15 +1665,18 @@ def approve_invoice(invoice_id):
                         'สามารถพิมพ์ใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'
                         '{}\n\n'
                         '\ู้ประสานงาน\n'
-                        '{}\n' 
+                        '{}\n'
                         'เบอร์โทร {}\n'
-                        'ระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.invoice_no, invoice.quotation.request.request_no,
-                                                      invoice.quotation.quotation_no,invoice.customer_name, invoice.name,
+                        'ระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.invoice_no,
+                                                      invoice.quotation.request.request_no,
+                                                      invoice.quotation.quotation_no, invoice.customer_name,
+                                                      invoice.name,
                                                       invoice_url, invoice.customer_name, invoice.contact_phone_number))
                     for a in admins:
                         if a.is_central_admin:
                             try:
-                                line_bot_api.push_message(to=sub_lab.approver.line_id, messages=TextSendMessage(text=msg))
+                                line_bot_api.push_message(to=sub_lab.approver.line_id,
+                                                          messages=TextSendMessage(text=msg))
                             except LineBotApiError:
                                 pass
     elif admin == 'supervisor':
@@ -1644,10 +1715,12 @@ def approve_invoice(invoice_id):
                    '\n{}' \
                    '\n\nผู้ประสานงาน' \
                    '\n{}' \
-                   '\nเบอร์โทร {}'\
-                   '\nระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.invoice_no, invoice.quotation.request.request_no,
-                                                      invoice.quotation.quotation_no, invoice.customer_name,
-                                                     invoice.name, invoice_url, invoice.customer_name, invoice.contact_phone_number))
+                   '\nเบอร์โทร {}' \
+                   '\nระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.invoice_no,
+                                                   invoice.quotation.request.request_no,
+                                                   invoice.quotation.quotation_no, invoice.customer_name,
+                                                   invoice.name, invoice_url, invoice.customer_name,
+                                                   invoice.contact_phone_number))
             try:
                 line_bot_api.push_message(to=sub_lab.approver.line_id, messages=TextSendMessage(text=msg))
             except LineBotApiError:
@@ -1679,7 +1752,7 @@ def approve_invoice(invoice_id):
                 if not current_app.debug:
                     msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
                            '\n\nเรียน หัวหน้าห้องปฏิบัติการ' \
-                            '\n\nใบแจ้งหนี้เลขที่ : {}' \
+                           '\n\nใบแจ้งหนี้เลขที่ : {}' \
                            '\nลูกค้า : {}' \
                            '\nในนาม : {}' \
                            '\nอ้างอิงจาก : ' \
@@ -1690,10 +1763,12 @@ def approve_invoice(invoice_id):
                            '\n{}' \
                            '\n\nผู้ประสานงาน' \
                            '\n{}' \
-                           '\nเบอร์โทร {}'\
-                           '\nระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.invoice_no, invoice.quotation.request.request_no,
-                                                              invoice.quotation.quotation_no, invoice.customer_name,
-                                                             invoice.name, invoice_url, invoice.customer_name, invoice.contact_phone_number))
+                           '\nเบอร์โทร {}' \
+                           '\nระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.invoice_no,
+                                                           invoice.quotation.request.request_no,
+                                                           invoice.quotation.quotation_no, invoice.customer_name,
+                                                           invoice.name, invoice_url, invoice.customer_name,
+                                                           invoice.contact_phone_number))
                     for a in admins:
                         if a.is_supervisor:
                             try:
@@ -1738,17 +1813,18 @@ def upload_invoice_file(invoice_id):
             org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
             staff = StaffAccount.get_account_by_email(org.head)
             sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
-            invoice_url = url_for("academic_services.view_invoice", invoice_id=invoice.id, menu='invoice', _external=True,
+            invoice_url = url_for("academic_services.view_invoice", invoice_id=invoice.id, menu='invoice',
+                                  _external=True,
                                   _scheme=scheme)
             msg = (f'แจ้งออกใบแจ้งหนี้เลขที่ {invoice.invoice_no}\n\n'
-                    f'เรียน ฝ่ายการเงิน\n\n'
-                    f'หน่วยงาน {sub_lab.sub_lab} ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว\n'
-                    f'วันที่ออก : {invoice.file_attached_at.strftime("%d/%m/%Y")}\n'
-                    f'จำนวนเงิน : {invoice.grand_total():,.2f} บาท\n'
-                    f'กรุณาดำเนินการตรวจสอบและเตรียมออกใบเสร็จรับเงินเมื่อได้รับการชำระเงินจากลูกค้าตามขั้นตอนที่กำหนด\n\n'
-                    f'ขอบคุณค่ะ\n'
-                    f'ระบบงานบริการวิชาการ'
-            )
+                   f'เรียน ฝ่ายการเงิน\n\n'
+                   f'หน่วยงาน {sub_lab.sub_lab} ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว\n'
+                   f'วันที่ออก : {invoice.file_attached_at.strftime("%d/%m/%Y")}\n'
+                   f'จำนวนเงิน : {invoice.grand_total():,.2f} บาท\n'
+                   f'กรุณาดำเนินการตรวจสอบและเตรียมออกใบเสร็จรับเงินเมื่อได้รับการชำระเงินจากลูกค้าตามขั้นตอนที่กำหนด\n\n'
+                   f'ขอบคุณค่ะ\n'
+                   f'ระบบงานบริการวิชาการ'
+                   )
             title = f'''แจ้งออกใบแจ้งหนี้ [{invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
             message = f'''เรียน {title_prefix}{invoice.customer_name}\n\n'''
             message += f'''ตามที่ท่านใช้บริการจากหน่วยงานตรวจวิเคราะห์ของคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ทางเจ้าหน้าที่ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no}'''
@@ -1870,7 +1946,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
                     เลขประจำตัวผู้เสียภาษี {taxpayer_identification_no}
                     </font></para>
                     '''.format(mhesi_no='78.04/',
-                                customer=invoice.name,
+                               customer=invoice.name,
                                address=invoice.address,
                                taxpayer_identification_no=invoice.taxpayer_identification_no)
 
@@ -1892,7 +1968,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
               ]]
 
     for n, item in enumerate(sorted(invoice.invoice_items, key=lambda x: x.sequence), start=1):
-        lab_item = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>",item.item )
+        lab_item = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>", item.item)
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{}</font>'.format(lab_item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
@@ -2041,7 +2117,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         ]))
 
         combined_table = Table(
-            [[qr_code_table , sign_table]],
+            [[qr_code_table, sign_table]],
             colWidths=[50, 450]
         )
         combined_table.setStyle(TableStyle([
@@ -2357,7 +2433,8 @@ def create_quotation_for_admin(quotation_id):
                            '\nระบบงานบริการวิชาการ'
                            .format(quotation.quotation_no, quotation.quotation_no,
                                    quotation.request.customer.customer_info.cus_name,
-                                   quotation.name, quotation.request.request_no, quotation_link, quotation.creator.fullname)
+                                   quotation.name, quotation.request.request_no, quotation_link,
+                                   quotation.creator.fullname)
                            )
                     if not current_app.debug:
                         for a in admins:
@@ -2399,8 +2476,9 @@ def approval_quotation_for_supervisor(quotation_id):
                     sign_pdf = e_sign(buffer, password, include_image=False)
                 except (ValueError, AttributeError):
                     flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger")
-                    return redirect(url_for('service_admin.approval_quotation_for_supervisor', quotation_id=quotation.id,
-                                            tab='awaiting_customer'))
+                    return redirect(
+                        url_for('service_admin.approval_quotation_for_supervisor', quotation_id=quotation.id,
+                                tab='awaiting_customer'))
                 else:
                     quotation.digital_signature = sign_pdf.read()
                     sign_pdf.seek(0)
@@ -2699,13 +2777,14 @@ def generate_quotation_pdf(quotation, sign=False):
                 เบอร์โทรศัพท์ : {phone_number}<br/>
                 อีเมล : {email}
                 </font></para>
-                '''.format(name=quotation.request.document_address.name, address=quotation.request.document_address.address,
-                            subdistrict_title=subdistrict_title,
-                            subdistrict=quotation.request.document_address.subdistrict,
-                            district_title=district_title,
-                            district=quotation.request.document_address.district,
-                            province=quotation.request.document_address.province,
-                            zipcode=quotation.request.document_address.zipcode,
+                '''.format(name=quotation.request.document_address.name,
+                           address=quotation.request.document_address.address,
+                           subdistrict_title=subdistrict_title,
+                           subdistrict=quotation.request.document_address.subdistrict,
+                           district_title=district_title,
+                           district=quotation.request.document_address.district,
+                           province=quotation.request.document_address.province,
+                           zipcode=quotation.request.document_address.zipcode,
                            phone_number=quotation.request.document_address.phone_number,
                            email=quotation.request.customer.contact_email
                            )
@@ -2764,3 +2843,168 @@ def add_meeting():
 def receipt_index():
     menu = request.args.get('menu')
     return render_template('service_admin/receipt_index.html', menu=menu)
+
+
+@service_admin.route('/result/draft/add', methods=['GET', 'POST'])
+@service_admin.route('/result/draft/edit/<int:result_id>', methods=['GET', 'POST'])
+@login_required
+def create_draft_result(result_id=None):
+    menu = request.args.get('menu')
+    request_id = request.args.get('request_id')
+    service_request = ServiceRequest.query.get(request_id)
+    if not result_id:
+        result = ServiceResult.query.filter_by(request_id=request_id).first()
+        if not result:
+            if request.method == 'GET':
+                result_list = ServiceResult(request_id=request_id, released_at=arrow.now('Asia/Bangkok').datetime,
+                                            creator_id=current_user.id)
+                db.session.add(result_list)
+                if service_request.report_languages:
+                    for rl in service_request.report_languages:
+                        result_item = ServiceResultItem(report_language=rl.report_language.item, result=result_list,
+                                                        released_at=arrow.now('Asia/Bangkok').datetime,
+                                                        creator_id=current_user.id)
+                        db.session.add(result_item)
+                        db.session.commit()
+                result = ServiceResult.query.get(result_list.id)
+            else:
+                result = ServiceResult.query.filter_by(request_id=request_id).first()
+    else:
+        result = ServiceResult.query.get(result_id)
+    if request.method == 'POST':
+        for item in result.result_items:
+            file = request.files.get(f'file_{item.id}')
+            if file and allowed_file(file.filename):
+                mime_type = file.mimetype
+                file_name = '{}.{}'.format(item.report_language,
+                                           file.filename.split('.')[-1])
+                file_data = file.stream.read()
+                response = s3.put_object(
+                    Bucket=S3_BUCKET_NAME,
+                    Key=file_name,
+                    Body=file_data,
+                    ContentType=mime_type
+                )
+                item.draft_file = file_name
+                if result_id:
+                    item.modified_at = arrow.now('Asia/Bangkok').datetime
+                    item.result.modified_at = arrow.now('Asia/Bangkok').datetime
+                db.session.add(item)
+                db.session.commit()
+        uploaded_all = all(item.draft_file for item in result.result_items)
+        if uploaded_all:
+            status_id = get_status(12)
+            result.status_id = status_id
+            service_request.status_id = status_id
+            scheme = 'http' if current_app.debug else 'https'
+            if not result.is_sent_email:
+                customer_name = result.request.customer.customer_name.replace(' ', '_')
+                contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
+                title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
+                title = f'''แจ้งออกร่างรายงานผลการทดสอบของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+                message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
+                message += f''' ขณะนี้ได้จัดทำร่างรายงานผลการทดสอบแล้ว และได้แนบไฟล์ร่างรายงานมาพร้อมกับอีเมลฉบับนี้'''
+                message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในร่างรายงาน และดำเนินการยืนยันตามลิงก์ด้านล่าง\n\n'''
+                message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง'''
+                message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+                message += f'''ขอแสดงความนับถือ\n'''
+                message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+                message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                send_mail([contact_email], title, message)
+            result.is_sent_email = True
+        else:
+            status_id = get_status(11)
+            result.status_id = status_id
+            service_request.status_id = status_id
+        db.session.add(result)
+        db.session.add(service_request)
+        db.session.commit()
+        flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
+        return redirect(url_for('service_admin.test_item_index', menu='test_item'))
+    return render_template('service_admin/create_draft_result.html', result_id=result_id, menu=menu,
+                           result=result)
+
+
+@service_admin.route('/result/draft/delete/<int:item_id>', methods=['GET', 'POST'])
+def delete_draft_result(item_id):
+    status_id = get_status(11)
+    item = ServiceResultItem.query.get(item_id)
+    item.draft_file = None
+    item.modified_at = arrow.now('Asia/Bangkok').datetime
+    item.result.status_id = status_id
+    item.result.modified_at = arrow.now('Asia/Bangkok').datetime
+    db.session.add(item)
+    db.session.commit()
+    flash("ลบไฟล์เรียบร้อยแล้ว", "success")
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
+
+
+@service_admin.route('/result/final/edit/<int:result_id>', methods=['GET', 'POST'])
+@login_required
+def create_final_result(result_id=None):
+    menu = request.args.get('menu')
+    request_id = request.args.get('request_id')
+    service_request = ServiceRequest.query.get(request_id)
+    result = ServiceResult.query.get(result_id)
+    if request.method == 'POST':
+        for item in result.result_items:
+            file = request.files.get(f'file_{item.id}')
+            if file and allowed_file(file.filename):
+                mime_type = file.mimetype
+                file_name = '{}.{}'.format(item.report_language,
+                                           file.filename.split('.')[-1])
+                file_data = file.stream.read()
+                response = s3.put_object(
+                    Bucket=S3_BUCKET_NAME,
+                    Key=file_name,
+                    Body=file_data,
+                    ContentType=mime_type
+                )
+                item.final_file = file_name
+                item.modified_at = arrow.now('Asia/Bangkok').datetime
+                item.result.modified_at = arrow.now('Asia/Bangkok').datetime
+                db.session.add(item)
+                db.session.commit()
+        status_id = get_status(23)
+        result.status_id = status_id
+        service_request.status_id = status_id
+        scheme = 'http' if current_app.debug else 'https'
+        customer_name = result.request.customer.customer_name.replace(' ', '_')
+        contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
+        title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
+        title = f'''แจ้งออกร่างรายงานผลการทดสอบของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+        message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+        message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
+        message += f''' ขณะนี้ได้จัดทำร่างรายงานผลการทดสอบแล้ว และได้แนบไฟล์ร่างรายงานมาพร้อมกับอีเมลฉบับนี้'''
+        message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในร่างรายงาน และดำเนินการยืนยันตามลิงก์ด้านล่าง\n\n'''
+        message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง'''
+        message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+        message += f'''ขอแสดงความนับถือ\n'''
+        message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+        message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+        send_mail([contact_email], title, message)
+        db.session.add(result)
+        db.session.add(service_request)
+        db.session.commit()
+        flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
+        return redirect(url_for('service_admin.test_item_index', menu='test_item'))
+    return render_template('service_admin/create_final_result.html', result_id=result_id, menu=menu, result=result)
+
+
+@service_admin.route('/result/final/delete/<int:item_id>', methods=['GET', 'POST'])
+def delete_final_result(item_id):
+    status_id = get_status(20)
+    item = ServiceResultItem.query.get(item_id)
+    item.final_file = None
+    item.modified_at = arrow.now('Asia/Bangkok').datetime
+    item.result.status_id = status_id
+    item.result.modified_at = arrow.now('Asia/Bangkok').datetime
+    db.session.add(item)
+    db.session.commit()
+    flash("ลบไฟล์เรียบร้อยแล้ว", "success")
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
