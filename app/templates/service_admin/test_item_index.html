@@ -61,37 +61,53 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.status_id != 10) {
-                                var result_url = '/service_admin/result/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
-                                return '<div class="field has-addons">' +
+                            if (row.status_id == 20) {
+                                 var result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
+                                  return '<div class="field has-addons">' +
                                     '<div class="control">' +
-                                    '<a class="button is-small is-warning is-rounded" ' + 'href=' + result_url + '>' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + result_url + '>' +
                                     '<span class="icon">' +
-                                    '<i class="fas fa-pen"></i>' +
+                                    '<i class="fas fa-file-alt"></i>' +
                                     '</span>' +
-                                    '<span>แก้ไขใบรายงานผล</span>' +
+                                    '<span>อัปโหลดใบรายงานผล</span>' +
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else {
-                                var result_url = '/service_admin/result/add?request_id=' + row.request_id + '&menu=report&tab=test_item';
+                            } else if (row.status_id == 11 || row.status_id == 22) {
+                                var result_url = '/service_admin/result/draft/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
+                                 return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-alt"></i>' +
+                                    '</span>' +
+                                    '<span>อัปโหลดใบรายงานผล</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (row.status_id == 10) {
+                                var result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report&tab=test_item';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-info is-rounded" ' + 'href=' + result_url + '>' +
                                     '<span class="icon">' +
-                                    '<i class="fas fa-plus"></i>' +
+                                    '<i class="fas fa-file-alt"></i>' +
                                     '</span>' +
-                                    '<span>แนบใบรายงานผล</span>' +
+                                    '<span>อัปโหลดใบรายงานผล</span>' +
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
+                            } else if ((row.status_id >= 12 && row.status_id <= 21) || row.status_id == 23) {
+                                return row.files
+                            } else {
+                                return ''
                             }
                         }
                     },
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.status_id == 12) {
+                            if (row.status_id == 21) {
                                 invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '?menu=invoice';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -103,7 +119,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.status_id == 19 || row.status_id == 20 || row.status_id == 21) {
+                            } else if (row.status_id >= 14 && row.status_id <= 20 || row.status_id == 23) {
                                invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
