@@ -172,26 +172,49 @@
                                 <li><span class="tag {{ service_request.status.customer_status_color }}">{{ service_request.status.customer_status }}</span></li>
                             </ul>
                             <hr>
-                            {% if service_request.status.status_id == 20 %}
-                                <p class="menu-label">
-                                    ใบรายงานผล
-                                </p>
+                            <p class="menu-label">
+                                ใบรายงานผล
+                            </p>
+                            {% if service_request.status.status_id >= 12 and service_request.status.status_id <= 20 %}
                                 <ul class="menu-list">
+                                    <li>
                                     {% for result in service_request.results %}
-                                        {% for item in result.result_items %}
-                                            <a class="button is-small is-link is-light is-rounded is-fullwidth mb-2"
-                                               href="{{ url_for('service_admin.download_file', key=item.url,
-                                               download_filename=item.report_language ~ '.pdf') }}"
-                                            >
-                                                <span>{{ item.report_language or 'ไม่ระบุภาษา' }}</span>
-                                                <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                            </a>
+                                            {% for item in result.result_items %}
+                                                <a class="button is-small is-link is-light is-rounded is-fullwidth mb-2"
+                                                   href="{{ url_for('service_admin.download_file', key=item.draft_file,
+                                                   download_filename=item.report_language + ' ' + '(ฉบับร่าง)' + '.pdf') }}"
+                                                >
+                                                    <span>{{ item.report_language + ' ' + '(ฉบับร่าง)'  or 'ไม่ระบุภาษา' }}</span>
+                                                    <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                </a>
 
+                                            {% endfor %}
                                         {% endfor %}
-                                    {% endfor %}
+                                    </li>
                                 </ul>
-                                <hr>
+                            {% elif service_request.status.status_id == 23 %}
+                                <ul class="menu-list">
+                                    <li>
+                                    {% for result in service_request.results %}
+                                            {% for item in result.result_items %}
+                                                <a class="button is-small is-link is-light is-rounded is-fullwidth mb-2"
+                                                   href="{{ url_for('service_admin.download_file', key=item.final_file,
+                                                   download_filename=item.report_language + ' ' + '(ฉบับจริง)' + '.pdf') }}"
+                                                >
+                                                    <span>{{ item.report_language + ' ' + '(ฉบับจริง)' or 'ไม่ระบุภาษา' }}</span>
+                                                    <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                </a>
+
+                                            {% endfor %}
+                                        {% endfor %}
+                                    </li>
+                                </ul>
+                            {% else %}
+                                <ul class="menu-list">
+                                    <li>รอดำเนินการทดสอบตัวอย่าง</li>
+                                </ul>
                             {% endif %}
+                            <hr>
                             <p class="menu-label">
                                 การดำเนินการ
                             </p>

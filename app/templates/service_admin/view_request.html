@@ -187,23 +187,19 @@
                                 </li>
                             </ul>
                             <hr>
-                            {% if service_request.status.status_id == 13 or service_request.status.status_id == 14
-                                        or service_request.status.status_id == 15 or service_request.status.status_id == 15
-                                        or service_request.status.status_id == 16 or service_request.status.status_id == 17
-                                        or service_request.status.status_id == 18 or service_request.status.status_id == 19
-                                        or service_request.status.status_id == 20 %}
-                                <p class="menu-label">
-                                    ใบรายงานผล
-                                </p>
+                            <p class="menu-label">
+                                ใบรายงานผล
+                            </p>
+                            {% if service_request.status.status_id >= 12 and service_request.status.status_id <= 20 %}
                                 <ul class="menu-list">
                                     <li>
                                     {% for result in service_request.results %}
                                             {% for item in result.result_items %}
                                                 <a class="button is-small is-link is-light is-rounded is-fullwidth mb-2"
-                                                   href="{{ url_for('service_admin.download_file', key=item.url,
-                                                   download_filename=item.report_language ~ '.pdf') }}"
+                                                   href="{{ url_for('service_admin.download_file', key=item.draft_file,
+                                                   download_filename=item.report_language + ' ' + '(ฉบับร่าง)' + '.pdf') }}"
                                                 >
-                                                    <span>{{ item.report_language or 'ไม่ระบุภาษา' }}</span>
+                                                    <span>{{ item.report_language + ' ' + '(ฉบับร่าง)' or 'ไม่ระบุภาษา' }}</span>
                                                     <span class="icon is-small"><i class="fas fa-download"></i></span>
                                                 </a>
 
@@ -211,8 +207,29 @@
                                         {% endfor %}
                                     </li>
                                 </ul>
-                                <hr>
+                            {% elif service_request.status.status_id == 23 %}
+                                <ul class="menu-list">
+                                    <li>
+                                    {% for result in service_request.results %}
+                                            {% for item in result.result_items %}
+                                                <a class="button is-small is-link is-light is-rounded is-fullwidth mb-2"
+                                                   href="{{ url_for('service_admin.download_file', key=item.final_file,
+                                                   download_filename=item.report_language + ' ' + ' (ฉบับจริง)' + '.pdf') }}"
+                                                >
+                                                    <span>{{ item.report_language + ' ' + ' (ฉบับจริง)' or 'ไม่ระบุภาษา' }}</span>
+                                                    <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                </a>
+
+                                            {% endfor %}
+                                        {% endfor %}
+                                    </li>
+                                </ul>
+                            {% else %}
+                                <ul class="menu-list">
+                                    <li>รอดำเนินการทดสอบตัวอย่าง</li>
+                                </ul>
                             {% endif %}
+                            <hr>
                             <p class="menu-label">
                                 การดำเนินการ
                             </p>
@@ -230,16 +247,31 @@
                                         </a>
                                     </li>
                                 {% elif service_request.status.status_id == 10 or service_request.status.status_id == 11
-                                        or service_request.status.status_id == 12 %}
+                                    or service_request.status.status_id == 22 %}
                                     <li>
                                         <a class="button is-warning is-rounded is-small is-fullwidth mb-2"
                                                 {% if result_id %}
-                                           href="{{ url_for('service_admin.create_result',
+                                           href="{{ url_for('service_admin.create_draft_result',
                                                         result_id=result_id, request_id=service_request.id, menu='test_item') }}"
                                                 {% else %}
-                                           href="{{ url_for('service_admin.create_result',
+                                           href="{{ url_for('service_admin.create_draft_result',
                                                         request_id=service_request.id, menu='test_item') }}"
                                                 {% endif %}
+                                        >
+                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                            {% if service_request.status.status_id == 22 %}
+                                                <span>แก้ไขใบรายงานผล</span>
+                                            {% else %}
+                                                 <span>ออกใบรายงานผล</span>
+                                            {% endif %}
+                                        </a>
+                                    </li>
+                                {% elif service_request.status.status_id == 20 %}
+                                    {% elif service_request.status.status_id == 10 or service_request.status.status_id == 22 %}
+                                    <li>
+                                        <a class="button is-warning is-rounded is-small is-fullwidth mb-2"
+                                           href="{{ url_for('service_admin.create_final_result',
+                                           result_id=result_id, request_id=service_request.id, menu='test_item') }}"
                                         >
                                             <span class="icon"><i class="fas fa-download"></i></span>
                                             <span>ออกใบรายงานผล</span>
