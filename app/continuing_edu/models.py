@@ -1,14 +1,12 @@
 from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
-from sqlalchemy import Numeric  # Import Numeric for decimal types
-# Assuming StaffAccount is defined in app.staff.models
+
 from app.staff.models import StaffAccount
 from app.main import db
 
 
-# --------------------------------------------------
-# Lookup Tables (formerly ENUMs)
-# --------------------------------------------------
+
+
 class MemberType(db.Model):
     """Lookup table for member types."""
     __tablename__ = 'member_types'
@@ -165,6 +163,8 @@ class Member(db.Model):
     terms_condition_accepted = db.Column(db.Boolean)
     received_news = db.Column(db.Boolean)
 
+
+    is_verified = db.Column(db.Boolean, default=False, nullable=False, comment="ยืนยันอีเมลแล้ว")
     created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
 
     # New field for total continuing education score
@@ -179,17 +179,17 @@ class Member(db.Model):
         return f"<Member {self.username}>"
 
 
+
+# Redesigned EventEntity: merged Course and Webinar fields into one table
 class EventEntity(db.Model):
     """
-    Base class for all academic events (e.g., Courses, Webinars).
-    Uses joined table inheritance to allow specific event types to extend this base.
+    Represents an academic event (Course, Webinar, etc.) in a single table.
     """
     __tablename__ = 'event_entities'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    # Discriminator column for polymorphism
-    event_type = db.Column(db.String(50), nullable=False)
+    event_type = db.Column(db.String(50), nullable=False)  # e.g., 'course', 'webinar', etc.
 
-    # Common fields for any event
+    # Common fields
     title_en = db.Column(db.String(255), nullable=False)
     title_th = db.Column(db.String(255), nullable=True)
     description_en = db.Column(db.Text)
@@ -197,45 +197,44 @@ class EventEntity(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
     updated_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now(), onupdate=db.func.now())
 
-    # Relationship to StaffAccount - Moved from Course to EventEntity
+    # Staff/institution
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
-    staff = db.relationship(StaffAccount,
-                            backref=db.backref('events_managed', lazy=True))  # Changed backref name for clarity
-
-    # Relationship to EntityCategory - New relationship
+    staff = db.relationship(StaffAccount, backref=db.backref('events_managed', lazy=True))
     category_id = db.Column(db.Integer, ForeignKey('entity_categories.id'), nullable=True)
     category = relationship("EntityCategory", back_populates="events")
-
-    # Changed from String to Integer FK
     certificate_type_id = db.Column(db.Integer, ForeignKey('certificate_types.id'), nullable=True)
     certificate_type_ref = relationship("CertificateType", back_populates="event_entities")
+    creating_institution = db.Column(db.String(255), nullable=False, default="เทคนิคการแพทย์ ม.มหิดล", comment="สถาบันที่สร้างกิจกรรมนี้")
+    department_or_unit = db.Column(db.String(255), nullable=True, comment="ภาควิชา หรือหน่วยงานที่รับผิดชอบกิจกรรม")
+    continue_education_score = db.Column(db.Numeric(precision=10, scale=2), default=0.00, nullable=False, comment="คะแนนการศึกษาต่อเนื่อง (ทศนิยม 2 ตำแหน่ง)")
 
-    # New fields for institution and department
-    creating_institution = db.Column(db.String(255), nullable=False, default="เทคนิคการแพทย์ ม.มหิดล",
-                                     comment="สถาบันที่สร้างกิจกรรมนี้")
-    department_or_unit = db.Column(db.String(255), nullable=True,
-                                   comment="ภาควิชา หรือหน่วยงานที่รับผิดชอบกิจกรรม")
-
-    # New field for Continuing Education Score
-    continue_education_score = db.Column(db.Numeric(precision=10, scale=2),default=0.00, nullable=False,
-                                         comment="คะแนนการศึกษาต่อเนื่อง (ทศนิยม 2 ตำแหน่ง)")
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'event_entity',
-        'polymorphic_on': event_type
-    }
+    # Fields from Course
+    course_code = db.Column(db.String(100), unique=True, nullable=True)  # nullable for non-course events
+    image_url = db.Column(db.Text, nullable=True)
+    long_description_en = db.Column(db.Text, nullable=True)
+    long_description_th = db.Column(db.Text, nullable=True)
+    duration_en = db.Column(db.String(50), nullable=True)
+    duration_th = db.Column(db.String(50), nullable=True)
+    format_en = db.Column(db.String(100), nullable=True)
+    format_th = db.Column(db.String(100), nullable=True)
+    certification_en = db.Column(db.String(50), nullable=True)
+    certification_th = db.Column(db.String(50), nullable=True)
+    location_en = db.Column(db.String(255), nullable=True)
+    location_th = db.Column(db.String(255), nullable=True)
+    degree_en = db.Column(db.String(50), nullable=True)
+    degree_th = db.Column(db.String(50), nullable=True)
+    department_owner = db.Column(db.String(50), nullable=True)
+    created_by = db.Column(db.String(50), nullable=True)
+    certificate_name_th = db.Column(db.String(255), nullable=True, comment="ชื่อใบรับรองภาษาไทย")
+    certificate_name_en = db.Column(db.String(255), nullable=True, comment="English certificate name")
 
     # Relationships
     payments = relationship("RegisterPayment", back_populates="event_entity", lazy=True)
     registrations = relationship("MemberRegistration", back_populates="event_entity", lazy=True)
-    speakers = relationship("EventSpeaker", back_populates="event_entity", lazy=True)  # New relationship for speakers
-    agendas = relationship("EventAgenda", back_populates="event_entity", lazy=True)  # New relationship for agendas
-    materials = relationship("EventMaterial", back_populates="event_entity",
-                             lazy=True)  # New relationship for materials
-    # New relationship for registration fees
+    speakers = relationship("EventSpeaker", back_populates="event_entity", lazy=True)
+    agendas = relationship("EventAgenda", back_populates="event_entity", lazy=True)
+    materials = relationship("EventMaterial", back_populates="event_entity", lazy=True)
     registration_fees = relationship("EventRegistrationFee", back_populates="event_entity", lazy=True)
-
-    # New relationships for assigned staff roles
     editors = relationship("EventEditor", back_populates="event_entity", lazy=True)
     registration_reviewers = relationship("EventRegistrationReviewer", back_populates="event_entity", lazy=True)
     payment_approvers = relationship("EventPaymentApprover", back_populates="event_entity", lazy=True)
@@ -246,73 +245,10 @@ class EventEntity(db.Model):
         return f"<EventEntity {self.event_type}: {self.title_en}>"
 
 
-class Course(EventEntity):
-    """
-    Represents a course, inheriting common event properties from EventEntity.
-    """
-    __tablename__ = "courses"
-    # Foreign key to EventEntity, also serves as primary key for joined table inheritance
-    id = db.Column(db.Integer, ForeignKey('event_entities.id'), primary_key=True)
-
-    course_code = db.Column(db.String(100), unique=True, nullable=False)
-    image_url = db.Column(db.Text)
-
-    # Specific long descriptions for courses
-    long_description_en = db.Column(db.Text, nullable=False)
-    long_description_th = db.Column(db.Text, nullable=False)
-
-    duration_en = db.Column(db.String(50), nullable=False)
-    duration_th = db.Column(db.String(50), nullable=False)
-    format_en = db.Column(db.String(100), nullable=False)
-    format_th = db.Column(db.String(100), nullable=False)
-    certification_en = db.Column(db.String(50), nullable=False)
-    certification_th = db.Column(db.String(50), nullable=False)
-    location_en = db.Column(db.String(255), nullable=False)
-    location_th = db.Column(db.String(255), nullable=False)
-    degree_en = db.Column(db.String(50), nullable=False)
-    degree_th = db.Column(db.String(50), nullable=False)
-
-    department_owner = db.Column(db.String(50), nullable=False)
-    created_by = db.Column(db.String(50), nullable=False)
-
-    # New fields for certificate name specific to Course
-    certificate_name_th = db.Column(db.String(255), nullable=True, comment="ชื่อใบรับรองภาษาไทย")
-    certificate_name_en = db.Column(db.String(255), nullable=True, comment="English certificate name")
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'course',
-    }
-
-    def __repr__(self) -> str:  # pragma: no cover
-        return f"<Course {self.title_en}>"
 
 
-class Webinar(EventEntity):
-    """
-    Represents a webinar, inheriting common event properties from EventEntity.
-    """
-    __tablename__ = "webinars"
-    # Foreign key to EventEntity, also serves as primary key for joined table inheritance
-    id = db.Column(db.Integer, ForeignKey('event_entities.id'), primary_key=True)
-
-    # Specific long descriptions for webinars
-    long_description_en = db.Column(db.Text, nullable=False)
-    long_description_th = db.Column(db.Text, nullable=False)
 
 
-    location_en = db.Column(db.String(255), nullable=False)
-    location_th = db.Column(db.String(255), nullable=False)
-
-    # New fields for certificate name specific to Webinar
-    certificate_name_th = db.Column(db.String(255), nullable=True, comment="ชื่อใบรับรองภาษาไทย")
-    certificate_name_en = db.Column(db.String(255), nullable=True, comment="English certificate name")
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'webinar',
-    }
-
-    def __repr__(self) -> str:  # pragma: no cover
-        return f"<Webinar {self.title_en}>"
 
 
 # --------------------------------------------------

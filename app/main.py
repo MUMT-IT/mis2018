@@ -833,8 +833,7 @@ admin.add_views(ModelView(CertificateType, db.session, category='Continuing Educ
 admin.add_views(ModelView(MemberCertificateStatus, db.session, category='Continuing Education'))
 
 admin.add_views(ModelView(Member, db.session, category='Continuing Education'))
-admin.add_views(ModelView(Course, db.session, category='Continuing Education'))
-admin.add_views(ModelView(Webinar, db.session, category='Continuing Education'))
+
 admin.add_views(ModelView(MemberRegistration, db.session, category='Continuing Education'))
 admin.add_views(ModelView(EntityCategory, db.session, category='Continuing Education'))
 admin.add_views(ModelView(EventEntity, db.session, category='Continuing Education'))
@@ -1863,4 +1862,10 @@ def run_job_files_to_cloud(budget_year):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000, host="0.0.0.0")
+    import os
+    cert_file = os.path.join(os.path.dirname(__file__), '..', '..', 'cert.pem')
+    key_file = os.path.join(os.path.dirname(__file__), '..', '..', 'key.pem')
+    if os.path.exists(cert_file) and os.path.exists(key_file):
+        app.run(debug=True, port=5000, host="0.0.0.0", ssl_context=(cert_file, key_file))
+    else:
+        app.run(debug=True, port=5000, host="0.0.0.0")

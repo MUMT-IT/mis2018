@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+
+<head>
+    <!-- Animate On Scroll Library -->
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ texts.university_name }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Animate On Scroll custom overrides */
+        [data-aos] {
+            opacity: 0;
+            transition-property: opacity, transform;
+        }
+
+        [data-aos].aos-animate {
+            opacity: 1;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            /* Light Slate 50 */
+        }
+
+        /* Custom styles for rounded corners and shadows, as Bulma doesn't have direct utilities for these */
+        .rounded-md {
+            border-radius: 0.375rem;
+            /* 6px */
+        }
+
+        .rounded-lg {
+            border-radius: 0.5rem;
+            /* 8px */
+        }
+
+        .rounded-full {
+            border-radius: 9999px;
+        }
+
+        .rounded-b-lg {
+            border-bottom-left-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+        }
+
+        .rounded-t-lg {
+            border-top-left-radius: 0.5rem;
+            border-top-right-radius: 0.5rem;
+        }
+
+        .shadow-sm {
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .shadow-lg {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .card {
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Hero section background gradient */
+        .hero-section {
+            position: relative;
+            /* Needed for absolute positioning of background slider */
+            overflow: hidden;
+            /* Hide overflowing parts of the background images */
+            background: linear-gradient(to right, #6366f1, #8b5cf6);
+            /* Fallback background */
+        }
+
+        /* Hero content should be above the background slider */
+        .hero-body {
+            position: relative;
+            z-index: 10;
+            /* Ensure content is above the background */
+            color: white;
+            /* Ensure text is visible */
+        }
+
+        /* Background slider styles */
+        .hero-background-slider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0.4;
+            /* Adjust opacity to make text readable */
+            transition: background-image 1s ease-in-out;
+            /* Smooth transition for image change */
+            z-index: 1;
+            /* Place behind content */
+        }
+
+        /* Custom padding for buttons to match previous design */
+        .button.custom-padding {
+            padding-left: 2rem;
+            /* px-8 */
+            padding-right: 2rem;
+            /* px-8 */
+            padding-top: 0.75rem;
+            /* py-3 */
+            padding-bottom: 0.75rem;
+            /* py-3 */
+        }
+
+        .button.custom-padding-small {
+            padding-left: 1.25rem;
+            /* px-5 */
+            padding-right: 1.25rem;
+            /* px-5 */
+            padding-top: 0.5rem;
+            /* py-2 */
+            padding-bottom: 0.5rem;
+            /* py-2 */
+        }
+
+        .object-cover {
+            object-fit: cover;
+        }
+
+        .h-40 {
+            height: 10rem;
+            /* 160px */
+        }
+
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+
+        .mb-6 {
+            margin-bottom: 1.5rem;
+        }
+
+        .mb-8 {
+            margin-bottom: 2rem;
+        }
+
+        .mb-12 {
+            margin-bottom: 3rem;
+        }
+
+        .mt-4 {
+            margin-top: 1rem;
+        }
+
+        .mt-5 {
+            margin-top: 1.25rem;
+        }
+
+        /* Custom for Bulma's spacing */
+        .mt-12 {
+            margin-top: 3rem;
+        }
+
+        .py-4 {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+
+        .py-8 {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+
+        .py-16 {
+            padding-top: 4rem;
+            padding-bottom: 4rem;
+        }
+
+        .px-4 {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .p-6 {
+            padding: 1.5rem;
+        }
+
+        .p-8 {
+            padding: 2rem;
+        }
+
+        /* Responsive adjustments for Bulma */
+        @media screen and (min-width: 769px) {
+
+            /* md breakpoint */
+            .is-flex-direction-row-desktop {
+                flex-direction: row !important;
+            }
+
+            .mt-0-desktop {
+                margin-top: 0 !important;
+            }
+
+            .py-24-desktop {
+                padding-top: 6rem !important;
+                padding-bottom: 6rem !important;
+            }
+
+            .is-flex-direction-row-tablet {
+                flex-direction: row !important;
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+
+            /* mobile breakpoint */
+            .mt-4-mobile {
+                margin-top: 1rem !important;
+            }
+
+            .space-y-4-mobile>*:not(:last-child) {
+                margin-bottom: 1rem;
+            }
+        }
+
+        .max-w-3xl {
+            max-width: 48rem;
+            /* Equivalent to Tailwind's max-w-3xl */
+        }
+
+        .max-w-2xl {
+            max-width: 42rem;
+            /* Equivalent to Tailwind's max-w-2xl */
+        }
+
+        .max-w-xl {
+            max-width: 36rem;
+            /* Equivalent to Tailwind's max-w-xl */
+        }
+
+        .mx-auto {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .w-full {
+            width: 100%;
+        }
+
+        .text-sm {
+            font-size: 0.875rem;
+        }
+
+        .text-lg {
+            font-size: 1.125rem;
+        }
+
+        .text-xl {
+            font-size: 1.25rem;
+        }
+
+        .text-2xl {
+            font-size: 1.5rem;
+        }
+
+        .text-3xl {
+            font-size: 1.875rem;
+        }
+
+        .text-4xl {
+            font-size: 2.25rem;
+        }
+
+        .text-5xl {
+            font-size: 3rem;
+        }
+
+        /* Colors */
+        .has-text-gray-800 {
+            color: #1f2937;
+        }
+
+        .has-text-gray-600 {
+            color: #4b5563;
+        }
+
+        .has-text-gray-700 {
+            color: #374151;
+        }
+
+        .has-text-gray-400 {
+            color: #9ca3af;
+        }
+
+        .has-text-indigo-700 {
+            color: #4338ca;
+        }
+
+        .has-text-indigo-600 {
+            color: #4f46e5;
+        }
+
+        .has-text-white {
+            color: #ffffff;
+        }
+
+        .has-text-grey-dark {
+            color: #363636;
+        }
+
+        .has-text-grey-light {
+            color: #b5b5b5;
+        }
+
+        .has-background-white {
+            background-color: #ffffff;
+        }
+
+        .has-background-gray-50 {
+            background-color: #f9fafb;
+        }
+
+        .has-background-gray-100 {
+            background-color: #f3f4f6;
+        }
+
+        .has-background-indigo-600 {
+            background-color: #4f46e5;
+        }
+
+        .has-background-indigo-700 {
+            background-color: #4338ca;
+        }
+
+        .has-background-gray-800 {
+            background-color: #1f2937;
+        }
+
+        .hover\:has-text-indigo-700:hover {
+            color: #4338ca;
+        }
+
+        .hover\:has-background-indigo-100:hover {
+            background-color: #e0e7ff;
+        }
+
+        .hover\:has-background-indigo-700:hover {
+            background-color: #4338ca;
+        }
+
+        .hover\:has-background-indigo-800:hover {
+            background-color: #3730a3;
+        }
+
+        .hover\:has-text-white:hover {
+            color: #ffffff;
+        }
+
+        .border {
+            border-width: 1px;
+            border-style: solid;
+        }
+
+        .border-gray-200 {
+            border-color: #e5e7eb;
+        }
+
+        .is-flex {
+            display: flex;
+        }
+
+        .is-flex-direction-column {
+            flex-direction: column;
+        }
+
+        .is-justify-content-space-between {
+            justify-content: space-between;
+        }
+
+        .is-align-items-center {
+            align-items: center;
+        }
+
+        .is-centered {
+            justify-content: center;
+        }
+
+        .is-fullwidth {
+            width: 100%;
+        }
+
+        /* Form control specific styles */
+        .input,
+        .textarea {
+            border-color: #dbdbdb;
+            box-shadow: inset 0 0.0625em 0.125em rgba(10, 10, 10, 0.05);
+            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+
+        .input:focus,
+        .textarea:focus {
+            border-color: #4338ca;
+            /* Indigo 700 */
+            box-shadow: 0 0 0 0.125em rgba(67, 56, 202, 0.25);
+            /* Focus ring */
+            outline: none;
+        }
+
+        /* Custom styles for language buttons */
+        .language-button {
+            margin-left: 0.5rem;
+            /* Add some spacing between buttons */
+            min-width: 40px;
+            /* Ensure a minimum width */
+            text-align: center;
+        }
+
+        .language-button.is-active {
+            background-color: #4338ca;
+            /* Indigo 700 */
+            color: white;
+            border-color: #4338ca;
+        }
+
+        .language-button:not(.is-active) {
+            background-color: #e0e7ff;
+            /* Indigo 100 */
+            color: #4338ca;
+            /* Indigo 700 */
+            border-color: #e0e7ff;
+        }
+
+        .language-button:not(.is-active):hover {
+            background-color: #c7d2fe;
+            /* Indigo 200 */
+            border-color: #c7d2fe;
+        }
+
+        /* Style for the university logo */
+        .university-logo {
+            max-height: 2.5rem;
+            /* Adjust as needed */
+            margin-right: 0.5rem;
+            /* Space between logo and text */
+            width: auto;
+            /* Maintain aspect ratio */
+        }
+    </style>
+</head>
+
+<body class="has-text-gray-800">
+
+    <!-- Hero Video Background (optional, fallback to slider) -->
+    <div style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-1;overflow:hidden;">
+        <video autoplay muted loop playsinline
+            style="width:100vw;height:100vh;object-fit:cover;filter:brightness(0.7);">
+            <source src="https://www.w3schools.com/howto/rain.mp4" type="video/mp4">
+        </video>
+    </div>
+
+
+    <header style="z-index:100;">
+        <nav class="navbar has-background-white shadow-sm py-4"
+            style="position:fixed;top:0;left:0;width:100%;z-index:100;">
+            <div
+                class="container is-fluid is-flex is-flex-direction-column is-flex-direction-row-desktop is-justify-content-space-between is-align-items-center">
+                <div class="navbar-brand">
+                    <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}" class="navbar-item">
+                        <img src="https://placehold.co/100x40/4338CA/FFFFFF?text=LOGO" alt="University Logo"
+                            class="university-logo">
+                    </a>
+                    <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}"
+                        class="navbar-item title is-4 has-text-indigo-700 rounded-md">{{ texts.university_name }}</a>
+                    <div class="navbar-burger burger" data-target="navbarMenu">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+                <div id="navbarMenu" class="navbar-menu">
+                    <div class="navbar-end mt-4-mobile mt-0-desktop">
+                        <a href="#short-courses"
+                            class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">{{
+                            texts.short_courses_nav }}</a>
+                        <a href="#webinars"
+                            class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">{{
+                            texts.webinars_nav }}</a>
+                        <a href="#contact"
+                            class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">
+                            {{ texts.contact_us_nav }}
+                        </a>
+                        {% if logged_in_user %}
+                        <div class="navbar-item has-text-gray-700">
+                            {{ texts.welcome_message }} {{ logged_in_user.username }}!
+                        </div>
+                        <a href="{{ url_for('continuing_edu.logout', lang=current_lang) }}"
+                            class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">
+                            {{ texts.logout_btn }}
+                        </a>
+                        {% else %}
+                        <a href="{{ url_for('continuing_edu.register', lang=current_lang) }}"
+                            class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">
+                            {{ texts.register_page_title }}
+                        </a>
+                        <a href="{{ url_for('continuing_edu.login', lang=current_lang) }}"
+                            class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">
+                            {{ texts.login_page_title }}
+                        </a>
+                        {% endif %}
+                        <div class="navbar-item">
+                            <div class="buttons has-addons">
+                                <a class="button is-small is-rounded language-button {% if current_lang == 'en' %}is-active{% endif %}"
+                                    href="{{ url_for('continuing_edu.index', lang='en') }}">
+                                    ENGLISH
+                                </a>
+                                <a class="button is-small is-rounded language-button {% if current_lang == 'th' %}is-active{% endif %}"
+                                    href="{{ url_for('continuing_edu.index', lang='th') }}">
+                                    ไทย
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="container mt-4">
+        <div class="notification is-light is-marginless-top">
+            <button class="delete"></button>
+            {% for category, message in messages %}
+            <p
+                class="has-text-{{ 'danger' if category == 'error' else 'success' if category == 'success' else 'info' }}">
+                {{ message }}</p>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div style="height:90px;"></div> <!-- Spacer for fixed navbar -->
+    <section class="hero hero-section is-large has-text-centered rounded-b-lg shadow-lg">
+        <div class="hero-background-slider" id="hero-background-slider"></div>
+        <div class="hero-body container" data-aos="fade-up">
+            <h1 class="title is-1 has-text-white mb-4 rounded-md" style="text-shadow:0 2px 8px #000a;">{{
+                texts.hero_title }}</h1>
+            <p class="subtitle is-4 has-text-white mb-8 max-w-3xl mx-auto rounded-md"
+                style="text-shadow:0 1px 6px #0007;">
+                {{ texts.hero_subtitle }}
+            </p>
+            <div class="buttons is-centered is-flex-direction-column is-flex-direction-row-tablet space-y-4-mobile">
+                <a href="#short-courses"
+                    class="button is-white is-rounded is-large custom-padding shadow-lg hover:has-background-indigo-100 has-text-indigo-700"
+                    data-aos="zoom-in" data-aos-delay="200">
+                    {{ texts.explore_courses_btn }}
+                </a>
+                <a href="#webinars"
+                    class="button is-outlined is-white is-rounded is-large custom-padding shadow-lg hover:has-background-white hover:has-text-indigo-700"
+                    data-aos="zoom-in" data-aos-delay="400">
+                    {{ texts.discover_webinars_btn }}
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section id="short-courses" class="section has-background-white py-16">
+        <div class="container">
+            <h2 class="title is-2 has-text-centered mb-12 has-text-gray-800 rounded-md" data-aos="fade-up">{{
+                texts.our_short_courses_title }}</h2>
+            <div class="columns is-multiline">
+                {% for course in events %}
+                <div class="column is-one-third-desktop is-half-tablet is-full-mobile" data-aos="fade-up"
+                    data-aos-delay="{{ loop.index * 100 }}">
+                    <div class="card has-background-gray-50 p-6 rounded-lg shadow-md border border-gray-200">
+                        <div class="card-image mb-4">
+                            <figure class="image is-3by2">
+                                <img src="{{ course.image_url }}" alt="[Image of {{ course.title }} Course]"
+                                    class="object-cover rounded-md">
+                            </figure>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="title is-5 has-text-indigo-700 mb-3 rounded-md">{{ course.title }}</h3>
+                            <p class="content has-text-gray-600 mb-4 rounded-md">{{ course.description }}</p>
+                            <ul class="content list-disc has-text-gray-700 mb-4 rounded-md">
+                                <li>{{ texts.duration_label }}: {{ course.duration }}</li>
+                                <li>{{ texts.format_label }}: {{ course.format }}</li>
+                                <li>{{ texts.certification_label }}: {{ course.certification }}</li>
+                            </ul>
+                            <a href="{{ url_for('continuing_edu.course_detail', course_id=course.id, lang=current_lang) }}"
+                                class="button is-info is-rounded custom-padding-small has-background-indigo-600 hover:has-background-indigo-700 has-text-white">{{
+                                texts.learn_more_btn }}</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="has-text-centered mt-12" data-aos="fade-up">
+                <a href="#"
+                    class="button is-info is-large is-rounded custom-padding has-background-indigo-700 hover:has-background-indigo-800 has-text-white">{{
+                    texts.view_all_courses_btn }}</a>
+            </div>
+            <!-- Features Section -->
+            <div class="columns is-multiline mt-12" data-aos="fade-up">
+                <div class="column is-one-quarter-desktop is-half-tablet is-full-mobile has-text-centered">
+                    <span class="icon is-large mb-2"><i class="fas fa-certificate fa-2x has-text-indigo-600"></i></span>
+                    <p class="has-text-weight-bold">เรียนจบรับใบประกาศ</p>
+                </div>
+                <div class="column is-one-quarter-desktop is-half-tablet is-full-mobile has-text-centered">
+                    <span class="icon is-large mb-2"><i
+                            class="fas fa-chalkboard-teacher fa-2x has-text-indigo-600"></i></span>
+                    <p class="has-text-weight-bold">วิทยากรผู้เชี่ยวชาญ</p>
+                </div>
+                <div class="column is-one-quarter-desktop is-half-tablet is-full-mobile has-text-centered">
+                    <span class="icon is-large mb-2"><i class="fas fa-laptop fa-2x has-text-indigo-600"></i></span>
+                    <p class="has-text-weight-bold">เรียนได้ทุกที่ทุกเวลา</p>
+                </div>
+                <div class="column is-one-quarter-desktop is-half-tablet is-full-mobile has-text-centered">
+                    <span class="icon is-large mb-2"><i class="fas fa-users fa-2x has-text-indigo-600"></i></span>
+                    <p class="has-text-weight-bold">ชุมชนผู้เรียนขนาดใหญ่</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="webinars" class="section has-background-gray-100 py-16">
+        <div class="container">
+            <h2 class="title is-2 has-text-centered mb-12 has-text-gray-800 rounded-md" data-aos="fade-up">{{
+                texts.upcoming_webinars_title }}</h2>
+            <div class="columns is-multiline">
+                {% for webinar in events %}
+                <div class="column is-half-desktop is-full-mobile" data-aos="fade-up"
+                    data-aos-delay="{{ loop.index * 100 }}">
+                    <div class="card has-background-white p-6 rounded-lg shadow-md border border-gray-200">
+                        <div class="card-content">
+                            <h3 class="title is-5 has-text-indigo-700 mb-3 rounded-md">{{ webinar.title }}</h3>
+                            <p class="content has-text-gray-600 mb-4 rounded-md">{{ webinar.description }}</p>
+                            <ul class="content list-disc has-text-gray-700 mb-4 rounded-md">
+                                <li>{{ texts.date_label }}: {{ webinar.date }}</li>
+                                <li>{{ texts.time_label }}: {{ webinar.time }}</li>
+                                <li>{{ texts.speaker_label }}: {{ webinar.speaker }}</li>
+                            </ul>
+                            <a href="{{ url_for('continuing_edu.webinar_detail', webinar_id=webinar.id, lang=current_lang) }}"
+                                class="button is-info is-rounded custom-padding-small has-background-indigo-600 hover:has-background-indigo-700 has-text-white">{{
+                                texts.register_now_btn }}</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="has-text-centered mt-12" data-aos="fade-up">
+                <a href="#"
+                    class="button is-info is-large is-rounded custom-padding has-background-indigo-700 hover:has-background-indigo-800 has-text-white">{{
+                    texts.view_all_webinars_btn }}</a>
+            </div>
+            <!-- Testimonials Section -->
+            <div class="columns is-multiline mt-12" data-aos="fade-up">
+                <div class="column is-one-third has-text-centered">
+                    <div class="box p-6 rounded-lg shadow-sm">
+                        <p class="is-size-5 mb-3">“คอร์สนี้ดีมาก ได้ความรู้ใหม่ๆ และนำไปใช้จริง!”</p>
+                        <p class="has-text-weight-bold">- คุณสมชาย, ผู้เรียนหลักสูตร</p>
+                    </div>
+                </div>
+                <div class="column is-one-third has-text-centered">
+                    <div class="box p-6 rounded-lg shadow-sm">
+                        <p class="is-size-5 mb-3">“วิทยากรสอนเข้าใจง่าย มีตัวอย่างเยอะ”</p>
+                        <p class="has-text-weight-bold">- คุณศิริพร, ผู้เรียนสัมมนา</p>
+                    </div>
+                </div>
+                <div class="column is-one-third has-text-centered">
+                    <div class="box p-6 rounded-lg shadow-sm">
+                        <p class="is-size-5 mb-3">“ระบบใช้งานง่าย สมัครเรียนสะดวกมาก”</p>
+                        <p class="has-text-weight-bold">- คุณอนันต์, ศิษย์เก่า</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="hero is-info is-medium has-text-centered py-16 rounded-t-lg shadow-lg">
+        <div class="hero-body container" data-aos="zoom-in">
+            <h2 class="title is-2 has-text-white mb-4 rounded-md">{{ texts.cta_title }}</h2>
+            <p class="subtitle is-4 has-text-white mb-8 max-w-2xl mx-auto rounded-md">{{ texts.cta_subtitle }}</p>
+            <a href="{{ url_for('continuing_edu.register', lang=current_lang) }}"
+                class="button is-white is-rounded is-large custom-padding shadow-lg hover:has-background-indigo-100 has-text-indigo-700">{{
+                texts.get_started_btn }}</a>
+        </div>
+    </section>
+
+
+
+    <!-- How it works section (detailed steps) -->
+    <section class="section has-background-gray-50 py-16" data-aos="fade-up">
+        <div class="container">
+            <h2 class="title is-3 has-text-centered mb-8">ขั้นตอนการสมัครและเรียน</h2>
+            <div class="columns is-multiline is-centered">
+                <div class="column is-one-sixth has-text-centered">
+                    <span class="icon is-large mb-2"><i class="fas fa-user-plus fa-2x has-text-indigo-600"></i></span>
+                    <p><b>1. สมัคร</b><br><span class="is-size-7">สร้างบัญชีผู้ใช้ใหม่</span></p>
+                </div>
+                <div class="column is-one-sixth has-text-centered">
+                    <span class="icon is-large mb-2"><i class="fas fa-id-card fa-2x has-text-indigo-600"></i></span>
+                    <p><b>2. ลงทะเบียน</b><br><span class="is-size-7">ยืนยันตัวตน/เข้าสู่ระบบ</span></p>
+                </div>
+                <div class="column is-one-sixth has-text-centered">
+                    <span class="icon is-large mb-2"><i class="fas fa-search fa-2x has-text-indigo-600"></i></span>
+                    <p><b>3. เลือกคอร์ส</b><br><span class="is-size-7">เลือกหลักสูตรหรือสัมมนาที่สนใจ</span></p>
+                </div>
+                <div class="column is-one-sixth has-text-centered">
+                    <span class="icon is-large mb-2"><i class="fas fa-credit-card fa-2x has-text-indigo-600"></i></span>
+                    <p><b>4. ชำระเงิน</b><br><span class="is-size-7">ชำระค่าลงทะเบียน (ถ้ามี)</span></p>
+                </div>
+                <div class="column is-one-sixth has-text-centered">
+                    <span class="icon is-large mb-2"><i class="fas fa-play-circle fa-2x has-text-indigo-600"></i></span>
+                    <p><b>5. เริ่มเรียน/เข้าร่วม</b><br><span
+                            class="is-size-7">เข้าเรียนออนไลน์หรือเข้าร่วมกิจกรรม</span></p>
+                </div>
+                <div class="column is-one-sixth has-text-centered">
+                    <span class="icon is-large mb-2"><i class="fas fa-award fa-2x has-text-indigo-600"></i></span>
+                    <p><b>6. จบหลักสูตร</b><br><span class="is-size-7">รับใบประกาศ หรือสะสมคะแนน</span></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+
+    <!-- FAQ section -->
+    <section class="section has-background-gray-50 py-12" data-aos="fade-up">
+        <div class="container max-w-2xl mx-auto">
+            <h2 class="title is-4 mb-6">คำถามที่พบบ่อย</h2>
+            <div class="box mb-3"><b>Q: สมัครเรียนต้องเสียค่าใช้จ่ายไหม?</b><br>A: หลักสูตร/สัมมนาบางรายการฟรี
+                กรุณาตรวจสอบรายละเอียดแต่ละรายการ</div>
+            <div class="box mb-3"><b>Q: เรียนจบแล้วได้ใบประกาศหรือไม่?</b><br>A:
+                ได้รับใบประกาศนียบัตรอิเล็กทรอนิกส์หลังเรียนจบ</div>
+            <div class="box mb-3"><b>Q: สามารถเรียนผ่านมือถือได้หรือไม่?</b><br>A:
+                ระบบรองรับการเรียนผ่านมือถือและแท็บเล็ต</div>
+            <div class="box mb-3"><b>Q: ถ้าลืมรหัสผ่านต้องทำอย่างไร?</b><br>A: สามารถกด "ลืมรหัสผ่าน"
+                ที่หน้าเข้าสู่ระบบ</div>
+        </div>
+    </section>
+
+
+    <section id="contact" class="section has-background-white py-16">
+        <div class="container" data-aos="fade-up">
+            <h2 class="title is-2 has-text-centered mb-12 has-text-gray-800 rounded-md">{{ texts.contact_us_title }}
+            </h2>
+            <div class="columns is-variable is-8 is-multiline">
+                <div class="column is-half-desktop is-full-mobile">
+                    <div class="box p-8 rounded-lg shadow-md border border-gray-200 h-100">
+                        <p class="content has-text-gray-700 mb-6 rounded-md">
+                            {{ texts.contact_us_description }}
+                        </p>
+                        <form>
+                            <div class="field mb-4">
+                                <label for="name"
+                                    class="label has-text-gray-700 text-sm has-text-weight-bold mb-2 rounded-md">{{
+                                    texts.name_label }}</label>
+                                <div class="control">
+                                    <input type="text" id="name" name="name"
+                                        class="input rounded-md is-fullwidth py-2 px-3 has-text-gray-700"
+                                        placeholder="{{ texts.name_label }}" required>
+                                </div>
+                            </div>
+                            <div class="field mb-4">
+                                <label for="email"
+                                    class="label has-text-gray-700 text-sm has-text-weight-bold mb-2 rounded-md">{{
+                                    texts.email_label }}</label>
+                                <div class="control">
+                                    <input type="email" id="email" name="email"
+                                        class="input rounded-md is-fullwidth py-2 px-3 has-text-gray-700"
+                                        placeholder="{{ texts.email_label }}" required>
+                                </div>
+                            </div>
+                            <div class="field mb-6">
+                                <label for="message"
+                                    class="label has-text-gray-700 text-sm has-text-weight-bold mb-2 rounded-md">{{
+                                    texts.message_label }}</label>
+                                <div class="control">
+                                    <textarea id="message" name="message" rows="5"
+                                        class="textarea rounded-md is-fullwidth py-2 px-3 has-text-gray-700"
+                                        placeholder="{{ texts.message_label }}" required></textarea>
+                                </div>
+                            </div>
+                            <div class="has-text-centered">
+                                <button type="submit"
+                                    class="button is-info is-rounded custom-padding has-background-indigo-600 hover:has-background-indigo-700 has-text-white">
+                                    {{ texts.send_message_btn }}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="column is-half-desktop is-full-mobile">
+                    <div class="box p-8 rounded-lg shadow-md border border-gray-200 h-100 has-background-gray-50">
+                        <h4 class="title is-4 has-text-indigo-700 mb-4">คณะเทคนิคการแพทย์
+                            มหาวิทยาลัยมหิดล</h4>
+
+                        <p class="mb-2">เลขที่ 999 ถนนพุทธมณฑลสาย 4
+                            <br>ต. ศาลายา อ. พุทธมณฑล
+                            <br>จ. นครปฐม 73170
+                        </p>
+                        <p class="mb-2"><span class="icon"><i class="fas fa-phone"></i></span> +66 (0) 2441 4370-7
+                            Ext.2202</p>
+                        <p class="mb-2"><span class="icon"><i class="fas fa-envelope"></i></span> <a
+                                href="mailto:mumtpr@mahidol.edu">mumtpr@mahidol.edu</a></p>
+                        <p class="mb-2"><span class="icon"><i class="fas fa-map"></i></span> <a
+                                href="https://maps.app.goo.gl/jiUGxCr5STeoLXcb9" target="_blank">Map</a></p>
+                        <hr>
+                        <h4 class="title is-6 mt-4 mb-2">เวลาทำการ</h4>
+                        <p class="mb-2">จันทร์-ศุกร์ 08:30-16:30 น.</p>
+                        <p class="mb-2">หยุดวันเสาร์-อาทิตย์ และวันหยุดนักขัตฤกษ์</p>
+                        <hr>
+                        <div class="mt-4">
+                            <a href="https://facebook.com" target="_blank"
+                                class="icon is-medium has-text-indigo-600 mx-2"><i
+                                    class="fab fa-facebook fa-lg"></i></a>
+                            <a href="https://line.me" target="_blank" class="icon is-medium has-text-success mx-2"><i
+                                    class="fab fa-line fa-lg"></i></a>
+                            <a href="mailto:mumtpr@mahidol.edu" class="icon is-medium has-text-danger mx-2"><i
+                                    class="fas fa-envelope fa-lg"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer has-background-gray-800 has-text-white py-8 mt-12 rounded-t-lg">
+        <div class="container has-text-centered px-4">
+            <p class="is-size-7 rounded-md">{{ texts.footer_text | safe }}</p>
+            <div class="level is-mobile mt-4">
+                <div class="level-item">
+                    <a href="#" class="has-text-gray-400 hover:has-text-white rounded-md">{{ texts.privacy_policy }}</a>
+                </div>
+                <div class="level-item">
+                    <a href="#" class="has-text-gray-400 hover:has-text-white rounded-md">{{ texts.terms_of_service
+                        }}</a>
+                </div>
+                <div class="level-item">
+                    <a href="https://facebook.com" target="_blank"
+                        class="icon is-medium has-text-gray-400 hover:has-text-white mx-2"><i
+                            class="fab fa-facebook fa-lg"></i></a>
+                    <a href="https://line.me" target="_blank"
+                        class="icon is-medium has-text-gray-400 hover:has-text-white mx-2"><i
+                            class="fab fa-line fa-lg"></i></a>
+                    <a href="mailto:info@example.com"
+                        class="icon is-medium has-text-gray-400 hover:has-text-white mx-2"><i
+                            class="fas fa-envelope fa-lg"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- FontAwesome for icons -->
+        <script src="https://kit.fontawesome.com/4e7b2e5e2a.js" crossorigin="anonymous"></script>
+        <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+        <script>
+            AOS.init({
+                duration: 800,
+                once: true
+            });
+        </script>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get all "navbar-burger" elements
+            const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+
+            // Check if there are any navbar burgers
+            if ($navbarBurgers.length > 0) {
+                // Add a click event on each of them
+                $navbarBurgers.forEach(el => {
+                    el.addEventListener('click', () => {
+                        // Get the target from the "data-target" attribute
+                        const target = el.dataset.target;
+                        const $target = document.getElementById(target);
+
+                        // Toggle the "is-active" class on both the "navbar-burger" and the "navbar-menu"
+                        el.classList.toggle('is-active');
+                        $target.classList.toggle('is-active');
+                    });
+                });
+            }
+            // Close flash messages
+            (document.querySelectorAll('.notification .delete') || []).forEach(($delete) => {
+                const $notification = $delete.parentNode;
+                $delete.addEventListener('click', () => {
+                    $notification.parentNode.removeChild($notification);
+                });
+            });
+
+            // Hero Background Slider Logic
+            const heroSlider = document.getElementById('hero-background-slider');
+            const images = [
+                'https://placehold.co/1920x1080/6366f1/FFFFFF?text=University+Campus+1',
+                'https://placehold.co/1920x1080/8b5cf6/FFFFFF?text=University+Campus+2',
+                'https://placehold.co/1920x1080/4338ca/FFFFFF?text=University+Campus+3'
+            ];
+            let currentImageIndex = 0;
+
+            function changeHeroBackground() {
+                heroSlider.style.backgroundImage = `url('${images[currentImageIndex]}')`;
+                currentImageIndex = (currentImageIndex + 1) % images.length;
+            }
+
+            // Initial background set
+            changeHeroBackground();
+            // Change background every 5 seconds
+            setInterval(changeHeroBackground, 5000);
+        });
+    </script>
+
+</body>
+
+</html>

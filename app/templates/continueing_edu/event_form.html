@@ -1,0 +1,25 @@
+<div class="container mt-6 mb-6">
+          <h1 class="title is-3 mb-4">{{ form_title }}</h1>
+          <form method="post">
+                    <!-- TODO: Add event form fields here -->
+                    <div class="field mb-4">
+                              <label class="label">Event Title (EN)</label>
+                              <div class="control">
+                                        <input class="input" type="text" name="title_en"
+                                                  value="{{ event.title_en if event else '' }}" required>
+                              </div>
+                    </div>
+                    <div class="field mb-4">
+                              <label class="label">Event Type</label>
+                              <div class="control">
+                                        <input class="input" type="text" name="event_type"
+                                                  value="{{ event.event_type if event else '' }}" required>
+                              </div>
+                    </div>
+                    <div class="field mt-5">
+                              <button class="button is-info is-rounded has-background-indigo-600 has-text-white"
+                                        type="submit">Save</button>
+                              <a href="{{ url_for('continuing_edu.admin_events') }}" class="button is-light">Cancel</a>
+                    </div>
+          </form>
+</div>

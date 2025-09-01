@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ texts.university_name }} - {{ texts.login_page_title }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            /* Light Slate 50 */
+        }
+
+        /* Custom styles for rounded corners and shadows */
+        .rounded-md {
+            border-radius: 0.375rem;
+        }
+
+        .rounded-lg {
+            border-radius: 0.5rem;
+        }
+
+        .rounded-full {
+            border-radius: 9999px;
+        }
+
+        .shadow-sm {
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .shadow-lg {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+
+        .mb-6 {
+            margin-bottom: 1.5rem;
+        }
+
+        .mt-4 {
+            margin-top: 1rem;
+        }
+
+        .py-4 {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+
+        .px-4 {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .p-8 {
+            padding: 2rem;
+        }
+
+        /* Colors */
+        .has-text-gray-800 {
+            color: #1f2937;
+        }
+
+        .has-text-gray-700 {
+            color: #374151;
+        }
+
+        .has-text-indigo-700 {
+            color: #4338ca;
+        }
+
+        .has-text-indigo-600 {
+            color: #4f46e5;
+        }
+
+        .has-text-white {
+            color: #ffffff;
+        }
+
+        .has-background-white {
+            background-color: #ffffff;
+        }
+
+        .has-background-indigo-600 {
+            background-color: #4f46e5;
+        }
+
+        .hover\:has-background-indigo-700:hover {
+            background-color: #4338ca;
+        }
+
+        .border {
+            border-width: 1px;
+            border-style: solid;
+        }
+
+        .border-gray-200 {
+            border-color: #e5e7eb;
+        }
+
+        .is-flex {
+            display: flex;
+        }
+
+        .is-flex-direction-column {
+            flex-direction: column;
+        }
+
+        .is-justify-content-space-between {
+            justify-content: space-between;
+        }
+
+        .is-align-items-center {
+            align-items: center;
+        }
+
+        .is-centered {
+            justify-content: center;
+        }
+
+        .is-fullwidth {
+            width: 100%;
+        }
+
+        /* Custom styles for language buttons */
+        .language-button {
+            margin-left: 0.5rem;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .language-button.is-active {
+            background-color: #4338ca;
+            color: white;
+            border-color: #4338ca;
+        }
+
+        .language-button:not(.is-active) {
+            background-color: #e0e7ff;
+            color: #4338ca;
+            border-color: #e0e7ff;
+        }
+
+        .language-button:not(.is-active):hover {
+            background-color: #c7d2fe;
+            border-color: #c7d2fe;
+        }
+
+        /* Style for the university logo */
+        .university-logo {
+            max-height: 2.5rem;
+            margin-right: 0.5rem;
+            width: auto;
+        }
+    </style>
+</head>
+
+<body class="has-text-gray-800">
+
+    <header class="navbar has-background-white shadow-sm py-4">
+        <div
+            class="container is-fluid is-flex is-flex-direction-column is-flex-direction-row-desktop is-justify-content-space-between is-align-items-center">
+            <div class="navbar-brand">
+                <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}" class="navbar-item">
+                    <img src="https://placehold.co/100x40/4338CA/FFFFFF?text=LOGO" alt="[Image of University Logo]"
+                        class="university-logo">
+                </a>
+                <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}"
+                    class="navbar-item title is-4 has-text-indigo-700 rounded-md">{{ texts.university_name }}</a>
+                <div class="navbar-burger burger" data-target="navbarMenu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+            <div id="navbarMenu" class="navbar-menu">
+                <div class="navbar-end mt-4-mobile mt-0-desktop">
+                    <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#short-courses"
+                        class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">{{
+                        texts.short_courses_nav }}</a>
+                    <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#webinars"
+                        class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">{{
+                        texts.webinars_nav }}</a>
+                    <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#contact"
+                        class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">
+                        {{ texts.contact_us_nav }}
+                    </a>
+                    <div class="navbar-item">
+                        <div class="buttons has-addons">
+                            <a class="button is-small is-rounded language-button {% if current_lang == 'en' %}is-active{% endif %}"
+                                href="{{ url_for('continuing_edu.login', lang='en') }}">
+                                EN
+                            </a>
+                            <a class="button is-small is-rounded language-button {% if current_lang == 'th' %}is-active{% endif %}"
+                                href="{{ url_for('continuing_edu.login', lang='th') }}">
+                                TH
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section class="section py-16">
+        <div class="container is-max-desktop">
+            <h1 class="title is-2 has-text-centered mb-6 has-text-gray-800 rounded-md">{{ texts.login_page_title }}</h1>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="notification is-light is-marginless-top">
+                <button class="delete"></button>
+                {% for category, message in messages %}
+                <p class="has-text-{{ 'danger' if category == 'error' else 'success' }}">{{ message }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <div class="box max-w-xl mx-auto p-8 rounded-lg shadow-md border border-gray-200">
+                <form method="POST" action="{{ url_for('continuing_edu.login', lang=current_lang) }}">
+                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="field mb-4">
+                        <label for="username" class="label has-text-gray-700">{{ texts.username_label }}</label>
+                        <div class="control">
+                            <input type="text" id="username" name="username" class="input rounded-md"
+                                placeholder="{{ texts.username_label }}" required>
+                        </div>
+                    </div>
+                    <div class="field mb-6">
+                        <label for="password" class="label has-text-gray-700">{{ texts.password_label }}</label>
+                        <div class="control">
+                            <input type="password" id="password" name="password" class="input rounded-md"
+                                placeholder="{{ texts.password_label }}" required>
+                        </div>
+                    </div>
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                            <button type="submit"
+                                class="button is-info is-rounded has-background-indigo-600 hover:has-background-indigo-700 has-text-white">
+                                {{ texts.login_btn }}
+                            </button>
+                        </div>
+                    </div>
+
+
+                </form>
+                <p class="has-text-centered mt-4">
+                    {{ texts.no_account_yet }} <a href="{{ url_for('continuing_edu.register', lang=current_lang) }}"
+                        class="has-text-indigo-700">{{ texts.register_btn }}</a>
+                </p>
+
+  <p class="has-text-centered mt-4">
+
+                </p>
+                <div class="has-text-centered">
+                    {# Implement external register/login  with google #}
+                      <div id="g_id_onload"
+     data-client_id="06836986017-760vgufp9461sqja04dqhmokg2cqddmo.apps.googleusercontent.com"
+     data-context="signin"
+     data-ux_mode="popup"
+     data-login_uri="https://127.0.0.1:5000/continuing_edu/authentication"
+     data-auto_select="true"
+    data-callback="handleCredentialResponse"
+     data-itp_support="true">
+</div>
+
+<div class="g_id_signin"
+     data-type="standard"
+     data-shape="pill"
+     data-theme="outline"
+     data-text="continue_with"
+     data-size="large"
+     data-locale="{{ current_lang }}"
+     data-logo_alignment="center"
+     data-width="200px">
+</div>
+
+
+
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer has-background-gray-800 has-text-white py-8 mt-12 rounded-t-lg">
+        <div class="container has-text-centered px-4">
+            <p class="is-size-7 rounded-md">{{ texts.footer_text | safe }}</p>
+            <div class="level is-mobile mt-4">
+                <div class="level-item">
+                    <a href="#" class="has-text-gray-400 hover:has-text-white rounded-md">{{ texts.privacy_policy }}</a>
+                </div>
+                <div class="level-item">
+                    <a href="#" class="has-text-gray-400 hover:has-text-white rounded-md">{{ texts.terms_of_service
+                        }}</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+            if ($navbarBurgers.length > 0) {
+                $navbarBurgers.forEach(el => {
+                    el.addEventListener('click', () => {
+                        const target = el.dataset.target;
+                        const $target = document.getElementById(target);
+                        el.classList.toggle('is-active');
+                        $target.classList.toggle('is-active');
+                    });
+                });
+            }
+            // Close flash messages
+            (document.querySelectorAll('.notification .delete') || []).forEach(($delete) => {
+                const $notification = $delete.parentNode;
+                $delete.addEventListener('click', () => {
+                    $notification.parentNode.removeChild($notification);
+                });
+            });
+        });
+    </script>
+
+</body>
+
+</html>
