@@ -2189,12 +2189,50 @@ def add_payment():
             result.status_id = status_id
             db.session.add(result)
             db.session.commit()
+            scheme = 'http' if current_app.debug else 'https'
+            org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
+            staff = StaffAccount.get_account_by_email(org.head)
+            title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
+            link = url_for("academic_service_payment.invoice_payment_index", _external=True, _scheme=scheme)
+            customer_name = invoice.customer_name.replace(' ', '_')
+            title = f'''[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอัปเดตการชำระเงิน'''
+            message = f'''เรียน เจ้าหน้าที่การเงิน\n\n'''
+            message += f'''ใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
+            message += f'''ลูกค้า : {invoice.customer_name}\n'''
+            message += f'''ในนาม : {invoice.name}\n'''
+            message += f'''ขอแจ้งให้ทราบว่า ได้มีการอัปเดตข้อมูลการชำระเงินเรียบร้อยแล้ว\n'''
+            message += f'''กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'''
+            message += f'''{link}\n\n'''
+            message += f'''ผู้ประสานงาน\n'''
+            message += f'''{invoice.customer_name}\n'''
+            message += f'''เบอร์โทร {invoice.contact_phone_number}\n\n'''
+            message += f'''ระบบงานบริการวิชาการ'''
+            send_mail([staff.email], title, message)
+            msg = ('แจ้งอัปเดตการชำระเงิน' \
+                   '\n\nเรียน เจ้าหน้าที่การเงิน'
+                   '\n\nใบแจ้งหนี้เลขที่ {}' \
+                   '\nลูกค้า : {}' \
+                   '\nในนาม : {}' \
+                   '\nขอแจ้งให้ทราบว่า ได้มีการอัปเดตข้อมูลการชำระเงินเรียบร้อยแล้ว' \
+                   '\nกรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง' \
+                   '\n{}' \
+                   '\n\nผู้ประสานงาน' \
+                   '\n{}' \
+                   '\nเบอร์โทร {}' \
+                   '\n\nระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.customer_name, invoice.name, link,
+                                                     invoice.customer_name, invoice.contact_phone_number)
+                   )
+            if not current_app.debug:
+                try:
+                    line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
         flash('อัพเดตสลิปสำเร็จ', 'success')
         return redirect(url_for('service_admin.invoice_index', menu=menu))
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-    return render_template('service_admin/add_payment.html', menu=menu, form=form, invoice=invoice)
+        return render_template('service_admin/add_payment.html', menu=menu, form=form, invoice=invoice)
 
 
 @service_admin.route('/quotation/index')

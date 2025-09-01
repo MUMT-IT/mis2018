@@ -41,7 +41,7 @@ from flask_admin.helpers import is_safe_url
 from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
 from app.main import mail
 from flask_mail import Message
-from app.models import Holidays
+from app.models import Holidays, Org
 from app.service_admin.forms import ServiceQuotationForm, ServiceResultForm
 
 localtz = timezone('Asia/Bangkok')
@@ -2226,6 +2226,44 @@ def add_payment():
             result.status_id = status_id
             db.session.add(result)
             db.session.commit()
+            scheme = 'http' if current_app.debug else 'https'
+            org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
+            staff = StaffAccount.get_account_by_email(org.head)
+            title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
+            link = url_for("academic_service_payment.invoice_payment_index", _external=True, _scheme=scheme)
+            customer_name = invoice.customer_name.replace(' ', '_')
+            title = f'''[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอัปเดตการชำระเงิน'''
+            message = f'''เรียน เจ้าหน้าที่การเงิน\n\n'''
+            message += f'''ใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
+            message += f'''ลูกค้า : {invoice.customer_name}\n'''
+            message += f'''ในนาม : {invoice.name}\n'''
+            message += f'''ขอแจ้งให้ทราบว่า ได้มีการอัปเดตข้อมูลการชำระเงินเรียบร้อยแล้ว\n'''
+            message += f'''กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'''
+            message += f'''{link}\n\n'''
+            message += f'''ผู้ประสานงาน\n'''
+            message += f'''{invoice.customer_name}\n'''
+            message += f'''เบอร์โทร {invoice.contact_phone_number}\n\n'''
+            message += f'''ระบบงานบริการวิชาการ'''
+            send_mail([staff.email], title, message)
+            msg = ('แจ้งอัปเดตการชำระเงิน' \
+                   '\n\nเรียน เจ้าหน้าที่การเงิน'
+                   '\n\nใบแจ้งหนี้เลขที่ {}' \
+                   '\nลูกค้า : {}' \
+                   '\nในนาม : {}' \
+                   '\nขอแจ้งให้ทราบว่า ได้มีการอัปเดตข้อมูลการชำระเงินเรียบร้อยแล้ว' \
+                   '\nกรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง' \
+                   '\n{}' \
+                   '\n\nผู้ประสานงาน' \
+                   '\n{}' \
+                   '\nเบอร์โทร {}' \
+                   '\n\nระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.customer_name, invoice.name, link,
+                                                     invoice.customer_name, invoice.contact_phone_number)
+                   )
+            if not current_app.debug:
+                try:
+                    line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
         flash('อัพเดตสลิปสำเร็จ', 'success')
         return redirect(url_for('academic_services.invoice_index', menu=menu))
     else:
@@ -2513,7 +2551,7 @@ def confirm_result(result_id):
     customer_name = result.request.customer.customer_name.replace(' ', '_')
     sub_lab = ServiceSubLab.query.filter_by(code=result.request.lab).first()
     if admins:
-        title = f'''[{result.request.request_no}] ใบคำขอรับบริการ - {title_prefix}{customer_name} ({result.request.quotation_address.name}) | แจ้งขอใบเสนอราคา'''
+        title = f'''[{result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result.request.quotation_address.name}) | แจ้งยืนยันใบรายงานผลการทดสอบ'''
         message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
         message += f'''ใบรายงานผลของใบคำขอรับบริการเลขที่ : {result.request.request_no}\n'''
         message += f'''ลูกค้า : {result.request.customer.customer_name}\n'''
@@ -2526,7 +2564,7 @@ def confirm_result(result_id):
         message += f'''เบอร์โทร {result.request.customer.contact_phone_number}\n\n'''
         message += f'''ระบบงานบริการวิชาการ'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
-        msg = ('แจ้งขอใบเสนอราคา' \
+        msg = ('แจ้งยืนยันไขใบรายงานผลการทดสอบ' \
                '\n\nเรียน เจ้าหน้าที่{}'
                '\n\nใบรายงานผลของใบคำขอรับบริการเลขที่ {}' \
                '\nลูกค้า : {}' \
@@ -2576,7 +2614,7 @@ def edit_result(result_id):
         customer_name = result.request.customer.customer_name.replace(' ', '_')
         sub_lab = ServiceSubLab.query.filter_by(code=result.request.lab).first()
         if admins:
-            title = f'''[{result.request.request_no}] ใบคำขอรับบริการ - {title_prefix}{customer_name} ({result.request.quotation_address.name}) | แจ้งขอใบเสนอราคา'''
+            title = f'''[{result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result.request.quotation_address.name}) | แจ้งขอแก้ไขใบรายงานผลการทดสอบ'''
             message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
             message += f'''ใบรายงานผลของใบคำขอรับบริการเลขที่ : {result.request.request_no}\n'''
             message += f'''ลูกค้า : {result.request.customer.customer_name}\n'''
@@ -2589,7 +2627,7 @@ def edit_result(result_id):
             message += f'''เบอร์โทร {result.request.customer.contact_phone_number}\n\n'''
             message += f'''ระบบงานบริการวิชาการ'''
             send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
-            msg = ('แจ้งขอใบเสนอราคา' \
+            msg = ('แจ้งขอแก้ไขใบรายงานผลการทดสอบ' \
                    '\n\nเรียน เจ้าหน้าที่{}'
                    '\n\nใบรายงานผลของใบคำขอรับบริการเลขที่ {}' \
                    '\nลูกค้า : {}' \
