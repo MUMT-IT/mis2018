@@ -1230,6 +1230,13 @@ class ServiceResult(db.Model):
     status = db.relationship(ServiceStatus, backref=db.backref('results'))
     released_at = db.Column('released_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
+    approved_at = db.Column('approved_at', db.DateTime(timezone=True))
+    approver_id = db.Column('approver_id', db.ForeignKey('service_customer_accounts.id'))
+    approver = db.relationship(ServiceCustomerAccount, backref=db.backref('approver_results'), foreign_keys=[approver_id])
+    result_edit_at = db.Column('result_edit_at', db.DateTime(timezone=True))
+    edit_requester_id = db.Column('edit_requester_id', db.ForeignKey('service_customer_accounts.id'))
+    edit_requester = db.relationship(ServiceCustomerAccount, backref=db.backref('edit_requester_results'),
+                                  foreign_keys=[edit_requester_id])
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('results', cascade="all, delete-orphan"))
     is_sent_email = db.Column('is_sent_email', db.Boolean())
