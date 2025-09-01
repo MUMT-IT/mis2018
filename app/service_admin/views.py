@@ -2898,15 +2898,17 @@ def create_draft_result(result_id=None):
             service_request.status_id = status_id
             scheme = 'http' if current_app.debug else 'https'
             if not result.is_sent_email:
+                result_url = url_for('academic_services.result_index', menu='report', _external=True, _scheme=scheme)
                 customer_name = result.request.customer.customer_name.replace(' ', '_')
                 contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
                 title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
-                title = f'''แจ้งออกร่างรายงานผลการทดสอบของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                title = f'''แจ้งออกรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
                 message = f'''เรียน {title_prefix}{customer_name}\n\n'''
                 message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
-                message += f''' ขณะนี้ได้จัดทำร่างรายงานผลการทดสอบแล้ว และได้แนบไฟล์ร่างรายงานมาพร้อมกับอีเมลฉบับนี้'''
-                message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในร่างรายงาน และดำเนินการยืนยันตามลิงก์ด้านล่าง\n\n'''
+                message += f''' ขณะนี้ได้จัดทำรายงานผลการทดสอบฉบับร่างเรียบร้อยแล้ว'''
+                message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
                 message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง'''
+                message += f'''{result_url}'''
                 message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
                 message += f'''ขอแสดงความนับถือ\n'''
                 message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
@@ -2972,15 +2974,16 @@ def create_final_result(result_id=None):
         result.status_id = status_id
         service_request.status_id = status_id
         scheme = 'http' if current_app.debug else 'https'
+        result_url = url_for('academic_services.result_index', menu='report', _external=True, _scheme=scheme)
         customer_name = result.request.customer.customer_name.replace(' ', '_')
         contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
         title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
-        title = f'''แจ้งออกร่างรายงานผลการทดสอบของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+        title = f'''แจ้งออกรายงานผลการทดสอบฉบับร่างจริงของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
         message = f'''เรียน {title_prefix}{customer_name}\n\n'''
         message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
-        message += f''' ขณะนี้ได้จัดทำร่างรายงานผลการทดสอบแล้ว และได้แนบไฟล์ร่างรายงานมาพร้อมกับอีเมลฉบับนี้'''
-        message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในร่างรายงาน และดำเนินการยืนยันตามลิงก์ด้านล่าง\n\n'''
-        message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง'''
+        message += f''' ขณะนี้ได้ดำเนินการออกรายงานผลการทดสอบฉบับจริงเรียบร้อยแล้ว'''
+        message += f'''ท่านสามารถดูรายละเอียดรายงานผลการทดสอบได้จากลิงก์ด้านล่าง'''
+        message += f'''{result_url}'''
         message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
         message += f'''ขอแสดงความนับถือ\n'''
         message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
