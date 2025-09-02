@@ -884,7 +884,8 @@ class ServiceSample(db.Model):
             'sample_condition_status': self.sample_condition_status,
             'sample_condition_status_color': self.sample_condition_status_color,
             'request_id': self.request_id if self.request_id else None,
-            'quotation_id': [quotation.id for quotation in self.request.quotations if quotation.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว'] if self.request else None
+            'quotation_id': [quotation.id for quotation in self.request.quotations if quotation.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว'] if self.request else None,
+            'file': self.get_file if self.get_file else None
         }
 
     @property
@@ -893,8 +894,7 @@ class ServiceSample(db.Model):
             if (self.sample_integrity == 'ไม่สมบูรณ์' or self.packaging_sealed == 'ปิดไม่สนิท' or
                     self.container_strength == 'ไม่แข็งแรง' or self.container_durability == 'ไม่คงทน' or
                     self.container_damage == 'แตก/หัก' or self.info_match == 'ไม่ตรง' or
-                    self.same_production_lot == 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน' or self.has_license == False or
-                    self.has_recipe == False):
+                    self.same_production_lot == 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน'):
                 status = 'ตัวอย่างไม่อยู่ในสภาพสมบูรณ์'
             else:
                 status = 'ตัวอย่างอยู่ในสภาพสมบูรณ์'
@@ -908,14 +908,27 @@ class ServiceSample(db.Model):
             if (self.sample_integrity == 'ไม่สมบูรณ์' or self.packaging_sealed == 'ปิดไม่สนิท' or
                     self.container_strength == 'ไม่แข็งแรง' or self.container_durability == 'ไม่คงทน' or
                     self.container_damage == 'แตก/หัก' or self.info_match == 'ไม่ตรง' or
-                    self.same_production_lot == 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน' or self.has_license == False or
-                    self.has_recipe == False):
+                    self.same_production_lot == 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน'):
                 color = 'is-warning'
             else:
                 color = 'is-success'
         else:
             color = 'is-danger'
         return color
+
+    @property
+    def get_file(self):
+        if self.received_at:
+            if (self.has_license == True and self.has_recipe == True):
+                status = 'เอกสารครบถ้วน'
+                color = 'is-success'
+            else:
+                status = 'เอกสารไม่ครบถ้วน'
+                color = 'is-danger'
+        else:
+            status = 'ยังไม่ได้ส่งเอกสาร'
+            color = 'is-danger'
+        return {'status': status, 'color': color}
 
 
 class ServiceTestItem(db.Model):
