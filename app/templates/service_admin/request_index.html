@@ -145,7 +145,7 @@
                             if (data !== null) {
                                 return `<span class="tag ${color}">${status}</span>`;
                             } else {
-                                return `<span class="tag is-info">ร่างใบคำขอรับบริกา่ร</span>`;
+                                return `<span class="tag is-info">ร่างใบคำขอรับบริการ</span>`;
                             }
                         }
                     },
@@ -258,7 +258,52 @@
                             }
                         }
                     },
-                    { data: 'files'},
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if (row.status_id == 20) {
+                                 var result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + data + '&menu=report';
+                                  return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-alt"></i>' +
+                                    '</span>' +
+                                    '<span>อัปโหลดใบรายงานผล (ฉบับจริง)</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (row.status_id == 11 || row.status_id == 22) {
+                                var result_url = '/service_admin/result/draft/edit/' + row.result_id + '?request_id=' + data + '&menu=report';
+                                 return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-alt"></i>' +
+                                    '</span>' +
+                                    '<span>อัปโหลดใบรายงานผล (ฉบับร่าง)</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (row.status_id == 10) {
+                                var result_url = '/service_admin/result/draft/add?request_id=' + data + '&menu=report&tab=test_item';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-alt"></i>' +
+                                    '</span>' +
+                                    '<span>อัปโหลดใบรายงานผล (ฉบับร่าง)</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if ((row.status_id >= 12 && row.status_id <= 21) || row.status_id == 23) {
+                                return row.files
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
                     {
                         data: 'id',
                         render: function (data) {
