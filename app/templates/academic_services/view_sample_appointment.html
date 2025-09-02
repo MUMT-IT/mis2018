@@ -159,8 +159,26 @@
                                             <td>ตัวอย่างชุดเดียวกันแต่มีหลายชิ้น</td>
                                             <td><strong>{{ sample.same_production_lot }}</strong></td>
                                         </tr>
+                                        </tbody>
+                                    </table>
+                                {% else %}
+                                    ยังไม่ได้รับตัวอย่าง
+                                {% endif %}
+                            </p>
+                            <p>
+                                <label class="label">เอกสาร</label>
+                                {% if sample.received_at %}
+                                    <table class="table is-fullwidth is-striped">
+                                        <thead>
                                         <tr>
-                                            <td>8</td>
+                                            <th>ลำดับ</th>
+                                            <th>หัวข้อ</th>
+                                            <th>รายละเอียด</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <tr>
+                                            <td>1</td>
                                             <td>ใบอนุญาตนำเข้าหรือผลิต</td>
                                             <td>
                                                 <strong>
@@ -173,7 +191,7 @@
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td>9</td>
+                                            <td>2</td>
                                             <td>สูตรตำรับ/สูตร 100% ของตัวอย่าง</td>
                                             <td>
                                                 <strong>
@@ -188,7 +206,7 @@
                                         </tbody>
                                     </table>
                                 {% else %}
-                                    ยังไม่ได้รับตัวอย่าง
+                                    ยังไม่ได้ส่งเอกสาร
                                 {% endif %}
                             </p>
                             <p>
