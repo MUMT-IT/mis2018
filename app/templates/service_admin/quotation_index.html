@@ -78,6 +78,8 @@
                     <th>ผู้ประสานงาน</th>
                     <th>เลขใบคำขอรับบริการ</th>
                     <th>ราคา</th>
+                    <th>สถานะ</th>
+                    <th>หมายเหตุ</th>
                     <th>ผู้ออก</th>
                     <th>รายละเอียด</th>
                     </thead>
@@ -144,6 +146,29 @@
                     {data: 'customer_name'},
                     {data: 'request_no'},
                     {data: 'total_price'},
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            var color = row.admin_status_color
+                            var status = row.admin_status
+                            if (data !== null) {
+                                return `<span class="tag ${color}">${status}</span>`;
+                            }
+                            else {
+                                return `<span class="tag is-info">ร่างใบเสนอราคา</span>`;
+                            }
+                        }
+                    },
+                    {
+                        data: 'cancel_reason',
+                        render: function (data) {
+                            if (data !== null) {
+                                return data
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
                     {data: 'creator'},
                     {
                         data: 'id',
