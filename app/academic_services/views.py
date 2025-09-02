@@ -899,7 +899,6 @@ def get_requests():
                                 </div>
                             </div>
                         '''
-                    html_blocks.append(html)
                 elif i.draft_file:
                     download_file = url_for('service_admin.download_file', key=i.draft_file,
                                             download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
@@ -913,7 +912,9 @@ def get_requests():
                                                 </div>
                                             </div>
                                         '''
-                    html_blocks.append(html)
+                else:
+                    html = ''
+                html_blocks.append(html)
         item_data['files'] = ''.join(html_blocks) if html_blocks else ''
         data.append(item_data)
     return jsonify({'data': data,
