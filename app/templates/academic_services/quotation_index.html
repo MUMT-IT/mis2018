@@ -17,6 +17,7 @@
                         <th>รายการ</th>
                         <th>ราคา</th>
                         <th>สถานะ</th>
+                        <th>หมายเหตุ</th>
                         <th>รายละเอียด</th>
                     </thead>
                     <tbody>
@@ -61,6 +62,16 @@
                             }
                             else {
                                 return `<span class="tag is-info">อยู่ระหว่างการจัดทำใบเสนอราคา</span>`;
+                            }
+                        }
+                    },
+                    {
+                        data: 'cancel_reason',
+                        render: function (data) {
+                            if (data !== null) {
+                                return data
+                            } else {
+                                return ''
                             }
                         }
                     },
