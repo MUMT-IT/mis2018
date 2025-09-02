@@ -260,9 +260,9 @@
                                         >
                                             <span class="icon"><i class="fas fa-download"></i></span>
                                             {% if service_request.status.status_id == 22 %}
-                                                <span>แก้ไขใบรายงานผล</span>
+                                                <span>แก้ไขใบรายงานผล (ฉบับร่าง)</span>
                                             {% else %}
-                                                 <span>ออกใบรายงานผล</span>
+                                                 <span>ออกใบรายงานผล (ฉบับร่าง)</span>
                                             {% endif %}
                                         </a>
                                     </li>
@@ -274,7 +274,7 @@
                                            result_id=result_id, request_id=service_request.id, menu='test_item') }}"
                                         >
                                             <span class="icon"><i class="fas fa-download"></i></span>
-                                            <span>ออกใบรายงานผล</span>
+                                            <span>ออกใบรายงานผล (ฉบับจริง)</span>
                                         </a>
                                     </li>
                                 {% endif %}
