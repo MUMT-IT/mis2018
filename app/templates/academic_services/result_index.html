@@ -29,7 +29,7 @@
                     <th>รายการ</th>
                     <th>สถานะ</th>
                     <th>ผลการทดสอบ</th>
-                    <th>หมายเหตุ</th>
+                    <th>รายละเอียดการแก้ไข</th>
                     <th></th>
                     </thead>
                     <tbody>
@@ -92,6 +92,9 @@
                             </td>
                             <td>
                                 {{ result.note or '' }}
+                                {% if result.status_note %}
+                                    <span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>
+                                {% endif %}
                             </td>
                             <td>
                                 {% if result.status.status_id == 12 %}
@@ -156,7 +159,9 @@
     </script>
     <script>
         $(document).ready(function () {
-            $('#requests').DataTable({});
+            $('#requests').DataTable({
+                scrollX: true,
+            });
             $('.Warn').click(() => {
                 Swal.fire({
                     title: 'กรุณาชำระค่าบริการ',

@@ -15,10 +15,11 @@
                     <thead>
                     <th>เลขใบคำร้องขอ</th>
                     <th>หมายเลขติดตามพัสดุ</th>
-                    <th>วัน-เวลาทีออกผล</th>
+                    <th>วัน-เวลาที่ออกผล</th>
                     <th>รายการ</th>
                     <th>สถานะ</th>
                     <th>ผลการทดสอบ</th>
+                    <th>รายละเอียดการแก้ไข</th>
                     <th>ผู้ออก</th>
                     <th></th>
                     </thead>
@@ -36,9 +37,10 @@
             $.fn.dataTable.moment('lll');
             $('#results').DataTable({
                 ajax: {
-                    url: {{ url_for('service_admin.get_results')|tojson|safe}},
+                    url: {{ url_for('service_admin.get_results')|tojson|safe }},
                 },
                 order: [[2, 'desc']],
+                scrollX: true,
                 columns: [
                     {data: 'request_no'},
                     {
@@ -78,9 +80,13 @@
                     {data: 'files'},
                     {
                         data: 'note',
-                        render: function (data) {
+                        render: function (data, type, row) {
                             if (data !== null) {
-                                return data
+                                var tag = '';
+                                if (row.status_note) {
+                                    tag = `<span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>`;
+                                }
+                                return `${data} ${tag}`;
                             } else {
                                 return ''
                             }
@@ -100,7 +106,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.status_id >= 20) {
+                            } else if (row.status_id >= 23) {
                                 var tracking_number_url = '/service_admin/result/tracking_number/add/' + row.id + '?menu=' + '{{ menu }}';
                                 var result_url = '/service_admin/result/final/edit/' + data + '?request_id=' + row.request_id + '&menu=' + '{{ menu }}';
                                 if (row.tracking_number) {
@@ -113,7 +119,7 @@
                                         '</div>' +
                                         '<div class="control">' +
                                         '<a class="button is-small is-info is-rounded" ' + 'href=' + result_url + '>' +
-                                        '<span class="icon"><i class="fas fa-file-alt"></i</span>' +
+                                        '<span class="icon"><i class="fas fa-file-alt"></i></span>' +
                                         '<span>อัปโหลดใบรายงานผล</span>' +
                                         '</a>' +
                                         '</div>' +
@@ -128,7 +134,7 @@
                                         '</div>' +
                                         '<div class="control">' +
                                         '<a class="button is-small is-info is-rounded" ' + 'href=' + result_url + '>' +
-                                        '<span class="icon"><i class="fas fa-file-alt"></i</span>' +
+                                        '<span class="icon"><i class="fas fa-file-alt"></i></span>' +
                                         '<span>อัปโหลดใบรายงานผล</span>' +
                                         '</a>' +
                                         '</div>' +
