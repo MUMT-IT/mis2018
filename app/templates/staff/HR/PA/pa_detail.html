@@ -234,6 +234,19 @@
                         </span>
                     {% endif %}
                 {% endfor %}
+                <br><br>
+                <h1 class="subtitle">กรรมการอนุมัติคะแนนสรุป:</h1>
+                {% for s in pa.pa_score_sheet|sort(attribute='id') %}
+                    {% for a in s.approved_score_sheet %}
+                        {{ a.committee.staff.fullname }}:
+                        {% if a.approved_at %}
+                            {{ a.approved_at|localdatetime }}
+                        {% else %}
+                            ยังไม่อนุมัติ,
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+                <br><br>
                 <table class="table">
                     <thead>
                     <th>สร้างเมื่อ</th>
