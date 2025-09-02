@@ -1250,6 +1250,7 @@ class ServiceResult(db.Model):
     request = db.relationship(ServiceRequest, backref=db.backref('results', cascade="all, delete-orphan"))
     is_sent_email = db.Column('is_sent_email', db.Boolean())
     note = db.Column('note', db.Text())
+    status_note = db.Column('status_note', db.Boolean())
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('service_results'))
 
@@ -1271,7 +1272,8 @@ class ServiceResult(db.Model):
             'report_language': [item.report_language for item in self.result_items] if self.result_items else None,
             'creator': self.creator.fullname if self.creator else None,
             'request_id': self.request_id if self.request_id else None,
-            'note': self.note if self.note else None
+            'note': self.note if self.note else None,
+            'status_note': self.status_note if self.status_note else None
         }
 
     @property
