@@ -417,7 +417,8 @@ class ServiceRequest(db.Model):
             'result_status_for_customer': self.result_status_for_customer if self.result_status_for_customer else None,
             'invoice_no': invoice_no,
             'invoice_file': invoice_file,
-            'has_invoice': has_invoice
+            'has_invoice': has_invoice,
+            'result_id': [result.id for result in self.results] if self.results else None
         }
 
     @property
@@ -479,11 +480,6 @@ class ServiceRequest(db.Model):
                 id = quotation.id
                 if quotation.cancel_reason:
                     reason = quotation.reason
-        elif self.status.status_id == 2:
-            status = 'รอเจ้าหน้าที่ออกใบเสนอราคา'
-            color = 'is-info'
-            icon = '<i class="fas fa-clock"></i>'
-            id = None
         else:
             status = 'ยังไม่ดำเนินการขอใบเสนอราคา'
             color = 'is-danger'
