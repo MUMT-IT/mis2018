@@ -171,10 +171,31 @@
                                             <div class="control">
                                                 <a class="button is-small is-rounded is-success"
                                                     onclick="vm.warn('${data}')">
-                                                    อนุมัติ
+                                                    <span class="icon"><i class="fas fa-check"></i></span>
+                                                    <span>อนุมัติ</span>
                                                 </a>
                                             </div>
                                         </div>`;
+                            } else if (row.is_paid != null && row.receipt_id == null) {
+                                var url = '/receipt_printing/receipt/create' + '?invoice_id=' + data;
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-rounded is-warning" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>ออกใบเสร็จรับเงิน</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (row.is_paid != null && row.receipt_id != null) {
+                                var url = '/receipt_printing/receipts/pdf/' + row.receipt_id;
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-rounded is-info" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-receipt"></i></span>' +
+                                    '<span>ใบเสร็จรับเงิน</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
                             } else {
                                 return ''
                             }
