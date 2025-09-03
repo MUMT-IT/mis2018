@@ -1,5 +1,7 @@
 # -*- coding:utf-8 -*-
 import os
+import re
+
 import arrow
 import pandas as pd
 import pytz
@@ -301,8 +303,9 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
               ]]
     total = 0
     for n, item in enumerate(receipt.items, start=1):
+        order = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>", item.item)
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
-                       Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
+                       Paragraph('<font size=12>{}</font>'.format(order), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{:,.2f}</font>'.format(item.price),
                                  style=style_sheet['ThaiStyleNumber'])
                        ]
