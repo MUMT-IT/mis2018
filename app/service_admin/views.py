@@ -2215,7 +2215,7 @@ def add_payment():
             message += f'''{invoice.customer_name}\n'''
             message += f'''เบอร์โทร {invoice.contact_phone_number}\n\n'''
             message += f'''ระบบงานบริการวิชาการ'''
-            send_mail([staff.email], title, message)
+            send_mail([staff.email + '@mahidol.ac.th'], title, message)
             msg = ('แจ้งอัปเดตการชำระเงิน' \
                    '\n\nเรียน เจ้าหน้าที่การเงิน'
                    '\n\nใบแจ้งหนี้เลขที่ {}' \
