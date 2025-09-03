@@ -188,7 +188,7 @@
             methods: {
                 warn: function (invoice_id) {
                     this.$buefy.dialog.confirm({
-                        message: 'ต้องการอนุมัติการชำระเงินของรายการนี้หรือไม่',
+                        message: 'ต้องการยืนยันการชำระเงินของรายการนี้หรือไม่',
                         onConfirm: () => {
                             const url = `/academic_service_payment/invoice/payment/confirm/${invoice_id}`;
                             window.location.href = url;
