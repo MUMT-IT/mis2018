@@ -695,11 +695,14 @@ class ServiceQuotation(db.Model):
             'created_at': self.created_at,
             'total_price': '{:,.2f}'.format(self.grand_total()),
             'status_id': self.request.status.status_id if self.request.status else None,
-            'customer_status': self.customer_status if self.customer_name else None,
+            'customer_status': self.customer_status if self.customer_status else None,
             'customer_status_color': self.customer_status_color if self.customer_status_color else None,
+            'admin_status': self.admin_status if self.admin_status else None,
+            'admin_status_color': self.admin_status_color if self.admin_status_color else None,
             'creator': self.creator.fullname if self.creator else None,
             'request_no': self.request.request_no if self.request else None,
             'request_id': self.request_id if self.request_id else None,
+            'cancel_reason': self.cancel_reason if self.cancel_reason else None
         }
 
     @property
