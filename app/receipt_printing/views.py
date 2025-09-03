@@ -52,11 +52,35 @@ def landing():
 
 @receipt_printing.route('/receipt/create', methods=['POST', 'GET'])
 def create_receipt():
+    invoice_id = request.args.get('invoice_id')
     form = ReceiptDetailForm()
     form.payer.choices = [(None, 'Add or select payer')] + [(r.id, r.received_money_from)
                                 for r in ElectronicReceiptReceivedMoneyFrom.query.all()]
     receipt_num = ComHealthReceiptID.get_number('MTS', db)
     payer = None
+    if invoice_id:
+        invoice = ServiceInvoice.query.get(invoice_id)
+        received_money_from = ElectronicReceiptReceivedMoneyFrom.query.filter_by(received_money_from=invoice.name).first()
+        if not received_money_from:
+            received_money_from = ElectronicReceiptReceivedMoneyFrom(received_money_from=invoice.name, address=invoice.address,
+                                                                taxpayer_dentification_no=invoice.taxpayer_identification_no)
+            db.session.add(received_money_from)
+            db.session.commit()
+        while len(form.items.entries) < len(invoice.invoice_items):
+            form.items.append_entry()
+        for entry, invoice_item in zip(form.items.entries, invoice.invoice_items):
+            entry.item.data = invoice_item.item
+            entry.price.data = invoice_item.net_price()
+        payer = received_money_from
+        for payment in invoice.payments:
+            if payment.payment_type == 'QR Code Payment':
+                form.payment_method.data = 'QR Payment'
+            elif payment.payment_type == 'โอนเงิน':
+                form.payment_method.data = 'Bank Transfer'
+            elif payment.payment_type == 'เช็คเงินสด':
+                form.payment_method.data = 'Other'
+            else:
+                form.payment_method.data = 'Bank Transfer'
     if request.method == 'POST':
         if form.payer.data:
             try:
@@ -73,9 +97,11 @@ def create_receipt():
         receipt_detail = ElectronicReceiptDetail()
         receipt_detail.issuer = current_user
         receipt_detail.created_datetime = arrow.now('Asia/Bangkok').datetime
-        form.populate_obj(receipt_detail)  #insert data from Form to Model
+        form.populate_obj(receipt_detail)
         if payer:
             receipt_detail.received_money_from = payer
+        if invoice_id:
+            receipt_detail.invocie_id = invoice_id
         receipt_detail.number = receipt_num.number
         receipt_num.count += 1
         receipt_detail.received_money_from.address = form.address.data
@@ -88,7 +114,7 @@ def create_receipt():
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
-    return render_template('receipt_printing/new_receipt.html', form=form)
+    return render_template('receipt_printing/new_receipt.html', form=form, payer=payer, invoice_id=invoice_id)
 
 
 @receipt_printing.route('/receipt/create/add-items', methods=['POST', 'GET'])
