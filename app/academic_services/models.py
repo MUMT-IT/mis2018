@@ -1027,7 +1027,8 @@ class ServiceInvoice(db.Model):
                         if self.payments else [],
             'paid_at': self.paid_at if self.paid_at else None,
             'is_paid': self.is_paid if self.is_paid else None,
-            'invoice_file': self.file if self.file else None
+            'invoice_file': self.file if self.file else None,
+            'receipt_id': [receipt.id for receipt in self.receipts] if self.receipts else None
         }
 
     # @property
