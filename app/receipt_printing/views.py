@@ -103,7 +103,7 @@ def create_receipt():
         if payer:
             receipt_detail.received_money_from = payer
         if invoice_id:
-            receipt_detail.invocie_id = invoice_id
+            receipt_detail.invoice_id = invoice_id
         receipt_detail.number = receipt_num.number
         receipt_num.count += 1
         receipt_detail.received_money_from.address = form.address.data
