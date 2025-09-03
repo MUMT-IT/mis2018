@@ -957,10 +957,10 @@ def generate_request_pdf(service_request):
 
     staff_only = '''<para><font size=12>
                 สำหรับเจ้าหน้าที่ / Staff only<br/>
-                เลขที่ใบคำขอ &nbsp;&nbsp;_____________<br/>
-                วันที่รับตัวอย่าง _____________<br/>
-                วันที่รายงานผล _____________<br/>
-                </font></para>'''
+                เลขที่ใบคำขอ &nbsp;  <u>&nbsp;{request_no}&nbsp;&nbsp;</u><br/>
+                วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
+                วันที่รายงานผล <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
+                </font></para>'''.format(request_no=service_request.request_no)
 
     staff_table = Table([[Paragraph(staff_only, style=style_sheet['ThaiStyle'])]], colWidths=[150])
 
@@ -1088,7 +1088,7 @@ def generate_request_pdf(service_request):
     data.append(KeepTogether(customer_table))
 
     details = 'ข้อมูลผลิตภัณฑ์' + "<br/>" + "<br/>".join(values)
-    first_page_limit = 500
+    first_page_limit = 410
     remaining_text = ""
     current_length = 0
     lines = details.split("<br/>")
@@ -1135,9 +1135,9 @@ def generate_request_pdf(service_request):
         data.append(KeepTogether(Spacer(7, 7)))
         data.append(KeepTogether(remaining_page_table))
 
+    height = 0
     if table_rows:
         height = (len(table_rows) + 1) * detail_style.leading
-
         header_table = [Paragraph(f"<b>{key}</b>", detail_style) for key in table_keys]
         content_table = [header_table]
         for row in table_rows:
@@ -1153,17 +1153,16 @@ def generate_request_pdf(service_request):
         ]))
 
         total_height = current_length + height
-
-        if total_height > first_page_limit and remaining_text:
+        if total_height > first_page_limit and not remaining_text:
             data.append(PageBreak())
-            data.append(KeepTogether(Spacer(20, 20)))
-            data.append(KeepTogether(content_header))
-            data.append(KeepTogether(Spacer(7, 7)))
-        data.append(KeepTogether(germ_table))
+            data.append(Spacer(20, 20))
+            data.append(content_header)
+            data.append(Spacer(7, 7))
+        data.append(germ_table)
 
     lab_test = '''<para><font size=12>
                     สำหรับเจ้าหน้าที่<br/>
-                    Lab No. : __________________________________<br/>
+                    Lab No. : _________________________________________________________________________________________________________________<br/>
                     สภาพตัวอย่าง : O ปกติ<br/>
                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; O ไม่ปกติ<br/>
                     </font></para>'''
@@ -1178,13 +1177,13 @@ def generate_request_pdf(service_request):
     ]))
 
     if service_request.lab == 'bacteria' or service_request.lab == 'virology':
-        total_height = total_height + current_length
-        if not remaining_text and total_height > first_page_limit:
+        lab_table_height = detail_style.leading * lab_test.count('<br/>')
+        if not remaining_text and (height + lab_table_height > first_page_limit):
             data.append(PageBreak())
-            data.append(KeepTogether(Spacer(20, 20)))
-            data.append(KeepTogether(content_header))
-            data.append(KeepTogether(Spacer(7, 7)))
-        data.append(KeepTogether(lab_test_table))
+            data.append(Spacer(20, 20))
+            data.append(content_header)
+            data.append(Spacer(7, 7))
+        data.append(lab_test_table)
 
     if service_request.samples:
         sign_table = Table([
@@ -1206,7 +1205,7 @@ def generate_request_pdf(service_request):
             ('BOTTOMPADDING', (0, 1), (-1, 1), 0),
         ]))
 
-        qr_code_label = Paragraph("QR Code สำหรับการตรวจสอบตัวอย่าง", style=center_style)
+        qr_code_label = Paragraph("QR Code สำหรับเจ้าหน้าที่ตรวจรับตัวอย่าง", style=center_style)
         qr_code_table = Table([
             [qr_code_label],
             [qr_code],
