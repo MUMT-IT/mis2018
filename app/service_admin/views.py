@@ -328,15 +328,15 @@ def get_requests():
                     download_file = url_for('service_admin.download_file', key=i.draft_file,
                                             download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
                     html = f'''
-                                            <div class="field has-addons">
-                                                <div class="control">
-                                                    <a class="button is-small is-light is-link is-rounded" href="{download_file}">
-                                                        <span>{i.report_language} (ฉบับร่าง)</span>
-                                                        <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        '''
+                                <div class="field has-addons">
+                                    <div class="control">
+                                        <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                            <span>{i.report_language} (ฉบับร่าง)</span>
+                                                <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                '''
                 else:
                     html = ''
                 html_blocks.append(html)
@@ -733,8 +733,8 @@ def get_test_items():
     total_filtered = query.count()
     query = query.offset(start).limit(length)
     data = []
-    html_blocks = []
     for item in query:
+        html_blocks = []
         item_data = item.to_dict()
         for result in item.request.results:
             for i in result.result_items:
@@ -742,33 +742,32 @@ def get_test_items():
                     download_file = url_for('service_admin.download_file', key=i.final_file,
                                             download_filename=f"{i.report_language} (ฉบับจริง).pdf")
                     html = f'''
-                        <div class="field has-addons">
-                            <div class="control">
-                                <a class="button is-small is-light is-link is-rounded" href="{download_file}">
-                                    <span>{i.report_language} (ฉบับจริง)</span>
-                                    <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                </a>
+                            <div class="field has-addons">
+                                <div class="control">
+                                    <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                        <span>{i.report_language} (ฉบับจริง)</span>
+                                        <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                    </a>
+                                </div>
                             </div>
-                        </div>
-                    '''
+                        '''
                 elif i.draft_file:
                     download_file = url_for('service_admin.download_file', key=i.draft_file,
                                             download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
                     html = f'''
-                                        <div class="field has-addons">
-                                            <div class="control">
-                                                <a class="button is-small is-light is-link is-rounded" href="{download_file}">
-                                                    <span>{i.report_language} (ฉบับร่าง)</span>
-                                                    <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                                </a>
+                                            <div class="field has-addons">
+                                                <div class="control">
+                                                    <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                                        <span>{i.report_language} (ฉบับร่าง)</span>
+                                                        <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                    </a>
+                                                </div>
                                             </div>
-                                        </div>
-                                    '''
+                                        '''
                 else:
                     html = ''
                 html_blocks.append(html)
-        item_data['files'] = ''.join(
-            html_blocks) if html_blocks else '<span class="has-text-grey-light is-italic">ไม่มีไฟล์</span>'
+            item_data['files'] = ''.join(html_blocks) if html_blocks else '<span class="has-text-grey-light is-italic">ไม่มีไฟล์</span>'
         data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
