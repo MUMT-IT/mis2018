@@ -249,7 +249,7 @@
                                 {% elif service_request.status.status_id == 10 or service_request.status.status_id == 11
                                     or service_request.status.status_id == 22 %}
                                     <li>
-                                        <a class="button is-warning is-rounded is-small is-fullwidth mb-2"
+                                        <a class="button is-primary is-rounded is-fullwidth mb-2"
                                                 {% if result_id %}
                                            href="{{ url_for('service_admin.create_draft_result',
                                                         result_id=result_id, request_id=service_request.id, menu='test_item') }}"
@@ -266,10 +266,10 @@
                                             {% endif %}
                                         </a>
                                     </li>
-                                {% elif service_request.status.status_id == 20 %}
-                                    {% elif service_request.status.status_id == 10 or service_request.status.status_id == 22 %}
+                                {% endif %}
+                                {% if service_request.status.status_id >= 10 %}
                                     <li>
-                                        <a class="button is-warning is-rounded is-small is-fullwidth mb-2"
+                                        <a class="button is-info is-rounded is-fullwidth mb-2"
                                            href="{{ url_for('service_admin.create_final_result',
                                            result_id=result_id, request_id=service_request.id, menu='test_item') }}"
                                         >
