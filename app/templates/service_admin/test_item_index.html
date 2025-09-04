@@ -15,6 +15,7 @@
                         <th>เลขใบคำขอรับบริการ</th>
                         <th>วัน-เวลาที่รับตัวอย่าง</th>
                         <th>ลูกค้า</th>
+                        <th>ไฟล์ใบรายงานผล</th>
                         <th>ใบรายงานผล</th>
                         <th>ใบแจ้งหนี้</th>
                     </thead>
@@ -58,10 +59,11 @@
                         }
                     },
                     { data: 'customer' },
+                    { data: 'files' },
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.status_id == 20) {
+                            if (row.status_id >= 12) {
                                  var result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
                                   return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -74,31 +76,47 @@
                                     '</div>' +
                                     '</div>'
                             } else if (row.status_id == 11 || row.status_id == 22) {
-                                var result_url = '/service_admin/result/draft/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
+                                var draft_result_url = '/service_admin/result/draft/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
+                                var final_result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
                                  return '<div class="field has-addons">' +
                                     '<div class="control">' +
-                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + result_url + '>' +
+                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + draft_result_url + '>' +
                                     '<span class="icon">' +
                                     '<i class="fas fa-file-alt"></i>' +
                                     '</span>' +
                                     '<span>อัปโหลดใบรายงานผล (ฉบับร่าง)</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + final_result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-alt"></i>' +
+                                    '</span>' +
+                                    '<span>อัปโหลดใบรายงานผล (ฉบับจริง)</span>' +
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
                             } else if (row.status_id == 10) {
-                                var result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report&tab=test_item';
+                                var draft_result_url = '/service_admin/result/draft/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
+                                var final_result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
-                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + result_url + '>' +
+                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + draft_result_url + '>' +
                                     '<span class="icon">' +
                                     '<i class="fas fa-file-alt"></i>' +
                                     '</span>' +
                                     '<span>อัปโหลดใบรายงานผล (ฉบับร่าง)</span>' +
                                     '</a>' +
                                     '</div>' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + final_result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-alt"></i>' +
+                                    '</span>' +
+                                    '<span>อัปโหลดใบรายงานผล (ฉบับจริง)</span>' +
+                                    '</a>' +
+                                    '</div>' +
                                     '</div>'
-                            } else if ((row.status_id >= 12 && row.status_id <= 21) || row.status_id == 23) {
-                                return row.files
                             } else {
                                 return ''
                             }
