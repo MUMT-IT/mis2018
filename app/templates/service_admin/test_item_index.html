@@ -63,7 +63,7 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.status_id >= 12) {
+                            if (row.status_id >= 12 && row.status_id != 22) {
                                  var result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
                                   return '<div class="field has-addons">' +
                                     '<div class="control">' +
