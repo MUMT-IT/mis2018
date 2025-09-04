@@ -3,6 +3,7 @@
 {% block head %}
     {{ super() }}
     <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
     <style>
         .toast {
             opacity: 1 !important;
@@ -151,6 +152,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
         $(document).ready(function () {
@@ -343,7 +345,13 @@
                 }
             }
         })
-
+        $(document).on('click', '.Warn', function () {
+            Swal.fire({
+                title: 'กรุณาชำระเงิน',
+                icon: 'warning',
+                text: 'ท่านยังไม่ได้ดำเนินการชำระเงิน กรุณาชำระเงินเพื่อให้สามารถดาวน์โหลดรายงานผลได้ค่ะ'
+            });
+        });
         function showQuoteModal() {
             const modal = new bootstrap.Modal(document.getElementById('quoteStatusModal'));
             modal.show();
