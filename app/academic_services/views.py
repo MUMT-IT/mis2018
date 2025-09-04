@@ -889,16 +889,29 @@ def get_requests():
                 if i.final_file:
                     download_file = url_for('service_admin.download_file', key=i.final_file,
                                             download_filename=f"{i.report_language} (ฉบับจริง).pdf")
-                    html = f'''
-                            <div class="field has-addons">
-                                <div class="control">
-                                    <a class="button is-small is-light is-link is-rounded" href="{download_file}">
-                                        <span>{i.report_language} (ฉบับจริง)</span>
-                                        <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                    </a>
+                    print('s', item.status.status_id)
+                    if item.status.status_id == 20:
+                        html = f'''
+                                <div class="field has-addons">
+                                    <div class="control">
+                                        <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                            <span>{i.report_language} (ฉบับจริง)</span>
+                                            <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                        </a>
+                                    </div>
                                 </div>
-                            </div>
-                        '''
+                            '''
+                    else:
+                        html = f'''
+                                    <div class="field has-addons">
+                                        <div class="control">
+                                            <a class="button is-small is-light is-link is-rounded Warn">
+                                                <span>{i.report_language} (ฉบับจริง)</span>
+                                                <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                '''
                 elif i.draft_file:
                     download_file = url_for('service_admin.download_file', key=i.draft_file,
                                             download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
