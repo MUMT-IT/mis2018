@@ -889,7 +889,6 @@ def get_requests():
                 if i.final_file:
                     download_file = url_for('service_admin.download_file', key=i.final_file,
                                             download_filename=f"{i.report_language} (ฉบับจริง).pdf")
-                    print('s', item.status.status_id)
                     if item.status.status_id == 20:
                         html = f'''
                                 <div class="field has-addons">
