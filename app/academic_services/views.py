@@ -2155,7 +2155,8 @@ def invoice_index():
 
 @academic_services.route('/api/invoice/index')
 def get_invoices():
-    query = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at != None)
+    query = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at != None, ServiceInvoice.quotation.has(
+                ServiceQuotation.request.has(customer_id=current_user.id)))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -2522,6 +2523,29 @@ def view_payment(payment_id):
 def receipt_index():
     menu = request.args.get('menu')
     return render_template('academic_services/receipt_index.html', menu=menu)
+
+
+@academic_services.route('/api/receipt/index')
+def get_receipts():
+    query = ServiceInvoice.query.filter(ServiceInvoice.receipts != None, ServiceInvoice.quotation.has(
+                ServiceQuotation.request.has(customer_id=current_user.id)))
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(ServiceInvoice.invoice_no.contains(search))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordFiltered': total_filtered,
+                    'recordTotal': records_total,
+                    'draw': request.args.get('draw', type=int)
+                    })
 
 
 @academic_services.route('/customer/result/index')

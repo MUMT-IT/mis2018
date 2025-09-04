@@ -2890,6 +2890,40 @@ def receipt_index():
     return render_template('service_admin/receipt_index.html', menu=menu)
 
 
+@service_admin.route('/api/receipt/index')
+def get_receipts():
+    sub_lab = ServiceSubLab.query.filter(
+        or_(
+            ServiceSubLab.approver_id == current_user.id,
+            ServiceSubLab.signer_id == current_user.id,
+            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+        )
+    )
+    sub_labs = []
+    for s in sub_lab:
+        sub_labs.append(s.code)
+    query = ServiceInvoice.query.filter(ServiceInvoice.receipts!=None, or_(ServiceInvoice.creator_id == current_user.id,
+                                            ServiceInvoice.quotation.has(ServiceQuotation.request.has(
+                                                ServiceRequest.lab.in_(sub_labs)))))
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(ServiceInvoice.invoice_no.contains(search))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordFiltered': total_filtered,
+                    'recordTotal': records_total,
+                    'draw': request.args.get('draw', type=int)
+                    })
+
+
 @service_admin.route('/result/draft/add', methods=['GET', 'POST'])
 @service_admin.route('/result/draft/edit/<int:result_id>', methods=['GET', 'POST'])
 @login_required
