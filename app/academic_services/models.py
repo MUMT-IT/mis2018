@@ -1028,7 +1028,10 @@ class ServiceInvoice(db.Model):
             'paid_at': self.paid_at if self.paid_at else None,
             'is_paid': self.is_paid if self.is_paid else None,
             'invoice_file': self.file if self.file else None,
-            'receipt_id': [receipt.id for receipt in self.receipts] if self.receipts else None
+            'receipt_id': [receipt.id for receipt in self.receipts] if self.receipts else None,
+            'receipt_no': [receipt.number for receipt in self.receipts] if self.receipts else None,
+            'issuer': [receipt.issuer.fullname for receipt in self.receipts] if self.receipts else None,
+            'receipt_at': [receipt.created_datetime.isoformat() for receipt in self.receipts] if self.receipts else None,
         }
 
     # @property
