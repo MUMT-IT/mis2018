@@ -56,12 +56,12 @@
                                         <a {% if result.status.status_id == 20 %}
                                                 class="button is-small is-link is-light is-rounded"
                                                 href="{{ url_for('academic_services.download_file', key=item.final_file,
-                                                download_filename=item.report_language + '.pdf') }}"
+                                                download_filename=item.report_language + ' ' + '(ฉบับจริง)' + '.pdf') }}"
                                            {% else %}
                                                 class="button is-small is-link is-light is-rounded Warn"
                                            {% endif %}
                                         >
-                                            <span>{{ item.report_language + ' ' + '(ตัวจริง)' or 'ไม่ระบุภาษา' }}</span>
+                                            <span>{{ item.report_language + ' ' + '(ฉบับจริง)' or 'ไม่ระบุภาษา' }}</span>
                                             <span class="icon is-small"><i class="fas fa-download"></i></span>
                                         </a>
                                     </div>
@@ -71,8 +71,8 @@
                                     <div class="control">
                                         <a class="button is-small is-link is-light is-rounded"
                                            href="{{ url_for('academic_services.download_file', key=item.draft_file,
-                                                       download_filename=item.report_language + '.pdf') }}">
-                                            <span>{{ item.report_language + + ' ' '(ร่าง)' or 'ไม่ระบุภาษา' }}</span>
+                                                       download_filename=item.report_language +  ' ' +'(ฉบับร่าง)' + '.pdf') }}">
+                                            <span>{{ item.report_language +  ' ' +'(ฉบับร่าง)' or 'ไม่ระบุภาษา' }}</span>
                                             <span class="icon is-small"><i class="fas fa-download"></i></span>
                                         </a>
                                     </div>
