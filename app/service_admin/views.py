@@ -2992,6 +2992,23 @@ def create_draft_result(result_id=None):
                 message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
                 message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
                 send_mail([contact_email], title, message)
+            elif result.result_edit_at and not result.approved_at:
+                result_url = url_for('academic_services.result_index', menu='report', _external=True, _scheme=scheme)
+                customer_name = result.request.customer.customer_name.replace(' ', '_')
+                contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
+                title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
+                title = f'''แจ้งแก้ไขรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+                message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
+                message += f''' ขณะนี้ได้แก้ไขทำรายงานผลการทดสอบฉบับร่างเรียบร้อยแล้ว'''
+                message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
+                message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง'''
+                message += f'''{result_url}'''
+                message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+                message += f'''ขอแสดงความนับถือ\n'''
+                message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+                message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                send_mail([contact_email], title, message)
             result.is_sent_email = True
         else:
             status_id = get_status(11)
