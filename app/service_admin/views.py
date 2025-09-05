@@ -767,7 +767,7 @@ def get_test_items():
                 else:
                     html = ''
                 html_blocks.append(html)
-            item_data['files'] = ''.join(html_blocks) if html_blocks else '<span class="has-text-grey-light is-italic">ไม่มีไฟล์</span>'
+        item_data['files'] = ''.join(html_blocks) if html_blocks else '<span class="has-text-grey-light is-italic">ไม่มีไฟล์</span>'
         data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
@@ -3065,27 +3065,27 @@ def create_final_result(result_id=None):
                 item.result.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(item)
                 db.session.commit()
-        scheme = 'http' if current_app.debug else 'https'
-        result_url = url_for('academic_services.result_index', menu='report', _external=True, _scheme=scheme)
-        customer_name = result.request.customer.customer_name.replace(' ', '_')
-        contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
-        title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
-        title = f'''แจ้งออกรายงานผลการทดสอบฉบับร่างจริงของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-        message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-        message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
-        message += f''' ขณะนี้ได้ดำเนินการออกรายงานผลการทดสอบฉบับจริงเรียบร้อยแล้ว'''
-        message += f'''ท่านสามารถดูรายละเอียดรายงานผลการทดสอบได้จากลิงก์ด้านล่าง'''
-        message += f'''{result_url}'''
-        message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-        message += f'''ขอแสดงความนับถือ\n'''
-        message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
-        message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-        send_mail([contact_email], title, message)
-        db.session.add(result)
-        db.session.add(service_request)
-        db.session.commit()
-        flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
-        return redirect(url_for('service_admin.test_item_index', menu='test_item'))
+                scheme = 'http' if current_app.debug else 'https'
+                result_url = url_for('academic_services.result_index', menu='report', _external=True, _scheme=scheme)
+                customer_name = result.request.customer.customer_name.replace(' ', '_')
+                contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
+                title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
+                title = f'''แจ้งออกรายงานผลการทดสอบฉบับร่างจริงของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+                message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
+                message += f''' ขณะนี้ได้ดำเนินการออกรายงานผลการทดสอบฉบับจริงเรียบร้อยแล้ว'''
+                message += f'''ท่านสามารถดูรายละเอียดรายงานผลการทดสอบได้จากลิงก์ด้านล่าง'''
+                message += f'''{result_url}'''
+                message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+                message += f'''ขอแสดงความนับถือ\n'''
+                message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+                message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                send_mail([contact_email], title, message)
+                db.session.add(result)
+                db.session.add(service_request)
+                db.session.commit()
+                flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
+                return redirect(url_for('service_admin.test_item_index', menu='test_item'))
     return render_template('service_admin/create_final_result.html', result_id=result_id, menu=menu, result=result)
 
 
