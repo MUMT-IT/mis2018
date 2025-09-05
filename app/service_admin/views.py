@@ -1603,7 +1603,7 @@ def create_invoice(quotation_id):
             db.session.add(invoice_item)
             db.session.commit()
         db.session.commit()
-        status_id = get_status(14)
+        status_id = get_status(16)
         invoice.quotation.request.status_id = status_id
         db.session.add(invoice)
         db.session.commit()
@@ -1627,7 +1627,7 @@ def approve_invoice(invoice_id):
     customer_name = invoice.customer_name.replace(' ', '_')
     title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
     if admin == 'assistant':
-        status_id = get_status(17)
+        status_id = get_status(19)
         invoice.quotation.request.status_id = status_id
         invoice.assistant_approved_at = arrow.now('Asia/Bangkok').datetime
         invoice.assistant_id = current_user.id
@@ -1686,7 +1686,7 @@ def approve_invoice(invoice_id):
                             except LineBotApiError:
                                 pass
     elif admin == 'supervisor':
-        status_id = get_status(16)
+        status_id = get_status(18)
         invoice.quotation.request.status_id = status_id
         invoice.head_approved_at = arrow.now('Asia/Bangkok').datetime
         invoice.head_id = current_user.id
@@ -1732,7 +1732,7 @@ def approve_invoice(invoice_id):
             except LineBotApiError:
                 pass
     else:
-        status_id = get_status(15)
+        status_id = get_status(17)
         invoice.sent_at = arrow.now('Asia/Bangkok').datetime
         invoice.sender_id = current_user.id
         invoice.quotation.request.status_id = status_id
@@ -1794,7 +1794,7 @@ def upload_invoice_file(invoice_id):
     form = ServiceInvoiceForm(obj=invoice)
     if form.validate_on_submit():
         form.populate_obj(invoice)
-        status_id = get_status(18)
+        status_id = get_status(20)
         file = form.file_upload.data
         invoice.quotation.request.status_id = status_id
         invoice.file_attached_id = current_user.id
@@ -2169,7 +2169,7 @@ def add_payment():
     if form.validate_on_submit():
         payment = ServicePayment()
         form.populate_obj(payment)
-        status_id = get_status(19)
+        status_id = get_status(21)
         file = form.file_upload.data
         payment.invoice_id = invoice_id
         payment.created_at = arrow.now('Asia/Bangkok').datetime
@@ -3048,9 +3048,6 @@ def create_final_result(result_id=None):
                 item.result.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(item)
                 db.session.commit()
-        status_id = get_status(23)
-        result.status_id = status_id
-        service_request.status_id = status_id
         scheme = 'http' if current_app.debug else 'https'
         result_url = url_for('academic_services.result_index', menu='report', _external=True, _scheme=scheme)
         customer_name = result.request.customer.customer_name.replace(' ', '_')
@@ -3077,11 +3074,9 @@ def create_final_result(result_id=None):
 
 @service_admin.route('/result/final/delete/<int:item_id>', methods=['GET', 'POST'])
 def delete_final_result(item_id):
-    status_id = get_status(20)
     item = ServiceResultItem.query.get(item_id)
     item.final_file = None
     item.modified_at = arrow.now('Asia/Bangkok').datetime
-    item.result.status_id = status_id
     item.result.modified_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(item)
     db.session.commit()
