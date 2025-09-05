@@ -82,12 +82,10 @@
                     },
                     {data: 'product'},
                     {
-                        data: 'id',
-                        render: function (data, type, row) {
-                            var color = row.admin_status_color
-                            var status = row.admin_status
+                        data: 'admin_status',
+                        render: function (data) {
                             if (data !== null) {
-                                return `<span class="tag ${color}">${status}</span>`;
+                                return `<span class="tag ${data.color}">${data.status}</span>`;
                             } else {
                                 return `<span class="tag is-info">ยังไม่ออกผลการทดสอบ</span>`;
                             }

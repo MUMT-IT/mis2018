@@ -44,8 +44,8 @@
                         {{ product_list | selectattr('strip') | reject('eq', '') | join(', ') }}
                     </td>
                     <td>
-                        <span class="tag {{ result.status.customer_status_color }}">
-                            {{ result.status.customer_status }}
+                        <span class="tag {{ result.customer_status.color }}">
+                            {{ result.customer_status.status }}
                         </span>
                     </td>
                     <td>
