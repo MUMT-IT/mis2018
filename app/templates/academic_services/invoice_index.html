@@ -3,6 +3,7 @@
 {% block head %}
     {{ super() }}
     <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
     <style>
         .toast {
             opacity: 1 !important;
@@ -43,7 +44,22 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+    <script>
+        function showSlipPopup(url) {
+            Swal.fire({
+                title: 'หลักฐานการชำระเงิน',
+                html: `<iframe id="slipFrame" style="width:100%;height:500px;border:none;"></iframe>`,
+                width: 800,
+                showCloseButton: true,
+                showConfirmButton: false,
+                didOpen: () => {
+                    document.getElementById('slipFrame').src = url;
+                }
+            });
+        }
+    </script>
     <script>
         function showToast(category, message) {
             if (category === 'success') {
@@ -105,7 +121,7 @@
                     { data: 'total_price' },
                     { data: 'payment_type'},
                     {
-                        data : 'paid_at',
+                        data : 'payment_date',
                         render: function(data) {
                             if (data !== '') {
                                 let d = moment(data)
@@ -118,18 +134,17 @@
                     { data: 'id',
                         render: function (data, type, row) {
                             if (row.slip) {
-                                dowload_url = '/academic_services/aws-s3/download/' + row.slip + '?download_filename=สลิปใบแจ้งหนี้'
-                                return `
+                               return `
                                     <div class="field has-addons">
-                                       <div class="control">
-                                          <a class="button is-small is-outlined is-link is-rounded"
-                                             href="${dowload_url}">
-                                             <span class="icon is-small"><i class="fas fa-receipt"></i></span>
-                                             <span>หลักฐานการชำระเงิน</span>
-                                          </a>
-                                       </div>
-                                     </div>`;
-                            } else {
+                                        <div class="control">
+                                            <a class="button is-small is-outlined is-primary is-rounded"
+                                                onclick="showSlipPopup('${row.slip}')">
+                                                <span class="icon is-small"><i class="fas fa-receipt"></i></span>
+                                                <span>หลักฐานการชำระเงิน</span>
+                                            </a>
+                                        </div>
+                                    </div>`;
+                            } else if (row.file_attached_at != null && row.paid_at == null) {
                                 add_payment_url = '/academic_services/customer/payment/add?invoice_id=' + data +'&menu=invoice';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -141,6 +156,8 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
+                            } else {
+                                return ''
                             }
                         }
                     },

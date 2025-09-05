@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 from sqlalchemy import func, LargeBinary
 
+from app.academic_services.models import ServiceInvoice
 from app.main import db
 from app.staff.models import StaffAccount
 
@@ -36,6 +37,8 @@ class ElectronicReceiptDetail(db.Model):
     issuer = db.relationship(StaffAccount, foreign_keys=[issuer_id])
     print_number = db.Column('print_number', db.Integer, default=0, info={'label': u'จำนวนพิมพ์'})
     pdf_file = db.Column('pdf_file', LargeBinary)
+    invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
+    invoice = db.relationship(ServiceInvoice, backref=db.backref('receipts'))
 
     @property
     def item_list(self):

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "academic_services/service_base.html" %}
 {% block head %}
     {{ super() }}
 {% endblock %}
@@ -23,15 +23,7 @@
                             </div>
                             <div class="field">
                                 <div class="control">
-                                    <label class="checkbox">
-                                    <input type="checkbox" name="language_choice" value="thai" onclick="selectLanguage('thai')"
-                                           {% if 'ไทย' in req_report_language or
-                                           sub_lab != 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส' %}
-                                                checked
-                                           {% endif %}
-                                    >
-                                        ภาษาไทย
-                                    </label>
+                                    <label class="label">1. ภาษาไทย</label>
                                 </div>
                             </div>
                             <div class="field ml-4" id="thai-options">
@@ -54,15 +46,7 @@
                             </div>
                             <div class="field">
                                 <div class="control">
-                                    <label class="checkbox">
-                                    <input type="checkbox" name="language_choice" value="eng" onclick="selectLanguage('eng')"
-                                           {% if 'อังกฤษ' in req_report_language or
-                                            sub_lab == 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส'%}
-                                                checked
-                                           {% endif %}
-                                    >
-                                        ภาษาอังกฤษ
-                                    </label>
+                                     <label class="label">2. ภาษาอังกฤษ</label>
                                 </div>
                             </div>
                             <div class="field ml-4" id="eng-options">
@@ -100,19 +84,4 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script>
-        function selectLanguage(lang) {
-            const langCheckbox = document.querySelector(`input[name="language_choice"][value="${lang}"]`);
-            const inputs = document.querySelectorAll(`#${lang}-options input[type="checkbox"]`);
-            const isChecked = langCheckbox.checked;
-
-            inputs.forEach(cb => cb.disabled = !isChecked);
-        }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            ['thai', 'eng'].forEach(lang => {
-                selectLanguage(lang);
-            });
-        });
-    </script>
 {% endblock %}

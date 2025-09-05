@@ -35,6 +35,7 @@
                         <th>สถานที่</th>
                         <th>การส่งตัวอย่าง</th>
                         <th>สภาพตัวอย่าง</th>
+                        <th>เอกสาร</th>
                         <th>หมายเหตุ</th>
                         <th>ใบนำส่งตัวอย่าง</th>
                         <th></th>
@@ -131,6 +132,17 @@
                                     {% else %}
                                         <span class="tag is-danger">
                                             ยังไม่ได้ส่งตัวอย่าง
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if sample.received_at %}
+                                        <span class="tag {{ sample.get_file.color }}">
+                                            {{ sample.get_file.status }}
+                                        </span>
+                                    {% else %}
+                                        <span class="tag is-danger">
+                                            ยังไม่ได้ส่งเอกสาร
                                         </span>
                                     {% endif %}
                                 </td>

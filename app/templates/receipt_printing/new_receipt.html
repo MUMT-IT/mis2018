@@ -22,7 +22,11 @@
                                      <div class="field">
                                          <label class="label">รายการ</label>
                                          <div class="control">
-                                             {{ i.item(class="textarea") }}
+                                             {% if invoice_id %}
+                                                <textarea class="textarea" name="{{ i.item.name }}">{{ i.item.data|striptags }}</textarea>
+                                             {% else %}
+                                                 {{ i.item(class='textarea') }}
+                                             {% endif %}
                                          </div>
                                      </div>
                                      <div class="field">
@@ -159,20 +163,22 @@
 
         function update_amount() {
             let total_amount = 0.0
-            $(document).ready(() => {
-                $('[id$=price]').each(function () {
-                    total_amount += parseFloat($(this).val().replaceAll(',',''))
-                })
-                console.log(total_amount)
-                $('#paid_amount').val(total_amount)
-                $('#paid_amount_value').html(total_amount.toLocaleString('th-TH', {
-                    minimumFractionDigits: 2,
-                    style: "currency", currency: "THB"
-                }))
+            $('[id$=price]').each(function () {
+                let val = $(this).val().replaceAll(',', '')
+                if(val) total_amount += parseFloat(val)
             })
+            $('#paid_amount').val(total_amount)
+            $('#paid_amount_value').html(total_amount.toLocaleString('th-TH', {
+                minimumFractionDigits: 2,
+                style: "currency",
+                currency: "THB"
+            }))
         }
 
-        document.addEventListener('update_amount', update_amount)
+        $(document).ready(() => {
+            update_amount() // คำนวณตอนโหลดหน้า
+            $('[id$=price]').on('input', update_amount)
+        })
 
     </script>
     <script>
@@ -243,24 +249,28 @@
 
     </script>
     <script>
+        {% if payer %}
+            $('#address').val('{{ payer.address | e }}');
+            $('#payer').val('{{ payer.id }}').trigger('change'); // ให้ select2 แสดงค่า default
+        {% endif %}
         $( "#payer" ).on( "select2:select", function() {
-          let payer_id = $(this).val()
+            let payer_id = $(this).val()
             if (payer_id){
-                    $.ajax({
-                      url: "{{ url_for('receipt_printing.get_received_money_from_by_payer_id') }}",
-                      type: "get", //send it through get method
-                      data: {
+                $.ajax({
+                    url: "{{ url_for('receipt_printing.get_received_money_from_by_payer_id') }}",
+                    type: "get", //send it through get method
+                    data: {
                         payer_id: payer_id,
-                      },
-                      success: function(response) {
+                    },
+                    success: function(response) {
                         //Do Something
-                          $('#address').val(response.address);
-                      },
-                      error: function(xhr) {
+                        $('#address').val(response.address);
+                    },
+                    error: function(xhr) {
                         //Do Something to handle error
-                      }
-                    });
-                }
+                    }
+                });
+            }
         });
     </script>
 {% endblock %}
