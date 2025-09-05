@@ -2235,9 +2235,6 @@ def add_payment():
             invoice.paid_at = arrow.now('Asia/Bangkok').datetime
             invoice.quotation.request.status_id = status_id
             db.session.add(invoice)
-            result = ServiceResult.query.filter_by(request_id=invoice.quotation.request_id).first()
-            result.status_id = status_id
-            db.session.add(result)
             db.session.commit()
             scheme = 'http' if current_app.debug else 'https'
             org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
@@ -2571,7 +2568,7 @@ def result_index():
 @academic_services.route('/customer/result/confirm/<int:result_id>', methods=['GET', 'POST'])
 def confirm_result(result_id):
     menu = request.args.get('menu')
-    status_id = get_status(21)
+    status_id = get_status(13)
     result = ServiceResult.query.get(result_id)
     result.status_id = status_id
     result.approver_id = current_user.id
@@ -2635,7 +2632,7 @@ def edit_result(result_id):
     form = ServiceResultForm(obj=result)
     if form.validate_on_submit():
         form.populate_obj(result)
-        status_id = get_status(22)
+        status_id = get_status(14)
         result.status_id = status_id
         result.edit_requester_id = current_user.id
         result.result_edit_at = arrow.now('Asia/Bangkok').datetime
