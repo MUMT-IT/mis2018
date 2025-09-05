@@ -57,7 +57,7 @@
                                         '</div>' +
                                         '</div>'
                                 return `${data} ${edit_tracking_number}`;
-                            } else if (row.status_id == 20 || row.status_id == 23) {
+                            } else {
                                 return '<div class="field has-addons">' +
                                         '<div class="control">' +
                                         '<a class="button is-small is-link is-rounded" ' + 'href=' + tracking_number_url + '>' +
@@ -66,8 +66,6 @@
                                         '</a>' +
                                         '</div>' +
                                         '</div>'
-                            } else {
-                                return ''
                             }
                         }
                     },
@@ -116,7 +114,7 @@
                         render: function (data, type, row) {
                             var draft_result_url = '/service_admin/result/draft/edit/' + data + '?request_id=' + row.request_id + '&menu=report';
                             var final_result_url = '/service_admin/result/final/edit/' + data + '?request_id=' + row.request_id + '&menu=report';
-                            if (row.status_id >= 12 && row.status_id != 22) {
+                            if (row.status_id == 13 || row.status_id >= 16) {
                                   return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-info is-rounded" ' + 'href=' + final_result_url + '>' +
@@ -127,7 +125,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.status_id == 11 || row.status_id == 22) {
+                            } else if ((10 <= row.status_id <= 12) || (14 <= row.status_id <= 15)) {
                                  return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-primary is-rounded" ' + 'href=' + draft_result_url + '>' +

@@ -63,7 +63,7 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.status_id >= 12 && row.status_id != 22) {
+                            if (row.status_id == 13 || row.status_id >= 16) {
                                  var result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
                                   return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -75,7 +75,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.status_id == 11 || row.status_id == 22) {
+                            } else if ((10 <= row.status_id <= 12) || (14 <= row.status_id <= 15)) {
                                 var draft_result_url = '/service_admin/result/draft/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
                                 var final_result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
                                  return '<div class="field has-addons">' +
