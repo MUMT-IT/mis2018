@@ -2971,6 +2971,10 @@ def create_draft_result(result_id=None):
                 db.session.commit()
         uploaded_all = all(item.draft_file for item in result.result_items)
         if uploaded_all:
+            if result.request.status.status_id == 14:
+                result.status_note = True
+            else:
+                result.status_note = False
             status_id = get_status(12)
             result.status_id = status_id
             service_request.status_id = status_id
