@@ -728,11 +728,11 @@ def consensus_scoresheets_for_hr():
                     total = round(sum_score, 2)
                     if total >= 90:
                         level = 'ดีเด่น'
-                    elif 80 <= total <= 89.99:
+                    elif total >= 80:
                         level = 'ดีมาก'
-                    elif 70 <= total <= 79.99:
+                    elif total >= 70:
                         level = 'ดี'
-                    elif 60 <= total <= 69.99:
+                    elif total >= 60:
                         level = 'พอใช้'
                     else:
                         level = 'ควรปรับปรุง'
@@ -1550,13 +1550,13 @@ def all_pa_score():
                 if total >= 90:
                     level = 'ดีเด่น'
                     excellent_score += 1
-                elif 80 <= total <= 89.99:
+                elif total >= 80:
                     level = 'ดีมาก'
                     verygood_score += 1
-                elif 70 <= total <= 79.99:
+                elif total >= 70:
                     level = 'ดี'
                     good_score += 1
-                elif 60 <= total <= 69.99:
+                elif total >= 60:
                     level = 'พอใช้'
                     fair_score += 1
                 else:

@@ -100,14 +100,11 @@
                         {% if approved_scoresheet.pa.performance_score and approved_scoresheet.pa.competency_score %}
                             {% if approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >= 90 %}
                                 ดีเด่น
-                            {% elif approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >= 80
-                                and approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score <= 89.99%}
+                            {% elif approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >= 80%}
                                 ดีมาก
-                            {% elif approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >= 70
-                                and approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score <= 79.99 %}
+                            {% elif approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >= 70%}
                                 ดี
-                            {% elif approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >=60
-                                and approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score <= 69.99 %}
+                            {% elif approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >=60%}
                                 พอใช้
                             {% else %}
                                 ควรปรับปรุง
