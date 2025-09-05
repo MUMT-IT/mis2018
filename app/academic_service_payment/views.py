@@ -89,7 +89,7 @@ def get_invoices():
 
 @academic_service_payment.route('/invoice/payment/confirm/<int:invoice_id>', methods=['GET', 'POST'])
 def confirm_payment(invoice_id):
-    status_id = get_status(20)
+    status_id = get_status(22)
     invoice = ServiceInvoice.query.get(invoice_id)
     invoice.is_paid = True
     invoice.verify_at = arrow.now('Asia/Bangkok').datetime
