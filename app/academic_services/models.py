@@ -549,6 +549,10 @@ class ServiceRequest(db.Model):
                     status = 'กำลังทดสอบตัวอย่าง'
                     color = 'is-warning is-light'
                     icon = '<i class="fas fa-hourglass-half"></i>'
+        elif self.test_items:
+            status = 'ยังไม่ดำเนินการทดสอบ'
+            color = 'is-danger is-light'
+            icon = '<i class="fas fa-times-circle"></i>'
         else:
             status = None
             color = None
