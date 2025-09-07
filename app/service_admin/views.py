@@ -3006,8 +3006,8 @@ def create_draft_result(result_id=None):
                 message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
                 message += f''' ขณะนี้ได้แก้ไขทำรายงานผลการทดสอบฉบับร่างเรียบร้อยแล้ว'''
                 message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
-                message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง'''
-                message += f'''{result_url}'''
+                message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง\n'''
+                message += f'''{result_url}\n\n'''
                 message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
                 message += f'''ขอแสดงความนับถือ\n'''
                 message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
@@ -3043,13 +3043,32 @@ def delete_draft_result(item_id):
     return resp
 
 
+@service_admin.route('/result/final/add', methods=['GET', 'POST'])
 @service_admin.route('/result/final/edit/<int:result_id>', methods=['GET', 'POST'])
 @login_required
 def create_final_result(result_id=None):
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    result = ServiceResult.query.get(result_id)
+    if not result_id:
+        result = ServiceResult.query.filter_by(request_id=request_id).first()
+        if not result:
+            if request.method == 'GET':
+                result_list = ServiceResult(request_id=request_id, released_at=arrow.now('Asia/Bangkok').datetime,
+                                            creator_id=current_user.id)
+                db.session.add(result_list)
+                if service_request.report_languages:
+                    for rl in service_request.report_languages:
+                        result_item = ServiceResultItem(report_language=rl.report_language.item, result=result_list,
+                                                        released_at=arrow.now('Asia/Bangkok').datetime,
+                                                        creator_id=current_user.id)
+                        db.session.add(result_item)
+                        db.session.commit()
+                result = ServiceResult.query.get(result_list.id)
+            else:
+                result = ServiceResult.query.filter_by(request_id=request_id).first()
+    else:
+        result = ServiceResult.query.get(result_id)
     if request.method == 'POST':
         for item in result.result_items:
             file = request.files.get(f'file_{item.id}')
@@ -3077,9 +3096,9 @@ def create_final_result(result_id=None):
                 title = f'''แจ้งออกรายงานผลการทดสอบฉบับร่างจริงของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
                 message = f'''เรียน {title_prefix}{customer_name}\n\n'''
                 message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
-                message += f''' ขณะนี้ได้ดำเนินการออกรายงานผลการทดสอบฉบับจริงเรียบร้อยแล้ว'''
-                message += f'''ท่านสามารถดูรายละเอียดรายงานผลการทดสอบได้จากลิงก์ด้านล่าง'''
-                message += f'''{result_url}'''
+                message += f''' ขณะนี้ได้ดำเนินการออกรายงานผลการทดสอบฉบับจริงเรียบร้อยแล้ว\n'''
+                message += f'''ท่านสามารถดูรายละเอียดรายงานผลการทดสอบได้จากลิงก์ด้านล่าง\n'''
+                message += f'''{result_url}\n\n'''
                 message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
                 message += f'''ขอแสดงความนับถือ\n'''
                 message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
