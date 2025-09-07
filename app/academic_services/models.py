@@ -297,6 +297,9 @@ class ServiceSubLab(db.Model):
     sample_submission_end = db.Column('sample_submission_end', db.Time(timezone=True))
     lab_id = db.Column('lab_id', db.ForeignKey('service_labs.id'))
     lab = db.relationship(ServiceLab, backref=db.backref('sub_labs', cascade='all, delete-orphan'))
+    assistant_id = db.Column('assistant_id', db.ForeignKey('staff_account.id'))
+    assistant = db.relationship(StaffAccount, backref=db.backref('assistants'),
+                               foreign_keys=[assistant_id])
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
     approver = db.relationship(StaffAccount, backref=db.backref('approver_of_service_requests'),
                                foreign_keys=[approver_id])
