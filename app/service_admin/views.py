@@ -260,7 +260,7 @@ def request_index():
 
     sub_labs = []
     for a in admins:
-        if a.sub_lab.approver:
+        if a.sub_lab.assistant:
             assistant = True
         elif a.is_supervisor:
             supervisor = True
@@ -1681,7 +1681,7 @@ def approve_invoice(invoice_id):
                     for a in admins:
                         if a.is_central_admin:
                             try:
-                                line_bot_api.push_message(to=sub_lab.approver.line_id,
+                                line_bot_api.push_message(to=sub_lab.assistant.line_id,
                                                           messages=TextSendMessage(text=msg))
                             except LineBotApiError:
                                 pass
@@ -1690,7 +1690,7 @@ def approve_invoice(invoice_id):
         invoice.quotation.request.status_id = status_id
         invoice.head_approved_at = arrow.now('Asia/Bangkok').datetime
         invoice.head_id = current_user.id
-        if sub_lab.approver:
+        if sub_lab.assistant:
             title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอนุมัติใบแจ้งหนี้'
             message = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n'''
             message += f'''ใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
@@ -1706,7 +1706,7 @@ def approve_invoice(invoice_id):
             message += f'''{invoice.customer_name}\n'''
             message += f'''เบอร์โทร {invoice.contact_phone_number}\n'''
             message += f'''ระบบบริการวิชาการ'''
-            send_mail([sub_lab.approver.email + '@mahidol.ac.th'], title, message)
+            send_mail([sub_lab.assistant.email + '@mahidol.ac.th'], title, message)
         if not current_app.debug:
             msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
                    '\n\nเรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ' \
@@ -1728,7 +1728,7 @@ def approve_invoice(invoice_id):
                                                    invoice.name, invoice_url, invoice.customer_name,
                                                    invoice.contact_phone_number))
             try:
-                line_bot_api.push_message(to=sub_lab.approver.line_id, messages=TextSendMessage(text=msg))
+                line_bot_api.push_message(to=sub_lab.assistant.line_id, messages=TextSendMessage(text=msg))
             except LineBotApiError:
                 pass
     else:
@@ -1867,7 +1867,7 @@ def view_invoice(invoice_id):
                                           ServiceAdmin.sub_lab.has(ServiceSubLab.code == sub_lab.code))
     admin = any(a for a in admin_lab if not a.is_supervisor)
     supervisor = any(a.is_supervisor for a in admin_lab)
-    assistant = sub_lab.approver if sub_lab.approver_id == current_user.id else None
+    assistant = sub_lab.assistant if sub_lab.approver_id == current_user.id else None
     dean = sub_lab.signer if sub_lab.signer_id == current_user.id else None
     central_admin = any(a.is_central_admin for a in admin_lab)
     return render_template('service_admin/view_invoice.html', invoice=invoice, admin=admin,
@@ -2554,7 +2554,7 @@ def approval_quotation_for_supervisor(quotation_id):
                     quotation_link_for_assistant = url_for("service_admin.view_quotation", quotation_id=quotation_id,
                                                            tab='awaiting_customer', menu=menu, _external=True,
                                                            _scheme=scheme)
-                    if sub_lab.approver:
+                    if sub_lab.assistant:
                         title_for_assistant = f'''รายการอนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} อนุมัติโดย คุณ{quotation.approver.fullname}'''
                         message_for_assistant = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n'''
                         message_for_assistant += f'''แจ้งรายการอนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
@@ -2570,7 +2570,7 @@ def approval_quotation_for_supervisor(quotation_id):
                         message += f'''หัวหน้าห้องปฏิบัติการ\n'''
                         message += f'''{quotation.approver.fullname}\n'''
                         message += f'''ระบบงานบริการวิชาการ'''
-                        send_mail([sub_lab.approver.email + '@mahidol.ac.th'], title_for_assistant,
+                        send_mail([sub_lab.assistant.email + '@mahidol.ac.th'], title_for_assistant,
                                   message_for_assistant)
                     flash(f'อนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} สำเร็จ กรุณารอลูกค้ายืนยันใบเสนอราคา',
                           'success')
