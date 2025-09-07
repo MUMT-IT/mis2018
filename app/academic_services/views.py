@@ -2020,7 +2020,7 @@ def create_sample_appointment(sample_id):
                 if service_request.status.status_id == 9:
                     title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งแก้ไขนัดหมายส่งตัวอย่าง)'''
                     message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
-                    message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}'''
+                    message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}\n'''
                     message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
                     message += f'''ในนาม : {service_request.quotation_address.name}\n'''
                     message += f'''ได้ดำเนินการแก้ไขข้อมูลการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
@@ -2039,7 +2039,7 @@ def create_sample_appointment(sample_id):
                 else:
                     title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งนัดหมายส่งตัวอย่าง)'''
                     message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
-                    message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}'''
+                    message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}\n'''
                     message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
                     message += f'''ในนาม : {service_request.quotation_address.name}\n'''
                     message += f'''ได้ดำเนินการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
