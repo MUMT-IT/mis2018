@@ -110,10 +110,9 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            var draft_result_url = '/service_admin/result/draft/edit/' + data + '?request_id=' + row.request_id + '&menu=report';
-                            var final_result_url = '/service_admin/result/final/edit/' + data + '?request_id=' + row.request_id + '&menu=report';
                             if (row.status_id == 13 || row.status_id >= 16) {
-                                  return '<div class="field has-addons">' +
+                                var final_result_url = '/service_admin/result/final/edit/' + data + '?request_id=' + row.request_id + '&menu=report';
+                                return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-info is-rounded" ' + 'href=' + final_result_url + '>' +
                                     '<span class="icon">' +
@@ -124,6 +123,13 @@
                                     '</div>' +
                                     '</div>'
                             } else if ((10 <= row.status_id <= 12) || (14 <= row.status_id <= 15)) {
+                                if (row.status_id == 10) {
+                                    var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report';
+                                    var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=report';
+                                } else {
+                                    var draft_result_url = '/service_admin/result/draft/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
+                                    var final_result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
+                                }
                                  return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-primary is-rounded" ' + 'href=' + draft_result_url + '>' +
@@ -143,6 +149,8 @@
                                     '</div>' +
                                     '</div>'
                             } else {
+                                var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report';
+                                var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=report';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-primary is-rounded" ' + 'href=' + draft_result_url + '>' +
