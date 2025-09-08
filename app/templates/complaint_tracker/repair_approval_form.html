@@ -27,26 +27,6 @@
                                     </label>
                                 </div>
                             </div>
-                            <div class="field-body" style="margin-bottom: .8em">
-                                <div class="field">
-                                    <label class="label">
-                                        {{ form.mhesi_no.label }}
-                                        <span class="has-text-danger">*</span>
-                                    </label>
-                                    <div class="control">
-                                        {{ form.mhesi_no(class='input', type='text') }}
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">
-                                        {{ form.mhesi_no_date.label }}
-                                        <span class="has-text-danger">*</span>
-                                    </label>
-                                    <div class="control">
-                                        {{ form.mhesi_no_date(class='input') }}
-                                    </div>
-                                </div>
-                            </div>
                             <div class="field" id="principle-approval-type-field", style="display:none; margin-top: 0.8em; margin-bottom: 0.6em">
                                 <label class="label">
                                     {{ form.principle_approval_type.label }}
@@ -149,7 +129,7 @@
                                     <span class="has-text-danger">*</span>
                                 </label>
                                 <div class="control">
-                                    {{ form.budget_source(class='input') }}
+                                    {{ form.supplier(class='input') }}
                                 </div>
                             </div>
                             <div class="field" id="receipt-field" style="display: none;">
