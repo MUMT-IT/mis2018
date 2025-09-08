@@ -162,7 +162,7 @@
                                 <th class="has-text-centered">จำนวน</th>
                                 <th class="has-text-centered">ราคา</th>
                                 <th class="has-text-centered">จำนวนเงิน</th>
-                                {% if invoice.status != 'ออกใบแจ้งหนี้เรียบร้อยแล้ว' %}
+                                {% if not invoice.file_attached_at %}
                                     <th class="has-text-centered">ส่วนลด</th>
                                     <th class="has-text-centered">ราคารวม</th>
                                 {% endif %}
@@ -180,7 +180,7 @@
                                     <td class="has-text-right">
                                         {{ "{:,.2f}".format(item.total_price) }}
                                     </td>
-                                    {% if invoice.status != 'ออกใบแจ้งหนี้เรียบร้อยแล้ว' %}
+                                    {% if not invoice.file_attached_at %}
                                         <td class="has-text-right">{{ "{:,.2f}".format(item.get_discount_amount()) }}</td>
                                         <td class="has-text-right">{{ "{:,.2f}".format(item.net_price()) }}</td>
                                     {% endif %}
