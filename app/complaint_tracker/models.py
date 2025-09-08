@@ -328,13 +328,13 @@ class ComplaintRepairApproval(db.Model):
     procurement_no = db.Column('procurement_no', db.String(), info={'label': 'เลขครุภัณฑ์'})
     repair_type = db.Column('repair_type', db.String(), info={'label': 'ประเภทอนุมัติหลักการซ่อม',
                                                                   'choices': [('เร่งด่วน', 'เร่งด่วน'),
-                                                                              ('ไม่เร่งด่วน (จ้าง/ซ่อม)', 'ไม่เร่งด่วน (จ้าง/ซ่อม)'),
-                                                                              ('ไม่เร่งด่วน (จ้างซ่อม)', 'ไม่เร่งด่วน (จ้างซ่อม)')
+                                                                              ('ไม่เร่งด่วน (ซื้อ/จ้าง)', 'ไม่เร่งด่วน (ซื้อ/จ้าง)'),
                                                                               ]
                                                                   })
     principle_approval_type = db.Column('principle_approval_type', db.String(), info={'label': 'ประเภทการขออนุมัติ',
                                                                                       'choices': [('ซื้อ', 'ซื้อ'),
-                                                                                                  ('จ้าง', 'จ้าง')
+                                                                                                  ('จ้าง', 'จ้าง'),
+                                                                                                  ('จ้างซ่อม', 'จ้างซ่อม')
                                                                                                   ]
                                                                                       })
     requester_id = db.Column('requester_id', db.ForeignKey('staff_account.id'))
