@@ -247,13 +247,13 @@
                                 {% elif (10 <= service_request.status.status_id <= 12) or (14 <= service_request.status.status_id <= 15) %}
                                     <li>
                                         <a class="button is-primary is-rounded is-fullwidth mb-2"
-                                                {% if result_id %}
-                                           href="{{ url_for('service_admin.create_draft_result',
-                                                        result_id=result_id, request_id=service_request.id, menu='test_item') }}"
-                                                {% else %}
-                                           href="{{ url_for('service_admin.create_draft_result', result_id=result_id,
-                                               request_id=service_request.id, menu='test_item') }}"
-                                                {% endif %}
+                                           {% if result_id %}
+                                                href="{{ url_for('service_admin.create_draft_result', result_id=result_id,
+                                                request_id=service_request.id, menu='test_item') }}"
+                                           {% else %}
+                                                href="{{ url_for('service_admin.create_draft_result', request_id=service_request.id,
+                                                menu='test_item') }}"
+                                           {% endif %}
                                         >
                                             <span class="icon"><i class="fas fa-download"></i></span>
                                             {% if service_request.status.status_id == 14 %}
@@ -263,8 +263,13 @@
                                             {% endif %}
                                         </a>
                                         <a class="button is-info is-rounded is-fullwidth mb-2"
-                                           href="{{ url_for('service_admin.create_final_result', result_id=result_id,
-                                               request_id=service_request.id, menu='test_item') }}"
+                                           {% if result_id %}
+                                                href="{{ url_for('service_admin.create_final_result', result_id=result_id,
+                                                request_id=service_request.id, menu='test_item') }}"
+                                           {% else %}
+                                               href="{{ url_for('service_admin.create_final_result', request_id=service_request.id,
+                                               menu='test_item') }}"
+                                           {% endif %}
                                         >
                                             <span class="icon"><i class="fas fa-download"></i></span>
                                             <span>ออกใบรายงานผล (ฉบับจริง)</span>
