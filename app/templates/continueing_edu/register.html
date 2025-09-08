@@ -305,16 +305,10 @@
 
                     <div class="has-text-centered">
                         {# Implement external register/login with google #}
-                        <div id="g_id_onload"
-                            data-client_id="06836986017-760vgufp9461sqja04dqhmokg2cqddmo.apps.googleusercontent.com"
-                            data-context="signin" data-ux_mode="popup"
-                            data-login_uri="https://127.0.0.1:5000/continuing_edu/" data-auto_select="true"
-                            data-callback="handleCredentialResponse" data-itp_support="true">
-                        </div>
-
-                        <div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="outline"
-                            data-text="continue_with" data-size="large" data-locale="{{ current_lang }}"
-                            data-logo_alignment="center" data-width="200px">
+                        <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline"
+                            data-text="continue_with" data-size="large" data-logo_alignment="center"
+                            data-client_id="206836986017-1dctro1ehrqta2r91e5appn5j78spn9h.apps.googleusercontent.com"
+                            data-ux_mode="popup" data-callback="handleCredentialResponse">
                         </div>
 
 
@@ -323,6 +317,8 @@
                     </div>
                 </div>
             </div>
+
+
     </section>
 
     <footer class="footer has-background-gray-800 has-text-white py-8 mt-12 rounded-t-lg">
@@ -339,6 +335,40 @@
             </div>
         </div>
     </footer>
+
+
+    <div id="g_id_onload" data-client_id="206836986017-1dctro1ehrqta2r91e5appn5j78spn9h.apps.googleusercontent.com"
+        data-context="signin" data-ux_mode="popup" data-callback="handleCredentialResponse" data-auto_prompt="true">
+    </div>
+
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+        function triggerOneTap() {
+            google.accounts.id.initialize({
+                client_id: "206836986017-1dctro1ehrqta2r91e5appn5j78spn9h.apps.googleusercontent.com",
+                callback: handleCredentialResponse
+            });
+            google.accounts.id.prompt();
+        }
+
+        function handleCredentialResponse(response) {
+            const form = document.createElement("form");
+            form.method = "POST";
+            form.action = "{{ url_for('continuing_edu.callback', lang=current_lang) }}";
+            form.innerHTML = `<input type="hidden" name="lang" value="${current_lang}">`;
+
+
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = "credential";
+            input.value = response.credential;
+
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    </script>
+
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {

@@ -1,19 +1,69 @@
 <div class="container mt-6 mb-6">
           <h1 class="title is-3 mb-4">{{ form_title }}</h1>
           <form method="post">
-                    <!-- TODO: Add event form fields here -->
+                    {{ form.hidden_tag() }}
                     <div class="field mb-4">
-                              <label class="label">Event Title (EN)</label>
+                              {{ form.title.label(class="label") }}
                               <div class="control">
-                                        <input class="input" type="text" name="title_en"
-                                                  value="{{ event.title_en if event else '' }}" required>
+                                        {{ form.title(class="input") }}
+                              </div>
+                              {% for error in form.title.errors %}
+                              <p class="help is-danger">{{ error }}</p>
+                              {% endfor %}
+                    </div>
+                    <div class="field mb-4">
+                              {{ form.event_type.label(class="label") }}
+                              <div class="control">
+                                        {{ form.event_type(class="select") }}
+                              </div>
+                              {% for error in form.event_type.errors %}
+                              <p class="help is-danger">{{ error }}</p>
+                              {% endfor %}
+                    </div>
+                    <div class="field mb-4">
+                              {{ form.description.label(class="label") }}
+                              <div class="control">
+                                        {{ form.description(class="textarea") }}
+                              </div>
+                    </div>
+                    <div class="field is-horizontal">
+                              <div class="field-body">
+                                        <div class="field">
+                                                  {{ form.start_date.label(class="label") }}
+                                                  <div class="control">
+                                                            {{ form.start_date(class="input") }}
+                                                  </div>
+                                        </div>
+                                        <div class="field">
+                                                  {{ form.start_time.label(class="label") }}
+                                                  <div class="control">
+                                                            {{ form.start_time(class="input") }}
+                                                  </div>
+                                        </div>
+                                        <div class="field">
+                                                  {{ form.duration.label(class="label") }}
+                                                  <div class="control">
+                                                            {{ form.duration(class="input") }}
+                                                  </div>
+                                        </div>
                               </div>
                     </div>
                     <div class="field mb-4">
-                              <label class="label">Event Type</label>
+                              {{ form.location.label(class="label") }}
                               <div class="control">
-                                        <input class="input" type="text" name="event_type"
-                                                  value="{{ event.event_type if event else '' }}" required>
+                                        {{ form.location(class="input") }}
+                              </div>
+                    </div>
+                    <div class="field mb-4">
+                              {{ form.speaker.label(class="label") }}
+                              <div class="control">
+                                        {{ form.speaker(class="input") }}
+                              </div>
+                    </div>
+                    <div class="field mb-4">
+                              {{ form.capacity.label(class="label") }}
+                              <div class="control">
+                                        {{ form.capacity(class="input") }}
                               </div>
                     </div>
                     <div class="field mt-5">

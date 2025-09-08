@@ -487,6 +487,24 @@
                 </div>
                 <div id="navbarMenu" class="navbar-menu">
                     <div class="navbar-end mt-4-mobile mt-0-desktop">
+                        {% if logged_in_user and logged_in_user.is_admin %}
+                        <div class="navbar-item has-dropdown is-hoverable">
+                            <a class="navbar-link has-text-danger has-text-weight-bold">
+                                <span class="icon"><i class="fas fa-cogs"></i></span> Admin
+                            </a>
+                            <div class="navbar-dropdown">
+                                <a href="{{ url_for('continuing_edu.admin_events') }}" class="navbar-item">
+                                    <span class="icon"><i class="fas fa-calendar-alt"></i></span> จัดการกิจกรรม/คอร์ส
+                                </a>
+                                <a href="{{ url_for('continuing_edu.admin_members') }}" class="navbar-item">
+                                    <span class="icon"><i class="fas fa-users"></i></span> จัดการสมาชิก
+                                </a>
+                                <a href="{{ url_for('continuing_edu.admin_reports') }}" class="navbar-item">
+                                    <span class="icon"><i class="fas fa-chart-bar"></i></span> รายงาน
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
                         <a href="#short-courses"
                             class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">{{
                             texts.short_courses_nav }}</a>

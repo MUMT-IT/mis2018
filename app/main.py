@@ -1,4 +1,3 @@
-# -*- coding:utf-8 -*-
 
 
 import click
@@ -1860,6 +1859,10 @@ def run_job_files_to_cloud(budget_year):
 #
 #     return render_template('academic_services/request_form.html')
 
+
+# Register admin blueprint (custom admin panel, not Flask-Admin)
+from app.continuing_edu.admin.views import admin_bp as continuing_edu_admin_bp
+app.register_blueprint(continuing_edu_admin_bp)
 
 if __name__ == '__main__':
     import os

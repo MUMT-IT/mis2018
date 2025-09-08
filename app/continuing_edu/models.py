@@ -175,6 +175,8 @@ class Member(db.Model):
     registrations = relationship("MemberRegistration", back_populates="member", lazy=True)
     payments = relationship("RegisterPayment", back_populates="member", lazy=True)
 
+    # is_admin = db.Column(db.Boolean, default=False, nullable=False, comment="Is the member an admin user")
+
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Member {self.username}>"
 

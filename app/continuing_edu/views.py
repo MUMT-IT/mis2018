@@ -20,6 +20,12 @@ from . import translations as tr  # Import translations from local package
 current_lang = 'en'  # This should be dynamically set based on user preference or request
 
 
+def get_current_user():
+    user_id = session.get('member_id')
+    if user_id:
+        return Member.query.filter_by(id=user_id).first()
+    return None
+
 # --- Member Login ---
 @ce_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -32,13 +38,14 @@ def login():
         member = Member.query.filter_by(username=username).first()
         if member and check_password_hash(member.password_hash, password):
             session['member_id'] = member.id
-            session['username'] = member.username
-             
+            # session['username'] = member.username
+
+            user = get_current_user()  # Assuming 'member' is the user object you want to pass
             flash(texts.get('login_success', 'เข้าสู่ระบบสำเร็จ!' if lang == 'th' else 'Login successful!'), 'success')
-            return redirect(url_for('continuing_edu.index', lang=lang))
+            return redirect(url_for('continuing_edu.index', lang=lang, logged_in_user=user))
         else:
             flash(texts.get('login_error', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' if lang == 'th' else 'Invalid username or password.'), 'danger')
-    return render_template('continueing_edu/login.html', texts=texts, current_lang=lang)
+    return render_template('continueing_edu/login.html', texts=texts, current_lang=lang, logged_in_user=get_current_user())
 
 
 
