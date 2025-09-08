@@ -348,7 +348,7 @@ class ComplaintRepairApproval(db.Model):
     detail = db.Column('detail', db.Text())
     purpose = db.Column('purpose', db.Text())
     price = db.Column('price', db.Float())
-    # budget_source = db.Column('budget_source', db.String())
+    supplier = db.Column('supplier', db.String())
     book_number = db.Column('book_number', db.String(), info={'label': 'เล่มที่'})
     receipt_number = db.Column('receipt_number', db.String(), info={'label': 'เลขที่'})
     receipt_date = db.Column('receipt_date', db.Date(), info={'label': 'วันที่'})
