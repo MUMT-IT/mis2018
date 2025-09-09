@@ -985,13 +985,11 @@ def repair_approval(record_id, repair_approval_id=None):
 def edit_committee(repair_approval_id):
     rep_approval = ComplaintRepairApproval.query.get(repair_approval_id)
     committees = ComplaintCommittee.query.filter_by(repair_approval_id=repair_approval_id).all()
-    if rep_approval.price > 500000 and rep_approval.repair_type == 'ไม่เร่งด่วน (จ้าง/ซ่อม)':
+    if rep_approval.price > 500000:
         min_entries = 9
         default_positions = ['ประธาน', 'กรรมการ', 'กรรมการ', 'ประธาน', 'กรรมการ', 'กรรมการ', 'ประธาน', 'กรรมการ',
                              'กรรมการ']
-    elif ((
-                  rep_approval.price > 30000 and rep_approval.price <= 500000 and rep_approval.repair_type == 'ไม่เร่งด่วน (จ้าง/ซ่อม)')
-          or (rep_approval.price > 30000 and rep_approval.repair_type == 'ไม่เร่งด่วน (จ้างซ่อม)')):
+    elif rep_approval.price > 30000 and rep_approval.price <= 500000:
         min_entries = 3
         default_positions = ['ประธาน', 'กรรมการ', 'กรรมการ']
     else:
