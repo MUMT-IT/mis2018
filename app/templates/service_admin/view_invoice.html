@@ -38,7 +38,7 @@
                             </div>
                         </li>
                         <li class="steps-segment
-                            {% if invoice.sent_at and not invoice.head_approved_at and not invoice.assistant_approved_at
+                            {% if invoice.sent_at and invoice.head_approved_at and not invoice.assistant_approved_at
                                 and not invoice.file_attached_at and not invoice.paid_at and not invoice.is_paid %}
                                 is-active
                             {% endif %}"
@@ -49,11 +49,11 @@
                                 </span>
                             </span>
                             <div class="steps-content">
-                                <p>รอหัวหน้าอนุมัติ</p>
+                                <p>หัวหน้าอนุมัติ</p>
                             </div>
                         </li>
                         <li class="steps-segment
-                            {% if invoice.sent_at and invoice.head_approved_at and not invoice.assistant_approved_at
+                            {% if invoice.sent_at and invoice.head_approved_at and invoice.assistant_approved_at
                                 and not invoice.file_attached_at and not invoice.paid_at and not invoice.is_paid %}
                                 is-active
                             {% endif %}"
@@ -64,22 +64,7 @@
                                 </span>
                             </span>
                             <div class="steps-content">
-                                <p>รอผู้ช่วยคณบดีอนุมัติ</p>
-                            </div>
-                        </li>
-                        <li class="steps-segment
-                            {% if invoice.sent_at and invoice.head_approved_at and invoice.assistant_approved_at
-                                and not invoice.file_attached_at and not invoice.paid_at and not invoice.is_paid %}
-                                is-active
-                            {% endif %}"
-                        >
-                            <span class="steps-marker">
-                                <span class="icon">
-                                    <i class="fas fa-file-signature"></i>
-                                </span>
-                            </span>
-                            <div class="steps-content">
-                                <p>รอคณบดีอนุมัติและออกเลข อว.</p>
+                                <p>ผู้ช่วยคณบดีอนุมัติ</p>
                             </div>
                         </li>
                         <li class="steps-segment
@@ -90,26 +75,11 @@
                         >
                             <span class="steps-marker">
                                 <span class="icon">
-                                    <i class="fas fa-hourglass-half"></i>
+                                    <i class="fas fa-file-signature"></i>
                                 </span>
                             </span>
                             <div class="steps-content">
-                                <p>รอการชำระเงิน</p>
-                            </div>
-                        </li>
-                        <li class="steps-segment
-                            {% if invoice.sent_at and invoice.head_approved_at and invoice.assistant_approved_at
-                                and invoice.file_attached_at and invoice.paid_at and not invoice.is_paid %}
-                                is-active
-                            {% endif %}"
-                        >
-                            <span class="steps-marker">
-                                <span class="icon">
-                                    <i class="fas fa-search-dollar"></i>
-                                </span>
-                            </span>
-                            <div class="steps-content">
-                                <p>รอตรวจสอบชำระเงิน</p>
+                                <p>คณบดีอนุมัติและออกเลข อว.</p>
                             </div>
                         </li>
                         <li class="steps-segment
@@ -123,7 +93,7 @@
                                 </span>
                             </span>
                             <div class="steps-content">
-                                <p>ชำระเงินแล้ว</p>
+                                <p>ชำระเงินสำเร็จ</p>
                             </div>
                         </li>
                     </ul>
@@ -192,7 +162,7 @@
                                 <th class="has-text-centered">จำนวน</th>
                                 <th class="has-text-centered">ราคา</th>
                                 <th class="has-text-centered">จำนวนเงิน</th>
-                                {% if invoice.status != 'ออกใบแจ้งหนี้เรียบร้อยแล้ว' %}
+                                {% if not invoice.file_attached_at %}
                                     <th class="has-text-centered">ส่วนลด</th>
                                     <th class="has-text-centered">ราคารวม</th>
                                 {% endif %}
@@ -210,7 +180,7 @@
                                     <td class="has-text-right">
                                         {{ "{:,.2f}".format(item.total_price) }}
                                     </td>
-                                    {% if invoice.status != 'ออกใบแจ้งหนี้เรียบร้อยแล้ว' %}
+                                    {% if not invoice.file_attached_at %}
                                         <td class="has-text-right">{{ "{:,.2f}".format(item.get_discount_amount()) }}</td>
                                         <td class="has-text-right">{{ "{:,.2f}".format(item.net_price()) }}</td>
                                     {% endif %}
@@ -274,7 +244,7 @@
                                 การดำเนินการ
                             </p>
                             <ul class="menu-list">
-                                {% if invoice.quotation.request.status.status_id == 14 and admin %}
+                                {% if invoice.quotation.request.status.status_id == 16 and admin %}
                                     <li>
                                         <a class="button is-success is-rounded is-full-height mb-2"
                                            href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id, admin='admin', menu=menu) }}"
@@ -285,8 +255,8 @@
                                             <span>เสนอหัวหน้าอนุมัติ</span>
                                         </a>
                                     </li>
-                                {% elif (invoice.quotation.request.status.status_id == 15 and supervisor) or
-                                        (invoice.quotation.request.status.status_id == 16 and assistant) %}
+                                {% elif (invoice.quotation.request.status.status_id == 17 and supervisor) or
+                                        (invoice.quotation.request.status.status_id == 18 and assistant) %}
                                     <li>
                                         <a class="button is-success is-rounded is-full-height mb-2"
                                                 {% if supervisor %}
@@ -303,7 +273,7 @@
                                             <span>อนุมัติ</span>
                                         </a>
                                     </li>
-                                {% elif invoice.quotation.request.status.status_id == 17 and central_admin %}
+                                {% elif invoice.quotation.request.status.status_id == 19 and central_admin %}
                                     <li>
                                         <div id="mhesi_number"></div>
                                         <a class="button is-warning is-rounded is-full-height mb-2"
@@ -340,7 +310,6 @@
                     </div>
                 </div>
             </div>
-        </div>
         </div>
         <div class="columns">
             <div class="column is-two-thirds is-offset-2 has-text-centered">

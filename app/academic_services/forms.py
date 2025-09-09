@@ -63,11 +63,11 @@ class ServiceCustomerAddressForm(ModelForm):
 
     name = StringField(validators=[DataRequired()])
     address = StringField('ที่อยู่',validators=[ DataRequired()])
-    province = QuerySelectField('จังหวัด', query_factory=lambda: Province.query.order_by(Province.name).all(), allow_blank=True,
+    province = QuerySelectField('จังหวัด', query_factory=lambda: Province.query.order_by(Province.name), allow_blank=True,
                                 blank_text='กรุณาเลือกจังหวัด', get_label='name', validators=[DataRequired(message='กรุณาเลือกจังหวัด')])
-    district = QuerySelectField('เขต/อำเภอ', query_factory=lambda: District.query.order_by(District.name).all(), allow_blank=True,
+    district = QuerySelectField('เขต/อำเภอ', query_factory=lambda: District.query.order_by(District.name), allow_blank=True,
                                 blank_text='กรุณาเลือกเขต/อำเภอ', get_label='name', validators=[DataRequired(message='กรุณาเลือกเขต/อำเภอ')])
-    subdistrict = QuerySelectField('แขวง/ตำบล', query_factory=lambda: Subdistrict.query.order_by(Subdistrict.name).all(), allow_blank=True,
+    subdistrict = QuerySelectField('แขวง/ตำบล', query_factory=lambda: Subdistrict.query.order_by(Subdistrict.name), allow_blank=True,
                                 blank_text='กรุณาเลือกแขวง/ตำบล', get_label='name', validators=[DataRequired(message='กรุณาเลือกแขวง/ตำบล')])
     zipcode = StringField('รหัสไปรษณีย์', validators=[DataRequired()])
     phone_number = StringField('เบอร์โทรศัพท์', validators=[DataRequired()])

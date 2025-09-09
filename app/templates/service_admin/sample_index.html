@@ -32,6 +32,7 @@
                         <th>สถานที่</th>
                         <th>การส่งตัวอย่าง</th>
                         <th>สภาพตัวอย่าง</th>
+                        <th>เอกสาร</th>
                         <th>หมายเหตุ</th>
                         <th>ผู้รับ</th>
                         <th></th>
@@ -157,6 +158,17 @@
                             }
                             else {
                                 return `<span class="tag is-danger">ยังไม่ได้รับตัวอย่าง</span>`;
+                            }
+                        }
+                    },
+                    {
+                        data: 'file',
+                        render: function (data) {
+                            if (data !== null) {
+                                return `<span class="tag ${data.color}">${data.status}</span>`;
+                            }
+                            else {
+                                return `<span class="tag is-danger">ยังไม่ได้ส่งเอกสาร</span>`;
                             }
                         }
                     },

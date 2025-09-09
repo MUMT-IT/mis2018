@@ -3,24 +3,24 @@
         <div class="modal-card">
             <header class="modal-card-head">
                 <p class="modal-card-title" align="center">
-                    อัพเดตหมายเลขติดตามพัสดุ
+                    ขอแก้ไขใบรายงานผล
                 </p>
                 <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
             </header>
             <section class="modal-card-body">
-                <form hx-post="{{ url_for('academic_services.add_tracking_number', sample_id=sample_id, menu=menu) }}"
+                <form hx-post="{{ url_for('academic_services.edit_result', result_id=result_id, menu=menu) }}"
                       hx-indicator="#submit-form"
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                     <div class="field">
-                        <label class="label">{{ form.tracking_number.label }}</label>
+                        <label class="label">เหตุผลที่ขอแก้ไข</label>
                         <div class="control">
-                            {{ form.tracking_number(class='input') }}
+                            {{ form.note(class='textarea') }}
                         </div>
                     </div>
                     <div class="field ">
                         <div class="buttons is-centered">
-                            <a href="{{ url_for('academic_services.sample_index', menu=menu) }}"
+                            <a href="{{ url_for('academic_services.result_index', menu=menu) }}"
                                class="button"
                             >
                                 ยกเลิก

@@ -145,7 +145,7 @@
                             if (data !== null) {
                                 return `<span class="tag ${color}">${status}</span>`;
                             } else {
-                                return `<span class="tag is-info">ร่างใบคำขอรับบริกา่ร</span>`;
+                                return `<span class="tag is-info">ร่างใบคำขอรับบริการ</span>`;
                             }
                         }
                     },
@@ -258,7 +258,16 @@
                             }
                         }
                     },
-                    { data: 'files'},
+                    {
+                        data: 'files',
+                        render: function (data, type, row) {
+                            if (data !== null) {
+                                 return data
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
                     {
                         data: 'id',
                         render: function (data) {

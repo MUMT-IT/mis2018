@@ -3,6 +3,7 @@
 {% block head %}
     {{ super() }}
     <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
     <style>
         .toast {
             opacity: 1 !important;
@@ -13,7 +14,6 @@
 {% block page_content %}
 {% include "procurement/nav_for_main.html" %}
 <section class="section" id="app">
-    {% include 'messages.html' %}
         <div class="columns is-centered">
             <div class="column is-9">
                 <div class="column is-11">
@@ -29,8 +29,7 @@
                         <th>วันที่ชำระเงิน</th>
                         <th>หลักฐานการชำระเงิน</th>
                         <th>สถานะ</th>
-                        <th>หมายเหตุ</th>
-                        <th>รายละเอียด</th>
+                        <th>ใบแจ้งหนี้</th>
                         <th></th>
                     </thead>
                     <tbody>
@@ -43,7 +42,22 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+    <script>
+        function showSlipPopup(url) {
+            Swal.fire({
+                title: 'หลักฐานการชำระเงิน',
+                html: `<iframe id="slipFrame" style="width:100%;height:500px;border:none;"></iframe>`,
+                width: 800,
+                showCloseButton: true,
+                showConfirmButton: false,
+                didOpen: () => {
+                    document.getElementById('slipFrame').src = url;
+                }
+            });
+        }
+    </script>
     <script>
         function showToast(category, message) {
             if (category === 'success') {
@@ -104,7 +118,7 @@
                     { data: 'total_price' },
                     { data: 'payment_type'},
                     {
-                        data : 'paid_at',
+                        data : 'payment_date',
                         render: function(data) {
                             if (data !== '') {
                                 let d = moment(data)
@@ -117,17 +131,16 @@
                     { data: 'id',
                         render: function (data, type, row) {
                             if (row.slip) {
-                                dowload_url = '/academic_service_payment/aws-s3/download/' + row.slip + '?download_filename=สลิปใบแจ้งหนี้'
                                 return `
                                     <div class="field has-addons">
-                                       <div class="control">
-                                          <a class="button is-small is-outlined is-link is-rounded"
-                                             href="${dowload_url}">
-                                             <span class="icon is-small"><i class="fas fa-receipt"></i></span>
-                                             <span>หลักฐานการชำระเงิน</span>
-                                          </a>
-                                       </div>
-                                     </div>`;
+                                        <div class="control">
+                                            <a class="button is-small is-outlined is-link is-rounded"
+                                                onclick="showSlipPopup('${row.slip}')">
+                                                <span class="icon is-small"><i class="fas fa-receipt"></i></span>
+                                                <span>หลักฐานการชำระเงิน</span>
+                                            </a>
+                                        </div>
+                                    </div>`;
                             } else {
                                 return ''
                             }
@@ -149,22 +162,40 @@
                             }
                         }
                     },
-                    {
-                        data: 'id',
-                        render: function (data, type, row) {
-                            return ''
-                        }
-                    },
                     { data: 'file' },
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (data !== null && row.is_paid == null && row.paid_at != null) {
+                            if (row.is_paid == null) {
                                 return `<div class="field has-addons">
                                             <div class="control">
-                                                <a class="button is-small is-rounded is-success">ยืนยัน</a>
+                                                <a class="button is-small is-rounded is-success"
+                                                    onclick="vm.warn('${data}')">
+                                                    <span class="icon"><i class="fas fa-check"></i></span>
+                                                    <span>อนุมัติ</span>
+                                                </a>
                                             </div>
                                         </div>`;
+                            } else if (row.is_paid != null && row.receipt_id == null) {
+                                var url = '/receipt_printing/receipt/create' + '?invoice_id=' + data;
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-rounded is-warning" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>ออกใบเสร็จรับเงิน</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (row.is_paid != null && row.receipt_id != null) {
+                                var url = '/receipt_printing/receipts/pdf/' + row.receipt_id;
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-rounded is-info" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-receipt"></i></span>' +
+                                    '<span>ใบเสร็จรับเงิน</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
                             } else {
                                 return ''
                             }
@@ -176,15 +207,14 @@
         vm = new Vue({
             el: '#app',
             methods: {
-                warn: function (request_id) {
-                    var menu = '{{ menu }}';
+                warn: function (invoice_id) {
                     this.$buefy.dialog.confirm({
-                        message: 'ต้องการยกเลิกใบคำขอรับบริการนี้จริงหรือไม่',
+                        message: 'ต้องการยืนยันการชำระเงินของรายการนี้หรือไม่',
                         onConfirm: () => {
-                            const url = `/academic_services/customer/request/cancel/${request_id}?menu=${menu}`;
+                            const url = `/academic_service_payment/invoice/payment/confirm/${invoice_id}`;
                             window.location.href = url;
                         },
-                        type: 'is-danger'
+                        type: 'is-success'
                     });
                 }
             }
