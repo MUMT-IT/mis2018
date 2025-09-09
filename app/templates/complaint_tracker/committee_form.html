@@ -18,7 +18,7 @@
                     <hr>
                         <form method="post">
                             {{ form.hidden_tag() }}
-                            {% if ((rep_approval.repair_type == 'ไม่เร่งด่วน (จ้าง/ซ่อม)'and rep_approval.price > 500000) ) %}
+                            {% if rep_approval.price > 500000 %}
                                 <input type="hidden" name="committee_name_0" value="คณะกรรมการกำหนดรายละเอียดคุณลักษณะเฉพาะ">
                                 <div class="field">
                                     <input class="input is-static" name="committee_name" type="text" value="คณะกรรมการกำหนดรายละเอียดคุณลักษณะเฉพาะ" style="color: #000; font-weight: bold;">
@@ -42,8 +42,7 @@
                                 {% for c_form in form.committees[6:9] %}
                                     {{ macros.render_committee_form(c_form) }}
                                 {% endfor %}
-                            {% elif ((rep_approval.price > 30000 and rep_approval.price <= 500000 and rep_approval.repair_type == 'ไม่เร่งด่วน (จ้าง/ซ่อม)')
-                                        or (rep_approval.price > 30000 and rep_approval.repair_type == 'ไม่เร่งด่วน (จ้างซ่อม)')) %}
+                            {% elif rep_approval.price > 30000 and rep_approval.price <= 500000 %}
                                 <input type="hidden" name="committee_name_0" value="คณะกรรมการตรวจรับพัสดุ">
                                     <div class="field">
                                         <input class="input is-static" type="text" value="คณะกรรมการตรวจรับพัสดุ" style="color: #000; font-weight: bold;" disabled>
