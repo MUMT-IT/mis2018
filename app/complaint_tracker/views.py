@@ -92,6 +92,14 @@ def initialize_gdrive():
         return None
 
 
+@complaint_tracker.route('/api/committee/position')
+def get_position():
+    staff_id = request.args.get('staff_id')
+    staff = StaffAccount.query.filter_by(id=staff_id).first()
+    position = staff.personal_info.position if staff else ''
+    return jsonify({"position": position})
+
+
 @complaint_tracker.route('/')
 def index():
     categories = ComplaintCategory.query.all()
@@ -940,7 +948,7 @@ def repair_approval(record_id, repair_approval_id=None):
     form.position.data = f"หัวหน้า{staff.personal_info.org.name}"
     if staff.personal_info.org.parent and staff.personal_info.org.parent.parent:
         form.organization.data = f'{staff.personal_info.org.name} {staff.personal_info.org.parent} {staff.personal_info.org.parent.parent}'
-    if staff.personal_info.org.parent and not staff.personal_info.org.parent.parent:
+    elif staff.personal_info.org.parent and not staff.personal_info.org.parent.parent:
         form.organization.data = f'{staff.personal_info.org.name} {staff.personal_info.org.parent}'
     else:
         form.organization.data = staff.personal_info.org.name
