@@ -82,7 +82,7 @@
                                 </div>
                             </div>
                             <div class="field" id="purpose-field" style="display:none;">
-                                <label class="label">
+                                <label class="label" id="purpose-label">
                                     มีความประสงค์จะจัดซื้อหรือจ้าง
                                     <span class="has-text-danger">*</span>
                                 </label>
@@ -276,7 +276,6 @@
                 var borrowerField = document.getElementById('borrower-field');
                 var principleApprovalTypeField = document.getElementById('principle-approval-type-field');
                 var purposeField = document.getElementById('purpose-field');
-                var procurementNoField = document.getElementById('procurement-no-field')
                 var productCodeField = document.getElementById('product-code-field');
                 var submitButton = document.querySelector('input[type="submit"]');
                 const price = parseFloat(priceField.value) || 0;
@@ -287,7 +286,6 @@
                     borrowerField.style.display = "block";
                     principleApprovalTypeField.style.display = 'none';
                     purposeField.style.display = 'none';
-                    procurementNoField.style.display = 'none';
                     productCodeField.style.display = 'block';
                     submitButton.value = 'บันทึก';
                 } else {
@@ -297,7 +295,6 @@
                     borrowerField.style.display = "none";
                     principleApprovalTypeField.style.display = 'block';
                     purposeField.style.display = 'block';
-                    procurementNoField.style.display = 'none';
                     if (price <= 30000) {
                         productCodeField.style.display = 'none';
                     } else {
@@ -323,29 +320,34 @@
     <script>
         function updateLabel() {
             var repairType = document.querySelector('input[name="repair_type"]:checked')?.value;
+            var principleApprovalType = document.querySelector('input[name="principle_approval_type"]:checked')?.value;
+            const purposeLabel = document.getElementById("purpose-label");
             const reasonLabel = document.getElementById("reason-label");
             const detailLabel = document.getElementById("detail-label");
             const remarkLabel = document.getElementById("remark-label");
-            const noteLabel = document.getElementById("note-label")
+            const noteLabel = document.getElementById("note-label");
             if (repairType === "เร่งด่วน") {
+                purposeLabel.textContent = "มีความประสงค์จะจัดซื้อหรือจ้าง"
                 reasonLabel.textContent = "เหตุผลและความจำเป็นเร่งด่วนที่ต้องซื้อหรือจ้าง";
                 detailLabel.textContent = "รายละเอียดของพัสดุที่ซื้อหรือจ้าง";
                 remarkLabel.textContent = "ขออนุมัติขยายระยะเวลาเบิกจ่ายเงินเกิน 30 วัน (ถ้ามี)";
                 noteLabel.textContent = "ไม่เป็นไปตามข้อบังคับมหาวิทยาลัยมหิดล ว่าด้วยการบริหารงบประมาณและการเงิน (ฉบับที่ 2) พ.ศ.2556 ข้อ 32";
-            } else if (repairType === 'ไม่เร่งด่วน (จ้าง/ซ่อม)') {
-                reasonLabel.textContent = "เหตุผลและความจำเป็นต้องซื้อหรือจ้าง";
-                detailLabel.textContent = "รายละเอียดของพัสดุที่ซื้อหรือจ้าง";
+            } else if (repairType === "ไม่เร่งด่วน (ซื้อ/จ้าง)" && principleApprovalType === 'จ้างซ่อม') {
+                purposeLabel.textContent = "มีความประสงค์จะจ้างซ่อมครุภัณฑ์"
+                reasonLabel.textContent = "เหตุผลและความจำเป็นต้องจ้างซ่อม";
+                detailLabel.textContent = "รายละเอียดการซ่อม";
                 remarkLabel.textContent = "ความจำเป็นจะต้องมีการใช้พัสดุที่ผลิตจากต่างประเทศหรือนำเข้าพัสดุจาดต่างประเทศ (ถ้ามี)";
                 noteLabel.textContent = "ตามแนวทางปฏิบัติตามกฎกระทรวงกำหนดพัสดุและวิธีการจัดซื้อจัดจ้างพัสดุที่รัฐต้องการส่งเสริมหรือสนับสนุน (ฉบับที่ 2) พ.ศ. 2563 ";
             } else {
-                reasonLabel.textContent = "เหตุผลและความจำเป็นต้องจ้างซ่อม";
-                detailLabel.textContent = "รายละเอียดการซ่อม";
+                purposeLabel.textContent = "มีความประสงค์จะจัดซื้อหรือจ้าง"
+                reasonLabel.textContent = "เหตุผลและความจำเป็นต้องซื้อหรือจ้าง";
+                detailLabel.textContent = "รายละเอียดของพัสดุที่ซื้อหรือจ้าง";
                 remarkLabel.textContent = "ความจำเป็นจะต้องมีการใช้พัสดุที่ผลิตจากต่างประเทศหรือนำเข้าพัสดุจาดต่างประเทศ (ถ้ามี)";
                 noteLabel.textContent = "ตามแนวทางปฏิบัติตามกฎกระทรวงกำหนดพัสดุและวิธีการจัดซื้อจัดจ้างพัสดุที่รัฐต้องการส่งเสริมหรือสนับสนุน (ฉบับที่ 2) พ.ศ. 2563 ";
             }
         }
         updateLabel();
-        document.querySelectorAll('input[name="repair_type"]').forEach(function (radio) {
+        document.querySelectorAll('input[name="repair_type"], input[name="principle_approval_type"]').forEach(function (radio) {
             radio.addEventListener("change", updateLabel);
         });
     </script>
@@ -354,7 +356,7 @@
             var repairType = document.querySelector('input[name="repair_type"]:checked')?.value;
             const item = document.getElementById("item");
             const purpose = document.getElementById("purpose");
-            if (repairType === 'ไม่เร่งด่วน (จ้าง/ซ่อม)') {
+            if (repairType === 'ไม่เร่งด่วน (ซื้อ/จ้าง)') {
                 purpose.value = item.value;
             }
         }
