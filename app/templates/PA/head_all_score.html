@@ -3,6 +3,14 @@
 {% block page_content %}
 <section class="section">
     <div class="container" id="app">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li><a href="{{ url_for('pa.index') }}">หน้าหลัก</a></li>
+                <li><a href="{{ url_for('pa.all_request') }}">รายการคำร้อง</a></li>
+                <li><a href="{{ url_for('pa.all_approved_pa') }}" aria-current="page">ประเมินผล</a></li>
+                <li class="is-active"><a href="#" aria-current="page">คะแนน</a></li>
+            </ul>
+        </nav>
         <div class="columns">
             <div class="column has-text-left">
                 <h1 class="title">รายการคะแนนสรุป</h1>
@@ -69,6 +77,8 @@
                     <th>คะแนนรวม</th>
                     <th>ระดับ</th>
                     <th>ยืนยันคะแนน</th>
+                    <th>ส่งคะแนนให้ hr</th>
+                    <th></th>
                     </thead>
                     <tbody>
                     {% for pa in pa_agreement %}
@@ -97,7 +107,7 @@
                         <td>
                             <a href="{{ url_for('pa.summary_scoresheet', pa_id=pa.id) }}">
                             {% if pa.is_final %}
-                                <p class="tag is-success is-rounded">
+                                <p class="tag is-success is-light is-rounded">
                                     <span class="icon">
                                         <i class="fas fa-check"></i>
                                     </span>
@@ -115,6 +125,28 @@
                                     </span>
                                 </p>
                             {% endif %}
+                            </a>
+                        </td>
+                        <td>
+                            <ul>
+                                {% for name in pa.unapproved_by %}
+                                    <li>{{ name }}</li>
+                                {% endfor %}
+                            </ul>
+                            {% if pa.evaluated_at %}
+                                    <span class="tag is-success is-rounded">
+                                        <span class="icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </span>
+                                        <span>ส่งคะแนนแล้ว</span>
+                                    </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('pa.summary_scoresheet', pa_id=pa.id) }}">
+                                 <span class="icon">
+                                     <i class="fas fa-info-circle fa-xl"></i>
+                                 </span>
                             </a>
                         </td>
                     </tr>

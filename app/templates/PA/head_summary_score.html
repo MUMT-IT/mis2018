@@ -49,7 +49,11 @@
                                                 {{ approved.committee.staff.fullname }}
                                             </td>
                                             <td>
-                                                {{ approved.approved_at|localdatetime }}
+                                                {% if approved.approved_at  %}
+                                                    {{ approved.approved_at|localdatetime }}
+                                                {% else %}
+                                                    รอการอนุมัติ
+                                                {% endif %}
                                             </td>
                                         </tr>
                                     {% endfor %}
@@ -75,7 +79,12 @@
                             {% endif %}
                         {% else %}
                             <div class="control has-text-centered">
-                            ส่งคะแนนไปยัง HR เรียบร้อยแล้ว
+                                <span class="tag is-success is-rounded is-medium">
+                                    <span class="icon">
+                                        <i class="fas fa-check-circle"></i>
+                                    </span>
+                                    <span>ส่งคะแนนไปยัง HR เรียบร้อยแล้ว</span>
+                                </span>
                             </div>
                         {% endif %}
                     </div>
