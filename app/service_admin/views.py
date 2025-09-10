@@ -1867,7 +1867,7 @@ def view_invoice(invoice_id):
                                           ServiceAdmin.sub_lab.has(ServiceSubLab.code == sub_lab.code))
     admin = any(a for a in admin_lab if not a.is_supervisor)
     supervisor = any(a.is_supervisor for a in admin_lab)
-    assistant = sub_lab.assistant if sub_lab.approver_id == current_user.id else None
+    assistant = sub_lab.assistant if sub_lab.assistant_id == current_user.id else None
     dean = sub_lab.signer if sub_lab.signer_id == current_user.id else None
     central_admin = any(a.is_central_admin for a in admin_lab)
     return render_template('service_admin/view_invoice.html', invoice=invoice, admin=admin,
