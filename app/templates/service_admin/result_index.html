@@ -127,8 +127,8 @@
                                     var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report';
                                     var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=report';
                                 } else {
-                                    var draft_result_url = '/service_admin/result/draft/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
-                                    var final_result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
+                                    var draft_result_url = '/service_admin/result/draft/edit/' + data + '?request_id=' + row.request_id + '&menu=report';
+                                    var final_result_url = '/service_admin/result/final/edit/' + data + '?request_id=' + row.request_id + '&menu=report';
                                 }
                                  return '<div class="field has-addons">' +
                                     '<div class="control">' +
