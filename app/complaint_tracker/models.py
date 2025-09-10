@@ -328,13 +328,13 @@ class ComplaintRepairApproval(db.Model):
     procurement_no = db.Column('procurement_no', db.String(), info={'label': 'เลขครุภัณฑ์'})
     repair_type = db.Column('repair_type', db.String(), info={'label': 'ประเภทอนุมัติหลักการซ่อม',
                                                                   'choices': [('เร่งด่วน', 'เร่งด่วน'),
-                                                                              ('ไม่เร่งด่วน (จ้าง/ซ่อม)', 'ไม่เร่งด่วน (จ้าง/ซ่อม)'),
-                                                                              ('ไม่เร่งด่วน (จ้างซ่อม)', 'ไม่เร่งด่วน (จ้างซ่อม)')
+                                                                              ('ไม่เร่งด่วน (ซื้อ/จ้าง)', 'ไม่เร่งด่วน (ซื้อ/จ้าง)'),
                                                                               ]
                                                                   })
     principle_approval_type = db.Column('principle_approval_type', db.String(), info={'label': 'ประเภทการขออนุมัติ',
                                                                                       'choices': [('ซื้อ', 'ซื้อ'),
-                                                                                                  ('จ้าง', 'จ้าง')
+                                                                                                  ('จ้าง', 'จ้าง'),
+                                                                                                  ('จ้างซ่อม', 'จ้างซ่อม')
                                                                                                   ]
                                                                                       })
     requester_id = db.Column('requester_id', db.ForeignKey('staff_account.id'))
@@ -348,7 +348,7 @@ class ComplaintRepairApproval(db.Model):
     detail = db.Column('detail', db.Text())
     purpose = db.Column('purpose', db.Text())
     price = db.Column('price', db.Float())
-    budget_source = db.Column('budget_source', db.String())
+    supplier = db.Column('supplier', db.String())
     book_number = db.Column('book_number', db.String(), info={'label': 'เล่มที่'})
     receipt_number = db.Column('receipt_number', db.String(), info={'label': 'เลขที่'})
     receipt_date = db.Column('receipt_date', db.Date(), info={'label': 'วันที่'})

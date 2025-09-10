@@ -18,13 +18,13 @@
                     <hr>
                         <form method="post">
                             {{ form.hidden_tag() }}
-                            {% if ((rep_approval.repair_type == 'ไม่เร่งด่วน (จ้าง/ซ่อม)'and rep_approval.price > 500000) ) %}
+                            {% if rep_approval.price > 500000 %}
                                 <input type="hidden" name="committee_name_0" value="คณะกรรมการกำหนดรายละเอียดคุณลักษณะเฉพาะ">
                                 <div class="field">
                                     <input class="input is-static" name="committee_name" type="text" value="คณะกรรมการกำหนดรายละเอียดคุณลักษณะเฉพาะ" style="color: #000; font-weight: bold;">
                                 </div>
                                 {% for c_form in form.committees[0:3] %}
-                                    {{ macros.render_committee_form(c_form) }}
+                                    {{ macros.render_committee_form(c_form, loop.index0 + 0) }}
                                 {% endfor %}
                                 <hr>
                                 <input type="hidden" name="committee_name_1" value="คณะกรรมการพิจารณาผลการประกวดราคาอิเล็กทรอนิกส์">
@@ -32,7 +32,7 @@
                                     <input class="input is-static" name="committee_name" type="text" value="คณะกรรมการพิจารณาผลการประกวดราคาอิเล็กทรอนิกส์" style="color: #000; font-weight: bold;">
                                 </div>
                                 {% for c_form in form.committees[3:6] %}
-                                    {{ macros.render_committee_form(c_form) }}
+                                    {{ macros.render_committee_form(c_form, loop.index0 + 3) }}
                                 {% endfor %}
                                 <input type="hidden" name="committee_name_2" value="คณะกรรมการตรวจรับพัสดุ">
                                 <div class="field">
@@ -40,16 +40,15 @@
                                 </div>
                                 <hr>
                                 {% for c_form in form.committees[6:9] %}
-                                    {{ macros.render_committee_form(c_form) }}
+                                    {{ macros.render_committee_form(c_form, loop.index0 + 6) }}
                                 {% endfor %}
-                            {% elif ((rep_approval.price > 30000 and rep_approval.price <= 500000 and rep_approval.repair_type == 'ไม่เร่งด่วน (จ้าง/ซ่อม)')
-                                        or (rep_approval.price > 30000 and rep_approval.repair_type == 'ไม่เร่งด่วน (จ้างซ่อม)')) %}
+                            {% elif rep_approval.price > 30000 and rep_approval.price <= 500000 %}
                                 <input type="hidden" name="committee_name_0" value="คณะกรรมการตรวจรับพัสดุ">
                                     <div class="field">
                                         <input class="input is-static" type="text" value="คณะกรรมการตรวจรับพัสดุ" style="color: #000; font-weight: bold;" disabled>
                                     </div>
                                     {% for c_form in form.committees %}
-                                        {{ macros.render_committee_form(c_form) }}
+                                        {{ macros.render_committee_form(c_form, loop.index0) }}
                                     {% endfor %}
                             {% else %}
                                 <input type="hidden" name="committee_name_0" value="ผู้ตรวจรับพัสดุ">
@@ -57,7 +56,7 @@
                                     <input class="input is-static" type="text" value="ผู้ตรวจรับพัสดุ" style="color: #000; font-weight: bold;" disabled>
                                 </div>
                                 {% for c_form in form.committees %}
-                                    {{ macros.render_committee_form(c_form) }}
+                                    {{ macros.render_committee_form(c_form, loop.index0) }}
                                 {% endfor %}
                             {% endif %}
                             <div class="field" style="margin-top: 1em">
@@ -86,5 +85,18 @@
                 $(this).select2();
             });
         });
+    </script>
+    <script>
+        function syncPosition(idx) {
+            const staffSelect = document.getElementById('committees-' + idx + '-staff');
+            const staffId = staffSelect.value;
+            console.log('Fetching position for staffId:', staffId);
+            fetch('/complaint-tracker/api/committee/position?staff_id=' + staffId)
+                .then(res => res.json())
+                .then(data => {
+                    const positionInput = document.getElementById('committees-' + idx + '-position');
+                    positionInput.value = data.position || '';
+                });
+        }
     </script>
 {% endblock %}

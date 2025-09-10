@@ -1323,7 +1323,7 @@ class ServiceResult(db.Model):
         if self.approved_at:
             status = 'ยืนยันใบรายงานผลแล้ว'
             color = 'is-success'
-        elif self.edit_requester_id and not self.approved_at:
+        elif self.edit_requester_id and not self.approved_at and not self.status_note:
             status = 'ขอแก้ไขใบรายงานผล'
             color = 'is-info'
         elif uploaded_all:
@@ -1346,7 +1346,7 @@ class ServiceResult(db.Model):
         elif self.approved_at:
             status = 'ยืนยันใบรายงานผลแล้ว'
             color = 'is-primary'
-        elif self.edit_requester_id and not self.approved_at:
+        elif self.edit_requester_id and not self.approved_at and not self.status_note:
             status = 'ส่งคำขอแก้ไขใบรายงานผลแล้ว'
             color = 'is-info'
         elif uploaded_all:

@@ -1867,7 +1867,7 @@ def view_invoice(invoice_id):
                                           ServiceAdmin.sub_lab.has(ServiceSubLab.code == sub_lab.code))
     admin = any(a for a in admin_lab if not a.is_supervisor)
     supervisor = any(a.is_supervisor for a in admin_lab)
-    assistant = sub_lab.assistant if sub_lab.approver_id == current_user.id else None
+    assistant = sub_lab.assistant if sub_lab.assistant_id == current_user.id else None
     dean = sub_lab.signer if sub_lab.signer_id == current_user.id else None
     central_admin = any(a.is_central_admin for a in admin_lab)
     return render_template('service_admin/view_invoice.html', invoice=invoice, admin=admin,
@@ -3088,28 +3088,31 @@ def create_final_result(result_id=None):
                 item.result.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(item)
                 db.session.commit()
-                scheme = 'http' if current_app.debug else 'https'
-                result_url = url_for('academic_services.result_index', menu='report', _external=True, _scheme=scheme)
-                customer_name = result.request.customer.customer_name.replace(' ', '_')
-                contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
-                title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
-                title = f'''แจ้งออกรายงานผลการทดสอบฉบับร่างจริงของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-                message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-                message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
-                message += f''' ขณะนี้ได้ดำเนินการออกรายงานผลการทดสอบฉบับจริงเรียบร้อยแล้ว\n'''
-                message += f'''ท่านสามารถดูรายละเอียดรายงานผลการทดสอบได้จากลิงก์ด้านล่าง\n'''
-                message += f'''{result_url}\n\n'''
-                message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-                message += f'''ขอแสดงความนับถือ\n'''
-                message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
-                message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-                send_mail([contact_email], title, message)
-                db.session.add(result)
-                db.session.add(service_request)
-                db.session.commit()
-                flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
-                return redirect(url_for('service_admin.test_item_index', menu='test_item'))
-    return render_template('service_admin/create_final_result.html', result_id=result_id, menu=menu, result=result)
+        uploaded_all = all(item.final_file for item in result.result_items)
+        if uploaded_all:
+            scheme = 'http' if current_app.debug else 'https'
+            result_url = url_for('academic_services.result_index', menu='report', _external=True, _scheme=scheme)
+            customer_name = result.request.customer.customer_name.replace(' ', '_')
+            contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
+            title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
+            title = f'''แจ้งออกรายงานผลการทดสอบฉบับร่างจริงของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+            message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+            message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
+            message += f''' ขณะนี้ได้ดำเนินการออกรายงานผลการทดสอบฉบับจริงเรียบร้อยแล้ว\n'''
+            message += f'''ท่านสามารถดูรายละเอียดรายงานผลการทดสอบได้จากลิงก์ด้านล่าง\n'''
+            message += f'''{result_url}\n\n'''
+            message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+            message += f'''ขอแสดงความนับถือ\n'''
+            message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+            message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+            send_mail([contact_email], title, message)
+        db.session.add(result)
+        db.session.add(service_request)
+        db.session.commit()
+        flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
+        return redirect(url_for('service_admin.test_item_index', menu='test_item'))
+    return render_template('service_admin/create_final_result.html', result_id=result_id, menu=menu,
+                           result=result)
 
 
 @service_admin.route('/result/final/delete/<int:item_id>', methods=['GET', 'POST'])

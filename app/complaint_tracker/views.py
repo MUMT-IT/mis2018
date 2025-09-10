@@ -92,6 +92,14 @@ def initialize_gdrive():
         return None
 
 
+@complaint_tracker.route('/api/committee/position')
+def get_position():
+    staff_id = request.args.get('staff_id')
+    staff = StaffAccount.query.filter_by(id=staff_id).first()
+    position = staff.personal_info.position if staff else ''
+    return jsonify({"position": position})
+
+
 @complaint_tracker.route('/')
 def index():
     categories = ComplaintCategory.query.all()
@@ -926,8 +934,7 @@ def admin_record_complaint_summary():
 
 
 @complaint_tracker.route('/admin/repair-approval/add/<int:record_id>', methods=['GET', 'POST'])
-@complaint_tracker.route('/admin/repair-approval/edit/<int:record_id>/<int:repair_approval_id>',
-                         methods=['GET', 'POST'])
+@complaint_tracker.route('/admin/repair-approval/edit/<int:record_id>/<int:repair_approval_id>', methods=['GET', 'POST'])
 def repair_approval(record_id, repair_approval_id=None):
     record = ComplaintRecord.query.get(record_id)
     if repair_approval_id:
@@ -935,28 +942,23 @@ def repair_approval(record_id, repair_approval_id=None):
         form = ComplaintRepairApprovalForm(obj=rep_approval)
     else:
         form = ComplaintRepairApprovalForm()
-    org = Org.query.filter_by(head=current_user.email).first()
-    if org:
-        position = 'หัวหน้า' + org.name
+    org = Org.query.filter_by(name=current_user.personal_info.org.name).first()
+    staff = StaffAccount.query.filter_by(email=org.head).first()
+    form.name.data = staff.fullname
+    form.position.data = f"หัวหน้า{staff.personal_info.org.name}"
+    if staff.personal_info.org.parent and staff.personal_info.org.parent.parent:
+        form.organization.data = f'{staff.personal_info.org.name} {staff.personal_info.org.parent} {staff.personal_info.org.parent.parent}'
+    elif staff.personal_info.org.parent and not staff.personal_info.org.parent.parent:
+        form.organization.data = f'{staff.personal_info.org.name} {staff.personal_info.org.parent}'
     else:
-        position = current_user.personal_info.position
-    if not form.mhesi_no.data:
-        if current_user.personal_info.org.name == 'หน่วยข้อมูลและสารสนเทศ':
-            form.mhesi_no.data = 'อว. 78.041/'
-        else:
-            today = datetime.now()
-            fiscal_year = today.year + 1 if today.month >= 10 else today.year
-            form.mhesi_no.data = f'AHR  /{fiscal_year}'
+        form.organization.data = staff.personal_info.org.name
     if record.procurements:
         for procurement in record.procurements:
-            form.item.data = procurement.name
-            form.procurement_no.data = procurement.procurement_no
+            form.item.data = f'{procurement.procurement_no} {procurement.name}'
     if form.validate_on_submit():
         if not repair_approval_id:
             rep_approval = ComplaintRepairApproval()
         form.populate_obj(rep_approval)
-        rep_approval.mhesi_no_date = arrow.get(form.mhesi_no_date.data,
-                                               'Asia/Bangkok').date() if form.mhesi_no_date.data else None
         rep_approval.receipt_date = arrow.get(form.receipt_date.data,
                                               'Asia/Bangkok').date() if form.receipt_date.data else None
         if not repair_approval_id:
@@ -966,10 +968,6 @@ def repair_approval(record_id, repair_approval_id=None):
         if form.repair_type.data != 'เร่งด่วน':
             rep_approval.name = None
             rep_approval.position = None
-            if form.repair_type.data != 'ไม่เร่งด่วน (จ้างซ่อม)':
-                rep_approval.procurement_no = None
-        else:
-            rep_approval.procurement_no = None
         db.session.add(rep_approval)
         db.session.commit()
         if rep_approval.repair_type == 'เร่งด่วน':
@@ -980,21 +978,18 @@ def repair_approval(record_id, repair_approval_id=None):
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('complaint_tracker/repair_approval_form.html', form=form, position=position,
-                           record_id=record_id)
+    return render_template('complaint_tracker/repair_approval_form.html', form=form, record_id=record_id)
 
 
 @complaint_tracker.route('/admin/repair-approval/committee/add/<int:repair_approval_id>', methods=['GET', 'POST'])
 def edit_committee(repair_approval_id):
     rep_approval = ComplaintRepairApproval.query.get(repair_approval_id)
     committees = ComplaintCommittee.query.filter_by(repair_approval_id=repair_approval_id).all()
-    if rep_approval.price > 500000 and rep_approval.repair_type == 'ไม่เร่งด่วน (จ้าง/ซ่อม)':
+    if rep_approval.price > 500000:
         min_entries = 9
         default_positions = ['ประธาน', 'กรรมการ', 'กรรมการ', 'ประธาน', 'กรรมการ', 'กรรมการ', 'ประธาน', 'กรรมการ',
                              'กรรมการ']
-    elif ((
-                  rep_approval.price > 30000 and rep_approval.price <= 500000 and rep_approval.repair_type == 'ไม่เร่งด่วน (จ้าง/ซ่อม)')
-          or (rep_approval.price > 30000 and rep_approval.repair_type == 'ไม่เร่งด่วน (จ้างซ่อม)')):
+    elif rep_approval.price > 30000 and rep_approval.price <= 500000:
         min_entries = 3
         default_positions = ['ประธาน', 'กรรมการ', 'กรรมการ']
     else:
