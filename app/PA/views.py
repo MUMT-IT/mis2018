@@ -1510,7 +1510,7 @@ def send_evaluation_comment(pa_id):
 @pa.route('/head/all-pa/score')
 @login_required
 def all_pa_score():
-    rounds = PARound.query.all()
+    rounds = PARound.query.order_by(PARound.id.desc()).all()
     round_id = request.args.get('roundid', type=int)
     if round_id is None:
         all_pa = PAAgreement.query.filter_by(head_committee_staff_account=current_user).all()
@@ -1547,6 +1547,13 @@ def all_pa_score():
                 record["round"] = pa.round
                 record["name"] = pa.staff.fullname
 
+                unapproved = []
+                for score_sheet in pa.pa_score_sheet:
+                    for a in score_sheet.approved_score_sheet:
+                        if not a.approved_at:
+                            unapproved.append(a.committee.staff.fullname + ' ยังไม่อนุมัติคะแนนสรุป')
+                record["unapproved_by"] = unapproved
+                record["evaluated_at"] = pa.evaluated_at
                 if total >= 90:
                     level = 'ดีเด่น'
                     excellent_score += 1
