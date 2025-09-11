@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ texts.university_name }} - Register</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+</head>
+<body>
+  <section class="section">
+    <div class="container">
+      <nav class="breadcrumb" aria-label="breadcrumbs">
+        <ul>
+          <li><a href="{{ url_for('continuing_edu.index', lang=current_lang) }}">{{ texts.university_name }}</a></li>
+          <li class="is-active"><a href="#" aria-current="page">{{ texts.registration_fee_label }}</a></li>
+        </ul>
+      </nav>
+      <h1 class="title is-3">Register for: {{ event.title_en or event.title_th }}</h1>
+      <div class="box">
+        <p><strong>Member:</strong> {{ member.username }} ({{ member.email }})</p>
+        <p><strong>Member Type:</strong> {{ fee.member_type_ref.name_en }} / {{ fee.member_type_ref.name_th }}</p>
+        <p>
+          <strong>Fee:</strong>
+          {% if fee.early_bird_price is not none and (event.early_bird_start or event.early_bird_end) %}
+            {% set eb_active = True %}
+            <span style="text-decoration:line-through;">{{ '%.2f'|format(fee.price) }} THB</span>
+            <span class="tag is-success is-light">{{ '%.2f'|format(price) }} THB (Early Bird)</span>
+          {% else %}
+            {{ '%.2f'|format(price) }} THB
+          {% endif %}
+        </p>
+      </div>
+      <form method="post">
+        <button class="button is-primary" type="submit">Confirm Registration</button>
+        <a class="button" href="{{ url_for('continuing_edu.course_detail' if event.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event.id if event.event_type=='course' else None, webinar_id=event.id if event.event_type=='webinar' else None, lang=current_lang) }}">Cancel</a>
+      </form>
+    </div>
+  </section>
+</body>
+</html>
+

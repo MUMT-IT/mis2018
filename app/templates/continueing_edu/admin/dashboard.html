@@ -1,103 +1,79 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends 'continueing_edu/admin/base.html' %}
+{% block content %}
 
-<head>
-          <meta charset="UTF-8">
-          <title>Admin Dashboard</title>
-          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
-</head>
-
-<body>
-          <nav class="navbar has-background-light">
-                    <div class="navbar-brand">
-                              <a class="navbar-item" href="/continuing_edu/admin">Admin Dashboard</a>
-                    </div>
-                    <div class="navbar-menu">
-                              <div class="navbar-end">
-                                        <a class="navbar-item" href="/continuing_edu/admin/events">Manage Events</a>
-                                        <a class="navbar-item" href="/continuing_edu/admin/logout">Logout</a>
+<div class="container">
+          <h1 class="title">Welcome, {{ logged_in_admin.fullname }}</h1>
+          <p class="subtitle">Today is {{ current_date }}.</p>
+          <div class="columns is-multiline mb-5">
+                    <div class="column is-one-quarter">
+                              <div class="box has-background-link has-text-white has-text-centered">
+                                        <p class="heading">Total Members</p>
+                                        <p class="title">{{ member_count }}</p>
                               </div>
                     </div>
-          </nav>
-          <section class="section">
-                    <div class="container">
-                              <h1 class="title">Welcome, {{ logged_in_admin.username }}</h1>
-                              <p class="subtitle">Today is {{ current_date }}.</p>
-                              <div class="columns is-multiline mb-5">
-                                        <div class="column is-one-quarter">
-                                                  <div class="box has-background-link has-text-white has-text-centered">
-                                                            <p class="heading">Total Members</p>
-                                                            <p class="title">{{ member_count }}</p>
-                                                  </div>
-                                        </div>
-                                        <div class="column is-one-quarter">
-                                                  <div
-                                                            class="box has-background-primary has-text-white has-text-centered">
-                                                            <p class="heading">Courses Open for Registration</p>
-                                                            <p class="title">{{ course_count }}</p>
-                                                  </div>
-                                        </div>
-
-                                        <div class="column is-one-quarter">
-                                                  <div
-                                                            class="box has-background-success has-text-white has-text-centered">
-                                                            <p class="heading">Total Payments</p>
-                                                            <p class="title">{{ payment_sum | round(2) }}</p>
-                                                  </div>
-                                        </div>
-                                        <div class="column is-one-quarter">
-                                                  <div
-                                                            class="box has-background-warning has-text-white has-text-centered">
-                                                            <p class="heading">Total Registrations</p>
-                                                            <p class="title">{{ registration_count }}</p>
-                                                  </div>
-                                        </div>
-                              </div>
-
-                              <h2 class="subtitle mt-6 mb-3">Latest Courses</h2>
-                              <div class="table-container">
-                                        <table class="table dataTable is-fullwidth is-striped is-hoverable">
-                                                  <thead>
-                                                            <tr>
-                                                                      <th>Course Title</th>
-                                                                      <th>Created At</th>
-                                                                      <th>Format</th>
-                                                                      <th>Registrations / Limit</th>
-                                                                      <th>Paid</th>
-                                                                      <th>Status</th>
-                                                                      <th>Actions</th>
-                                                            </tr>
-                                                  </thead>
-                                                  <tbody>
-                                                            {% for course in latest_courses %}
-                                                            <tr>
-                                                                      <td>{{ course.title_en or course.title_th }}</td>
-                                                                      <td>{{ course.created_at.strftime('%Y-%m-%d') if
-                                                                                course.created_at else '-' }}</td>
-                                                                      <td>{{ course.format_en or course.format_th or '-'
-                                                                                }}</td>
-                                                                      <td>{{ course.registrations|length }} / {{
-                                                                                course.limit or '-' }}</td>
-                                                                      <td>{{ course.payments|selectattr('payment_status_ref.name_en',
-                                                                                'equalto', 'Paid')|list|length }}</td>
-                                                                      <td>Open</td>
-                                                                      <td>
-                                                                                <a href="{{ url_for('continuing_edu_admin.manage_events') }}?edit_id={{ course.id }}"
-                                                                                          class="button is-small is-info">Edit</a>
-                                                                                <a href="{{ url_for('continuing_edu_admin.manage_events') }}?detail_id={{ course.id }}"
-                                                                                          class="button is-small is-light">Details</a>
-                                                                      </td>
-                                                            </tr>
-                                                            {% else %}
-                                                            <tr>
-                                                                      <td colspan="7">No recent courses found.</td>
-                                                            </tr>
-                                                            {% endfor %}
-                                                  </tbody>
-                                        </table>
+                    <div class="column is-one-quarter">
+                              <div class="box has-background-primary has-text-white has-text-centered">
+                                        <p class="heading">Courses Open for Registration</p>
+                                        <p class="title">{{ course_count }}</p>
                               </div>
                     </div>
-          </section>
-</body>
 
-</html>
+                    <div class="column is-one-quarter">
+                              <div class="box has-background-success has-text-white has-text-centered">
+                                        <p class="heading">Total Payments</p>
+                                        <p class="title">{{ payment_sum | round(2) }}</p>
+                              </div>
+                    </div>
+                    <div class="column is-one-quarter">
+                              <div class="box has-background-warning has-text-white has-text-centered">
+                                        <p class="heading">Total Registrations</p>
+                                        <p class="title">{{ registration_count }}</p>
+                              </div>
+                    </div>
+          </div>
+
+          <h2 class="subtitle mt-6 mb-3">Latest Courses</h2>
+          <div class="table-container">
+                    <table class="table dataTable is-fullwidth is-striped is-hoverable">
+                              <thead>
+                                        <tr>
+                                                  <th>Course Title</th>
+                                                  <th>Created At</th>
+                                                  <th>Format</th>
+                                                  <th>Registrations / Limit</th>
+                                                  <th>Paid</th>
+                                                  <th>Status</th>
+                                                  <th>Actions</th>
+                                        </tr>
+                              </thead>
+                              <tbody>
+                                        {% for course in latest_courses %}
+                                        <tr>
+                                                  <td>{{ course.title_en or course.title_th }}</td>
+                                                  <td>{{ course.created_at.strftime('%Y-%m-%d') if
+                                                            course.created_at else '-' }}</td>
+                                                  <td>{{ course.format_en or course.format_th or '-'
+                                                            }}</td>
+                                                  <td>{{ course.registrations|length }} / {{
+                                                            course.limit or '-' }}</td>
+                                                  <td>{{ course.payments|selectattr('payment_status_ref.name_en',
+                                                            'equalto', 'Paid')|list|length }}</td>
+                                                  <td>Open</td>
+                                                  <td>
+                                                            <a href="{{ url_for('continuing_edu_admin.manage_events') }}?edit_id={{ course.id }}"
+                                                                      class="button is-small is-info">Edit</a>
+                                                            <a href="{{ url_for('continuing_edu_admin.manage_events') }}?detail_id={{ course.id }}"
+                                                                      class="button is-small is-light">Details</a>
+                                                  </td>
+                                        </tr>
+                                        {% else %}
+                                        <tr>
+                                                  <td colspan="7">No recent courses found.</td>
+                                        </tr>
+                                        {% endfor %}
+                              </tbody>
+                    </table>
+          </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Account</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+</head>
+<body class="has-text-gray-800">
+  <section class="section">
+    <div class="container">
+      <h1 class="title is-3">My Account</h1>
+      <div class="columns">
+        <div class="column is-half">
+          <div class="box">
+            <h2 class="title is-5">Profile</h2>
+            <form method="post" action="{{ url_for('continuing_edu.account_update_profile', lang=current_lang) }}">
+              <div class="field"><label class="label">Email</label><input class="input" name="email" value="{{ user.email or '' }}"></div>
+              <div class="field"><label class="label">Full Name (EN)</label><input class="input" name="full_name_en" value="{{ user.full_name_en or '' }}"></div>
+              <div class="field"><label class="label">Full Name (TH)</label><input class="input" name="full_name_th" value="{{ user.full_name_th or '' }}"></div>
+              <div class="field"><label class="label">Phone</label><input class="input" name="phone_no" value="{{ user.phone_no or '' }}"></div>
+              <div class="field"><label class="label">Address</label><input class="input" name="address" value="{{ user.address or '' }}"></div>
+              <div class="columns">
+                <div class="column"><label class="label">Province</label><input class="input" name="province" value="{{ user.province or '' }}"></div>
+                <div class="column"><label class="label">Zip</label><input class="input" name="zip_code" value="{{ user.zip_code or '' }}"></div>
+              </div>
+              <div class="columns">
+                <div class="column"><label class="label">Country</label><input class="input" name="country" value="{{ user.country or '' }}"></div>
+                <div class="column"><label class="label">Title (EN)</label><input class="input" name="title_name_en" value="{{ user.title_name_en or '' }}"></div>
+                <div class="column"><label class="label">Title (TH)</label><input class="input" name="title_name_th" value="{{ user.title_name_th or '' }}"></div>
+              </div>
+              <button class="button is-link" type="submit">Save Profile</button>
+            </form>
+          </div>
+        </div>
+        <div class="column is-half">
+          <div class="box">
+            <h2 class="title is-5">Change Password</h2>
+            <form method="post" action="{{ url_for('continuing_edu.account_change_password', lang=current_lang) }}">
+              <div class="field"><label class="label">Current Password</label><input class="input" type="password" name="current_password" required></div>
+              <div class="field"><label class="label">New Password</label><input class="input" type="password" name="new_password" required></div>
+              <div class="field"><label class="label">Confirm New Password</label><input class="input" type="password" name="confirm_password" required></div>
+              <button class="button is-primary" type="submit">Change Password</button>
+            </form>
+          </div>
+          <div class="box">
+            <h2 class="title is-5">Google Account</h2>
+            {% if user.google_sub %}
+            <p class="mb-2">Connected to Google{% if user.google_connected_at %} on {{ user.google_connected_at }}{% endif %}.</p>
+            <form method="post" action="{{ url_for('continuing_edu.account_disconnect_google', lang=current_lang) }}" onsubmit="return confirm('Disconnect Google account?');">
+              <button class="button is-warning" type="submit">Disconnect Google</button>
+            </form>
+            {% else %}
+            <p class="mb-2">Connect your account to Google for quick sign-in.</p>
+            <a class="button is-light" href="{{ url_for('continuing_edu.account_connect_google', lang=current_lang) }}">Connect Google</a>
+            {% endif %}
+          </div>
+          <div class="box">
+            <h2 class="title is-5">Data Export</h2>
+            <p class="mb-2">Download a copy of your data in JSON format.</p>
+            <a class="button is-info" href="{{ url_for('continuing_edu.account_export_data', lang=current_lang) }}">Download My Data</a>
+          </div>
+          <div class="box">
+            <h2 class="title is-5 has-text-danger">Request Account Deletion</h2>
+            <form method="post" action="{{ url_for('continuing_edu.account_request_delete', lang=current_lang) }}" onsubmit="return confirm('Are you sure you want to request account deletion?');">
+              <div class="field"><label class="label">Reason (optional)</label><textarea class="textarea" name="reason" placeholder="Tell us why you want to delete your account"></textarea></div>
+              <button class="button is-danger" type="submit">Request Deletion</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

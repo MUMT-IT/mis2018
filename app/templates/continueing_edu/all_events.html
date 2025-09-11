@@ -1,6 +1,11 @@
 <h1>All Events</h1>
 <ul>
-          {% for event in events %}
-          <li>{{ event.title_en }} ({{ event.event_type }})</li>
-          {% endfor %}
+  {% for event in events %}
+  <li>
+    {{ event.title_en }} ({{ event.event_type }})
+    {% if registered_ids and event.id in registered_ids %}
+      <span class="tag is-success is-light">Registered</span>
+    {% endif %}
+  </li>
+  {% endfor %}
 </ul>

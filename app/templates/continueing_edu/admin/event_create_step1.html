@@ -1,0 +1,115 @@
+{% extends 'continueing_edu/admin/base.html' %}
+{% block content %}
+<div class="container mt-6 mb-6">
+          <h1 class="title is-3 mb-4">Create New Event</h1>
+          <form method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="field mb-4">
+                              <label class="label">{{ form.event_type.label.text }}</label>
+                              <div class="columns is-multiline">
+                                        <div class="column is-one-third">
+                                                  <label style="cursor:pointer;display:block;">
+                                                            <input type="radio" name="event_type" value="course"
+                                                                      class="event-type-radio" {% if
+                                                                      form.event_type.data=='course' %}checked{% endif
+                                                                      %}>
+                                                            <div class="card has-background-white event-type-card">
+                                                                      <div class="card-content">
+                                                                                <div class="media">
+                                                                                          <div class="media-left">
+                                                                                                    <span
+                                                                                                              class="icon is-large has-text-link">
+                                                                                                              <i
+                                                                                                                        class="fas fa-chalkboard-teacher fa-2x"></i>
+                                                                                                    </span>
+                                                                                          </div>
+                                                                                          <div class="media-content">
+                                                                                                    <p
+                                                                                                              class="title is-5 mb-5">
+                                                                                                              Course</p>
+                                                                                                    <p
+                                                                                                              class="subtitle is-7">
+                                                                                                              หลักสูตร/อบรม
+                                                                                                    </p>
+                                                                                          </div>
+                                                                                </div>
+                                                                      </div>
+                                                            </div>
+                                                  </label>
+                                        </div>
+                                        <div class="column is-one-third">
+                                                  <label style="cursor:pointer;display:block;">
+                                                            <input type="radio" name="event_type" value="webinar"
+                                                                      class="event-type-radio" {% if
+                                                                      form.event_type.data=='webinar' %}checked{% endif
+                                                                      %}>
+                                                            <div class="card has-background-white event-type-card">
+                                                                      <div class="card-content">
+                                                                                <div class="media">
+                                                                                          <div class="media-left">
+                                                                                                    <span
+                                                                                                              class="icon is-large has-text-info">
+                                                                                                              <i
+                                                                                                                        class="fas fa-video fa-2x"></i>
+                                                                                                    </span>
+                                                                                          </div>
+                                                                                          <div class="media-content">
+                                                                                                    <p
+                                                                                                              class="title is-5 mb-5">
+                                                                                                              Webinar
+                                                                                                    </p>
+                                                                                                    <p
+                                                                                                              class="subtitle is-7">
+                                                                                                              สัมมนาออนไลน์
+                                                                                                    </p>
+                                                                                          </div>
+                                                                                </div>
+                                                                      </div>
+                                                            </div>
+                                                  </label>
+                                        </div>
+                              </div>
+                              {% for error in form.event_type.errors %}
+                              <p class="help is-danger">{{ error }}</p>
+                              {% endfor %}
+                    </div>
+                    <div class="field mb-4">
+                              {{ form.title.label(class="label") }}
+                              <div class="control is-large">
+                                        {{ form.title(class="input") }}
+                              </div>
+                              {% for error in form.title.errors %}
+                              <p class="help is-danger">{{ error }}</p>
+                              {% endfor %}
+                    </div>
+                    <div class="field">
+                              <div class="control">
+                                        <button type="submit" class="button is-link">Next</button>
+                              </div>
+                    </div>
+                    <link rel="stylesheet"
+                              href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+                    <style>
+                              .event-type-radio {
+                                        display: none;
+                              }
+
+                              .event-type-card {
+                                        border: 2px solid #e0e0e0;
+                                        border-radius: 8px;
+                                        transition: border-color 0.2s, box-shadow 0.2s;
+                                        box-shadow: none;
+                              }
+
+                              .event-type-radio:checked+.event-type-card {
+                                        border-color: #3273dc;
+                                        box-shadow: 0 0 0 2px #3273dc33;
+                              }
+
+                              .event-type-card:hover {
+                                        border-color: #b5b5b5;
+                              }
+                    </style>
+          </form>
+</div>
+{% endblock %}

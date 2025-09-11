@@ -167,7 +167,7 @@
             <div class="columns is-vcentered is-desktop">
                 <div class="column is-half-desktop">
                     <figure class="image is-3by2">
-                        <img src="https://placehold.co/600x300/E0E7FF/4338CA?text=Webinar" alt="[Image of Webinar]" class="object-cover rounded-lg shadow-lg">
+                        <img src="{{ webinar.cover_image_url or webinar.poster_image_url or webinar.image_url or 'https://placehold.co/600x300/E0E7FF/4338CA?text=Webinar' }}" alt="[Image of Webinar]" class="object-cover rounded-lg shadow-lg">
                     </figure>
                 </div>
                 <div class="column is-half-desktop">
@@ -196,25 +196,54 @@
                             {% endfor %}
                         </ul>
 
+                        {% if webinar.early_bird_end %}
+                        <div class="notification is-info is-light" id="eb-banner" data-eb-end="{{ webinar.early_bird_end.isoformat() }}">
+                            <strong>Early Bird!</strong> Ends in <span id="eb-countdown">—</span>
+                        </div>
+                        {% endif %}
+
                         <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.registration_fee_label }}</h4>
-                        <p class="has-text-grey-dark is-size-6 mb-2">
-                            {% if logged_in_user %}
-                                <strong>{{ texts.price_for_you }}:</strong> {{ webinar.registration_fee }} THB ({{ logged_in_user.member_type.value | replace('_', ' ') | title }})
-                            {% else %}
-                                <strong>{{ texts.registration_fee_label }}:</strong>
-                                {% for member_type, fee in webinar.all_registration_fees.items() %}
-                                    {% if member_type != 'default' %}
-                                        {{ fee }} THB ({{ member_type | replace('_', ' ') | title }}){% if not loop.last %}, {% endif %}
-                                    {% endif %}
-                                {% endfor %}
-                                . Default: {{ webinar.all_registration_fees.default }} THB.
-                            {% endif %}
-                        </p>
+                        <div class="content">
+                          {% if webinar.registration_fees %}
+                            <ul id="fees-list" data-eb-start="{{ webinar.early_bird_start.isoformat() if webinar.early_bird_start else '' }}" data-eb-end="{{ webinar.early_bird_end.isoformat() if webinar.early_bird_end else '' }}">
+                              {% for fee in webinar.registration_fees %}
+                              <li>
+                                <span class="has-text-weight-semibold">{{ fee.member_type_ref.name_en }} / {{ fee.member_type_ref.name_th }}:</span>
+                                {% if fee.early_bird_price is not none %}
+                                  <span class="normal-price">{{ '%.2f'|format(fee.price) }} THB</span>
+                                  <span class="early-price tag is-success is-light" style="display:none;">{{ '%.2f'|format(fee.early_bird_price) }} THB</span>
+                                {% else %}
+                                  <span>{{ '%.2f'|format(fee.price) }} THB</span>
+                                {% endif %}
+                              </li>
+                              {% endfor %}
+                            </ul>
+                          {% else %}
+                            <p class="has-text-grey">No fees configured.</p>
+                          {% endif %}
+                        </div>
 
                         {% if logged_in_user %}
-                            <a href="#" class="button is-info is-large is-rounded has-background-indigo-600 hover:has-background-indigo-700 has-text-white">
-                                {{ texts.register_now_btn }}
-                            </a>
+                            {% if already_registered %}
+                            <div class="notification is-success is-light">You are already registered for this event.</div>
+                            <button class="button is-static is-large is-rounded">Registered</button>
+                            <div class="box mt-4">
+                              <p class="mb-2"><strong>Progress</strong></p>
+                              <p>Started: {{ (logged_in_user.registrations|selectattr('event_entity_id','equalto', webinar.id)|map(attribute='started_at')|list|first) or '-' }}</p>
+                              <p>Completed: {{ (logged_in_user.registrations|selectattr('event_entity_id','equalto', webinar.id)|map(attribute='completed_at')|list|first) or '-' }}</p>
+                              <div class="buttons mt-2">
+                                <form method="post" action="{{ url_for('continuing_edu.start_progress', event_id=webinar.id, lang=current_lang) }}">
+                                  <button class="button is-small" type="submit">Start</button>
+                                </form>
+                                <form method="post" action="{{ url_for('continuing_edu.complete_progress', event_id=webinar.id, lang=current_lang) }}" class="ml-2">
+                                  <input type="hidden" name="passed" value="1">
+                                  <button class="button is-small is-link" type="submit">Complete & Issue Certificate</button>
+                                </form>
+                              </div>
+                            </div>
+                            {% else %}
+                            <a href="{{ url_for('continuing_edu.register_event', event_id=webinar.id, lang=current_lang) }}" class="button is-info is-large is-rounded has-background-indigo-600 hover:has-background-indigo-700 has-text-white">{{ texts.register_now_btn }}</a>
+                            {% endif %}
                         {% else %}
                             <p class="has-text-grey-dark is-size-6 mt-5">{{ texts.register_to_enroll }}</p>
                             <div class="buttons mt-3">
@@ -279,4 +308,47 @@
     </script>
 
 </body>
+<script>
+  (function(){
+    function inWindow(startIso, endIso){
+      try{
+        var now = new Date();
+        var start = startIso ? new Date(startIso) : null;
+        var end = endIso ? new Date(endIso) : null;
+        if(end && now > end) return false;
+        if(start && now < start) return false;
+        return !!(end || start);
+      }catch(e){return false;}
+    }
+    function toggleFees(){
+      var list = document.getElementById('fees-list');
+      if(!list) return;
+      var isIn = inWindow(list.dataset.ebStart, list.dataset.ebEnd);
+      var normals = list.querySelectorAll('.normal-price');
+      var earlys = list.querySelectorAll('.early-price');
+      normals.forEach(function(el){ el.style.textDecoration = isIn ? 'line-through' : 'none'; });
+      earlys.forEach(function(el){ el.style.display = isIn ? '' : 'none'; });
+    }
+    function countdown(){
+      var banner = document.getElementById('eb-banner');
+      if(!banner) return;
+      var endIso = banner.dataset.ebEnd;
+      if(!endIso) return;
+      var end = new Date(endIso);
+      function tick(){
+        var now = new Date();
+        var diff = end - now;
+        var el = document.getElementById('eb-countdown');
+        if(diff <= 0){ banner.style.display='none'; toggleFees(); return; }
+        var d = Math.floor(diff/86400000), h=Math.floor((diff%86400000)/3600000), m=Math.floor((diff%3600000)/60000), s=Math.floor((diff%60000)/1000);
+        if(el) el.textContent = d+'d '+h+'h '+m+'m '+s+'s';
+        toggleFees();
+      }
+      tick();
+      setInterval(tick, 1000);
+    }
+    toggleFees();
+    countdown();
+  })();
+</script>
 </html>

@@ -516,6 +516,9 @@
                             {{ texts.contact_us_nav }}
                         </a>
                         {% if logged_in_user %}
+                        <a href="{{ url_for('continuing_edu.account_settings', lang=current_lang) }}" class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">My Account</a>
+                        <a href="{{ url_for('continuing_edu.my_registrations', lang=current_lang) }}" class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">My Registrations</a>
+                        <a href="{{ url_for('continuing_edu.my_payments', lang=current_lang) }}" class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">My Payments</a>
                         <div class="navbar-item has-text-gray-700">
                             {{ texts.welcome_message }} {{ logged_in_user.username }}!
                         </div>
@@ -597,16 +600,31 @@
         <div class="container">
             <h2 class="title is-2 has-text-centered mb-12 has-text-gray-800 rounded-md" data-aos="fade-up">{{
                 texts.our_short_courses_title }}</h2>
+            {% if logged_in_user %}
+            <div class="has-text-right mb-4">
+              {% if registered_only %}
+                <a class="button is-small" href="{{ url_for('continuing_edu.index', lang=current_lang) }}">Show All</a>
+              {% else %}
+                <a class="button is-small is-link is-light" href="{{ url_for('continuing_edu.index', lang=current_lang, registered_only=1) }}">My Registered Only</a>
+              {% endif %}
+            </div>
+            {% endif %}
             <div class="columns is-multiline">
                 {% for course in events %}
                 <div class="column is-one-third-desktop is-half-tablet is-full-mobile" data-aos="fade-up"
                     data-aos-delay="{{ loop.index * 100 }}">
                     <div class="card has-background-gray-50 p-6 rounded-lg shadow-md border border-gray-200">
-                        <div class="card-image mb-4">
+                        <div class="card-image mb-4" style="position:relative;">
                             <figure class="image is-3by2">
-                                <img src="{{ course.image_url }}" alt="[Image of {{ course.title }} Course]"
+                                <img src="{{ course.cover_image_url or course.poster_image_url or course.image_url }}" alt="[Image of {{ course.title or course.title_en }} Course]"
                                     class="object-cover rounded-md">
                             </figure>
+                            {% if course.early_bird_end %}
+                            <span class="tag is-warning is-light" style="position:absolute;top:8px;left:8px;">Early Bird</span>
+                            {% endif %}
+                            {% if registered_ids and course.id in registered_ids %}
+                            <span class="tag is-success is-light" style="position:absolute;top:8px;right:8px;">Registered</span>
+                            {% endif %}
                         </div>
                         <div class="card-content">
                             <h3 class="title is-5 has-text-indigo-700 mb-3 rounded-md">{{ course.title }}</h3>

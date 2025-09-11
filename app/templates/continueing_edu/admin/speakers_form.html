@@ -1,0 +1,95 @@
+{% extends 'continueing_edu/admin/base.html' %}
+{% block content %}
+<div class="container">
+  <h1 class="title is-3">{{ 'New Speaker' if mode=='new' else 'Edit Speaker' }}</h1>
+  <form method="post">
+    <div class="columns">
+      <div class="column">
+        <label class="label">Title (EN)</label>
+        <input class="input" name="title_en" value="{{ (data.title_en if data else '') or '' }}" required>
+      </div>
+      <div class="column">
+        <label class="label">Title (TH)</label>
+        <input class="input" name="title_th" value="{{ (data.title_th if data else '') or '' }}" required>
+      </div>
+    </div>
+    <div class="columns">
+      <div class="column">
+        <label class="label">Name (EN)</label>
+        <input class="input" name="name_en" value="{{ (data.name_en if data else '') or '' }}" required>
+      </div>
+      <div class="column">
+        <label class="label">Name (TH)</label>
+        <input class="input" name="name_th" value="{{ (data.name_th if data else '') or '' }}" required>
+      </div>
+    </div>
+    <div class="columns">
+      <div class="column">
+        <label class="label">Email</label>
+        <input class="input" type="email" name="email" value="{{ (data.email if data else '') or '' }}" required>
+      </div>
+      <div class="column">
+        <label class="label">Phone</label>
+        <input class="input" name="phone" value="{{ (data.phone if data else '') or '' }}">
+      </div>
+    </div>
+    <div class="columns">
+      <div class="column">
+        <label class="label">Position (EN)</label>
+        <input class="input" name="position_en" value="{{ (data.position_en if data else '') or '' }}">
+      </div>
+      <div class="column">
+        <label class="label">Position (TH)</label>
+        <input class="input" name="position_th" value="{{ (data.position_th if data else '') or '' }}">
+      </div>
+    </div>
+    <div class="columns">
+      <div class="column">
+        <label class="label">Institution (EN)</label>
+        <input class="input" name="institution_en" value="{{ (data.institution_en if data else '') or '' }}" required>
+      </div>
+      <div class="column">
+        <label class="label">Institution (TH)</label>
+        <input class="input" name="institution_th" value="{{ (data.institution_th if data else '') or '' }}" required>
+      </div>
+    </div>
+    <div class="columns">
+      <div class="column">
+        <label class="label">Image URL</label>
+        <input class="input" type="url" name="image_url" value="{{ (data.image_url if data else '') or '' }}">
+      </div>
+      <div class="column">
+        {% if data and data.image_url %}
+        <label class="label">Preview</label>
+        <figure class="image is-3by2" style="max-width: 320px;">
+          <img src="{{ data.image_url }}" alt="Speaker preview" style="object-fit:cover;border:1px solid #eee;">
+        </figure>
+        {% endif %}
+      </div>
+    </div>
+    <div class="columns">
+      <div class="column">
+        <label class="label">Bio (EN)</label>
+        <textarea class="textarea" name="bio_en">{{ (data.bio_en if data else '') or '' }}</textarea>
+      </div>
+      <div class="column">
+        <label class="label">Bio (TH)</label>
+        <textarea class="textarea" name="bio_th">{{ (data.bio_th if data else '') or '' }}</textarea>
+      </div>
+    </div>
+    {% if mode=='edit' %}
+    <div class="field">
+      <label class="checkbox">
+        <input type="checkbox" name="is_active" {% if data and data.is_active %}checked{% endif %}> Active
+      </label>
+    </div>
+    {% endif %}
+
+    <div class="field is-grouped">
+      <div class="control"><button class="button is-primary" type="submit">Save</button></div>
+      <div class="control"><a class="button" href="{{ url_for('continuing_edu_admin.speakers_index') }}">Cancel</a></div>
+    </div>
+  </form>
+</div>
+{% endblock %}
+

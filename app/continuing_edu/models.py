@@ -137,6 +137,9 @@ class Member(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     email = db.Column(db.String(200), unique=True, nullable=True)
     password_hash = db.Column(db.String(255), nullable=False)
+    # Social auth (Google) linkage
+    google_sub = db.Column(db.String(128), unique=True, nullable=True, comment="Google OpenID subject")
+    google_connected_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
     # Changed from String to Integer FK
     member_type_id = db.Column(db.Integer, ForeignKey('member_types.id'), nullable=True)
@@ -213,6 +216,8 @@ class EventEntity(db.Model):
     # Fields from Course
     course_code = db.Column(db.String(100), unique=True, nullable=True)  # nullable for non-course events
     image_url = db.Column(db.Text, nullable=True)
+    poster_image_url = db.Column(db.String(500), nullable=True, comment="URL for poster image")
+    cover_image_url = db.Column(db.String(500), nullable=True, comment="URL for cover/banner image")
     long_description_en = db.Column(db.Text, nullable=True)
     long_description_th = db.Column(db.Text, nullable=True)
     duration_en = db.Column(db.String(50), nullable=True)
@@ -229,6 +234,9 @@ class EventEntity(db.Model):
     created_by = db.Column(db.String(50), nullable=True)
     certificate_name_th = db.Column(db.String(255), nullable=True, comment="ชื่อใบรับรองภาษาไทย")
     certificate_name_en = db.Column(db.String(255), nullable=True, comment="English certificate name")
+    # Early bird registration period (applies globally for the event)
+    early_bird_start = db.Column(db.DateTime(timezone=True), nullable=True, comment="Early bird start datetime")
+    early_bird_end = db.Column(db.DateTime(timezone=True), nullable=True, comment="Early bird end datetime")
 
     # Relationships
     payments = relationship("RegisterPayment", back_populates="event_entity", lazy=True)
@@ -300,6 +308,9 @@ class MemberRegistration(db.Model):
                                         comment="Date when the certificate was issued")
     certificate_url = db.Column(db.String(500), nullable=True,
                                 comment="URL to the issued certificate file")
+    # Progress tracking
+    started_at = db.Column(db.DateTime(timezone=True), nullable=True, comment="When the member started the event")
+    completed_at = db.Column(db.DateTime(timezone=True), nullable=True, comment="When the member completed the event")
 
     __table_args__ = (
         UniqueConstraint("member_id", "event_entity_id", name="_member_event_entity_uc"),
@@ -410,6 +421,33 @@ class EventSpeaker(db.Model):
         return f"<EventSpeaker {self.name_en} for Event:{self.event_entity_id}>"
 
 
+class SpeakerProfile(db.Model):
+    """
+    Centralized reusable speaker profile not tied to a specific event.
+    """
+    __tablename__ = 'speaker_profiles'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    title_en = db.Column(db.String(255), nullable=False)
+    title_th = db.Column(db.String(255), nullable=False)
+    name_th = db.Column(db.String(255), nullable=False)
+    name_en = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(200), unique=True, nullable=False)
+    phone = db.Column(db.String(200), nullable=True)
+    position_th = db.Column(db.String(255), nullable=True)
+    position_en = db.Column(db.String(255), nullable=True)
+    institution_th = db.Column(db.String(255), nullable=False)
+    institution_en = db.Column(db.String(255), nullable=False)
+    image_url = db.Column(db.String(500), nullable=True)
+    bio_th = db.Column(db.Text, nullable=True)
+    bio_en = db.Column(db.Text, nullable=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now(), onupdate=db.func.now())
+
+    def __repr__(self) -> str:
+        return f"<SpeakerProfile {self.name_en} ({self.email})>"
+
+
 class EventAgenda(db.Model):
     """
     Stores agenda items for an EventEntity.
@@ -467,6 +505,7 @@ class EventRegistrationFee(db.Model):
     member_type_ref = relationship("MemberType", back_populates="event_registration_fees")
 
     price = db.Column(db.Float, nullable=False)
+    early_bird_price = db.Column(db.Float, nullable=True, comment="Discounted price during early bird period")
     created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
     updated_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now(), onupdate=db.func.now())
 

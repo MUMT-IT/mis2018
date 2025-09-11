@@ -1,0 +1,57 @@
+{% extends 'continueing_edu/admin/base.html' %}
+{% block content %}
+<div class="container">
+  <h1 class="title is-3">Speaker Profiles</h1>
+  <form method="get" class="field has-addons mb-4">
+    <div class="control is-expanded">
+      <input class="input" type="text" name="q" placeholder="Search by name, email, institution" value="{{ q or '' }}">
+    </div>
+    <div class="control">
+      <button class="button is-link" type="submit">Search</button>
+    </div>
+    <div class="control">
+      <a class="button" href="{{ url_for('continuing_edu_admin.speakers_index') }}">Reset</a>
+    </div>
+  </form>
+  <a class="button is-primary mb-4" href="{{ url_for('continuing_edu_admin.speakers_new') }}">New Speaker</a>
+
+  {% if profiles %}
+  <table class="table is-fullwidth is-striped">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Institution</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in profiles %}
+      <tr>
+        <td>{{ s.name_en }}<br><span class="is-size-7 has-text-grey">{{ s.name_th }}</span></td>
+        <td>{{ s.email }}</td>
+        <td>{{ s.institution_en }}<br><span class="is-size-7 has-text-grey">{{ s.institution_th }}</span></td>
+        <td>
+          {% if s.is_active %}
+          <span class="tag is-success is-light">Active</span>
+          {% else %}
+          <span class="tag is-light">Inactive</span>
+          {% endif %}
+        </td>
+        <td class="has-text-right">
+          <a class="button is-small is-link" href="{{ url_for('continuing_edu_admin.speakers_edit', profile_id=s.id) }}">Edit</a>
+          <form method="post" action="{{ url_for('continuing_edu_admin.speakers_delete', profile_id=s.id) }}" style="display:inline" onsubmit="return confirm('Delete this speaker profile?');">
+            <button class="button is-small is-danger" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No speaker profiles yet.</p>
+  {% endif %}
+</div>
+{% endblock %}
+

@@ -1,0 +1,98 @@
+{% extends 'continueing_edu/admin/base.html' %}
+{% block content %}
+<div class="container">
+  <h1 class="title is-3">Payments Review</h1>
+  <div class="notification is-light">
+    <strong>Total:</strong> {{ total_count }} records, {{ '%.2f'|format(total_amount or 0) }} THB
+    {% if status_counts %}
+      <span class="ml-3"><strong>By status:</strong>
+        {% for k,v in status_counts.items() %}
+          {{ k }}={{ v }}{% if not loop.last %}, {% endif %}
+        {% endfor %}
+      </span>
+    {% endif %}
+    <a class="button is-small is-link is-light ml-3" href="{{ url_for('continuing_edu_admin.payments_export_csv', q=q, status=current_status, start_date=start_date, end_date=end_date) }}">Export CSV</a>
+  </div>
+  <form method="get" class="field is-grouped is-grouped-multiline mb-4">
+    <div class="control is-expanded">
+      <input class="input" type="text" name="q" placeholder="Search member or event" value="{{ q or '' }}">
+    </div>
+    <div class="control">
+      <div class="select">
+        <select name="status">
+          <option value="">All Statuses</option>
+          {% for s in statuses %}
+          <option value="{{ s.name_en }}" {% if current_status==s.name_en %}selected{% endif %}>{{ s.name_en }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="control">
+      <input class="input" type="date" name="start_date" value="{{ start_date or '' }}" placeholder="Start date">
+    </div>
+    <div class="control">
+      <input class="input" type="date" name="end_date" value="{{ end_date or '' }}" placeholder="End date">
+    </div>
+    <div class="control">
+      <div class="select">
+        <select name="per_page">
+          {% for n in [10,20,50,100] %}
+          <option value="{{ n }}" {% if per_page==n %}selected{% endif %}>{{ n }}/page</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="control">
+      <button class="button is-link" type="submit">Filter</button>
+    </div>
+    {% if q or current_status or start_date or end_date %}
+    <div class="control">
+      <a class="button" href="{{ url_for('continuing_edu_admin.payments_index') }}">Reset</a>
+    </div>
+    {% endif %}
+  </form>
+  {% if payments %}
+  <table class="table is-fullwidth is-striped">
+    <thead><tr><th>ID</th><th>Member</th><th>Event</th><th>Amount</th><th>Status</th><th>Proof</th><th></th></tr></thead>
+    <tbody>
+      {% for p in payments %}
+      <tr>
+        <td>{{ p.id }}</td>
+        <td>{{ p.member.username }} ({{ p.member.email }})</td>
+        <td>{{ p.event_entity.title_en or p.event_entity.title_th }}</td>
+        <td>{{ '%.2f'|format(p.payment_amount or 0) }} THB</td>
+        <td>
+          {% set badge = p.payment_status_ref.css_badge if p.payment_status_ref and p.payment_status_ref.css_badge else 'is-light' %}
+          <span class="tag {{ badge }}">{{ p.payment_status_ref.name_en if p.payment_status_ref else 'N/A' }}</span>
+        </td>
+        <td>{% if p.payment_proof_url %}<a href="{{ p.payment_proof_url }}" target="_blank">View</a>{% else %}<em>None</em>{% endif %}</td>
+        <td class="has-text-right">
+          <form method="post" action="{{ url_for('continuing_edu_admin.payment_approve', payment_id=p.id) }}" style="display:inline"><button class="button is-small is-success" type="submit">Approve</button></form>
+          <form method="post" action="{{ url_for('continuing_edu_admin.payment_reject', payment_id=p.id) }}" style="display:inline"><button class="button is-small is-danger is-light" type="submit">Reject</button></form>
+          {% if p.receipt %}<a class="button is-small is-light" href="{{ url_for('continuing_edu_admin.payment_receipt', payment_id=p.id) }}">View Receipt</a>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if pagination and pagination.pages > 1 %}
+  <nav class="pagination is-centered" role="navigation" aria-label="pagination">
+    {% set args = {'q': q, 'status': current_status, 'start_date': start_date, 'end_date': end_date, 'per_page': per_page} %}
+    <a class="pagination-previous" {% if pagination.has_prev %}href="{{ url_for('continuing_edu_admin.payments_index', page=pagination.prev_num, **args) }}"{% else %}disabled{% endif %}>Previous</a>
+    <a class="pagination-next" {% if pagination.has_next %}href="{{ url_for('continuing_edu_admin.payments_index', page=pagination.next_num, **args) }}"{% else %}disabled{% endif %}>Next page</a>
+    <ul class="pagination-list">
+      {% for p in range(1, pagination.pages + 1) %}
+      {% if p == pagination.page %}
+      <li><a class="pagination-link is-current">{{ p }}</a></li>
+      {% else %}
+      <li><a class="pagination-link" href="{{ url_for('continuing_edu_admin.payments_index', page=p, **args) }}">{{ p }}</a></li>
+      {% endif %}
+      {% endfor %}
+    </ul>
+  </nav>
+  {% endif %}
+  {% else %}
+  <p>No payments found.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -225,6 +225,9 @@
             <div class="box max-w-xl mx-auto p-8 rounded-lg shadow-md border border-gray-200">
                 <form method="POST" action="{{ url_for('continuing_edu.login', lang=current_lang) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    {% if next %}
+                    <input type="hidden" name="next" value="{{ next }}" />
+                    {% endif %}
                     <div class="field mb-4">
                         <label for="username" class="label has-text-gray-700">{{ texts.username_label }}</label>
                         <div class="control">
@@ -255,10 +258,13 @@
                         class="has-text-indigo-700">{{ texts.register_btn }}</a>
                 </p>
 
-                <p class="has-text-centered mt-4">
-
-                </p>
-                <div class="has-text-centered">
+                <div class="has-text-centered mt-4">
+                    <a class="button is-light" href="{{ url_for('continuing_edu.google_login', lang=current_lang, next=next) }}">
+                        <span class="icon"><img src="https://www.google.com/favicon.ico" alt="G" style="height:16px;width:16px;"></span>
+                        <span>Login with Google</span>
+                    </a>
+                </div>
+                <div class="has-text-centered mt-3">
 
 
 

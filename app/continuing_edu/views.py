@@ -5,15 +5,32 @@ from flask import session
 
 from werkzeug.security import generate_password_hash
 
-from flask import  render_template, request, jsonify, flash, redirect, url_for
+from flask import  render_template, request, jsonify, flash, redirect, url_for, make_response
 
 from . import ce_bp
-from .models import CertificateType, db, Member, EventEntity, EntityCategory
+from .models import (
+    CertificateType,
+    db,
+    Member,
+    EventEntity,
+    EntityCategory,
+    MemberRegistration,
+    EventRegistrationFee,
+    RegisterPayment,
+    RegisterPaymentStatus,
+)
 from sqlalchemy import or_, and_
 from werkzeug.exceptions import NotFound
 
 from app.main import mail
 from flask_mail import Message
+try:
+    from weasyprint import HTML
+except Exception:
+    HTML = None
+import os, secrets
+from urllib.parse import urljoin
+from requests_oauthlib import OAuth2Session
 
 from . import translations as tr  # Import translations from local package
 
@@ -26,11 +43,33 @@ def get_current_user():
         return Member.query.filter_by(id=user_id).first()
     return None
 
+
+def is_early_bird_active(event: EventEntity):
+    import datetime as _dt
+    now = _dt.datetime.now(_dt.timezone.utc)
+    if event.early_bird_end and now > event.early_bird_end:
+        return False
+    if event.early_bird_start and now < event.early_bird_start:
+        return False
+    return bool(event.early_bird_start or event.early_bird_end)
+
+
+def _price_for_member(event: EventEntity, member: Member):
+    fee = None
+    if member and member.member_type_id:
+        fee = EventRegistrationFee.query.filter_by(event_entity_id=event.id, member_type_id=member.member_type_id).first()
+    if not fee:
+        return None, None
+    eb_active = is_early_bird_active(event)
+    price = fee.early_bird_price if (eb_active and fee.early_bird_price is not None) else fee.price
+    return fee, price
+
 # --- Member Login ---
 @ce_bp.route('/login', methods=['GET', 'POST'])
 def login():
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
+    next_url = request.args.get('next') or request.form.get('next')
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
@@ -38,14 +77,12 @@ def login():
         member = Member.query.filter_by(username=username).first()
         if member and check_password_hash(member.password_hash, password):
             session['member_id'] = member.id
-            # session['username'] = member.username
-
-            user = get_current_user()  # Assuming 'member' is the user object you want to pass
+            user = get_current_user()
             flash(texts.get('login_success', 'เข้าสู่ระบบสำเร็จ!' if lang == 'th' else 'Login successful!'), 'success')
-            return redirect(url_for('continuing_edu.index', lang=lang, logged_in_user=user))
+            return redirect(next_url or url_for('continuing_edu.index', lang=lang, logged_in_user=user))
         else:
             flash(texts.get('login_error', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' if lang == 'th' else 'Invalid username or password.'), 'danger')
-    return render_template('continueing_edu/login.html', texts=texts, current_lang=lang, logged_in_user=get_current_user())
+    return render_template('continueing_edu/login.html', texts=texts, current_lang=lang, logged_in_user=get_current_user(), next=next_url)
 
 
 
@@ -200,6 +237,230 @@ def send_mail(recp, title, message):
     mail.send(message)
 
 
+def _google_oauth_session(redirect_uri, state=None, token=None):
+    client_id = os.getenv('GOOGLE_CLIENT_ID')
+    scope = [
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/userinfo.profile',
+        'openid',
+    ]
+    return OAuth2Session(client_id=client_id, redirect_uri=redirect_uri, scope=scope, state=state, token=token)
+
+
+@ce_bp.route('/oauth/google/login')
+def google_login():
+    lang = request.args.get('lang', 'en')
+    next_url = request.args.get('next')
+    redirect_uri = os.getenv('GOOGLE_REDIRECT_URI') or urljoin(request.host_url, '/continuing_edu/oauth/google/callback')
+    oauth = _google_oauth_session(redirect_uri)
+    authorization_base_url = 'https://accounts.google.com/o/oauth2/v2/auth'
+    state = secrets.token_urlsafe(16)
+    session['oauth_state'] = state
+    if next_url:
+        session['oauth_next'] = next_url
+    authorization_url, _ = oauth.authorization_url(authorization_base_url, state=state, prompt='consent', access_type='offline', include_granted_scopes='true')
+    return redirect(authorization_url)
+
+
+@ce_bp.route('/oauth/google/callback')
+def google_callback():
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    state = request.args.get('state')
+    if not state or state != session.get('oauth_state'):
+        flash('Invalid OAuth state.', 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    redirect_uri = os.getenv('GOOGLE_REDIRECT_URI') or urljoin(request.host_url, '/continuing_edu/oauth/google/callback')
+    client_id = os.getenv('GOOGLE_CLIENT_ID')
+    client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
+    token_url = 'https://oauth2.googleapis.com/token'
+    oauth = _google_oauth_session(redirect_uri, state=state)
+    try:
+        token = oauth.fetch_token(token_url=token_url, client_secret=client_secret, authorization_response=request.url)
+        resp = oauth.get('https://www.googleapis.com/oauth2/v3/userinfo')
+        data = resp.json()
+        sub = data.get('sub')
+        email = data.get('email')
+        name = data.get('name')
+    except Exception as e:
+        flash(f'Google login error: {e}', 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+
+    user = Member.query.filter_by(google_sub=sub).first()
+    if not user and email:
+        user = Member.query.filter_by(email=email).first()
+        if user and not user.google_sub:
+            user.google_sub = sub
+    if not user:
+        pwd = secrets.token_urlsafe(12)
+        user = Member(username=email.split('@')[0] if email else f'user_{sub[:6]}',
+                      email=email,
+                      password_hash=generate_password_hash(pwd),
+                      full_name_en=name)
+        user.google_sub = sub
+        from datetime import datetime, timezone
+        user.google_connected_at = datetime.now(timezone.utc)
+        db.session.add(user)
+    db.session.commit()
+    session['member_id'] = user.id
+    next_url = session.pop('oauth_next', None)
+    flash(texts.get('login_success', 'Login successful!'), 'success')
+    return redirect(next_url or url_for('continuing_edu.index', lang=lang))
+
+
+@ce_bp.route('/account/connect/google')
+def account_connect_google():
+    lang = request.args.get('lang', 'en')
+    next_url = url_for('continuing_edu.account_settings', lang=lang)
+    return redirect(url_for('continuing_edu.google_login', lang=lang, next=next_url))
+
+
+@ce_bp.route('/account/disconnect/google', methods=['POST'])
+def account_disconnect_google():
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    user.google_sub = None
+    user.google_connected_at = None
+    db.session.add(user)
+    db.session.commit()
+    flash(texts.get('google_disconnected', 'Disconnected Google account.'), 'success')
+    return redirect(url_for('continuing_edu.account_settings', lang=lang))
+
+
+# -----------------------------
+# My Account Settings
+# -----------------------------
+@ce_bp.route('/account', methods=['GET'])
+def account_settings():
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    return render_template('continueing_edu/account_settings.html', user=user, texts=texts, current_lang=lang)
+
+
+@ce_bp.route('/account/profile', methods=['POST'])
+def account_update_profile():
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    # Basic editable fields
+    for field in ['email','full_name_en','full_name_th','phone_no','address','province','zip_code','country','title_name_en','title_name_th']:
+        if field in request.form:
+            setattr(user, field, request.form.get(field))
+    db.session.add(user)
+    db.session.commit()
+    flash(texts.get('profile_updated', 'Profile updated.'), 'success')
+    return redirect(url_for('continuing_edu.account_settings', lang=lang))
+
+
+@ce_bp.route('/account/password', methods=['POST'])
+def account_change_password():
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    current_pw = request.form.get('current_password')
+    new_pw = request.form.get('new_password')
+    confirm_pw = request.form.get('confirm_password')
+    if not current_pw or not new_pw:
+        flash(texts.get('password_required', 'Password fields are required.'), 'danger')
+        return redirect(url_for('continuing_edu.account_settings', lang=lang))
+    if not check_password_hash(user.password_hash, current_pw):
+        flash(texts.get('password_incorrect', 'Current password is incorrect.'), 'danger')
+        return redirect(url_for('continuing_edu.account_settings', lang=lang))
+    if new_pw != confirm_pw:
+        flash(texts.get('passwords_not_match', 'New passwords do not match.'), 'danger')
+        return redirect(url_for('continuing_edu.account_settings', lang=lang))
+    user.password_hash = generate_password_hash(new_pw)
+    db.session.add(user)
+    db.session.commit()
+    flash(texts.get('password_changed', 'Password changed successfully.'), 'success')
+    return redirect(url_for('continuing_edu.account_settings', lang=lang))
+
+
+@ce_bp.route('/account/delete_request', methods=['POST'])
+def account_request_delete():
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    reason = request.form.get('reason', '')
+    # Notify admins for manual processing
+    try:
+        admin_email = 'support@mumt.mahidol.ac.th'
+        body = f"User {user.username} ({user.email}) requested account deletion. Reason: {reason}"
+        send_mail([admin_email], 'Account deletion request', body)
+    except Exception:
+        pass
+    flash(texts.get('delete_requested', 'Your account deletion request has been sent. We will contact you shortly.'), 'success')
+    return redirect(url_for('continuing_edu.account_settings', lang=lang))
+
+
+@ce_bp.route('/account/export', methods=['GET'])
+def account_export_data():
+    lang = request.args.get('lang', 'en')
+    user = get_current_user()
+    if not user:
+        flash('Please login to continue.', 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    # Assemble JSON export
+    data = {
+        'member': {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'full_name_en': user.full_name_en,
+            'full_name_th': user.full_name_th,
+            'phone_no': user.phone_no,
+            'address': user.address,
+            'province': user.province,
+            'zip_code': user.zip_code,
+            'country': user.country,
+            'member_type': user.member_type_ref.name_en if user.member_type_ref else None,
+            'created_at': str(user.created_at),
+        },
+        'registrations': [
+            {
+                'event_id': r.event_entity_id,
+                'event_title': r.event_entity.title_en if r.event_entity else None,
+                'event_type': r.event_entity.event_type if r.event_entity else None,
+                'registration_date': str(r.registration_date),
+                'status': r.status_ref.name_en if r.status_ref else None,
+            } for r in user.registrations
+        ],
+        'payments': [
+            {
+                'event_id': p.event_entity_id,
+                'event_title': p.event_entity.title_en if p.event_entity else None,
+                'amount': p.payment_amount,
+                'status': p.payment_status_ref.name_en if p.payment_status_ref else None,
+                'payment_date': str(p.payment_date),
+                'transaction_id': p.transaction_id,
+            } for p in user.payments
+        ],
+    }
+    import json
+    payload = json.dumps(data, ensure_ascii=False, indent=2)
+    resp = make_response(payload)
+    resp.headers['Content-Type'] = 'application/json; charset=utf-8'
+    resp.headers['Content-Disposition'] = f'attachment; filename="my_data_{user.username}.json"'
+    return resp
+
+
 @ce_bp.route('/why_register')
 def why_register():
     lang = request.args.get('lang', 'en')
@@ -212,7 +473,12 @@ def all_events():
     """Landing page: List all event entities."""
     events = EventEntity.query.order_by(EventEntity.created_at.desc()).all()
     texts = tr[current_lang]
-    return render_template('continueing_edu/all_events.html', events=events, active_menu='All Events', texts=texts, lang=current_lang)
+    user = get_current_user()
+    registered_ids = set()
+    if user:
+        regs = MemberRegistration.query.with_entities(MemberRegistration.event_entity_id).filter_by(member_id=user.id).all()
+        registered_ids = {r[0] for r in regs}
+    return render_template('continueing_edu/all_events.html', events=events, active_menu='All Events', texts=texts, lang=current_lang, logged_in_user=user, registered_ids=registered_ids)
 
 
 @ce_bp.route('/', endpoint='index', methods=['GET'])
@@ -266,7 +532,16 @@ def dashboard():
         db.session.add_all([sample1, sample2])
         db.session.commit()
         events = EventEntity.query.order_by(EventEntity.created_at.desc()).all()
-    return render_template('continueing_edu/index.html', events=events, active_menu='All Events', texts=texts, current_lang=lang)
+    user = get_current_user()
+    registered_ids = set()
+    if user:
+        regs = MemberRegistration.query.with_entities(MemberRegistration.event_entity_id).filter_by(member_id=user.id).all()
+        registered_ids = {r[0] for r in regs}
+    # Optional filter: show only events the user registered for
+    registered_only = request.args.get('registered_only') in ('1', 'true', 'yes')
+    if registered_only and user:
+        events = [e for e in events if e.id in registered_ids]
+    return render_template('continueing_edu/index.html', events=events, active_menu='All Events', texts=texts, current_lang=lang, logged_in_user=user, registered_ids=registered_ids, registered_only=registered_only)
 
 
 @ce_bp.route('/courses')
@@ -299,14 +574,97 @@ def course_detail(course_id):
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
     course = EventEntity.query.filter_by(id=course_id, event_type='course').first_or_404()
-    return render_template('continueing_edu/course_detail.html', course=course, texts=texts, current_lang=lang)
+    user = get_current_user()
+    already_registered = False
+    approved_payment = False
+    if user:
+        reg = MemberRegistration.query.filter_by(member_id=user.id, event_entity_id=course.id).first()
+        already_registered = reg is not None
+        if reg:
+            from app.continuing_edu.models import RegisterPaymentStatus, RegisterPayment
+            ap = RegisterPayment.query \
+                .join(RegisterPaymentStatus, RegisterPayment.payment_status_ref) \
+                .filter(RegisterPayment.member_id == user.id,
+                        RegisterPayment.event_entity_id == course.id,
+                        RegisterPaymentStatus.name_en == 'approved').first()
+            approved_payment = ap is not None
+    return render_template('continueing_edu/course_detail.html', course=course, texts=texts, current_lang=lang,
+                           logged_in_user=user, already_registered=already_registered, approved_payment=approved_payment)
 
 @ce_bp.route('/webinar_detail/<int:webinar_id>')
 def webinar_detail(webinar_id):
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
     webinar = EventEntity.query.filter_by(id=webinar_id, event_type='webinar').first_or_404()
-    return render_template('continueing_edu/webinar_detail.html', webinar=webinar, texts=texts, current_lang=lang)
+    user = get_current_user()
+    already_registered = False
+    approved_payment = False
+    if user:
+        reg = MemberRegistration.query.filter_by(member_id=user.id, event_entity_id=webinar.id).first()
+        already_registered = reg is not None
+        if reg:
+            from app.continuing_edu.models import RegisterPaymentStatus, RegisterPayment
+            ap = RegisterPayment.query \
+                .join(RegisterPaymentStatus, RegisterPayment.payment_status_ref) \
+                .filter(RegisterPayment.member_id == user.id,
+                        RegisterPayment.event_entity_id == webinar.id,
+                        RegisterPaymentStatus.name_en == 'approved').first()
+            approved_payment = ap is not None
+    return render_template('continueing_edu/webinar_detail.html', webinar=webinar, texts=texts, current_lang=lang,
+                           logged_in_user=user, already_registered=already_registered, approved_payment=approved_payment)
+
+
+# --- Event Registration ---
+@ce_bp.route('/event/<int:event_id>/register', methods=['GET', 'POST'])
+def register_event(event_id):
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    event = EventEntity.query.get_or_404(event_id)
+    member = get_current_user()
+    if not member:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+
+    # Already registered?
+    existing = MemberRegistration.query.filter_by(member_id=member.id, event_entity_id=event.id).first()
+    if existing:
+        flash(texts.get('already_registered', 'You are already registered for this event.'), 'info')
+        return redirect(url_for('continuing_edu.course_detail' if event.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event.id if event.event_type=='course' else None, webinar_id=event.id if event.event_type=='webinar' else None, lang=lang))
+
+    fee, price = _price_for_member(event, member)
+    if not fee:
+        flash(texts.get('no_fee_defined', 'No registration fee defined for your member type.'), 'danger')
+        return redirect(url_for('continuing_edu.course_detail' if event.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event.id if event.event_type=='course' else None, webinar_id=event.id if event.event_type=='webinar' else None, lang=lang))
+
+    if request.method == 'POST':
+        # Create registration and pending payment
+        reg = MemberRegistration(member_id=member.id, event_entity_id=event.id)
+        db.session.add(reg)
+        # payment status pending (id may be 1); try lookup by name_en
+        pending = RegisterPaymentStatus.query.filter_by(name_en='pending').first()
+        pay = RegisterPayment(
+            member_id=member.id,
+            event_entity_id=event.id,
+            payment_status_id=pending.id if pending else 1,
+            payment_amount=price,
+        )
+        db.session.add(pay)
+        db.session.commit()
+        # Notify member by email (best-effort)
+        try:
+            subj = texts.get('registration_success', 'Registration submitted. Payment pending.')
+            body = (f"You registered for: {event.title_en or event.title_th}\n"
+                    f"Amount: {price} THB\n"
+                    f"Status: pending\n")
+            msg = Message(subject=subj, body=body, recipients=[member.email]) if getattr(member, 'email', None) else None
+            if msg:
+                mail.send(msg)
+        except Exception:
+            pass
+        flash(texts.get('registration_success', 'Registration submitted. Payment pending.'), 'success')
+        return redirect(url_for('continuing_edu.course_detail' if event.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event.id if event.event_type=='course' else None, webinar_id=event.id if event.event_type=='webinar' else None, lang=lang))
+
+    return render_template('continueing_edu/register_event.html', event=event, member=member, fee=fee, price=price, texts=texts, current_lang=lang)
 
 @ce_bp.route('/members')
 def members_list():
@@ -360,6 +718,265 @@ def payments_list():
                            texts=texts,
                            current_lang=lang,
                            all_payment_statuses=all_payment_statuses)
+
+
+@ce_bp.route('/my-registrations')
+def my_registrations():
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    regs = MemberRegistration.query.filter_by(member_id=user.id).order_by(MemberRegistration.registration_date.desc()).all()
+    payments = RegisterPayment.query.filter_by(member_id=user.id).order_by(RegisterPayment.id.desc()).all()
+    pay_map = {}
+    for p in payments:
+        if p.event_entity_id not in pay_map:
+            pay_map[p.event_entity_id] = p
+    return render_template('continueing_edu/my_registrations.html', registrations=regs, payments_map=pay_map, texts=texts, current_lang=lang)
+
+
+@ce_bp.route('/my-payments', methods=['GET'])
+def my_payments():
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    pays = RegisterPayment.query.filter_by(member_id=user.id).order_by(RegisterPayment.id.desc()).all()
+    return render_template('continueing_edu/my_payments.html', payments=pays, texts=texts, current_lang=lang)
+
+
+@ce_bp.route('/payment/<int:payment_id>/submit_proof', methods=['POST'])
+def submit_payment_proof(payment_id):
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    pay = RegisterPayment.query.get_or_404(payment_id)
+    if pay.member_id != user.id:
+        flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
+        return redirect(url_for('continuing_edu.my_payments', lang=lang))
+    proof_url = request.form.get('payment_proof_url')
+    if not proof_url:
+        flash(texts.get('proof_required', 'Please provide a payment proof URL.'), 'danger')
+        return redirect(url_for('continuing_edu.my_payments', lang=lang))
+    pay.payment_proof_url = proof_url
+    # Optionally move to 'submitted' if such status exists
+    submitted = RegisterPaymentStatus.query.filter_by(name_en='submitted').first()
+    if submitted:
+        pay.payment_status_id = submitted.id
+    db.session.add(pay)
+    db.session.commit()
+    flash(texts.get('proof_received', 'Payment proof submitted.'), 'success')
+    return redirect(url_for('continuing_edu.my_payments', lang=lang))
+
+
+@ce_bp.route('/payment/<int:payment_id>/upload_proof', methods=['POST'])
+def upload_payment_proof(payment_id):
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    pay = RegisterPayment.query.get_or_404(payment_id)
+    if pay.member_id != user.id:
+        flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
+        return redirect(url_for('continuing_edu.my_payments', lang=lang))
+    file = request.files.get('payment_proof_file')
+    if not file or file.filename == '':
+        flash(texts.get('proof_required', 'Please provide a payment proof file.'), 'danger')
+        return redirect(url_for('continuing_edu.my_payments', lang=lang))
+    import os, time
+    from werkzeug.utils import secure_filename
+    upload_dir = os.path.join('static', 'uploads', 'payment_proofs')
+    os.makedirs(upload_dir, exist_ok=True)
+    fname = secure_filename(file.filename)
+    fname = f"proof_{payment_id}_{int(time.time())}_{fname}"
+    path = os.path.join(upload_dir, fname)
+    file.save(path)
+    pay.payment_proof_url = '/' + path
+    submitted = RegisterPaymentStatus.query.filter_by(name_en='submitted').first()
+    if submitted:
+        pay.payment_status_id = submitted.id
+    db.session.add(pay)
+    db.session.commit()
+    flash(texts.get('proof_received', 'Payment proof submitted.'), 'success')
+    return redirect(url_for('continuing_edu.my_payments', lang=lang))
+
+
+@ce_bp.route('/receipt/<int:receipt_id>')
+def view_receipt(receipt_id):
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    from .models import RegisterPaymentReceipt
+    rc = RegisterPaymentReceipt.query.get_or_404(receipt_id)
+    pay = rc.payment
+    if pay.member_id != user.id:
+        flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
+        return redirect(url_for('continuing_edu.my_payments', lang=lang))
+    return render_template('continueing_edu/receipt.html', receipt=rc, payment=pay, member=user, texts=texts, current_lang=lang)
+
+
+@ce_bp.route('/receipt/<int:receipt_id>/pdf')
+def view_receipt_pdf(receipt_id):
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    from .models import RegisterPaymentReceipt
+    rc = RegisterPaymentReceipt.query.get_or_404(receipt_id)
+    pay = rc.payment
+    if pay.member_id != user.id:
+        flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
+        return redirect(url_for('continuing_edu.my_payments', lang=lang))
+    if HTML is None:
+        flash('PDF rendering library is not available on server.', 'danger')
+        return redirect(url_for('continuing_edu.view_receipt', receipt_id=receipt_id, lang=lang))
+    html = render_template('continueing_edu/receipt_pdf.html', receipt=rc, payment=pay, member=user, texts=texts, current_lang=lang)
+    pdf = HTML(string=html, base_url=request.base_url).write_pdf()
+    from flask import Response
+    filename = f"receipt_{rc.receipt_number}.pdf"
+    return Response(pdf, mimetype='application/pdf', headers={'Content-Disposition': f'inline; filename="{filename}"'})
+
+
+# -----------------------------
+# Member progress + certificates
+# -----------------------------
+def _get_registration_or_404(event_id, member_id):
+    reg = MemberRegistration.query.filter_by(event_entity_id=event_id, member_id=member_id).first()
+    if not reg:
+        raise NotFound('Registration not found for this event')
+    return reg
+
+
+@ce_bp.route('/event/<int:event_id>/start_progress', methods=['POST'])
+def start_progress(event_id):
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    from datetime import datetime, timezone
+    reg = _get_registration_or_404(event_id, user.id)
+    if not reg.started_at:
+        reg.started_at = datetime.now(timezone.utc)
+        db.session.add(reg)
+        db.session.commit()
+    flash(texts.get('progress_started', 'Progress started.'), 'success')
+    return redirect(url_for('continuing_edu.course_detail' if reg.event_entity.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event_id if reg.event_entity.event_type=='course' else None, webinar_id=event_id if reg.event_entity.event_type=='webinar' else None, lang=lang))
+
+
+def _issue_certificate(reg: MemberRegistration, lang: str):
+    from datetime import datetime, timezone
+    # Update statuses
+    issued = MemberCertificateStatus.query.filter_by(name_en='issued').first()
+    reg.certificate_status_id = issued.id if issued else reg.certificate_status_id
+    reg.certificate_issued_date = datetime.now(timezone.utc)
+    # Render PDF if library available
+    if HTML is not None:
+        event = reg.event_entity
+        member = reg.member
+        html = render_template('continueing_edu/certificate_pdf.html', reg=reg, event=event, member=member, current_lang=lang)
+        pdf = HTML(string=html, base_url=request.base_url).write_pdf()
+        import os, time
+        os.makedirs(os.path.join('static','certificates'), exist_ok=True)
+        fname = f"cert_{reg.member_id}_{reg.event_entity_id}_{int(time.time())}.pdf"
+        fpath = os.path.join('static','certificates', fname)
+        with open(fpath, 'wb') as f:
+            f.write(pdf)
+        reg.certificate_url = '/' + fpath
+    db.session.add(reg)
+    db.session.commit()
+
+
+@ce_bp.route('/event/<int:event_id>/complete_progress', methods=['POST'])
+def complete_progress(event_id):
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    reg = _get_registration_or_404(event_id, user.id)
+    from datetime import datetime, timezone
+    if not reg.completed_at:
+        reg.completed_at = datetime.now(timezone.utc)
+    # Optionally accept assessment result
+    passed = request.form.get('passed') or request.args.get('passed')
+    if passed is not None:
+        reg.assessment_passed = True if str(passed).lower() in ('1','true','yes','y','passed') else False
+    # Issue certificate if completed and passed AND payment approved
+    if reg.assessment_passed:
+        approved = RegisterPayment.query\
+            .join(RegisterPaymentStatus, RegisterPayment.payment_status_ref)\
+            .filter(RegisterPayment.member_id==user.id, RegisterPayment.event_entity_id==event_id,
+                    RegisterPaymentStatus.name_en=='approved').first()
+        if approved:
+            _issue_certificate(reg, lang)
+            flash(texts.get('certificate_issued', 'Certificate issued.'), 'success')
+        else:
+            db.session.add(reg)
+            db.session.commit()
+            flash(texts.get('payment_not_approved', 'Certificate requires approved payment.'), 'warning')
+    else:
+        db.session.add(reg)
+        db.session.commit()
+        flash(texts.get('progress_completed', 'Progress completed.'), 'success')
+    return redirect(url_for('continuing_edu.course_detail' if reg.event_entity.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event_id if reg.event_entity.event_type=='course' else None, webinar_id=event_id if reg.event_entity.event_type=='webinar' else None, lang=lang))
+
+
+@ce_bp.route('/certificate/<int:reg_id>/pdf')
+def certificate_pdf(reg_id):
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    reg = MemberRegistration.query.get_or_404(reg_id)
+    if reg.member_id != user.id:
+        flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
+        return redirect(url_for('continuing_edu.my_registrations', lang=lang))
+    # If already generated, redirect to URL
+    if reg.certificate_url:
+        return redirect(reg.certificate_url)
+    if HTML is None:
+        flash('PDF rendering library is not available on server.', 'danger')
+        return redirect(url_for('continuing_edu.my_registrations', lang=lang))
+    # Generate on the fly
+    html = render_template('continueing_edu/certificate_pdf.html', reg=reg, event=reg.event_entity, member=reg.member, current_lang=lang)
+    pdf = HTML(string=html, base_url=request.base_url).write_pdf()
+    from flask import Response
+    filename = f"certificate_{reg.member_id}_{reg.event_entity_id}.pdf"
+    return Response(pdf, mimetype='application/pdf', headers={'Content-Disposition': f'inline; filename="{filename}"'})
+
+
+@ce_bp.route('/certificate/<int:reg_id>/view')
+def certificate_view(reg_id):
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    reg = MemberRegistration.query.get_or_404(reg_id)
+    if reg.member_id != user.id:
+        flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
+        return redirect(url_for('continuing_edu.my_registrations', lang=lang))
+    return render_template('continueing_edu/certificate_view.html', reg=reg, event=reg.event_entity, member=reg.member, current_lang=lang)
 
 
 @ce_bp.route('/event_management')
@@ -775,4 +1392,3 @@ def admin_delete_event(event_id):
     db.session.delete(event)
     db.session.commit()
     flash('Event deleted', 'success')
-
