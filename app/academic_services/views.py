@@ -2597,7 +2597,7 @@ def confirm_result(result_id):
         message += f'''เบอร์โทร {result.request.customer.contact_phone_number}\n\n'''
         message += f'''ระบบงานบริการวิชาการ'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
-        msg = ('แจ้งยืนยันไขใบรายงานผลการทดสอบ' \
+        msg = ('แจ้งยืนยันใบรายงานผลการทดสอบ' \
                '\n\nเรียน เจ้าหน้าที่{}'
                '\n\nใบรายงานผลของใบคำขอรับบริการเลขที่ {}' \
                '\nลูกค้า : {}' \
