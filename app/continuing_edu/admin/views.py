@@ -4,7 +4,7 @@ from wtforms.validators import DataRequired
 
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 from app.staff.models import StaffAccount
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 
 from app.continuing_edu.models import (
@@ -28,7 +28,7 @@ from app.continuing_edu.models import (
 )
 from sqlalchemy import func
 import datetime
-from app.main import db
+from app.main import db, mail
 
 admin_bp = Blueprint('continuing_edu_admin', __name__, url_prefix='/continuing_edu/admin')
 
@@ -174,6 +174,329 @@ def manage_events():
         return redirect(url_for('continuing_edu_admin.login'))
     events = EventEntity.query.order_by(EventEntity.created_at.desc()).all()
     return render_template('continueing_edu/admin/events.html', logged_in_admin=admin, events=events)
+
+
+@admin_bp.route('/progress')
+def progress_index():
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    events = EventEntity.query.order_by(EventEntity.created_at.desc()).all()
+    # Build simple stats per event
+    stats = {}
+    for e in events:
+        regs = MemberRegistration.query.filter_by(event_entity_id=e.id).all()
+        started = len([r for r in regs if r.started_at])
+        completed = len([r for r in regs if r.completed_at])
+        issued = len([r for r in regs if r.certificate_issued_date])
+        stats[e.id] = {
+            'registrations': len(regs),
+            'started': started,
+            'completed': completed,
+            'cert_issued': issued,
+        }
+    return render_template('continueing_edu/admin/progress_index.html', logged_in_admin=admin, events=events, stats=stats)
+
+
+@admin_bp.route('/promotions')
+def promotions_index():
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    events = EventEntity.query.order_by(EventEntity.created_at.desc()).all()
+    return render_template('continueing_edu/admin/promotions_index.html', logged_in_admin=admin, events=events)
+
+
+# -----------------------------
+# Members Management (CRUD)
+# -----------------------------
+@admin_bp.route('/members')
+def members_index():
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    q = request.args.get('q', '').strip()
+    member_type_id = request.args.get('member_type_id')
+    is_verified = request.args.get('is_verified')
+    received_news = request.args.get('received_news')
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+
+    query = Member.query
+    if q:
+        like = f"%{q}%"
+        query = query.filter(
+            (Member.username.ilike(like)) |
+            (Member.email.ilike(like)) |
+            (Member.full_name_en.ilike(like)) |
+            (Member.full_name_th.ilike(like))
+        )
+    if member_type_id:
+        try:
+            query = query.filter_by(member_type_id=int(member_type_id))
+        except Exception:
+            pass
+    if is_verified in ('0', '1'):
+        query = query.filter_by(is_verified=(is_verified == '1'))
+    if received_news in ('0', '1'):
+        query = query.filter_by(received_news=(received_news == '1'))
+
+    pagination = query.order_by(Member.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    members = pagination.items
+    member_types = MemberType.query.order_by(MemberType.name_en.asc()).all()
+    return render_template('continueing_edu/admin/members.html',
+                           logged_in_admin=admin,
+                           members=members,
+                           pagination=pagination,
+                           q=q,
+                           member_type_id=str(member_type_id) if member_type_id else '',
+                           is_verified=is_verified or '',
+                           received_news=received_news or '',
+                           member_types=member_types)
+
+
+@admin_bp.route('/members/create', methods=['GET', 'POST'])
+def members_create():
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip() or None
+        password = request.form.get('password', '').strip()
+        member_type_id = request.form.get('member_type_id') or None
+        full_name_en = request.form.get('full_name_en') or None
+        full_name_th = request.form.get('full_name_th') or None
+        phone_no = request.form.get('phone_no') or None
+        address = request.form.get('address') or None
+        is_verified = request.form.get('is_verified') == 'on'
+        received_news = request.form.get('received_news') == 'on'
+
+        # Basic validations
+        if not username:
+            flash('Username is required.', 'danger')
+            return redirect(url_for('continuing_edu_admin.members_create'))
+        if Member.query.filter_by(username=username).first():
+            flash('Username already exists.', 'danger')
+            return redirect(url_for('continuing_edu_admin.members_create'))
+        if email and Member.query.filter_by(email=email).first():
+            flash('Email already exists.', 'danger')
+            return redirect(url_for('continuing_edu_admin.members_create'))
+        if not password:
+            flash('Password is required.', 'danger')
+            return redirect(url_for('continuing_edu_admin.members_create'))
+
+        try:
+            member = Member(
+                username=username,
+                email=email,
+                password_hash=generate_password_hash(password),
+                member_type_id=int(member_type_id) if member_type_id else None,
+                full_name_en=full_name_en,
+                full_name_th=full_name_th,
+                phone_no=phone_no,
+                address=address,
+                is_verified=is_verified,
+                received_news=received_news,
+            )
+            db.session.add(member)
+            db.session.commit()
+            flash('Member created.', 'success')
+            return redirect(url_for('continuing_edu_admin.members_index'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating member: {e}', 'danger')
+
+    member_types = MemberType.query.order_by(MemberType.name_en.asc()).all()
+    return render_template('continueing_edu/admin/member_form.html',
+                           logged_in_admin=admin,
+                           member=None,
+                           member_types=member_types,
+                           form_action=url_for('continuing_edu_admin.members_create'))
+
+
+@admin_bp.route('/members/<int:member_id>/edit', methods=['GET', 'POST'])
+def members_edit(member_id):
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    member = Member.query.get_or_404(member_id)
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip() or None
+        password = request.form.get('password', '').strip()
+        member_type_id = request.form.get('member_type_id') or None
+        full_name_en = request.form.get('full_name_en') or None
+        full_name_th = request.form.get('full_name_th') or None
+        phone_no = request.form.get('phone_no') or None
+        address = request.form.get('address') or None
+        is_verified = request.form.get('is_verified') == 'on'
+        received_news = request.form.get('received_news') == 'on'
+
+        if not username:
+            flash('Username is required.', 'danger')
+            return redirect(url_for('continuing_edu_admin.members_edit', member_id=member.id))
+        # Ensure username/email uniqueness
+        if username != member.username and Member.query.filter_by(username=username).first():
+            flash('Username already exists.', 'danger')
+            return redirect(url_for('continuing_edu_admin.members_edit', member_id=member.id))
+        if email and email != member.email and Member.query.filter_by(email=email).first():
+            flash('Email already exists.', 'danger')
+            return redirect(url_for('continuing_edu_admin.members_edit', member_id=member.id))
+
+        try:
+            member.username = username
+            member.email = email
+            if password:
+                member.password_hash = generate_password_hash(password)
+            member.member_type_id = int(member_type_id) if member_type_id else None
+            member.full_name_en = full_name_en
+            member.full_name_th = full_name_th
+            member.phone_no = phone_no
+            member.address = address
+            member.is_verified = is_verified
+            member.received_news = received_news
+            db.session.add(member)
+            db.session.commit()
+            flash('Member updated.', 'success')
+            return redirect(url_for('continuing_edu_admin.members_index'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating member: {e}', 'danger')
+
+    member_types = MemberType.query.order_by(MemberType.name_en.asc()).all()
+    return render_template('continueing_edu/admin/member_form.html',
+                           logged_in_admin=admin,
+                           member=member,
+                           member_types=member_types,
+                           form_action=url_for('continuing_edu_admin.members_edit', member_id=member.id))
+
+
+@admin_bp.route('/members/<int:member_id>/delete', methods=['POST'])
+def members_delete(member_id):
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    member = Member.query.get_or_404(member_id)
+    try:
+        db.session.delete(member)
+        db.session.commit()
+        flash('Member deleted.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Cannot delete member: {e}', 'danger')
+    return redirect(url_for('continuing_edu_admin.members_index'))
+
+
+@admin_bp.route('/events/<int:event_id>/notify', methods=['GET','POST'])
+def event_notify(event_id):
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    event = EventEntity.query.get_or_404(event_id)
+    # Audience filters
+    only_optin = (request.values.get('only_optin', '1') in ('1','true','yes','on'))
+    only_verified = (request.values.get('only_verified', '1') in ('1','true','yes','on'))
+    member_type_ids = request.values.getlist('member_type_id')
+    # Build recipients query
+    q = Member.query
+    if only_optin:
+        q = q.filter_by(received_news=True)
+    if only_verified:
+        q = q.filter_by(is_verified=True)
+    if member_type_ids:
+        try:
+            ids = [int(i) for i in member_type_ids]
+            q = q.filter(Member.member_type_id.in_(ids))
+        except Exception:
+            pass
+    q = q.filter(Member.email.isnot(None))
+    recipients = [m.email for m in q.all()]
+
+    # Build event link
+    try:
+        if event.event_type == 'course':
+            link = url_for('continuing_edu.course_detail', course_id=event.id, lang='en', _external=True)
+        else:
+            link = url_for('continuing_edu.webinar_detail', webinar_id=event.id, lang='en', _external=True)
+    except Exception:
+        link = ''
+
+    subject_default = f"[CE] New Event: {event.title_en or event.title_th or 'Event'}"
+    email_html_tpl = (
+        "<div style=\"font-family:Arial,sans-serif;font-size:14px;color:#333;\">"
+        "<h2 style=\"margin:0 0 8px 0;\">{{ event.title_en or event.title_th }}</h2>"
+        "{% set img = event.cover_image_url or event.poster_image_url or event.image_url %}"
+        "{% if img %}<div style=\"margin:10px 0;\"><img src=\"{{ img }}\" style=\"max-width:100%;height:auto;\"></div>{% endif %}"
+        "{% if event.description_en %}<h3>About (EN)</h3><p>{{ event.description_en }}</p>{% endif %}"
+        "{% if event.description_th %}<hr><h3>รายละเอียด (TH)</h3><p>{{ event.description_th }}</p>{% endif %}"
+        "{% if link %}<p style=\"margin-top:16px;\"><a href=\"{{ link }}\" style=\"background:#4f46e5;color:#fff;padding:10px 16px;text-decoration:none;border-radius:4px;\">View / Register</a></p>{% endif %}"
+        "<p style=\"color:#888;font-size:12px;margin-top:24px;\">You receive this because you opted in. Update preferences to unsubscribe.</p>"
+        "</div>"
+    )
+
+    if request.method == 'GET':
+        # Preview inline using a small template string to avoid filesystem writes
+        from flask import render_template_string
+        subject = request.values.get('subject', subject_default)
+        recipients_count = len(recipients)
+        if recipients_count == 0:
+            flash('No recipients matched the selected filters.', 'warning')
+            return redirect(url_for('continuing_edu_admin.manage_events'))
+        html_preview = render_template_string(email_html_tpl, event=event, link=link)
+        # Render a minimal preview page with filters
+        page_tpl = (
+            "{% extends 'continueing_edu/admin/base.html' %}{% block content %}"
+            "<div class=container><h1 class=\"title is-3\">Notify Subscribers: {{ event.title_en or event.title_th }}</h1>"
+            "<form method=GET class=\"box\">"
+            "<div class=\"field\"><label class=label>Subject</label><input class=input name=subject value=\"{{ subject }}\"></div>"
+            "<div class=\"field is-grouped\">"
+            "<label class=\"checkbox\"><input type=checkbox name=only_optin {% if only_optin %}checked{% endif %}> Only opted-in</label>"
+            "<label class=\"checkbox ml-4\"><input type=checkbox name=only_verified {% if only_verified %}checked{% endif %}> Only verified</label>"
+            "</div>"
+            "<div class=\"field\"><label class=label>Member Types</label><div class=select multiple><select multiple name=member_type_id>"
+            "{% for mt in MemberType.query.order_by(MemberType.name_en.asc()).all() %}"
+            "<option value=\"{{ mt.id }}\" {% if mt.id|string in member_type_ids %}selected{% endif %}>{{ mt.name_en }} / {{ mt.name_th }}</option>"
+            "{% endfor %}"
+            "</select></div></div>"
+            "<div class=\"field is-grouped\"><div class=control>"
+            "<button class=\"button is-link\" type=submit>Update Preview</button>"
+            "</div>"
+            "<div class=control><form method=POST><input type=hidden name=subject value=\"{{ subject }}\">"
+            "{% for mtid in member_type_ids %}<input type=hidden name=member_type_id value=\"{{ mtid }}\">{% endfor %}"
+            "<input type=hidden name=only_optin value=\"{{ 1 if only_optin else 0 }}\"><input type=hidden name=only_verified value=\"{{ 1 if only_verified else 0 }}\">"
+            "<button class=\"button is-primary\" type=submit onclick=\"return confirm('Send to '+{{ recipients_count }}+' recipients?')\">Send Notification</button></form></div>"
+            "<div class=control><a class=\"button\" href=\"{{ url_for('continuing_edu_admin.manage_events') }}\">Cancel</a></div></div>"
+            "</form>"
+            "<hr><h2 class=\"title is-5\">Preview ({{ recipients_count }} recipients)</h2><div class=box style=\"max-width:860px;\">{{ html_preview|safe }}</div></div>"
+            "{% endblock %}"
+        )
+        return render_template_string(page_tpl, event=event, subject=subject, html_preview=html_preview,
+                                      recipients_count=recipients_count, only_optin=only_optin, only_verified=only_verified,
+                                      member_type_ids=member_type_ids, MemberType=MemberType)
+    else:
+        subject = request.form.get('subject') or subject_default
+        if not recipients:
+            flash('No recipients matched the selected filters.', 'warning')
+            return redirect(url_for('continuing_edu_admin.manage_events'))
+        from flask_mail import Message
+        sent = 0
+        chunk_size = 50
+        from flask import render_template_string
+        for i in range(0, len(recipients), chunk_size):
+            chunk = recipients[i:i+chunk_size]
+            try:
+                html_body = render_template_string(email_html_tpl, event=event, link=link)
+                msg = Message(subject=subject, recipients=chunk)
+                msg.body = f"New event: {event.title_en or event.title_th}\n{link}"
+                msg.html = html_body
+                mail.send(msg)
+                sent += len(chunk)
+            except Exception as e:
+                flash(f'Error sending to some recipients: {e}', 'danger')
+                break
+        flash(f'Notification sent to {sent} subscribers.', 'success')
+        return redirect(url_for('continuing_edu_admin.manage_events'))
 
 
 # -----------------------------

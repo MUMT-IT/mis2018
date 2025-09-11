@@ -1,11 +1,11 @@
 
 from app.staff.models import StaffAccount
 from werkzeug.security import check_password_hash
-from flask import session
+
 
 from werkzeug.security import generate_password_hash
 
-from flask import  render_template, request, jsonify, flash, redirect, url_for, make_response
+from flask import  render_template, request, jsonify, flash, redirect, url_for, make_response, session, Response
 
 from . import ce_bp
 from .models import (
@@ -28,9 +28,13 @@ try:
     from weasyprint import HTML
 except Exception:
     HTML = None
-import os, secrets
+
+import os, secrets, time
 from urllib.parse import urljoin
 from requests_oauthlib import OAuth2Session
+from datetime import datetime, timezone
+
+from werkzeug.utils import secure_filename
 
 from . import translations as tr  # Import translations from local package
 
@@ -298,7 +302,7 @@ def google_callback():
                       password_hash=generate_password_hash(pwd),
                       full_name_en=name)
         user.google_sub = sub
-        from datetime import datetime, timezone
+
         user.google_connected_at = datetime.now(timezone.utc)
         db.session.add(user)
     db.session.commit()
@@ -792,8 +796,7 @@ def upload_payment_proof(payment_id):
     if not file or file.filename == '':
         flash(texts.get('proof_required', 'Please provide a payment proof file.'), 'danger')
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
-    import os, time
-    from werkzeug.utils import secure_filename
+
     upload_dir = os.path.join('static', 'uploads', 'payment_proofs')
     os.makedirs(upload_dir, exist_ok=True)
     fname = secure_filename(file.filename)
@@ -846,7 +849,7 @@ def view_receipt_pdf(receipt_id):
         return redirect(url_for('continuing_edu.view_receipt', receipt_id=receipt_id, lang=lang))
     html = render_template('continueing_edu/receipt_pdf.html', receipt=rc, payment=pay, member=user, texts=texts, current_lang=lang)
     pdf = HTML(string=html, base_url=request.base_url).write_pdf()
-    from flask import Response
+
     filename = f"receipt_{rc.receipt_number}.pdf"
     return Response(pdf, mimetype='application/pdf', headers={'Content-Disposition': f'inline; filename="{filename}"'})
 
@@ -869,7 +872,7 @@ def start_progress(event_id):
     if not user:
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
-    from datetime import datetime, timezone
+    
     reg = _get_registration_or_404(event_id, user.id)
     if not reg.started_at:
         reg.started_at = datetime.now(timezone.utc)
@@ -880,7 +883,7 @@ def start_progress(event_id):
 
 
 def _issue_certificate(reg: MemberRegistration, lang: str):
-    from datetime import datetime, timezone
+    
     # Update statuses
     issued = MemberCertificateStatus.query.filter_by(name_en='issued').first()
     reg.certificate_status_id = issued.id if issued else reg.certificate_status_id
@@ -911,7 +914,7 @@ def complete_progress(event_id):
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
     reg = _get_registration_or_404(event_id, user.id)
-    from datetime import datetime, timezone
+   
     if not reg.completed_at:
         reg.completed_at = datetime.now(timezone.utc)
     # Optionally accept assessment result
@@ -959,7 +962,7 @@ def certificate_pdf(reg_id):
     # Generate on the fly
     html = render_template('continueing_edu/certificate_pdf.html', reg=reg, event=reg.event_entity, member=reg.member, current_lang=lang)
     pdf = HTML(string=html, base_url=request.base_url).write_pdf()
-    from flask import Response
+   
     filename = f"certificate_{reg.member_id}_{reg.event_entity_id}.pdf"
     return Response(pdf, mimetype='application/pdf', headers={'Content-Disposition': f'inline; filename="{filename}"'})
 

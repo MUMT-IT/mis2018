@@ -1,0 +1,66 @@
+{% extends 'continueing_edu/admin/base.html' %}
+{% block title %}{{ 'Edit Member' if member else 'Create Member' }}{% endblock %}
+{% block content %}
+<div class="container">
+  <h1 class="title">{{ 'Edit Member' if member else 'Create Member' }}</h1>
+  <form class="box" method="post" action="{{ form_action }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <div class="columns is-multiline">
+      <div class="column is-4">
+        <label class="label">Username</label>
+        <input class="input" type="text" name="username" required value="{{ member.username if member else '' }}">
+      </div>
+      <div class="column is-4">
+        <label class="label">Email</label>
+        <input class="input" type="email" name="email" value="{{ member.email if member else '' }}">
+      </div>
+      <div class="column is-4">
+        <label class="label">Password{% if member %} (leave blank to keep){% endif %}</label>
+        <input class="input" type="password" name="password" {% if not member %}required{% endif %}>
+      </div>
+
+      <div class="column is-4">
+        <label class="label">Member Type</label>
+        <div class="select is-fullwidth">
+          <select name="member_type_id">
+            <option value="">-</option>
+            {% for mt in member_types %}
+              <option value="{{ mt.id }}" {% if member and member.member_type_id==mt.id %}selected{% endif %}>{{ mt.name_en }} / {{ mt.name_th }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="column is-4">
+        <label class="label">Full Name (EN)</label>
+        <input class="input" type="text" name="full_name_en" value="{{ member.full_name_en if member else '' }}">
+      </div>
+      <div class="column is-4">
+        <label class="label">Full Name (TH)</label>
+        <input class="input" type="text" name="full_name_th" value="{{ member.full_name_th if member else '' }}">
+      </div>
+      <div class="column is-4">
+        <label class="label">Phone</label>
+        <input class="input" type="text" name="phone_no" value="{{ member.phone_no if member else '' }}">
+      </div>
+      <div class="column is-8">
+        <label class="label">Address</label>
+        <input class="input" type="text" name="address" value="{{ member.address if member else '' }}">
+      </div>
+      <div class="column is-4">
+        <label class="checkbox">
+          <input type="checkbox" name="is_verified" {% if member and member.is_verified %}checked{% endif %}> Verified
+        </label>
+      </div>
+      <div class="column is-4">
+        <label class="checkbox">
+          <input type="checkbox" name="received_news" {% if member and member.received_news %}checked{% endif %}> Opt-in news
+        </label>
+      </div>
+    </div>
+    <div class="buttons">
+      <button class="button is-primary" type="submit">Save</button>
+      <a class="button" href="{{ url_for('continuing_edu_admin.members_index') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

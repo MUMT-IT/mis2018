@@ -1,0 +1,115 @@
+{% extends 'continueing_edu/admin/base.html' %}
+{% block title %}Members Management{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="level">
+    <div class="level-left">
+      <h1 class="title">Members</h1>
+    </div>
+    <div class="level-right">
+      <a class="button is-primary" href="{{ url_for('continuing_edu_admin.members_create') }}">Create Member</a>
+    </div>
+  </div>
+
+  <form class="box" method="get">
+    <div class="columns is-multiline">
+      <div class="column is-4">
+        <label class="label">Search</label>
+        <input class="input" type="text" name="q" value="{{ q or '' }}" placeholder="Username / Email / Name">
+      </div>
+      <div class="column is-3">
+        <label class="label">Member Type</label>
+        <div class="select is-fullwidth">
+          <select name="member_type_id">
+            <option value="">All</option>
+            {% for mt in member_types %}
+              <option value="{{ mt.id }}" {% if (member_type_id or '') == (mt.id|string) %}selected{% endif %}>{{ mt.name_en }} / {{ mt.name_th }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="column is-2">
+        <label class="label">Verified</label>
+        <div class="select is-fullwidth">
+          <select name="is_verified">
+            <option value="">All</option>
+            <option value="1" {% if is_verified=='1' %}selected{% endif %}>Yes</option>
+            <option value="0" {% if is_verified=='0' %}selected{% endif %}>No</option>
+          </select>
+        </div>
+      </div>
+      <div class="column is-2">
+        <label class="label">Opt-in News</label>
+        <div class="select is-fullwidth">
+          <select name="received_news">
+            <option value="">All</option>
+            <option value="1" {% if received_news=='1' %}selected{% endif %}>Yes</option>
+            <option value="0" {% if received_news=='0' %}selected{% endif %}>No</option>
+          </select>
+        </div>
+      </div>
+      <div class="column is-1">
+        <label class="label">&nbsp;</label>
+        <button class="button is-link is-fullwidth" type="submit">Filter</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="table-container">
+    <table class="table is-striped is-hoverable is-fullwidth">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Name</th>
+          <th>Member Type</th>
+          <th>Verified</th>
+          <th>Opt-in</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in members %}
+        <tr>
+          <td>{{ m.id }}</td>
+          <td>{{ m.username }}</td>
+          <td>{{ m.email or '-' }}</td>
+          <td>{{ m.full_name_en or m.full_name_th or '-' }}</td>
+          <td>{{ m.member_type_ref.name_en if m.member_type_ref else '-' }}</td>
+          <td>
+            {% if m.is_verified %}<span class="tag is-success">Yes</span>{% else %}<span class="tag is-light">No</span>{% endif %}
+          </td>
+          <td>
+            {% if m.received_news %}<span class="tag is-info">Yes</span>{% else %}<span class="tag is-light">No</span>{% endif %}
+          </td>
+          <td>{{ m.created_at }}</td>
+          <td class="is-narrow">
+            <div class="buttons are-small">
+              <a class="button is-link is-light" href="{{ url_for('continuing_edu_admin.members_edit', member_id=m.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('continuing_edu_admin.members_delete', member_id=m.id) }}" onsubmit="return confirm('Delete this member?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button class="button is-danger is-light" type="submit">Delete</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="has-text-centered has-text-grey">No members found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pagination and pagination.pages > 1 %}
+  <nav class="pagination is-centered" role="navigation" aria-label="pagination">
+    <a class="pagination-previous" href="?page={{ pagination.prev_num }}&per_page={{ pagination.per_page }}&q={{ q }}&member_type_id={{ member_type_id }}&is_verified={{ is_verified }}&received_news={{ received_news }}" {% if not pagination.has_prev %}disabled{% endif %}>Previous</a>
+    <a class="pagination-next" href="?page={{ pagination.next_num }}&per_page={{ pagination.per_page }}&q={{ q }}&member_type_id={{ member_type_id }}&is_verified={{ is_verified }}&received_news={{ received_news }}" {% if not pagination.has_next %}disabled{% endif %}>Next page</a>
+    <ul class="pagination-list">
+      <li><span class="pagination-link is-current">Page {{ pagination.page }} of {{ pagination.pages }}</span></li>
+    </ul>
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}
