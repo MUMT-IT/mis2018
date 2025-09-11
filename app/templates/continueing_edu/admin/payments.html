@@ -24,7 +24,8 @@
         <select name="status">
           <option value="">All Statuses</option>
           {% for s in statuses %}
-          <option value="{{ s.name_en }}" {% if current_status==s.name_en %}selected{% endif %}>{{ s.name_en }}</option>
+          {% set code = s.register_payment_status_code or s.name_en %}
+          <option value="{{ code }}" {% if current_status==code %}selected{% endif %}>{{ s.name_en }}</option>
           {% endfor %}
         </select>
       </div>

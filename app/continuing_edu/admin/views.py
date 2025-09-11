@@ -388,6 +388,275 @@ def members_delete(member_id):
     return redirect(url_for('continuing_edu_admin.members_index'))
 
 
+# -----------------------------
+# General Settings: Member Types
+# -----------------------------
+@admin_bp.route('/settings/member_types', methods=['GET', 'POST'])
+def settings_member_types():
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    if request.method == 'POST':
+        name_en = request.form.get('name_en', '').strip()
+        name_th = request.form.get('name_th', '').strip()
+        code = request.form.get('code', '').strip() or None
+        if not name_en or not name_th:
+            flash('Both English and Thai names are required.', 'danger')
+        else:
+            mt = MemberType(name_en=name_en, name_th=name_th, member_type_code=code)
+            db.session.add(mt)
+            try:
+                db.session.commit()
+                flash('Member type added.', 'success')
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error: {e}', 'danger')
+        return redirect(url_for('continuing_edu_admin.settings_member_types'))
+    mtypes = MemberType.query.order_by(MemberType.name_en.asc()).all()
+    return render_template('continueing_edu/admin/settings_member_types.html', logged_in_admin=admin, items=mtypes)
+
+
+@admin_bp.route('/settings/member_types/<int:item_id>/edit', methods=['GET', 'POST'])
+def settings_member_types_edit(item_id):
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    mt = MemberType.query.get_or_404(item_id)
+    if request.method == 'POST':
+        mt.name_en = request.form.get('name_en', mt.name_en)
+        mt.name_th = request.form.get('name_th', mt.name_th)
+        code = request.form.get('code', '').strip() or None
+        mt.member_type_code = code
+        db.session.add(mt)
+        try:
+            db.session.commit()
+            flash('Member type updated.', 'success')
+            return redirect(url_for('continuing_edu_admin.settings_member_types'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error: {e}', 'danger')
+    return render_template('continueing_edu/admin/settings_member_types_form.html', logged_in_admin=admin, item=mt)
+
+
+@admin_bp.route('/settings/member_types/<int:item_id>/delete', methods=['POST'])
+def settings_member_types_delete(item_id):
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    mt = MemberType.query.get_or_404(item_id)
+    try:
+        db.session.delete(mt)
+        db.session.commit()
+        flash('Member type deleted.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Cannot delete: {e}', 'danger')
+    return redirect(url_for('continuing_edu_admin.settings_member_types'))
+
+
+# -----------------------------
+# General Settings: Registration Statuses
+# -----------------------------
+@admin_bp.route('/settings/registration_statuses', methods=['GET', 'POST'])
+def settings_registration_statuses():
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    if request.method == 'POST':
+        name_en = request.form.get('name_en', '').strip()
+        name_th = request.form.get('name_th', '').strip()
+        code = request.form.get('code', '').strip() or None
+        css_badge = request.form.get('css_badge', '').strip() or None
+        if not name_en or not name_th:
+            flash('Both English and Thai names are required.', 'danger')
+        else:
+            st = RegistrationStatus(name_en=name_en, name_th=name_th, css_badge=css_badge,
+                                    registration_status_code=code)
+            db.session.add(st)
+            try:
+                db.session.commit()
+                flash('Registration status added.', 'success')
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error: {e}', 'danger')
+        return redirect(url_for('continuing_edu_admin.settings_registration_statuses'))
+    items = RegistrationStatus.query.order_by(RegistrationStatus.name_en.asc()).all()
+    return render_template('continueing_edu/admin/settings_registration_statuses.html', logged_in_admin=admin, items=items)
+
+
+@admin_bp.route('/settings/registration_statuses/<int:item_id>/edit', methods=['GET', 'POST'])
+def settings_registration_statuses_edit(item_id):
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    st = RegistrationStatus.query.get_or_404(item_id)
+    if request.method == 'POST':
+        st.name_en = request.form.get('name_en', st.name_en)
+        st.name_th = request.form.get('name_th', st.name_th)
+        st.css_badge = request.form.get('css_badge', st.css_badge)
+        st.registration_status_code = request.form.get('code', '').strip() or None
+        db.session.add(st)
+        try:
+            db.session.commit()
+            flash('Registration status updated.', 'success')
+            return redirect(url_for('continuing_edu_admin.settings_registration_statuses'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error: {e}', 'danger')
+    return render_template('continueing_edu/admin/settings_registration_statuses_form.html', logged_in_admin=admin, item=st)
+
+
+@admin_bp.route('/settings/registration_statuses/<int:item_id>/delete', methods=['POST'])
+def settings_registration_statuses_delete(item_id):
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    st = RegistrationStatus.query.get_or_404(item_id)
+    try:
+        db.session.delete(st)
+        db.session.commit()
+        flash('Registration status deleted.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Cannot delete: {e}', 'danger')
+    return redirect(url_for('continuing_edu_admin.settings_registration_statuses'))
+
+
+# -----------------------------
+# General Settings: Payment Statuses
+# -----------------------------
+@admin_bp.route('/settings/payment_statuses', methods=['GET', 'POST'])
+def settings_payment_statuses():
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    if request.method == 'POST':
+        name_en = request.form.get('name_en', '').strip()
+        name_th = request.form.get('name_th', '').strip()
+        code = request.form.get('code', '').strip() or None
+        css_badge = request.form.get('css_badge', '').strip() or None
+        if not name_en or not name_th:
+            flash('Both English and Thai names are required.', 'danger')
+        else:
+            st = RegisterPaymentStatus(name_en=name_en, name_th=name_th, css_badge=css_badge,
+                                       register_payment_status_code=code)
+            db.session.add(st)
+            try:
+                db.session.commit()
+                flash('Payment status added.', 'success')
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error: {e}', 'danger')
+        return redirect(url_for('continuing_edu_admin.settings_payment_statuses'))
+    items = RegisterPaymentStatus.query.order_by(RegisterPaymentStatus.name_en.asc()).all()
+    return render_template('continueing_edu/admin/settings_payment_statuses.html', logged_in_admin=admin, items=items)
+
+
+@admin_bp.route('/settings/payment_statuses/<int:item_id>/edit', methods=['GET', 'POST'])
+def settings_payment_statuses_edit(item_id):
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    st = RegisterPaymentStatus.query.get_or_404(item_id)
+    if request.method == 'POST':
+        st.name_en = request.form.get('name_en', st.name_en)
+        st.name_th = request.form.get('name_th', st.name_th)
+        st.css_badge = request.form.get('css_badge', st.css_badge)
+        st.register_payment_status_code = request.form.get('code', '').strip() or None
+        db.session.add(st)
+        try:
+            db.session.commit()
+            flash('Payment status updated.', 'success')
+            return redirect(url_for('continuing_edu_admin.settings_payment_statuses'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error: {e}', 'danger')
+    return render_template('continueing_edu/admin/settings_payment_statuses_form.html', logged_in_admin=admin, item=st)
+
+
+@admin_bp.route('/settings/payment_statuses/<int:item_id>/delete', methods=['POST'])
+def settings_payment_statuses_delete(item_id):
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    st = RegisterPaymentStatus.query.get_or_404(item_id)
+    try:
+        db.session.delete(st)
+        db.session.commit()
+        flash('Payment status deleted.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Cannot delete: {e}', 'danger')
+    return redirect(url_for('continuing_edu_admin.settings_payment_statuses'))
+
+
+# -----------------------------
+# General Settings: Entity Categories
+# -----------------------------
+@admin_bp.route('/settings/entity_categories', methods=['GET', 'POST'])
+def settings_entity_categories():
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    if request.method == 'POST':
+        name_en = request.form.get('name_en', '').strip()
+        name_th = request.form.get('name_th', '').strip()
+        code = request.form.get('code', '').strip() or None
+        description = request.form.get('description', '').strip()
+        if not name_en or not name_th:
+            flash('Both English and Thai names are required.', 'danger')
+        else:
+            cat = EntityCategory(name_en=name_en, name_th=name_th, description=description, entity_category_code=code)
+            db.session.add(cat)
+            try:
+                db.session.commit()
+                flash('Entity category added.', 'success')
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error: {e}', 'danger')
+        return redirect(url_for('continuing_edu_admin.settings_entity_categories'))
+    items = EntityCategory.query.order_by(EntityCategory.name_en.asc()).all()
+    return render_template('continueing_edu/admin/settings_entity_categories.html', logged_in_admin=admin, items=items)
+
+
+@admin_bp.route('/settings/entity_categories/<int:item_id>/edit', methods=['GET', 'POST'])
+def settings_entity_categories_edit(item_id):
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    cat = EntityCategory.query.get_or_404(item_id)
+    if request.method == 'POST':
+        cat.name_en = request.form.get('name_en', cat.name_en)
+        cat.name_th = request.form.get('name_th', cat.name_th)
+        cat.description = request.form.get('description', cat.description)
+        cat.entity_category_code = request.form.get('code', '').strip() or None
+        db.session.add(cat)
+        try:
+            db.session.commit()
+            flash('Entity category updated.', 'success')
+            return redirect(url_for('continuing_edu_admin.settings_entity_categories'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error: {e}', 'danger')
+    return render_template('continueing_edu/admin/settings_entity_categories_form.html', logged_in_admin=admin, item=cat)
+
+
+@admin_bp.route('/settings/entity_categories/<int:item_id>/delete', methods=['POST'])
+def settings_entity_categories_delete(item_id):
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    cat = EntityCategory.query.get_or_404(item_id)
+    try:
+        db.session.delete(cat)
+        db.session.commit()
+        flash('Entity category deleted.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Cannot delete: {e}', 'danger')
+    return redirect(url_for('continuing_edu_admin.settings_entity_categories'))
+
+
 @admin_bp.route('/events/<int:event_id>/notify', methods=['GET','POST'])
 def event_notify(event_id):
     admin = get_current_admin()
@@ -515,7 +784,10 @@ def payments_index():
     per_page = request.args.get('per_page', 20, type=int)
     query = RegisterPayment.query
     if status:
-        st = RegisterPaymentStatus.query.filter_by(name_en=status).first()
+        # Prefer code match, fallback to name_en for backward compatibility
+        st = RegisterPaymentStatus.query.filter_by(register_payment_status_code=status).first()
+        if not st:
+            st = RegisterPaymentStatus.query.filter_by(name_en=status).first()
         if st:
             query = query.filter_by(payment_status_id=st.id)
     if q:
@@ -580,7 +852,10 @@ def payment_receipt(payment_id):
 
 
 def _set_payment_status(pay: RegisterPayment, status_en: str, staff_id: int):
-    st = RegisterPaymentStatus.query.filter_by(name_en=status_en).first()
+    # status_en now treated as code; fallback to name_en
+    st = RegisterPaymentStatus.query.filter_by(register_payment_status_code=status_en).first()
+    if not st:
+        st = RegisterPaymentStatus.query.filter_by(name_en=status_en).first()
     from datetime import datetime
     if st:
         pay.payment_status_id = st.id
@@ -687,19 +962,29 @@ def bootstrap_defaults():
         ('approved', 'อนุมัติแล้ว', 'is-success'),
         ('rejected', 'ปฏิเสธ', 'is-danger'),
     ]:
-        if not RegisterPaymentStatus.query.filter_by(name_en=name_en).first():
-            s = RegisterPaymentStatus(name_en=name_en, name_th=name_th, css_badge=badge)
+        s = RegisterPaymentStatus.query.filter_by(name_en=name_en).first()
+        if not s:
+            s = RegisterPaymentStatus(name_en=name_en, name_th=name_th, css_badge=badge,
+                                      register_payment_status_code=name_en)
             db.session.add(s)
             created.append(f'RegisterPaymentStatus:{name_en}')
+        elif not s.register_payment_status_code:
+            s.register_payment_status_code = name_en
+            db.session.add(s)
     # Seed RegistrationStatus values
     for name_en, name_th, badge in [
         ('registered', 'ลงทะเบียนแล้ว', 'is-info'),
         ('cancelled', 'ยกเลิก', 'is-light'),
     ]:
-        if not RegistrationStatus.query.filter_by(name_en=name_en).first():
-            s = RegistrationStatus(name_en=name_en, name_th=name_th, css_badge=badge)
+        s = RegistrationStatus.query.filter_by(name_en=name_en).first()
+        if not s:
+            s = RegistrationStatus(name_en=name_en, name_th=name_th, css_badge=badge,
+                                   registration_status_code=name_en)
             db.session.add(s)
             created.append(f'RegistrationStatus:{name_en}')
+        elif not s.registration_status_code:
+            s.registration_status_code = name_en
+            db.session.add(s)
     # Seed MemberCertificateStatus values
     for name_en, name_th, badge in [
         ('issued', 'ออกแล้ว', 'is-success'),

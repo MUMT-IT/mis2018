@@ -590,7 +590,7 @@ def course_detail(course_id):
                 .join(RegisterPaymentStatus, RegisterPayment.payment_status_ref) \
                 .filter(RegisterPayment.member_id == user.id,
                         RegisterPayment.event_entity_id == course.id,
-                        RegisterPaymentStatus.name_en == 'approved').first()
+                        ((RegisterPaymentStatus.register_payment_status_code == 'approved') | (RegisterPaymentStatus.name_en == 'approved'))).first()
             approved_payment = ap is not None
     return render_template('continueing_edu/course_detail.html', course=course, texts=texts, current_lang=lang,
                            logged_in_user=user, already_registered=already_registered, approved_payment=approved_payment)
@@ -612,7 +612,7 @@ def webinar_detail(webinar_id):
                 .join(RegisterPaymentStatus, RegisterPayment.payment_status_ref) \
                 .filter(RegisterPayment.member_id == user.id,
                         RegisterPayment.event_entity_id == webinar.id,
-                        RegisterPaymentStatus.name_en == 'approved').first()
+                        ((RegisterPaymentStatus.register_payment_status_code == 'approved') | (RegisterPaymentStatus.name_en == 'approved'))).first()
             approved_payment = ap is not None
     return render_template('continueing_edu/webinar_detail.html', webinar=webinar, texts=texts, current_lang=lang,
                            logged_in_user=user, already_registered=already_registered, approved_payment=approved_payment)
@@ -645,7 +645,7 @@ def register_event(event_id):
         reg = MemberRegistration(member_id=member.id, event_entity_id=event.id)
         db.session.add(reg)
         # payment status pending (id may be 1); try lookup by name_en
-        pending = RegisterPaymentStatus.query.filter_by(name_en='pending').first()
+        pending = RegisterPaymentStatus.query.filter((RegisterPaymentStatus.register_payment_status_code=='pending') | (RegisterPaymentStatus.name_en=='pending')).first()
         pay = RegisterPayment(
             member_id=member.id,
             event_entity_id=event.id,
@@ -771,7 +771,7 @@ def submit_payment_proof(payment_id):
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
     pay.payment_proof_url = proof_url
     # Optionally move to 'submitted' if such status exists
-    submitted = RegisterPaymentStatus.query.filter_by(name_en='submitted').first()
+    submitted = RegisterPaymentStatus.query.filter((RegisterPaymentStatus.register_payment_status_code=='submitted') | (RegisterPaymentStatus.name_en=='submitted')).first()
     if submitted:
         pay.payment_status_id = submitted.id
     db.session.add(pay)
@@ -804,7 +804,7 @@ def upload_payment_proof(payment_id):
     path = os.path.join(upload_dir, fname)
     file.save(path)
     pay.payment_proof_url = '/' + path
-    submitted = RegisterPaymentStatus.query.filter_by(name_en='submitted').first()
+    submitted = RegisterPaymentStatus.query.filter((RegisterPaymentStatus.register_payment_status_code=='submitted') | (RegisterPaymentStatus.name_en=='submitted')).first()
     if submitted:
         pay.payment_status_id = submitted.id
     db.session.add(pay)
@@ -926,7 +926,7 @@ def complete_progress(event_id):
         approved = RegisterPayment.query\
             .join(RegisterPaymentStatus, RegisterPayment.payment_status_ref)\
             .filter(RegisterPayment.member_id==user.id, RegisterPayment.event_entity_id==event_id,
-                    RegisterPaymentStatus.name_en=='approved').first()
+                    ((RegisterPaymentStatus.register_payment_status_code=='approved') | (RegisterPaymentStatus.name_en=='approved'))).first()
         if approved:
             _issue_certificate(reg, lang)
             flash(texts.get('certificate_issued', 'Certificate issued.'), 'success')

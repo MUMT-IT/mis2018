@@ -13,6 +13,7 @@ class MemberType(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name_th = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "นักศึกษา ม.มหิดล"
     name_en = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "mahidol_student"
+    member_type_code = db.Column(db.String(50), unique=True, nullable=True, comment="Stable code for logic")
 
     # Relationship to Member model
     members = relationship("Member", back_populates="member_type_ref", lazy=True)
@@ -56,6 +57,7 @@ class RegistrationStatus(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name_th = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "ลงทะเบียนแล้ว"
     name_en = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "registered"
+    registration_status_code = db.Column(db.String(50), unique=True, nullable=True, comment="Stable code for logic")
     css_badge = db.Column(db.String(100), nullable=True, comment="CSS class for badge styling")  # New field
 
     # Relationship to MemberRegistration model
@@ -71,6 +73,7 @@ class RegisterPaymentStatus(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name_th = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "รอดำเนินการ"
     name_en = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "pending"
+    register_payment_status_code = db.Column(db.String(50), unique=True, nullable=True, comment="Stable code for logic")
     css_badge = db.Column(db.String(100), nullable=True, comment="CSS class for badge styling")  # New field
 
     # Relationship to RegisterPayment model
@@ -119,6 +122,7 @@ class EntityCategory(db.Model):
     name_th = db.Column(db.String(), nullable=False)
     name_en = db.Column(db.String(), nullable=False)
     description = db.Column(db.String(), nullable=False)
+    entity_category_code = db.Column(db.String(50), unique=True, nullable=True, comment="Stable code for logic")
 
     # Relationship to EventEntity (one-to-many)
     events = relationship("EventEntity", back_populates="category", lazy=True)
