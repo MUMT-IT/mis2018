@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 import uuid
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, date
 from io import BytesIO
 import arrow
 import gviz_api
@@ -14,8 +14,10 @@ from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen import canvas
 from sqlalchemy import or_
 from app.auth.views import line_bot_api
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
@@ -53,6 +55,29 @@ FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
 json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+
+
+class NumberedCanvas(canvas.Canvas):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._saved_page_states = []
+
+    def showPage(self):
+        self._saved_page_states.append(dict(self.__dict__))
+        self._startPage()
+
+    def save(self):
+        num_pages = len(self._saved_page_states)
+        for state in self._saved_page_states:
+            self.__dict__.update(state)
+            self.draw_page_number(num_pages)
+            super().showPage()
+        super().save()
+
+    def draw_page_number(self, page_count):
+        page = self._pageNumber
+        self.setFont("SarabunBold", 12)
+        self.drawRightString(200*mm, 15*mm, f"{page}/{page_count}")
 
 
 def allowed_file(filename):
@@ -1114,9 +1139,9 @@ def generate_repair_approval_pdf(repair_approval):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
 
     if current_user.personal_info.org.name == 'หน่วยข้อมูลและสารสนเทศ':
-        organization = 'หน่วยข้อมูลและสารสนเทศ งานยุทธศาสตร์ และการบริหารพัฒนาทรัพยากร สังกัดสำนักงานคณบดี'
         organization_text = "หน่วยข้อมูลและสารสนเทศ<br/>งานยุทธศาสตร\u00A0และการบริหารพัฒนาทรัพยากร\u00A0สำนักงานคณบดี<br/>โทร 02-4414371-7 ต่อ 2320"
         organization_info = Paragraph(organization_text, style=header_right_style)
+        mhesi_no = '''<font name="SarabunBold">ที่</font>&nbsp;&nbsp;&nbsp;&nbsp;อว 78.041/'''
         person = Table([
             [Paragraph('ลงชื่อ', center_style), Paragraph('ผู้ขออนุมัติ', center_style)],
             [Paragraph('(นายอดิศักดิ์ นันท์นฤมิตร)', center_style), ''],
@@ -1137,9 +1162,15 @@ def generate_repair_approval_pdf(repair_approval):
             ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
         ]))
     else:
-        organization = 'หน่วยซ่อมบำรุง งานบริหารจัดการทั่วไป สังกัดสำนักงานคณบดี'
+        today = date.today()
+        if today.month >= 10:
+            fiscal_year = today.year + 1
+        else:
+            fiscal_year = today.year
         organization_text = "หน่วยซ่อมบำรุง<br/>งานบริหารจัดการทั่วไป\u00A0สำนักงานคณบดี<br/>โทร 02-4414371-9 ต่อ 2115"
         organization_info = Paragraph(organization_text, style=header_right_style)
+        mhesi_no = f'''<font name="SarabunBold">ที่</font>&nbsp;&nbsp;&nbsp;&nbsp;AHR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;/{fiscal_year}'''.format(fiscal_year=fiscal_year)
         person = Table([
             ['', ''],
             ['', ''],
@@ -1176,12 +1207,7 @@ def generate_repair_approval_pdf(repair_approval):
     formatted_price = f"{int(repair_approval.price):,}" if repair_approval.price == int(repair_approval.price) \
         else f"{repair_approval.price:,.2f}"
 
-    mhesi_no = '''<font name="SarabunBold">ที่</font>&nbsp;&nbsp;&nbsp;&nbsp;{mhesi_no}'''.format(
-        mhesi_no=repair_approval.mhesi_no)
-
-    mhesi_no_date = arrow.get(repair_approval.mhesi_no_date).format(fmt='DD MMMM YYYY', locale='th-th')
-    mhesi_no_date_info = '''<font name="SarabunBold">วันที่</font>&nbsp;&nbsp;&nbsp;&nbsp;{mhesi_no_date}'''.format(
-        mhesi_no_date=mhesi_no_date)
+    mhesi_no_date_info = '''<font name="SarabunBold">วันที่</font>'''
 
     if repair_approval.repair_type == 'เร่งด่วน':
         indent = 47
@@ -1208,12 +1234,12 @@ def generate_repair_approval_pdf(repair_approval):
         else:
             position = current_user.personal_info.position
 
-        item_detail = '''ด้วย ข้าพเจ้า {creator} ตำแหน่ง {position} สังกัด {org} ซึ่งเป็นผู้รับผิดชอบในการซื้อ {item} ไปก่อนแล้ว จึงขอรายงานเหตุ
+        item_detail = '''ด้วย ข้าพเจ้า {name} ตำแหน่ง {position} สังกัด {org} ซึ่งเป็นผู้รับผิดชอบในการซื้อ {item} ไปก่อนแล้ว จึงขอรายงานเหตุ
                         ผลและความจำเป็น กรณีเร่งด่วน โดยมีรายละเอียด ดังนี้'''.format(
-            creator=repair_approval.creator.fullname,
+            name=repair_approval.name,
             item=repair_approval.item,
             position=position,
-            org=organization)
+            org=repair_approval.organization)
 
         reason_title = '<para leftIndent=35><font name="SarabunBold">1. เหตุผลและความจำเป็นเร่งด่วนที่ต้องซื้อหรือจ้าง</font></para>'
 
@@ -1221,10 +1247,10 @@ def generate_repair_approval_pdf(repair_approval):
 
         receipt_date = arrow.get(repair_approval.receipt_date).format(fmt='DD MMMM YYYY', locale='th-th')
         price = (
-            '<font name="SarabunBold">3. วงเงินที่ซื้อหรือจ้างในครั้งนี้เป็นเงิน</font> {price} บาท ({price_thai}) จาก {budget_source} ตามใบส่งของ/ใบเสร็จรับเงิน '
+            '<font name="SarabunBold">3. วงเงินที่ซื้อหรือจ้างในครั้งนี้เป็นเงิน</font> {price} บาท ({price_thai}) จาก {supplier} ตามใบส่งของ/ใบเสร็จรับเงิน '
             'เล่มที่ {book_number} เลขที่ {receipt_number} วันที่ {receipt_date} ทั้งนี้ ข้าพเจ้าพร้อมหัวหน้าหน่วยงานได้ลงนามรับรองในใบส่ง'
             'ของหรือใบเสร็จรับเงินว่า “ได้ตรวจรับพัสดุไว้ถูกต้องครบถ้วนแล้ว”'
-            .format(price=formatted_price, price_thai=price_thai, budget_source=repair_approval.budget_source,
+            .format(price=formatted_price, price_thai=price_thai, supplier=repair_approval.supplier,
                     book_number=repair_approval.book_number, receipt_number=repair_approval.receipt_number,
                     receipt_date=receipt_date))
 
@@ -1241,31 +1267,25 @@ def generate_repair_approval_pdf(repair_approval):
                 '<para leftIndent=55>จึงเรียนมาเพื่อโปรดพิจารณา <font name="SarabunBold">หากเห็นชอบโปรด</font><br/>'
                 '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">1. อนุมัติซื้อหรือจ้างตามรายการข้างต้น</font><br/>'
                 '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">2. ทราบผลการตรวจรับพัสดุ และอนุมัติเบิกจ่ายเงิน</font> '
-                'ให้แก่ {requester}<br/>'
+                'ให้แก่ เงินทดรองจ่ายคณะเทคนิคการแพทย์ เลขที่ บย.{loan_no}<br/>'
                 '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;เป็นเงินทั้งสิ้น {price} บาท ({price_thai})) '
                 'โดยส่งใช้เงินยืมทดรองจ่ายในนาม<br/>'
-                '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"{borrower}"'
-                '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">และให้ถือว่ารายงานฉบับนี้'
-                'เป็นหลักฐานการตรวจรับโดยอนุโลม</font><br/>'
+                '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"เงินทดรองจ่ายคณะเทคนิคการแพทย์ เลขที่ บย.{loan_no}"'
+                '&nbsp;<font name="SarabunBold">และให้ถือว่ารายงานฉบับนี้เป็นหลักฐานการ<br/>ตรวจรับโดยอนุโลม</font>'
                 '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">3. อนุมัติขยายระยะเวลาเบิกจ่ายเงิน</font>  '
                 '(ใช้กรณีขยายระยะเวลาเบิกจ่ายเงินเกิน 30 วัน หากไม่มีให้ลบออก)'
-                '</para>').format(requester=repair_approval.borrower,
-                                  price=formatted_price, price_thai=price_thai,
-                                  borrower=repair_approval.borrower)
+                '</para>').format(loan_no=repair_approval.loan_no, price=formatted_price, price_thai=price_thai)
         else:
             description = ('<para leftIndent=55>จึงเรียนมาเพื่อโปรดพิจารณา หากเห็นชอบโปรด<br/>'
                            '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">1. อนุมัติซื้อหรือจ้างตามรายการข้างต้น</font><br/>'
                            '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">2. ทราบผลการตรวจรับพัสดุ และอนุมัติเบิกจ่ายเงิน</font> '
-                           'ให้แก่ {requester}<br/>'
+                           'ให้แก่ เงินทดรองจ่ายคณะเทคนิคการแพทย์ เลขที่ บย.{loan_no}<br/>'
                            '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;เป็นเงินทั้งสิ้น {price} บาท ({price_thai})) โดยส่ง'
                            'ใช้เงินยืมทดรองจ่ายในนาม<br/>'
-                           '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"{borrower}"<br/>'
-                           '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">และให้ถือว่ารายงานฉบับนี้'
-                           'เป็นหลักฐานการตรวจรับโดยอนุโลม</font>'
-                           '</para>').format(requester=repair_approval.borrower,
-                                             price=formatted_price, price_thai=price_thai,
-                                             borrower=repair_approval.borrower)
-    elif repair_approval.repair_type == 'ไม่เร่งด่วน (จ้าง/ซ่อม)':
+                           '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"เงินทดรองจ่ายคณะเทคนิคการแพทย์ เลขที่ บย.{loan_no}"'
+                           '&nbsp;<font name="SarabunBold">และให้ถือว่ารายงานฉบับนี้เป็นหลักฐานการ<br/>ตรวจรับโดยอนุโลม</font>'
+                           '</para>').format(loan_no=repair_approval.loan_no, price=formatted_price, price_thai=price_thai)
+    elif repair_approval.principle_approval_type == 'ซื้อ' or repair_approval.principle_approval_type == 'จ้าง':
         indent = 14
         text_style = content_style
         if repair_approval.price <= 30000:
@@ -1290,7 +1310,7 @@ def generate_repair_approval_pdf(repair_approval):
             '''<font name="SarabunBold">เรื่อง</font>&nbsp;&nbsp;&nbsp;&nbsp;ขออนุมัติในหลักการ {checkbox} รายการ {item}'''
             .format(checkbox=checkbox, item=repair_approval.item))
 
-        item_detail = '''ด้วย {org} มีความประสงค์จะจัดซื้อหรือจ้าง {purpose} รายละเอียดดังนี้'''.format(org=organization,
+        item_detail = '''ด้วย {org} มีความประสงค์จะจัดซื้อหรือจ้าง {purpose} รายละเอียดดังนี้'''.format(org=repair_approval.organization,
                                                                                         purpose=repair_approval.purpose)
 
         reason_title = '<font name="SarabunBold">1. เหตุผลและความจำเป็นต้องซื้อ</font>'
@@ -1303,13 +1323,13 @@ def generate_repair_approval_pdf(repair_approval):
         receipt = (
             '<font name="SarabunBold">4. โดยขอเบิกจ่ายจากเงิน</font> {purchase_type} ประจำปีงบประมาณ {budget_year}'
             .format(purchase_type=purchase_type, budget_year=repair_approval.budget_year))
-
+        remark_checkbox = f'<font name="DejaVuSans">☑</font>' if repair_approval.remark else f'<font name="DejaVuSans">☐</font>'
         remark = (
             '<font name="SarabunBold">6. ตามแนวทางปฏิบัติตามกฎกระทรวงกำหนดพัสดุและวิธีการจัดซื้อจัดจ้างพัสดุที่รัฐต้องการส่งเสริมหรือสนับสนุน '
             '(ฉบับที่ 2) พ.ศ. 2563</font><br/>'
             '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-            '☐ มีความจำเป็นจะต้องมีการใช้พัสดุที่ผลิตจากต่างประเทศหรือนำเข้าพัสดุจากต่างประเทศ เนื่องจาก {remark}'
-            .format(remark=repair_approval.remark if repair_approval.remark else
+            '{remark_checkbox} มีความจำเป็นจะต้องมีการใช้พัสดุที่ผลิตจากต่างประเทศหรือนำเข้าพัสดุจากต่างประเทศ เนื่องจาก {remark}'
+            .format(remark_checkbox=remark_checkbox, remark=repair_approval.remark if repair_approval.remark else
             '<br/>(กรณีไม่สามารถใช้สินค้าจาก SME หรือ Made In Thailand ได้)'))
 
         description = (
@@ -1334,9 +1354,8 @@ def generate_repair_approval_pdf(repair_approval):
         item = '''<font name="SarabunBold">เรื่อง</font>&nbsp;&nbsp;&nbsp;&nbsp;ขออนุมัติในหลักการ <font name="DejaVuSans">☑</font> 
                     จ้างซ่อม ครุภัณฑ์ {item}'''.format(item=repair_approval.item)
 
-        item_detail = ('''ด้วย {org} มีความประสงค์จะจ้างซ่อมครุภัณฑ์ {item} {procurement_no} รายละเอียดดังนี้'''
-                       .format(org=organization, item=repair_approval.item,
-                               procurement_no=repair_approval.procurement_no))
+        item_detail = ('''ด้วย {org} มีความประสงค์จะจ้างซ่อมครุภัณฑ์ {item} รายละเอียดดังนี้'''
+                       .format(org=repair_approval.organization, item=repair_approval.item))
 
         reason_title = '<font name="SarabunBold">1. เหตุผลและความจำเป็นต้องจ้างซ่อม</font>'
 
@@ -1349,12 +1368,13 @@ def generate_repair_approval_pdf(repair_approval):
             '<font name="SarabunBold">4. โดยขอเบิกจ่ายจากเงิน</font> {purchase_type} ประจำปีงบประมาณ {budget_year}'
             .format(purchase_type=purchase_type, budget_year=repair_approval.budget_year))
 
+        remark_checkbox = f'<font name="DejaVuSans">☑</font>' if repair_approval.remark else f'<font name="DejaVuSans">☐</font>'
         remark = (
             '<font name="SarabunBold">6. ตามแนวทางปฏิบัติตามกฎกระทรวงกำหนดพัสดุและวิธีการจัดซื้อจัดจ้างพัสดุที่รัฐต้องการส่งเสริมหรือสนับสนุน '
             '(ฉบับที่ 2) พ.ศ. 2563</font><br/>'
             '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-            '☐ มีความจำเป็นจะต้องมีการใช้พัสดุที่ผลิตจากต่างประเทศหรือนำเข้าพัสดุจากต่างประเทศ เนื่องจาก {remark}'
-            .format(remark=repair_approval.remark if repair_approval.remark else
+            '{remark_checkbox} มีความจำเป็นจะต้องมีการใช้พัสดุที่ผลิตจากต่างประเทศหรือนำเข้าพัสดุจากต่างประเทศ เนื่องจาก {remark}'
+            .format(remark_checkbox=remark_checkbox, remark=repair_approval.remark if repair_approval.remark else
             '<br/>(กรณีไม่สามารถใช้สินค้าจาก SME หรือ Made In Thailand ได้)'))
 
         description = (
@@ -1432,9 +1452,9 @@ def generate_repair_approval_pdf(repair_approval):
     data.append(Paragraph(price, style=text_style))
     data.append(Paragraph(receipt, style=content_style))
     data.append(Paragraph(code_detail, style=content_style))
-    if repair_approval.repair_type == 'ไม่เร่งด่วน (จ้าง/ซ่อม)':
+    if repair_approval.repair_type != 'เร่งด่วน':
         if repair_approval.price > 500000:
-            committee_title = '5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นผู้ตรวจรับพัสดุ'
+            committee_title = '<font name="SarabunBold">5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นผู้ตรวจรับพัสดุ</font>'
             data.append(Paragraph(committee_title, style=content_style))
             ordered_committee_names = [
                 'คณะกรรมการกำหนดรายละเอียดคุณลักษณะเฉพาะ',
@@ -1461,7 +1481,7 @@ def generate_repair_approval_pdf(repair_approval):
                             data.append(Paragraph(para, style=content_style))
                             count += 1
         elif repair_approval.price > 30000 and repair_approval.price <= 500000:
-            committee_title = '5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นคณะกรรมการตรวจรับพัสดุ'
+            committee_title = '<font name="SarabunBold">5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นคณะกรรมการตรวจรับพัสดุ</font>'
             data.append(Paragraph(committee_title, style=content_style))
             count = 2
             for c in repair_approval.committees:
@@ -1481,42 +1501,20 @@ def generate_repair_approval_pdf(repair_approval):
                                          committee_position=c.committee_position))
                 data.append(Paragraph(committee, style=content_style))
         else:
-            committee_title = '5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นผู้ตรวจรับพัสดุ'
+            committee_title = '<font name="SarabunBold">5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นผู้ตรวจรับพัสดุ</font>'
             data.append(Paragraph(committee_title, style=content_style))
             for c in repair_approval.committees:
                 committee = ('<para leftIndent=35>5.1 {committee} ตำแหน่ง {position} {committee_position}</para>'
                              .format(committee=c.staff.fullname, position=c.position,
                                      committee_position=c.committee_position))
                 data.append(Paragraph(committee, style=content_style))
-    elif repair_approval.repair_type == 'ไม่เร่งด่วน (จ้างซ่อม)':
-        if repair_approval.price > 30000:
-            committee_title = '5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นผู้ตรวจรับพัสดุ'
-        else:
-            committee_title = '5. ขอแต่งตั้งผู้มีรายนามต่อไปนี้ เป็นคณะกรรมการตรวจรับพัสดุ'
-        data.append(Paragraph(committee_title, style=content_style))
-        count = 2
-        for c in repair_approval.committees:
-            if c.committee_position == "ประธาน":
-                committee = ('<para leftIndent=35>5.1 {committee} ตำแหน่ง {position} {committee_position}</para>'
-                             .format(committee=c.staff.fullname, position=c.position,
-                                     committee_position=c.committee_position))
-            elif c.committee_position == "กรรมการ":
-                committee = ('<para leftIndent=35>5.{num} {committee} ตำแหน่ง {position} {committee_position}</para>'
-                             .format(num=count, committee=c.staff.fullname, position=c.position,
-                                     committee_position=c.committee_position))
-                count += 1
-            else:
-                committee = ('<para leftIndent=35>5.1 {committee} ตำแหน่ง {position} {committee_position}</para>'
-                             .format(committee=c.staff.fullname, position=c.position,
-                                     committee_position=c.committee_position))
-            data.append(Paragraph(committee, style=content_style))
     if (repair_approval.repair_type == 'เร่งด่วน' and repair_approval.remark) or repair_approval.repair_type == 'ไม่เร่งด่วน (จ้าง/ซ่อม)' \
             or repair_approval.repair_type == 'ไม่เร่งด่วน (จ้างซ่อม)':
         data.append(Paragraph(remark, style=text_style))
     data.append(Paragraph(description, style=content_style))
     data.append(Spacer(1, 12))
     data.append(footer_table)
-    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+    doc.build(data, canvasmaker=NumberedCanvas)
     buffer.seek(0)
     return buffer
 
