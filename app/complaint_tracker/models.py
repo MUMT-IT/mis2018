@@ -366,6 +366,7 @@ class ComplaintRepairApproval(db.Model):
     product_code = db.relationship(ProductCode, backref=db.backref('repair_approvals'))
     remark = db.Column('remark', db.Text())
     borrower = db.Column('borrower', db.String(), info={'label': 'รายละเอียดเงินยืมทดรองจ่าย'})
+    loan_no = db.Column('loan_no', db.String(), info={'label': 'เลขที่ใบยืม'})
     created_at = db.Column('created_at', db.DateTime(timezone=True), info={'label': 'วันที่'})
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
