@@ -780,19 +780,54 @@ def create_customer_detail(request_id):
             db.session.add(cus_contact)
         if request.form.getlist('quotation_address'):
             for quotation_address_id in request.form.getlist('quotation_address'):
+                address = ServiceCustomerAddress.query.get(int(quotation_address_id))
+                district_title = 'เขต' if address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
+                subdistrict_title = 'แขวง' if address.province.name == 'กรุงเทพมหานคร' else 'ตำบล'
                 service_request.quotation_address_id = int(quotation_address_id)
+                service_request.quotation_name = address.name
+                service_request.quotation_issue_address = (
+                                         f"{address.address} "
+                                         f"{subdistrict_title}{address.subdistrict} "
+                                         f"{district_title}{address.district} "
+                                         f"จังหวัด{address.province} "
+                                         f"{address.zipcode}"
+                                     )
+                service_request.taxpayer_identification_no = address.taxpayer_identification_no
+                service_request.quotation_phone_number = address.phone_number
                 db.session.add(service_request)
                 db.session.commit()
         if request.form.getlist('document_address'):
             for document_address_id in request.form.getlist('document_address'):
+                address = ServiceCustomerAddress.query.get(int(quotation_address_id))
+                district_title = 'เขต' if address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
+                subdistrict_title = 'แขวง' if address.province.name == 'กรุงเทพมหานคร' else 'ตำบล'
                 service_request.document_address_id = int(document_address_id)
+                service_request.receive_name = address.name
+                service_request.receive_address = (
+                                         f"{address.address} "
+                                         f"{subdistrict_title}{address.subdistrict} "
+                                         f"{district_title}{address.district} "
+                                         f"จังหวัด{address.province} "
+                                         f"{address.zipcode}"
+                                     )
+                service_request.receive_phone_number = address.phone_number
                 db.session.add(service_request)
                 db.session.commit()
         else:
             for quotation_address_id in request.form.getlist('quotation_address'):
-                service_request.document_address_id = int(quotation_address_id)
-                db.session.add(service_request)
                 quotation_address = ServiceCustomerAddress.query.get(int(quotation_address_id))
+                district_title = 'เขต' if quotation_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
+                subdistrict_title = 'แขวง' if quotation_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล'
+                service_request.document_address_id = int(quotation_address_id)
+                service_request.receive_name = quotation_address.name
+                service_request.receive_address = (
+                                         f"{quotation_address.address} "
+                                         f"{subdistrict_title}{quotation_address.subdistrict} "
+                                         f"{district_title}{quotation_address.district} "
+                                         f"จังหวัด{quotation_address.province} "
+                                         f"{quotation_address.zipcode}")
+                service_request.receive_phone_number = quotation_address.phone_number
+                db.session.add(service_request)
                 remark = quotation_address.remark if quotation_address.remark else None
                 if current_user.customer_info.addresses:
                     for address in current_user.customer_info.addresses:
@@ -800,7 +835,6 @@ def create_customer_detail(request_id):
                             if address.address_type == 'document':
                                 address.name = quotation_address.name
                                 address.address_type = 'document'
-                                address.taxpayer_identification_no = quotation_address.taxpayer_identification_no
                                 address.province_id = quotation_address.province_id
                                 address.district_id = quotation_address.district_id
                                 address.subdistrict_id = quotation_address.subdistrict_id
@@ -810,7 +844,6 @@ def create_customer_detail(request_id):
                                 address.customer_id = current_user.customer_info_id
                         else:
                             address = ServiceCustomerAddress(name=quotation_address.name, address_type='document',
-                                                             taxpayer_identification_no=quotation_address.taxpayer_identification_no,
                                                              address=quotation_address.address,
                                                              zipcode=quotation_address.zipcode,
                                                              phone_number=quotation_address.phone_number,
@@ -821,7 +854,6 @@ def create_customer_detail(request_id):
                                                              subdistrict_id=quotation_address.subdistrict_id)
                 else:
                     address = ServiceCustomerAddress(name=quotation_address.name, address_type='document',
-                                                     taxpayer_identification_no=quotation_address.taxpayer_identification_no,
                                                      address=quotation_address.address,
                                                      zipcode=quotation_address.zipcode,
                                                      phone_number=quotation_address.phone_number, reamerk=remark,
