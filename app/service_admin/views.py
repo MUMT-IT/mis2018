@@ -2389,18 +2389,10 @@ def generate_quotation():
         quotation_no = ServiceNumberID.get_number('QT', db,
                                                   lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' \
                                                       else service_request.lab)
-        district_title = 'เขต' if service_request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
-        subdistrict_title = 'แขวง' if service_request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล'
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
-                                     name=service_request.quotation_address.name,
-                                     address=(
-                                         f"{service_request.quotation_address.address} "
-                                         f"{subdistrict_title}{service_request.quotation_address.subdistrict} "
-                                         f"{district_title}{service_request.quotation_address.district} "
-                                         f"จังหวัด{service_request.quotation_address.province} "
-                                         f"{service_request.quotation_address.zipcode}"
-                                     ),
-                                     taxpayer_identification_no=service_request.quotation_address.taxpayer_identification_no,
+                                     name=service_request.quotation_name,
+                                     address=service_request.quotation_issue_address,
+                                     taxpayer_identification_no=service_request.taxpayer_identification_no,
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
