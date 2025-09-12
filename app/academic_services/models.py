@@ -356,12 +356,12 @@ class ServiceRequest(db.Model):
     admin = db.relationship(StaffAccount, backref=db.backref('requests'))
     product = db.Column('product', db.String())
     lab = db.Column('lab', db.String())
-    document_address_id = db.Column('document_address_id', db.ForeignKey('service_customer_addresses.id'))
-    document_address = db.relationship(ServiceCustomerAddress, backref=db.backref("document_address_for_requests"),
-                                       foreign_keys=[document_address_id])
-    quotation_address_id = db.Column('quotation_address_id', db.ForeignKey('service_customer_addresses.id'))
-    quotation_address = db.relationship(ServiceCustomerAddress, backref=db.backref("quotation_address_for_requests"),
-                                        foreign_keys=[quotation_address_id])
+    # document_address_id = db.Column('document_address_id', db.ForeignKey('service_customer_addresses.id'))
+    # document_address = db.relationship(ServiceCustomerAddress, backref=db.backref("document_address_for_requests"),
+    #                                    foreign_keys=[document_address_id])
+    # quotation_address_id = db.Column('quotation_address_id', db.ForeignKey('service_customer_addresses.id'))
+    # quotation_address = db.relationship(ServiceCustomerAddress, backref=db.backref("quotation_address_for_requests"),
+    #                                     foreign_keys=[quotation_address_id])
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     status_id = db.Column('status_id', db.ForeignKey('service_statuses.id'))
@@ -879,10 +879,6 @@ class ServiceSample(db.Model):
             'note': self.note if self.note else None,
             'received_at': self.received_at,
             'received_by': self.received_by.fullname if self.received_by else None,
-            'expected_at': self.expected_at,
-            'started_at': self.started_at,
-            'finished_at': self.finished_at,
-            'finished_by': self.finished_by.fullname if self.finished_by else None,
             'request_no': self.request.request_no if self.request else None,
             'sample_condition_status': self.sample_condition_status,
             'sample_condition_status_color': self.sample_condition_status_color,
