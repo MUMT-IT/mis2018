@@ -362,16 +362,10 @@ class ServiceRequest(db.Model):
     quotation_address_id = db.Column('quotation_address_id', db.ForeignKey('service_customer_addresses.id'))
     quotation_address = db.relationship(ServiceCustomerAddress, backref=db.backref("quotation_address_for_requests"),
                                         foreign_keys=[quotation_address_id])
-    agree = db.Column('agree', db.Boolean())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     status_id = db.Column('status_id', db.ForeignKey('service_statuses.id'))
     status = db.relationship(ServiceStatus, backref=db.backref('requests'))
-    thai_language = db.Column('thai_language', db.Boolean(), info={'label': 'ใบรายงานผลไทย'})
-    eng_language = db.Column('eng_language', db.Boolean(), info={'label': 'ใบรายงานผลอังกฤษ'})
-    thai_copy_language = db.Column('thai_copy_language', db.Boolean(), info={'label': 'สำเนาใบรายงานผลไทย'})
-    eng_copy_language = db.Column('eng_copy_language', db.Boolean(), info={'label': 'สำเนาใบรายงานผลอังกฤษ'})
-    is_paid = db.Column('is_paid', db.Boolean())
     data = db.Column('data', JSONB)
 
     def __str__(self):
