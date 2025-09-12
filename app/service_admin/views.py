@@ -1050,46 +1050,30 @@ def generate_request_pdf(service_request):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
-    district_title = 'เขต' if service_request.document_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
-    subdistrict_title = 'แขวง' if service_request.document_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล',
     document_address = '''<para>ข้อมูลที่อยู่จัดส่งเอกสาร<br/>
                                     ถึง : {name}<br/>
-                                    ที่อยู่ : {address} {subdistrict_title}{subdistrict} {district_title}{district} จังหวัด{province} {zipcode}<br/>
+                                    ที่อยู่ : {address}<br/>
                                     เบอร์โทรศัพท์ : {phone_number}<br/>
                                     อีเมล : {email}
                                 </para>
-                                '''.format(name=service_request.document_address.name,
-                                           address=service_request.document_address.address,
-                                           subdistrict_title=subdistrict_title,
-                                           subdistrict=service_request.document_address.subdistrict,
-                                           district_title=district_title,
-                                           district=service_request.document_address.district,
-                                           province=service_request.document_address.province,
-                                           zipcode=service_request.document_address.zipcode,
-                                           phone_number=service_request.document_address.phone_number,
+                                '''.format(name=service_request.receive_name,
+                                           address=service_request.receive_address,
+                                           phone_number=service_request.receive_phone_number,
                                            email=service_request.customer.contact_email)
 
     document_address_table = Table([[Paragraph(document_address, style=detail_style)]], colWidths=[265])
 
-    district_title = 'เขต' if service_request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
-    subdistrict_title = 'แขวง' if service_request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล',
     quotation_address = '''<para>ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี<br/>
                                         ออกในนาม : {name}<br/>
-                                        ที่อยู่ : {address} {subdistrict_title}{subdistrict} {district_title}{district} จังหวัด{province} {zipcode}<br/>
+                                        ที่อยู่ : {address}<br/>
                                         เลขประจำตัวผู้เสียภาษีอากร : {taxpayer_identification_no}<br/>
                                         เบอร์โทรศัพท์ : {phone_number}<br/>
                                         อีเมล : {email}
                                     </para>
-                                    '''.format(name=service_request.quotation_address.name,
-                                               address=service_request.quotation_address.address,
-                                               subdistrict_title=subdistrict_title,
-                                               subdistrict=service_request.quotation_address.subdistrict,
-                                               district_title=district_title,
-                                               district=service_request.quotation_address.district,
-                                               province=service_request.quotation_address.province,
-                                               zipcode=service_request.quotation_address.zipcode,
-                                               taxpayer_identification_no=service_request.quotation_address.taxpayer_identification_no,
-                                               phone_number=service_request.quotation_address.phone_number,
+                                    '''.format(name=service_request.quotation_name,
+                                               address=service_request.quotation_issue_address,
+                                               taxpayer_identification_no=service_request.taxpayer_identification_no,
+                                               phone_number=service_request.quotation_phone_number,
                                                email=service_request.customer.contact_email)
 
     quotation_address_table = Table([[Paragraph(quotation_address, style=detail_style)]], colWidths=[265])
