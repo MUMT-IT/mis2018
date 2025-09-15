@@ -2443,7 +2443,6 @@ def create_quotation_for_admin(quotation_id):
     tab = request.args.get('tab')
     action = request.form.get('action')
     quotation = ServiceQuotation.query.get(quotation_id)
-    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab)
     datas = request_data(quotation.request)
     quotation.quotation_items = sorted(quotation.quotation_items, key=lambda x: x.sequence)
     form = ServiceQuotationForm(obj=quotation)
@@ -2467,7 +2466,7 @@ def create_quotation_for_admin(quotation_id):
                 email = [a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor]
                 if email:
                     title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} ({quotation.name}) | แจ้งขออนุมัติใบเสนอราคา'''
-                    message = f'''เรียน หัวหน้าห้องปฏิบัติการ\n\n'''
+                    message = f'''เรียน หัวหน้าห้องปฏิบัติการ{quotation.request.sub_lab.sub_lab}\n\n'''
                     message += f'''ใบเสนอราคาเลขที่ : {quotation.quotation_no}\n'''
                     message += f'''ลูกค้า : {quotation.customer_name}\n'''
                     message += f'''ในนาม : {quotation.name}\n'''
@@ -2511,7 +2510,7 @@ def create_quotation_for_admin(quotation_id):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('service_admin/create_quotation_for_admin.html', quotation=quotation, menu=menu,
-                           tab=tab, form=form, datas=datas, sub_lab=sub_lab)
+                           tab=tab, form=form, datas=datas)
 
 
 @service_admin.route('/quotation/supervisor/approve/<int:quotation_id>', methods=['GET', 'POST'])
@@ -2520,7 +2519,6 @@ def approval_quotation_for_supervisor(quotation_id):
     menu = request.args.get('menu')
     tab = request.args.get('tab')
     quotation = ServiceQuotation.query.get(quotation_id)
-    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
     scheme = 'http' if current_app.debug else 'https'
     if not quotation.approved_at:
         if request.method == 'POST':
@@ -2586,14 +2584,14 @@ def approval_quotation_for_supervisor(quotation_id):
                         message += f'''หัวหน้าห้องปฏิบัติการ\n'''
                         message += f'''{quotation.approver.fullname}\n'''
                         message += f'''ระบบงานบริการวิชาการ'''
-                        send_mail([sub_lab.assistant.email + '@mahidol.ac.th'], title_for_assistant,
+                        send_mail([quotation.request.sub_lab.assistant.email + '@mahidol.ac.th'], title_for_assistant,
                                   message_for_assistant)
                     flash(f'อนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} สำเร็จ กรุณารอลูกค้ายืนยันใบเสนอราคา',
                           'success')
                     return redirect(
                         url_for('service_admin.quotation_index', quotation_id=quotation.id, tab='awaiting_customer'))
         return render_template('service_admin/approval_quotation_for_supervisor.html', quotation=quotation,
-                               tab=tab, quotation_id=quotation_id, sub_lab=sub_lab, menu=menu)
+                               tab=tab, quotation_id=quotation_id, menu=menu)
     else:
         return render_template('service_admin/quotation_approved_page.html', quotation_id=quotation.id,
                                quotaiton_no=quotation.quotation_no, menu=menu, tab='all')
@@ -2662,9 +2660,8 @@ def view_quotation(quotation_id):
     menu = request.args.get('menu')
     tab = request.args.get('tab')
     quotation = ServiceQuotation.query.get(quotation_id)
-    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).all()
     return render_template('service_admin/view_quotation.html', quotation_id=quotation_id, tab=tab,
-                           quotation=quotation, sub_lab=sub_lab, menu=menu)
+                           quotation=quotation, menu=menu)
 
 
 def generate_quotation_pdf(quotation, sign=False):
