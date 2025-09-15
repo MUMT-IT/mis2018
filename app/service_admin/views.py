@@ -102,8 +102,7 @@ def request_data(service_request):
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
-    sheet = wks.worksheet(sub_lab.sheet)
+    sheet = wks.worksheet(service_request.sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     data = service_request.data
     form = create_request_form(df)(**data)
@@ -270,17 +269,28 @@ def request_index():
     quotation_request_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=2),
                                                                           or_(ServiceRequest.admin.has(
                                                                               id=current_user.id),
-                                                                              ServiceRequest.lab.in_(sub_labs)))])
+                                                                              ServiceRequest.sub_lab.has(
+                                                                                  ServiceSubLab.admins.any(
+                                                                                      ServiceAdmin.admin_id==current_user.id))))])
     quotation_pending_approval_count = len(
         [r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=5),
-                                                or_(ServiceRequest.admin.has(id=current_user.id),
-                                                    ServiceRequest.lab.in_(sub_labs)))])
+                                                or_(ServiceRequest.admin.has(
+                                                    id=current_user.id),
+                                                    ServiceRequest.sub_lab.has(
+                                                        ServiceSubLab.admins.any(
+                                                            ServiceAdmin.admin_id == current_user.id))))])
     waiting_sample_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=9),
-                                                                       or_(ServiceRequest.admin.has(id=current_user.id),
-                                                                           ServiceRequest.lab.in_(sub_labs)))])
+                                                                       or_(ServiceRequest.admin.has(
+                                                                           id=current_user.id),
+                                                                           ServiceRequest.sub_lab.has(
+                                                                               ServiceSubLab.admins.any(
+                                                                                   ServiceAdmin.admin_id == current_user.id))))])
     testing_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=11),
-                                                                or_(ServiceRequest.admin.has(id=current_user.id),
-                                                                    ServiceRequest.lab.in_(sub_labs)))])
+                                                                or_(ServiceRequest.admin.has(
+                                                                    id=current_user.id),
+                                                                    ServiceRequest.sub_lab.has(
+                                                                        ServiceSubLab.admins.any(
+                                                                            ServiceAdmin.admin_id == current_user.id))))])
     return render_template('service_admin/request_index.html', menu=menu,
                            quotation_request_count=quotation_request_count,
                            quotation_pending_approval_count=quotation_pending_approval_count,
@@ -295,8 +305,11 @@ def get_requests():
     for a in admin:
         sub_labs.append(a.sub_lab.code)
     query = ServiceRequest.query.filter(ServiceRequest.status.has(ServiceStatus.status_id != 1),
-                                        or_(ServiceRequest.admin.has(id=current_user.id),
-                                            ServiceRequest.lab.in_(sub_labs)))
+                                        or_(ServiceRequest.admin.has(
+                                            id=current_user.id),
+                                            ServiceRequest.sub_lab.has(
+                                                ServiceSubLab.admins.any(
+                                                    ServiceAdmin.admin_id == current_user.id))))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -865,8 +878,7 @@ def generate_request_pdf(service_request):
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
-    sheet = wks.worksheet(sub_lab.sheet)
+    sheet = wks.worksheet(service_request.sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     data = service_request.data
     form = create_request_form(df)(**data)

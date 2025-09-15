@@ -102,8 +102,7 @@ def request_data(service_request):
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
-    sheet = wks.worksheet(sub_lab.sheet)
+    sheet = wks.worksheet(service_request.sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     data = service_request.data
     form = create_request_form(df)(**data)
@@ -973,10 +972,9 @@ def get_requests():
 def view_request(request_id=None):
     menu = request.args.get('menu')
     service_request = ServiceRequest.query.get(request_id)
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab)
     datas = request_data(service_request)
     return render_template('academic_services/view_request.html', service_request=service_request, menu=menu,
-                           datas=datas, sub_lab=sub_lab)
+                           datas=datas)
 
 
 def generate_request_pdf(service_request):
@@ -994,8 +992,7 @@ def generate_request_pdf(service_request):
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
-    sheet = wks.worksheet(sub_lab.sheet)
+    sheet = wks.worksheet(service_request.sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     data = service_request.data
     form = create_request_form(df)(**data)
