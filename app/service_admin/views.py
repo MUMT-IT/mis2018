@@ -2459,7 +2459,7 @@ def create_quotation_for_admin(quotation_id):
             db.session.commit()
             customer_name = quotation.customer_name.replace(' ', '_')
             title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
-            admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
+            admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.sub_lab.code)).all()
             quotation_link = url_for("service_admin.approval_quotation_for_supervisor", quotation_id=quotation_id,
                                      tab='pending_approval', _external=True, _scheme=scheme, menu=menu)
             if admins:
@@ -2568,7 +2568,7 @@ def approval_quotation_for_supervisor(quotation_id):
                     quotation_link_for_assistant = url_for("service_admin.view_quotation", quotation_id=quotation_id,
                                                            tab='awaiting_customer', menu=menu, _external=True,
                                                            _scheme=scheme)
-                    if sub_lab.assistant:
+                    if quotation.request.sub_lab.assistant:
                         title_for_assistant = f'''รายการอนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} อนุมัติโดย คุณ{quotation.approver.fullname}'''
                         message_for_assistant = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n'''
                         message_for_assistant += f'''แจ้งรายการอนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
@@ -2676,8 +2676,6 @@ def generate_quotation_pdf(quotation, sign=False):
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
         '&nbsp;&nbsp;&nbsp;&nbsp;')
-    lab = ServiceLab.query.filter_by(code=quotation.request.lab).first()
-    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -2702,9 +2700,9 @@ def generate_quotation_pdf(quotation, sign=False):
                    </font></para>
                    '''
 
-    lab_address = '''<para><font size=12>
-                        {address}
-                        </font></para>'''.format(address=lab.address if lab else sub_lab.address)
+    # lab_address = '''<para><font size=12>
+    #                     {address}
+    #                     </font></para>'''.format(address=lab.address if lab else sub_lab.address)
 
     quotation_no = '''<br/><br/><font size=10>
                 เลขที่/No. {quotation_no}<br/>
