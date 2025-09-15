@@ -52,9 +52,9 @@
                                 <span class="icon"><i class="fas fa-flask"></i></span> งานบริการ
                             </p>
                             <div style="margin-left: 1.75rem;">
-                                {% for s_lab in sub_lab %}
-                                    {{ s_lab.sub_lab }}
-                                {% endfor %}
+                                <div style="margin-left: 1.75rem;">
+                                    {{ service_request.sub_lab.sub_lab }}
+                                </div>
                             </div>
                         </div>
                         <hr>
