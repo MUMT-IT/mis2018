@@ -196,7 +196,7 @@
                                         {{ form.io_code(class='js-example-basic-single') }}
                                     </div>
                                 </div>
-                                <div class="field" id="product-code-field" style="display: none">
+                                <div class="field">
                                     <label class="label">
                                         ผลผลิต
                                         <span class="has-text-danger">*</span>
@@ -269,16 +269,13 @@
         $(document).ready(function () {
             function showField() {
                 var repairType = document.querySelector('input[name="repair_type"]:checked')?.value;
-                var priceField = document.querySelector('input[name="price"]');
                 var creatorField = document.getElementById("creator-field");
                 var receiptField = document.getElementById('receipt-field');
                 var supplierField = document.getElementById('supplier-field');
                 var borrowerField = document.getElementById('borrower-field');
                 var principleApprovalTypeField = document.getElementById('principle-approval-type-field');
                 var purposeField = document.getElementById('purpose-field');
-                var productCodeField = document.getElementById('product-code-field');
                 var submitButton = document.querySelector('input[type="submit"]');
-                const price = parseFloat(priceField.value) || 0;
                 if (repairType === "เร่งด่วน") {
                     creatorField.style.display = "block";
                     receiptField.style.display = "block";
@@ -286,7 +283,6 @@
                     borrowerField.style.display = "block";
                     principleApprovalTypeField.style.display = 'none';
                     purposeField.style.display = 'none';
-                    productCodeField.style.display = 'block';
                     submitButton.value = 'บันทึก';
                 } else {
                     creatorField.style.display = "none";
@@ -295,11 +291,6 @@
                     borrowerField.style.display = "none";
                     principleApprovalTypeField.style.display = 'block';
                     purposeField.style.display = 'block';
-                    if (price <= 30000) {
-                        productCodeField.style.display = 'none';
-                    } else {
-                        productCodeField.style.display = 'block';
-                    }
                     submitButton.value = 'บันทึกและดำเนินการต่อ';
                 }
             }

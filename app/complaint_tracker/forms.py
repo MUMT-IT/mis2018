@@ -105,8 +105,8 @@ class ComplaintRepairApprovalForm(ModelForm):
                                    allow_blank=True, blank_text='กรุณาเลือกรหัสศูนย์ต้นทุน')
     io_code = QuerySelectField(query_factory=lambda: IOCode.query.all(), get_label='id', allow_blank=True,
                                blank_text='กรุณาเลือกรหัสใบสั่งงานภายใน')
-    product_code = QuerySelectField(query_factory=lambda: ProductCode.query.all(), get_label='id', allow_blank=True,
-                                    blank_text='กรุณาเลือกผลผลิต')
+    product_code = QuerySelectField(query_factory=lambda: ProductCode.query.all(), get_label='product_code',
+                                    allow_blank=True, blank_text='กรุณาเลือกผลผลิต')
 
 
 class ComplaintCommitteeForm(ModelForm):
