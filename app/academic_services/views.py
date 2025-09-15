@@ -1502,9 +1502,8 @@ def get_quotations():
 def view_quotation(quotation_id):
     menu = request.args.get('menu')
     quotation = ServiceQuotation.query.get(quotation_id)
-    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).all()
     return render_template('academic_services/view_quotation.html', quotation_id=quotation_id, menu=menu,
-                           quotation=quotation, sub_lab=sub_lab)
+                           quotation=quotation)
 
 
 def generate_quotation_pdf(quotation, sign=False):
@@ -1519,8 +1518,6 @@ def generate_quotation_pdf(quotation, sign=False):
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
         '&nbsp;&nbsp;&nbsp;&nbsp;')
-    lab = ServiceLab.query.filter_by(code=quotation.request.lab).first()
-    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -1545,9 +1542,9 @@ def generate_quotation_pdf(quotation, sign=False):
                        </font></para>
                        '''
 
-    lab_address = '''<para><font size=12>
-                            {address}
-                            </font></para>'''.format(address=lab.address if lab else sub_lab.address)
+    # lab_address = '''<para><font size=12>
+    #                         {address}
+    #                         </font></para>'''.format(address=lab.address if lab else sub_lab.address)
 
     quotation_no = '''<br/><br/><font size=10>
                     เลขที่/No. {quotation_no}<br/>
