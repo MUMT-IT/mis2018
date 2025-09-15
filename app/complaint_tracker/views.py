@@ -977,9 +977,9 @@ def repair_approval(record_id, repair_approval_id=None):
         form.organization.data = f'{staff.personal_info.org.name} {staff.personal_info.org.parent}'
     else:
         form.organization.data = staff.personal_info.org.name
-    if record.procurements:
+    if record.procurements and not form.item.data:
         for procurement in record.procurements:
-            form.item.data = f'{procurement.procurement_no} {procurement.name}'
+            form.item.data = f'เลขครุภัณฑ์ {procurement.procurement_no} {procurement.name}'
     if form.validate_on_submit():
         if not repair_approval_id:
             rep_approval = ComplaintRepairApproval()
@@ -1137,14 +1137,17 @@ def generate_repair_approval_pdf(repair_approval):
     )
 
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
-
+    org = Org.query.filter_by(name=current_user.personal_info.org.name).first()
+    staff = StaffAccount.query.filter_by(email=org.head).first()
+    head = repair_approval.name if repair_approval.name else staff.fullname
     if current_user.personal_info.org.name == 'หน่วยข้อมูลและสารสนเทศ':
-        organization_text = "หน่วยข้อมูลและสารสนเทศ<br/>งานยุทธศาสตร\u00A0และการบริหารพัฒนาทรัพยากร\u00A0สำนักงานคณบดี<br/>โทร 02-4414371-7 ต่อ 2320"
+        organization_text = "หน่วยข้อมูลและสารสนเทศ<br/>งานยุทธศาสตร์\u00A0และการบริหารพัฒนาทรัพยากร\u00A0สำนักงานคณบดี<br/>โทร 02-4414371-7 ต่อ 2320"
         organization_info = Paragraph(organization_text, style=header_right_style)
         mhesi_no = '''<font name="SarabunBold">ที่</font>&nbsp;&nbsp;&nbsp;&nbsp;อว 78.041/'''
+
         person = Table([
             [Paragraph('ลงชื่อ', center_style), Paragraph('ผู้ขออนุมัติ', center_style)],
-            [Paragraph('(นายอดิศักดิ์ นันท์นฤมิตร)', center_style), ''],
+            [Paragraph('({head})'.format(head=head), center_style), ''],
             ['', ''],
             ['', ''],
             ['', ''],
@@ -1175,7 +1178,7 @@ def generate_repair_approval_pdf(repair_approval):
             ['', ''],
             ['', ''],
             ['', ''],
-            [Paragraph('(นายธนพัฒน์ นพโสภณ)', center_style), Paragraph('', center_style)],
+            [Paragraph('({head})'.format(head=head), center_style), Paragraph('', center_style)],
             [Paragraph('ตำแหน่งหัวหน้าหน่วยซ่อมบำรุง', center_style), Paragraph('', center_style)],
             ['', ''],
             ['', ''],
@@ -1228,17 +1231,11 @@ def generate_repair_approval_pdf(repair_approval):
             '<font name="SarabunBold">เรื่อง</font>&nbsp;&nbsp;&nbsp;&nbsp;รายงานขออนุมัติซื้อ {item} กรณีจำเป็นเร่งด่วน ไม่คาดหมายไว้ก่อน ซึ่งไม่อาจดำเนินการตามปกติได้ทัน'
             .format(item=repair_approval.item))
 
-        org = Org.query.filter_by(head=repair_approval.creator.email).first()
-        if org:
-            position = 'หัวหน้า' + org.name
-        else:
-            position = current_user.personal_info.position
-
         item_detail = '''ด้วย ข้าพเจ้า {name} ตำแหน่ง {position} สังกัด {org} ซึ่งเป็นผู้รับผิดชอบในการซื้อ {item} ไปก่อนแล้ว จึงขอรายงานเหตุ
                         ผลและความจำเป็น กรณีเร่งด่วน โดยมีรายละเอียด ดังนี้'''.format(
             name=repair_approval.name,
             item=repair_approval.item,
-            position=position,
+            position=repair_approval.position,
             org=repair_approval.organization)
 
         reason_title = '<para leftIndent=35><font name="SarabunBold">1. เหตุผลและความจำเป็นเร่งด่วนที่ต้องซื้อหรือจ้าง</font></para>'
@@ -1381,13 +1378,13 @@ def generate_repair_approval_pdf(repair_approval):
             '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">1. อนุมัติในหลักการซื้อหรือจ้างตามรายการข้างต้น</font><br/>'
             '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">2. อนุมัติตามข้อ 6</font> กรณีที่มีความจำเป็นต้องมีการใช้พัสดุที่ผลิตจากต่างประเทศหรือนำเข้าพัสดุจาก<br/>ต่างประเทศเท่านั้น<br/>'
             '</para>')
-    if repair_approval.repair_type == 'ไม่เร่งด่วน (จ้าง/ซ่อม)' and repair_approval.price <= 30000:
-        code_detail = ('รหัสศูนย์ต้นทุน {cost_center} รหัสใบสั่งงานภายใน {io_code}'
-                       .format(cost_center=repair_approval.cost_center, io_code=repair_approval.io_code.id))
-    else:
+    if repair_approval.product_code:
         code_detail = ('รหัสศูนย์ต้นทุน {cost_center} รหัสใบสั่งงานภายใน {io_code} ผลผลิต {product_code}'
                        .format(cost_center=repair_approval.cost_center, io_code=repair_approval.io_code.id,
                                product_code=repair_approval.product_code))
+    else:
+        code_detail = ('รหัสศูนย์ต้นทุน {cost_center} รหัสใบสั่งงานภายใน {io_code}'
+                       .format(cost_center=repair_approval.cost_center, io_code=repair_approval.io_code.id))
     logo_cell = [[logo]]
     logo_table = Table(logo_cell, colWidths=[60])
     logo_table.setStyle(TableStyle([
