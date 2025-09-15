@@ -1667,24 +1667,15 @@ def generate_quotation_pdf(quotation, sign=False):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
     ]))
 
-    district_title = 'เขต' if quotation.request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
-    subdistrict_title = 'แขวง' if quotation.request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล',
-
     document_address = '''<para><font size=12>ที่อยู่สำหรับจัดส่งเอกสาร<br/>
                     ถึง {name}<br/>
-                    ที่อยู่ {address} {subdistrict_title}{subdistrict} {district_title}{district} จังหวัด{province} {zipcode}<br/>
+                    ที่อยู่ {address}<br/>
                     เบอร์โทรศัพท์ : {phone_number}<br/>
                     อีเมล : {email}
                     </font></para>
-                    '''.format(name=quotation.request.document_address.name,
-                               address=quotation.request.document_address.address,
-                               subdistrict_title=subdistrict_title,
-                               subdistrict=quotation.request.document_address.subdistrict,
-                               district_title=district_title,
-                               district=quotation.request.document_address.district,
-                               province=quotation.request.document_address.province,
-                               zipcode=quotation.request.document_address.zipcode,
-                               phone_number=quotation.request.document_address.phone_number,
+                    '''.format(name=quotation.request.receive_name,
+                               address=quotation.request.receive_address,
+                               phone_number=quotation.request.receive_phone_number,
                                email=quotation.request.customer.contact_email
                                )
 
