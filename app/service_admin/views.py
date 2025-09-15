@@ -2284,14 +2284,11 @@ def quotation_index():
 @service_admin.route('/api/quotation/index')
 def get_quotations():
     tab = request.args.get('tab')
-    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
-    sub_labs = []
-    for a in admin:
-        sub_labs.append(a.sub_lab.code)
-
     query = ServiceQuotation.query.filter(
         or_(ServiceQuotation.creator_id == current_user.id,
-            ServiceQuotation.request.has(ServiceRequest.lab.in_(sub_labs))))
+            ServiceQuotation.request.has(ServiceRequest.sub_lab.has(
+                ServiceSubLab.admins.any(ServiceAdmin.admin_id==current_user.id)
+            ))))
     if tab == 'draft':
         query = query.filter(ServiceQuotation.sent_at == None, ServiceQuotation.approved_at == None,
                              ServiceQuotation.confirmed_at == None,
@@ -2339,20 +2336,19 @@ def generate_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     quotation = ServiceQuotation.query.filter_by(request_id=request_id).first()
     if not quotation:
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential(json_keyfile)
         wksp = gc.open_by_key(sheet_price_id)
-        sheet_price = wksp.worksheet(sub_lab.code)
+        sheet_price = wksp.worksheet(service_request.sub_lab.code)
         df_price = pandas.DataFrame(sheet_price.get_all_records())
         quote_column_names = {}
         quote_details = {}
         quote_prices = {}
         count_value = Counter()
         for _, row in df_price.iterrows():
-            if sub_lab and sub_lab.code == 'quantitative':
+            if service_request.sub_lab.code == 'quantitative':
                 quote_column_names[row['field_group']] = set(row['field_name'].split(', '))
             else:
                 if row['field_group'] not in quote_column_names:
@@ -2366,7 +2362,7 @@ def generate_quotation():
                 quote_prices[key] = row['other_price']
         sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
         wksr = gc.open_by_key(sheet_request_id)
-        sheet_request = wksr.worksheet(sub_lab.sheet)
+        sheet_request = wksr.worksheet(service_request.sub_lab.sheet)
         df_request = pandas.DataFrame(sheet_request.get_all_records())
         data = service_request.data
         request_form = create_request_form(df_request)(**data)
@@ -2385,10 +2381,10 @@ def generate_quotation():
                     count_value.update(values.split(', '))
                     quantities = (
                         ', '.join(str(count_value[v]) for v in values.split(', '))
-                        if ((sub_lab and sub_lab.lab.code not in ['bacteria', 'virology']))
+                        if ((service_request.sub_lab.code not in ['bacteria', 'virology']))
                         else 1
                     )
-                    if sub_lab and sub_lab.lab.code == 'endotoxin':
+                    if service_request.sub_lab.code == 'endotoxin':
                         for k in key:
                             if not k[1]:
                                 break
@@ -2399,8 +2395,8 @@ def generate_quotation():
                             prices = quote_prices[p_key]
                             quote_details[p_key] = {"value": values, "price": prices, "quantity": quantities}
         quotation_no = ServiceNumberID.get_number('QT', db,
-                                                  lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' \
-                                                      else service_request.lab)
+                                                  lab=service_request.sub_lab.lab.code if service_request.sub_lab.lab.code == 'protein' \
+                                                      else service_request.sub_lab.code)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
                                      name=service_request.quotation_name,
                                      address=service_request.quotation_issue_address,
