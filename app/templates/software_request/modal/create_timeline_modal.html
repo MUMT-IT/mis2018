@@ -24,20 +24,29 @@
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                     <div class="field">
-                        <label class="label">{{ form.task.label }}</label>
+                        <label class="label">
+                            {{ form.task.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
                         <div class="control">
                             {{ form.task(class='textarea') }}
                         </div>
                     </div>
                     <div class="field-body">
                         <div class="field" style="margin-top: 1em">
-                            <label class="label">{{ form.start.label }}</label>
+                            <label class="label">
+                                {{ form.start.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
                             <div class="control">
                                 {{ form.start(class='input') }}
                             </div>
                         </div>
                         <div class="field" style="margin-top: 1em">
-                            <label class="label">{{ form.estimate.label }}</label>
+                            <label class="label">
+                                {{ form.estimate.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
                             <div class="control">
                                 {{ form.estimate(class='input') }}
                             </div>
@@ -45,19 +54,28 @@
                     </div>
                     <div class="field-body">
                         <div class="field" style="margin-top: 1em">
-                            <label class="label">{{ form.phase.label }}</label>
+                            <label class="label">
+                                {{ form.phase.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
                             <div class="control">
                                 {{ form.phase(class='js-example-basic-single') }}
                             </div>
                         </div>
                         <div class="field" style="margin-top: 1em">
-                            <label class="label">{{ form.status.label }}</label>
+                            <label class="label">
+                                {{ form.status.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
                             <div class="control">
                                 {{ form.status(class='js-example-basic-single') }}
                             </div>
                         </div>
                         <div class="field" style="margin-top: 1em">
-                            <label class="label">{{ form.admin.label }}</label>
+                            <label class="label">
+                                {{ form.admin.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
                             <div class="control">
                                 {{ form.admin(class='js-example-basic-single') }}
                             </div>
