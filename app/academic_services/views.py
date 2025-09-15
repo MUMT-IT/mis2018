@@ -1405,7 +1405,7 @@ def request_quotation(request_id):
     db.session.add(service_request)
     db.session.commit()
     scheme = 'http' if current_app.debug else 'https'
-    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
+    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.sub_lab.code)).all()
     title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
     link = url_for("service_admin.generate_quotation", request_id=request_id, menu='quotation',
                    _external=True, _scheme=scheme)
@@ -1424,7 +1424,7 @@ def request_quotation(request_id):
         message += f'''{service_request.customer.customer_name}\n'''
         message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n\n'''
         message += f'''ระบบงานบริการวิชาการ'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor and not a.is_central_admin], title, message)
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor or not a.is_central_admin], title, message)
         msg = ('แจ้งขอใบเสนอราคา' \
                '\n\nเรียน เจ้าหน้าที่{}'
                '\n\nใบคำขอบริการเลขที่ {}' \
@@ -1444,7 +1444,7 @@ def request_quotation(request_id):
                )
         if not current_app.debug:
             for a in admins:
-                if not a.is_supervisor:
+                if not a.is_supervisor or not a.is_central_admin:
                     try:
                         line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                     except LineBotApiError:
