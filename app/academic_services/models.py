@@ -356,6 +356,8 @@ class ServiceRequest(db.Model):
     admin = db.relationship(StaffAccount, backref=db.backref('requests'))
     product = db.Column('product', db.String())
     lab = db.Column('lab', db.String())
+    sub_lab_id = db.Column('sub_lab_id', db.ForeignKey('service_sub_labs.id'))
+    sub_lab = db.relationship(ServiceSubLab, backref=db.backref("requests"))
     receive_name = db.Column('receive_name', db.String())
     receive_address = db.Column('receive_address', db.String())
     receive_phone_number = db.Column('receive_phone_number', db.String())
