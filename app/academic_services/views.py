@@ -1410,11 +1410,10 @@ def request_quotation(request_id):
     link = url_for("service_admin.generate_quotation", request_id=request_id, menu='quotation',
                    _external=True, _scheme=scheme)
     customer_name = service_request.customer.customer_name.replace(' ', '_')
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     contact_email = current_user.contact_email if current_user.contact_email else current_user.email
     if admins:
         title = f'''[{service_request.request_no}] ใบคำขอรับบริการ - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | แจ้งขอใบเสนอราคา'''
-        message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
+        message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.sub_lab}\n\n'''
         message += f'''ใบคำขอบริการเลขที่ : {service_request.request_no}\n'''
         message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
         message += f'''ในนาม : {service_request.quotation_address.name}\n'''
@@ -1425,7 +1424,7 @@ def request_quotation(request_id):
         message += f'''{service_request.customer.customer_name}\n'''
         message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n\n'''
         message += f'''ระบบงานบริการวิชาการ'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor and not a.is_central_admin], title, message)
         msg = ('แจ้งขอใบเสนอราคา' \
                '\n\nเรียน เจ้าหน้าที่{}'
                '\n\nใบคำขอบริการเลขที่ {}' \
@@ -1437,7 +1436,7 @@ def request_quotation(request_id):
                '\n\nผู้ประสานงาน' \
                '\n{}' \
                '\nเบอร์โทร {}' \
-               '\n\nระบบงานบริการวิชาการ'.format(sub_lab.sub_lab, service_request.request_no,
+               '\n\nระบบงานบริการวิชาการ'.format(service_request.sub_lab.sub_lab, service_request.request_no,
                                                  service_request.customer.customer_name,
                                                  service_request.quotation_address.name, link,
                                                  service_request.customer.customer_name,
