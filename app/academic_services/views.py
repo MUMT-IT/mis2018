@@ -723,20 +723,20 @@ def submit_request(request_id=None):
         req.modified_at = arrow.now('Asia/Bangkok').datetime
         req.product = products
     else:
-        req = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime, lab=code,
+        req = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
                              request_no=request_no.number, product=products, data=format_data(form.data))
         request_no.count += 1
     db.session.add(req)
     db.session.commit()
     return redirect(url_for('academic_services.create_report_language', request_id=req.id, menu='request',
-                            sub_lab=sub_lab.sub_lab))
+                            code=req.sub_lab.code))
 
 
 @academic_services.route('/customer/report_language/add/<int:request_id>', methods=['GET', 'POST'])
 @login_required
 def create_report_language(request_id):
     menu = request.args.get('menu')
-    sub_lab = request.args.get('sub_lab')
+    code = request.args.get('code')
     service_request = ServiceRequest.query.get(request_id)
     report_languages = ServiceReportLanguage.query.all()
     req_report_language_id = [rl.report_language_id for rl in service_request.report_languages]
@@ -753,11 +753,11 @@ def create_report_language(request_id):
             db.session.add(assoc)
         db.session.commit()
         return redirect(url_for('academic_services.create_customer_detail', request_id=request_id, menu=menu,
-                                sub_lab=sub_lab))
-    return render_template('academic_services/create_report_language.html', menu=menu, sub_lab=sub_lab,
+                                code=code))
+    return render_template('academic_services/create_report_language.html', menu=menu, code=code,
                            request_id=request_id, report_languages=report_languages,
                            req_report_language=req_report_language,
-                           req_report_language_id=req_report_language_id)
+                           req_report_language_id=req_report_language_id, service_request=service_request)
 
 
 @academic_services.route('/customer/detail/add/<int:request_id>', methods=['GET', 'POST'])
@@ -765,7 +765,7 @@ def create_report_language(request_id):
 def create_customer_detail(request_id):
     form = None
     menu = request.args.get('menu')
-    sub_lab = request.args.get('sub_lab')
+    code = request.args.get('code')
     service_request = ServiceRequest.query.get(request_id)
     selected_address_id = service_request.quotation_address_id if service_request.quotation_address_id else None
     customer = ServiceCustomerInfo.query.get(current_user.customer_info_id)
@@ -869,7 +869,7 @@ def create_customer_detail(request_id):
         db.session.commit()
         return redirect(url_for('academic_services.view_request', request_id=request_id, menu=menu))
     return render_template('academic_services/create_customer_detail.html', menu=menu,
-                           customer=customer, request_id=request_id, sub_lab=sub_lab, form=form,
+                           customer=customer, request_id=request_id, code=code, form=form, service_request=service_request,
                            selected_address_id=selected_address_id)
 
 

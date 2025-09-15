@@ -430,14 +430,14 @@ def submit_request(request_id=None, customer_id=None):
     db.session.add(service_request)
     db.session.commit()
     return redirect(url_for('service_admin.create_report_language', request_id=service_request.id,
-                            sub_lab=sub_lab.sub_lab))
+                            code=service_request.sub_lab.code))
 
 
 @service_admin.route('/request/report_language/add/<int:request_id>', methods=['GET', 'POST'])
 @login_required
 def create_report_language(request_id):
     menu = request.args.get('menu')
-    sub_lab = request.args.get('sub_lab')
+    code = request.args.get('code')
     service_request = ServiceRequest.query.get(request_id)
     report_languages = ServiceReportLanguage.query.all()
     req_report_language_id = [rl.report_language_id for rl in service_request.report_languages]
@@ -454,10 +454,10 @@ def create_report_language(request_id):
             db.session.add(assoc)
         db.session.commit()
         return redirect(url_for('service_admin.create_customer_detail', request_id=request_id, menu=menu,
-                                sub_lab=sub_lab))
-    return render_template('service_admin/create_report_language.html', menu=menu, sub_lab=sub_lab,
+                                code=code))
+    return render_template('service_admin/create_report_language.html', menu=menu, code=code,
                            request_id=request_id, report_languages=report_languages,
-                           req_report_language=req_report_language,
+                           req_report_language=req_report_language, service_request=service_request,
                            req_report_language_id=req_report_language_id)
 
 
@@ -466,7 +466,7 @@ def create_report_language(request_id):
 def create_customer_detail(request_id):
     form = None
     menu = request.args.get('menu')
-    sub_lab = request.args.get('sub_lab')
+    code = request.args.get('code')
     service_request = ServiceRequest.query.get(request_id)
     customer_id = service_request.customer.customer_info_id
     selected_address_id = service_request.quotation_address_id if service_request.quotation_address_id else None
@@ -571,7 +571,7 @@ def create_customer_detail(request_id):
         db.session.commit()
         return redirect(url_for('service_admin.view_request', request_id=request_id, menu=menu))
     return render_template('service_admin/create_customer_detail.html', form=form, customer=customer,
-                           request_id=request_id, sub_lab=sub_lab, customer_id=customer_id, menu=menu,
+                           request_id=request_id, code=code, customer_id=customer_id, menu=menu, service_request=service_request,
                            selected_address_id=selected_address_id)
 
 
