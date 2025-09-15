@@ -1104,7 +1104,7 @@ def generate_request_pdf(service_request):
 
     lab_address = '''<para><font size=12>
                         {address}
-                        </font></para>'''.format(address=sub_lab.address)
+                        </font></para>'''.format(address=service_request.sub_lab.address)
 
     lab_table = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
 
