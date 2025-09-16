@@ -1665,7 +1665,18 @@ def edit_note_data(record_id):
 def edit_customer_data(customer_id, service_id):
     form = CustomerForm()
     customer = ComHealthCustomer.query.get(customer_id)
-    form.emptype.choices = [(e.id, e.name) for e in ComHealthCustomerEmploymentType.query.all()]
+    emptypes = (
+        ComHealthCustomerEmploymentType.query
+            .order_by(
+            case(
+                (ComHealthCustomerEmploymentType.emptype_id == '00', 0),  # ให้ '00' ขึ้นก่อน
+                else_=1
+            ),
+            ComHealthCustomerEmploymentType.name.asc()  # ที่เหลือเรียงตามชื่อ
+        )
+            .all()
+    )
+    form.emptype.choices = [(e.id, e.name) for e in emptypes]
     if customer:
         if request.method == 'POST':
             if form.validate_on_submit():
