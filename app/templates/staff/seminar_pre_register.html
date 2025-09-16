@@ -12,11 +12,17 @@
             {% if is_secretary %}
             <div id="seminar-pre-register-modal-container"></div>
             <a hx-get="{{ url_for('staff.seminar_pre_register_manage') }}"
-               hx-target="#seminar-pre-register-modal-container" hx-swap="innerHTML" class="button is-rounded is-warning">
+               hx-target="#seminar-pre-register-modal-container" hx-swap="innerHTML" class="button is-rounded is-warning ">
                 <span class="icon">
                     <i class="fas fa-plus"></i>
                 </span>
                 <span>สร้างกิจกรรมใหม่(ลงทะเบียนล่วงหน้า)</span>
+            </a>
+            <a href="{{ url_for('staff.create_seminar') }}" class="button is-rounded is-warning">
+                <span class="icon">
+                    <i class="fas fa-walking"></i>
+                </span>
+                <span>สร้างลงทะเบียนหน้างาน(กรณีไม่มีลงทะเบียนล่วงหน้า)</span>
             </a>
             {% endif %}
             <div class="column has-text-right">
