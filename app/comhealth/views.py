@@ -15,7 +15,7 @@ from pandas import read_excel, isna
 from bahttext import bahttext
 from decimal import Decimal
 
-from sqlalchemy import or_
+from sqlalchemy import or_, case
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.sql import and_
 from flask import (render_template, flash, redirect,
@@ -484,7 +484,19 @@ def edit_record(record_id):
     if not record.service.profiles and not record.service.groups:
         return redirect(url_for('comhealth.edit_service', service_id=record.service.id))
 
-    emptypes = ComHealthCustomerEmploymentType.query.all()
+    #emptypes = ComHealthCustomerEmploymentType.query.order_by(ComHealthCustomerEmploymentType.name.asc()).all()
+
+    emptypes = (
+        ComHealthCustomerEmploymentType.query
+            .order_by(
+            case(
+                (ComHealthCustomerEmploymentType.emptype_id == '00', 0),  # ถ้าเป็น 00 ให้เรียงก่อน
+                else_=1
+            ),
+            ComHealthCustomerEmploymentType.name.asc()  # ที่เหลือเรียงตามชื่อ
+        )
+            .all()
+    )
 
     if request.method == 'GET':
         if not record.checkin_datetime:
