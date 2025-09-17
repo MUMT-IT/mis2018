@@ -12,11 +12,17 @@
             {% if is_secretary %}
             <div id="seminar-pre-register-modal-container"></div>
             <a hx-get="{{ url_for('staff.seminar_pre_register_manage') }}"
-               hx-target="#seminar-pre-register-modal-container" hx-swap="innerHTML" class="button is-rounded is-warning">
+               hx-target="#seminar-pre-register-modal-container" hx-swap="innerHTML" class="button is-rounded is-warning ">
                 <span class="icon">
                     <i class="fas fa-plus"></i>
                 </span>
                 <span>สร้างกิจกรรมใหม่(ลงทะเบียนล่วงหน้า)</span>
+            </a>
+            <a href="{{ url_for('staff.create_seminar') }}" class="button is-rounded is-warning">
+                <span class="icon">
+                    <i class="fas fa-walking"></i>
+                </span>
+                <span>สร้างลงทะเบียนหน้างาน(กรณีไม่มีลงทะเบียนล่วงหน้า)</span>
             </a>
             {% endif %}
             <div class="column has-text-right">
@@ -65,6 +71,41 @@
                 </table>
             </div>
         </div>
+        {% if is_secretary %}
+            <h1 class="title">ประวัติการสร้าง</h1>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-striped" id="seminarTable">
+                        <thead>
+                            <th>วันที่จัด</th>
+                            <th>ถึงวันที่</th>
+                            <th>ชื่อกิจกรรม</th>
+                            <th>ปิดลงทะเบียน</th>
+                        </thead>
+                        <tbody>
+                        {% for seminar in all_created_seminars %}
+                        <tr>
+                            <td style="width: 10%">
+                                {{ seminar.start_datetime|localdatetime }}
+                            </td>
+                            <td style="width: 10%">
+                                 {{ seminar.end_datetime|localdatetime }}
+                            </td>
+                            <td style="width: 70%">
+                                <a href="{{ url_for('staff.seminar_pre_register_info', seminar_id=seminar.id) }}">
+                                    <span>{{ seminar.topic }}</span>
+                                </a>
+                            </td>
+                            <td>
+                                {{ seminar.closed_at|localdatetime }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endif %}
         <div class="columns">
             <div class="column">
                 <a href="{{ url_for('index') }}" class="button is-rounded is-info is-light">
@@ -83,6 +124,7 @@
 <script>
     $(document).ready(function(){
         $('#preseminarTable').DataTable();
+        $('#seminarTable').DataTable();
     });
 </script>
 

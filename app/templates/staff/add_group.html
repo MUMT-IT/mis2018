@@ -19,13 +19,19 @@
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="field">
-                            <label class="label">{{ form.activity_name.label }}</label>
+                            <label class="label">
+                                {{ form.activity_name.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
                             <div class="control">
                                 {{ form.activity_name(class='input') }}
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.appointment_date.label }}</label>
+                            <label class="label">
+                                {{ form.appointment_date.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
                             <div class="control">
                                 {{ form.appointment_date(class="input") }}
                             </div>
@@ -39,7 +45,9 @@
                         <div class="field">
                             <label class="label">{{ 'ตั้งค่ากลุ่ม' }}</label>
                             <div class="field">
-                                <label class="checkbox"> {{ form.public() }} {{ 'กลุ่มสาธารณะ' }}</label>
+                                <label class="checkbox">
+                                <input type="checkbox" name="public" value="True" checked>
+                                {{ 'กลุ่มสาธารณะ' }}</label>
                             </div>
                             <div class="field">
                                 <label class="checkbox"> {{ form.official() }} {{ 'กลุ่มทางการ' }}</label>
@@ -53,7 +61,10 @@
                         </div>
                         <div class="card">
                             <div class="card-header">
-                                <h1 class="card-header-title">คณะกรรมการ</h1>
+                                <h1 class="card-header-title">
+                                    คณะกรรมการ
+                                    <span class="has-text-danger">*</span>
+                                </h1>
                             </div>
                             <div class="card-content">
                                 <div id="positions">

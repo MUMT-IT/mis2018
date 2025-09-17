@@ -728,11 +728,11 @@ def consensus_scoresheets_for_hr():
                     total = round(sum_score, 2)
                     if total >= 90:
                         level = 'ดีเด่น'
-                    elif 80 <= total <= 89.99:
+                    elif total >= 80:
                         level = 'ดีมาก'
-                    elif 70 <= total <= 79.99:
+                    elif total >= 70:
                         level = 'ดี'
-                    elif 60 <= total <= 69.99:
+                    elif total >= 60:
                         level = 'พอใช้'
                     else:
                         level = 'ควรปรับปรุง'
@@ -751,8 +751,8 @@ def consensus_scoresheets_for_hr():
         df.to_excel('pa_score.xlsx', index=False, columns=columns)
         return send_from_directory(os.getcwd(), 'pa_score.xlsx')
     else:
-        all_rounds = PARound.query.all()
-        rounds = PARound.query.all()
+        all_rounds = PARound.query.order_by(PARound.id.desc()).all()
+        rounds = PARound.query.order_by(PARound.id.desc()).all()
         employment_id = request.args.get('empid', type=int)
         round_id = request.args.get('roundid', type=int)
         employments = StaffEmployment.query.all()
@@ -1510,7 +1510,7 @@ def send_evaluation_comment(pa_id):
 @pa.route('/head/all-pa/score')
 @login_required
 def all_pa_score():
-    rounds = PARound.query.all()
+    rounds = PARound.query.order_by(PARound.id.desc()).all()
     round_id = request.args.get('roundid', type=int)
     if round_id is None:
         all_pa = PAAgreement.query.filter_by(head_committee_staff_account=current_user).all()
@@ -1547,16 +1547,23 @@ def all_pa_score():
                 record["round"] = pa.round
                 record["name"] = pa.staff.fullname
 
+                unapproved = []
+                for score_sheet in pa.pa_score_sheet:
+                    for a in score_sheet.approved_score_sheet:
+                        if not a.approved_at:
+                            unapproved.append(a.committee.staff.fullname + ' ยังไม่อนุมัติคะแนนสรุป')
+                record["unapproved_by"] = unapproved
+                record["evaluated_at"] = pa.evaluated_at
                 if total >= 90:
                     level = 'ดีเด่น'
                     excellent_score += 1
-                elif 80 <= total <= 89.99:
+                elif total >= 80:
                     level = 'ดีมาก'
                     verygood_score += 1
-                elif 70 <= total <= 79.99:
+                elif total >= 70:
                     level = 'ดี'
                     good_score += 1
-                elif 60 <= total <= 69.99:
+                elif total >= 60:
                     level = 'พอใช้'
                     fair_score += 1
                 else:
@@ -1681,13 +1688,23 @@ def pa_all_seminar(pa_id=None, idp_id=None):
         pa = PAAgreement.query.filter_by(id=pa_id).first()
         seminars = StaffSeminarAttend.query.filter_by(staff=pa.staff).filter(
                                             and_(StaffSeminarAttend.start_datetime >= pa.round.start,
-                                                 StaffSeminarAttend.end_datetime <= pa.round.end)).all()
+                                                 StaffSeminarAttend.end_datetime <= pa.round.end))
     else:
         idp = IDP.query.filter_by(id=idp_id).first()
         seminars = StaffSeminarAttend.query.filter_by(staff=idp.staff).filter(
             and_(StaffSeminarAttend.start_datetime >= idp.round.start,
-                 StaffSeminarAttend.end_datetime <= idp.round.end)).all()
-    return render_template('PA/all_seminar.html', seminars=seminars)
+                 StaffSeminarAttend.end_datetime <= idp.round.end))
+
+    total_seminars = seminars.count()
+    speaker_count = seminars.filter_by(role='วิทยากร').count()
+    consultant_count = seminars.filter_by(role='ที่ปรึกษา').count()
+    committee_count = seminars.filter_by(role='กรรมการ').count()
+    teacher_count = seminars.filter_by(role='อาจารย์พิเศษ').count()
+    participant_count = seminars.filter_by(role='ผู้เข้าร่วม').count()
+    return render_template('PA/all_seminar.html', seminars=seminars, total_seminars=total_seminars,
+                           speaker_count=speaker_count, consultant_count=consultant_count,
+                           committee_count=committee_count, teacher_count=teacher_count,
+                           participant_count=participant_count)
 
 
 @pa.route('/eva/all_performance/<int:scoresheet_id>')
