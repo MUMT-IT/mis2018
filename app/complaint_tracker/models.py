@@ -323,8 +323,6 @@ class ComplaintCoordinator(db.Model):
 class ComplaintRepairApproval(db.Model):
     __tablename__ = 'complaint_repair_approvals'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    mhesi_no = db.Column('mhesi_no', db.String(), info={'label': 'เลขอว.'})
-    mhesi_no_date = db.Column('mhesi_no_date', db.Date(), info={'label': 'วันที่ออกเลขอว.'})
     procurement_no = db.Column('procurement_no', db.String(), info={'label': 'เลขครุภัณฑ์'})
     repair_type = db.Column('repair_type', db.String(), info={'label': 'ประเภทอนุมัติหลักการซ่อม',
                                                                   'choices': [('เร่งด่วน', 'เร่งด่วน'),
@@ -337,9 +335,6 @@ class ComplaintRepairApproval(db.Model):
                                                                                                   ('จ้างซ่อม', 'จ้างซ่อม')
                                                                                                   ]
                                                                                       })
-    requester_id = db.Column('requester_id', db.ForeignKey('staff_account.id'))
-    requester = db.relationship(StaffAccount, backref=db.backref('repair_requests', cascade='all, delete-orphan'),
-                                foreign_keys=[requester_id])
     name = db.Column('name', db.String(), info={'label': 'ชื่อผู้ดำเนินการ'})
     position = db.Column('position', db.String(), info={'label': 'ตำแหน่ง'})
     organization = db.Column('organization', db.String(), info={'label': 'ภาควิชา/ศูนย์/หน่วยงาน'})
@@ -365,7 +360,7 @@ class ComplaintRepairApproval(db.Model):
     product_code_id = db.Column('product_code_id', db.ForeignKey('product_codes.id'))
     product_code = db.relationship(ProductCode, backref=db.backref('repair_approvals'))
     remark = db.Column('remark', db.Text())
-    borrower = db.Column('borrower', db.String(), info={'label': 'รายละเอียดเงินยืมทดรองจ่าย'})
+    loan_no = db.Column('loan_no', db.String(), info={'label': 'เลขที่ใบยืม'})
     created_at = db.Column('created_at', db.DateTime(timezone=True), info={'label': 'วันที่'})
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))

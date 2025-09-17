@@ -307,6 +307,10 @@ class ProductCode(db.Model):
     def __repr__(self):
         return '{} {} {}'.format(self.id, self.name, self.branch)
 
+    @property
+    def product_code(self):
+        return '{} {}'.format(self.id, self.name)
+
 
 class OrgSchema(ma.SQLAlchemyAutoSchema):
     class Meta:

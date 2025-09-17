@@ -95,9 +95,7 @@
                                 <div class="field">
                                     <label class="label">ห้อง</label>
                                     <div class="control">
-                                        <input class="input" disabled value="
-
-                                                {% if record.room %}{{ record.room }}{% else %}{% for room in record.rooms %}{{ room }}{% endfor %}{% endif %}">
+                                        <input class="input" disabled value="{% if record.room %}{{ record.room }}{% else %}{% for room in record.rooms %}{{ room }}{% endfor %}{% endif %}">
                                     </div>
                                 </div>
                             {% elif record.procurement_location %}

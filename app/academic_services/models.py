@@ -236,7 +236,6 @@ class ServiceCustomerAddress(db.Model):
     subdistrict = db.relationship(Subdistrict, backref=db.backref('service_customer_addresses'))
     zipcode = db.Column('zipcode', db.String())
     phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
-    is_used = db.Column('is_used', db.Boolean())
     remark = db.Column('remark', db.String(), info={'label': 'หมายเหตุ'})
 
     def __str__(self):
@@ -357,22 +356,23 @@ class ServiceRequest(db.Model):
     admin = db.relationship(StaffAccount, backref=db.backref('requests'))
     product = db.Column('product', db.String())
     lab = db.Column('lab', db.String())
+    receive_name = db.Column('receive_name', db.String())
+    receive_address = db.Column('receive_address', db.String())
+    receive_phone_number = db.Column('receive_phone_number', db.String())
+    quotation_name = db.Column('quotation_name', db.String())
+    quotation_issue_address = db.Column('quotation_issue_address', db.String())
+    taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
+    quotation_phone_number = db.Column('quotation_phone_number', db.String())
     document_address_id = db.Column('document_address_id', db.ForeignKey('service_customer_addresses.id'))
     document_address = db.relationship(ServiceCustomerAddress, backref=db.backref("document_address_for_requests"),
                                        foreign_keys=[document_address_id])
     quotation_address_id = db.Column('quotation_address_id', db.ForeignKey('service_customer_addresses.id'))
     quotation_address = db.relationship(ServiceCustomerAddress, backref=db.backref("quotation_address_for_requests"),
                                         foreign_keys=[quotation_address_id])
-    agree = db.Column('agree', db.Boolean())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     status_id = db.Column('status_id', db.ForeignKey('service_statuses.id'))
     status = db.relationship(ServiceStatus, backref=db.backref('requests'))
-    thai_language = db.Column('thai_language', db.Boolean(), info={'label': 'ใบรายงานผลไทย'})
-    eng_language = db.Column('eng_language', db.Boolean(), info={'label': 'ใบรายงานผลอังกฤษ'})
-    thai_copy_language = db.Column('thai_copy_language', db.Boolean(), info={'label': 'สำเนาใบรายงานผลไทย'})
-    eng_copy_language = db.Column('eng_copy_language', db.Boolean(), info={'label': 'สำเนาใบรายงานผลอังกฤษ'})
-    is_paid = db.Column('is_paid', db.Boolean())
     data = db.Column('data', JSONB)
 
     def __str__(self):
@@ -667,7 +667,6 @@ class ServiceQuotation(db.Model):
     name = db.Column('name', db.String())
     address = db.Column('address', db.Text())
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
-    status = db.Column('status', db.String())
     remark = db.Column('remark', db.Text())
     cancel_reason = db.Column('cancel_reason', db.Text())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
@@ -887,10 +886,6 @@ class ServiceSample(db.Model):
             'note': self.note if self.note else None,
             'received_at': self.received_at,
             'received_by': self.received_by.fullname if self.received_by else None,
-            'expected_at': self.expected_at,
-            'started_at': self.started_at,
-            'finished_at': self.finished_at,
-            'finished_by': self.finished_by.fullname if self.finished_by else None,
             'request_no': self.request.request_no if self.request else None,
             'sample_condition_status': self.sample_condition_status,
             'sample_condition_status_color': self.sample_condition_status_color,
@@ -983,7 +978,6 @@ class ServiceInvoice(db.Model):
     name = db.Column('name', db.String())
     address = db.Column('address', db.Text())
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
-    status = db.Column('status', db.String())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('service_invoices'), foreign_keys=[creator_id])

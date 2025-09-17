@@ -1,8 +1,10 @@
 from sqlalchemy import or_
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
-from wtforms import FieldList, FormField
+from wtforms import TextAreaField, DateField, SelectField
 from flask_login import current_user
+from wtforms.validators import DataRequired, InputRequired
+
 from app.software_request.models import *
 from wtforms_alchemy import model_form_factory, QuerySelectField
 BaseModelForm = model_form_factory(FlaskForm)
@@ -39,5 +41,11 @@ class SoftwareRequestTimelineForm(ModelForm):
     class Meta:
         model = SoftwareRequestTimeline
 
+    task = TextAreaField('Task', validators=[DataRequired()])
+    start = DateField('วันที่เริ่มต้น', validators=[DataRequired()])
+    estimate = DateField('วันที่คาดว่าจะแล้วเสร็จ', validators=[DataRequired()])
+    phase = SelectField('Phase', choices=[('1', '1'), ('2', '2'), ('3', '3')],validators=[DataRequired()])
+    status = SelectField('status', choices=[('รอดำเนินการ', 'รอดำเนินการ'), ('เสร็จสิ้น', 'เสร็จสิ้น'), ('ยกเลิกการพัฒนา', 'ยกเลิกการพัฒนา')],
+                         validators=[DataRequired()])
     admin = QuerySelectField('ผู้รับผิดชอบ', query_factory=lambda: StaffAccount.get_it_unit(), allow_blank=True,
-                             blank_text='กรุณาเลือกผู้รับผิดชอบ', get_label='fullname')
+                             blank_text='กรุณาเลือกผู้รับผิดชอบ', get_label='fullname', validators=[InputRequired(message='กรุณาเลือกผู้รับผิดชอบ')])

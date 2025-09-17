@@ -780,19 +780,54 @@ def create_customer_detail(request_id):
             db.session.add(cus_contact)
         if request.form.getlist('quotation_address'):
             for quotation_address_id in request.form.getlist('quotation_address'):
+                address = ServiceCustomerAddress.query.get(int(quotation_address_id))
+                district_title = 'เขต' if address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
+                subdistrict_title = 'แขวง' if address.province.name == 'กรุงเทพมหานคร' else 'ตำบล'
                 service_request.quotation_address_id = int(quotation_address_id)
+                service_request.quotation_name = address.name
+                service_request.quotation_issue_address = (
+                                         f"{address.address} "
+                                         f"{subdistrict_title}{address.subdistrict} "
+                                         f"{district_title}{address.district} "
+                                         f"จังหวัด{address.province} "
+                                         f"{address.zipcode}"
+                                     )
+                service_request.taxpayer_identification_no = address.taxpayer_identification_no
+                service_request.quotation_phone_number = address.phone_number
                 db.session.add(service_request)
                 db.session.commit()
         if request.form.getlist('document_address'):
             for document_address_id in request.form.getlist('document_address'):
+                address = ServiceCustomerAddress.query.get(int(quotation_address_id))
+                district_title = 'เขต' if address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
+                subdistrict_title = 'แขวง' if address.province.name == 'กรุงเทพมหานคร' else 'ตำบล'
                 service_request.document_address_id = int(document_address_id)
+                service_request.receive_name = address.name
+                service_request.receive_address = (
+                                         f"{address.address} "
+                                         f"{subdistrict_title}{address.subdistrict} "
+                                         f"{district_title}{address.district} "
+                                         f"จังหวัด{address.province} "
+                                         f"{address.zipcode}"
+                                     )
+                service_request.receive_phone_number = address.phone_number
                 db.session.add(service_request)
                 db.session.commit()
         else:
             for quotation_address_id in request.form.getlist('quotation_address'):
-                service_request.document_address_id = int(quotation_address_id)
-                db.session.add(service_request)
                 quotation_address = ServiceCustomerAddress.query.get(int(quotation_address_id))
+                district_title = 'เขต' if quotation_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
+                subdistrict_title = 'แขวง' if quotation_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล'
+                service_request.document_address_id = int(quotation_address_id)
+                service_request.receive_name = quotation_address.name
+                service_request.receive_address = (
+                                         f"{quotation_address.address} "
+                                         f"{subdistrict_title}{quotation_address.subdistrict} "
+                                         f"{district_title}{quotation_address.district} "
+                                         f"จังหวัด{quotation_address.province} "
+                                         f"{quotation_address.zipcode}")
+                service_request.receive_phone_number = quotation_address.phone_number
+                db.session.add(service_request)
                 remark = quotation_address.remark if quotation_address.remark else None
                 if current_user.customer_info.addresses:
                     for address in current_user.customer_info.addresses:
@@ -800,7 +835,6 @@ def create_customer_detail(request_id):
                             if address.address_type == 'document':
                                 address.name = quotation_address.name
                                 address.address_type = 'document'
-                                address.taxpayer_identification_no = quotation_address.taxpayer_identification_no
                                 address.province_id = quotation_address.province_id
                                 address.district_id = quotation_address.district_id
                                 address.subdistrict_id = quotation_address.subdistrict_id
@@ -810,7 +844,6 @@ def create_customer_detail(request_id):
                                 address.customer_id = current_user.customer_info_id
                         else:
                             address = ServiceCustomerAddress(name=quotation_address.name, address_type='document',
-                                                             taxpayer_identification_no=quotation_address.taxpayer_identification_no,
                                                              address=quotation_address.address,
                                                              zipcode=quotation_address.zipcode,
                                                              phone_number=quotation_address.phone_number,
@@ -821,7 +854,6 @@ def create_customer_detail(request_id):
                                                              subdistrict_id=quotation_address.subdistrict_id)
                 else:
                     address = ServiceCustomerAddress(name=quotation_address.name, address_type='document',
-                                                     taxpayer_identification_no=quotation_address.taxpayer_identification_no,
                                                      address=quotation_address.address,
                                                      zipcode=quotation_address.zipcode,
                                                      phone_number=quotation_address.phone_number, reamerk=remark,
@@ -1147,47 +1179,31 @@ def generate_request_pdf(service_request):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
-    district_title = 'เขต' if service_request.document_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
-    subdistrict_title = 'แขวง' if service_request.document_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล',
     document_address = '''<para>ข้อมูลที่อยู่จัดส่งเอกสาร<br/>
-                                ถึง : {name}<br/>
-                                ที่อยู่ : {address} {subdistrict_title}{subdistrict} {district_title}{district} จังหวัด{province} {zipcode}<br/>
-                                เบอร์โทรศัพท์ : {phone_number}<br/>
-                                อีเมล : {email}
-                            </para>
-                            '''.format(name=service_request.document_address.name,
-                                       address=service_request.document_address.address,
-                                       subdistrict_title=subdistrict_title,
-                                       subdistrict=service_request.document_address.subdistrict,
-                                       district_title=district_title,
-                                       district=service_request.document_address.district,
-                                       province=service_request.document_address.province,
-                                       zipcode=service_request.document_address.zipcode,
-                                       phone_number=service_request.document_address.phone_number,
-                                       email=service_request.customer.contact_email)
+                                       ถึง : {name}<br/>
+                                       ที่อยู่ : {address}<br/>
+                                       เบอร์โทรศัพท์ : {phone_number}<br/>
+                                       อีเมล : {email}
+                                   </para>
+                                   '''.format(name=service_request.receive_name,
+                                              address=service_request.receive_address,
+                                              phone_number=service_request.receive_phone_number,
+                                              email=service_request.customer.contact_email)
 
     document_address_table = Table([[Paragraph(document_address, style=detail_style)]], colWidths=[265])
 
-    district_title = 'เขต' if service_request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
-    subdistrict_title = 'แขวง' if service_request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล',
     quotation_address = '''<para>ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี<br/>
-                                    ถึง : {name}<br/>
-                                    ที่อยู่ : {address} {subdistrict_title}{subdistrict} {district_title}{district} จังหวัด{province} {zipcode}<br/>
-                                    เลขประจำตัวผู้เสียภาษีอากร : {taxpayer_identification_no}<br/>
-                                    เบอร์โทรศัพท์ : {phone_number}<br/>
-                                    อีเมล : {email}
-                                </para>
-                                '''.format(name=service_request.quotation_address.name,
-                                           address=service_request.quotation_address.address,
-                                           subdistrict_title=subdistrict_title,
-                                           subdistrict=service_request.quotation_address.subdistrict,
-                                           district_title=district_title,
-                                           district=service_request.quotation_address.district,
-                                           province=service_request.quotation_address.province,
-                                           zipcode=service_request.quotation_address.zipcode,
-                                           taxpayer_identification_no=service_request.quotation_address.taxpayer_identification_no,
-                                           phone_number=service_request.quotation_address.phone_number,
-                                           email=service_request.customer.contact_email)
+                                           ออกในนาม : {name}<br/>
+                                           ที่อยู่ : {address}<br/>
+                                           เลขประจำตัวผู้เสียภาษีอากร : {taxpayer_identification_no}<br/>
+                                           เบอร์โทรศัพท์ : {phone_number}<br/>
+                                           อีเมล : {email}
+                                       </para>
+                                       '''.format(name=service_request.quotation_name,
+                                                  address=service_request.quotation_issue_address,
+                                                  taxpayer_identification_no=service_request.taxpayer_identification_no,
+                                                  phone_number=service_request.quotation_phone_number,
+                                                  email=service_request.customer.contact_email)
 
     quotation_address_table = Table([[Paragraph(quotation_address, style=detail_style)]], colWidths=[265])
 
@@ -1651,24 +1667,15 @@ def generate_quotation_pdf(quotation, sign=False):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
     ]))
 
-    district_title = 'เขต' if quotation.request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
-    subdistrict_title = 'แขวง' if quotation.request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล',
-
     document_address = '''<para><font size=12>ที่อยู่สำหรับจัดส่งเอกสาร<br/>
                     ถึง {name}<br/>
-                    ที่อยู่ {address} {subdistrict_title}{subdistrict} {district_title}{district} จังหวัด{province} {zipcode}<br/>
+                    ที่อยู่ {address}<br/>
                     เบอร์โทรศัพท์ : {phone_number}<br/>
                     อีเมล : {email}
                     </font></para>
-                    '''.format(name=quotation.request.document_address.name,
-                               address=quotation.request.document_address.address,
-                               subdistrict_title=subdistrict_title,
-                               subdistrict=quotation.request.document_address.subdistrict,
-                               district_title=district_title,
-                               district=quotation.request.document_address.district,
-                               province=quotation.request.document_address.province,
-                               zipcode=quotation.request.document_address.zipcode,
-                               phone_number=quotation.request.document_address.phone_number,
+                    '''.format(name=quotation.request.receive_name,
+                               address=quotation.request.receive_address,
+                               phone_number=quotation.request.receive_phone_number,
                                email=quotation.request.customer.contact_email
                                )
 
@@ -2597,7 +2604,7 @@ def confirm_result(result_id):
         message += f'''เบอร์โทร {result.request.customer.contact_phone_number}\n\n'''
         message += f'''ระบบงานบริการวิชาการ'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
-        msg = ('แจ้งยืนยันไขใบรายงานผลการทดสอบ' \
+        msg = ('แจ้งยืนยันใบรายงานผลการทดสอบ' \
                '\n\nเรียน เจ้าหน้าที่{}'
                '\n\nใบรายงานผลของใบคำขอรับบริการเลขที่ {}' \
                '\nลูกค้า : {}' \
