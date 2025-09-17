@@ -15,7 +15,7 @@ from pandas import read_excel, isna
 from bahttext import bahttext
 from decimal import Decimal
 
-from sqlalchemy import or_
+from sqlalchemy import or_, case
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.sql import and_
 from flask import (render_template, flash, redirect,
@@ -484,7 +484,19 @@ def edit_record(record_id):
     if not record.service.profiles and not record.service.groups:
         return redirect(url_for('comhealth.edit_service', service_id=record.service.id))
 
-    emptypes = ComHealthCustomerEmploymentType.query.all()
+    #emptypes = ComHealthCustomerEmploymentType.query.order_by(ComHealthCustomerEmploymentType.name.asc()).all()
+
+    emptypes = (
+        ComHealthCustomerEmploymentType.query
+            .order_by(
+            case(
+                (ComHealthCustomerEmploymentType.emptype_id == '00', 0),  # ถ้าเป็น 00 ให้เรียงก่อน
+                else_=1
+            ),
+            ComHealthCustomerEmploymentType.name.asc()  # ที่เหลือเรียงตามชื่อ
+        )
+            .all()
+    )
 
     if request.method == 'GET':
         if not record.checkin_datetime:
@@ -1653,7 +1665,18 @@ def edit_note_data(record_id):
 def edit_customer_data(customer_id, service_id):
     form = CustomerForm()
     customer = ComHealthCustomer.query.get(customer_id)
-    form.emptype.choices = [(e.id, e.name) for e in ComHealthCustomerEmploymentType.query.all()]
+    emptypes = (
+        ComHealthCustomerEmploymentType.query
+            .order_by(
+            case(
+                (ComHealthCustomerEmploymentType.emptype_id == '00', 0),  # ให้ '00' ขึ้นก่อน
+                else_=1
+            ),
+            ComHealthCustomerEmploymentType.name.asc()  # ที่เหลือเรียงตามชื่อ
+        )
+            .all()
+    )
+    form.emptype.choices = [(e.id, e.name) for e in emptypes]
     if customer:
         if request.method == 'POST':
             if form.validate_on_submit():
