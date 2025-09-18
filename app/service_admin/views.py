@@ -1291,8 +1291,10 @@ def get_results():
     for a in admin:
         sub_labs.append(a.sub_lab.code)
     query = ServiceResult.query.filter(or_(ServiceResult.creator_id == current_user.id,
-                                           ServiceResult.request.has(ServiceRequest.lab.in_(sub_labs)
-                                                                     )
+                                           ServiceResult.request.has(ServiceRequest.sub_lab.has(
+                                                ServiceSubLab.admins.any(ServiceAdmin.admin_id==current_user.id)
+                                           )
+                                           )
                                            )
                                        )
     records_total = query.count()
