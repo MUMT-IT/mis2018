@@ -752,12 +752,8 @@ def test_item_index():
 
 @service_admin.route('/api/test-item/index')
 def get_test_items():
-    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
-    sub_labs = []
-    for a in admin:
-        sub_labs.append(a.sub_lab.code)
     query = ServiceTestItem.query.filter(ServiceTestItem.request.has(or_(ServiceRequest.admin.has(id=current_user.id),
-                                                                         ServiceRequest.lab.in_(sub_labs)
+                                                                         ServiceSubLab.admins.any(ServiceAdmin.admin_id==current_user.id)
                                                                          )
                                                                      )
                                          )
