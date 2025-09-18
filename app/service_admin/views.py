@@ -667,11 +667,9 @@ def get_samples():
     sub_labs = []
     for a in admin:
         sub_labs.append(a.sub_lab.code)
-    query = ServiceSample.query.filter(ServiceSample.request.has(or_(ServiceRequest.admin.has(id=current_user.id),
-                                                                     ServiceRequest.lab.in_(sub_labs)
-                                                                     )
-                                                                 )
-                                       )
+    query = ServiceSample.query.filter(ServiceSample.request.has(ServiceRequest.sub_lab.has(
+                ServiceSubLab.admins.any(ServiceAdmin.admin_id==current_user.id)
+            )))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
