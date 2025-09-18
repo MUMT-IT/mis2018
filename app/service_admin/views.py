@@ -752,11 +752,9 @@ def test_item_index():
 
 @service_admin.route('/api/test-item/index')
 def get_test_items():
-    query = ServiceTestItem.query.filter(ServiceTestItem.request.has(or_(ServiceRequest.admin.has(id=current_user.id),
-                                                                         ServiceSubLab.admins.any(ServiceAdmin.admin_id==current_user.id)
-                                                                         )
-                                                                     )
-                                         )
+    query = ServiceTestItem.query.filter(ServiceTestItem.request.has(ServiceRequest.sub_lab.has(
+        ServiceSubLab.admins.any(ServiceAdmin.admin_id==current_user.id)
+    )))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -1565,19 +1563,11 @@ def invoice_index():
 
 @service_admin.route('/api/invoice/index')
 def get_invoices():
-    sub_lab = ServiceSubLab.query.filter(
-        or_(
-            ServiceSubLab.approver_id == current_user.id,
-            ServiceSubLab.signer_id == current_user.id,
-            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-        )
-    )
-    sub_labs = []
-    for s in sub_lab:
-        sub_labs.append(s.code)
     query = ServiceInvoice.query.filter(or_(ServiceInvoice.creator_id == current_user.id,
                                             ServiceInvoice.quotation.has(ServiceQuotation.request.has(
-                                                ServiceRequest.lab.in_(sub_labs)))))
+                                                ServiceRequest.sub_lab.has(
+                                                    ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+                                            )))))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -1935,9 +1925,9 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
                            </font></para>
                            '''
 
-    lab_address = '''<para><font size=13>
-                        {address}
-                        </font></para>'''.format(address=lab.address if lab else sub_lab.address)
+    # lab_address = '''<para><font size=13>
+    #                     {address}
+    #                     </font></para>'''.format(address=lab.address if lab else sub_lab.address)
 
     invoice_no = '''<br/><font size=12>
                     เลขที่/No. {invoice_no}
@@ -2889,19 +2879,10 @@ def receipt_index():
 
 @service_admin.route('/api/receipt/index')
 def get_receipts():
-    sub_lab = ServiceSubLab.query.filter(
-        or_(
-            ServiceSubLab.approver_id == current_user.id,
-            ServiceSubLab.signer_id == current_user.id,
-            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-        )
-    )
-    sub_labs = []
-    for s in sub_lab:
-        sub_labs.append(s.code)
     query = ServiceInvoice.query.filter(ServiceInvoice.receipts!=None, or_(ServiceInvoice.creator_id == current_user.id,
                                             ServiceInvoice.quotation.has(ServiceQuotation.request.has(
-                                                ServiceRequest.lab.in_(sub_labs)))))
+                                                ServiceRequest.sub_lab.has(
+                                                    ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id))))))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
