@@ -1633,8 +1633,7 @@ def approve_invoice(invoice_id):
     admin = request.args.get('admin')
     invoice = ServiceInvoice.query.get(invoice_id)
     scheme = 'http' if current_app.debug else 'https'
-    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=invoice.quotation.request.lab)).all()
-    sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
+    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=invoice.quotation.request.sub_lab.code)).all()
     invoice_url = url_for("service_admin.view_invoice", invoice_id=invoice.id, menu=menu, _external=True,
                           _scheme=scheme)
     customer_name = invoice.customer_name.replace(' ', '_')
@@ -1694,7 +1693,7 @@ def approve_invoice(invoice_id):
                     for a in admins:
                         if a.is_central_admin:
                             try:
-                                line_bot_api.push_message(to=sub_lab.assistant.line_id,
+                                line_bot_api.push_message(to=a.admin.line_id,
                                                           messages=TextSendMessage(text=msg))
                             except LineBotApiError:
                                 pass
@@ -1703,7 +1702,7 @@ def approve_invoice(invoice_id):
         invoice.quotation.request.status_id = status_id
         invoice.head_approved_at = arrow.now('Asia/Bangkok').datetime
         invoice.head_id = current_user.id
-        if sub_lab.assistant:
+        if invoice.quotation.request.sub_lab.assistant:
             title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอนุมัติใบแจ้งหนี้'
             message = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n'''
             message += f'''ใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
@@ -1719,7 +1718,7 @@ def approve_invoice(invoice_id):
             message += f'''{invoice.customer_name}\n'''
             message += f'''เบอร์โทร {invoice.contact_phone_number}\n'''
             message += f'''ระบบบริการวิชาการ'''
-            send_mail([sub_lab.assistant.email + '@mahidol.ac.th'], title, message)
+            send_mail([invoice.quotation.request.sub_lab.assistant.email + '@mahidol.ac.th'], title, message)
         if not current_app.debug:
             msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
                    '\n\nเรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ' \
@@ -1741,7 +1740,7 @@ def approve_invoice(invoice_id):
                                                    invoice.name, invoice_url, invoice.customer_name,
                                                    invoice.contact_phone_number))
             try:
-                line_bot_api.push_message(to=sub_lab.assistant.line_id, messages=TextSendMessage(text=msg))
+                line_bot_api.push_message(to=invoice.quotation.request.sub_lab.assistant.line_id, messages=TextSendMessage(text=msg))
             except LineBotApiError:
                 pass
     else:
