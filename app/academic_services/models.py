@@ -892,8 +892,6 @@ class ServiceSample(db.Model):
             'sample_condition_status': self.sample_condition_status,
             'sample_condition_status_color': self.sample_condition_status_color,
             'request_id': self.request_id if self.request_id else None,
-            'quotation_id': [quotation.id for quotation in self.request.quotations if
-                             quotation.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว'] if self.request else None,
             'file': self.get_file if self.get_file else None
         }
 
