@@ -31,7 +31,7 @@ from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
                                          ServiceCustomerAccountForm, create_request_form, ServiceCustomerContactForm,
                                          ServiceCustomerAddressForm, ServiceSampleForm, ServicePaymentForm,
-                                         ServiceRequestForm)
+                                         BacteriaRequestForm)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
     jsonify, send_file
@@ -679,6 +679,24 @@ def create_service_request():
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code)
     return render_template('academic_services/request_form.html', code=code, sub_lab=sub_lab)
+
+
+# @academic_services.route('/request/add', methods=['GET', 'POST'])
+# def bacteria_request_form():
+#     code = request.args.get('code')
+#     sub_lab = ServiceSubLab.query.filter_by(code=code)
+#     form = BacteriaRequestForm()
+#     if form.validate_on_submit():
+#         request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.code)
+#         service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
+#                              request_no=request_no.number, product=form.sample_name.data, data=format_data(form.data))
+#         request_no.count += 1
+#         db.session.add(service_request)
+#         db.session.commit()
+#     else:
+#         flash(f'{form.errors}', 'danger')
+#     return render_template('academic_services/bacteria_request_form.html', code=code, sub_lab=sub_lab,
+#                            form=form)
 
 
 @academic_services.route('/submit-request/add', methods=['POST', 'GET'])
@@ -1998,9 +2016,8 @@ def create_sample_appointment(sample_id):
     sample = ServiceSample.query.get(sample_id)
     service_request = ServiceRequest.query.get(sample.request_id)
     datas = request_data(service_request)
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     form = ServiceSampleForm(obj=sample)
-    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=sample.request.lab)).all()
+    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=sample.request.sub_lab.code)).all()
     holidays = Holidays.query.all()
     if form.validate_on_submit():
         form.populate_obj(sample)
@@ -2016,7 +2033,7 @@ def create_sample_appointment(sample_id):
             if admins:
                 if service_request.status.status_id == 9:
                     title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งแก้ไขนัดหมายส่งตัวอย่าง)'''
-                    message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
+                    message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.sub_lab}\n\n'''
                     message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}\n'''
                     message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
                     message += f'''ในนาม : {service_request.quotation_address.name}\n'''
@@ -2025,7 +2042,7 @@ def create_sample_appointment(sample_id):
                     if sample.appointment_date:
                         message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
                     message += f'''สถานที่นัดหมาย : {sample.location}\n'''
-                    message += f'''รายละเอียดสถานที่ : {sub_lab.short_address}\n'''
+                    message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.short_address}\n'''
                     message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
                     message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
                     message += f'''{link}\n\n'''
@@ -2035,7 +2052,7 @@ def create_sample_appointment(sample_id):
                     message += f'''ระบบงานบริการวิชาการ'''
                 else:
                     title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งนัดหมายส่งตัวอย่าง)'''
-                    message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
+                    message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.sub_lab}\n\n'''
                     message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}\n'''
                     message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
                     message += f'''ในนาม : {service_request.quotation_address.name}\n'''
@@ -2045,14 +2062,14 @@ def create_sample_appointment(sample_id):
                         message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
                     message += f'''สถานที่นัดหมาย : {sample.location}\n'''
                     message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n'''
-                    message += f'''รายละเอียดสถานที่ : {sub_lab.short_address}\n'''
+                    message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.short_address}\n'''
                     message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
                     message += f'''{link}\n\n'''
                     message += f'''ผู้ประสานงาน\n'''
                     message += f'''{service_request.customer.customer_name}\n'''
                     message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n'''
                     message += f'''ระบบงานบริการวิชาการ'''
-                send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
+                send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
             if service_request.status.status_id == 6:
                 status_id = get_status(9)
                 service_request.status_id = status_id
@@ -2067,8 +2084,8 @@ def create_sample_appointment(sample_id):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('academic_services/create_sample_appointment.html', form=form,
-                           sample=sample, menu=menu, sample_id=sample_id, sub_lab=sub_lab, datas=datas,
-                           service_request=service_request, holidays=holidays)
+                           sample=sample, menu=menu, sample_id=sample_id, datas=datas, service_request=service_request,
+                           holidays=holidays)
 
 
 @academic_services.route('/customer/sample-appointment/confirm/page/<int:request_id>', methods=['GET', 'POST'])
