@@ -65,9 +65,9 @@ class ServiceCustomerAddressForm(ModelForm):
     address = StringField('ที่อยู่',validators=[ DataRequired()])
     province = QuerySelectField('จังหวัด', query_factory=lambda: Province.query.order_by(Province.name), allow_blank=True,
                                 blank_text='กรุณาเลือกจังหวัด', get_label='name', validators=[DataRequired(message='กรุณาเลือกจังหวัด')])
-    district = QuerySelectField('เขต/อำเภอ', query_factory=lambda: District.query.order_by(District.name), allow_blank=True,
+    district = QuerySelectField('เขต/อำเภอ', query_factory=lambda: [], allow_blank=True,
                                 blank_text='กรุณาเลือกเขต/อำเภอ', get_label='name', validators=[DataRequired(message='กรุณาเลือกเขต/อำเภอ')])
-    subdistrict = QuerySelectField('แขวง/ตำบล', query_factory=lambda: Subdistrict.query.order_by(Subdistrict.name), allow_blank=True,
+    subdistrict = QuerySelectField('แขวง/ตำบล', query_factory=lambda: [], allow_blank=True,
                                 blank_text='กรุณาเลือกแขวง/ตำบล', get_label='name', validators=[DataRequired(message='กรุณาเลือกแขวง/ตำบล')])
     zipcode = StringField('รหัสไปรษณีย์', validators=[DataRequired()])
     phone_number = StringField('เบอร์โทรศัพท์', validators=[DataRequired()])
@@ -103,6 +103,7 @@ def create_field(field):
     _field = field_types[field['fieldType']]
     _field_label = f"{field['fieldLabel']}"
     _field_placeholder = f"{field['fieldPlaceHolder']}"
+    # _field_required = f"{field['require']}"
     if field['fieldType'] == 'choice' or field['fieldType'] == 'multichoice':
         choices = field['items'].split(', ') if field['items'] else field['fieldChoice'].split(', ')
         return _field.type_(label=_field_label,
@@ -122,7 +123,8 @@ def create_field(field):
         return _field.type_(label=_field_label,
                             default=default_value,
                             render_kw={'class': _field.class_,
-                                       'placeholder': _field_placeholder})
+                                       'placeholder': _field_placeholder
+                                       })
 
 
 def create_field_group_form_factory(field_group):
