@@ -2591,15 +2591,14 @@ def confirm_result(result_id):
     db.session.add(result)
     db.session.commit()
     scheme = 'http' if current_app.debug else 'https'
-    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=result.request.lab)).all()
+    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=result.request.sub_lab.code)).all()
     title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
     link = url_for("service_admin.create_invoice", quotation_id=result.quotation_id, menu='invoice',
                    _external=True, _scheme=scheme)
     customer_name = result.request.customer.customer_name.replace(' ', '_')
-    sub_lab = ServiceSubLab.query.filter_by(code=result.request.lab).first()
     if admins:
         title = f'''[{result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result.request.quotation_address.name}) | แจ้งยืนยันใบรายงานผลการทดสอบ'''
-        message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
+        message = f'''เรียน เจ้าหน้าที่{result.request.sub_lab.sub_lab}\n\n'''
         message += f'''ใบรายงานผลของใบคำขอรับบริการเลขที่ : {result.request.request_no}\n'''
         message += f'''ลูกค้า : {result.request.customer.customer_name}\n'''
         message += f'''ในนาม : {result.request.quotation_address.name}\n'''
@@ -2610,7 +2609,7 @@ def confirm_result(result_id):
         message += f'''{result.request.customer.customer_name}\n'''
         message += f'''เบอร์โทร {result.request.customer.contact_phone_number}\n\n'''
         message += f'''ระบบงานบริการวิชาการ'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
         msg = ('แจ้งยืนยันใบรายงานผลการทดสอบ' \
                '\n\nเรียน เจ้าหน้าที่{}'
                '\n\nใบรายงานผลของใบคำขอรับบริการเลขที่ {}' \
@@ -2622,7 +2621,7 @@ def confirm_result(result_id):
                '\n\nผู้ประสานงาน' \
                '\n{}' \
                '\nเบอร์โทร {}' \
-               '\n\nระบบงานบริการวิชาการ'.format(sub_lab.sub_lab, result.request.request_no,
+               '\n\nระบบงานบริการวิชาการ'.format(result.request.sub_lab.sub_lab, result.request.request_no,
                                                  result.request.customer.customer_name,
                                                  result.request.quotation_address.name, link,
                                                  result.request.customer.customer_name,
@@ -2630,7 +2629,7 @@ def confirm_result(result_id):
                )
         if not current_app.debug:
             for a in admins:
-                if not a.is_supervisor:
+                if not a.is_central_admin:
                     try:
                         line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                     except LineBotApiError:
@@ -2654,15 +2653,14 @@ def edit_result(result_id):
         db.session.add(result)
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
-        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=result.request.lab)).all()
+        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=result.request.sub_lab.code)).all()
         title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
         link = url_for("service_admin.create_draft_result", rresult_id=result.id, request_id=result.request.id,
                        menu='test_item', _external=True, _scheme=scheme)
         customer_name = result.request.customer.customer_name.replace(' ', '_')
-        sub_lab = ServiceSubLab.query.filter_by(code=result.request.lab).first()
         if admins:
             title = f'''[{result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result.request.quotation_address.name}) | แจ้งขอแก้ไขใบรายงานผลการทดสอบ'''
-            message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
+            message = f'''เรียน เจ้าหน้าที่{result.request.sub_lab.sub_lab}\n\n'''
             message += f'''ใบรายงานผลของใบคำขอรับบริการเลขที่ : {result.request.request_no}\n'''
             message += f'''ลูกค้า : {result.request.customer.customer_name}\n'''
             message += f'''ในนาม : {result.request.quotation_address.name}\n'''
@@ -2673,7 +2671,7 @@ def edit_result(result_id):
             message += f'''{result.request.customer.customer_name}\n'''
             message += f'''เบอร์โทร {result.request.customer.contact_phone_number}\n\n'''
             message += f'''ระบบงานบริการวิชาการ'''
-            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
+            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
             msg = ('แจ้งขอแก้ไขใบรายงานผลการทดสอบ' \
                    '\n\nเรียน เจ้าหน้าที่{}'
                    '\n\nใบรายงานผลของใบคำขอรับบริการเลขที่ {}' \
@@ -2685,7 +2683,7 @@ def edit_result(result_id):
                    '\n\nผู้ประสานงาน' \
                    '\n{}' \
                    '\nเบอร์โทร {}' \
-                   '\n\nระบบงานบริการวิชาการ'.format(sub_lab.sub_lab, result.request.request_no,
+                   '\n\nระบบงานบริการวิชาการ'.format(result.request.sub_lab.sub_lab, result.request.request_no,
                                                      result.request.customer.customer_name,
                                                      result.request.quotation_address.name, result.note, link,
                                                      result.request.customer.customer_name,
@@ -2693,7 +2691,7 @@ def edit_result(result_id):
                    )
             if not current_app.debug:
                 for a in admins:
-                    if not a.is_supervisor:
+                    if not a.is_central_admin:
                         try:
                             line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                         except LineBotApiError:
