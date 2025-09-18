@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import DecimalField, FormField, StringField, BooleanField, TextAreaField, DateField, SelectField, \
-    SelectMultipleField, HiddenField, PasswordField, SubmitField, widgets, RadioField, FieldList, FileField, FloatField
+    SelectMultipleField, HiddenField, PasswordField, SubmitField, widgets, RadioField, FieldList, FileField, FloatField, \
+    DateTimeField, IntegerField
 from wtforms.validators import DataRequired, EqualTo, Length
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.academic_services.models import *
@@ -170,9 +171,34 @@ def create_request_form(table):
     return MainForm
 
 
-class ServiceRequestForm(ModelForm):
-    class Meta:
-        model = ServiceRequest
+class BacteriaRequestItemForm(FlaskForm):
+    liquid_test_method = CheckboxField('วิธีทดสอบ', choices=[('วิธีทดสอบ Use-Dilution 60 carriers', 'วิธีทดสอบ Use-Dilution 60 carriers'),
+                                                             'วิธีทดสอบ Use-Dilution log (%) reduction', 'วิธีทดสอบ Use-Dilution log (%) reduction'])
+
+
+class BacteriaRequestForm(FlaskForm):
+    sample_name = StringField('ชื่อผลิตภัณฑ์', validators=[DataRequired()])
+    active_substance = TextAreaField('สารสำคัญที่ออกฤทธ์ และปริมาณสารสำคัญ', validators=[DataRequired()])
+    product_appearance = StringField('ลักษณะทางกายภาพของผลิตภัณฑ์', validators=[DataRequired()])
+    kind = StringField('ลักษณะบรรจุภัณฑ์', validators=[DataRequired()])
+    size = StringField('ขนาดบรรจุภัณฑ์', validators=[DataRequired()])
+    mfg = DateTimeField('วันที่ผลิต', validators=[DataRequired()])
+    exp = DateTimeField('วันหมดอายุ', validators=[DataRequired()])
+    lot_no = StringField('เลขที่ผลิต', validators=[DataRequired()])
+    manufacturer = StringField('ผู้ผลิต', validators=[DataRequired()])
+    manufacturer_address = TextAreaField('ที่อยู่ผู้ผลิต', validators=[DataRequired()])
+    importanddistributor = StringField('ผู้นำเข้า/จัดจำหน่าย', validators=[DataRequired()])
+    importanddistributor_address = TextAreaField('ที่อยู่ผู้นำเข้า/จัดจำหน่าย', validators=[DataRequired()])
+    amount = IntegerField('จำนวนที่ส่ง', validators=[DataRequired()])
+    collect_samples_during_testing = RadioField('เก็บตัวอย่างระหว่างรอทดสอบ', choices=[('อุณหภูมิห้อง', 'อุณหภูมิห้อง'), ('อื่นๆ โปรดระบุ', 'อื่นๆ โปรดระบุ')],
+                                                validate_choice=True)
+    collect_samples_during_testing_other = StringField('โปรดระบุ')
+    product_type = RadioField('ประเภทผลิตภัณฑ์',  choices=[('ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดของเหลว หรือชนิดผง ที่ละลายน้้าได้', 'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดของเหลว หรือชนิดผง ที่ละลายน้้าได้'),
+                                                           ('ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดฉีดพ่นธรรมดา หรือ ฉีดพ่นอัดก๊าซ', 'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดฉีดพ่นธรรมดา หรือ ฉีดพ่นอัดก๊าซ'),
+                                                           ('ผลิตภัณฑ์ฆ่าเชื้อชนิดแผ่น', 'ผลิตภัณฑ์ฆ่าเชื้อชนิดแผ่น'),
+                                                           ('ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ตกค้างหลังซัก (After Wash Claim)', 'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ตกค้างหลังซัก (After Wash Claim)'),
+                                                           ('ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (In Wash Claim)', 'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (In Wash Claim)')],
+                                                validate_choice=True)
 
 
 class ServiceQuotationForm(ModelForm):
