@@ -378,7 +378,6 @@ def lab_index():
 
 
 @academic_services.route('/customer/lab/detail', methods=['GET', 'POST'])
-@login_required
 def detail_lab_index():
     cat = request.args.get('cat')
     code = request.args.get('code')
