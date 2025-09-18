@@ -1734,15 +1734,14 @@ def confirm_quotation(quotation_id):
     db.session.add(sample)
     db.session.commit()
     flash('ยืนยันใบเสนอราคาสำเร็จ กรุณาดำเนินการนัดหมายส่งตัวอย่าง', 'success')
-    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
-    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
+    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.sub_lab.code)).all()
     link = url_for('service_admin.view_quotation', menu='quotation', tab='all', quotation_id=quotation_id,
                    _external=True, _scheme=scheme)
     title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
     customer_name = quotation.customer_name.replace(' ', '_')
     if admins:
         title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} ({quotation.name}) | แจ้งยืนยันใบเสนอราคา'''
-        message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}่\n\n'''
+        message = f'''เรียน เจ้าหน้าที่{quotation.request.sub_lab.sub_lab}่\n\n'''
         message += f'''ใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
         message += f'''ลูกค้า : {quotation.customer_name}\n'''
         message += f'''ในนาม : {quotation.name}\n'''
@@ -1754,7 +1753,7 @@ def confirm_quotation(quotation_id):
         message += f'''{quotation.customer_name}\n'''
         message += f'''เบอร์โทร {quotation.request.customer.contact_phone_number}\n'''
         message += f'''ระบบบริการวิชาการ'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
     return redirect(url_for('academic_services.confirm_quotation_page', menu=menu, sample_id=sample.id))
 
 
@@ -1778,13 +1777,12 @@ def reject_quotation(quotation_id):
         db.session.add(quotation)
         db.session.commit()
         flash('ยกเลิกใบเสนอราคาสำเร็จ', 'success')
-        sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
-        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
+        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.sub_lab.code)).all()
         title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
         customer_name = quotation.customer_name.replace(' ', '_')
         if admins:
             title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} ({quotation.name}) | แจ้งปฏิเสธใบเสนอราคา'''
-            message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}่\n\n'''
+            message = f'''เรียน เจ้าหน้าที่{quotation.request.sub_lab.sub_lab}่\n\n'''
             message += f'''ใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
             message += f'''ลูกค้า : {quotation.customer_name}\n'''
             message += f'''ในนาม : {quotation.name}\n'''
@@ -1796,7 +1794,7 @@ def reject_quotation(quotation_id):
             message += f'''{quotation.customer_name}\n'''
             message += f'''เบอร์โทร {quotation.request.customer.contact_phone_number}\n'''
             message += f'''ระบบบริการวิชาการ'''
-            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
+            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
         resp = make_response()
         resp.headers['HX-Redirect'] = url_for('academic_services.quotation_index', menu=menu)
         return resp
