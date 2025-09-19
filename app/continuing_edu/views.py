@@ -78,7 +78,7 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        member = Member.query.filter_by(username=username).first()
+        member = Member.query.filter_by(email=username).first()
         if member and check_password_hash(member.password_hash, password):
             session['member_id'] = member.id
             user = get_current_user()
@@ -199,8 +199,8 @@ def comeback_options():
             flash('ไม่พบอีเมลนี้ในระบบ' if lang == 'th' else 'Email not found in the system', 'danger')
             return redirect(url_for('continuing_edu.register', texts=texts, lang=lang))
     elif action == 'forgot':
-        # Redirect to forgot password page (implement as needed)
-        return redirect(url_for('continuing_edu.login', texts=texts, lang=lang))
+        # Redirect to forgot password page
+        return redirect(url_for('continuing_edu.forgot_password', texts=texts, lang=lang))
     else:
         flash('ไม่สามารถดำเนินการได้' if lang == 'th' else 'Unable to process request', 'danger')
         return redirect(url_for('continuing_edu.register', texts=texts, lang=lang))
@@ -239,6 +239,86 @@ def otp_verify():
 def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
     mail.send(message)
+
+
+# --- Forgot Password (request OTP) ---
+@ce_bp.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    if request.method == 'POST':
+        identifier = request.form.get('identifier', '').strip()
+        if not identifier:
+            flash('กรุณากรอกอีเมลหรือชื่อผู้ใช้' if lang == 'th' else 'Please enter your email or username.', 'danger')
+            return render_template('continueing_edu/forgot_password.html', current_lang=lang, texts=texts)
+        from .models import Member
+        user = Member.query.filter((Member.email == identifier) | (Member.username == identifier)).first()
+        if not user or not user.email:
+            flash('ไม่พบบัญชีที่ใช้อีเมลนี้' if lang == 'th' else 'No account found for that email/username.', 'danger')
+            return render_template('continueing_edu/forgot_password.html', current_lang=lang, texts=texts)
+        # Generate OTP and set expiry (10 minutes)
+        import random, time
+        otp_code = '{:06d}'.format(random.randint(0, 999999))
+        session['reset_otp'] = otp_code
+        session['reset_username'] = user.username
+        session['reset_email'] = user.email
+        session['reset_expires'] = int(time.time()) + 600
+        try:
+            send_mail([user.email],
+                     'รหัส OTP สำหรับรีเซ็ตรหัสผ่าน' if lang == 'th' else 'Your Password Reset OTP',
+                     f'รหัส OTP ของคุณคือ: {otp_code} (หมดอายุใน 10 นาที)' if lang == 'th' else f'Your OTP code is: {otp_code} (expires in 10 minutes)')
+            flash('เราได้ส่งรหัส OTP ไปยังอีเมลของคุณแล้ว' if lang == 'th' else 'We sent an OTP to your email.', 'success')
+        except Exception as e:
+            flash((f'ส่งอีเมลไม่สำเร็จ: {e}') if lang == 'th' else f'Failed to send email: {e}', 'danger')
+        return redirect(url_for('continuing_edu.reset_password', lang=lang, username=user.username))
+    return render_template('continueing_edu/forgot_password.html', current_lang=lang, texts=texts)
+
+
+# --- Reset Password (confirm OTP and set new password) ---
+@ce_bp.route('/reset_password', methods=['GET', 'POST'])
+def reset_password():
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    preset_username = request.args.get('username') or session.get('reset_username')
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        otp_input = request.form.get('otp_code', '').strip()
+        new_pw = request.form.get('new_password', '')
+        confirm_pw = request.form.get('confirm_password', '')
+        # Validate session OTP
+        otp_expected = session.get('reset_otp')
+        otp_user = session.get('reset_username')
+        otp_exp = session.get('reset_expires')
+        import time
+        if not otp_expected or not otp_user or username != otp_user:
+            flash('เซสชัน OTP หมดอายุหรือไม่ถูกต้อง' if lang == 'th' else 'OTP session expired or invalid.', 'danger')
+            return redirect(url_for('continuing_edu.forgot_password', lang=lang))
+        if otp_exp and time.time() > otp_exp:
+            flash('OTP หมดอายุแล้ว' if lang == 'th' else 'OTP has expired.', 'danger')
+            return redirect(url_for('continuing_edu.forgot_password', lang=lang))
+        if otp_input != otp_expected:
+            flash('รหัส OTP ไม่ถูกต้อง' if lang == 'th' else 'Invalid OTP code.', 'danger')
+            return render_template('continueing_edu/reset_password.html', current_lang=lang, texts=texts, username=username)
+        if not new_pw or new_pw != confirm_pw:
+            flash('รหัสผ่านใหม่ไม่ตรงกัน' if lang == 'th' else 'New passwords do not match.', 'danger')
+            return render_template('continueing_edu/reset_password.html', current_lang=lang, texts=texts, username=username)
+        # Update password
+        from .models import Member
+        user = Member.query.filter_by(username=username).first()
+        if not user:
+            flash('ไม่พบบัญชี' if lang == 'th' else 'Account not found.', 'danger')
+            return redirect(url_for('continuing_edu.forgot_password', lang=lang))
+        user.password_hash = generate_password_hash(new_pw)
+        db.session.add(user)
+        db.session.commit()
+        # Clear OTP session
+        session.pop('reset_otp', None)
+        session.pop('reset_username', None)
+        session.pop('reset_email', None)
+        session.pop('reset_expires', None)
+        flash('เปลี่ยนรหัสผ่านเรียบร้อยแล้ว' if lang == 'th' else 'Your password has been reset.', 'success')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    return render_template('continueing_edu/reset_password.html', current_lang=lang, texts=texts, username=preset_username)
 
 
 def _google_oauth_session(redirect_uri, state=None, token=None):
@@ -657,11 +737,54 @@ def register_event(event_id):
         # Notify member by email (best-effort)
         try:
             subj = texts.get('registration_success', 'Registration submitted. Payment pending.')
-            body = (f"You registered for: {event.title_en or event.title_th}\n"
-                    f"Amount: {price} THB\n"
-                    f"Status: pending\n")
-            msg = Message(subject=subj, body=body, recipients=[member.email]) if getattr(member, 'email', None) else None
+            invoice_link = url_for('continuing_edu.view_invoice', payment_id=pay.id, lang=lang, _external=True)
+            payments_link = url_for('continuing_edu.my_payments', lang=lang, _external=True)
+            payment_gateway_url = os.environ.get('PAYMENT_GATEWAY_URL')
+            body = (f"{texts['email_registered_for']}: {event.title_en or event.title_th}\n"
+                    f"{texts['email_amount']}: {price} THB\n"
+                    f"{texts['email_status']}: {texts['status_pending']}\n\n"
+                    f"{texts['email_pay_now_or_view_invoice']}\n"
+                    f"{texts['email_invoice']}: {invoice_link}\n"
+                    f"{texts['email_my_payments']}: {payments_link}\n"
+                    + (f"{texts['email_pay_online']}: {payment_gateway_url}\n" if payment_gateway_url else ""))
+
+            # HTML Email with buttons
+            email_html = render_template(
+                'continueing_edu/_registration_email.html',
+                event=event,
+                amount=price,
+                invoice_link=invoice_link,
+                payments_link=payments_link,
+                payment_gateway_url=payment_gateway_url,
+                texts=texts,
+                current_lang=lang,
+            )
+
+            msg = Message(subject=subj, body=body, html=email_html, recipients=[member.email]) if getattr(member, 'email', None) else None
             if msg:
+                # Try attach PDF invoice
+                if HTML is not None:
+                    try:
+                        payment_qr_url = os.environ.get('PAYMENT_QR_URL')
+                        promptpay_id = os.environ.get('PROMPTPAY_ID')
+                        bank_info = os.environ.get('BANK_INFO')
+                        payment_instructions = os.environ.get('PAYMENT_INSTRUCTIONS')
+                        html = render_template(
+                            'continueing_edu/invoice.html',
+                            payment=pay,
+                            member=member,
+                            texts=texts,
+                            current_lang=lang,
+                            payment_qr_url=payment_qr_url,
+                            promptpay_id=promptpay_id,
+                            bank_info=bank_info,
+                            payment_instructions=payment_instructions,
+                            pdf_available=True,
+                        )
+                        pdf_bytes = HTML(string=html, base_url=request.host_url).write_pdf()
+                        msg.attach(f"invoice_INV-{pay.id}.pdf", 'application/pdf', pdf_bytes)
+                    except Exception:
+                        pass
                 mail.send(msg)
         except Exception:
             pass
@@ -750,7 +873,9 @@ def my_payments():
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
     pays = RegisterPayment.query.filter_by(member_id=user.id).order_by(RegisterPayment.id.desc()).all()
-    return render_template('continueing_edu/my_payments.html', payments=pays, texts=texts, current_lang=lang)
+    payment_gateway_url = os.environ.get('PAYMENT_GATEWAY_URL')
+    return render_template('continueing_edu/my_payments.html', payments=pays, texts=texts, current_lang=lang,
+                           payment_gateway_url=payment_gateway_url)
 
 
 @ce_bp.route('/payment/<int:payment_id>/submit_proof', methods=['POST'])
@@ -769,6 +894,16 @@ def submit_payment_proof(payment_id):
     if not proof_url:
         flash(texts.get('proof_required', 'Please provide a payment proof URL.'), 'danger')
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
+    # If replacing an existing S3 proof, delete the old object (best-effort)
+    old = pay.payment_proof_url
+    def _is_http(u):
+        return isinstance(u, str) and (u.startswith('http://') or u.startswith('https://') or u.startswith('//'))
+    try:
+        if old and not _is_http(old) and old != proof_url:
+            from app.main import s3, S3_BUCKET_NAME
+            s3.delete_object(Bucket=S3_BUCKET_NAME, Key=old)
+    except Exception:
+        pass
     pay.payment_proof_url = proof_url
     # Optionally move to 'submitted' if such status exists
     submitted = RegisterPaymentStatus.query.filter((RegisterPaymentStatus.register_payment_status_code=='submitted') | (RegisterPaymentStatus.name_en=='submitted')).first()
@@ -797,13 +932,33 @@ def upload_payment_proof(payment_id):
         flash(texts.get('proof_required', 'Please provide a payment proof file.'), 'danger')
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
 
-    upload_dir = os.path.join('static', 'uploads', 'payment_proofs')
-    os.makedirs(upload_dir, exist_ok=True)
-    fname = secure_filename(file.filename)
-    fname = f"proof_{payment_id}_{int(time.time())}_{fname}"
-    path = os.path.join(upload_dir, fname)
-    file.save(path)
-    pay.payment_proof_url = '/' + path
+    # Upload to S3
+    # Lazy import to avoid circular import at module load
+    from app.main import allowed_file, s3, S3_BUCKET_NAME
+    if not allowed_file(file.filename):
+        flash(texts.get('proof_required', 'Please provide a payment proof file.'), 'danger')
+        return redirect(url_for('continuing_edu.my_payments', lang=lang))
+    safe_name = secure_filename(file.filename)
+    ext = safe_name.rsplit('.', 1)[-1].lower() if '.' in safe_name else 'dat'
+    key = f"continuing_edu/payments/{payment_id}/proof_{int(time.time())}.{ext}"
+    content_type = file.mimetype or 'application/octet-stream'
+    data = file.read()
+    # If replacing an existing S3 proof, delete the old object (best-effort)
+    old = pay.payment_proof_url
+    try:
+        s3.put_object(Bucket=S3_BUCKET_NAME, Key=key, Body=data, ContentType=content_type)
+        if old and old != key:
+            try:
+                from urllib.parse import urlparse
+                # delete old only if it is a key (not URL)
+                if not (old.startswith('http://') or old.startswith('https://') or old.startswith('//')):
+                    s3.delete_object(Bucket=S3_BUCKET_NAME, Key=old)
+            except Exception:
+                pass
+        pay.payment_proof_url = key
+    except Exception:
+        flash(texts.get('proof_required', 'Please provide a payment proof file.'), 'danger')
+        return redirect(url_for('continuing_edu.my_payments', lang=lang))
     submitted = RegisterPaymentStatus.query.filter((RegisterPaymentStatus.register_payment_status_code=='submitted') | (RegisterPaymentStatus.name_en=='submitted')).first()
     if submitted:
         pay.payment_status_id = submitted.id
@@ -811,6 +966,70 @@ def upload_payment_proof(payment_id):
     db.session.commit()
     flash(texts.get('proof_received', 'Payment proof submitted.'), 'success')
     return redirect(url_for('continuing_edu.my_payments', lang=lang))
+
+
+@ce_bp.route('/payment/<int:payment_id>/invoice')
+def view_invoice(payment_id):
+    """Simple invoice page for a single payment."""
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    pay = RegisterPayment.query.get_or_404(payment_id)
+    if pay.member_id != user.id:
+        flash(texts.get('not_allowed', 'You are not allowed to view this invoice.'), 'danger')
+        return redirect(url_for('continuing_edu.my_payments', lang=lang))
+    payment_qr_url = os.environ.get('PAYMENT_QR_URL')
+    promptpay_id = os.environ.get('PROMPTPAY_ID')
+    bank_info = os.environ.get('BANK_INFO')
+    payment_instructions = os.environ.get('PAYMENT_INSTRUCTIONS')
+    payment_gateway_url = os.environ.get('PAYMENT_GATEWAY_URL')
+    return render_template('continueing_edu/invoice.html', payment=pay, member=user, texts=texts, current_lang=lang,
+                           payment_qr_url=payment_qr_url, promptpay_id=promptpay_id, bank_info=bank_info,
+                           payment_instructions=payment_instructions, payment_gateway_url=payment_gateway_url,
+                           pdf_available=(HTML is not None))
+
+
+@ce_bp.route('/payment/<int:payment_id>/invoice.pdf')
+def download_invoice_pdf(payment_id):
+    """Generate and download invoice as PDF."""
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    pay = RegisterPayment.query.get_or_404(payment_id)
+    if pay.member_id != user.id:
+        flash(texts.get('not_allowed', 'You are not allowed to view this invoice.'), 'danger')
+        return redirect(url_for('continuing_edu.my_payments', lang=lang))
+    if HTML is None:
+        flash(texts.get('pdf_unavailable', 'PDF generation is currently unavailable.'), 'warning')
+        return redirect(url_for('continuing_edu.view_invoice', payment_id=payment_id, lang=lang))
+    payment_qr_url = os.environ.get('PAYMENT_QR_URL')
+    promptpay_id = os.environ.get('PROMPTPAY_ID')
+    bank_info = os.environ.get('BANK_INFO')
+    payment_instructions = os.environ.get('PAYMENT_INSTRUCTIONS')
+    html = render_template(
+        'continueing_edu/invoice.html',
+        payment=pay,
+        member=user,
+        texts=texts,
+        current_lang=lang,
+        payment_qr_url=payment_qr_url,
+        promptpay_id=promptpay_id,
+        bank_info=bank_info,
+        payment_instructions=payment_instructions,
+        payment_gateway_url=os.environ.get('PAYMENT_GATEWAY_URL'),
+        pdf_available=True,
+    )
+    pdf_bytes = HTML(string=html, base_url=request.host_url).write_pdf()
+    resp = make_response(pdf_bytes)
+    resp.headers['Content-Type'] = 'application/pdf'
+    resp.headers['Content-Disposition'] = f'attachment; filename="invoice_INV-{pay.id}.pdf"'
+    return resp
 
 
 @ce_bp.route('/receipt/<int:receipt_id>')
