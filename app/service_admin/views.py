@@ -1874,24 +1874,22 @@ def upload_invoice_file(invoice_id):
 def view_invoice(invoice_id):
     menu = request.args.get('menu')
     invoice = ServiceInvoice.query.get(invoice_id)
-    sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
     admin_lab = ServiceAdmin.query.filter(ServiceAdmin.admin_id == current_user.id,
-                                          ServiceAdmin.sub_lab.has(ServiceSubLab.code == sub_lab.code))
+                                          ServiceAdmin.sub_lab.has(ServiceSubLab.code == invoice.quotation.request.sub_lab.code))
     admin = any(a for a in admin_lab if not a.is_supervisor)
-    supervisor = any(a.is_supervisor for a in admin_lab)
-    assistant = sub_lab.assistant if sub_lab.assistant_id == current_user.id else None
-    dean = sub_lab.signer if sub_lab.signer_id == current_user.id else None
+    supervisor = any(a for a in admin_lab)
+    assistant = invoice.quotation.request.sub_lab.assistant if invoice.quotation.request.sub_lab.assistant_id == current_user.id else None
+    dean = invoice.quotation.request.sub_lab.signer if invoice.quotation.request.sub_lab.signer_id == current_user.id else None
     central_admin = any(a.is_central_admin for a in admin_lab)
-    return render_template('service_admin/view_invoice.html', invoice=invoice, admin=admin,
-                           supervisor=supervisor, assistant=assistant, dean=dean, sub_lab=sub_lab,
-                           central_admin=central_admin, menu=menu)
+    return render_template('service_admin/view_invoice.html', invoice=invoice, admin=admin, menu=menu,
+                           supervisor=supervisor, assistant=assistant, dean=dean, central_admin=central_admin)
 
 
 def generate_invoice_pdf(invoice, qr_image_base64=None):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 70, 70)
 
-    lab = ServiceLab.query.filter_by(code=invoice.quotation.request.lab).first()
-    sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
+    # lab = ServiceLab.query.filter_by(code=invoice.quotation.request.lab).first()
+    # sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
