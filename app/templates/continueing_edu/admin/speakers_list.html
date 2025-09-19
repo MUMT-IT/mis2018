@@ -16,9 +16,10 @@
   <a class="button is-primary mb-4" href="{{ url_for('continuing_edu_admin.speakers_new') }}">New Speaker</a>
 
   {% if profiles %}
-  <table class="table is-fullwidth is-striped">
+  <table class="table is-fullwidth is-striped is-hoverable">
     <thead>
       <tr>
+        <th class="is-narrow">Photo</th>
         <th>Name</th>
         <th>Email</th>
         <th>Institution</th>
@@ -29,7 +30,22 @@
     <tbody>
       {% for s in profiles %}
       <tr>
-        <td>{{ s.name_en }}<br><span class="is-size-7 has-text-grey">{{ s.name_th }}</span></td>
+        <td class="is-vcentered">
+          {% set avatar = s.image_url or 'https://via.placeholder.com/64x64?text=SP' %}
+          <figure class="image is-64x64" style="object-fit:cover;">
+            <img src="{{ avatar }}" alt="{{ s.name_en }}">
+          </figure>
+
+        </td>
+        <td>
+          <a href="{{ url_for('continuing_edu_admin.speakers_view', profile_id=s.id) }}"
+            class="has-text-weight-semibold">{{ s.name_en }}</a>
+          <br>
+          <span class="is-size-7 has-text-grey">{{ s.name_th }}</span>
+          {% if s.position_en or s.position_th %}
+          <div class="is-size-7 has-text-grey">{{ s.position_en or s.position_th }}</div>
+          {% endif %}
+        </td>
         <td>{{ s.email }}</td>
         <td>{{ s.institution_en }}<br><span class="is-size-7 has-text-grey">{{ s.institution_th }}</span></td>
         <td>
@@ -40,8 +56,12 @@
           {% endif %}
         </td>
         <td class="has-text-right">
-          <a class="button is-small is-link" href="{{ url_for('continuing_edu_admin.speakers_edit', profile_id=s.id) }}">Edit</a>
-          <form method="post" action="{{ url_for('continuing_edu_admin.speakers_delete', profile_id=s.id) }}" style="display:inline" onsubmit="return confirm('Delete this speaker profile?');">
+          <a class="button is-small"
+            href="{{ url_for('continuing_edu_admin.speakers_view', profile_id=s.id) }}">View</a>
+          <a class="button is-small is-link"
+            href="{{ url_for('continuing_edu_admin.speakers_edit', profile_id=s.id) }}">Edit</a>
+          <form method="post" action="{{ url_for('continuing_edu_admin.speakers_delete', profile_id=s.id) }}"
+            style="display:inline" onsubmit="return confirm('Delete this speaker profile?');">
             <button class="button is-small is-danger" type="submit">Delete</button>
           </form>
         </td>
@@ -54,4 +74,3 @@
   {% endif %}
 </div>
 {% endblock %}
-

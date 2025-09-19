@@ -257,6 +257,9 @@
                     {{ texts.no_account_yet }} <a href="{{ url_for('continuing_edu.register', lang=current_lang) }}"
                         class="has-text-indigo-700">{{ texts.register_btn }}</a>
                 </p>
+                <p class="has-text-centered mt-2">
+                    <a href="{{ url_for('continuing_edu.forgot_password', lang=current_lang) }}" class="has-text-grey">{{ 'ลืมรหัสผ่าน?' if current_lang=='th' else 'Forgot your password?' }}</a>
+                </p>
 
                 <div class="has-text-centered mt-4">
                     <a class="button is-light" href="{{ url_for('continuing_edu.google_login', lang=current_lang, next=next) }}">

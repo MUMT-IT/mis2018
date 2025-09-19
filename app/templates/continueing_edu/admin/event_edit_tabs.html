@@ -17,18 +17,21 @@
   {# ---------------- General Info ---------------- #}
   {% if active_tab == 'general' %}
   <div class="box">
-    <form method="post" action="{{ url_for('continuing_edu_admin.update_event_general', event_id=event.id) }}">
+    <form method="post" enctype="multipart/form-data" action="{{ url_for('continuing_edu_admin.update_event_general', event_id=event.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       <div class="columns">
         <div class="column">
           <div class="field">
             <label class="label">Title (EN)</label>
-            <div class="control"><input class="input" type="text" name="title_en" value="{{ event.title_en or '' }}" required></div>
+            <div class="control"><input class="input" type="text" name="title_en" value="{{ event.title_en or '' }}"
+                required></div>
           </div>
         </div>
         <div class="column">
           <div class="field">
             <label class="label">Title (TH)</label>
-            <div class="control"><input class="input" type="text" name="title_th" value="{{ event.title_th or '' }}"></div>
+            <div class="control"><input class="input" type="text" name="title_th" value="{{ event.title_th or '' }}">
+            </div>
           </div>
         </div>
       </div>
@@ -37,13 +40,15 @@
         <div class="column">
           <div class="field">
             <label class="label">Description (EN)</label>
-            <div class="control"><textarea class="textarea" name="description_en">{{ event.description_en or '' }}</textarea></div>
+            <div class="control"><textarea class="textarea"
+                name="description_en">{{ event.description_en or '' }}</textarea></div>
           </div>
         </div>
         <div class="column">
           <div class="field">
             <label class="label">Description (TH)</label>
-            <div class="control"><textarea class="textarea" name="description_th">{{ event.description_th or '' }}</textarea></div>
+            <div class="control"><textarea class="textarea"
+                name="description_th">{{ event.description_th or '' }}</textarea></div>
           </div>
         </div>
       </div>
@@ -52,13 +57,15 @@
         <div class="column">
           <div class="field">
             <label class="label">Location (EN)</label>
-            <div class="control"><input class="input" type="text" name="location_en" value="{{ event.location_en or '' }}"></div>
+            <div class="control"><input class="input" type="text" name="location_en"
+                value="{{ event.location_en or '' }}"></div>
           </div>
         </div>
         <div class="column">
           <div class="field">
             <label class="label">Location (TH)</label>
-            <div class="control"><input class="input" type="text" name="location_th" value="{{ event.location_th or '' }}"></div>
+            <div class="control"><input class="input" type="text" name="location_th"
+                value="{{ event.location_th or '' }}"></div>
           </div>
         </div>
       </div>
@@ -67,13 +74,15 @@
         <div class="column">
           <div class="field">
             <label class="label">Duration (EN)</label>
-            <div class="control"><input class="input" type="text" name="duration_en" value="{{ event.duration_en or '' }}"></div>
+            <div class="control"><input class="input" type="text" name="duration_en"
+                value="{{ event.duration_en or '' }}"></div>
           </div>
         </div>
         <div class="column">
           <div class="field">
             <label class="label">Duration (TH)</label>
-            <div class="control"><input class="input" type="text" name="duration_th" value="{{ event.duration_th or '' }}"></div>
+            <div class="control"><input class="input" type="text" name="duration_th"
+                value="{{ event.duration_th or '' }}"></div>
           </div>
         </div>
       </div>
@@ -82,13 +91,15 @@
         <div class="column">
           <div class="field">
             <label class="label">Format (EN)</label>
-            <div class="control"><input class="input" type="text" name="format_en" value="{{ event.format_en or '' }}"></div>
+            <div class="control"><input class="input" type="text" name="format_en" value="{{ event.format_en or '' }}">
+            </div>
           </div>
         </div>
         <div class="column">
           <div class="field">
             <label class="label">Format (TH)</label>
-            <div class="control"><input class="input" type="text" name="format_th" value="{{ event.format_th or '' }}"></div>
+            <div class="control"><input class="input" type="text" name="format_th" value="{{ event.format_th or '' }}">
+            </div>
           </div>
         </div>
       </div>
@@ -96,14 +107,36 @@
       <div class="columns">
         <div class="column">
           <div class="field">
-            <label class="label">Poster Image URL</label>
-            <div class="control"><input class="input" type="url" name="poster_image_url" placeholder="https://..." value="{{ event.poster_image_url or '' }}"></div>
+            <label class="label">Poster Image</label>
+            <div class="control">
+              <div class="file has-name is-fullwidth">
+                <label class="file-label">
+                  <input class="file-input" type="file" name="poster_image_file" accept="image/*">
+                  <span class="file-cta"><span class="file-icon">📷</span><span class="file-label">Choose a file…</span></span>
+                  <span class="file-name is-size-7">Upload a new poster image</span>
+                </label>
+              </div>
+            </div>
+            <p class="help">Or paste URL:</p>
+            <div class="control"><input class="input" type="url" name="poster_image_url" placeholder="https://..."
+                value="{{ event.poster_image_url or '' }}"></div>
           </div>
         </div>
         <div class="column">
           <div class="field">
-            <label class="label">Cover Image URL</label>
-            <div class="control"><input class="input" type="url" name="cover_image_url" placeholder="https://..." value="{{ event.cover_image_url or '' }}"></div>
+            <label class="label">Cover Image</label>
+            <div class="control">
+              <div class="file has-name is-fullwidth">
+                <label class="file-label">
+                  <input class="file-input" type="file" name="cover_image_file" accept="image/*">
+                  <span class="file-cta"><span class="file-icon">📷</span><span class="file-label">Choose a file…</span></span>
+                  <span class="file-name is-size-7">Upload a new cover image</span>
+                </label>
+              </div>
+            </div>
+            <p class="help">Or paste URL:</p>
+            <div class="control"><input class="input" type="url" name="cover_image_url" placeholder="https://..."
+                value="{{ event.cover_image_url or '' }}"></div>
           </div>
         </div>
       </div>
@@ -114,7 +147,9 @@
           {% if event.poster_image_url %}
           <p class="label">Poster Preview</p>
           <figure class="image is-3by2" style="max-width: 320px;">
-            <img src="{{ event.poster_image_url }}" alt="Poster preview" style="object-fit:cover;border:1px solid #eee;">
+            {% set poster = (event.poster_presigned_url() or event.poster_image_url) %}
+            <img src="{{ poster or '' }}" alt="Poster preview"
+              style="object-fit:cover;border:1px solid #eee;">
           </figure>
           {% endif %}
         </div>
@@ -122,7 +157,8 @@
           {% if event.cover_image_url %}
           <p class="label">Cover Preview</p>
           <figure class="image is-3by2" style="max-width: 480px;">
-            <img src="{{ event.cover_image_url }}" alt="Cover preview" style="object-fit:cover;border:1px solid #eee;">
+            {% set cover = (event.cover_presigned_url() or event.cover_image_url) %}
+            <img src="{{ cover or '' }}" alt="Cover preview" style="object-fit:cover;border:1px solid #eee;">
           </figure>
           {% endif %}
         </div>
@@ -133,20 +169,23 @@
         <div class="column">
           <div class="field">
             <label class="label">Certificate Name (EN)</label>
-            <div class="control"><input class="input" type="text" name="certificate_name_en" value="{{ event.certificate_name_en or '' }}"></div>
+            <div class="control"><input class="input" type="text" name="certificate_name_en"
+                value="{{ event.certificate_name_en or '' }}"></div>
           </div>
         </div>
         <div class="column">
           <div class="field">
             <label class="label">Certificate Name (TH)</label>
-            <div class="control"><input class="input" type="text" name="certificate_name_th" value="{{ event.certificate_name_th or '' }}"></div>
+            <div class="control"><input class="input" type="text" name="certificate_name_th"
+                value="{{ event.certificate_name_th or '' }}"></div>
           </div>
         </div>
       </div>
 
       <div class="field">
         <label class="label">CE Score</label>
-        <div class="control"><input class="input" type="number" step="0.01" name="continue_education_score" value="{{ event.continue_education_score or 0 }}"></div>
+        <div class="control"><input class="input" type="number" step="0.01" name="continue_education_score"
+            value="{{ event.continue_education_score or 0 }}"></div>
       </div>
 
       <div class="columns">
@@ -154,7 +193,8 @@
           <div class="field">
             <label class="label">Early Bird Start</label>
             <div class="control">
-              <input class="input" type="datetime-local" name="early_bird_start" value="{{ event.early_bird_start.strftime('%Y-%m-%dT%H:%M') if event.early_bird_start else '' }}">
+              <input class="input" type="datetime-local" name="early_bird_start"
+                value="{{ event.early_bird_start.strftime('%Y-%m-%dT%H:%M') if event.early_bird_start else '' }}">
             </div>
           </div>
         </div>
@@ -162,7 +202,8 @@
           <div class="field">
             <label class="label">Early Bird End</label>
             <div class="control">
-              <input class="input" type="datetime-local" name="early_bird_end" value="{{ event.early_bird_end.strftime('%Y-%m-%dT%H:%M') if event.early_bird_end else '' }}">
+              <input class="input" type="datetime-local" name="early_bird_end"
+                value="{{ event.early_bird_end.strftime('%Y-%m-%dT%H:%M') if event.early_bird_end else '' }}">
             </div>
           </div>
         </div>
@@ -182,6 +223,7 @@
     {% if speakers_pool and speakers_pool|length > 0 %}
     <h2 class="title is-5">Select Existing Speaker</h2>
     <form method="post" action="{{ url_for('continuing_edu_admin.attach_existing_speaker', event_id=event.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       <div class="columns">
         <div class="column is-two-thirds">
           <div class="select is-fullwidth">
@@ -203,6 +245,7 @@
 
     <h2 class="title is-5">Add New Speaker</h2>
     <form method="post" action="{{ url_for('continuing_edu_admin.add_event_speaker', event_id=event.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       <div class="columns">
         <div class="column">
           <label class="label">Title (EN)</label>
@@ -273,29 +316,32 @@
     <hr>
     <h2 class="title is-5">Speakers</h2>
     {% if speakers %}
-      {% for s in speakers %}
-        <div class="box">
-          <form method="post" action="{{ url_for('continuing_edu_admin.update_event_speaker', event_id=event.id, speaker_id=s.id) }}">
-            <p class="mb-2"><strong>{{ s.name_en }}</strong> ({{ s.institution_en }})</p>
-            <div class="columns">
-              <div class="column"><input class="input" name="name_en" value="{{ s.name_en }}"></div>
-              <div class="column"><input class="input" name="name_th" value="{{ s.name_th }}"></div>
-            </div>
-            <div class="columns">
-              <div class="column"><input class="input" name="email" value="{{ s.email }}"></div>
-              <div class="column"><input class="input" name="phone" value="{{ s.phone }}"></div>
-            </div>
-            <div class="field is-grouped">
-              <div class="control"><button class="button is-link" type="submit">Save</button></div>
-              <div class="control">
-                <button class="button is-danger" type="submit" formmethod="post" formaction="{{ url_for('continuing_edu_admin.delete_event_speaker', event_id=event.id, speaker_id=s.id) }}">Delete</button>
-              </div>
-            </div>
-          </form>
+    {% for s in speakers %}
+    <div class="box">
+      <form method="post"
+        action="{{ url_for('continuing_edu_admin.update_event_speaker', event_id=event.id, speaker_id=s.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <p class="mb-2"><strong>{{ s.name_en }}</strong> ({{ s.institution_en }})</p>
+        <div class="columns">
+          <div class="column"><input class="input" name="name_en" value="{{ s.name_en }}"></div>
+          <div class="column"><input class="input" name="name_th" value="{{ s.name_th }}"></div>
         </div>
-      {% endfor %}
+        <div class="columns">
+          <div class="column"><input class="input" name="email" value="{{ s.email }}"></div>
+          <div class="column"><input class="input" name="phone" value="{{ s.phone }}"></div>
+        </div>
+        <div class="field is-grouped">
+          <div class="control"><button class="button is-link" type="submit">Save</button></div>
+          <div class="control">
+            <button class="button is-danger" type="submit" formmethod="post"
+              formaction="{{ url_for('continuing_edu_admin.delete_event_speaker', event_id=event.id, speaker_id=s.id) }}">Delete</button>
+          </div>
+        </div>
+      </form>
+    </div>
+    {% endfor %}
     {% else %}
-      <p>No speakers yet.</p>
+    <p>No speakers yet.</p>
     {% endif %}
   </div>
   {% endif %}
@@ -305,20 +351,26 @@
   <div class="box">
     <h2 class="title is-5">Add Agenda Item</h2>
     <form method="post" action="{{ url_for('continuing_edu_admin.add_event_agenda', event_id=event.id) }}"
-          hx-post="{{ url_for('continuing_edu_admin.add_event_agenda', event_id=event.id) }}"
-          hx-target="#agenda-list" hx-swap="outerHTML">
+      hx-post="{{ url_for('continuing_edu_admin.add_event_agenda', event_id=event.id) }}" hx-target="#agenda-list"
+      hx-swap="outerHTML">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       <div class="columns">
         <div class="column"><label class="label">Title (EN)</label><input class="input" name="title_en" required></div>
         <div class="column"><label class="label">Title (TH)</label><input class="input" name="title_th" required></div>
       </div>
       <div class="columns">
-        <div class="column"><label class="label">Start</label><input class="input" type="datetime-local" name="start_time" required></div>
-        <div class="column"><label class="label">End</label><input class="input" type="datetime-local" name="end_time" required></div>
-        <div class="column is-one-quarter"><label class="label">Order</label><input class="input" type="number" name="order" value="0"></div>
+        <div class="column"><label class="label">Start</label><input class="input" type="datetime-local"
+            name="start_time" required></div>
+        <div class="column"><label class="label">End</label><input class="input" type="datetime-local" name="end_time"
+            required></div>
+        <div class="column is-one-quarter"><label class="label">Order</label><input class="input" type="number"
+            name="order" value="0"></div>
       </div>
       <div class="columns">
-        <div class="column"><label class="label">Description (EN)</label><textarea class="textarea" name="description_en"></textarea></div>
-        <div class="column"><label class="label">Description (TH)</label><textarea class="textarea" name="description_th"></textarea></div>
+        <div class="column"><label class="label">Description (EN)</label><textarea class="textarea"
+            name="description_en"></textarea></div>
+        <div class="column"><label class="label">Description (TH)</label><textarea class="textarea"
+            name="description_th"></textarea></div>
       </div>
       <button class="button is-primary" type="submit">Add Agenda</button>
     </form>
@@ -333,18 +385,23 @@
   <div class="box">
     <h2 class="title is-5">Add Material</h2>
     <form method="post" action="{{ url_for('continuing_edu_admin.add_event_material', event_id=event.id) }}"
-          hx-post="{{ url_for('continuing_edu_admin.add_event_material', event_id=event.id) }}"
-          hx-target="#materials-list" hx-swap="outerHTML">
+      hx-post="{{ url_for('continuing_edu_admin.add_event_material', event_id=event.id) }}" hx-target="#materials-list"
+      hx-swap="outerHTML">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       <div class="columns">
-        <div class="column is-one-quarter"><label class="label">Order</label><input class="input" type="number" name="order" value="0"></div>
+        <div class="column is-one-quarter"><label class="label">Order</label><input class="input" type="number"
+            name="order" value="0"></div>
         <div class="column"><label class="label">Title (EN)</label><input class="input" name="title_en" required></div>
         <div class="column"><label class="label">Title (TH)</label><input class="input" name="title_th" required></div>
       </div>
       <div class="columns">
-        <div class="column"><label class="label">Description (EN)</label><textarea class="textarea" name="description_en"></textarea></div>
-        <div class="column"><label class="label">Description (TH)</label><textarea class="textarea" name="description_th"></textarea></div>
+        <div class="column"><label class="label">Description (EN)</label><textarea class="textarea"
+            name="description_en"></textarea></div>
+        <div class="column"><label class="label">Description (TH)</label><textarea class="textarea"
+            name="description_th"></textarea></div>
       </div>
-      <div class="field"><label class="label">Material URL</label><input class="input" name="material_url" placeholder="https://..." required></div>
+      <div class="field"><label class="label">Material URL</label><input class="input" name="material_url"
+          placeholder="https://..." required></div>
       <button class="button is-primary" type="submit">Add Material</button>
     </form>
 
@@ -358,6 +415,7 @@
   <div class="box">
     <h2 class="title is-5">Add Registration Fee</h2>
     <form method="post" action="{{ url_for('continuing_edu_admin.add_event_fee', event_id=event.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       <div class="columns">
         <div class="column">
           <label class="label">Member Type</label>
@@ -385,37 +443,43 @@
     <hr>
     <h2 class="title is-5">Fees</h2>
     {% if fees %}
-      {% for f in fees %}
-        <div class="box">
-          <form method="post" action="{{ url_for('continuing_edu_admin.update_event_fee', event_id=event.id, fee_id=f.id) }}">
-            <div class="columns">
-              <div class="column">
-                <div class="select is-fullwidth">
-                  <select name="member_type_id">
-                    {% for mt in member_types %}
-                    <option value="{{ mt.id }}" {% if f.member_type_id==mt.id %}selected{% endif %}>{{ mt.name_en }} / {{ mt.name_th }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-              </div>
-              <div class="column">
-                <input class="input" type="number" step="0.01" name="price" value="{{ '%.2f'|format(f.price) }}">
-              </div>
-              <div class="column">
-                <input class="input" type="number" step="0.01" name="early_bird_price" value="{{ '%.2f'|format(f.early_bird_price) if f.early_bird_price is not none else '' }}" placeholder="Early Bird Price">
-              </div>
+    {% for f in fees %}
+    <div class="box">
+      <form method="post"
+        action="{{ url_for('continuing_edu_admin.update_event_fee', event_id=event.id, fee_id=f.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <div class="columns">
+          <div class="column">
+            <div class="select is-fullwidth">
+              <select name="member_type_id">
+                {% for mt in member_types %}
+                <option value="{{ mt.id }}" {% if f.member_type_id==mt.id %}selected{% endif %}>{{ mt.name_en }} / {{
+                  mt.name_th }}</option>
+                {% endfor %}
+              </select>
             </div>
-            <div class="field is-grouped">
-              <div class="control"><button class="button is-link" type="submit">Save</button></div>
-              <div class="control">
-                <button class="button is-danger" type="submit" formmethod="post" formaction="{{ url_for('continuing_edu_admin.delete_event_fee', event_id=event.id, fee_id=f.id) }}">Delete</button>
-              </div>
-            </div>
-          </form>
+          </div>
+          <div class="column">
+            <input class="input" type="number" step="0.01" name="price" value="{{ '%.2f'|format(f.price) }}">
+          </div>
+          <div class="column">
+            <input class="input" type="number" step="0.01" name="early_bird_price"
+              value="{{ '%.2f'|format(f.early_bird_price) if f.early_bird_price is not none else '' }}"
+              placeholder="Early Bird Price">
+          </div>
         </div>
-      {% endfor %}
+        <div class="field is-grouped">
+          <div class="control"><button class="button is-link" type="submit">Save</button></div>
+          <div class="control">
+            <button class="button is-danger" type="submit" formmethod="post"
+              formaction="{{ url_for('continuing_edu_admin.delete_event_fee', event_id=event.id, fee_id=f.id) }}">Delete</button>
+          </div>
+        </div>
+      </form>
+    </div>
+    {% endfor %}
     {% else %}
-      <p>No fees yet.</p>
+    <p>No fees yet.</p>
     {% endif %}
   </div>
   {% endif %}
@@ -425,6 +489,7 @@
   <div class="box">
     <h2 class="title is-5">Assign Staff Role</h2>
     <form method="post" action="{{ url_for('continuing_edu_admin.update_event_roles', event_id=event.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       <div class="columns">
         <div class="column is-one-quarter">
           <label class="label">Role</label>
@@ -460,51 +525,61 @@
       <div class="column">
         <h3 class="title is-6">Editors</h3>
         {% for r in editors %}
-          <form method="post" action="{{ url_for('continuing_edu_admin.update_event_roles', event_id=event.id) }}" class="mb-2">
-            <input type="hidden" name="remove_role_{{ r.id }}" value="editor:{{ r.id }}">
-            <span>{{ r.staff.personal_info.fullname }}</span>
-            <button class="button is-small is-light is-danger" type="submit">Remove</button>
-          </form>
+        <form method="post" action="{{ url_for('continuing_edu_admin.update_event_roles', event_id=event.id) }}"
+          class="mb-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="remove_role_{{ r.id }}" value="editor:{{ r.id }}">
+          <span>{{ r.staff.personal_info.fullname }}</span>
+          <button class="button is-small is-light is-danger" type="submit">Remove</button>
+        </form>
         {% else %}<p class="is-size-7">None</p>{% endfor %}
       </div>
       <div class="column">
         <h3 class="title is-6">Registration Reviewers</h3>
         {% for r in registration_reviewers %}
-          <form method="post" action="{{ url_for('continuing_edu_admin.update_event_roles', event_id=event.id) }}" class="mb-2">
-            <input type="hidden" name="remove_role_{{ r.id }}" value="registration_reviewer:{{ r.id }}">
-            <span>{{ r.staff.personal_info.fullname }}</span>
-            <button class="button is-small is-light is-danger" type="submit">Remove</button>
-          </form>
+        <form method="post" action="{{ url_for('continuing_edu_admin.update_event_roles', event_id=event.id) }}"
+          class="mb-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="remove_role_{{ r.id }}" value="registration_reviewer:{{ r.id }}">
+          <span>{{ r.staff.personal_info.fullname }}</span>
+          <button class="button is-small is-light is-danger" type="submit">Remove</button>
+        </form>
         {% else %}<p class="is-size-7">None</p>{% endfor %}
       </div>
       <div class="column">
         <h3 class="title is-6">Payment Approvers</h3>
         {% for r in payment_approvers %}
-          <form method="post" action="{{ url_for('continuing_edu_admin.update_event_roles', event_id=event.id) }}" class="mb-2">
-            <input type="hidden" name="remove_role_{{ r.id }}" value="payment_approver:{{ r.id }}">
-            <span>{{ r.staff.personal_info.fullname }}</span>
-            <button class="button is-small is-light is-danger" type="submit">Remove</button>
-          </form>
+        <form method="post" action="{{ url_for('continuing_edu_admin.update_event_roles', event_id=event.id) }}"
+          class="mb-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="remove_role_{{ r.id }}" value="payment_approver:{{ r.id }}">
+          <span>{{ r.staff.personal_info.fullname }}</span>
+          <button class="button is-small is-light is-danger" type="submit">Remove</button>
+        </form>
         {% else %}<p class="is-size-7">None</p>{% endfor %}
       </div>
       <div class="column">
         <h3 class="title is-6">Receipt Issuers</h3>
         {% for r in receipt_issuers %}
-          <form method="post" action="{{ url_for('continuing_edu_admin.update_event_roles', event_id=event.id) }}" class="mb-2">
-            <input type="hidden" name="remove_role_{{ r.id }}" value="receipt_issuer:{{ r.id }}">
-            <span>{{ r.staff.personal_info.fullname }}</span>
-            <button class="button is-small is-light is-danger" type="submit">Remove</button>
-          </form>
+        <form method="post" action="{{ url_for('continuing_edu_admin.update_event_roles', event_id=event.id) }}"
+          class="mb-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="remove_role_{{ r.id }}" value="receipt_issuer:{{ r.id }}">
+          <span>{{ r.staff.personal_info.fullname }}</span>
+          <button class="button is-small is-light is-danger" type="submit">Remove</button>
+        </form>
         {% else %}<p class="is-size-7">None</p>{% endfor %}
       </div>
       <div class="column">
         <h3 class="title is-6">Certificate Managers</h3>
         {% for r in certificate_managers %}
-          <form method="post" action="{{ url_for('continuing_edu_admin.update_event_roles', event_id=event.id) }}" class="mb-2">
-            <input type="hidden" name="remove_role_{{ r.id }}" value="certificate_manager:{{ r.id }}">
-            <span>{{ r.staff.personal_info.fullname }}</span>
-            <button class="button is-small is-light is-danger" type="submit">Remove</button>
-          </form>
+        <form method="post" action="{{ url_for('continuing_edu_admin.update_event_roles', event_id=event.id) }}"
+          class="mb-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="remove_role_{{ r.id }}" value="certificate_manager:{{ r.id }}">
+          <span>{{ r.staff.personal_info.fullname }}</span>
+          <button class="button is-small is-light is-danger" type="submit">Remove</button>
+        </form>
         {% else %}<p class="is-size-7">None</p>{% endfor %}
       </div>
     </div>
@@ -524,7 +599,7 @@
         animation: 150,
         onEnd: function () {
           var ids = Array.from(agendaItems.querySelectorAll('.agenda-item'))
-                         .map(function(el){ return el.getAttribute('data-id'); });
+            .map(function (el) { return el.getAttribute('data-id'); });
           if (window.htmx) {
             htmx.ajax('POST', '{{ url_for('continuing_edu_admin.reorder_agendas', event_id=event.id) }}', {
               values: { 'order[]': ids },
@@ -544,7 +619,7 @@
         animation: 150,
         onEnd: function () {
           var ids = Array.from(materialItems.querySelectorAll('.materials-item'))
-                         .map(function(el){ return el.getAttribute('data-id'); });
+            .map(function (el) { return el.getAttribute('data-id'); });
           if (window.htmx) {
             htmx.ajax('POST', '{{ url_for('continuing_edu_admin.reorder_materials', event_id=event.id) }}', {
               values: { 'order[]': ids },
@@ -560,7 +635,7 @@
   // Initial bind
   initSortables();
   // Re-bind after HTMX swaps on lists
-  document.body.addEventListener('htmx:afterSwap', function(evt) {
+  document.body.addEventListener('htmx:afterSwap', function (evt) {
     var t = evt.target;
     if (t && (t.id === 'agenda-list' || t.id === 'materials-list')) {
       initSortables();

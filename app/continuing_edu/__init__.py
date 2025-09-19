@@ -1,4 +1,11 @@
 # Translations for static text
+
+from flask import Blueprint
+
+ce_bp = Blueprint('continuing_edu', __name__, url_prefix='/continuing_edu')
+
+
+
 translations = {
     'en': {
         'university_name': 'Academic Services',
@@ -80,7 +87,40 @@ translations = {
         'i_accept': 'I accept',
         'accept_policy': 'Policy accepted',
         'accept_terms': 'Terms of Service',
-        'receive_news': 'Accept Newsletter'
+        'receive_news': 'Accept Newsletter',
+
+        # Invoice / Payment i18n
+        'invoice_title': 'Invoice',
+        'invoice_billed_to': 'Billed To',
+        'invoice_details': 'Details',
+        'invoice_no': 'Invoice No.',
+        'invoice_amount': 'Amount',
+        'invoice_status': 'Status',
+        'invoice_created': 'Created',
+        'invoice_how_to_pay': 'How to pay',
+        'invoice_bank_info': 'Bank Info',
+        'invoice_total_due': 'Total Due',
+        'invoice_go_to_my_payments': 'Go to My Payments',
+        'invoice_pay_via_qr': 'Pay via QR',
+        'invoice_promptpay_id': 'PromptPay ID',
+        'invoice_download_pdf': 'Download PDF',
+        'invoice_pdf_unavailable': 'PDF Unavailable',
+        'invoice_pay_online': 'Pay Online',
+
+        # Email i18n
+        'email_registered_for': 'You registered for',
+        'email_amount': 'Amount',
+        'email_status': 'Status',
+        'email_pay_now_or_view_invoice': 'Pay now or view invoice:',
+        'email_invoice': 'Invoice',
+        'email_my_payments': 'My payments',
+        'email_pay_online': 'Pay Online',
+        "email_buttons_fallback": "If the buttons don't work, you can copy these links into your browser:",
+
+        # Misc
+        'not_allowed': 'You are not allowed to view this invoice.',
+        'pdf_unavailable': 'PDF generation is currently unavailable.',
+        'status_pending': 'pending'
 
     },
     'th': {
@@ -162,165 +202,44 @@ translations = {
         'i_accept': 'ฉันยอมรับ',
         'accept_policy' : 'นโยบายความเป็นส่วนตัว',
         'accept_terms': 'ข้อกำหนดและเงือนไขการบริการ',
-        'receive_news': 'ยินยอมรับข่าวสารประชาสัมพันธ์ทางอีเมล'
+        'receive_news': 'ยินยอมรับข่าวสารประชาสัมพันธ์ทางอีเมล',
+
+        # Invoice / Payment i18n
+        'invoice_title': 'ใบแจ้งหนี้',
+        'invoice_billed_to': 'เรียกเก็บกับ',
+        'invoice_details': 'รายละเอียด',
+        'invoice_no': 'เลขที่ใบแจ้งหนี้',
+        'invoice_amount': 'ยอดเงิน',
+        'invoice_status': 'สถานะ',
+        'invoice_created': 'วันที่สร้าง',
+        'invoice_how_to_pay': 'วิธีชำระเงิน',
+        'invoice_bank_info': 'ข้อมูลบัญชีธนาคาร',
+        'invoice_total_due': 'ยอดที่ต้องชำระ',
+        'invoice_go_to_my_payments': 'ไปที่หน้าการชำระเงินของฉัน',
+        'invoice_pay_via_qr': 'ชำระผ่านคิวอาร์',
+        'invoice_promptpay_id': 'พร้อมเพย์',
+        'invoice_download_pdf': 'ดาวน์โหลด PDF',
+        'invoice_pdf_unavailable': 'ไม่สามารถสร้าง PDF ได้',
+        'invoice_pay_online': 'ชำระเงินออนไลน์',
+
+        # Email i18n
+        'email_registered_for': 'คุณได้ลงทะเบียนสำหรับ',
+        'email_amount': 'ยอดเงิน',
+        'email_status': 'สถานะ',
+        'email_pay_now_or_view_invoice': 'ชำระตอนนี้หรือดูใบแจ้งหนี้:',
+        'email_invoice': 'ใบแจ้งหนี้',
+        'email_my_payments': 'การชำระเงินของฉัน',
+        'email_pay_online': 'ชำระเงินออนไลน์',
+        'email_buttons_fallback': 'หากปุ่มไม่ทำงาน ให้คัดลอกลิงก์เหล่านี้ไปวางในเบราว์เซอร์:',
+
+        # Misc
+        'not_allowed': 'คุณไม่มีสิทธิ์ดูใบแจ้งหนี้นี้',
+        'pdf_unavailable': 'ไม่สามารถสร้างไฟล์ PDF ได้ในขณะนี้',
+        'status_pending': 'รอดำเนินการ'
     }
 }
 
 # Make translations available as 'texts' for template context
 texts = translations    
 
-from flask import Blueprint
-
-ce_bp = Blueprint('continuing_edu', __name__, url_prefix='/continuing_edu')
-
 from . import views
-
-# # Translations for static text
-# translations = {
-#     'en': {
-#         'university_name': 'Academic Services',
-#         'short_courses_nav': 'Short Courses',
-#         'webinars_nav': 'Webinars',
-#         'contact_us_nav': 'Contact Us',
-#         'hero_title': 'Unlock Your Potential with Our Academic Offerings',
-#         'hero_subtitle': 'Explore a diverse range of short courses and insightful webinars designed to enhance your skills and knowledge.',
-#         'explore_courses_btn': 'Explore Short Courses',
-#         'discover_webinars_btn': 'Discover Webinars',
-#         'our_short_courses_title': 'Our Short Courses',
-#         'learn_more_btn': 'Learn More',
-#         'view_all_courses_btn': 'View All Short Courses',
-#         'upcoming_webinars_title': 'Upcoming Webinars',
-#         'register_now_btn': 'Register Now',
-#         'view_all_webinars_btn': 'View All Webinars',
-#         'cta_title': 'Ready to Advance Your Career?',
-#         'cta_subtitle': "Don't miss out on these valuable opportunities. Enroll in a course or register for a webinar today!",
-#         'get_started_btn': 'Get Started Now',
-#         'contact_us_title': 'Contact Us',
-#         'contact_us_description': 'Have questions about our short courses or webinars? Reach out to us!',
-#         'name_label': 'Name',
-#         'email_label': 'Email',
-#         'message_label': 'Message',
-#         'send_message_btn': 'Send Message',
-#         'footer_text': '&copy; 2025 University Academic Services. All rights reserved.',
-#         'privacy_policy': 'Privacy Policy',
-#         'terms_of_service': 'Terms of Service',
-#         'duration_label': 'Duration',
-#         'format_label': 'Format',
-#         'certification_label': 'Certification',
-#         'date_label': 'Date',
-#         'time_label': 'Time',
-#         'speaker_label': 'Speaker',
-#         'lang_en': 'English',
-#         'lang_th': 'Thai',
-#         'course_detail_title': 'Course Details',
-#         'back_to_courses_btn': 'Back to Courses',
-#         'webinar_detail_title': 'Webinar Details',
-#         'back_to_webinars_btn': 'Back to Webinars',
-#         'register_page_title': 'Register',
-#         'login_page_title': 'Login',
-#         'username_label': 'Username',
-#         'password_label': 'Password',
-#         'confirm_password_label': 'Confirm Password',
-#         'register_btn': 'Register',
-#         'login_btn': 'Login',
-#         'already_have_account': 'Already have an account?',
-#         'no_account_yet': 'Don\'t have an account yet?',
-#         'logout_btn': 'Logout',
-#         'welcome_message': 'Welcome,',
-#         'enroll_now_btn': 'Enroll Now',
-#         'register_to_enroll': 'Register or Login to Enroll',
-#         'member_type_label': 'Member Type',
-#         'mahidol_student': 'Mahidol Student',
-#         'grad_student': 'Grad Student',
-#         'staff': 'Staff',
-#         'personal': 'Personal',
-#         'other': 'Other',
-#         'gender_label': 'Gender',
-#         'age_range_label': 'Age Range',
-#         'country_label': 'Country',
-#         'full_name_th_label': 'Full Name (Thai)',
-#         'full_name_en_label': 'Full Name (English)',
-#         'instructors_label': 'Instructors',
-#         'agenda_label': 'Agenda',
-#         'location_label': 'Location',
-#         'registration_fee_label': 'Registration Fee',
-#         'price_for_you': 'Price for you',
-#                          'accept_policy': 'Policy accepted',
-
-# 'accept_terms': 'Terms of Service',
-#         'receive_news': 'Rrceive Newsletter'
-
-#     },
-#     'th': {
-#         'university_name': 'บริการวิชาการ',
-#         'short_courses_nav': 'หลักสูตรระยะสั้น',
-#         'webinars_nav': 'การสัมมนาผ่านเว็บ',
-#         'contact_us_nav': 'ติดต่อเรา',
-#         'hero_title': 'ปลดล็อกศักยภาพของคุณด้วยข้อเสนอทางวิชาการของเรา',
-#         'hero_subtitle': 'สำรวจหลักสูตรระยะสั้นที่หลากหลายและการสัมมนาผ่านเว็บเชิงลึกที่ออกแบบมาเพื่อเพิ่มพูนทักษะและความรู้ของคุณ',
-#         'explore_courses_btn': 'สำรวจหลักสูตรระยะสั้น',
-#         'discover_webinars_btn': 'ค้นพบการสัมมนาผ่านเว็บ',
-#         'our_short_courses_title': 'หลักสูตรระยะสั้นของเรา',
-#         'learn_more_btn': 'เรียนรู้เพิ่มเติม',
-#         'view_all_courses_btn': 'ดูหลักสูตรระยะสั้นทั้งหมด',
-#         'upcoming_webinars_title': 'การสัมมนาผ่านเว็บที่กำลังจะมาถึง',
-#         'register_now_btn': 'ลงทะเบียนตอนนี้',
-#         'view_all_webinars_btn': 'ดูการสัมมนาผ่านเว็บทั้งหมด',
-#         'cta_title': 'พร้อมที่จะก้าวหน้าในอาชีพของคุณแล้วหรือยัง?',
-#         'cta_subtitle': 'อย่าพลาดโอกาสอันมีค่าเหล่านี้ ลงทะเบียนเรียนหลักสูตรหรือการสัมมนาผ่านเว็บวันนี้!',
-#         'get_started_btn': 'เริ่มต้นตอนนี้',
-#         'contact_us_title': 'ติดต่อเรา',
-#         'contact_us_description': 'มีคำถามเกี่ยวกับหลักสูตรระยะสั้นหรือการสัมมนาผ่านเว็บของเราหรือไม่? ติดต่อเรา!',
-#         'name_label': 'ชื่อ',
-#         'email_label': 'อีเมล',
-#         'message_label': 'ข้อความ',
-#         'send_message_btn': 'ส่งข้อความ',
-#         'footer_text': '&copy; 2568 บริการวิชาการของมหาวิทยาลัย สงวนลิขสิทธิ์',
-#         'privacy_policy': 'นโยบายความเป็นส่วนตัว',
-#         'terms_of_service': 'ข้อกำหนดในการให้บริการ',
-#         'duration_label': 'ระยะเวลา',
-#         'format_label': 'รูปแบบ',
-#         'certification_label': 'การรับรอง',
-#         'date_label': 'วันที่',
-#         'time_label': 'เวลา',
-#         'speaker_label': 'ผู้บรรยาย',
-#         'lang_en': 'อังกฤษ',
-#         'lang_th': 'ไทย',
-#         'course_detail_title': 'รายละเอียดหลักสูตร',
-#         'back_to_courses_btn': 'กลับไปที่หลักสูตร',
-#         'webinar_detail_title': 'รายละเอียดการสัมมนาผ่านเว็บ',
-#         'back_to_webinars_btn': 'กลับไปที่การสัมมนาผ่านเว็บ',
-#         'register_page_title': 'ลงทะเบียน',
-#         'login_page_title': 'เข้าสู่ระบบ',
-#         'username_label': 'ชื่อผู้ใช้',
-#         'password_label': 'รหัสผ่าน',
-#         'confirm_password_label': 'ยืนยันรหัสผ่าน',
-#         'register_btn': 'ลงทะเบียน',
-#         'login_btn': 'เข้าสู่ระบบ',
-#         'already_have_account': 'มีบัญชีอยู่แล้ว?',
-#         'no_account_yet': 'ยังไม่มีบัญชี?',
-#         'logout_btn': 'ออกจากระบบ',
-#         'welcome_message': 'ยินดีต้อนรับ,',
-#         'enroll_now_btn': 'ลงทะเบียนเรียนตอนนี้',
-#         'register_to_enroll': 'ลงทะเบียนหรือเข้าสู่ระบบเพื่อลงทะเบียน',
-#         'member_type_label': 'ประเภทสมาชิก',
-#         'mahidol_student': 'นักศึกษามหิดล',
-#         'grad_student': 'นักศึกษาบัณฑิต',
-#         'staff': 'บุคลากร',
-#         'personal': 'บุคคลทั่วไป',
-#         'other': 'อื่นๆ',
-#         'gender_label': 'เพศ',
-#         'age_range_label': 'ช่วงอายุ',
-#         'country_label': 'ประเทศ',
-#         'full_name_th_label': 'ชื่อเต็ม (ไทย)',
-#         'full_name_en_label': 'ชื่อเต็ม (อังกฤษ)',
-#         'instructors_label': 'ผู้สอน',
-#         'agenda_label': 'กำหนดการ',
-#         'location_label': 'สถานที่',
-#         'registration_fee_label': 'ค่าลงทะเบียน',
-#         'price_for_you': 'ราคาสำหรับคุณ',
-#         'accept_policy' : 'นโยบาย',
-#         'accept_terms': 'ขอกำหนดและเงือนไขการบริการ',
-#         'receive_news': 'รับข้อมูลข่าวสารผ่านทางอีเมล'
-#     }
-# }

@@ -1,0 +1,106 @@
+{% extends 'continueing_edu/base.html' %}
+{% block title %}{{ texts['invoice_title'] }}{% endblock %}
+{% block content %}
+<div class="container">
+  <h1 class="title">{{ texts['invoice_title'] }}</h1>
+  <div class="box">
+    <div class="level" style="margin-bottom: 1rem;">
+      <div class="level-left">
+        <div>
+          <div class="title is-4" style="margin-bottom: 0;">{{ texts['invoice_title'] }}</div>
+          <div class="is-size-7 has-text-grey">INV-{{ payment.id }}</div>
+        </div>
+      </div>
+      <div class="level-right">
+        <div class="buttons">
+          {% if pdf_available %}
+          <a class="button is-link is-light" href="{{ url_for('continuing_edu.download_invoice_pdf', payment_id=payment.id, lang=current_lang) }}">{{ texts['invoice_download_pdf'] }}</a>
+          {% else %}
+          <button class="button is-link is-light" disabled>{{ texts['invoice_pdf_unavailable'] }}</button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <hr>
+    <div class="columns">
+      <div class="column is-two-thirds">
+        <h2 class="title is-5">{{ texts['course_detail_title'] }}</h2>
+        <p class="mb-3">{{ payment.event_entity.title_en or payment.event_entity.title_th }}</p>
+
+        <h2 class="title is-5">{{ texts['invoice_billed_to'] }}</h2>
+        <p class="mb-3">
+          {{ member.full_name_en or member.full_name_th or member.username }}<br>
+          {{ member.email }}
+        </p>
+
+        <h2 class="title is-5">{{ texts['invoice_details'] }}</h2>
+        <table class="table is-fullwidth is-bordered">
+          <tbody>
+            <tr>
+              <th>{{ texts['invoice_no'] }}</th>
+              <td>INV-{{ payment.id }}</td>
+            </tr>
+            <tr>
+              <th>{{ texts['invoice_amount'] }}</th>
+              <td>{{ '%.2f' % (payment.payment_amount or 0) }} THB</td>
+            </tr>
+            <tr>
+              <th>{{ texts['invoice_status'] }}</th>
+              <td>
+                {% set st = payment.payment_status_ref.name_en if payment.payment_status_ref else 'pending' %}
+                <span class="tag {% if st=='approved' %}is-success{% elif st=='submitted' %}is-info{% elif st=='rejected' %}is-danger{% else %}is-warning{% endif %}">{{ st|capitalize }}</span>
+              </td>
+            </tr>
+            <tr>
+              <th>{{ texts['invoice_created'] }}</th>
+              <td>{{ payment.payment_date }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="content">
+          <h3 class="title is-6">{{ texts['invoice_how_to_pay'] }}</h3>
+          {% if payment_instructions %}
+          <p style="white-space: pre-line;">{{ payment_instructions }}</p>
+          {% else %}
+          <p>
+            - Transfer the amount to the designated account and upload proof on My Payments page.<br>
+            - Or reply to this email with your proof of payment.
+          </p>
+          {% endif %}
+          {% if bank_info %}
+          <article class="message is-info">
+            <div class="message-header"><p>{{ texts['invoice_bank_info'] }}</p></div>
+            <div class="message-body" style="white-space: pre-line;">{{ bank_info }}</div>
+          </article>
+          {% endif %}
+        </div>
+      </div>
+      <div class="column">
+        <div class="box has-text-centered">
+          <div class="title is-5">{{ texts['invoice_total_due'] }}</div>
+          <div class="title is-3">{{ '%.2f' % (payment.payment_amount or 0) }} THB</div>
+          {% if payment_gateway_url %}
+          <a class="button is-primary is-fullwidth" href="{{ payment_gateway_url }}" target="_blank">{{ texts['invoice_pay_online'] }}</a>
+          <div class="is-size-7 has-text-grey mt-1">&nbsp;</div>
+          {% endif %}
+          <a class="button is-link is-fullwidth mt-2" href="{{ url_for('continuing_edu.my_payments', lang=current_lang) }}">{{ texts['invoice_go_to_my_payments'] }}</a>
+        </div>
+        {% if payment_qr_url or promptpay_id %}
+        <div class="box has-text-centered">
+          <div class="title is-6">{{ texts['invoice_pay_via_qr'] }}</div>
+          {% if payment_qr_url %}
+          <figure class="image is-square" style="max-width:260px;margin:0 auto;">
+            <img src="{{ payment_qr_url }}" alt="QR code for payment">
+          </figure>
+          {% endif %}
+          {% if promptpay_id %}
+          <p class="mt-2"><strong>{{ texts['invoice_promptpay_id'] }}:</strong> {{ promptpay_id }}</p>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

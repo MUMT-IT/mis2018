@@ -40,7 +40,7 @@
                 <div>
                   Proof:
                   {% if pay.payment_proof_url %}
-                    <a href="{{ pay.payment_proof_url }}" target="_blank">View</a>
+                    <button class="button is-small is-light" type="button" onclick="openProofModal('{{ pay.proof_presigned_url()|e }}')">View</button>
                   {% else %}
                     <em>None</em>
                   {% endif %}
@@ -97,5 +97,49 @@
       <a class="button" href="{{ url_for('continuing_edu.index', lang=current_lang) }}">Back to Home</a>
     </div>
   </section>
+  
+  <!-- Proof Modal -->
+  <div id="proof-modal" class="modal">
+    <div class="modal-background" onclick="closeProofModal()"></div>
+    <div class="modal-content">
+      <div class="box">
+        <div id="proof-container" class="content" style="text-align:center"></div>
+      </div>
+    </div>
+    <button class="modal-close is-large" aria-label="close" onclick="closeProofModal()"></button>
+  </div>
+
+  <script>
+    function isImageUrl(url) {
+      return /\.(png|jpg|jpeg|gif|webp|svg)(\?.*)?$/i.test(url);
+    }
+    function openProofModal(url) {
+      var modal = document.getElementById('proof-modal');
+      var container = document.getElementById('proof-container');
+      container.innerHTML = '';
+      if (isImageUrl(url)) {
+        var img = document.createElement('img');
+        img.src = url;
+        img.alt = 'Payment Proof';
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '70vh';
+        container.appendChild(img);
+      } else {
+        var iframe = document.createElement('iframe');
+        iframe.src = url;
+        iframe.style.width = '100%';
+        iframe.style.height = '70vh';
+        iframe.setAttribute('frameborder', '0');
+        container.appendChild(iframe);
+      }
+      modal.classList.add('is-active');
+    }
+    function closeProofModal() {
+      var modal = document.getElementById('proof-modal');
+      var container = document.getElementById('proof-container');
+      modal.classList.remove('is-active');
+      container.innerHTML = '';
+    }
+  </script>
 </body>
 </html>

@@ -3,6 +3,7 @@
 <div class="container">
   <h1 class="title is-3">{{ 'New Speaker' if mode=='new' else 'Edit Speaker' }}</h1>
   <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
     <div class="columns">
       <div class="column">
         <label class="label">Title (EN)</label>
@@ -87,9 +88,9 @@
 
     <div class="field is-grouped">
       <div class="control"><button class="button is-primary" type="submit">Save</button></div>
-      <div class="control"><a class="button" href="{{ url_for('continuing_edu_admin.speakers_index') }}">Cancel</a></div>
+      <div class="control"><a class="button" href="{{ url_for('continuing_edu_admin.speakers_index') }}">Cancel</a>
+      </div>
     </div>
   </form>
 </div>
 {% endblock %}
-

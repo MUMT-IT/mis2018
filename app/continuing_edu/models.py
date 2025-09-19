@@ -3,6 +3,8 @@ from sqlalchemy.orm import relationship
 
 from app.staff.models import StaffAccount
 from app.main import db
+import os
+import boto3
 
 
 
@@ -258,6 +260,44 @@ class EventEntity(db.Model):
     def __repr__(self) -> str:
         return f"<EventEntity {self.event_type}: {self.title_en}>"
 
+    # --- S3 presigned URL helpers ---
+    def _is_http_url(self, value: str) -> bool:
+        return isinstance(value, str) and (value.startswith('http://') or value.startswith('https://') or value.startswith('//'))
+
+    def _generate_presigned_url(self, key: str, expires_in: int = 3600):
+        if not key:
+            return None
+        # If already a public URL, return as-is
+        if self._is_http_url(key):
+            return key
+        try:
+            bucket = os.getenv('BUCKETEER_BUCKET_NAME')
+            if not bucket:
+                return None
+            s3 = boto3.client(
+                's3',
+                aws_access_key_id=os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID'),
+                aws_secret_access_key=os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY'),
+                region_name=os.getenv('BUCKETEER_AWS_REGION'),
+            )
+            return s3.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': bucket, 'Key': key},
+                ExpiresIn=expires_in
+            )
+        except Exception:
+            return None
+
+    def poster_presigned_url(self):
+        if not getattr(self, '_poster_presigned_cache', None):
+            self._poster_presigned_cache = self._generate_presigned_url(self.poster_image_url)
+        return self._poster_presigned_cache
+
+    def cover_presigned_url(self):
+        if not getattr(self, '_cover_presigned_cache', None):
+            self._cover_presigned_cache = self._generate_presigned_url(self.cover_image_url)
+        return self._cover_presigned_cache
+
 
 
 
@@ -392,6 +432,34 @@ class RegisterPayment(db.Model):
 
     def __repr__(self) -> str:
         return f"<RegisterPayment Member:{self.member_id} Event:{self.event_entity_id} Status:{self.payment_status_ref.name_en if self.payment_status_ref else 'N/A'}>"
+
+    # --- S3 proof presigned helper ---
+    def _is_http_url(self, value: str) -> bool:
+        return isinstance(value, str) and (value.startswith('http://') or value.startswith('https://') or value.startswith('//'))
+
+    def proof_presigned_url(self):
+        val = self.payment_proof_url
+        if not val:
+            return None
+        if self._is_http_url(val):
+            return val
+        try:
+            bucket = os.getenv('BUCKETEER_BUCKET_NAME')
+            if not bucket:
+                return None
+            s3c = boto3.client(
+                's3',
+                aws_access_key_id=os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID'),
+                aws_secret_access_key=os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY'),
+                region_name=os.getenv('BUCKETEER_AWS_REGION'),
+            )
+            return s3c.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': bucket, 'Key': val},
+                ExpiresIn=3600
+            )
+        except Exception:
+            return None
 
 
 # --------------------------------------------------

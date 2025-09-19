@@ -203,7 +203,9 @@
                     <div class="card has-background-gray-50 p-1 rounded-lg shadow-md border border-gray-200">
                         <div class="card-image mb-4" style="position:relative;">
                             <figure class="image is-3by2">
-                                <img src="{{ course.cover_image_url or course.poster_image_url or course.image_url }}" alt="{{ course.title or course.title_en }} Course" class="object-cover rounded-md">
+                                {% set cover = course.cover_presigned_url() if course.cover_image_url else None %}
+                                {% set poster = course.poster_presigned_url() if course.poster_image_url else None %}
+                                <img src="{{ cover or poster or course.image_url }}" alt="{{ course.title or course.title_en }} Course" class="object-cover rounded-md">
                             </figure>
                             {% if course.early_bird_end %}
                             <span class="tag is-warning is-light" style="position:absolute;top:8px;left:8px;">Early Bird</span>

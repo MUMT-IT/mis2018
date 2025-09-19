@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="{{ current_lang }}">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Payments</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
 </head>
+
 <body class="has-text-gray-800">
   <section class="section">
     <div class="container">
@@ -22,38 +24,62 @@
           </tr>
         </thead>
         <tbody>
-        {% for p in payments %}
+          {% for p in payments %}
           <tr>
             <td>{{ p.event_entity.title_en or p.event_entity.title_th }}</td>
             <td>{{ '%.2f'|format(p.payment_amount or 0) }} THB</td>
             <td>
-              {% set badge = p.payment_status_ref.css_badge if p.payment_status_ref and p.payment_status_ref.css_badge else 'is-light' %}
+              {% set badge = p.payment_status_ref.css_badge if p.payment_status_ref and p.payment_status_ref.css_badge
+              else 'is-light' %}
               <span class="tag {{ badge }}">{{ p.payment_status_ref.name_en if p.payment_status_ref else 'N/A' }}</span>
             </td>
             <td>
               {% if p.payment_proof_url %}
-                <a href="{{ p.payment_proof_url }}" target="_blank">View</a>
+              <button class="button is-small is-light" type="button" onclick="openProofModal('{{ p.proof_presigned_url()|e }}')">View</button>
               {% else %}
-                <em>None</em>
+              <em>None</em>
               {% endif %}
             </td>
             <td>
-              <form method="post" action="{{ url_for('continuing_edu.submit_payment_proof', payment_id=p.id, lang=current_lang) }}" class="is-flex">
-                <input class="input" type="url" name="payment_proof_url" placeholder="https://..." style="max-width:260px;margin-right:8px;">
-                <button class="button is-small is-link" type="submit">Submit Proof</button>
+              {% set status_code = p.payment_status_ref.register_payment_status_code if p.payment_status_ref and p.payment_status_ref.register_payment_status_code else (p.payment_status_ref.name_en|lower if p.payment_status_ref else '') %}
+              {% set can_replace = status_code in ['pending','submitted','rejected',''] %}
+              {% if can_replace %}
+              <form method="post"
+                action="{{ url_for('continuing_edu.submit_payment_proof', payment_id=p.id, lang=current_lang) }}"
+                class="is-flex">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <input class="input" type="url" name="payment_proof_url" placeholder="https://..."
+                  style="max-width:260px;margin-right:8px;">
+                <button class="button is-small is-link" type="submit">{{ p.payment_proof_url and 'Replace URL' or 'Submit URL' }}</button>
               </form>
-              <form method="post" action="{{ url_for('continuing_edu.upload_payment_proof', payment_id=p.id, lang=current_lang) }}" class="is-flex mt-2" enctype="multipart/form-data">
+              <form method="post"
+                action="{{ url_for('continuing_edu.upload_payment_proof', payment_id=p.id, lang=current_lang) }}"
+                class="is-flex mt-2" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <input class="input" type="file" name="payment_proof_file" style="max-width:260px;margin-right:8px;">
-                <button class="button is-small" type="submit">Upload File</button>
+                <button class="button is-small" type="submit">{{ p.payment_proof_url and 'Replace File' or 'Upload File' }}</button>
               </form>
+              {% else %}
+                <em>Payment is approved. Editing proof is locked.</em>
+              {% endif %}
+              <div class="mt-2">
+                <a class="button is-small is-primary is-light" href="{{ url_for('continuing_edu.view_invoice', payment_id=p.id, lang=current_lang) }}">View Invoice</a>
+              </div>
+              {% if payment_gateway_url %}
+              <div class="mt-2">
+                <a class="button is-small is-primary" href="{{ payment_gateway_url }}" target="_blank">Pay Online</a>
+              </div>
+              {% endif %}
               {% if p.receipt %}
               <div class="mt-2">
-                <a class="button is-small is-light" href="{{ url_for('continuing_edu.view_receipt', receipt_id=p.receipt.id, lang=current_lang) }}">View Receipt</a>
+                <a class="button is-small is-light"
+                  href="{{ url_for('continuing_edu.view_receipt', receipt_id=p.receipt.id, lang=current_lang) }}">View
+                  Receipt</a>
               </div>
               {% endif %}
             </td>
           </tr>
-        {% endfor %}
+          {% endfor %}
         </tbody>
       </table>
       {% else %}
@@ -63,4 +89,49 @@
     </div>
   </section>
 </body>
+
+<!-- Proof Modal -->
+<div id="proof-modal" class="modal">
+  <div class="modal-background" onclick="closeProofModal()"></div>
+  <div class="modal-content">
+    <div class="box">
+      <div id="proof-container" class="content" style="text-align:center"></div>
+    </div>
+  </div>
+  <button class="modal-close is-large" aria-label="close" onclick="closeProofModal()"></button>
+</div>
+
+<script>
+  function isImageUrl(url) {
+    return /\.(png|jpg|jpeg|gif|webp|svg)(\?.*)?$/i.test(url);
+  }
+  function openProofModal(url) {
+    var modal = document.getElementById('proof-modal');
+    var container = document.getElementById('proof-container');
+    container.innerHTML = '';
+    if (isImageUrl(url)) {
+      var img = document.createElement('img');
+      img.src = url;
+      img.alt = 'Payment Proof';
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '70vh';
+      container.appendChild(img);
+    } else {
+      var iframe = document.createElement('iframe');
+      iframe.src = url;
+      iframe.style.width = '100%';
+      iframe.style.height = '70vh';
+      iframe.setAttribute('frameborder', '0');
+      container.appendChild(iframe);
+    }
+    modal.classList.add('is-active');
+  }
+  function closeProofModal() {
+    var modal = document.getElementById('proof-modal');
+    var container = document.getElementById('proof-container');
+    modal.classList.remove('is-active');
+    container.innerHTML = '';
+  }
+</script>
+
 </html>

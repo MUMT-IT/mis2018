@@ -311,96 +311,144 @@
                             }}</a></li>
                     <li><a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#short-courses">{{
                             texts.our_short_courses_title }}</a></li>
-                    <li class="is-active"><a href="#" aria-current="page">{{ course.title }}</a></li>
+                    {% set title_local = course.title_en if current_lang=='en' else (course.title_th or course.title_en) %}
+                    <li class="is-active"><a href="#" aria-current="page">{{ title_local }}</a></li>
                 </ul>
             </nav>
-            <h1 class="title is-1 has-text-centered mb-12 has-text-gray-800 rounded-md">{{ course.title }}</h1>
+            <h1 class="title is-1 has-text-centered mb-12 has-text-gray-800 rounded-md">{{ title_local }}</h1>
 
             <div class="columns is-vcentered is-desktop">
                 <div class="column is-half-desktop">
                     <figure class="image is-3by2">
-                        <img src="{{ course.cover_image_url or course.poster_image_url or course.image_url }}" alt="[Image of {{ course.title or course.title_en }}]"
+                        {% set cover = course.cover_presigned_url() if course.cover_image_url else None %}
+                        {% set poster = course.poster_presigned_url() if course.poster_image_url else None %}
+                        <img src="{{ cover or poster or course.image_url }}"
+                            alt="[Image of {{ course.title or course.title_en }}]"
                             class="object-cover rounded-lg shadow-lg">
                     </figure>
                 </div>
                 <div class="column is-half-desktop">
                     <div class="content">
-                        <p class="is-size-5 has-text-gray-700 mb-6 rounded-md">
-                            {{ course.long_description }}
-                        </p>
+                        {% set long_desc = course.long_description_en if current_lang=='en' else (course.long_description_th or course.long_description_en) %}
+                        {% set short_desc = course.description_en if current_lang=='en' else (course.description_th or course.description_en) %}
+                        {% if long_desc %}
+                        <p class="is-size-5 has-text-gray-700 mb-6 rounded-md">{{ long_desc }}</p>
+                        {% elif short_desc %}
+                        <p class="is-size-5 has-text-gray-700 mb-6 rounded-md">{{ short_desc }}</p>
+                        {% endif %}
                         <ul class="list-disc has-text-gray-700 mb-4 rounded-md">
-                            <li><strong>{{ texts.duration_label }}:</strong> {{ course.duration }}</li>
-                            <li><strong>{{ texts.format_label }}:</strong> {{ course.format }}</li>
-                            <li><strong>{{ texts.certification_label }}:</strong> {{ course.certification }}</li>
-                            <li><strong>{{ texts.location_label }}:</strong> {{ course.location }}</li>
+                            {% set duration = course.duration_en if current_lang=='en' else (course.duration_th or course.duration_en) %}
+                            {% set fmt = course.format_en if current_lang=='en' else (course.format_th or course.format_en) %}
+                            {% set cert = course.certificate_name_en if current_lang=='en' else (course.certificate_name_th or course.certificate_name_en) %}
+                            {% set loc = course.location_en if current_lang=='en' else (course.location_th or course.location_en) %}
+                            {% if duration %}<li><strong>{{ texts.duration_label }}:</strong> {{ duration }}</li>{% endif %}
+                            {% if fmt %}<li><strong>{{ texts.format_label }}:</strong> {{ fmt }}</li>{% endif %}
+                            {% if cert %}<li><strong>{{ texts.certification_label }}:</strong> {{ cert }}</li>{% endif %}
+                            {% if loc %}<li><strong>{{ texts.location_label }}:</strong> {{ loc }}</li>{% endif %}
+                            {% if course.continue_education_score %}
+                              <li><strong>CE Score:</strong> {{ '%.2f'|format(course.continue_education_score) }}</li>
+                            {% endif %}
                         </ul>
 
                         <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.instructors_label }}</h4>
-                        <ul class="list-disc has-text-gray-700 mb-4">
-                            {% for instructor in course.instructors %}
-                            <li>{{ instructor }}</li>
+                        {% if course.speakers %}
+                          <ul class="list-disc has-text-gray-700 mb-4">
+                            {% for sp in course.speakers %}
+                              {% set sp_name = sp.name_en if current_lang=='en' else (sp.name_th or sp.name_en) %}
+                              {% set sp_title = sp.title_en if current_lang=='en' else (sp.title_th or sp.title_en) %}
+                              {% set sp_pos = sp.position_en if current_lang=='en' else (sp.position_th or sp.position_en) %}
+                              {% set sp_inst = sp.institution_en if current_lang=='en' else (sp.institution_th or sp.institution_en) %}
+                              <li>{{ sp_title }} {{ sp_name }}{% if sp_pos %}, {{ sp_pos }}{% endif %}{% if sp_inst %} — {{ sp_inst }}{% endif %}</li>
                             {% endfor %}
-                        </ul>
+                          </ul>
+                        {% else %}
+                          <p class="has-text-grey">—</p>
+                        {% endif %}
 
                         <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.agenda_label }}</h4>
-                        <ul class="list-disc has-text-gray-700 mb-4">
-                            {% for item in course.agenda %}
-                            <li>{{ item }}</li>
+                        {% if course.agendas %}
+                          <ul class="list-disc has-text-gray-700 mb-4">
+                            {% for a in course.agendas|sort(attribute='start_time') %}
+                              <li>
+                                {% if a.start_time and a.end_time %}
+                                  [{{ a.start_time.strftime('%H:%M') }}–{{ a.end_time.strftime('%H:%M') }}]
+                                {% endif %}
+                                {% set atitle = a.title_en if current_lang=='en' else (a.title_th or a.title_en) %}
+                                {{ atitle }}
+                              </li>
                             {% endfor %}
-                        </ul>
+                          </ul>
+                        {% else %}
+                          <p class="has-text-grey">—</p>
+                        {% endif %}
 
                         {% if course.early_bird_end %}
-                        <div class="notification is-info is-light" id="eb-banner" data-eb-end="{{ course.early_bird_end.isoformat() }}">
+                        <div class="notification is-info is-light" id="eb-banner"
+                            data-eb-end="{{ course.early_bird_end.isoformat() }}">
                             <strong>Early Bird!</strong> Ends in <span id="eb-countdown">—</span>
                         </div>
                         {% endif %}
 
                         <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.registration_fee_label }}</h4>
                         <div class="content">
-                          {% if course.registration_fees %}
-                            <ul id="fees-list" data-eb-start="{{ course.early_bird_start.isoformat() if course.early_bird_start else '' }}" data-eb-end="{{ course.early_bird_end.isoformat() if course.early_bird_end else '' }}">
-                              {% for fee in course.registration_fees %}
-                              <li>
-                                <span class="has-text-weight-semibold">{{ fee.member_type_ref.name_en }} / {{ fee.member_type_ref.name_th }}:</span>
-                                {% if fee.early_bird_price is not none %}
-                                  <span class="normal-price">{{ '%.2f'|format(fee.price) }} THB</span>
-                                  <span class="early-price tag is-success is-light" style="display:none;">{{ '%.2f'|format(fee.early_bird_price) }} THB</span>
-                                {% else %}
-                                  <span>{{ '%.2f'|format(fee.price) }} THB</span>
-                                {% endif %}
-                              </li>
-                              {% endfor %}
+                            {% if course.registration_fees %}
+                            <ul id="fees-list"
+                                data-eb-start="{{ course.early_bird_start.isoformat() if course.early_bird_start else '' }}"
+                                data-eb-end="{{ course.early_bird_end.isoformat() if course.early_bird_end else '' }}">
+                                {% for fee in course.registration_fees %}
+                                <li>
+                                    <span class="has-text-weight-semibold">{{ fee.member_type_ref.name_en }} / {{
+                                        fee.member_type_ref.name_th }}:</span>
+                                    {% if fee.early_bird_price is not none %}
+                                    <span class="normal-price">{{ '%.2f'|format(fee.price) }} THB</span>
+                                    <span class="early-price tag is-success is-light" style="display:none;">{{
+                                        '%.2f'|format(fee.early_bird_price) }} THB</span>
+                                    {% else %}
+                                    <span>{{ '%.2f'|format(fee.price) }} THB</span>
+                                    {% endif %}
+                                </li>
+                                {% endfor %}
                             </ul>
-                          {% else %}
+                            {% else %}
                             <p class="has-text-grey">No fees configured.</p>
-                          {% endif %}
+                            {% endif %}
                         </div>
 
                         {% if logged_in_user %}
-                          {% if already_registered %}
-                          <div class="notification is-success is-light">You are already registered for this event.</div>
-                          <button class="button is-static is-large is-rounded">Registered</button>
-                          <div class="box mt-4">
+                        {% if already_registered %}
+                        <div class="notification is-success is-light">You are already registered for this event.</div>
+                        <button class="button is-static is-large is-rounded">Registered</button>
+                        <div class="box mt-4">
                             <p class="mb-2"><strong>Progress</strong></p>
-                            <p>Started: {{ (logged_in_user.registrations|selectattr('event_entity_id','equalto', course.id)|map(attribute='started_at')|list|first) or '-' }}</p>
-                            <p>Completed: {{ (logged_in_user.registrations|selectattr('event_entity_id','equalto', course.id)|map(attribute='completed_at')|list|first) or '-' }}</p>
+                            <p>Started: {{ (logged_in_user.registrations|selectattr('event_entity_id','equalto',
+                                course.id)|map(attribute='started_at')|list|first) or '-' }}</p>
+                            <p>Completed: {{ (logged_in_user.registrations|selectattr('event_entity_id','equalto',
+                                course.id)|map(attribute='completed_at')|list|first) or '-' }}</p>
                             <div class="buttons mt-2">
-                              {% if approved_payment %}
-                                <form method="post" action="{{ url_for('continuing_edu.start_progress', event_id=course.id, lang=current_lang) }}">
-                                  <button class="button is-small" type="submit">Start</button>
+                                {% if approved_payment %}
+                                <form method="post"
+                                    action="{{ url_for('continuing_edu.start_progress', event_id=course.id, lang=current_lang) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                    <button class="button is-small" type="submit">Start</button>
                                 </form>
-                                <form method="post" action="{{ url_for('continuing_edu.complete_progress', event_id=course.id, lang=current_lang) }}" class="ml-2">
-                                  <input type="hidden" name="passed" value="1">
-                                  <button class="button is-small is-link" type="submit">Complete & Issue Certificate</button>
+                                <form method="post"
+                                    action="{{ url_for('continuing_edu.complete_progress', event_id=course.id, lang=current_lang) }}"
+                                    class="ml-2">
+                                    <input type="hidden" name="passed" value="1">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                    <button class="button is-small is-link" type="submit">Complete & Issue
+                                        Certificate</button>
                                 </form>
-                              {% else %}
+                                {% else %}
                                 <span class="tag is-light">Waiting for payment approval</span>
-                              {% endif %}
+                                {% endif %}
                             </div>
-                          </div>
-                          {% else %}
-                          <a href="{{ url_for('continuing_edu.register_event', event_id=course.id, lang=current_lang) }}" class="button is-info is-large is-rounded has-background-indigo-600 hover:has-background-indigo-700 has-text-white">{{ texts.enroll_now_btn }}</a>
-                          {% endif %}
+                        </div>
+                        {% else %}
+                        <a href="{{ url_for('continuing_edu.register_event', event_id=course.id, lang=current_lang) }}"
+                            class="button is-info is-large is-rounded has-background-indigo-600 hover:has-background-indigo-700 has-text-white">{{
+                            texts.enroll_now_btn }}</a>
+                        {% endif %}
                         {% else %}
                         <p class="has-text-grey-dark is-size-6 mt-5">{{ texts.register_to_enroll }}</p>
                         <div class="buttons mt-3">
@@ -440,46 +488,46 @@
 
     <script>
         // Early bird countdown + price toggle
-        (function(){
-          function inWindow(startIso, endIso){
-            try{
-              var now = new Date();
-              var start = startIso ? new Date(startIso) : null;
-              var end = endIso ? new Date(endIso) : null;
-              if(end && now > end) return false;
-              if(start && now < start) return false;
-              return !!(end || start);
-            }catch(e){return false;}
-          }
-          function toggleFees(){
-            var list = document.getElementById('fees-list');
-            if(!list) return;
-            var isIn = inWindow(list.dataset.ebStart, list.dataset.ebEnd);
-            var normals = list.querySelectorAll('.normal-price');
-            var earlys = list.querySelectorAll('.early-price');
-            normals.forEach(function(el){ el.style.textDecoration = isIn ? 'line-through' : 'none'; });
-            earlys.forEach(function(el){ el.style.display = isIn ? '' : 'none'; });
-          }
-          function countdown(){
-            var banner = document.getElementById('eb-banner');
-            if(!banner) return;
-            var endIso = banner.dataset.ebEnd;
-            if(!endIso) return;
-            var end = new Date(endIso);
-            function tick(){
-              var now = new Date();
-              var diff = end - now;
-              var el = document.getElementById('eb-countdown');
-              if(diff <= 0){ banner.style.display='none'; toggleFees(); return; }
-              var d = Math.floor(diff/86400000), h=Math.floor((diff%86400000)/3600000), m=Math.floor((diff%3600000)/60000), s=Math.floor((diff%60000)/1000);
-              if(el) el.textContent = d+'d '+h+'h '+m+'m '+s+'s';
-              toggleFees();
+        (function () {
+            function inWindow(startIso, endIso) {
+                try {
+                    var now = new Date();
+                    var start = startIso ? new Date(startIso) : null;
+                    var end = endIso ? new Date(endIso) : null;
+                    if (end && now > end) return false;
+                    if (start && now < start) return false;
+                    return !!(end || start);
+                } catch (e) { return false; }
             }
-            tick();
-            setInterval(tick, 1000);
-          }
-          toggleFees();
-          countdown();
+            function toggleFees() {
+                var list = document.getElementById('fees-list');
+                if (!list) return;
+                var isIn = inWindow(list.dataset.ebStart, list.dataset.ebEnd);
+                var normals = list.querySelectorAll('.normal-price');
+                var earlys = list.querySelectorAll('.early-price');
+                normals.forEach(function (el) { el.style.textDecoration = isIn ? 'line-through' : 'none'; });
+                earlys.forEach(function (el) { el.style.display = isIn ? '' : 'none'; });
+            }
+            function countdown() {
+                var banner = document.getElementById('eb-banner');
+                if (!banner) return;
+                var endIso = banner.dataset.ebEnd;
+                if (!endIso) return;
+                var end = new Date(endIso);
+                function tick() {
+                    var now = new Date();
+                    var diff = end - now;
+                    var el = document.getElementById('eb-countdown');
+                    if (diff <= 0) { banner.style.display = 'none'; toggleFees(); return; }
+                    var d = Math.floor(diff / 86400000), h = Math.floor((diff % 86400000) / 3600000), m = Math.floor((diff % 3600000) / 60000), s = Math.floor((diff % 60000) / 1000);
+                    if (el) el.textContent = d + 'd ' + h + 'h ' + m + 'm ' + s + 's';
+                    toggleFees();
+                }
+                tick();
+                setInterval(tick, 1000);
+            }
+            toggleFees();
+            countdown();
         })();
         document.addEventListener('DOMContentLoaded', () => {
             // Get all "navbar-burger" elements

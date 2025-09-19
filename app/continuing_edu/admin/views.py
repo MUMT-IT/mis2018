@@ -15,6 +15,9 @@ from app.continuing_edu.models import (
     RegisterPaymentReceipt,
     MemberRegistration,
     MemberType,
+    RegistrationStatus,
+    EntityCategory,
+    MemberCertificateStatus,
     EventSpeaker,
     SpeakerProfile,
     EventAgenda,
@@ -695,7 +698,7 @@ def event_notify(event_id):
     email_html_tpl = (
         "<div style=\"font-family:Arial,sans-serif;font-size:14px;color:#333;\">"
         "<h2 style=\"margin:0 0 8px 0;\">{{ event.title_en or event.title_th }}</h2>"
-        "{% set img = event.cover_image_url or event.poster_image_url or event.image_url %}"
+        "{% set img = event.cover_presigned_url() or event.poster_presigned_url() or event.image_url %}"
         "{% if img %}<div style=\"margin:10px 0;\"><img src=\"{{ img }}\" style=\"max-width:100%;height:auto;\"></div>{% endif %}"
         "{% if event.description_en %}<h3>About (EN)</h3><p>{{ event.description_en }}</p>{% endif %}"
         "{% if event.description_th %}<hr><h3>รายละเอียด (TH)</h3><p>{{ event.description_th }}</p>{% endif %}"
@@ -1025,8 +1028,40 @@ def update_event_general(event_id):
     event.duration_th = request.form.get('duration_th')
     event.format_en = request.form.get('format_en')
     event.format_th = request.form.get('format_th')
-    event.poster_image_url = request.form.get('poster_image_url')
-    event.cover_image_url = request.form.get('cover_image_url')
+    # Handle image uploads or manual URLs
+    poster_url_input = request.form.get('poster_image_url')
+    cover_url_input = request.form.get('cover_image_url')
+    poster_file = request.files.get('poster_image_file')
+    cover_file = request.files.get('cover_image_file')
+
+    import time
+    from werkzeug.utils import secure_filename
+
+    # Upload poster image if provided
+    # Lazy import to avoid circular imports at module import time
+    from app.main import allowed_file, s3, S3_BUCKET_NAME
+    if poster_file and allowed_file(poster_file.filename):
+        filename = secure_filename(poster_file.filename)
+        ext = filename.rsplit('.', 1)[-1].lower()
+        key = f"continuing_edu/events/{event.id}/poster_{int(time.time())}.{ext}"
+        file_data = poster_file.read()
+        content_type = poster_file.mimetype or 'application/octet-stream'
+        s3.put_object(Bucket=S3_BUCKET_NAME, Key=key, Body=file_data, ContentType=content_type)
+        event.poster_image_url = key
+    elif poster_url_input is not None:
+        event.poster_image_url = poster_url_input or None
+
+    # Upload cover image if provided
+    if cover_file and allowed_file(cover_file.filename):
+        filename = secure_filename(cover_file.filename)
+        ext = filename.rsplit('.', 1)[-1].lower()
+        key = f"continuing_edu/events/{event.id}/cover_{int(time.time())}.{ext}"
+        file_data = cover_file.read()
+        content_type = cover_file.mimetype or 'application/octet-stream'
+        s3.put_object(Bucket=S3_BUCKET_NAME, Key=key, Body=file_data, ContentType=content_type)
+        event.cover_image_url = key
+    elif cover_url_input is not None:
+        event.cover_image_url = cover_url_input or None
     event.certificate_name_en = request.form.get('certificate_name_en')
     event.certificate_name_th = request.form.get('certificate_name_th')
     ce_val = request.form.get('continue_education_score')
@@ -1158,6 +1193,15 @@ def speakers_index():
         )
     profiles = query.order_by(SpeakerProfile.name_en.asc()).all()
     return render_template('continueing_edu/admin/speakers_list.html', profiles=profiles, q=q, logged_in_admin=admin)
+
+
+@admin_bp.route('/speakers/<int:profile_id>')
+def speakers_view(profile_id):
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    sp = SpeakerProfile.query.get_or_404(profile_id)
+    return render_template('continueing_edu/admin/speakers_profile.html', profile=sp, logged_in_admin=admin)
 
 
 @admin_bp.route('/speakers/new', methods=['GET', 'POST'])

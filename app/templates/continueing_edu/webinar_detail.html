@@ -159,42 +159,75 @@
                 <ul>
                     <li><a href="{{ url_for('continuing_edu.index', lang=current_lang) }}">{{ texts.university_name }}</a></li>
                     <li><a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#webinars">{{ texts.upcoming_webinars_title }}</a></li>
-                    <li class="is-active"><a href="#" aria-current="page">{{ webinar.title }}</a></li>
+                    {% set title_local = webinar.title_en if current_lang=='en' else (webinar.title_th or webinar.title_en) %}
+                    <li class="is-active"><a href="#" aria-current="page">{{ title_local }}</a></li>
                 </ul>
             </nav>
-            <h1 class="title is-1 has-text-centered mb-12 has-text-gray-800 rounded-md">{{ webinar.title }}</h1>
+            <h1 class="title is-1 has-text-centered mb-12 has-text-gray-800 rounded-md">{{ title_local }}</h1>
 
             <div class="columns is-vcentered is-desktop">
                 <div class="column is-half-desktop">
                     <figure class="image is-3by2">
-                        <img src="{{ webinar.cover_image_url or webinar.poster_image_url or webinar.image_url or 'https://placehold.co/600x300/E0E7FF/4338CA?text=Webinar' }}" alt="[Image of Webinar]" class="object-cover rounded-lg shadow-lg">
+                        {% set cover = webinar.cover_presigned_url() if webinar.cover_image_url else None %}
+                        {% set poster = webinar.poster_presigned_url() if webinar.poster_image_url else None %}
+                        {% set fallback = 'https://placehold.co/600x300/E0E7FF/4338CA?text=Webinar' %}
+                        <img src="{{ cover or poster or webinar.image_url or fallback }}" alt="[Image of Webinar]" class="object-cover rounded-lg shadow-lg">
                     </figure>
                 </div>
                 <div class="column is-half-desktop">
                     <div class="content">
-                        <p class="is-size-5 has-text-gray-700 mb-6 rounded-md">
-                            {{ webinar.long_description }}
-                        </p>
+                        {% set long_desc = webinar.long_description_en if current_lang=='en' else (webinar.long_description_th or webinar.long_description_en) %}
+                        {% set short_desc = webinar.description_en if current_lang=='en' else (webinar.description_th or webinar.description_en) %}
+                        {% if long_desc %}
+                        <p class="is-size-5 has-text-gray-700 mb-6 rounded-md">{{ long_desc }}</p>
+                        {% elif short_desc %}
+                        <p class="is-size-5 has-text-gray-700 mb-6 rounded-md">{{ short_desc }}</p>
+                        {% endif %}
                         <ul class="list-disc has-text-gray-700 mb-4 rounded-md">
-                            <li><strong>{{ texts.date_label }}:</strong> {{ webinar.date }}</li>
-                            <li><strong>{{ texts.time_label }}:</strong> {{ webinar.time }}</li>
-                            <li><strong>{{ texts.speaker_label }}:</strong> {{ webinar.speaker }}</li>
-                            <li><strong>{{ texts.location_label }}:</strong> {{ webinar.location }}</li>
+                            {% set duration = webinar.duration_en if current_lang=='en' else (webinar.duration_th or webinar.duration_en) %}
+                            {% set fmt = webinar.format_en if current_lang=='en' else (webinar.format_th or webinar.format_en) %}
+                            {% set cert = webinar.certificate_name_en if current_lang=='en' else (webinar.certificate_name_th or webinar.certificate_name_en) %}
+                            {% set loc = webinar.location_en if current_lang=='en' else (webinar.location_th or webinar.location_en) %}
+                            {% if duration %}<li><strong>{{ texts.duration_label }}:</strong> {{ duration }}</li>{% endif %}
+                            {% if fmt %}<li><strong>{{ texts.format_label }}:</strong> {{ fmt }}</li>{% endif %}
+                            {% if cert %}<li><strong>{{ texts.certification_label }}:</strong> {{ cert }}</li>{% endif %}
+                            {% if loc %}<li><strong>{{ texts.location_label }}:</strong> {{ loc }}</li>{% endif %}
+                            {% if webinar.continue_education_score %}
+                              <li><strong>CE Score:</strong> {{ '%.2f'|format(webinar.continue_education_score) }}</li>
+                            {% endif %}
                         </ul>
 
                         <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.instructors_label }}</h4>
-                        <ul class="list-disc has-text-gray-700 mb-4">
-                            {% for instructor in webinar.instructors %}
-                                <li>{{ instructor }}</li>
+                        {% if webinar.speakers %}
+                          <ul class="list-disc has-text-gray-700 mb-4">
+                            {% for sp in webinar.speakers %}
+                              {% set sp_name = sp.name_en if current_lang=='en' else (sp.name_th or sp.name_en) %}
+                              {% set sp_title = sp.title_en if current_lang=='en' else (sp.title_th or sp.title_en) %}
+                              {% set sp_pos = sp.position_en if current_lang=='en' else (sp.position_th or sp.position_en) %}
+                              {% set sp_inst = sp.institution_en if current_lang=='en' else (sp.institution_th or sp.institution_en) %}
+                              <li>{{ sp_title }} {{ sp_name }}{% if sp_pos %}, {{ sp_pos }}{% endif %}{% if sp_inst %} — {{ sp_inst }}{% endif %}</li>
                             {% endfor %}
-                        </ul>
+                          </ul>
+                        {% else %}
+                          <p class="has-text-grey">—</p>
+                        {% endif %}
 
                         <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.agenda_label }}</h4>
-                        <ul class="list-disc has-text-gray-700 mb-4">
-                            {% for item in webinar.agenda %}
-                                <li>{{ item }}</li>
+                        {% if webinar.agendas %}
+                          <ul class="list-disc has-text-gray-700 mb-4">
+                            {% for a in webinar.agendas|sort(attribute='start_time') %}
+                              <li>
+                                {% if a.start_time and a.end_time %}
+                                  [{{ a.start_time.strftime('%H:%M') }}–{{ a.end_time.strftime('%H:%M') }}]
+                                {% endif %}
+                                {% set atitle = a.title_en if current_lang=='en' else (a.title_th or a.title_en) %}
+                                {{ atitle }}
+                              </li>
                             {% endfor %}
-                        </ul>
+                          </ul>
+                        {% else %}
+                          <p class="has-text-grey">—</p>
+                        {% endif %}
 
                         {% if webinar.early_bird_end %}
                         <div class="notification is-info is-light" id="eb-banner" data-eb-end="{{ webinar.early_bird_end.isoformat() }}">
