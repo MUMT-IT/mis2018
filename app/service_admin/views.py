@@ -1830,13 +1830,12 @@ def upload_invoice_file(invoice_id):
             contact_email = invoice.quotation.request.customer.contact_email if invoice.quotation.request.customer.contact_email else invoice.quotation.request.customer.email
             org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
             staff = StaffAccount.get_account_by_email(org.head)
-            sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
             invoice_url = url_for("academic_services.view_invoice", invoice_id=invoice.id, menu='invoice',
                                   _external=True,
                                   _scheme=scheme)
             msg = (f'แจ้งออกใบแจ้งหนี้เลขที่ {invoice.invoice_no}\n\n'
                    f'เรียน ฝ่ายการเงิน\n\n'
-                   f'หน่วยงาน {sub_lab.sub_lab} ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว\n'
+                   f'หน่วยงาน{invoice.quotation.request.sub_lab.sub_lab} ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว\n'
                    f'วันที่ออก : {invoice.file_attached_at.strftime("%d/%m/%Y")}\n'
                    f'จำนวนเงิน : {invoice.grand_total():,.2f} บาท\n'
                    f'กรุณาดำเนินการตรวจสอบและเตรียมออกใบเสร็จรับเงินเมื่อได้รับการชำระเงินจากลูกค้าตามขั้นตอนที่กำหนด\n\n'
