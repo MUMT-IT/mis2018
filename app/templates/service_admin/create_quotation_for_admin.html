@@ -22,9 +22,7 @@
                                 <span class="icon"><i class="fas fa-flask"></i></span> งานบริการ
                             </p>
                             <div style="margin-left: 1.75rem;">
-                                {% for s_lab in sub_lab %}
-                                    {{ s_lab.sub_lab }}
-                                {% endfor %}
+                                {{ quotation.request.sub_lab.sub_lab }}
                             </div>
                         </div>
                         <hr>

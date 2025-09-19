@@ -24,7 +24,7 @@
                                 <span class="icon"><i class="fas fa-flask"></i></span> งานบริการ
                             </p>
                             <div style="margin-left: 1.75rem;">
-                                {{ sub_lab.sub_lab }}
+                                {{ service_request.sub_lab.sub_lab }}
                             </div>
                         </div>
                         <hr>
@@ -35,14 +35,10 @@
                                         <span class="icon"><i class="fas fa-receipt"></i></span> ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
                                     </p>
                                     <div style="margin-left: 1.75rem;">
-                                        <p>ออกในนาม : {{ service_request.quotation_address.name }}</p>
-                                        <p>ที่อยู่ : {{ service_request.quotation_address.address }}
-                                            {{ 'แขวง' if 'กรุงเทพมหานคร' in service_request.quotation_address.province.name else 'ตำบล' }}{{ service_request.quotation_address.subdistrict }}
-                                            {{ 'เขต' if 'กรุงเทพมหานคร' in service_request.quotation_address.province.name else 'อำเภอ' }}{{ service_request.quotation_address.district }}
-                                            จังหวัด{{ service_request.quotation_address.province }} {{ service_request.quotation_address.zipcode }}
-                                        </p>
-                                        <p>เลขประจำตัวผู้เสียภาษีอากร : {{ service_request.quotation_address.taxpayer_identification_no }}</p>
-                                        <p>เบอร์โทรศัพท์ : {{ service_request.quotation_address.phone_number }}</p>
+                                        <p>ออกในนาม : {{ service_request.quotation_name }}</p>
+                                        <p>ที่อยู่ : {{ service_request.quotation_issue_address }}</p>
+                                        <p>เลขประจำตัวผู้เสียภาษีอากร : {{ service_request.taxpayer_identification_no }}</p>
+                                        <p>เบอร์โทรศัพท์ : {{ service_request.quotation_phone_number }}</p>
                                         <p>อีเมล : {{ service_request.customer.contact_email }}</p>
                                     </div>
                                 </div>
@@ -51,13 +47,9 @@
                                         <span class="icon"><i class="fas fa-map-marker-alt"></i></span> ข้อมูลที่อยู่จัดส่งเอกสาร
                                     </p>
                                     <div style="margin-left: 1.75rem;">
-                                        <p>ถึง : {{ service_request.document_address.name }}</p>
-                                         <p>ที่อยู่ : {{ service_request.document_address.address }}
-                                            {{ 'แขวง' if 'กรุงเทพมหานคร' in service_request.document_address.province.name else 'ตำบล' }}{{ service_request.document_address.subdistrict }}
-                                            {{ 'เขต' if 'กรุงเทพมหานคร' in service_request.document_address.province.name else 'อำเภอ' }}{{ service_request.document_address.district }}
-                                            จังหวัด{{ service_request.document_address.province }} {{ service_request.document_address.zipcode }}
-                                        </p>
-                                        <p>เบอร์โทรศัพท์ : {{ service_request.document_address.phone_number }}</p>
+                                        <p>ถึง : {{ service_request.receive_name }}</p>
+                                        <p>ที่อยู่ : {{ service_request.receive_address }}</p>
+                                        <p>เบอร์โทรศัพท์ : {{ service_request.receive_phone_number }}</p>
                                         <p>อีเมล : {{ service_request.customer.contact_email }}</p>
                                     </div>
                                 </div>
@@ -169,7 +161,7 @@
                                     <span class="has-text-danger">*</span>
                                 </label>
                                 <div class="control">
-                                    {{ sub_lab.short_address | safe }}
+                                    {{ service_request.sub_lab.short_address | safe }}
                                 </div>
                             </div>
                             <div class="field" id="appointment-date-field" style="display: none;">
@@ -186,13 +178,13 @@
                                     รายละเอียดเวลาการส่งตัวอย่าง
                                 </label>
                                 <div class="control">
-                                    {{ sub_lab.note }}
+                                    {{ service_request.sub_lab.note }}
                                 </div>
                             </div>
                             <div class="field">
                                 <label class="label">ข้อมูลติดต่อ</label>
                                 <div class="control">
-                                    {{ sub_lab.contact }}
+                                    {{ service_request.sub_lab.contact }}
                                 </div>
                             </div>
                         </div>
@@ -242,32 +234,11 @@
     <script>
         $(document).ready(function () {
             moment.locale('th');
-            const allowedTimes = [
-                {
-                    start: "{{ sub_lab.sample_submission_start }}",
-                    end: "{{ sub_lab.sample_submission_end }}"
-                }
-            ];
-
             const holidays = [
                 {% for h in holidays %}
                     "{{ h.holiday_date.strftime('%Y-%m-%d') }}"{% if not loop.last %},{% endif %}
                 {% endfor %}
             ];
-
-             function timeToMinutes(t) {
-                 const parts = t.split(':');
-                 return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-             }
-
-             function isAllowedTime(selectedTime) {
-                 const selectedMinutes = timeToMinutes(selectedTime);
-                 return allowedTimes.some(range => {
-                     const startMinutes = timeToMinutes(range.start);
-                     const endMinutes = timeToMinutes(range.end);
-                     return selectedMinutes >= startMinutes && selectedMinutes <= endMinutes;
-                 });
-            }
             $('input[name="appointment_date"]').daterangepicker({
                 singleDatePicker: true,
                 showDropdowns: true,

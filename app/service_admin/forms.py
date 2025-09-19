@@ -71,12 +71,12 @@ def crate_address_form(use_type=False):
                                     allow_blank=True,
                                     blank_text='กรุณาเลือกจังหวัด', get_label='name',
                                     validators=[DataRequired(message='กรุณาเลือกจังหวัด')])
-        district = QuerySelectField('เขต/อำเภอ', query_factory=lambda: District.query.order_by(District.name),
+        district = QuerySelectField('เขต/อำเภอ', query_factory=lambda: [],
                                     allow_blank=True,
                                     blank_text='กรุณาเลือกเขต/อำเภอ', get_label='name',
                                     validators=[DataRequired(message='กรุณาเลือกเขต/อำเภอ')])
         subdistrict = QuerySelectField('แขวง/ตำบล',
-                                       query_factory=lambda: Subdistrict.query.order_by(Subdistrict.name),
+                                       query_factory=lambda: [],
                                        allow_blank=True,
                                        blank_text='กรุณาเลือกแขวง/ตำบล', get_label='name',
                                        validators=[DataRequired(message='กรุณาเลือกแขวง/ตำบล')])

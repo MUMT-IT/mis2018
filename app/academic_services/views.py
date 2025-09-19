@@ -31,7 +31,7 @@ from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
                                          ServiceCustomerAccountForm, create_request_form, ServiceCustomerContactForm,
                                          ServiceCustomerAddressForm, ServiceSampleForm, ServicePaymentForm,
-                                         ServiceRequestForm)
+                                         BacteriaRequestForm)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
     jsonify, send_file
@@ -102,8 +102,7 @@ def request_data(service_request):
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
-    sheet = wks.worksheet(sub_lab.sheet)
+    sheet = wks.worksheet(service_request.sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     data = service_request.data
     form = create_request_form(df)(**data)
@@ -379,7 +378,6 @@ def lab_index():
 
 
 @academic_services.route('/customer/lab/detail', methods=['GET', 'POST'])
-@login_required
 def detail_lab_index():
     cat = request.args.get('cat')
     code = request.args.get('code')
@@ -683,6 +681,24 @@ def create_service_request():
     return render_template('academic_services/request_form.html', code=code, sub_lab=sub_lab)
 
 
+# @academic_services.route('/request/add', methods=['GET', 'POST'])
+# def bacteria_request_form():
+#     code = request.args.get('code')
+#     sub_lab = ServiceSubLab.query.filter_by(code=code)
+#     form = BacteriaRequestForm()
+#     if form.validate_on_submit():
+#         request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.code)
+#         service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
+#                              request_no=request_no.number, product=form.sample_name.data, data=format_data(form.data))
+#         request_no.count += 1
+#         db.session.add(service_request)
+#         db.session.commit()
+#     else:
+#         flash(f'{form.errors}', 'danger')
+#     return render_template('academic_services/bacteria_request_form.html', code=code, sub_lab=sub_lab,
+#                            form=form)
+
+
 @academic_services.route('/submit-request/add', methods=['POST', 'GET'])
 @academic_services.route('/submit-request/edit/<int:request_id>', methods=['GET', 'POST'])
 def submit_request(request_id=None):
@@ -723,20 +739,20 @@ def submit_request(request_id=None):
         req.modified_at = arrow.now('Asia/Bangkok').datetime
         req.product = products
     else:
-        req = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime, lab=code,
+        req = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
                              request_no=request_no.number, product=products, data=format_data(form.data))
         request_no.count += 1
     db.session.add(req)
     db.session.commit()
     return redirect(url_for('academic_services.create_report_language', request_id=req.id, menu='request',
-                            sub_lab=sub_lab.sub_lab))
+                            code=req.sub_lab.code))
 
 
 @academic_services.route('/customer/report_language/add/<int:request_id>', methods=['GET', 'POST'])
 @login_required
 def create_report_language(request_id):
     menu = request.args.get('menu')
-    sub_lab = request.args.get('sub_lab')
+    code = request.args.get('code')
     service_request = ServiceRequest.query.get(request_id)
     report_languages = ServiceReportLanguage.query.all()
     req_report_language_id = [rl.report_language_id for rl in service_request.report_languages]
@@ -753,11 +769,11 @@ def create_report_language(request_id):
             db.session.add(assoc)
         db.session.commit()
         return redirect(url_for('academic_services.create_customer_detail', request_id=request_id, menu=menu,
-                                sub_lab=sub_lab))
-    return render_template('academic_services/create_report_language.html', menu=menu, sub_lab=sub_lab,
+                                code=code))
+    return render_template('academic_services/create_report_language.html', menu=menu, code=code,
                            request_id=request_id, report_languages=report_languages,
                            req_report_language=req_report_language,
-                           req_report_language_id=req_report_language_id)
+                           req_report_language_id=req_report_language_id, service_request=service_request)
 
 
 @academic_services.route('/customer/detail/add/<int:request_id>', methods=['GET', 'POST'])
@@ -765,7 +781,7 @@ def create_report_language(request_id):
 def create_customer_detail(request_id):
     form = None
     menu = request.args.get('menu')
-    sub_lab = request.args.get('sub_lab')
+    code = request.args.get('code')
     service_request = ServiceRequest.query.get(request_id)
     selected_address_id = service_request.quotation_address_id if service_request.quotation_address_id else None
     customer = ServiceCustomerInfo.query.get(current_user.customer_info_id)
@@ -869,7 +885,7 @@ def create_customer_detail(request_id):
         db.session.commit()
         return redirect(url_for('academic_services.view_request', request_id=request_id, menu=menu))
     return render_template('academic_services/create_customer_detail.html', menu=menu,
-                           customer=customer, request_id=request_id, sub_lab=sub_lab, form=form,
+                           customer=customer, request_id=request_id, code=code, form=form, service_request=service_request,
                            selected_address_id=selected_address_id)
 
 
@@ -973,10 +989,9 @@ def get_requests():
 def view_request(request_id=None):
     menu = request.args.get('menu')
     service_request = ServiceRequest.query.get(request_id)
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab)
     datas = request_data(service_request)
     return render_template('academic_services/view_request.html', service_request=service_request, menu=menu,
-                           datas=datas, sub_lab=sub_lab)
+                           datas=datas)
 
 
 def generate_request_pdf(service_request):
@@ -994,8 +1009,7 @@ def generate_request_pdf(service_request):
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
-    sheet = wks.worksheet(sub_lab.sheet)
+    sheet = wks.worksheet(service_request.sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     data = service_request.data
     form = create_request_form(df)(**data)
@@ -1107,7 +1121,7 @@ def generate_request_pdf(service_request):
 
     lab_address = '''<para><font size=12>
                         {address}
-                        </font></para>'''.format(address=sub_lab.address)
+                        </font></para>'''.format(address=service_request.sub_lab.address)
 
     lab_table = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
 
@@ -1408,16 +1422,15 @@ def request_quotation(request_id):
     db.session.add(service_request)
     db.session.commit()
     scheme = 'http' if current_app.debug else 'https'
-    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
+    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.sub_lab.code)).all()
     title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
     link = url_for("service_admin.generate_quotation", request_id=request_id, menu='quotation',
                    _external=True, _scheme=scheme)
     customer_name = service_request.customer.customer_name.replace(' ', '_')
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     contact_email = current_user.contact_email if current_user.contact_email else current_user.email
     if admins:
         title = f'''[{service_request.request_no}] ใบคำขอรับบริการ - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | แจ้งขอใบเสนอราคา'''
-        message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
+        message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.sub_lab}\n\n'''
         message += f'''ใบคำขอบริการเลขที่ : {service_request.request_no}\n'''
         message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
         message += f'''ในนาม : {service_request.quotation_address.name}\n'''
@@ -1428,7 +1441,7 @@ def request_quotation(request_id):
         message += f'''{service_request.customer.customer_name}\n'''
         message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n\n'''
         message += f'''ระบบงานบริการวิชาการ'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor or not a.is_central_admin], title, message)
         msg = ('แจ้งขอใบเสนอราคา' \
                '\n\nเรียน เจ้าหน้าที่{}'
                '\n\nใบคำขอบริการเลขที่ {}' \
@@ -1440,7 +1453,7 @@ def request_quotation(request_id):
                '\n\nผู้ประสานงาน' \
                '\n{}' \
                '\nเบอร์โทร {}' \
-               '\n\nระบบงานบริการวิชาการ'.format(sub_lab.sub_lab, service_request.request_no,
+               '\n\nระบบงานบริการวิชาการ'.format(service_request.sub_lab.sub_lab, service_request.request_no,
                                                  service_request.customer.customer_name,
                                                  service_request.quotation_address.name, link,
                                                  service_request.customer.customer_name,
@@ -1448,7 +1461,7 @@ def request_quotation(request_id):
                )
         if not current_app.debug:
             for a in admins:
-                if not a.is_supervisor:
+                if not a.is_supervisor or not a.is_central_admin:
                     try:
                         line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                     except LineBotApiError:
@@ -1506,9 +1519,8 @@ def get_quotations():
 def view_quotation(quotation_id):
     menu = request.args.get('menu')
     quotation = ServiceQuotation.query.get(quotation_id)
-    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).all()
     return render_template('academic_services/view_quotation.html', quotation_id=quotation_id, menu=menu,
-                           quotation=quotation, sub_lab=sub_lab)
+                           quotation=quotation)
 
 
 def generate_quotation_pdf(quotation, sign=False):
@@ -1523,8 +1535,6 @@ def generate_quotation_pdf(quotation, sign=False):
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
         '&nbsp;&nbsp;&nbsp;&nbsp;')
-    lab = ServiceLab.query.filter_by(code=quotation.request.lab).first()
-    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -1549,9 +1559,9 @@ def generate_quotation_pdf(quotation, sign=False):
                        </font></para>
                        '''
 
-    lab_address = '''<para><font size=12>
-                            {address}
-                            </font></para>'''.format(address=lab.address if lab else sub_lab.address)
+    # lab_address = '''<para><font size=12>
+    #                         {address}
+    #                         </font></para>'''.format(address=lab.address if lab else sub_lab.address)
 
     quotation_no = '''<br/><br/><font size=10>
                     เลขที่/No. {quotation_no}<br/>
@@ -1741,15 +1751,14 @@ def confirm_quotation(quotation_id):
     db.session.add(sample)
     db.session.commit()
     flash('ยืนยันใบเสนอราคาสำเร็จ กรุณาดำเนินการนัดหมายส่งตัวอย่าง', 'success')
-    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
-    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
+    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.sub_lab.code)).all()
     link = url_for('service_admin.view_quotation', menu='quotation', tab='all', quotation_id=quotation_id,
                    _external=True, _scheme=scheme)
     title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
     customer_name = quotation.customer_name.replace(' ', '_')
     if admins:
         title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} ({quotation.name}) | แจ้งยืนยันใบเสนอราคา'''
-        message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}่\n\n'''
+        message = f'''เรียน เจ้าหน้าที่{quotation.request.sub_lab.sub_lab}่\n\n'''
         message += f'''ใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
         message += f'''ลูกค้า : {quotation.customer_name}\n'''
         message += f'''ในนาม : {quotation.name}\n'''
@@ -1761,7 +1770,7 @@ def confirm_quotation(quotation_id):
         message += f'''{quotation.customer_name}\n'''
         message += f'''เบอร์โทร {quotation.request.customer.contact_phone_number}\n'''
         message += f'''ระบบบริการวิชาการ'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
     return redirect(url_for('academic_services.confirm_quotation_page', menu=menu, sample_id=sample.id))
 
 
@@ -1785,13 +1794,12 @@ def reject_quotation(quotation_id):
         db.session.add(quotation)
         db.session.commit()
         flash('ยกเลิกใบเสนอราคาสำเร็จ', 'success')
-        sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
-        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
+        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.sub_lab.code)).all()
         title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
         customer_name = quotation.customer_name.replace(' ', '_')
         if admins:
             title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} ({quotation.name}) | แจ้งปฏิเสธใบเสนอราคา'''
-            message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}่\n\n'''
+            message = f'''เรียน เจ้าหน้าที่{quotation.request.sub_lab.sub_lab}่\n\n'''
             message += f'''ใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
             message += f'''ลูกค้า : {quotation.customer_name}\n'''
             message += f'''ในนาม : {quotation.name}\n'''
@@ -1803,7 +1811,7 @@ def reject_quotation(quotation_id):
             message += f'''{quotation.customer_name}\n'''
             message += f'''เบอร์โทร {quotation.request.customer.contact_phone_number}\n'''
             message += f'''ระบบบริการวิชาการ'''
-            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
+            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
         resp = make_response()
         resp.headers['HX-Redirect'] = url_for('academic_services.quotation_index', menu=menu)
         return resp
@@ -2008,9 +2016,8 @@ def create_sample_appointment(sample_id):
     sample = ServiceSample.query.get(sample_id)
     service_request = ServiceRequest.query.get(sample.request_id)
     datas = request_data(service_request)
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     form = ServiceSampleForm(obj=sample)
-    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=sample.request.lab)).all()
+    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=sample.request.sub_lab.code)).all()
     holidays = Holidays.query.all()
     if form.validate_on_submit():
         form.populate_obj(sample)
@@ -2026,7 +2033,7 @@ def create_sample_appointment(sample_id):
             if admins:
                 if service_request.status.status_id == 9:
                     title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งแก้ไขนัดหมายส่งตัวอย่าง)'''
-                    message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
+                    message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.sub_lab}\n\n'''
                     message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}\n'''
                     message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
                     message += f'''ในนาม : {service_request.quotation_address.name}\n'''
@@ -2035,7 +2042,7 @@ def create_sample_appointment(sample_id):
                     if sample.appointment_date:
                         message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
                     message += f'''สถานที่นัดหมาย : {sample.location}\n'''
-                    message += f'''รายละเอียดสถานที่ : {sub_lab.short_address}\n'''
+                    message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.short_address}\n'''
                     message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
                     message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
                     message += f'''{link}\n\n'''
@@ -2045,7 +2052,7 @@ def create_sample_appointment(sample_id):
                     message += f'''ระบบงานบริการวิชาการ'''
                 else:
                     title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งนัดหมายส่งตัวอย่าง)'''
-                    message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
+                    message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.sub_lab}\n\n'''
                     message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}\n'''
                     message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
                     message += f'''ในนาม : {service_request.quotation_address.name}\n'''
@@ -2055,14 +2062,14 @@ def create_sample_appointment(sample_id):
                         message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
                     message += f'''สถานที่นัดหมาย : {sample.location}\n'''
                     message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n'''
-                    message += f'''รายละเอียดสถานที่ : {sub_lab.short_address}\n'''
+                    message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.short_address}\n'''
                     message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
                     message += f'''{link}\n\n'''
                     message += f'''ผู้ประสานงาน\n'''
                     message += f'''{service_request.customer.customer_name}\n'''
                     message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n'''
                     message += f'''ระบบงานบริการวิชาการ'''
-                send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
+                send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
             if service_request.status.status_id == 6:
                 status_id = get_status(9)
                 service_request.status_id = status_id
@@ -2077,8 +2084,8 @@ def create_sample_appointment(sample_id):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('academic_services/create_sample_appointment.html', form=form,
-                           sample=sample, menu=menu, sample_id=sample_id, sub_lab=sub_lab, datas=datas,
-                           service_request=service_request, holidays=holidays)
+                           sample=sample, menu=menu, sample_id=sample_id, datas=datas, service_request=service_request,
+                           holidays=holidays)
 
 
 @academic_services.route('/customer/sample-appointment/confirm/page/<int:request_id>', methods=['GET', 'POST'])
@@ -2584,15 +2591,14 @@ def confirm_result(result_id):
     db.session.add(result)
     db.session.commit()
     scheme = 'http' if current_app.debug else 'https'
-    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=result.request.lab)).all()
+    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=result.request.sub_lab.code)).all()
     title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
     link = url_for("service_admin.create_invoice", quotation_id=result.quotation_id, menu='invoice',
                    _external=True, _scheme=scheme)
     customer_name = result.request.customer.customer_name.replace(' ', '_')
-    sub_lab = ServiceSubLab.query.filter_by(code=result.request.lab).first()
     if admins:
         title = f'''[{result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result.request.quotation_address.name}) | แจ้งยืนยันใบรายงานผลการทดสอบ'''
-        message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
+        message = f'''เรียน เจ้าหน้าที่{result.request.sub_lab.sub_lab}\n\n'''
         message += f'''ใบรายงานผลของใบคำขอรับบริการเลขที่ : {result.request.request_no}\n'''
         message += f'''ลูกค้า : {result.request.customer.customer_name}\n'''
         message += f'''ในนาม : {result.request.quotation_address.name}\n'''
@@ -2603,7 +2609,7 @@ def confirm_result(result_id):
         message += f'''{result.request.customer.customer_name}\n'''
         message += f'''เบอร์โทร {result.request.customer.contact_phone_number}\n\n'''
         message += f'''ระบบงานบริการวิชาการ'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
         msg = ('แจ้งยืนยันใบรายงานผลการทดสอบ' \
                '\n\nเรียน เจ้าหน้าที่{}'
                '\n\nใบรายงานผลของใบคำขอรับบริการเลขที่ {}' \
@@ -2615,7 +2621,7 @@ def confirm_result(result_id):
                '\n\nผู้ประสานงาน' \
                '\n{}' \
                '\nเบอร์โทร {}' \
-               '\n\nระบบงานบริการวิชาการ'.format(sub_lab.sub_lab, result.request.request_no,
+               '\n\nระบบงานบริการวิชาการ'.format(result.request.sub_lab.sub_lab, result.request.request_no,
                                                  result.request.customer.customer_name,
                                                  result.request.quotation_address.name, link,
                                                  result.request.customer.customer_name,
@@ -2623,7 +2629,7 @@ def confirm_result(result_id):
                )
         if not current_app.debug:
             for a in admins:
-                if not a.is_supervisor:
+                if not a.is_central_admin:
                     try:
                         line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                     except LineBotApiError:
@@ -2647,15 +2653,14 @@ def edit_result(result_id):
         db.session.add(result)
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
-        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=result.request.lab)).all()
+        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=result.request.sub_lab.code)).all()
         title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
         link = url_for("service_admin.create_draft_result", rresult_id=result.id, request_id=result.request.id,
                        menu='test_item', _external=True, _scheme=scheme)
         customer_name = result.request.customer.customer_name.replace(' ', '_')
-        sub_lab = ServiceSubLab.query.filter_by(code=result.request.lab).first()
         if admins:
             title = f'''[{result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result.request.quotation_address.name}) | แจ้งขอแก้ไขใบรายงานผลการทดสอบ'''
-            message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
+            message = f'''เรียน เจ้าหน้าที่{result.request.sub_lab.sub_lab}\n\n'''
             message += f'''ใบรายงานผลของใบคำขอรับบริการเลขที่ : {result.request.request_no}\n'''
             message += f'''ลูกค้า : {result.request.customer.customer_name}\n'''
             message += f'''ในนาม : {result.request.quotation_address.name}\n'''
@@ -2666,7 +2671,7 @@ def edit_result(result_id):
             message += f'''{result.request.customer.customer_name}\n'''
             message += f'''เบอร์โทร {result.request.customer.contact_phone_number}\n\n'''
             message += f'''ระบบงานบริการวิชาการ'''
-            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
+            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
             msg = ('แจ้งขอแก้ไขใบรายงานผลการทดสอบ' \
                    '\n\nเรียน เจ้าหน้าที่{}'
                    '\n\nใบรายงานผลของใบคำขอรับบริการเลขที่ {}' \
@@ -2678,7 +2683,7 @@ def edit_result(result_id):
                    '\n\nผู้ประสานงาน' \
                    '\n{}' \
                    '\nเบอร์โทร {}' \
-                   '\n\nระบบงานบริการวิชาการ'.format(sub_lab.sub_lab, result.request.request_no,
+                   '\n\nระบบงานบริการวิชาการ'.format(result.request.sub_lab.sub_lab, result.request.request_no,
                                                      result.request.customer.customer_name,
                                                      result.request.quotation_address.name, result.note, link,
                                                      result.request.customer.customer_name,
@@ -2686,7 +2691,7 @@ def edit_result(result_id):
                    )
             if not current_app.debug:
                 for a in admins:
-                    if not a.is_supervisor:
+                    if not a.is_central_admin:
                         try:
                             line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                         except LineBotApiError:

@@ -50,9 +50,9 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', align
 
 localtz = timezone('Asia/Bangkok')
 
-FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
-
-json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+# FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
+#
+# json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
@@ -106,15 +106,15 @@ def send_mail(recp, title, message):
     mail.send(message)
 
 
-def initialize_gdrive():
-    try:
-        gauth = GoogleAuth()
-        scopes = ['https://www.googleapis.com/auth/drive']
-        gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)
-        return GoogleDrive(gauth)
-    except Exception as e:
-        print(f"เกิดข้อผิดพลาดในการเชื่อมต่อ Google Drive: {e}")
-        return None
+# def initialize_gdrive():
+#     try:
+#         gauth = GoogleAuth()
+#         scopes = ['https://www.googleapis.com/auth/drive']
+#         gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)
+#         return GoogleDrive(gauth)
+#     except Exception as e:
+#         print(f"เกิดข้อผิดพลาดในการเชื่อมต่อ Google Drive: {e}")
+#         return None
 
 
 @complaint_tracker.route('/api/committee/position')
