@@ -2570,7 +2570,8 @@ def approval_quotation_for_supervisor(quotation_id):
                     flash(f'อนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} สำเร็จ กรุณารอลูกค้ายืนยันใบเสนอราคา',
                           'success')
                     return redirect(
-                        url_for('service_admin.quotation_index', quotation_id=quotation.id, tab='awaiting_customer'))
+                        url_for('service_admin.quotation_index', quotation_id=quotation.id, tab='awaiting_customer',
+                                menu=menu))
         return render_template('service_admin/approval_quotation_for_supervisor.html', quotation=quotation,
                                tab=tab, quotation_id=quotation_id, menu=menu)
     else:
