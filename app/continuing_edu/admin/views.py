@@ -31,7 +31,10 @@ from app.continuing_edu.models import (
 )
 from sqlalchemy import func
 import datetime
+import os
 from app.main import db, mail
+from app.continuing_edu.status_utils import get_registration_status, get_certificate_status
+from app.continuing_edu.certificate_utils import issue_certificate as issue_certificate_util, reset_certificate as reset_certificate_util, can_issue_certificate
 
 admin_bp = Blueprint('continuing_edu_admin', __name__, url_prefix='/continuing_edu/admin')
 
@@ -84,6 +87,29 @@ def edit_event(event_id):
 
     active_tab = request.args.get('tab', 'general')
 
+    registrations = []
+    payments_map = {}
+    registration_statuses = []
+    certificate_statuses = []
+    if active_tab == 'certificates':
+        if not _is_certificate_manager(admin, event.id):
+            flash('You do not have permission to manage certificates for this event.', 'danger')
+            return redirect(url_for('continuing_edu_admin.edit_event', event_id=event.id))
+        registrations = MemberRegistration.query.filter_by(event_entity_id=event.id).order_by(MemberRegistration.registration_date.asc()).all()
+        member_ids = [r.member_id for r in registrations]
+        if member_ids:
+            payments = (RegisterPayment.query
+                        .filter(RegisterPayment.event_entity_id == event.id,
+                                RegisterPayment.member_id.in_(member_ids))
+                        .order_by(RegisterPayment.id.desc())
+                        .all())
+            for pay in payments:
+                existing = payments_map.get(pay.member_id)
+                if not existing:
+                    payments_map[pay.member_id] = pay
+        registration_statuses = RegistrationStatus.query.order_by(RegistrationStatus.name_en.asc()).all()
+        certificate_statuses = MemberCertificateStatus.query.order_by(MemberCertificateStatus.name_en.asc()).all()
+
     return render_template(
         'continueing_edu/admin/event_edit_tabs.html',
         event=event,
@@ -101,6 +127,11 @@ def edit_event(event_id):
         certificate_managers=certificate_managers,
         active_tab=active_tab,
         logged_in_admin=admin,
+        registrations=registrations,
+        payments_map=payments_map,
+        registration_statuses=registration_statuses,
+        certificate_statuses=certificate_statuses,
+        can_issue_certificate=can_issue_certificate,
     )
 
 def get_current_admin():
@@ -977,6 +1008,8 @@ def bootstrap_defaults():
     # Seed RegistrationStatus values
     for name_en, name_th, badge in [
         ('registered', 'ลงทะเบียนแล้ว', 'is-info'),
+        ('in_progress', 'กำลังเรียน', 'is-warning'),
+        ('completed', 'สำเร็จแล้ว', 'is-success'),
         ('cancelled', 'ยกเลิก', 'is-light'),
     ]:
         s = RegistrationStatus.query.filter_by(name_en=name_en).first()
@@ -1671,6 +1704,16 @@ def _add_staff_role(model_cls, event_id, staff_id):
         db.session.add(model_cls(event_entity_id=event_id, staff_id=staff_id))
 
 
+def _is_certificate_manager(admin: StaffAccount, event_id: int) -> bool:
+    allow_all = os.getenv('CE_ALLOW_ALL_ADMINS_CERT', '0').lower() in ('1', 'true', 'yes')
+    if allow_all:
+        return True
+    managers = EventCertificateManager.query.filter_by(event_entity_id=event_id).all()
+    if not managers:
+        return True
+    return any(m.staff_id == admin.id for m in managers)
+
+
 def _remove_staff_role(model_cls, role_id, event_id):
     rec = model_cls.query.filter_by(id=role_id, event_entity_id=event_id).first_or_404()
     db.session.delete(rec)
@@ -1718,3 +1761,75 @@ def update_event_roles(event_id):
                     _remove_staff_role(EventCertificateManager, rid, event_id)
     db.session.commit()
     return redirect(url_for('continuing_edu_admin.edit_event', event_id=event_id, tab='roles'))
+
+
+@admin_bp.route('/events/<int:event_id>/registrations/<int:reg_id>/update', methods=['POST'])
+def update_registration_certificate(event_id, reg_id):
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+    if not _is_certificate_manager(admin, event_id):
+        flash('You do not have permission to manage certificates for this event.', 'danger')
+        return redirect(url_for('continuing_edu_admin.edit_event', event_id=event_id, tab='certificates'))
+
+    reg = MemberRegistration.query.filter_by(id=reg_id, event_entity_id=event_id).first_or_404()
+    action = request.form.get('action')
+    lang = request.args.get('lang', 'en')
+    message = None
+
+    if action == 'mark_started':
+        if not reg.started_at:
+            reg.started_at = datetime.datetime.now(datetime.timezone.utc)
+        status = get_registration_status('in_progress', 'in_progress', 'กำลังเรียน', 'is-info')
+        reg.status_id = status.id
+        message = 'Marked as started.'
+
+    elif action == 'mark_completed':
+        if not reg.completed_at:
+            reg.completed_at = datetime.datetime.now(datetime.timezone.utc)
+        status = get_registration_status('completed', 'completed', 'สำเร็จแล้ว', 'is-success')
+        reg.status_id = status.id
+        reg.assessment_passed = request.form.get('passed') in ('1', 'true', 'on', 'yes')
+        pending_status = get_certificate_status('pending', 'รอดำเนินการ', 'is-info')
+        reg.certificate_status_id = pending_status.id
+        message = 'Marked as completed.'
+
+    elif action == 'set_assessment':
+        reg.assessment_passed = request.form.get('passed') in ('1', 'true', 'on', 'yes')
+        message = 'Assessment flag updated.'
+
+    elif action == 'update_statuses':
+        reg_status_id = request.form.get('registration_status_id')
+        cert_status_id = request.form.get('certificate_status_id')
+        if reg_status_id:
+            reg.status_id = int(reg_status_id)
+        if cert_status_id:
+            reg.certificate_status_id = int(cert_status_id)
+        message = 'Statuses updated.'
+
+    elif action == 'reset_certificate':
+        reset_certificate_util(reg)
+        flash('Certificate reset to pending.', 'info')
+        return redirect(url_for('continuing_edu_admin.edit_event', event_id=event_id, tab='certificates'))
+
+    elif action == 'issue_certificate':
+        force = request.form.get('force') in ('1', 'true', 'on', 'yes')
+        if not can_issue_certificate(reg) and not force:
+            flash('Cannot issue certificate: ensure completion, assessment passed, and payment approved (or use force).', 'warning')
+            return redirect(url_for('continuing_edu_admin.edit_event', event_id=event_id, tab='certificates'))
+        if not reg.completed_at:
+            reg.completed_at = datetime.datetime.now(datetime.timezone.utc)
+        status = get_registration_status('completed', 'completed', 'สำเร็จแล้ว', 'is-success')
+        reg.status_id = status.id
+        reg.assessment_passed = True
+        issue_certificate_util(reg, lang=lang, base_url=request.base_url)
+        flash('Certificate issued.', 'success')
+        return redirect(url_for('continuing_edu_admin.edit_event', event_id=event_id, tab='certificates'))
+
+    if action not in ('reset_certificate', 'issue_certificate'):
+        db.session.add(reg)
+        db.session.commit()
+        if message:
+            flash(message, 'success')
+
+    return redirect(url_for('continuing_edu_admin.edit_event', event_id=event_id, tab='certificates'))

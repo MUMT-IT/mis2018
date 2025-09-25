@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 
@@ -366,6 +368,33 @@ class MemberRegistration(db.Model):
     def __repr__(self) -> str:  # pragma: no cover
         return (f"<MemberRegistration Member:{self.member_id} Event:{self.event_entity_id} "
                 f"Status:{self.status_ref.name_en if self.status_ref else 'N/A'} CertStatus:{self.certificate_status_ref.name_en if self.certificate_status_ref else 'N/A'}>")
+
+    def _is_http_url(self, value: str) -> bool:
+        return isinstance(value, str) and (value.startswith('http://') or value.startswith('https://') or value.startswith('//'))
+
+    def certificate_presigned_url(self, expires_in: int = 3600) -> Optional[str]:
+        value = self.certificate_url
+        if not value:
+            return None
+        if self._is_http_url(value):
+            return value
+        bucket = os.getenv('BUCKETEER_BUCKET_NAME')
+        if not bucket:
+            return value
+        try:
+            s3c = boto3.client(
+                's3',
+                aws_access_key_id=os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID'),
+                aws_secret_access_key=os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY'),
+                region_name=os.getenv('BUCKETEER_AWS_REGION'),
+            )
+            return s3c.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': bucket, 'Key': value},
+                ExpiresIn=expires_in,
+            )
+        except Exception:
+            return value
 
 
 class RegisterPaymentReceipt(db.Model):

@@ -1,1 +1,38 @@
-<html><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;text-align:center;padding:60px}.title{font-size:26pt;font-weight:700}.name{font-size:20pt;margin:8px 0}.meta{color:#666}</style></head><body>{% set TH = (current_lang == 'th') %}<div class="title">{{ event.certificate_name_th if TH and event.certificate_name_th else (event.certificate_name_en or ('ประกาศนียบัตร' if TH else 'Certificate')) }}</div><div>{{ 'ขอมอบให้แก่' if TH else 'This is awarded to' }}</div><div class="name">{{ member.full_name_en or member.username }}</div><div>{{ 'ในโอกาสสำเร็จการอบรม' if TH else 'For successfully completing' }}</div><div>{{ event.title_en or event.title_th }}</div><div class="meta">{{ 'เมื่อวันที่' if TH else 'Dated' }}: {{ reg.certificate_issued_date }}</div></body></html>
+<html>
+
+<head>
+          <meta charset="UTF-8">
+          <style>
+                    body {
+                              font-family: Arial, sans-serif;
+                              text-align: center;
+                              padding: 60px
+                    }
+
+                    .title {
+                              font-size: 26pt;
+                              font-weight: 700
+                    }
+
+                    .name {
+                              font-size: 20pt;
+                              margin: 8px 0
+                    }
+
+                    .meta {
+                              color: #666
+                    }
+          </style>
+</head>
+
+<body>{% set TH = (current_lang == 'th') %}<div class="title">{{ event.certificate_name_th if TH and
+                    event.certificate_name_th else (event.certificate_name_en or ('ประกาศนียบัตร' if TH else
+                    'Certificate')) }}</div>
+          <div>{{ 'ขอมอบให้แก่' if TH else 'This is awarded to' }}</div>
+          <div class="name">{{ member.full_name_en or member.username }}</div>
+          <div>{{ 'ในโอกาสสำเร็จการอบรม' if TH else 'For successfully completing' }}</div>
+          <div>{{ event.title_en or event.title_th }}</div>
+          <div class="meta">{{ 'เมื่อวันที่' if TH else 'Dated' }}: {{ reg.certificate_issued_date }}</div>
+</body>
+
+</html>

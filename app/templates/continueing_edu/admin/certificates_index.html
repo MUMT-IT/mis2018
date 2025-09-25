@@ -1,0 +1,36 @@
+{% extends 'continueing_edu/admin/base.html' %}
+{% block title %}Certificates Management{% endblock %}
+{% block content %}
+<div class="container">
+  <h1 class="title is-3">Certificates Management</h1>
+  <p class="mb-4">Select an event to review participant progress and certificates.</p>
+  {% if events %}
+  <table class="table is-fullwidth is-striped">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Title</th>
+        <th>Type</th>
+        <th>Created</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for event in events %}
+      <tr>
+        <td>{{ event.id }}</td>
+        <td>{{ event.title_en or event.title_th }}</td>
+        <td>{{ event.event_type|capitalize }}</td>
+        <td>{{ event.created_at }}</td>
+        <td class="has-text-right">
+          <a class="button is-link is-small" href="{{ url_for('continuing_edu_admin_certificates.event', event_id=event.id) }}">Manage</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No events found.</p>
+  {% endif %}
+</div>
+{% endblock %}

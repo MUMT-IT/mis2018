@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="{{ current_lang }}">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Registrations</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
 </head>
+
 <body class="has-text-gray-800">
   <section class="section">
     <div class="container">
@@ -23,7 +25,7 @@
           </tr>
         </thead>
         <tbody>
-        {% for r in registrations %}
+          {% for r in registrations %}
           <tr>
             <td>{{ r.event_entity.title_en or r.event_entity.title_th }}</td>
             <td>{{ r.event_entity.event_type|title }}</td>
@@ -31,26 +33,32 @@
             <td>
               {% set pay = payments_map.get(r.event_entity.id) %}
               {% if pay %}
-                <div>
-                  <span class="tag is-light">{{ pay.payment_status_ref.name_en if pay.payment_status_ref else 'N/A' }}</span>
-                </div>
-                <div>
-                  Amount: {{ '%.2f'|format(pay.payment_amount or 0) }} THB
-                </div>
-                <div>
-                  Proof:
-                  {% if pay.payment_proof_url %}
-                    <button class="button is-small is-light" type="button" onclick="openProofModal('{{ pay.proof_presigned_url()|e }}')">View</button>
-                  {% else %}
-                    <em>None</em>
-                  {% endif %}
-                </div>
-                <form method="post" action="{{ url_for('continuing_edu.submit_payment_proof', payment_id=pay.id, lang=current_lang) }}" class="is-flex" style="margin-top:6px;">
-                  <input class="input" type="url" name="payment_proof_url" placeholder="https://..." style="max-width:260px;margin-right:8px;">
-                  <button class="button is-small is-link" type="submit">Submit Proof</button>
-                </form>
+              <div>
+                <span class="tag is-light">{{ pay.payment_status_ref.name_en if pay.payment_status_ref else 'N/A'
+                  }}</span>
+              </div>
+              <div>
+                Amount: {{ '%.2f'|format(pay.payment_amount or 0) }} THB
+              </div>
+              <div>
+                Proof:
+                {% if pay.payment_proof_url %}
+                <button class="button is-small is-light" type="button"
+                  onclick="openProofModal('{{ pay.proof_presigned_url()|e }}')">View</button>
+                {% else %}
+                <em>None</em>
+                {% endif %}
+              </div>
+              <form method="post"
+                action="{{ url_for('continuing_edu.submit_payment_proof', payment_id=pay.id, lang=current_lang) }}"
+                class="is-flex" style="margin-top:6px;">
+                <input class="input" type="url" name="payment_proof_url" placeholder="https://..."
+                  style="max-width:260px;margin-right:8px;">
+                <button class="button is-small is-link" type="submit">Submit Proof</button>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              </form>
               {% else %}
-                <em>No payment record</em>
+              <em>No payment record</em>
               {% endif %}
             </td>
             <td>
@@ -59,36 +67,48 @@
               {% set approved = (pay and pay.payment_status_ref and pay.payment_status_ref.name_en=='approved') %}
               <div class="buttons mt-2">
                 {% if approved and not r.started_at %}
-                <form method="post" action="{{ url_for('continuing_edu.start_progress', event_id=r.event_entity.id, lang=current_lang) }}">
+                <form method="post"
+                  action="{{ url_for('continuing_edu.start_progress', event_id=r.event_entity.id, lang=current_lang) }}">
                   <button class="button is-small" type="submit">Start</button>
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 </form>
                 {% endif %}
                 {% if approved and r.started_at and not r.completed_at %}
-                <form method="post" action="{{ url_for('continuing_edu.complete_progress', event_id=r.event_entity.id, lang=current_lang) }}">
+                <form method="post"
+                  action="{{ url_for('continuing_edu.complete_progress', event_id=r.event_entity.id, lang=current_lang) }}">
                   <input type="hidden" name="passed" value="1">
                   <button class="button is-small is-link" type="submit">Complete</button>
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 </form>
                 {% endif %}
                 {% if r.certificate_url %}
-                <a class="button is-small is-success is-light" href="{{ url_for('continuing_edu.certificate_view', reg_id=r.id, lang=current_lang) }}">View Certificate</a>
-                <a class="button is-small" href="{{ url_for('continuing_edu.certificate_pdf', reg_id=r.id, lang=current_lang) }}">Download PDF</a>
+                <a class="button is-small is-success is-light"
+                  href="{{ url_for('continuing_edu.certificate_view', reg_id=r.id, lang=current_lang) }}">View
+                  Certificate</a>
+                <a class="button is-small"
+                  href="{{ url_for('continuing_edu.certificate_pdf', reg_id=r.id, lang=current_lang) }}">Download
+                  PDF</a>
                 {% endif %}
               </div>
             </td>
             <td>
               {% if r.event_entity.event_type == 'course' %}
-              <a class="button is-small is-link" href="{{ url_for('continuing_edu.course_detail', course_id=r.event_entity.id, lang=current_lang) }}">View</a>
+              <a class="button is-small is-link"
+                href="{{ url_for('continuing_edu.course_detail', course_id=r.event_entity.id, lang=current_lang) }}">View</a>
               {% else %}
-              <a class="button is-small is-link" href="{{ url_for('continuing_edu.webinar_detail', webinar_id=r.event_entity.id, lang=current_lang) }}">View</a>
+              <a class="button is-small is-link"
+                href="{{ url_for('continuing_edu.webinar_detail', webinar_id=r.event_entity.id, lang=current_lang) }}">View</a>
               {% endif %}
               {% if r.certificate_url %}
-              <a class="button is-small is-light" href="{{ r.certificate_url }}" target="_blank">Certificate</a>
+              <a class="button is-small is-light" href="{{ r.certificate_presigned_url() }}" target="_blank">Certificate</a>
               {% else %}
-              <a class="button is-small" href="{{ url_for('continuing_edu.certificate_pdf', reg_id=r.id, lang=current_lang) }}">Generate Certificate</a>
+              <a class="button is-small"
+                href="{{ url_for('continuing_edu.certificate_pdf', reg_id=r.id, lang=current_lang) }}">Generate
+                Certificate</a>
               {% endif %}
             </td>
           </tr>
-        {% endfor %}
+          {% endfor %}
         </tbody>
       </table>
       {% else %}
@@ -97,7 +117,7 @@
       <a class="button" href="{{ url_for('continuing_edu.index', lang=current_lang) }}">Back to Home</a>
     </div>
   </section>
-  
+
   <!-- Proof Modal -->
   <div id="proof-modal" class="modal">
     <div class="modal-background" onclick="closeProofModal()"></div>
@@ -142,4 +162,5 @@
     }
   </script>
 </body>
+
 </html>

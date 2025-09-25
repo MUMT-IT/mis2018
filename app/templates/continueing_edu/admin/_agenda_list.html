@@ -33,6 +33,7 @@
               <button class="button is-light" type="button" hx-post="{{ url_for('continuing_edu_admin.move_agenda', event_id=event.id, agenda_id=a.id) }}" hx-vals='{"direction":"down"}' hx-target="#agenda-list" hx-swap="outerHTML">↓</button>
             </div>
           </div>
+           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
         </form>
       </div>
     {% endfor %}

@@ -37,6 +37,8 @@ from datetime import datetime, timezone
 from werkzeug.utils import secure_filename
 
 from . import translations as tr  # Import translations from local package
+from .status_utils import get_registration_status, get_certificate_status
+from .certificate_utils import issue_certificate, can_issue_certificate
 
 current_lang = 'en'  # This should be dynamically set based on user preference or request
 
@@ -722,7 +724,11 @@ def register_event(event_id):
 
     if request.method == 'POST':
         # Create registration and pending payment
-        reg = MemberRegistration(member_id=member.id, event_entity_id=event.id)
+        registered_status = get_registration_status('registered', 'registered', 'ลงทะเบียนแล้ว', 'is-info')
+        pending_cert = get_certificate_status('pending', 'รอดำเนินการ', 'is-info')
+        reg = MemberRegistration(member_id=member.id, event_entity_id=event.id,
+                                 status_id=registered_status.id,
+                                 certificate_status_id=pending_cert.id)
         db.session.add(reg)
         # payment status pending (id may be 1); try lookup by name_en
         pending = RegisterPaymentStatus.query.filter((RegisterPaymentStatus.register_payment_status_code=='pending') | (RegisterPaymentStatus.name_en=='pending')).first()
@@ -1095,33 +1101,12 @@ def start_progress(event_id):
     reg = _get_registration_or_404(event_id, user.id)
     if not reg.started_at:
         reg.started_at = datetime.now(timezone.utc)
+        in_progress_status = get_registration_status('in_progress', 'in_progress', 'กำลังเรียน', 'is-info')
+        reg.status_id = in_progress_status.id
         db.session.add(reg)
         db.session.commit()
     flash(texts.get('progress_started', 'Progress started.'), 'success')
     return redirect(url_for('continuing_edu.course_detail' if reg.event_entity.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event_id if reg.event_entity.event_type=='course' else None, webinar_id=event_id if reg.event_entity.event_type=='webinar' else None, lang=lang))
-
-
-def _issue_certificate(reg: MemberRegistration, lang: str):
-    
-    # Update statuses
-    issued = MemberCertificateStatus.query.filter_by(name_en='issued').first()
-    reg.certificate_status_id = issued.id if issued else reg.certificate_status_id
-    reg.certificate_issued_date = datetime.now(timezone.utc)
-    # Render PDF if library available
-    if HTML is not None:
-        event = reg.event_entity
-        member = reg.member
-        html = render_template('continueing_edu/certificate_pdf.html', reg=reg, event=event, member=member, current_lang=lang)
-        pdf = HTML(string=html, base_url=request.base_url).write_pdf()
-        import os, time
-        os.makedirs(os.path.join('static','certificates'), exist_ok=True)
-        fname = f"cert_{reg.member_id}_{reg.event_entity_id}_{int(time.time())}.pdf"
-        fpath = os.path.join('static','certificates', fname)
-        with open(fpath, 'wb') as f:
-            f.write(pdf)
-        reg.certificate_url = '/' + fpath
-    db.session.add(reg)
-    db.session.commit()
 
 
 @ce_bp.route('/event/<int:event_id>/complete_progress', methods=['POST'])
@@ -1136,18 +1121,19 @@ def complete_progress(event_id):
    
     if not reg.completed_at:
         reg.completed_at = datetime.now(timezone.utc)
+    completed_status = get_registration_status('completed', 'completed', 'สำเร็จแล้ว', 'is-success')
+    reg.status_id = completed_status.id
     # Optionally accept assessment result
     passed = request.form.get('passed') or request.args.get('passed')
     if passed is not None:
         reg.assessment_passed = True if str(passed).lower() in ('1','true','yes','y','passed') else False
     # Issue certificate if completed and passed AND payment approved
     if reg.assessment_passed:
-        approved = RegisterPayment.query\
-            .join(RegisterPaymentStatus, RegisterPayment.payment_status_ref)\
-            .filter(RegisterPayment.member_id==user.id, RegisterPayment.event_entity_id==event_id,
-                    ((RegisterPaymentStatus.register_payment_status_code=='approved') | (RegisterPaymentStatus.name_en=='approved'))).first()
+        pending = get_certificate_status('pending', 'รอดำเนินการ', 'is-info')
+        reg.certificate_status_id = pending.id
+        approved = can_issue_certificate(reg)
         if approved:
-            _issue_certificate(reg, lang)
+            issue_certificate(reg, lang=lang, base_url=request.base_url)
             flash(texts.get('certificate_issued', 'Certificate issued.'), 'success')
         else:
             db.session.add(reg)
@@ -1172,9 +1158,10 @@ def certificate_pdf(reg_id):
     if reg.member_id != user.id:
         flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
         return redirect(url_for('continuing_edu.my_registrations', lang=lang))
-    # If already generated, redirect to URL
+    # If already generated, redirect to stored location
     if reg.certificate_url:
-        return redirect(reg.certificate_url)
+        url = reg.certificate_presigned_url()
+        return redirect(url or reg.certificate_url)
     if HTML is None:
         flash('PDF rendering library is not available on server.', 'danger')
         return redirect(url_for('continuing_edu.my_registrations', lang=lang))

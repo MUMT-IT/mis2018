@@ -17,7 +17,8 @@
   {# ---------------- General Info ---------------- #}
   {% if active_tab == 'general' %}
   <div class="box">
-    <form method="post" enctype="multipart/form-data" action="{{ url_for('continuing_edu_admin.update_event_general', event_id=event.id) }}">
+    <form method="post" enctype="multipart/form-data"
+      action="{{ url_for('continuing_edu_admin.update_event_general', event_id=event.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       <div class="columns">
         <div class="column">
@@ -112,7 +113,8 @@
               <div class="file has-name is-fullwidth">
                 <label class="file-label">
                   <input class="file-input" type="file" name="poster_image_file" accept="image/*">
-                  <span class="file-cta"><span class="file-icon">📷</span><span class="file-label">Choose a file…</span></span>
+                  <span class="file-cta"><span class="file-icon">📷</span><span class="file-label">Choose a
+                      file…</span></span>
                   <span class="file-name is-size-7">Upload a new poster image</span>
                 </label>
               </div>
@@ -129,7 +131,8 @@
               <div class="file has-name is-fullwidth">
                 <label class="file-label">
                   <input class="file-input" type="file" name="cover_image_file" accept="image/*">
-                  <span class="file-cta"><span class="file-icon">📷</span><span class="file-label">Choose a file…</span></span>
+                  <span class="file-cta"><span class="file-icon">📷</span><span class="file-label">Choose a
+                      file…</span></span>
                   <span class="file-name is-size-7">Upload a new cover image</span>
                 </label>
               </div>
@@ -148,8 +151,7 @@
           <p class="label">Poster Preview</p>
           <figure class="image is-3by2" style="max-width: 320px;">
             {% set poster = (event.poster_presigned_url() or event.poster_image_url) %}
-            <img src="{{ poster or '' }}" alt="Poster preview"
-              style="object-fit:cover;border:1px solid #eee;">
+            <img src="{{ poster or '' }}" alt="Poster preview" style="object-fit:cover;border:1px solid #eee;">
           </figure>
           {% endif %}
         </div>
@@ -484,6 +486,166 @@
   </div>
   {% endif %}
 
+  {# ---------------- Certificates ---------------- #}
+  {% if active_tab == 'certificates' %}
+  <div class="box">
+    <h2 class="title is-4">Certificates &amp; Participant Progress</h2>
+    {% if registrations %}
+    <table class="table is-fullwidth is-striped is-hoverable">
+      <thead>
+        <tr>
+          <th>Member</th>
+          <th>Registration</th>
+          <th>Payment</th>
+          <th>Progress</th>
+          <th>Certificate</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for reg in registrations %}
+        {% set member = reg.member %}
+        {% set pay = payments_map.get(reg.member_id) %}
+        <tr>
+          <td>
+            <strong>{{ member.full_name_en or member.full_name_th or member.username }}</strong><br>
+            <span class="is-size-7 has-text-grey">{{ member.email or '—' }}</span>
+          </td>
+          <td>
+            <div>
+              {% set badge = reg.status_ref.css_badge if reg.status_ref and reg.status_ref.css_badge else 'is-light' %}
+              <span class="tag {{ badge }}">{{ reg.status_ref.name_en if reg.status_ref else 'N/A' }}</span>
+            </div>
+            <div class="is-size-7">Registered: {{ reg.registration_date or '-' }}</div>
+            <form method="post" class="mt-2"
+              action="{{ url_for('continuing_edu_admin.update_registration_certificate', event_id=event.id, reg_id=reg.id) }}">
+              <input type="hidden" name="action" value="update_statuses">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <div class="field is-grouped is-grouped-multiline">
+                <div class="control">
+                  <div class="select is-small">
+                    <select name="registration_status_id">
+                      <option value="">Registration Status</option>
+                      {% for st in registration_statuses %}
+                      <option value="{{ st.id }}" {% if reg.status_id==st.id %}selected{% endif %}>{{ st.name_en }}
+                      </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <div class="control">
+                  <div class="select is-small">
+                    <select name="certificate_status_id">
+                      <option value="">Certificate Status</option>
+                      {% for st in certificate_statuses %}
+                      <option value="{{ st.id }}" {% if reg.certificate_status_id==st.id %}selected{% endif %}>{{
+                        st.name_en }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <div class="control">
+                  <button class="button is-small is-link" type="submit">Apply</button>
+                </div>
+              </div>
+            </form>
+          </td>
+          <td>
+            {% if pay %}
+            <div>{{ '%.2f'|format(pay.payment_amount or 0) }} THB</div>
+            {% set p_badge = pay.payment_status_ref.css_badge if pay.payment_status_ref and
+            pay.payment_status_ref.css_badge else 'is-light' %}
+            <div><span class="tag {{ p_badge }}">{{ pay.payment_status_ref.name_en if pay.payment_status_ref else 'N/A'
+                }}</span></div>
+            {% if pay.payment_proof_url %}
+            <button class="button is-ghost is-small" type="button"
+              onclick="openProofModal('{{ pay.proof_presigned_url()|e }}')">Proof</button>
+            {% endif %}
+            {% else %}
+            <em>No payment</em>
+            {% endif %}
+          </td>
+          <td>
+            <div class="is-size-7">Started: {{ reg.started_at or '-' }}</div>
+            <div class="is-size-7">Completed: {{ reg.completed_at or '-' }}</div>
+            <div class="is-size-7">Assessment Passed: {{ 'Yes' if reg.assessment_passed else 'No' }}</div>
+            <div class="buttons mt-2">
+              <form method="post"
+                action="{{ url_for('continuing_edu_admin.update_registration_certificate', event_id=event.id, reg_id=reg.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <input type="hidden" name="action" value="mark_started">
+                <button class="button is-small" type="submit" {% if reg.started_at %}disabled{% endif %}>Mark
+                  Started</button>
+              </form>
+              <form method="post" class="ml-2"
+                action="{{ url_for('continuing_edu_admin.update_registration_certificate', event_id=event.id, reg_id=reg.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <input type="hidden" name="action" value="mark_completed">
+                <label class="checkbox is-size-7">
+                  <input type="checkbox" name="passed" value="1" {% if reg.assessment_passed %}checked{% endif %}>
+                  Passed
+                </label>
+                <button class="button is-small is-link mt-1" type="submit">Mark Completed</button>
+              </form>
+              <form method="post" class="ml-2"
+                action="{{ url_for('continuing_edu_admin.update_registration_certificate', event_id=event.id, reg_id=reg.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <input type="hidden" name="action" value="set_assessment">
+                <input type="hidden" name="passed" value="{% if not reg.assessment_passed %}1{% else %}0{% endif %}">
+                <button class="button is-small is-light" type="submit">Toggle Assessment</button>
+              </form>
+            </div>
+          </td>
+          <td>
+            <div>
+              {% set c_badge = reg.certificate_status_ref.css_badge if reg.certificate_status_ref and
+              reg.certificate_status_ref.css_badge else 'is-light' %}
+              <span class="tag {{ c_badge }}">{{ reg.certificate_status_ref.name_en if reg.certificate_status_ref else
+                'N/A' }}</span>
+            </div>
+            <div class="is-size-7">Issued: {{ reg.certificate_issued_date or '-' }}</div>
+            {% if reg.certificate_url %}
+            <div class="mt-1"><a class="button is-small is-success is-light"
+                href="{{ reg.certificate_presigned_url() }}" target="_blank">View</a></div>
+            {% endif %}
+            <div class="buttons mt-2">
+              <form method="post"
+                action="{{ url_for('continuing_edu_admin.update_registration_certificate', event_id=event.id, reg_id=reg.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <input type="hidden" name="action" value="issue_certificate">
+                {% if can_issue_certificate(reg) %}
+                <button class="button is-small is-success" type="submit">Issue Certificate</button>
+                {% else %}
+                <input type="hidden" name="force" value="1">
+                <button class="button is-small is-danger is-light" type="submit">Force Issue</button>
+                {% endif %}
+              </form>
+              <form method="post" class="ml-2"
+                action="{{ url_for('continuing_edu_admin.update_registration_certificate', event_id=event.id, reg_id=reg.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <input type="hidden" name="action" value="reset_certificate">
+                <button class="button is-small is-warning is-light" type="submit">Reset</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No registrations yet.</p>
+    {% endif %}
+    <div id="proof-modal" class="modal">
+      <div class="modal-background" onclick="closeProofModal()"></div>
+      <div class="modal-content">
+        <div class="box">
+          <div id="proof-container" class="content" style="text-align:center"></div>
+        </div>
+      </div>
+      <button class="modal-close is-large" aria-label="close" onclick="closeProofModal()"></button>
+    </div>
+  </div>
+  {% endif %}
+
   {# ---------------- Staff Roles ---------------- #}
   {% if active_tab == 'roles' %}
   <div class="box">
@@ -641,5 +803,39 @@
       initSortables();
     }
   });
+
+  window.openProofModal = function (url) {
+    var modal = document.getElementById('proof-modal');
+    if (!modal) return;
+    var container = document.getElementById('proof-container');
+    container.innerHTML = '';
+    var isImage = /\.(png|jpg|jpeg|gif|webp|svg)(\?.*)?$/i.test(url);
+    if (isImage) {
+      var img = document.createElement('img');
+      img.src = url;
+      img.alt = 'Payment Proof';
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '70vh';
+      container.appendChild(img);
+    } else {
+      var iframe = document.createElement('iframe');
+      iframe.src = url;
+      iframe.style.width = '100%';
+      iframe.style.height = '70vh';
+      iframe.setAttribute('frameborder', '0');
+      container.appendChild(iframe);
+    }
+    modal.classList.add('is-active');
+  };
+
+  window.closeProofModal = function () {
+    var modal = document.getElementById('proof-modal');
+    if (!modal) return;
+    var container = document.getElementById('proof-container');
+    modal.classList.remove('is-active');
+    if (container) {
+      container.innerHTML = '';
+    }
+  };
 </script>
 {% endblock %}
