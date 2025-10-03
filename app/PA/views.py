@@ -1798,6 +1798,7 @@ def detail_consensus_scoresheet(approved_id):
 def all_scoresheet():
     committee = PACommittee.query.filter_by(staff=current_user).all()
     scoresheets = []
+    approved_scoresheets = []
     end_round_year = set()
     for committee in committee:
         scoresheet = PAScoreSheet.query.filter_by(committee_id=committee.id, is_consolidated=False).join(PAAgreement)\
@@ -1807,10 +1808,16 @@ def all_scoresheet():
             end_round_year.add(end_year)
             if s.pa.round.is_closed != True:
                 scoresheets.append(s)
+
+        approved_scoresheet = PAApprovedScoreSheet.query.filter_by(committee_id=committee.id).all()
+        for s in approved_scoresheet:
+            approved_scoresheets.append(s)
+
     if not committee:
         flash('สำหรับคณะกรรมการประเมิน PA เท่านั้น ขออภัยในความไม่สะดวก', 'warning')
         return redirect(url_for('pa.index'))
-    return render_template('PA/eva_all_scoresheet.html', scoresheets=scoresheets, end_round_year=end_round_year)
+    return render_template('PA/eva_all_scoresheet.html', scoresheets=scoresheets,
+                           approved_scoresheets=approved_scoresheets, end_round_year=end_round_year)
 
 
 @pa.route('/eva/all-scoresheet/year/<int:end_round_year>')
@@ -2566,8 +2573,8 @@ def fc_evaluation_detail(evaluation_id):
 @login_required
 @hr_permission.require()
 def copy_pa_committee():
-    all_pa_round = PARound.query.all()
-    fc_rounds = PAFunctionalCompetencyRound.query.all()
+    all_pa_round = PARound.query.order_by(PARound.id.desc()).all()
+    fc_rounds = PAFunctionalCompetencyRound.query.order_by(PAFunctionalCompetencyRound.id.desc()).all()
     if request.method == 'POST':
         form = request.form
         pa_round_id = form.get('pa_round')
