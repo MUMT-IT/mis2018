@@ -1777,8 +1777,7 @@ def detail_consensus_scoresheet(approved_id):
         approve_scoresheet.approved_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(approve_scoresheet)
         db.session.commit()
-        flash('บันทึกการอนุมัติเรียบร้อยแล้ว', 'success')
-
+        flash('บันทึกการรับรองคะแนนเรียบร้อยแล้ว', 'success')
         approve_title = 'แจ้งสถานะรับรองผลการประเมิน PA จากกรรมการ'
         approve_msg = '{} ดำเนินการรับรองคะแนนการประเมินของ {} เรียบร้อยแล้ว' \
                       '\n\n\nคณะเทคนิคการแพทย์'.format(
@@ -1788,9 +1787,30 @@ def detail_consensus_scoresheet(approved_id):
             send_mail([consolidated_score_sheet.committee.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
         else:
             print(approve_msg, consolidated_score_sheet.committee.staff.email)
-        return redirect(url_for('pa.consensus_scoresheets'))
+        return redirect(url_for('pa.all_scoresheet'))
     return render_template('PA/eva_consensus_scoresheet_detail.html', consolidated_score_sheet=consolidated_score_sheet,
                            approve_scoresheet=approve_scoresheet, core_competency_items=core_competency_items)
+
+
+@pa.route('/eva/consensus-scoresheets/<int:approved_id>/immediate', methods=['GET', 'POST'])
+@login_required
+def committee_approve_consensus_scoresheet(approved_id):
+    approve_scoresheet = PAApprovedScoreSheet.query.filter_by(id=approved_id).first()
+    consolidated_score_sheet = PAScoreSheet.query.filter_by(id=approve_scoresheet.score_sheet_id).first()
+    approve_scoresheet.approved_at = arrow.now('Asia/Bangkok').datetime
+    db.session.add(approve_scoresheet)
+    db.session.commit()
+    flash('บันทึกการรับรองคะแนนเรียบร้อยแล้ว', 'success')
+    approve_title = 'แจ้งสถานะรับรองผลการประเมิน PA จากกรรมการ'
+    approve_msg = '{} ดำเนินการรับรองคะแนนการประเมินของ {} เรียบร้อยแล้ว' \
+                      '\n\n\nคณะเทคนิคการแพทย์'.format(
+                    approve_scoresheet.committee.staff.personal_info.fullname,
+                    consolidated_score_sheet.pa.staff.personal_info.fullname)
+    if not current_app.debug:
+        send_mail([consolidated_score_sheet.committee.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
+    else:
+        print(approve_msg, consolidated_score_sheet.committee.staff.email)
+    return redirect(url_for('pa.all_scoresheet'))
 
 
 @pa.route('/eva/all-scoresheet')
