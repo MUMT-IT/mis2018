@@ -35,20 +35,14 @@
                     <nav class="panel is-warning">
                         <p class="panel-heading">PA สำหรับกลุ่ม"กรรมการ"</p>
                         <a href="{{ url_for('pa.all_scoresheet') }}" class="panel-block">
-                    <span class="panel-icon">
-                        <i class="fa fa-edit"></i>
-                    </span>
+                            <span class="panel-icon">
+                                <i class="fa fa-edit"></i>
+                            </span>
                             <span class="is-size-5">ประเมินผล</span>
                             {% if final_scoresheets|length > 0 %}
                                 <span class="tag is-rounded is-danger">{{ final_scoresheets|length }}</span>
                             {% endif %}
-                            <br>
-                        </a>
-                        <a href="{{ url_for('pa.consensus_scoresheets') }}" class="panel-block">
-                    <span class="panel-icon">
-                        <i class="fa fa-check"></i>
-                    </span>
-                            <span class="is-size-5">รับรองผลประเมิน</span>
+                            <span class="is-size-5">/ รับรองผลประเมิน</span>
                             {% if pending_approved|length > 0 %}
                                 <span class="tag is-rounded is-danger">{{ pending_approved|length }}</span>
                             {% endif %}
