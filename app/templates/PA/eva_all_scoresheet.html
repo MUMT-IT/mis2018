@@ -3,29 +3,25 @@
 {% block page_content %}
 <section class="section">
     <div class="container" id="app">
+        {% include "messages.html" %}
         <div class="columns">
             <div class="column has-text-left">
-                <h1 class="title">แบบประเมินผลการปฏิบัติงาน</h1>
+                <h1 class="title">ประเมินผลการปฏิบัติงาน</h1>
             </div>
         </div>
-    {% include "messages.html" %}
         <div class="columns">
             <div class="column">
-                <table class="table is-striped is-fullwidth" id="reqTable">
+                <table class="table is-striped is-fullwidth" style="border-radius: 8px; overflow: hidden;" id="reqTable">
                     <thead>
-                    <th>รอบการประเมิน</th>
-                    <th></th>
-                    <th>ผู้รับการประเมิน</th>
-                    <th></th>
+                    <th class="is-primary is-light has-text-white is-outlined">รอบการประเมิน</th>
+                    <th class="is-primary is-light has-text-white is-outlined">ผู้รับการประเมิน</th>
+                    <th class="is-primary is-light has-text-white is-outlined"></th>
                     </thead>
                     <tbody>
                     {% for scoresheet in scoresheets %}
                     <tr>
                         <td>
-                            {{ scoresheet.pa.round.desc }}
-                        </td>
-                        <td>
-                            {{ scoresheet.pa.round }}
+                            {{ scoresheet.pa.round.desc }} ({{ scoresheet.pa.round }})
                         </td>
                         <td>
                             {{ scoresheet.pa.staff.personal_info.fullname }}
@@ -38,10 +34,12 @@
                                        <span>ส่งคะแนนแล้ว</span>
                                        </p>
                                    {% else %}
+                                       <p class="tag is-danger is-light is-rounded">
                                        <span class="icon">
                                         <i class="fas fa-star has-text-warning fa-pulse"></i>
                                         </span>
                                         <span class="has-text-danger">รอดำเนินการ</span>
+                                       </p>
                                    {% endif %}
                                {% else %}
                                    <p class="tag is-light is-rounded">
@@ -59,16 +57,9 @@
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">
-                    <a href="{{ url_for('pa.index') }}"
-                       class="button is-light">
-                        <span class="icon">
-                            <i class="fa-solid fa-chevron-left"></i>
-                        </span>
-                        <span>หน้าหลัก</span>
-                    </a>
                     <b-dropdown hoverable aria-role="list">
-                        <button class="button is-info" slot="trigger">
-                            <span>ปีงบอื่นๆ</span>
+                        <button class="button is-primary" slot="trigger">
+                            <span>ประเมินผลปีงบอื่นๆ</span>
                             <b-icon icon="menu-down"></b-icon>
                         </button>
                         {% for fy in end_round_year|sort(attribute='fy', reverse=True) %}
@@ -77,6 +68,80 @@
                             ปี {{ fy+543 }}</b-dropdown-item>
                         {% endfor %}
                     </b-dropdown>
+                </div>
+            </div>
+        </div>
+        <hr>
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">รับรองผลคะแนนการประเมิน</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth"  style="border-radius: 8px; overflow: hidden;" id="approveTable">
+                    <thead>
+                    <th class="is-primary is-light has-text-white is-outlined">รอบการประเมิน</th>
+                    <th class="is-primary is-light has-text-white is-outlined">ผู้รับการประเมิน</th>
+                    <th class="is-primary is-light has-text-white is-outlined">สถานะ</th>
+                    <th class="is-primary is-light has-text-white is-outlined"></th>
+                    </thead>
+                    <tbody>
+                    {% for approved_scoresheet in approved_scoresheets %}
+                    <tr>
+                        <td>
+                            {{ approved_scoresheet.score_sheet.pa.round.desc }}
+                            ({{ approved_scoresheet.score_sheet.pa.round }})
+                        </td>
+                        <td>
+                            {{ approved_scoresheet.score_sheet.pa.staff.personal_info.fullname }}
+                        </td>
+                        <td>
+                            {% if not approved_scoresheet.approved_at %}
+                            <span class="has-text-danger">
+                                รอดำเนินการ
+                            </span>
+                            {% else %}
+                            <span>
+                                <span>รับรองแล้ว</span>
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a class="tag is-info is-light is-rounded"
+                               href="{{ url_for('pa.detail_consensus_scoresheet', approved_id=approved_scoresheet.id) }}">
+                                <span class="icon">
+                                    <i class="fa-solid fa-eye"></i>
+                                </span>
+                                <span>รายละเอียด</span>
+                            </a>
+                            {% if not approved_scoresheet.approved_at %}
+                            <a onclick="return confirm('แน่ใจหรือไม่ ที่จะรับรองคะแนน')"
+                               href="{{ url_for('pa.committee_approve_consensus_scoresheet', approved_id=approved_scoresheet.id) }}"
+                               class="tag is-success is-outlined is-rounded">
+                                <span class="icon">
+                                    <i class="fa-solid fa-check-square"></i>
+                                </span>
+                                <span>รับรองทันที</span>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('pa.index') }}"
+                       class="button is-light">
+                        <span class="icon">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </span>
+                        <span>หน้าหลัก</span>
+                    </a>
                 </div>
             </div>
         </div>
@@ -91,7 +156,10 @@
         });
         $(document).ready(function(){
             $('#reqTable').DataTable({
-                order: [[3, 'desc'], [0, 'desc']]
+                order: [[2, 'desc'], [0, 'desc']]
+            });
+            $('#approveTable').DataTable({
+                order: [[2, 'asc'], [0, 'desc']]
             });
         });
     </script>
