@@ -100,12 +100,7 @@
                                 <span class="tag is-rounded is-danger">{{ final_scoresheets|length }}</span>
                             {% endif %}
                             <br>
-                        </a>
-                        <a href="{{ url_for('pa.consensus_scoresheets') }}" class="panel-block">
-                    <span class="panel-icon">
-                        <i class="fa fa-check"></i>
-                    </span>
-                            <span class="is-size-5">รับรองผลประเมิน</span>
+                            <span class="is-size-5">/ รับรองผลประเมิน</span>
                             {% if pending_approved|length > 0 %}
                                 <span class="tag is-rounded is-danger">{{ pending_approved|length }}</span>
                             {% endif %}
