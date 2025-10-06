@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% include "PA/nav.html" %}
+{% include "staff/nav.html" %}
 {% block page_content %}
 <section class="section">
     <div class="container" id="app">
@@ -13,9 +13,9 @@
             <div class="column">
                 <table class="table is-striped is-fullwidth" style="border-radius: 8px; overflow: hidden;" id="reqTable">
                     <thead>
-                    <th class="is-primary is-light has-text-white is-outlined">รอบการประเมิน</th>
-                    <th class="is-primary is-light has-text-white is-outlined">ผู้รับการประเมิน</th>
-                    <th class="is-primary is-light has-text-white is-outlined"></th>
+                    <th class="has-background-info-light has-text-green">รอบการประเมิน</th>
+                    <th class="has-background-info-light has-text-green">ผู้รับการประเมิน</th>
+                    <th class="has-background-info-light has-text-green"></th>
                     </thead>
                     <tbody>
                     {% for scoresheet in scoresheets %}
@@ -58,7 +58,7 @@
             <div class="column">
                 <div class="buttons is-centered">
                     <b-dropdown hoverable aria-role="list">
-                        <button class="button is-primary" slot="trigger">
+                        <button class="button is-info" slot="trigger">
                             <span>ประเมินผลปีงบอื่นๆ</span>
                             <b-icon icon="menu-down"></b-icon>
                         </button>
@@ -81,10 +81,10 @@
             <div class="column">
                 <table class="table is-striped is-fullwidth"  style="border-radius: 8px; overflow: hidden;" id="approveTable">
                     <thead>
-                    <th class="is-primary is-light has-text-white is-outlined">รอบการประเมิน</th>
-                    <th class="is-primary is-light has-text-white is-outlined">ผู้รับการประเมิน</th>
-                    <th class="is-primary is-light has-text-white is-outlined">สถานะ</th>
-                    <th class="is-primary is-light has-text-white is-outlined"></th>
+                    <th class="has-background-info-light has-text-green">รอบการประเมิน</th>
+                    <th class="has-background-info-light has-text-green">ผู้รับการประเมิน</th>
+                    <th class="has-background-info-light has-text-green">สถานะ</th>
+                    <th class="has-background-info-light has-text-green"></th>
                     </thead>
                     <tbody>
                     {% for approved_scoresheet in approved_scoresheets %}
