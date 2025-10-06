@@ -34,7 +34,7 @@
                                        <span>ส่งคะแนนแล้ว</span>
                                        </p>
                                    {% else %}
-                                       <p class="tag is-danger is-light is-rounded">
+                                       <p class="tag is-danger is-light is-rounded is-medium">
                                        <span class="icon">
                                         <i class="fas fa-star has-text-warning fa-pulse"></i>
                                         </span>
@@ -58,7 +58,7 @@
             <div class="column">
                 <div class="buttons is-centered">
                     <b-dropdown hoverable aria-role="list">
-                        <button class="button is-info" slot="trigger">
+                        <button class="button is-info is-light" slot="trigger">
                             <span>ประเมินผลปีงบอื่นๆ</span>
                             <b-icon icon="menu-down"></b-icon>
                         </button>
@@ -108,7 +108,7 @@
                             {% endif %}
                         </td>
                         <td>
-                            <a class="tag is-info is-light is-rounded"
+                            <a class="tag is-info is-light is-rounded is-medium"
                                href="{{ url_for('pa.detail_consensus_scoresheet', approved_id=approved_scoresheet.id) }}">
                                 <span class="icon">
                                     <i class="fa-solid fa-eye"></i>
@@ -118,7 +118,7 @@
                             {% if not approved_scoresheet.approved_at %}
                             <a onclick="return confirm('แน่ใจหรือไม่ ที่จะรับรองคะแนน')"
                                href="{{ url_for('pa.committee_approve_consensus_scoresheet', approved_id=approved_scoresheet.id) }}"
-                               class="tag is-success is-outlined is-rounded">
+                               class="tag is-success is-outlined is-rounded is-medium">
                                 <span class="icon">
                                     <i class="fa-solid fa-check-square"></i>
                                 </span>
