@@ -6,7 +6,7 @@ import qrcode
 from bahttext import bahttext
 from markupsafe import Markup
 from sqlalchemy import or_, case
-from datetime import date
+from datetime import date, datetime
 import arrow
 import pandas
 from io import BytesIO
@@ -31,7 +31,7 @@ from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
                                          ServiceCustomerAccountForm, create_request_form, ServiceCustomerContactForm,
                                          ServiceCustomerAddressForm, ServiceSampleForm, ServicePaymentForm,
-                                         BacteriaRequestForm)
+                                         BacteriaRequestForm, VirusRequestForm, BacteriaRequestConditionForm)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
     jsonify, send_file
@@ -82,11 +82,12 @@ def send_mail_for_account(recp, title, message):
     mail.send(message)
 
 
-def format_data(data):
+def formate_data(data):
+    print('d', data)
     if isinstance(data, dict):
-        return {k: format_data(v) for k, v in data.items() if k != "csrf_token" and k != 'submit'}
+        return {k: formate_data(v) for k, v in data.items() if k != "csrf_token" and k != 'submit'}
     elif isinstance(data, list):
-        return [format_data(item) for item in data]
+        return [formate_data(item) for item in data]
     elif isinstance(data, (date)):
         return data.isoformat()
     return data
@@ -98,27 +99,101 @@ def get_status(s_id):
     return status_id
 
 
+# def request_data(service_request):
+#     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+#     gc = get_credential(json_keyfile)
+#     wks = gc.open_by_key(sheetid)
+#     sheet = wks.worksheet(service_request.sub_lab.sheet)
+#     df = pandas.DataFrame(sheet.get_all_records())
+#     data = service_request.data
+#     form = create_request_form(df)(**data)
+#     values = []
+#     table_rows = []
+#     set_fields = set()
+#     current_row = {}
+#     for fn in df.fieldGroup:
+#         for field in getattr(form, fn):
+#             if field.type == 'FieldList':
+#                 for fd in field:
+#                     for f in fd:
+#                         if f.data != None and f.data != '' and f.data != [] and f.label not in set_fields:
+#                             set_fields.add(f.label)
+#                             label = f.label.text
+#                             value = ', '.join(f.data) if f.type == 'CheckboxField' else f.data
+#                             if label.startswith("เชื้อ"):
+#                                 value = Markup(f"<i>{value}</i>")
+#                                 if current_row:
+#                                     table_rows.append(current_row)
+#                                     current_row = {}
+#                                 current_row["เชื้อ"] = value
+#                             elif "อัตราส่วน" in label:
+#                                 current_row["อัตราส่วนเจือจาง"] = value
+#                             elif "ระยะห่าง" in label:
+#                                 current_row["ระยะห่างในการฉีดพ่น"] = value
+#                             elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
+#                                 current_row["ระยะเวลาฉีดพ่น"] = value
+#                             elif "สัมผัสกับเชื้อ" in label:
+#                                 current_row["ระยะเวลาสัมผัสเชื้อ"] = value
+#                             else:
+#                                 values.append(f"{label} : {value}")
+#             else:
+#                 if field.data != None and field.data != '' and field.data != [] and field.label not in set_fields:
+#                     set_fields.add(field.label)
+#                     label = field.label.text
+#                     value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
+#                     if label.startswith("เชื้อ"):
+#                         value = Markup(f"<i>{value}</i>")
+#                         if current_row:
+#                             table_rows.append(current_row)
+#                             current_row = {}
+#                         current_row["เชื้อ"] = value
+#                     elif "อัตราส่วน" in label:
+#                         current_row["อัตราส่วนเจือจาง"] = value
+#                     elif "ระยะห่าง" in label:
+#                         current_row["ระยะห่างในการฉีดพ่น"] = value
+#                     elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
+#                         current_row["ระยะเวลาฉีดพ่น"] = value
+#                     elif "สัมผัสกับเชื้อ" in label:
+#                         current_row["ระยะเวลาสัมผัสเชื้อ"] = value
+#                     else:
+#                         values.append(f"{label} : {value}")
+#     if current_row:
+#         table_rows.append(current_row)
+#     table_keys = []
+#     for row in table_rows:
+#         for key in row:
+#             if key not in table_keys:
+#                 table_keys.append(key)
+#
+#     return {
+#         "value": values,
+#         "table_rows": table_rows,
+#         "table_keys": table_keys
+#     }
+
 def request_data(service_request):
-    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
-    gc = get_credential(json_keyfile)
-    wks = gc.open_by_key(sheetid)
-    sheet = wks.worksheet(service_request.sub_lab.sheet)
-    df = pandas.DataFrame(sheet.get_all_records())
     data = service_request.data
-    form = create_request_form(df)(**data)
+    if service_request.sub_lab.code == 'bacteria':
+        form = BacteriaRequestForm(data=data)
+    else:
+        form = VirusRequestForm(data=data)
     values = []
     table_rows = []
+    tables = []
     set_fields = set()
     current_row = {}
-    for fn in df.fieldGroup:
-        for field in getattr(form, fn):
-            if field.type == 'FieldList':
-                for fd in field:
-                    for f in fd:
-                        if f.data != None and f.data != '' and f.data != [] and f.label not in set_fields:
+    for field in form:
+        if field.type == 'FormField':
+            if not any([f.data for f in field._fields.values() if f.type != 'HiddenField' and f.type != 'FormField'] ):
+                continue
+            for fname, fn in field.form._fields.items():
+                if fn.type == 'FormField':
+                    for f_name, f in fn.form._fields.items():
+                        if f.data and f.label not in set_fields:
                             set_fields.add(f.label)
                             label = f.label.text
-                            value = ', '.join(f.data) if f.type == 'CheckboxField' else f.data
+                            value = ', '.join(
+                                f.data) if f.type == 'SelectMultipleField' or f.type == 'CheckboxField' else f.data
                             if label.startswith("เชื้อ"):
                                 value = Markup(f"<i>{value}</i>")
                                 if current_row:
@@ -127,35 +202,32 @@ def request_data(service_request):
                                 current_row["เชื้อ"] = value
                             elif "อัตราส่วน" in label:
                                 current_row["อัตราส่วนเจือจาง"] = value
+                            elif "ต่อน้ำ" in label:
+                                current_row["ต่อน้ำ"] = value
                             elif "ระยะห่าง" in label:
-                                current_row["ระยะห่างในการฉีดพ่น"] = value
+                                current_row["ระยะห่างในการฉีดพ่น (cm)"] = value
                             elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
-                                current_row["ระยะเวลาฉีดพ่น"] = value
+                                current_row["ระยะเวลาฉีดพ่น (วินาที)"] = value
                             elif "สัมผัสกับเชื้อ" in label:
-                                current_row["ระยะเวลาสัมผัสเชื้อ"] = value
+                                current_row["ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)"] = value
+                            elif "สัมผัสกับผ้า" in label:
+                                current_row["ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับผ้า (นาที)"] = value
+                            elif "ทดสอบเพื่อทำลายเชื้อ" in label:
+                                current_row["ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (วินาที/นาที)"] = value
                             else:
                                 values.append(f"{label} : {value}")
-            else:
-                if field.data != None and field.data != '' and field.data != [] and field.label not in set_fields:
-                    set_fields.add(field.label)
-                    label = field.label.text
-                    value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
-                    if label.startswith("เชื้อ"):
-                        value = Markup(f"<i>{value}</i>")
-                        if current_row:
-                            table_rows.append(current_row)
-                            current_row = {}
-                        current_row["เชื้อ"] = value
-                    elif "อัตราส่วน" in label:
-                        current_row["อัตราส่วนเจือจาง"] = value
-                    elif "ระยะห่าง" in label:
-                        current_row["ระยะห่างในการฉีดพ่น"] = value
-                    elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
-                        current_row["ระยะเวลาฉีดพ่น"] = value
-                    elif "สัมผัสกับเชื้อ" in label:
-                        current_row["ระยะเวลาสัมผัสเชื้อ"] = value
-                    else:
+                else:
+                    if fn.data and fn.label not in set_fields:
+                        set_fields.add(fn.label)
+                        label = fn.label.text
+                        value = ', '.join(fn.data) if fn.type == 'SelectMultipleField' else fn.data
                         values.append(f"{label} : {value}")
+        else:
+            if field.data and field.label not in set_fields:
+                set_fields.add(field.label)
+                label = field.label.text
+                value = ', '.join(f.data) if field.type == 'SelectMultipleField' else field.data
+                values.append(f"{label} : {value}")
     if current_row:
         table_rows.append(current_row)
     table_keys = []
@@ -681,22 +753,86 @@ def create_service_request():
     return render_template('academic_services/request_form.html', code=code, sub_lab=sub_lab)
 
 
-# @academic_services.route('/request/add', methods=['GET', 'POST'])
-# def bacteria_request_form():
-#     code = request.args.get('code')
-#     sub_lab = ServiceSubLab.query.filter_by(code=code)
-#     form = BacteriaRequestForm()
-#     if form.validate_on_submit():
-#         request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.code)
-#         service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
-#                              request_no=request_no.number, product=form.sample_name.data, data=format_data(form.data))
-#         request_no.count += 1
-#         db.session.add(service_request)
-#         db.session.commit()
-#     else:
-#         flash(f'{form.errors}', 'danger')
-#     return render_template('academic_services/bacteria_request_form.html', code=code, sub_lab=sub_lab,
-#                            form=form)
+@academic_services.route('/request/add', methods=['GET', 'POST'])
+@academic_services.route('/request/edit/<int:request_id>', methods=['GET', 'POST'])
+def create_request(request_id=None):
+    code = request.args.get('code')
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+    liquid_organisms = [
+        'S. aureus ATCC 6538',
+        'S. choleraesuis ATCC 10708',
+        'P. aeruginosa ATCC 15442',
+        'T. mentagrophytes'
+    ]
+    wash_organisms = [
+        'S. aureus ATCC 6538',
+        'K. pneumoniae ATCC 4352'
+    ]
+    virus_liquid_organisms = [
+        'Influenza virus A (H1N1)',
+        'Enterovirus A-71',
+        'Respiratory syncytial virus',
+        'SARS-CoV-2'
+    ]
+    virus_airborne_organisms = [
+        'Influenza virus A (H1N1)'
+    ]
+
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        data = service_request.data
+        if code == 'bacteria':
+            form = BacteriaRequestForm(data=data)
+        else:
+            form = VirusRequestForm(data=data)
+    else:
+        if code == 'bacteria':
+            form = BacteriaRequestForm()
+        else:
+            form = VirusRequestForm()
+    if form.validate_on_submit():
+        if request_id:
+            service_request.data = formate_data(form.data)
+            service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+        else:
+            request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.lab.code)
+            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                             sub_lab=sub_lab,
+                                             request_no=request_no.number, data=formate_data(form.data))
+            request_no.count += 1
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(
+            url_for('academic_services.create_report_language', request_id=service_request.id, menu='request',
+                    code=service_request.sub_lab.code))
+    else:
+        for er in form.errors:
+            flash(er, 'danger')
+    if code == 'bacteria':
+        return render_template('academic_services/bacteria_request_form.html', code=code, sub_lab=sub_lab,
+                               form=form, liquid_organisms=liquid_organisms, wash_organisms=wash_organisms)
+    else:
+        return render_template('academic_services/virus_request_form.html', code=code, sub_lab=sub_lab,
+                               form=form, virus_liquid_organisms=virus_liquid_organisms,
+                               virus_airborne_organisms=virus_airborne_organisms)
+
+
+@academic_services.route('/request/condition')
+def get_condition_form():
+    product_type = request.args.get("product_type", type=str)
+    session['condition_index'] = session.get('condition_index', 0) + 1
+    index = session['condition_index']
+    form = BacteriaRequestForm()
+    field_name = f"{product_type}_condition_field"
+
+    if not hasattr(form, field_name):
+        return ""
+
+    field = getattr(form, field_name)
+
+    field.prefix = f"{field_name}-{index}"
+    return render_template("academic_services/partials/bacteria_condition_form.html", field=field,
+                           index=index, form=form)
 
 
 @academic_services.route('/submit-request/add', methods=['POST', 'GET'])
@@ -704,7 +840,7 @@ def create_service_request():
 def submit_request(request_id=None):
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
-        sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
+        sub_lab = ServiceSubLab.query.filter_by(code=service_request.sub_lab.code).first()
     else:
         code = request.args.get('code')
         sub_lab = ServiceSubLab.query.filter_by(code=code).first()
@@ -735,12 +871,13 @@ def submit_request(request_id=None):
                 products.append(values['test_sample_of_heavy'])
     if request_id:
         req = ServiceRequest.query.get(request_id)
-        req.data = format_data(form.data)
+        req.data = formate_data(form.data)
         req.modified_at = arrow.now('Asia/Bangkok').datetime
         req.product = products
     else:
-        req = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
-                             request_no=request_no.number, product=products, data=format_data(form.data))
+        req = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                             sub_lab=sub_lab,
+                             request_no=request_no.number, product=products, data=formate_data(form.data))
         request_no.count += 1
     db.session.add(req)
     db.session.commit()
@@ -802,12 +939,12 @@ def create_customer_detail(request_id):
                 service_request.quotation_address_id = int(quotation_address_id)
                 service_request.quotation_name = address.name
                 service_request.quotation_issue_address = (
-                                         f"{address.address} "
-                                         f"{subdistrict_title}{address.subdistrict} "
-                                         f"{district_title}{address.district} "
-                                         f"จังหวัด{address.province} "
-                                         f"{address.zipcode}"
-                                     )
+                    f"{address.address} "
+                    f"{subdistrict_title}{address.subdistrict} "
+                    f"{district_title}{address.district} "
+                    f"จังหวัด{address.province} "
+                    f"{address.zipcode}"
+                )
                 service_request.taxpayer_identification_no = address.taxpayer_identification_no
                 service_request.quotation_phone_number = address.phone_number
                 db.session.add(service_request)
@@ -820,12 +957,12 @@ def create_customer_detail(request_id):
                 service_request.document_address_id = int(document_address_id)
                 service_request.receive_name = address.name
                 service_request.receive_address = (
-                                         f"{address.address} "
-                                         f"{subdistrict_title}{address.subdistrict} "
-                                         f"{district_title}{address.district} "
-                                         f"จังหวัด{address.province} "
-                                         f"{address.zipcode}"
-                                     )
+                    f"{address.address} "
+                    f"{subdistrict_title}{address.subdistrict} "
+                    f"{district_title}{address.district} "
+                    f"จังหวัด{address.province} "
+                    f"{address.zipcode}"
+                )
                 service_request.receive_phone_number = address.phone_number
                 db.session.add(service_request)
                 db.session.commit()
@@ -837,11 +974,11 @@ def create_customer_detail(request_id):
                 service_request.document_address_id = int(quotation_address_id)
                 service_request.receive_name = quotation_address.name
                 service_request.receive_address = (
-                                         f"{quotation_address.address} "
-                                         f"{subdistrict_title}{quotation_address.subdistrict} "
-                                         f"{district_title}{quotation_address.district} "
-                                         f"จังหวัด{quotation_address.province} "
-                                         f"{quotation_address.zipcode}")
+                    f"{quotation_address.address} "
+                    f"{subdistrict_title}{quotation_address.subdistrict} "
+                    f"{district_title}{quotation_address.district} "
+                    f"จังหวัด{quotation_address.province} "
+                    f"{quotation_address.zipcode}")
                 service_request.receive_phone_number = quotation_address.phone_number
                 db.session.add(service_request)
                 remark = quotation_address.remark if quotation_address.remark else None
@@ -885,7 +1022,8 @@ def create_customer_detail(request_id):
         db.session.commit()
         return redirect(url_for('academic_services.view_request', request_id=request_id, menu=menu))
     return render_template('academic_services/create_customer_detail.html', menu=menu,
-                           customer=customer, request_id=request_id, code=code, form=form, service_request=service_request,
+                           customer=customer, request_id=request_id, code=code, form=form,
+                           service_request=service_request,
                            selected_address_id=selected_address_id)
 
 
@@ -1441,7 +1579,8 @@ def request_quotation(request_id):
         message += f'''{service_request.customer.customer_name}\n'''
         message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n\n'''
         message += f'''ระบบงานบริการวิชาการ'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor or not a.is_central_admin], title, message)
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor or not a.is_central_admin],
+                  title, message)
         msg = ('แจ้งขอใบเสนอราคา' \
                '\n\nเรียน เจ้าหน้าที่{}'
                '\n\nใบคำขอบริการเลขที่ {}' \
@@ -2182,7 +2321,7 @@ def invoice_index():
 @academic_services.route('/api/invoice/index')
 def get_invoices():
     query = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at != None, ServiceInvoice.quotation.has(
-                ServiceQuotation.request.has(customer_id=current_user.id)))
+        ServiceQuotation.request.has(customer_id=current_user.id)))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -2510,12 +2649,11 @@ def cancel_request(request_id):
 def edit_request_form():
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     print('Authorizing with Google..')
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    sheet = wks.worksheet(sub_lab.sheet)
+    sheet = wks.worksheet(service_request.sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     data = service_request.data
     form = create_request_form(df)(**data)
@@ -2551,7 +2689,7 @@ def receipt_index():
 @academic_services.route('/api/receipt/index')
 def get_receipts():
     query = ServiceInvoice.query.filter(ServiceInvoice.receipts != None, ServiceInvoice.quotation.has(
-                ServiceQuotation.request.has(customer_id=current_user.id)))
+        ServiceQuotation.request.has(customer_id=current_user.id)))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
