@@ -227,8 +227,8 @@
                                     </li>
                                     <li>
                                         <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
-                                           href="{{ url_for('academic_services.edit_service_request',
-                                           request_id=service_request.id, code=service_request.lab) }}"
+                                           href="{{ url_for('academic_services.create_request',
+                                           request_id=service_request.id, code=service_request.sub_lab.code) }}"
                                         >
                                             <span class="icon"><i class="fas fa-pen"></i></span>
                                             <span>แก้ไขข้อมูลคำขอ</span>
