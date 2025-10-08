@@ -179,12 +179,11 @@ def request_data(service_request):
         form = VirusRequestForm(data=data)
     values = []
     table_rows = []
-    tables = []
     set_fields = set()
     current_row = {}
     for field in form:
         if field.type == 'FormField':
-            if not any([f.data for f in field._fields.values() if f.type != 'HiddenField' and f.type != 'FormField'] ):
+            if not any([f.data for f in field._fields.values() if f.type != 'HiddenField' and f.type != 'FormField']):
                 continue
             for fname, fn in field.form._fields.items():
                 if fn.type == 'FormField':
@@ -810,18 +809,17 @@ def create_request(request_id=None):
             flash(er, 'danger')
     if code == 'bacteria':
         return render_template('academic_services/bacteria_request_form.html', code=code, sub_lab=sub_lab,
-                               form=form, liquid_organisms=liquid_organisms, wash_organisms=wash_organisms)
+                               form=form, liquid_organisms=liquid_organisms, wash_organisms=wash_organisms,
+                               request_id=request_id)
     else:
         return render_template('academic_services/virus_request_form.html', code=code, sub_lab=sub_lab,
                                form=form, virus_liquid_organisms=virus_liquid_organisms,
-                               virus_airborne_organisms=virus_airborne_organisms)
+                               virus_airborne_organisms=virus_airborne_organisms, request_id=request_id)
 
 
 @academic_services.route('/request/condition')
 def get_condition_form():
     product_type = request.args.get("product_type", type=str)
-    session['condition_index'] = session.get('condition_index', 0) + 1
-    index = session['condition_index']
     form = BacteriaRequestForm()
     field_name = f"{product_type}_condition_field"
 
@@ -829,10 +827,7 @@ def get_condition_form():
         return ""
 
     field = getattr(form, field_name)
-
-    field.prefix = f"{field_name}-{index}"
-    return render_template("academic_services/partials/bacteria_condition_form.html", field=field,
-                           index=index, form=form)
+    return render_template("academic_services/partials/bacteria_condition_form.html", field=field)
 
 
 @academic_services.route('/submit-request/add', methods=['POST', 'GET'])
