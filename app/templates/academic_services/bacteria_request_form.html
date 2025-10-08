@@ -148,8 +148,6 @@
                                 {% for subform in form %}
                                     {% if subform.type == 'FormField' %}
                                         {% set ns = namespace(has_value=false) %}
-
-                                        {# loop ตรวจหาค่าก่อน #}
                                         {% for key, value in subform.data.items() %}
                                             {% if key != 'product_type' and key != 'csrf_token' %}
                                                 {% if value and value is not mapping %}
@@ -157,18 +155,18 @@
                                                 {% endif %}
                                             {% endif %}
                                         {% endfor %}
-
                                         {% if ns.has_value %}
-                                            <div class="card mb-2">
+                                            <div class="card mb-2 subform-card">
                                                 <div class="card-content">
                                                     <div class="field">
                                                         <label class="label">{{ subform.label.text }}</label>
-                                                        {% for f in subform if f.type != 'HiddenField' and f.type != 'CSRFTokenField' %}
+                                                        {% for sf in subform if sf.type != 'HiddenField' and sf.type != 'CSRFTokenField' %}
                                                             <div class="field">
-                                                                {{ f() }}
+                                                                {{ sf() }}
                                                             </div>
                                                         {% endfor %}
                                                     </div>
+                                                    <button type="button" class="button is-danger is-rounded is-small remove-subform">ลบ</button>
                                                 </div>
                                             </div>
                                         {% endif %}
@@ -236,102 +234,24 @@
         })
     </script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            {#const form = document.getElementById('labDataForm');#}
-            const jsonOutputDiv = document.getElementById('jsonOutput');
-            const jsonContentPre = document.getElementById('jsonContent');
-            const collectSamplesDuringTesting = document.getElementById('collect_samples_during_testing');
-            const otherCollectSamplesContainer = document.getElementById('other_collect_samples_container');
-            const productType = document.getElementById('product_type');
-            const bacteriaSection = document.getElementById('bacteria_section');
-            const alertModal = document.getElementById('alertModal');
-            const alertMessage = document.getElementById('alertMessage');
-            const closeAlertBtn = document.getElementById('closeAlert');
-
-            // Show/hide other field for sample collection
-            collectSamplesDuringTesting.addEventListener('change', (e) => {
-                if (e.target.value === "อื่นๆ โปรดระบุ") {
-                    otherCollectSamplesContainer.classList.remove('is-hidden');
-                } else {
-                    otherCollectSamplesContainer.classList.add('is-hidden');
-                }
-            });
-
-            // Show/hide sections based on product type
-            productType.addEventListener('change', (e) => {
-                if (e.target.value === "ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดของเหลว หรือชนิดผง ที่ละลายน้้าได้") {
-                    bacteriaSection.classList.remove('is-hidden');
-                }
-            });
-
-            {#form.addEventListener('submit', (e) => {#}
-            {#    e.preventDefault();#}
-            {##}
-            {#    // Collect form data#}
-            {#    const formData = new FormData(form);#}
-            {#    const data = {};#}
-            {#    for (const [key, value] of formData.entries()) {#}
-            {#        if (value) {#}
-            {#            data[key] = value;#}
-            {#        }#}
-            {#    }#}
-            {##}
-            {#    // Simple validation for required fields#}
-            {#    const requiredFields = ["sample_name", "product_appearance", "size", "mfg", "exp", "lot_no", "manufacturer", "amount", "collect_samples_during_testing"];#}
-            {#    for (const field of requiredFields) {#}
-            {#        if (!data[field]) {#}
-            {#            showAlert("โปรดกรอกข้อมูลที่จำเป็นให้ครบถ้วน");#}
-            {#            return;#}
-            {#        }#}
-            {#    }#}
-            {##}
-            {#    // Validate specific fields based on product type#}
-            {#    if (data.product_type === "ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า") {#}
-            {#        if (!data.while_wash_test_method || !data.while_wash_dilution || !data.while_wash_germ) {#}
-            {#            showAlert("โปรดกรอกข้อมูลการทดสอบ In Wash ให้ครบถ้วน");#}
-            {#            return;#}
-            {#        }#}
-            {#        if (!data.after_wash_ratio_and_per_water || !data.after_wash_time_duration) {#}
-            {#            showAlert("โปรดกรอกข้อมูลการทดสอบ After Wash ให้ครบถ้วน");#}
-            {#            return;#}
-            {#        }#}
-            {#    }#}
-            {##}
-            {#    // Simulate the call to the Python backend (views.py)#}
-            {#    // In a real app, you would send this data to a server endpoint.#}
-            {#    // For this example, we'll just process it directly in JS.#}
-            {#    const processedData = processFormSubmission(data);#}
-            {##}
-            {#    // Display the result#}
-            {#    jsonContentPre.textContent = processedData;#}
-            {#    jsonOutputDiv.classList.remove('is-hidden');#}
-            {##}
-            {#    // Scroll to the result section#}
-            {#    jsonOutputDiv.scrollIntoView({behavior: 'smooth'});#}
-            {##}
-
-            // Simulating the Python backend logic from views.py and models.py
-            {#function processFormSubmission(formDataRaw) {#}
-            {#    const processedData = formDataRaw;#}
-            {#    return JSON.stringify(processedData, null, 4);#}
-            {##}
-            {##}
-            {#function showAlert(message) {#}
-            {#    alertMessage.textContent = message;#}
-            {#    alertModal.classList.add('is-active');#}
-            {##}
-            {##}
-            {#closeAlertBtn.addEventListener('click', () => {#}
-            {#    alertModal.classList.remove('is-active');#}
-            {##}
-        });
-    </script>
-    <script>
         document.body.addEventListener('htmx:afterRequest', (e) => {
             const select = document.getElementById('product_type');
             if (select) {
                 select.selectedIndex = 0;
             }
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.body.addEventListener('click', function(e) {
+                if (e.target.classList.contains('remove-subform')) {
+                    const card = e.target.closest('.subform-card');
+                    card.querySelectorAll('*').forEach(el => {
+                        el.remove();
+                    });
+                    card.remove();
+                }
+            });
         });
     </script>
 {% endblock %}
