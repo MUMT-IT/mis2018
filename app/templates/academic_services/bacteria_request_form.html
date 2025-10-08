@@ -1,19 +1,17 @@
 {% extends "academic_services/service_base.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"
-          xmlns="http://www.w3.org/1999/html"/>
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
 {% endblock %}
+{% from "academic_services/bacteria/macros/organism_form_field_macro.html" import organism_form_field %}
 {% block page_content %}
-    {% include "academic_services/customer_nav.html" %}\
+    {% include "academic_services/customer_nav.html" %}
     {% include 'messages.html' %}
     <div class="container is-max-widescreen">
-        <div class="box p-6 has-background-white rounded-xl shadow-lg">
-            <h1 class="title is-3 has-text-centered has-text-grey-dark">ฟอร์มบันทึกข้อมูล Lab</h1>
-
-            <form id="labDataForm" method="post">
+        <div class="column">
+            <h1 class="title is-3 has-text-centered has-text-grey-dark">ฟอร์ม{{ sub_lab.sub_lab }}</h1>
+            <form method="post">
                 {{ form.hidden_tag() }}
-                <!-- Product Information Section -->
                 <div class="card mb-5">
                     <header class="card-header has-background-light">
                         <p class="card-header-title has-text-grey-darker">
@@ -22,161 +20,96 @@
                     </header>
                     <div class="card-content">
                         <div class="content">
-                            <div class="columns is-multiline">
-                                <div class="column is-half">
-                                    <div class="field">
-                                        <label class="label">
-                                            {{ form.sample_name.label }}
-                                            <span class="has-text-danger">*</span>
-                                        </label>
-                                        <div class="control">
-                                            {{ form.sample_name(class='input') }}
-                                        </div>
-                                    </div>
+                            <div class="field">
+                                <label class="label">{{ form.sample_name.label }}</label>
+                                <div class="control">
+                                    {{ form.sample_name(class='input') }}
                                 </div>
-                                <div class="column is-half">
-                                    <div class="field">
-                                        <label class="label">
-                                            {{ form.active_substance.label }}
-                                            <span class="has-text-danger">*</span>
-                                        </label>
-                                        <div>
-                                            {{ form.active_substance(class='textarea', placeholder='เช่น Formaldyhyde 37% w/w, Ethyl Alcohol 50% w/w') }}
-                                        </div>
-                                    </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.active_substance.label }}</label>
+                                <div class="control">
+                                    {{ form.active_substance(class='textarea') }}
                                 </div>
-                                <div class="column is-half">
-                                    <div class="field">
-                                        <label class="label">
-                                            {{ form.product_appearance.label }}
-                                            <span class="has-text-danger">*</span>
-                                        </label>
-                                        <div class="control">
-                                            {{ form.product_appearance(class='input') }}
-                                        </div>
-                                    </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.product_appearance.label }}</label>
+                                <div class="control">
+                                    {{ form.product_appearance(class='input') }}
                                 </div>
-                                <div class="column is-half">
-                                    <div class="field">
-                                        <label class="label">
-                                            {{ form.kind.label }}
-                                            <span class="has-text-danger">*</span>
-                                        </label>
-                                        <div class="control">
-                                            {{ form.kind(class='input') }}
-                                        </div>
-                                    </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.kind.label }}</label>
+                                <div class="contol">
+                                    {{ form.kind(class='input') }}
                                 </div>
-                                <div class="column is-half">
-                                    <div class="field">
-                                        <label class="label">{{ form.size.label }}
-                                            <span class="has-text-danger">*</span>
-                                        </label>
-                                        <div class="control">
-                                            {{ form.size(class='input') }}
-                                        </div>
-                                    </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.size.label }}</label>
+                                <div class="control">
+                                    {{ form.size(class='input') }}
                                 </div>
-                                <div class="column is-half">
+                            </div>
+                            <div class="field">
+                                <div class="field-body">
                                     <div class="field">
-                                        <label class="label">
-                                            {{ form.mfg.label }}
-                                            <span class="has-text-danger">*</span></label>
+                                        <label class="label">{{ form.mfg.label }}</label>
                                         <div class="control">
                                             {{ form.mfg(class='input') }}
                                         </div>
                                     </div>
-                                </div>
-                                <div class="column is-half">
                                     <div class="field">
-                                        <label class="label">
-                                            {{ form.exp.label }}
-                                            <span class="has-text-danger">*</span>
-                                        </label>
+                                        <label class="label">{{ form.exp.label }}</label>
                                         <div class="control">
                                             {{ form.exp(class='input') }}
                                         </div>
                                     </div>
-                                </div>
-                                <div class="column is-half">
                                     <div class="field">
-                                        <label class="label">
-                                            {{ form.lot_no.label }}
-                                            <span class="has-text-danger">*</span>
-                                        </label>
+                                        <label class="label">{{ form.lot_no.label }}</label>
                                         <div class="control">
                                             {{ form.lot_no(class='input') }}
                                         </div>
                                     </div>
                                 </div>
-                                <div class="column is-half">
-                                    <div class="field">
-                                        <label class="label">
-                                            {{ form.manufacturer.label }}
-                                            <span class="has-text-danger">*</span>
-                                        </label>
-                                        <div class="control">
-                                            {{ form.manufacturer(class='input') }}
-                                        </div>
-                                    </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.manufacturer.label }}</label>
+                                <div class="control">
+                                    {{ form.manufacturer(class='input') }}
                                 </div>
-                                <div class="column is-half">
-                                    <div class="field">
-                                        <label class="label">
-                                            {{ form.manufacturer_address.label }}
-                                            <span class="has-text-danger">*</span>
-                                        </label>
-                                        <div class="control">
-                                            {{ form.manufacturer_address(class='textarea') }}
-                                        </div>
-                                    </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.manufacturer_address.label }}</label>
+                                <div class="control">
+                                    {{ form.manufacturer_address(class='textarea') }}
                                 </div>
-                                <div class="column is-half">
-                                    <div class="field">
-                                        <label class="label">
-                                            {{ form.importanddistributor.label }}
-                                            <span class="has-text-danger">*</span>
-                                        </label>
-                                        <div class="control">
-                                            {{ form.importanddistributor(class='input') }}
-                                        </div>
-                                    </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.importanddistributor.label }}</label>
+                                <div class="control">
+                                    {{ form.importanddistributor(class='input') }}
                                 </div>
-                                <div class="column is-half">
-                                    <div class="field">
-                                        <label class="label">
-                                            {{ form.importanddistributor_address.label }}
-                                            <span class="has-text-danger">*</span>
-                                        </label>
-                                        <div class="control">
-                                            {{ form.importanddistributor_address(class='textarea') }}
-                                        </div>
-                                    </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.importanddistributor_address.label }}</label>
+                                <div class="control">
+                                    {{ form.importanddistributor_address(class='textarea') }}
                                 </div>
-                                <div class="column is-half">
+                            </div>
+                            <div class="field">
+                                <div class="field-body">
                                     <div class="field">
-                                        <label class="label">
-                                            {{ form.amount.label }}
-                                            <span class="has-text-danger">*</span>
-                                        </label>
+                                        <label class="label">{{ form.amount.label }}</label>
                                         <div class="control">
                                             {{ form.amount(class='input') }}
                                         </div>
                                     </div>
-                                </div>
-                                <div class="column is-half">
                                     <div class="field">
-                                        <label class="label">
-                                            {{ form.collect_samples_during_testing.label }}
-                                            <span class="has-text-danger">*</span>
-                                        </label>
-                                        <div class="select">
+                                        <label class="label">{{ form.collect_samples_during_testing.label }}</label>
+                                        <div class="select is-fullwidth">
                                             {{ form.collect_samples_during_testing() }}
                                         </div>
                                     </div>
-                                </div>
-                                <div class="column is-half is-hidden"
-                                     id="other_collect_samples_container">
                                     <div class="field">
                                         <label class="label">{{ form.collect_samples_during_testing_other.label }}</label>
                                         <div class="control">
@@ -188,130 +121,117 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Test Items Section -->
                 <div class="card mb-5">
-                    <header class="card-header has-background-light">
-                        <p class="card-header-title has-text-grey-darker">
+                    <header class="card-header has-background-light" style="display: flex; justify-content: space-between;
+                    align-items: center;">
+                        <p class="card-header-title has-text-grey-darker" style="margin: 0;">
                             รายการทดสอบ
                         </p>
+                        <div style="display: flex; justify-content: center; align-items: center;">
+                            <div class="select">
+                                {{ form.product_type(
+                                **{'hx-get': url_for("academic_services.get_condition_form"),
+                                'hx-target': '#condition-fields',
+                                 'hx-swap': 'beforeend',
+                                 'hx-trigger': 'change, load'}) }}
+                            </div>
+                        </div>
                     </header>
                     <div class="card-content">
-                        <div class="content">
+                        {% if request_id %}
                             <div class="field">
-                                <label class="label">
-                                    {{ form.product_type.label }}
-                                </label>
-                                <div class="select">
-                                    {{ form.product_type() }}
+                                <div class="field">
+                                    <label class="label">
+                                        {{ form.label }}
+                                    </label>
                                 </div>
-                            </div>
-                            <div id="bacteria_section" class="field is-hidden">
-                                {% for item_form in form.items %}
-                                    <label class="label">{{ item_form.liquid_test_method.label }}</label>
-                                    {% for subfield in item_form.liquid_test_method %}
-                                        <label class="checkbox">
-                                            {{ subfield() }} {{ subfield.label.text }}
-                                        </label><br/>
-                                    {% endfor %}
-                                    <div class="field">
-                                        <label class="label">{{ item_form.liquid_dilution.label }}</label>
-                                        <div class="select">
-                                            {{ item_form.liquid_dilution() }}
-                                        </div>
-                                    </div>
-                                    <div class="field">
-                                        <label class="label">{{ item_form.liquid_germ.label }}</label>
-                                        <div class="select">
-                                            {{ item_form.liquid_germ() }}
-                                        </div>
-                                    </div>
-                                    <div class="field">
-                                        <label class="label">{{ item_form.liquid_ratio.label }}</label>
-                                        <div class="control">
-                                            {{ item_form.liquid_ratio(class='input') }}
-                                        </div>
-                                    </div>
-                                    <div class="field">
-                                        <label class="label">{{ item_form.liquid_per_water.label }}</label>
-                                        <div class="control">
-                                            {{ item_form.liquid_per_water(class='input') }}
-                                        </div>
-                                    </div>
-                                    <div class="field">
-                                        <label class="label">{{ item_form.liquid_time_duration.label }}</label>
-                                        <div class="control">
-                                            {{ item_form.liquid_time_duration(class='input') }}
-                                        </div>
-                                    </div>
+                                {% for subform in form %}
+                                    {% if subform.type == 'FormField' %}
+                                        {% set ns = namespace(has_value=false) %}
+
+                                        {# loop ตรวจหาค่าก่อน #}
+                                        {% for key, value in subform.data.items() %}
+                                            {% if key != 'product_type' and key != 'csrf_token' %}
+                                                {% if value and value is not mapping %}
+                                                    {% set ns.has_value = true %}
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+
+                                        {% if ns.has_value %}
+                                            <div class="card mb-2">
+                                                <div class="card-content">
+                                                    <div class="field">
+                                                        <label class="label">{{ subform.label.text }}</label>
+                                                        {% for f in subform if f.type != 'HiddenField' and f.type != 'CSRFTokenField' %}
+                                                            <div class="field">
+                                                                {{ f() }}
+                                                            </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
                                 {% endfor %}
                             </div>
+                        {% endif %}
+                        <div class="field">
+                            <div id="condition-fields"></div>
                         </div>
                     </div>
                 </div>
                 <div class="field is-grouped is-justify-content-center">
                     <div class="control">
-                        <input type="submit" value="Submit" class="button is-success">
+                        <input type="submit" value="บันทึกและดำเนินการต่อ" class="button is-success">
                     </div>
                 </div>
             </form>
-
-            <!-- JSON Output Section -->
-            <div id="jsonOutput" class="box is-hidden mt-5 has-background-light">
-                <h2 class="title is-4 has-text-grey-darker">ข้อมูล JSON ที่สร้างขึ้น</h2>
-                <pre id="jsonContent"
-                     class="has-background-grey-darker has-text-white p-4 rounded-lg text-sm is-fullwidth"></pre>
-            </div>
-
-            <!-- Alert Modal -->
-            <div id="alertModal" class="modal">
-                <div class="modal-background"></div>
-                <div class="modal-content">
-                    <div class="box has-text-centered">
-                        <h3 class="title is-5">เกิดข้อผิดพลาด</h3>
-                        <p class="subtitle is-6" id="alertMessage">
-                            โปรดกรอกข้อมูลที่จำเป็นให้ครบถ้วน</p>
-                        <div class="buttons is-centered mt-4">
-                            <button id="closeAlert"
-                                    class="button is-info">ตกลง
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript"
+            src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
-    $(document).ready(function () {
+        $(document).ready(function () {
             moment.locale('th');
             $('input[name="mfg"]').daterangepicker({
                 singleDatePicker: true,
                 timePicker: true,
                 timePickerIncrement: 15,
                 timePicker24Hour: true,
-                showDropdowns: true,
-                autoUpdateInput: true,
-
-                startDate: moment().startOf('hour').add(1, 'hours'),
-                locale: {
-                    format: 'YYYY-MM-DD'
-                }
+                autoUpdateInput: false,
+                locale:
+                    {
+                        format: 'YYYY-MM-DD HH:mm:ss',
+                        cancelLabel: 'Clear'
+                    }
+            });
+            $('input[name="mfg"]').on('apply.daterangepicker', function (ev, picker) {
+                $(this).val(picker.startDate.format('YYYY-MM-DD HH:mm:ss'));
+            });
+            $('input[name="mfg"]').on('cancel.daterangepicker', function () {
+                $(this).val('');
             });
             $('input[name="exp"]').daterangepicker({
                 singleDatePicker: true,
                 timePicker: true,
                 timePickerIncrement: 15,
                 timePicker24Hour: true,
-                showDropdowns: true,
-                autoUpdateInput: true,
-                startDate: moment().startOf('hour').add(2, 'hours'),
-                locale: {
-                    format: 'YYYY-MM-DD'
-                }
+                autoUpdateInput: false,
+                locale:
+                    {
+                        format: 'YYYY-MM-DD HH:mm:ss',
+                        cancelLabel: 'Clear'
+                    }
+            });
+            $('input[name="exp"]').on('apply.daterangepicker', function (ev, picker) {
+                $(this).val(picker.startDate.format('YYYY-MM-DD HH:mm:ss'));
+            });
+            $('input[name="exp"]').on('cancel.daterangepicker', function () {
+                $(this).val('');
             });
         })
     </script>
@@ -394,16 +314,24 @@
             {#function processFormSubmission(formDataRaw) {#}
             {#    const processedData = formDataRaw;#}
             {#    return JSON.stringify(processedData, null, 4);#}
-           {##}
+            {##}
             {##}
             {#function showAlert(message) {#}
             {#    alertMessage.textContent = message;#}
             {#    alertModal.classList.add('is-active');#}
-         {##}
+            {##}
             {##}
             {#closeAlertBtn.addEventListener('click', () => {#}
             {#    alertModal.classList.remove('is-active');#}
             {##}
+        });
+    </script>
+    <script>
+        document.body.addEventListener('htmx:afterRequest', (e) => {
+            const select = document.getElementById('product_type');
+            if (select) {
+                select.selectedIndex = 0;
+            }
         });
     </script>
 {% endblock %}
