@@ -105,16 +105,21 @@
                                         </div>
                                     </div>
                                     <div class="field">
-                                        <label class="label">{{ form.collect_samples_during_testing.label }}</label>
+                                        <label class="label">{{ form.collect_sample_during_testing.label }}</label>
                                         <div class="select is-fullwidth">
-                                            {{ form.collect_samples_during_testing() }}
+                                            {{ form.collect_sample_during_testing(
+                                                **{'hx-get': url_for("academic_services.get_collect_sample_during_testing_other",
+                                                request_id=request_id),
+                                                'hx-target': '#collect-samples-other-container',
+                                                 'hx-swap': 'innerHTML',
+                                                 'hx-trigger': 'change, load'}) }}
                                         </div>
                                     </div>
-                                    <div class="field">
-                                        <label class="label">{{ form.collect_samples_during_testing_other.label }}</label>
-                                        <div class="control">
-                                            {{ form.collect_samples_during_testing_other(class='input') }}
-                                        </div>
+                                    <div class="field" id="collect-samples-other-container">
+                                            <label class="label">{{ form.collect_sample_during_testing_other.label }}</label>
+                                            <div class="control">
+                                                {{ form.collect_sample_during_testing_other(class='input') }}
+                                            </div>
                                     </div>
                                 </div>
                             </div>
