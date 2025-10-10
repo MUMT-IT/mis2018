@@ -817,8 +817,8 @@ def create_request(request_id=None):
                                virus_airborne_organisms=virus_airborne_organisms, request_id=request_id)
 
 
-@academic_services.route("/request/collect_sample_during_testing_other")
-def get_collect_sample_during_testing_other():
+@academic_services.route("/request/collect_sample_during_testing")
+def get_collect_sample_during_testing():
     request_id = request.args.get("request_id", type=int)
     collect_sample_during_testing = request.args.get("collect_sample_during_testing", type=str)
     label = 'โปรดระบุ'
@@ -851,13 +851,9 @@ def get_collect_sample_during_testing_other():
 def get_test_method():
     request_id = request.args.get("request_id", type=int)
     test_method = request.args.get("test_method", type=str)
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = ServiceRequest.query.get(request_id) if request_id else None
     form = VirusRequestForm()
-    for field in form:
-        if hasattr(field, 'data'):
-            field.data = None
-
-    if request_id and service_request and service_request.data:
+    if service_request:
         form.process(data=service_request.data)
     if test_method == "ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น":
         html = render_template_string('''
@@ -916,20 +912,21 @@ def get_test_method():
             <div class="field">
                 <div class="field-body">
                     <div class="field">
-                        <label class="label">{{ form.product_storage.label }}</label>
+                        <label class="label">{{ form.amount.label }}</label>
                         <div class="select">
-                            {{ form.product_storage(required=True) }}
+                            {{ form.product_storage(
+                                **{'hx-get': url_for("academic_services.get_product_storage", request_id=request_id),
+                                'hx-target': '#product-storage-other-container',
+                                'hx-swap': 'innerHTML',
+                                'hx-trigger': 'change, load', 
+                                'required': True})
+                            }}
                         </div>
                     </div>
-                    <div class="field" style='width:100%'>
-                        <label class="label">{{ form.product_storage_other.label }}</label>
-                        <div class="control">
-                            {{ form.product_storage_other(class="input") }}
-                        </div>
-                    </div>
+                    <div id="product-storage-other-container" style='width:100%'></div>
                 </div>
             </div>
-        ''', form=form)
+        ''', form=form, request_id=request_id)
     elif test_method == "เครื่องมือหรืออุปกรณ์ในการกำจัดเชื้อ":
         html = render_template_string('''
             <div class="field">
@@ -996,9 +993,39 @@ def get_test_method():
                     {{ form.distributor_address(class='textarea', required=True) }}
                 </div>
             </div>
-        ''', form=form)
+        ''', form=form, request_id=request_id)
     else:
         html = ''''''
+    resp = make_response(html)
+    return resp
+
+
+@academic_services.route("/request/product_storage")
+def get_product_storage():
+    request_id = request.args.get("request_id", type=int)
+    product_storage = request.args.get("product_storage", type=str)
+    label = 'โปรดระบุ'
+
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        if service_request and service_request.data:
+            data = service_request.data
+            product_storage_other = data.get('product_storage_other', '')
+        else:
+            product_storage_other = ''
+    else:
+        product_storage_other = ''
+    if product_storage == 'อื่นๆ':
+        html = f'''
+            <div class="field">
+                <label class="label">{label}</label>
+                <div class="control">
+                    <input name="product_storage_other" class="input" value="{product_storage_other}" required>
+                </div>
+            </div>
+        '''
+    else:
+        html = '<input type="hidden" name="product_storage_other" class="input" value="">'
     resp = make_response(html)
     return resp
 
