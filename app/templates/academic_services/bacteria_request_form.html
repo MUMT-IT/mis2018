@@ -108,14 +108,14 @@
                                         <label class="label">{{ form.collect_sample_during_testing.label }}</label>
                                         <div class="select is-fullwidth">
                                             {{ form.collect_sample_during_testing(
-                                                **{'hx-get': url_for("academic_services.get_collect_sample_during_testing_other",
+                                                **{'hx-get': url_for("academic_services.get_collect_sample_during_testing",
                                                 request_id=request_id),
                                                 'hx-target': '#collect-samples-other-container',
                                                  'hx-swap': 'innerHTML',
                                                  'hx-trigger': 'change, load'}) }}
                                         </div>
                                     </div>
-                                    <div class="field" id="collect-samples-other-container">
+                                    <div id="collect-samples-other-container" style='width:100%'>
                                     </div>
                                 </div>
                             </div>
