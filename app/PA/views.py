@@ -64,6 +64,7 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         pa = PAAgreement.query.filter_by(round_id=round_id,
                                          staff=current_user).first()
     if pa is None:
+        previous_pa = PAAgreement.query.filter_by(staff=current_user).order_by(PAAgreement.id.desc()).first()
         head_committee = PACommittee.query.filter_by(org=current_user.personal_info.org, role='ประธานกรรมการ',
                                                      round_id=round_id).first()
         head_individual = PACommittee.query.filter_by(subordinate=current_user, role='ประธานกรรมการ',
@@ -103,6 +104,50 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         else:
             flash('ไม่พบประธานกรรมการประเมิน PA กรุณาดำเนินการติดต่อ HR', 'danger')
             return redirect(url_for('pa.user_performance'))
+
+        if not pa.updated_at and pa_round.is_closed != True:
+            if previous_pa and pa:
+                kpi_item_map = {}
+
+                for kpi in previous_pa.kpis:
+                    new_kpi = PAKPI(
+                        pa=pa,
+                        type=kpi.type,
+                        detail=kpi.detail,
+                        source=kpi.source
+                    )
+                    db.session.add(new_kpi)
+
+                    for kpi_item in kpi.pa_kpi_items:
+                        new_kpi_item = PAKPIItem(
+                            level=kpi_item.level,
+                            kpi=new_kpi,
+                            goal=kpi_item.goal
+                        )
+                        db.session.add(new_kpi_item)
+
+                        kpi_item_map[kpi_item.id] = new_kpi_item
+
+                db.session.commit()
+                for item in sorted(previous_pa.pa_items, key=lambda x: x.id):
+                    new_item = PAItem(
+                        category=item.category,
+                        task=item.task,
+                        percentage=item.percentage,
+                        report='',
+                        pa=pa
+                    )
+                    db.session.add(new_item)
+
+                    for old_kpi_item in item.kpi_items:
+                        if old_kpi_item.id in kpi_item_map:
+                            new_item.kpi_items.append(kpi_item_map[old_kpi_item.id])
+                    db.session.commit()
+
+                pa.updated_at = arrow.now('Asia/Bangkok').datetime
+                db.session.add(pa)
+                db.session.commit()
+                flash('ระบบคัดลอกภาระงานล่าสุดให้เรียบร้อยแล้ว', 'success')
     if item_id:
         pa_item = PAItem.query.get(item_id)
         form = PAItemForm(obj=pa_item)

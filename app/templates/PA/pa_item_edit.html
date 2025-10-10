@@ -242,7 +242,7 @@
                                                                                 hx-swap="innerHTML"
                                                                                 class="tag is-medium">
                                                                             <span class="icon is-small">
-                                                                                <i class="fa-solid   fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
+                                                                                <i class="fa-solid   fa-cogs {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
                                                                             </span>
                                                                             <span>เพิ่ม/เลือก ตัวชี้วัด</span>
                                                                         </span>
@@ -314,17 +314,17 @@
                                     </button>
                                 </p>
                                 {% endif %}
-                                {% if not pa.updated_at %}
-                                <div class="field is-grouped is-grouped-centered">
-                                    <a class="button is-warning"
-                                    href="{{ url_for('pa.copy_pa', pa_id=pa.id) }}">
-                                            <span class="icon">
-                                                <i class="fas fa-copy"></i>
-                                            </span>
-                                            <span>คัดลอกภาระงานจาก PA รอบเก่า **กดก่อนเพิ่มภาระงานใหม่</span>
-                                        </a>
-                                </div>
-                                {% endif %}
+{#                                {% if not pa.updated_at %}#}
+{#                                <div class="field is-grouped is-grouped-centered">#}
+{#                                    <a class="button is-warning"#}
+{#                                    href="{{ url_for('pa.copy_pa', pa_id=pa.id) }}">#}
+{#                                            <span class="icon">#}
+{#                                                <i class="fas fa-copy"></i>#}
+{#                                            </span>#}
+{#                                            <span>คัดลอกภาระงานจาก PA รอบเก่า **กดก่อนเพิ่มภาระงานใหม่</span>#}
+{#                                        </a>#}
+{#                                </div>#}
+{#                                {% endif %}#}
                                 {% if pa.kpis %}
                                     <h1 class="title is-size-4">รายการตัวชี้วัด</h1>
                                     <table class="table is-fullwidth is-striped">
@@ -383,14 +383,21 @@
                                 <span>เพิ่มตัวชี้วัด</span>
                             </a>
                         {% endif %}
-                        <span hx-get="{{ url_for('pa.create_request', pa_id=pa.id) }}"
-                              hx-target="#pa-edit-form-container" hx-swap="innerHTML"
+{#                        <span hx-get="{{ url_for('pa.create_request', pa_id=pa.id) }}"#}
+{#                              hx-target="#pa-edit-form-container" hx-swap="innerHTML"#}
+{#                              class="button is-info is-outlined is-medium">#}
+{#                            <span class="icon">#}
+{#                                <i class="fa-sharp fa-solid fa-paper-plane"></i>#}
+{#                            </span>#}
+{#                            <span>ส่งคำขอ</span>#}
+{#                        </span>#}
+                        <a href="{{ url_for('pa.create_request', pa_id=pa.id) }}"
                               class="button is-info is-outlined is-medium">
                             <span class="icon">
                                 <i class="fa-sharp fa-solid fa-paper-plane"></i>
                             </span>
-                            <span>ส่งคำขอ</span>
-                        </span>
+                            <span>ส่งคำขอรับการประเมิน</span>
+                        </a>
                         {% if pa.approved_at %}
                             <a onclick="return confirm('เมื่อประเมินตนเองแล้ว จะไม่สามารถแก้ไขตัวชี้วัดและภาระงานได้อีก หากแน่ใจแล้วคลิก OK เพื่อดำเนินการประเมินตนเอง')"
                                href="{{ url_for('pa.create_scoresheet_for_self_evaluation', pa_id=pa.id) }}"
