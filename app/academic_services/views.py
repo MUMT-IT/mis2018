@@ -1005,7 +1005,6 @@ def get_product_storage():
     request_id = request.args.get("request_id", type=int)
     product_storage = request.args.get("product_storage", type=str)
     label = 'โปรดระบุ'
-
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
         if service_request and service_request.data:
@@ -1032,8 +1031,14 @@ def get_product_storage():
 
 @academic_services.route('/request/condition')
 def get_condition_form():
+    code = request.args.get('code')
     product_type = request.args.get("product_type", type=str)
-    form = BacteriaRequestForm()
+    if code == 'bacteria':
+        form = BacteriaRequestForm()
+    elif code == 'virus':
+        form = VirusRequestForm()
+    else:
+        form = None
     field_name = f"{product_type}_condition_field"
 
     if not hasattr(form, field_name):
