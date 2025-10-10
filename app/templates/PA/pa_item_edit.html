@@ -326,7 +326,18 @@
 {#                                </div>#}
 {#                                {% endif %}#}
                                 {% if pa.kpis %}
-                                    <h1 class="title is-size-4">รายการตัวชี้วัด</h1>
+                                    <div style="display: flex; align-items: center;">
+                                        <h1 class="title is-size-4" style="margin-right: 10px;">รายการตัวชี้วัด</h1>
+                                        {% if not pa.approved_at %}
+                                           <a class="button is-info is-medium is-light is-outlined"
+                                               href="{{ url_for('pa.add_kpi', pa_id=pa.id, round_id=pa_round.id) }}">
+                                                                <span class="icon">
+                                                                    <i class="fa-solid fa-plus"></i>
+                                                                </span>
+                                                <span>เพิ่มตัวชี้วัด</span>
+                                            </a>
+                                        {% endif %}
+                                    </div>
                                     <table class="table is-fullwidth is-striped">
                                         {% for item_form in form.kpi_items_ %}
                                             <tr>
@@ -374,15 +385,6 @@
                     </form>
                     {% include 'messages.html' %}
                     <div class="buttons is-centered">
-                        {% if not pa.approved_at %}
-                            <a class="button is-info is-medium"
-                               href="{{ url_for('pa.add_kpi', pa_id=pa.id, round_id=pa_round.id) }}">
-                                                <span class="icon">
-                                                    <i class="fa-solid fa-location-crosshairs "></i>
-                                                </span>
-                                <span>เพิ่มตัวชี้วัด</span>
-                            </a>
-                        {% endif %}
                         <span hx-get="{{ url_for('pa.create_request', pa_id=pa.id) }}"
                               hx-target="#pa-edit-form-container" hx-swap="innerHTML"
                               class="button is-info is-outlined is-medium">
