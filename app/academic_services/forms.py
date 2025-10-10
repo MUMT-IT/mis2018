@@ -358,11 +358,11 @@ class BacteriaRequestForm(FlaskForm):
     importanddistributor = StringField('ผู้นำเข้า/จัดจำหน่าย', validators=[DataRequired()])
     importanddistributor_address = TextAreaField('ที่อยู่ผู้นำเข้า/จัดจำหน่าย', validators=[DataRequired()])
     amount = IntegerField('จำนวนที่ส่ง', validators=[DataRequired()])
-    collect_samples_during_testing = SelectField('เก็บตัวอย่างระหว่างรอทดสอบ',
+    collect_sample_during_testing = SelectField('เก็บตัวอย่างระหว่างรอทดสอบ',
                                                  choices=[('อุณหภูมิห้อง', 'อุณหภูมิห้อง'),
                                                           ('อื่นๆ', 'อื่นๆ')],
                                                  validate_choice=True)
-    collect_samples_during_testing_other = StringField('โปรดระบุ')
+    collect_sample_during_testing_other = StringField('โปรดระบุ')
     product_type = SelectField('ประเภทผลิตภัณฑ์', choices=[('', '+ เพิ่มประเภทผลิตภัณฑ์'),
                                                            ('liquid',
                                                             'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดของเหลว หรือชนิดผง ที่ละลายน้้าได้'),
