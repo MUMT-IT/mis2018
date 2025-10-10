@@ -34,7 +34,7 @@ from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, For
                                          BacteriaRequestForm, VirusRequestForm, BacteriaRequestConditionForm)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
-    jsonify, send_file
+    jsonify, send_file, render_template_string
 from flask_login import login_user, current_user, logout_user, login_required
 from flask_principal import Identity, identity_changed, AnonymousIdentity
 from flask_admin.helpers import is_safe_url
@@ -837,12 +837,168 @@ def get_collect_sample_during_testing_other():
             <div class="field">
                 <label class="label">{label}</label>
                 <div class="control">
-                    <input name="collect_samples_during_testing_other" class="input" value="{collect_sample_during_testing_other}" required>
+                    <input name="collect_sample_during_testing_other" class="input" value="{collect_sample_during_testing_other}" required>
                 </div>
             </div>
         '''
     else:
-        html = '<input type="hidden" name="collect_samples_during_testing_other" class="input" value="">'
+        html = '<input type="hidden" name="collect_sample_during_testing_other" class="input" value="">'
+    resp = make_response(html)
+    return resp
+
+
+@academic_services.route("/request/test_method")
+def get_test_method():
+    request_id = request.args.get("request_id", type=int)
+    test_method = request.args.get("test_method", type=str)
+    service_request = ServiceRequest.query.get(request_id)
+    form = VirusRequestForm()
+    for field in form:
+        if hasattr(field, 'data'):
+            field.data = None
+
+    if request_id and service_request and service_request.data:
+        form.process(data=service_request.data)
+    if test_method == "ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น":
+        html = render_template_string('''
+            <div class="field">
+                <label class="label">{{ form.active_substance.label }}</label>
+                <div class="control">
+                    {{ form.active_substance(class='textarea', required=True) }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.product_appearance.label }}</label>
+                <div class="control">
+                    {{ form.product_appearance(class='input', required=True) }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.kind.label }}</label>
+                <div class="control">
+                    {{ form.kind(class='input', required=True) }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.size.label }}</label>
+                <div class="control">
+                    {{ form.size(class='input', required=True) }}
+                </div>
+            </div>
+            <div class="field">
+                <div class="field-body">
+                    <div class="field">
+                        <label class="label">{{ form.mfg.label }}</label>
+                        <div class="control">
+                            {{ form.mfg(class='input', required=True) }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.exp.label }}</label>
+                        <div class="control">
+                            {{ form.exp(class='input', required=True) }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.lot_no.label }}</label>
+                        <div class="control">
+                            {{ form.lot_no(class='input', required=True) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.amount.label }}</label>
+                <div class="control">
+                    {{ form.amount(class='input', required=True) }}
+                </div>
+            </div>
+            <div class="field">
+                <div class="field-body">
+                    <div class="field">
+                        <label class="label">{{ form.product_storage.label }}</label>
+                        <div class="select">
+                            {{ form.product_storage(required=True) }}
+                        </div>
+                    </div>
+                    <div class="field" style='width:100%'>
+                        <label class="label">{{ form.product_storage_other.label }}</label>
+                        <div class="control">
+                            {{ form.product_storage_other(class="input") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        ''', form=form)
+    elif test_method == "เครื่องมือหรืออุปกรณ์ในการกำจัดเชื้อ":
+        html = render_template_string('''
+            <div class="field">
+                <label class="label">{{ form.disinfection_system.label }}</label>
+                    <div class="control">
+                        {{ form.disinfection_system(class='textarea', required=True) }}
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-body">
+                        <div class="field">
+                            <label class="label">{{ form.model.label }}</label>
+                            <div class="control">
+                                {{ form.model(class='input', required=True) }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.serial_no.label }}</label>
+                        <div class="control">
+                            {{ form.serial_no(class='input', required=True) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.equipment_test_operation.label }}</label>
+                <div class="control">
+                    {{ form.equipment_test_operation(class='textarea', required=True) }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label"> {{ form.manufacturer.label }}</label>
+                <div class="control">
+                    {{ form.manufacturer(class='input', required=True) }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.manufacturer_address.label }}</label>
+                <div class="control">
+                    {{ form.manufacturer_address(class='textarea', required=True) }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.importer.label }}</label>
+                <div class="control">
+                    {{ form.importer(class='input', required=True) }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.importer_address.label }}</label>
+                <div class="control">
+                    {{ form.importer_address(class='textarea', required=True) }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.distributor.label }}</label>
+                <div class="control">
+                    {{ form.distributor(class='input', required=True) }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.distributor_address.label }}</label>
+                <div class="control">
+                    {{ form.distributor_address(class='textarea', required=True) }}
+                </div>
+            </div>
+        ''', form=form)
+    else:
+        html = ''''''
     resp = make_response(html)
     return resp
 
