@@ -569,8 +569,15 @@ class VirusRequestForm(FlaskForm):
     importer_address = TextAreaField('ที่อยู่ผู้นำเข้า')
     distributor = StringField('ผู้จัดจำหน่าย')
     distributor_address = TextAreaField('ที่อยู่ผู้จัดจำหน่าย')
-    liquid_condition_field = FormField(VirusLiquidConditionForm,'ผลิตภัณฑ์ฆ่าเชื้อ ชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้')
-    spray_condition_field = FormField(VirusSprayConditionForm, 'ผลิตภัณฑ์ฆ่าเชื้อ ชนิดฉีดพ่น')
+    product_type = SelectField('ประเภทผลิตภัณฑ์', choices=[('', '+ เพิ่มประเภทผลิตภัณฑ์'),
+                                                           ('liquid', 'ผลิตภัณฑ์ฆ่าเชื้อชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้'),
+                                                           ('spray', 'ผลิตภัณฑ์ฆ่าเชื้อชนิดฉีดพ่น'),
+                                                           ('coat', 'ผลิตภัณฑ์ฆ่าเชื้อที่เคลือบบนพื้นผิวสำเร็จรูป')])
+    disinfection_type = SelectField('ประเภทการฆ่า/ทำลายเชื้อ' , choices=[('', '+ เพิ่มประเภทการฆ่า/ทำลายเชื้อ'),
+                                                           ('surface', 'การฆ่าเชื้อบนพื้นผิว'),
+                                                           ('airborne', 'การลด/ทำลายเชื้อในอากาศ')])
+    liquid_condition_field = FormField(VirusLiquidConditionForm,'ผลิตภัณฑ์ฆ่าเชื้อชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้')
+    spray_condition_field = FormField(VirusSprayConditionForm, 'ผลิตภัณฑ์ฆ่าเชื้อชนิดฉีดพ่น')
     coat_condition_field = FormField(VirusCoatConditionForm, 'ผลิตภัณฑ์ฆ่าเชื้อที่เคลือบบนพื้นผิวสำเร็จรูป')
     surface_disinfection_field = FormField(VirusSurfaceDisinfectionConditionForm, 'การฆ่าเชื้อบนพื้นผิว')
     airborne_disinfection_field = FormField(VirusAirborneDisinfectionConditionForm, 'การลด/ทำลายเชื้อในอากาศ')
