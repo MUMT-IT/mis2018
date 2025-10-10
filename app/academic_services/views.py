@@ -752,6 +752,56 @@ def create_service_request():
     return render_template('academic_services/request_form.html', code=code, sub_lab=sub_lab)
 
 
+@academic_services.route('/submit-request/add', methods=['POST', 'GET'])
+@academic_services.route('/submit-request/edit/<int:request_id>', methods=['GET', 'POST'])
+def submit_request(request_id=None):
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        sub_lab = ServiceSubLab.query.filter_by(code=service_request.sub_lab.code).first()
+    else:
+        code = request.args.get('code')
+        sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+        request_no = ServiceNumberID.get_number('RQ', db,
+                                                lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' else code)
+    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet(sub_lab.sheet)
+    df = pandas.DataFrame(sheet.get_all_records())
+    form = create_request_form(df)(request.form)
+    products = []
+    for _, values in form.data.items():
+        if isinstance(values, dict):
+            if 'product_name' in values:
+                products.append(values['product_name'])
+            elif 'ware_name' in values:
+                products.append(values['ware_name'])
+            elif 'sample_name' in values:
+                products.append(values['sample_name'])
+            elif 'รายการ' in values:
+                for v in values['รายการ']:
+                    if 'sample_name' in v:
+                        products.append(v['sample_name'])
+            elif 'test_sample_of_trace' in values:
+                products.append(values['test_sample_of_trace'])
+            elif 'test_sample_of_heavy' in values:
+                products.append(values['test_sample_of_heavy'])
+    if request_id:
+        req = ServiceRequest.query.get(request_id)
+        req.data = formate_data(form.data)
+        req.modified_at = arrow.now('Asia/Bangkok').datetime
+        req.product = products
+    else:
+        req = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                             sub_lab=sub_lab,
+                             request_no=request_no.number, product=products, data=formate_data(form.data))
+        request_no.count += 1
+    db.session.add(req)
+    db.session.commit()
+    return redirect(url_for('academic_services.create_report_language', request_id=req.id, menu='request',
+                            code=req.sub_lab.code))
+
+
 @academic_services.route('/request/add', methods=['GET', 'POST'])
 @academic_services.route('/request/edit/<int:request_id>', methods=['GET', 'POST'])
 def create_request(request_id=None):
@@ -803,7 +853,7 @@ def create_request(request_id=None):
         db.session.commit()
         return redirect(
             url_for('academic_services.create_report_language', request_id=service_request.id, menu='request',
-                    code=service_request.sub_lab.code))
+                    code=code))
     else:
         for er in form.errors:
             flash(er, 'danger')
@@ -819,8 +869,8 @@ def create_request(request_id=None):
 
 @academic_services.route("/request/collect_sample_during_testing")
 def get_collect_sample_during_testing():
-    request_id = request.args.get("request_id", type=int)
-    collect_sample_during_testing = request.args.get("collect_sample_during_testing", type=str)
+    request_id = request.args.get("request_id")
+    collect_sample_during_testing = request.args.get("collect_sample_during_testing")
     label = 'โปรดระบุ'
 
     if request_id:
@@ -849,14 +899,15 @@ def get_collect_sample_during_testing():
 
 @academic_services.route("/request/test_method")
 def get_test_method():
-    request_id = request.args.get("request_id", type=int)
-    test_method = request.args.get("test_method", type=str)
+    code = request.args.get('code')
+    request_id = request.args.get("request_id")
+    test_method = request.args.get("test_method")
     service_request = ServiceRequest.query.get(request_id) if request_id else None
     form = VirusRequestForm()
     if service_request:
         form.process(data=service_request.data)
     if test_method == "ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น":
-        html = render_template_string('''
+        form_html = '''
             <div class="field">
                 <label class="label">{{ form.active_substance.label }}</label>
                 <div class="control">
@@ -926,9 +977,71 @@ def get_test_method():
                     <div id="product-storage-other-container" style='width:100%'></div>
                 </div>
             </div>
-        ''', form=form, request_id=request_id)
+        '''
+        box_html = '''
+                <div hx-swap-oob="innerHTML:#test-method-box-container">
+                    <div class="card mb-5">
+                        <header class="card-header has-background-light">
+                            <p class="card-header-title has-text-grey-darker">
+                                รายการทดสอบสำหรับผลิตภัณฑ์ฆ่าเชื้อโรค
+                            </p>
+                            <div style="display: flex; justify-content: center; align-items: center;">
+                                <div class="select">
+                                    {{ form.product_type(
+                                    **{'hx-get': url_for("academic_services.get_condition_form", code=code),
+                                    'hx-target': '#condition-fields',
+                                     'hx-swap': 'beforeend',
+                                     'hx-trigger': 'change, load'}) }}
+                                </div>
+                            </div>
+                        </header>
+                        <div class="card-content">
+                            {% if request_id %}
+                                <div class="field">
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.label }}
+                                        </label>
+                                    </div>
+                                    {% for subform in form %}
+                                        {% if subform.type == 'FormField' %}
+                                            {% set ns = namespace(has_value=false) %}
+                                            {% for key, value in subform.data.items() %}
+                                                {% if key != 'product_type' and key != 'csrf_token' %}
+                                                    {% if value and value is not mapping %}
+                                                        {% set ns.has_value = true %}
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% endfor %}
+                                            {% if ns.has_value %}
+                                                <div class="card mb-2 subform-card">
+                                                    <div class="card-content">
+                                                        <div class="field">
+                                                            <label class="label">{{ subform.label.text }}</label>
+                                                            {% for sf in subform if sf.type != 'HiddenField' and sf.type != 'CSRFTokenField' %}
+                                                                <div class="field">
+                                                                    {{ sf() }}
+                                                                </div>
+                                                            {% endfor %}
+                                                        </div>
+                                                        <button type="button" class="button is-danger is-rounded is-small remove-subform">ลบ</button>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="field">
+                                <div id="condition-fields"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            '''
+        html = render_template_string(form_html + box_html, form=form, code=code, request_id=request_id)
     elif test_method == "เครื่องมือหรืออุปกรณ์ในการกำจัดเชื้อ":
-        html = render_template_string('''
+        form_html = '''
             <div class="field">
                 <label class="label">{{ form.disinfection_system.label }}</label>
                     <div class="control">
@@ -993,7 +1106,69 @@ def get_test_method():
                     {{ form.distributor_address(class='textarea', required=True) }}
                 </div>
             </div>
-        ''', form=form, request_id=request_id)
+        '''
+        box_html = '''
+            <div hx-swap-oob="innerHTML:#test-method-box-container">
+                <div class="card mb-5">
+                    <header class="card-header has-background-light">
+                        <p class="card-header-title has-text-grey-darker">
+                            รายการทดสอบสำหรับผลิตภัณฑ์ประเภทเครื่องหรืออุปกรณ์ในการกำจัดเชื้อ
+                        </p>
+                        <div style="display: flex; justify-content: center; align-items: center;">
+                            <div class="select">
+                                {{ form.disinfection_type(
+                                **{'hx-get': url_for("academic_services.get_condition_form", code=code),
+                                    'hx-target': '#condition-fields',
+                                    'hx-swap': 'beforeend',
+                                    'hx-trigger': 'change, load'}) }}
+                            </div>
+                        </div>
+                    </header>
+                    <div class="card-content">
+                        {% if request_id %}
+                            <div class="field">
+                                <div class="field">
+                                    <label class="label">
+                                        {{ form.label }}
+                                    </label>
+                                </div>
+                                {% for subform in form %}
+                                    {% if subform.type == 'FormField' %}
+                                        {% set ns = namespace(has_value=false) %}
+                                            {% for key, value in subform.data.items() %}
+                                                {% if key != 'product_type' and key != 'csrf_token' %}
+                                                    {% if value and value is not mapping %}
+                                                        {% set ns.has_value = true %}
+                                                        {% endif %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                                {% if ns.has_value %}
+                                                    <div class="card mb-2 subform-card">
+                                                        <div class="card-content">
+                                                            <div class="field">
+                                                                <label class="label">{{ subform.label.text }}</label>
+                                                                {% for sf in subform if sf.type != 'HiddenField' and sf.type != 'CSRFTokenField' %}
+                                                                    <div class="field">
+                                                                        {{ sf() }}
+                                                                     </div>
+                                                                {% endfor %}
+                                                            </div>
+                                                            <button type="button" class="button is-danger is-rounded is-small remove-subform">ลบ</button>
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="field">
+                                    <div id="condition-fields"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                '''
+        html = render_template_string(form_html + box_html, form=form, code=code, request_id=request_id)
     else:
         html = ''''''
     resp = make_response(html)
@@ -1002,8 +1177,8 @@ def get_test_method():
 
 @academic_services.route("/request/product_storage")
 def get_product_storage():
-    request_id = request.args.get("request_id", type=int)
-    product_storage = request.args.get("product_storage", type=str)
+    request_id = request.args.get("request_id")
+    product_storage = request.args.get("product_storage")
     label = 'โปรดระบุ'
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
@@ -1032,70 +1207,20 @@ def get_product_storage():
 @academic_services.route('/request/condition')
 def get_condition_form():
     code = request.args.get('code')
-    product_type = request.args.get("product_type", type=str)
+    product_type = request.args.get("product_type")
+    disinfection_type = request.args.get('disinfection_type')
     if code == 'bacteria':
         form = BacteriaRequestForm()
-    elif code == 'virus':
+    elif code == 'virology':
         form = VirusRequestForm()
     else:
         form = None
-    field_name = f"{product_type}_condition_field"
-
+    field_name = f"{disinfection_type}_condition_field" if disinfection_type else f"{product_type}_condition_field"
     if not hasattr(form, field_name):
         return ""
 
     field = getattr(form, field_name)
-    return render_template("academic_services/partials/bacteria_condition_form.html", field=field)
-
-
-@academic_services.route('/submit-request/add', methods=['POST', 'GET'])
-@academic_services.route('/submit-request/edit/<int:request_id>', methods=['GET', 'POST'])
-def submit_request(request_id=None):
-    if request_id:
-        service_request = ServiceRequest.query.get(request_id)
-        sub_lab = ServiceSubLab.query.filter_by(code=service_request.sub_lab.code).first()
-    else:
-        code = request.args.get('code')
-        sub_lab = ServiceSubLab.query.filter_by(code=code).first()
-        request_no = ServiceNumberID.get_number('RQ', db,
-                                                lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' else code)
-    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
-    gc = get_credential(json_keyfile)
-    wks = gc.open_by_key(sheetid)
-    sheet = wks.worksheet(sub_lab.sheet)
-    df = pandas.DataFrame(sheet.get_all_records())
-    form = create_request_form(df)(request.form)
-    products = []
-    for _, values in form.data.items():
-        if isinstance(values, dict):
-            if 'product_name' in values:
-                products.append(values['product_name'])
-            elif 'ware_name' in values:
-                products.append(values['ware_name'])
-            elif 'sample_name' in values:
-                products.append(values['sample_name'])
-            elif 'รายการ' in values:
-                for v in values['รายการ']:
-                    if 'sample_name' in v:
-                        products.append(v['sample_name'])
-            elif 'test_sample_of_trace' in values:
-                products.append(values['test_sample_of_trace'])
-            elif 'test_sample_of_heavy' in values:
-                products.append(values['test_sample_of_heavy'])
-    if request_id:
-        req = ServiceRequest.query.get(request_id)
-        req.data = formate_data(form.data)
-        req.modified_at = arrow.now('Asia/Bangkok').datetime
-        req.product = products
-    else:
-        req = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                             sub_lab=sub_lab,
-                             request_no=request_no.number, product=products, data=formate_data(form.data))
-        request_no.count += 1
-    db.session.add(req)
-    db.session.commit()
-    return redirect(url_for('academic_services.create_report_language', request_id=req.id, menu='request',
-                            code=req.sub_lab.code))
+    return render_template("academic_services/partials/request_condition_form.html", field=field)
 
 
 @academic_services.route('/customer/report_language/add/<int:request_id>', methods=['GET', 'POST'])
