@@ -572,15 +572,17 @@ class VirusRequestForm(FlaskForm):
     product_type = SelectField('ประเภทผลิตภัณฑ์', choices=[('', '+ เพิ่มประเภทผลิตภัณฑ์'),
                                                            ('liquid', 'ผลิตภัณฑ์ฆ่าเชื้อชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้'),
                                                            ('spray', 'ผลิตภัณฑ์ฆ่าเชื้อชนิดฉีดพ่น'),
-                                                           ('coat', 'ผลิตภัณฑ์ฆ่าเชื้อที่เคลือบบนพื้นผิวสำเร็จรูป')])
+                                                           ('coat', 'ผลิตภัณฑ์ฆ่าเชื้อที่เคลือบบนพื้นผิวสำเร็จรูป')],
+                               validators=[Optional()])
     disinfection_type = SelectField('ประเภทการฆ่า/ทำลายเชื้อ' , choices=[('', '+ เพิ่มประเภทการฆ่า/ทำลายเชื้อ'),
                                                            ('surface', 'การฆ่าเชื้อบนพื้นผิว'),
-                                                           ('airborne', 'การลด/ทำลายเชื้อในอากาศ')])
+                                                           ('airborne', 'การลด/ทำลายเชื้อในอากาศ')],
+                                    validators=[Optional()])
     liquid_condition_field = FormField(VirusLiquidConditionForm,'ผลิตภัณฑ์ฆ่าเชื้อชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้')
     spray_condition_field = FormField(VirusSprayConditionForm, 'ผลิตภัณฑ์ฆ่าเชื้อชนิดฉีดพ่น')
     coat_condition_field = FormField(VirusCoatConditionForm, 'ผลิตภัณฑ์ฆ่าเชื้อที่เคลือบบนพื้นผิวสำเร็จรูป')
-    surface_disinfection_field = FormField(VirusSurfaceDisinfectionConditionForm, 'การฆ่าเชื้อบนพื้นผิว')
-    airborne_disinfection_field = FormField(VirusAirborneDisinfectionConditionForm, 'การลด/ทำลายเชื้อในอากาศ')
+    surface_condition_field = FormField(VirusSurfaceDisinfectionConditionForm, 'การฆ่าเชื้อบนพื้นผิว')
+    airborne_condition_field = FormField(VirusAirborneDisinfectionConditionForm, 'การลด/ทำลายเชื้อในอากาศ')
 
 
 class ServiceQuotationForm(ModelForm):
