@@ -1219,8 +1219,8 @@ def get_condition_form():
     if not hasattr(form, field_name):
         return ""
 
-    field = getattr(form, field_name)
-    return render_template("academic_services/partials/request_condition_form.html", field=field)
+    fields = getattr(form, field_name)
+    return render_template("academic_services/partials/request_condition_form.html", fields=fields)
 
 
 @academic_services.route('/customer/report_language/add/<int:request_id>', methods=['GET', 'POST'])
