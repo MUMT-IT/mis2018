@@ -128,7 +128,7 @@
                                                  'hx-trigger': 'change, load'}) }}
                                         </div>
                                     </div>
-                                    <div id="collect-samples-other-container" style='width:100%'>
+                                    <div id="collect-samples-other-container" style='width:55%'>
                                     </div>
                                 </div>
                             </div>
@@ -180,7 +180,17 @@
                                                             </div>
                                                         {% endfor %}
                                                     </div>
-                                                    <button type="button" class="button is-danger is-rounded is-small remove-subform">ลบ</button>
+                                                    <button
+                                                        type="button"
+                                                        class="button is-danger is-rounded is-small remove-subform"
+                                                        data-request-id="{{ request_id or '' }}"
+                                                        hx-post="{{ url_for('academic_services.remove_condition_form', request_id=request_id) }}"
+                                                        hx-vals='{"field": "{{ subform.name }}"}'
+                                                        hx-target="closest .subform-card"
+                                                        hx-swap="innerHTML"
+                                                    >
+                                                        ลบ
+                                                    </button>
                                                 </div>
                                             </div>
                                         {% endif %}
@@ -256,16 +266,17 @@
         });
     </script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            document.body.addEventListener('click', function(e) {
-                if (e.target.classList.contains('remove-subform')) {
-                    const card = e.target.closest('.subform-card');
-                    card.querySelectorAll('*').forEach(el => {
-                        el.remove();
-                    });
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-subform')) {
+                const btn = e.target;
+                const card = btn.closest('.subform-card');
+                const requestId = btn.dataset.requestId;
+
+                if (!requestId) {
                     card.remove();
+                    e.preventDefault();
                 }
-            });
+            }
         });
     </script>
 {% endblock %}
