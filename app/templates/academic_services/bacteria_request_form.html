@@ -2,6 +2,19 @@
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <style>
+        table {
+            width: 100%;
+            table-layout: fixed;
+        }
+        th, td {
+            padding: 5px;
+        }
+        .daterangepicker td,
+        .daterangepicker th {
+            display: table-cell !important;
+        }
+    </style>
 {% endblock %}
 {% from "academic_services/bacteria/macros/organism_form_field_macro.html" import organism_form_field %}
 {% block page_content %}
@@ -131,7 +144,7 @@
                         <div style="display: flex; justify-content: center; align-items: center;">
                             <div class="select">
                                 {{ form.product_type(
-                                **{'hx-get': url_for("academic_services.get_condition_form"),
+                                **{'hx-get': url_for("academic_services.get_condition_form", code=code),
                                 'hx-target': '#condition-fields',
                                  'hx-swap': 'beforeend',
                                  'hx-trigger': 'change, load'}) }}
