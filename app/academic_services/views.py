@@ -22,6 +22,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak, \
     Indenter
 from sqlalchemy.orm import make_transient
+from sqlalchemy.orm.attributes import flag_modified
 from wtforms import FormField, FieldList
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
@@ -83,7 +84,6 @@ def send_mail_for_account(recp, title, message):
 
 
 def formate_data(data):
-    print('d', data)
     if isinstance(data, dict):
         return {k: formate_data(v) for k, v in data.items() if k != "csrf_token" and k != 'submit'}
     elif isinstance(data, list):
@@ -865,6 +865,22 @@ def create_request(request_id=None):
         return render_template('academic_services/virus_request_form.html', code=code, sub_lab=sub_lab,
                                form=form, virus_liquid_organisms=virus_liquid_organisms,
                                virus_airborne_organisms=virus_airborne_organisms, request_id=request_id)
+
+
+@academic_services.route('/request/condition/remove', methods=['GET', 'POST'])
+def remove_condition_form():
+    request_id = request.args.get('request_id')
+    service_request = ServiceRequest.query.get(request_id)
+    field = request.form.get("field")
+    data = service_request.data or {}
+    print('f', field)
+
+    if field in data:
+        del data[field]
+        service_request.data = data
+        flag_modified(service_request, "data")
+        db.session.commit()
+    return ""
 
 
 @academic_services.route("/request/collect_sample_during_testing")
