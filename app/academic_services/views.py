@@ -1040,7 +1040,17 @@ def get_test_method():
                                                                 </div>
                                                             {% endfor %}
                                                         </div>
-                                                        <button type="button" class="button is-danger is-rounded is-small remove-subform">ลบ</button>
+                                                        <button
+                                                            type="button"
+                                                            class="button is-danger is-rounded is-small remove-subform"
+                                                            data-request-id="{{ request_id or '' }}"
+                                                            hx-post="{{ url_for('academic_services.remove_condition_form', request_id=request_id) }}"
+                                                            hx-vals='{"field": "{{ subform.name }}"}'
+                                                            hx-target="closest .subform-card"
+                                                            hx-swap="innerHTML"
+                                                        >
+                                                            ลบ
+                                                        </button>
                                                     </div>
                                                 </div>
                                             {% endif %}
@@ -1169,7 +1179,17 @@ def get_test_method():
                                                                      </div>
                                                                 {% endfor %}
                                                             </div>
-                                                            <button type="button" class="button is-danger is-rounded is-small remove-subform">ลบ</button>
+                                                            <button
+                                                                type="button"
+                                                                class="button is-danger is-rounded is-small remove-subform"
+                                                                data-request-id="{{ request_id or '' }}"
+                                                                hx-post="{{ url_for('academic_services.remove_condition_form', request_id=request_id) }}"
+                                                                hx-vals='{"field": "{{ subform.name }}"}'
+                                                                hx-target="closest .subform-card"
+                                                                hx-swap="innerHTML"
+                                                            >
+                                                                ลบ
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 {% endif %}
