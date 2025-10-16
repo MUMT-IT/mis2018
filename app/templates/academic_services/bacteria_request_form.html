@@ -162,11 +162,9 @@
                                 {% for subform in form %}
                                     {% if subform.type == 'FormField' %}
                                         {% set ns = namespace(has_value=false) %}
-                                        {% for key, value in subform.data.items() %}
-                                            {% if key != 'product_type' and key != 'csrf_token' %}
-                                                {% if value and value is not mapping %}
-                                                    {% set ns.has_value = true %}
-                                                {% endif %}
+                                        {% for sb in subform %}
+                                            {% if sb.type != 'HiddenField' and sb.type != 'FormField' and sb.data %}
+                                                 {% set ns.has_value = true %}
                                             {% endif %}
                                         {% endfor %}
                                         {% if ns.has_value %}
