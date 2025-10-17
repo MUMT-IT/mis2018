@@ -851,7 +851,10 @@ def create_request(request_id=None):
                                form=form, request_id=request_id)
     elif code == 'disinfection':
         return render_template('academic_services/virus_disinfection_request_form.html', code=code, sub_lab=sub_lab,
-                               form=form,request_id=request_id)
+                               form=form, request_id=request_id)
+    elif code=='air_disinfection':
+        return render_template('academic_services/virus_air_disinfection_request_form.html', code=code, sub_lab=sub_lab,
+                               form=form, request_id=request_id)
 
 
 @academic_services.route('/request/condition/remove', methods=['GET', 'DELETE'])
