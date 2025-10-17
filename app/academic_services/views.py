@@ -5,7 +5,7 @@ import uuid
 import qrcode
 from bahttext import bahttext
 from markupsafe import Markup
-from sqlalchemy import or_, case
+from sqlalchemy import or_, case, update
 from datetime import date, datetime
 import arrow
 import pandas
@@ -857,17 +857,19 @@ def create_request(request_id=None):
                                form=form, request_id=request_id)
 
 
-@academic_services.route('/request/condition/remove', methods=['GET', 'DELETE'])
+@academic_services.route('/request/condition/remove', methods=['GET', 'POST'])
 def remove_condition_form():
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
     field = request.form.get("field")
     data = service_request.data or {}
-
     if field in data:
         del data[field]
-        service_request.data = data
-        flag_modified(service_request, "data")
+        db.session.execute(
+            update(ServiceRequest)
+            .where(ServiceRequest.id == request_id)
+            .values(data=data)
+        )
         db.session.commit()
     return ""
 
