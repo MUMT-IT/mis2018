@@ -32,7 +32,7 @@ from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
                                          ServiceCustomerAccountForm, create_request_form, ServiceCustomerContactForm,
                                          ServiceCustomerAddressForm, ServiceSampleForm, ServicePaymentForm,
-                                         BacteriaRequestForm, VirusRequestForm, BacteriaRequestConditionForm)
+                                         BacteriaRequestForm, VirusDisinfectionRequestForm, VirusAirDisinfectionRequestForm)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
     jsonify, send_file, render_template_string
@@ -175,8 +175,12 @@ def request_data(service_request):
     data = service_request.data
     if service_request.sub_lab.code == 'bacteria':
         form = BacteriaRequestForm(data=data)
+    elif service_request.sub_lab.code == 'disinfection':
+        form = VirusDisinfectionRequestForm(data=data)
+    elif service_request.sub_lab.code == 'air_disinfection':
+        form = VirusAirDisinfectionRequestForm(data=data)
     else:
-        form = VirusRequestForm(data=data)
+        form = ''
     values = []
     table_rows = []
     set_fields = set()
@@ -832,13 +836,21 @@ def create_request(request_id=None):
         data = service_request.data
         if code == 'bacteria':
             form = BacteriaRequestForm(data=data)
+        elif code == 'disinfection':
+            form = VirusDisinfectionRequestForm(data=data)
+        elif code == 'air_disinfection':
+            form = VirusAirDisinfectionRequestForm(data=data)
         else:
-            form = VirusRequestForm(data=data)
+            form = ''
     else:
         if code == 'bacteria':
             form = BacteriaRequestForm()
+        elif code == 'disinfection':
+            form = VirusDisinfectionRequestForm()
+        elif code == 'air_disinfection':
+            form = VirusAirDisinfectionRequestForm()
         else:
-            form = VirusRequestForm()
+            form = ''
     if form.validate_on_submit():
         if request_id:
             service_request.data = formate_data(form.data)
