@@ -16,7 +16,7 @@ from wtforms import FormField, FieldList
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from app.auth.views import line_bot_api
-from app.academic_services.forms import create_request_form, ServicePaymentForm, BacteriaRequestForm, VirusRequestForm
+from app.academic_services.forms import create_request_form, ServicePaymentForm, BacteriaRequestForm
 from app.e_sign_api import e_sign
 from app.models import Org
 from app.scb_payment_service.views import generate_qrcode

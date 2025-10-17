@@ -811,25 +811,6 @@ def submit_request(request_id=None):
 def create_request(request_id=None):
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
-    liquid_organisms = [
-        'S. aureus ATCC 6538',
-        'S. choleraesuis ATCC 10708',
-        'P. aeruginosa ATCC 15442',
-        'T. mentagrophytes'
-    ]
-    wash_organisms = [
-        'S. aureus ATCC 6538',
-        'K. pneumoniae ATCC 4352'
-    ]
-    virus_liquid_organisms = [
-        'Influenza virus A (H1N1)',
-        'Enterovirus A-71',
-        'Respiratory syncytial virus',
-        'SARS-CoV-2'
-    ]
-    virus_airborne_organisms = [
-        'Influenza virus A (H1N1)'
-    ]
 
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
@@ -840,8 +821,6 @@ def create_request(request_id=None):
             form = VirusDisinfectionRequestForm(data=data)
         elif code == 'air_disinfection':
             form = VirusAirDisinfectionRequestForm(data=data)
-        else:
-            form = ''
     else:
         if code == 'bacteria':
             form = BacteriaRequestForm()
@@ -849,8 +828,6 @@ def create_request(request_id=None):
             form = VirusDisinfectionRequestForm()
         elif code == 'air_disinfection':
             form = VirusAirDisinfectionRequestForm()
-        else:
-            form = ''
     if form.validate_on_submit():
         if request_id:
             service_request.data = formate_data(form.data)
@@ -871,12 +848,10 @@ def create_request(request_id=None):
             flash(er, 'danger')
     if code == 'bacteria':
         return render_template('academic_services/bacteria_request_form.html', code=code, sub_lab=sub_lab,
-                               form=form, liquid_organisms=liquid_organisms, wash_organisms=wash_organisms,
-                               request_id=request_id)
-    else:
-        return render_template('academic_services/virus_request_form.html', code=code, sub_lab=sub_lab,
-                               form=form, virus_liquid_organisms=virus_liquid_organisms,
-                               virus_airborne_organisms=virus_airborne_organisms, request_id=request_id)
+                               form=form, request_id=request_id)
+    elif code == 'disinfection':
+        return render_template('academic_services/virus_disinfection_request_form.html', code=code, sub_lab=sub_lab,
+                               form=form,request_id=request_id)
 
 
 @academic_services.route('/request/condition/remove', methods=['GET', 'DELETE'])
@@ -940,7 +915,7 @@ def get_product_storage():
         product_storage_other = ''
     if product_storage == 'อื่นๆ':
         html = f'''
-            <div class="field">
+            <div class="field" style='width:100%'>
                 <label class="label">{label}</label>
                 <div class="control">
                     <input name="product_storage_other" class="input" value="{product_storage_other}" required>
