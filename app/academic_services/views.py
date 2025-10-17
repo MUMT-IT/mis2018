@@ -22,7 +22,6 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak, \
     Indenter
 from sqlalchemy.orm import make_transient
-from sqlalchemy.orm.attributes import flag_modified
 from wtforms import FormField, FieldList
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
@@ -35,7 +34,7 @@ from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, For
                                          BacteriaRequestForm, VirusDisinfectionRequestForm, VirusAirDisinfectionRequestForm)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
-    jsonify, send_file, render_template_string
+    jsonify, send_file
 from flask_login import login_user, current_user, logout_user, login_required
 from flask_principal import Identity, identity_changed, AnonymousIdentity
 from flask_admin.helpers import is_safe_url
