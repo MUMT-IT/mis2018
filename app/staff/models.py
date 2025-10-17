@@ -772,6 +772,7 @@ class StaffSeminarMission(db.Model):
     __tablename__ = 'staff_seminar_missions'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     mission = db.Column('mission', db.String())
+    is_active = db.Column('is_active', db.Boolean(), default=True)
 
 
 class StaffSeminarObjective(db.Model):
