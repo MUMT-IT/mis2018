@@ -581,7 +581,7 @@ class VirusAirDisinfectionRequestForm(FlaskForm):
     importer_address = TextAreaField('ที่อยู่ผู้นำเข้า', validators=[DataRequired()])
     distributor = StringField('ผู้จัดจำหน่าย', validators=[DataRequired()])
     distributor_address = TextAreaField('ที่อยู่ผู้จัดจำหน่าย', validators=[DataRequired()])
-    disinfection_type = SelectField('ประเภทการฆ่า/ทำลายเชื้อ', choices=[('', '+ เพิ่มประเภทการฆ่า/ทำลายเชื้อ'),
+    product_type = SelectField('ประเภทการฆ่า/ทำลายเชื้อ', choices=[('', '+ เพิ่มประเภทการฆ่า/ทำลายเชื้อ'),
                                                                         ('surface', 'การฆ่าเชื้อบนพื้นผิว'),
                                                                         ('airborne', 'การลด/ทำลายเชื้อในอากาศ')],
                                     validators=[Optional()])
