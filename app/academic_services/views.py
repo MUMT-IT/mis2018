@@ -960,10 +960,12 @@ def get_condition_form():
     disinfection_type = request.args.get('disinfection_type')
     if code == 'bacteria':
         form = BacteriaRequestForm()
-    elif code == 'virology':
-        form = VirusRequestForm()
+    elif code == 'disinfection':
+        form = VirusDisinfectionRequestForm()
+    elif code == 'air_disinfection':
+        form = VirusAirDisinfectionRequestForm()
     else:
-        form = None
+        form = ''
     if disinfection_type:
         field_name = f"{disinfection_type}_condition_field"
     elif product_type:
