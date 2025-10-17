@@ -1,11 +1,10 @@
 from flask_wtf import FlaskForm
-from wtforms import DecimalField, FormField, StringField, BooleanField, TextAreaField, DateField, SelectField, \
-    SelectMultipleField, HiddenField, PasswordField, SubmitField, widgets, RadioField, FieldList, FileField, FloatField, \
-    DateTimeField, IntegerField
+from wtforms import (FormField, BooleanField, TextAreaField, SelectField, SelectMultipleField, HiddenField,
+                     PasswordField,
+                     SubmitField, widgets, RadioField, FieldList, FileField, FloatField, IntegerField, StringField)
 from wtforms.validators import DataRequired, EqualTo, Length, Optional
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.academic_services.models import *
-from flask_login import current_user
 from collections import defaultdict, namedtuple
 from flask_wtf.csrf import generate_csrf
 
@@ -252,7 +251,7 @@ class BacteriaSprayConditionForm(FlaskForm):
                                       'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)')], validators=[Optional()])
     spray_surface_type = RadioField('ชนิดพื้นผิว', choices=[('พื้นผิวแข็งไม่มีรูพรุน', 'พื้นผิวแข็งไม่มีรูพรุน'),
                                                             ('อื่นๆ', 'อื่นๆ')], validators=[Optional()])
-    spray_surface_type_other = StringField('โปรดระบุ')
+    spray_surface_type_other = StringField('โปรดระบุ', render_kw={'class': 'input'})
     spray_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง'), ('ไม่เจือจาง', 'ไม่เจือจาง')], validators=[Optional()])
     spray_organism_fields = FormField(create_bacteria_spray_test_condition_form_factory())
 
@@ -423,7 +422,7 @@ class VirusLiquidConditionForm(FlaskForm):
         widget=widgets.ListWidget(prefix_label=False))
     liquid_surface_type = RadioField('ชนิดพื้นผิว', choices=[('สิ่งทอ', 'สิ่งทอ'),
                                                             ('พื้นผิวอื่นๆ', 'พื้นผิวอื่นๆ')], validators=[Optional()])
-    liquid_surface_type_other = StringField('โปรดระบุ')
+    liquid_surface_type_other = StringField('โปรดระบุ', render_kw={'class': 'input'})
     liquid_product_preparation = RadioField('การเตรียมผลิตภัณฑ์เพื่อการทดสอบ', choices=[('น้ำยาอยู่ในสภาพพร้อมใช้ (ready to use)',
                                                                             'น้ำยาอยู่ในสภาพพร้อมใช้ (ready to use)'),
                                                                            ('ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน',
@@ -462,7 +461,7 @@ class VirusSprayConditionForm(FlaskForm):
                                                             ('ฉีดพ่นอัดก๊าซ (Aerosol spray)', 'ฉีดพ่นอัดก๊าซ (Aerosol spray)')], validators=[Optional()])
     spray_surface_type = RadioField('ชนิดพื้นผิว', choices=[('สิ่งทอ', 'สิ่งทอ'),
                                                             ('พื้นผิวอื่นๆ', 'พื้นผิวอื่นๆ')], validators=[Optional()])
-    spray_surface_type_other = StringField('โปรดระบุ')
+    spray_surface_type_other = StringField('โปรดระบุ', render_kw={'class': 'input'})
     spray_product_preparation = RadioField('การเตรียมผลิตภัณฑ์เพื่อการทดสอบ', choices=[('น้ำยาอยู่ในสภาพพร้อมใช้ (ready to use)',
                                                                             'น้ำยาอยู่ในสภาพพร้อมใช้ (ready to use)'),
                                                                            ('ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน (แนบขวดสเปรย์มาด้วย)',
@@ -491,7 +490,7 @@ class VirusCoatConditionForm(FlaskForm):
         ],
         option_widget=widgets.CheckboxInput(),
         widget=widgets.ListWidget(prefix_label=False))
-    coat_specify_surface_type = StringField('ระบุชนิดของพื้นผิว')
+    coat_specify_surface_type = StringField('ระบุชนิดของพื้นผิว', render_kw={'class': 'input'})
     coat_organism_fields = FormField(create_virus_coat_test_condition_form_factory())
 
 
@@ -543,7 +542,7 @@ class VirusSurfaceDisinfectionConditionForm(FlaskForm):
              'ทดสอบการฆ่าเชื้อบนพื้นผิวเรียบไม่มีรูพรุน (มาตรฐานวิธีทดสอบ ASTM E1053-20 ใช้พื้นผิววัสดุแก้ว)'),
             ('ทดสอบการฆ่าเชื้อบนพื้นผิวชนิดอื่น ๆ', 'ทดสอบการฆ่าเชื้อบนพื้นผิวชนิดอื่น ๆ')
         ], validators=[Optional()])
-    surface_disinfection_clean_type_other = StringField('โปรดระบุ')
+    surface_disinfection_clean_type_other = StringField('โปรดระบุ', render_kw={'class': 'input'})
     surface_disinfection_organism_fields = FormField(create_virus_surface_disinfection_test_condition_form_factory())
 
 
@@ -564,7 +563,7 @@ class VirusAirborneDisinfectionConditionForm(FlaskForm):
         'รูปแบบการทดสอบ',
         choices=[
             ('ทดสอบการลดปริมาณเชื้อในอากาศ (เครื่องฟอกอากาศ)', 'ทดสอบการลดปริมาณเชื้อในอากาศ (เครื่องฟอกอากาศ)'),
-            ('ทดสอบการทำลายเชื้อในอากาศ (เครื่องปล่อยสารหรืออนุภาคทำลายเชื้อ).', 'ทดสอบการทำลายเชื้อในอากาศ (เครื่องปล่อยสารหรืออนุภาคทำลายเชื้อ).')
+            ('ทดสอบการทำลายเชื้อในอากาศ (เครื่องปล่อยสารหรืออนุภาคทำลายเชื้อ)', 'ทดสอบการทำลายเชื้อในอากาศ (เครื่องปล่อยสารหรืออนุภาคทำลายเชื้อ)')
         ], validators=[Optional()])
     airborne_disinfection_organism_fields = FormField(create_virus_airborne_disinfection_test_condition_form_factory())
 
