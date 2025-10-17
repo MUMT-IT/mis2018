@@ -494,6 +494,33 @@ class VirusCoatConditionForm(FlaskForm):
     coat_organism_fields = FormField(create_virus_coat_test_condition_form_factory())
 
 
+class VirusDisinfectionRequestForm(FlaskForm):
+    product_name = StringField('ชื่อผลิตภัณฑ์', validators=[DataRequired()])
+    active_substance = TextAreaField('สารสำคัญที่ออกฤทธ์ และปริมาณสารสำคัญ', validators=[DataRequired()])
+    product_appearance = StringField('ลักษณะทางกายภาพของผลิตภัณฑ์', validators=[DataRequired()])
+    kind = StringField('ลักษณะบรรจุภัณฑ์', validators=[DataRequired()])
+    size = StringField('ขนาดบรรจุภัณฑ์', validators=[DataRequired()])
+    mfg = StringField('วันที่ผลิต', validators=[DataRequired()])
+    exp = StringField('วันหมดอายุ', validators=[DataRequired()])
+    lot_no = StringField('เลขที่ผลิต', validators=[DataRequired()])
+    amount = IntegerField('จำนวนที่ส่ง', validators=[DataRequired()])
+    service_life = StringField('อายุการใช้งานหลังเปิด', validators=[DataRequired()])
+    product_storage = SelectField('การเก็บรักษาผลิตภัณฑ์',
+                                  choices=[('เก็บรักษาที่อุณหภูมิห้อง', 'เก็บรักษาที่อุณหภูมิห้อง'),
+                                           ('อื่นๆ', 'อื่นๆุ')], validators=[DataRequired()])
+    product_storage_other = StringField('โปรดระบุ')
+    product_type = SelectField('ประเภทผลิตภัณฑ์', choices=[('', '+ เพิ่มประเภทผลิตภัณฑ์'),
+                                                           ('liquid',
+                                                            'ผลิตภัณฑ์ฆ่าเชื้อชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้'),
+                                                           ('spray', 'ผลิตภัณฑ์ฆ่าเชื้อชนิดฉีดพ่น'),
+                                                           ('coat', 'ผลิตภัณฑ์ฆ่าเชื้อที่เคลือบบนพื้นผิวสำเร็จรูป')],
+                               validators=[Optional()])
+    liquid_condition_field = FormField(VirusLiquidConditionForm,
+                                       'ผลิตภัณฑ์ฆ่าเชื้อชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้')
+    spray_condition_field = FormField(VirusSprayConditionForm, 'ผลิตภัณฑ์ฆ่าเชื้อชนิดฉีดพ่น')
+    coat_condition_field = FormField(VirusCoatConditionForm, 'ผลิตภัณฑ์ฆ่าเชื้อที่เคลือบบนพื้นผิวสำเร็จรูป')
+
+
 def create_virus_surface_disinfection_test_condition_form_factory():
     fields = {}
     for i, label in enumerate(virus_liquid_organisms):
@@ -540,47 +567,22 @@ class VirusAirborneDisinfectionConditionForm(FlaskForm):
     airborne_disinfection_organism_fields = FormField(create_virus_airborne_disinfection_test_condition_form_factory())
 
 
-class VirusRequestForm(FlaskForm):
-    test_method = SelectField('ประเภทการทดสอบ', choices=[('', 'กรุณาเลือกวิธีทดสอบเชิงปริมาณ'),
-                                                         ('ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น',
-                                                          'ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น'),
-                                                         ('เครื่องมือหรืออุปกรณ์ในการกำจัดเชื้อ',
-                                                          'เครื่องมือหรืออุปกรณ์ในการกำจัดเชื้อ')])
+class VirusAirDisinfectionRequestForm(FlaskForm):
     product_name = StringField('ชื่อผลิตภัณฑ์', validators=[DataRequired()])
-    active_substance = TextAreaField('สารสำคัญที่ออกฤทธ์ และปริมาณสารสำคัญ')
-    product_appearance = StringField('ลักษณะทางกายภาพของผลิตภัณฑ์')
-    kind = StringField('ลักษณะบรรจุภัณฑ์')
-    size = StringField('ขนาดบรรจุภัณฑ์')
-    mfg = StringField('วันที่ผลิต')
-    exp = StringField('วันหมดอายุ')
-    lot_no = StringField('เลขที่ผลิต')
-    amount = IntegerField('จำนวนที่ส่ง')
-    service_life = StringField('อายุการใช้งานหลังเปิด')
-    product_storage = SelectField('การเก็บรักษาผลิตภัณฑ์', choices=[('เก็บรักษาที่อุณหภูมิห้อง', 'เก็บรักษาที่อุณหภูมิห้อง'),
-                                                                    ('อื่นๆ', 'อื่นๆุ')])
-    product_storage_other = StringField('โปรดระบุ')
-    disinfection_system = TextAreaField('ระบบการกำจัดเชื้อของผลิตภัณฑ์')
-    model = StringField('รุ่น')
-    serial_no = StringField('หมายเลขประจำเครื่อง')
-    equipment_test_operation = TextAreaField('วิธีการใช้งานเครื่องหรืออุปกรณ์เพื่อทำการทดสอบ')
-    manufacturer = StringField('ผู้ผลิต')
-    manufacturer_address = TextAreaField('ที่อยู่ผู้ผลิต')
-    importer = StringField('ผู้นำเข้า')
-    importer_address = TextAreaField('ที่อยู่ผู้นำเข้า')
-    distributor = StringField('ผู้จัดจำหน่าย')
-    distributor_address = TextAreaField('ที่อยู่ผู้จัดจำหน่าย')
-    product_type = SelectField('ประเภทผลิตภัณฑ์', choices=[('', '+ เพิ่มประเภทผลิตภัณฑ์'),
-                                                           ('liquid', 'ผลิตภัณฑ์ฆ่าเชื้อชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้'),
-                                                           ('spray', 'ผลิตภัณฑ์ฆ่าเชื้อชนิดฉีดพ่น'),
-                                                           ('coat', 'ผลิตภัณฑ์ฆ่าเชื้อที่เคลือบบนพื้นผิวสำเร็จรูป')],
-                               validators=[Optional()])
-    disinfection_type = SelectField('ประเภทการฆ่า/ทำลายเชื้อ' , choices=[('', '+ เพิ่มประเภทการฆ่า/ทำลายเชื้อ'),
-                                                           ('surface', 'การฆ่าเชื้อบนพื้นผิว'),
-                                                           ('airborne', 'การลด/ทำลายเชื้อในอากาศ')],
+    disinfection_system = TextAreaField('ระบบการกำจัดเชื้อของผลิตภัณฑ์', validators=[DataRequired()])
+    model = StringField('รุ่น', validators=[DataRequired()])
+    serial_no = StringField('หมายเลขประจำเครื่อง', validators=[DataRequired()])
+    equipment_test_operation = TextAreaField('วิธีการใช้งานเครื่องหรืออุปกรณ์เพื่อทำการทดสอบ', validators=[DataRequired()])
+    manufacturer = StringField('ผู้ผลิต', validators=[DataRequired()])
+    manufacturer_address = TextAreaField('ที่อยู่ผู้ผลิต', validators=[DataRequired()])
+    importer = StringField('ผู้นำเข้า', validators=[DataRequired()])
+    importer_address = TextAreaField('ที่อยู่ผู้นำเข้า', validators=[DataRequired()])
+    distributor = StringField('ผู้จัดจำหน่าย', validators=[DataRequired()])
+    distributor_address = TextAreaField('ที่อยู่ผู้จัดจำหน่าย', validators=[DataRequired()])
+    disinfection_type = SelectField('ประเภทการฆ่า/ทำลายเชื้อ', choices=[('', '+ เพิ่มประเภทการฆ่า/ทำลายเชื้อ'),
+                                                                        ('surface', 'การฆ่าเชื้อบนพื้นผิว'),
+                                                                        ('airborne', 'การลด/ทำลายเชื้อในอากาศ')],
                                     validators=[Optional()])
-    liquid_condition_field = FormField(VirusLiquidConditionForm,'ผลิตภัณฑ์ฆ่าเชื้อชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้')
-    spray_condition_field = FormField(VirusSprayConditionForm, 'ผลิตภัณฑ์ฆ่าเชื้อชนิดฉีดพ่น')
-    coat_condition_field = FormField(VirusCoatConditionForm, 'ผลิตภัณฑ์ฆ่าเชื้อที่เคลือบบนพื้นผิวสำเร็จรูป')
     surface_condition_field = FormField(VirusSurfaceDisinfectionConditionForm, 'การฆ่าเชื้อบนพื้นผิว')
     airborne_condition_field = FormField(VirusAirborneDisinfectionConditionForm, 'การลด/ทำลายเชื้อในอากาศ')
 
