@@ -184,7 +184,7 @@
                                                         data-request-id="{{ request_id or '' }}"
                                                         hx-post="{{ url_for('academic_services.remove_condition_form', request_id=request_id) }}"
                                                         hx-vals='{"field": "{{ subform.name }}"}'
-                                                        hx-target="closest .subform-card"
+                                                        hx-target=".subform-card"
                                                         hx-swap="innerHTML"
                                                     >
                                                         ลบ
@@ -266,9 +266,8 @@
     <script>
         document.addEventListener('click', function(e) {
             if (e.target.classList.contains('remove-subform')) {
-                const btn = e.target;
-                const card = btn.closest('.subform-card');
-                const requestId = btn.dataset.requestId;
+                const card = e.target.closest('.subform-card');
+                const requestId = e.target.dataset.requestId;
 
                 if (!requestId) {
                     card.remove();
