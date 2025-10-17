@@ -358,10 +358,11 @@ class BacteriaRequestForm(FlaskForm):
     importanddistributor = StringField('ผู้นำเข้า/จัดจำหน่าย', validators=[DataRequired()])
     importanddistributor_address = TextAreaField('ที่อยู่ผู้นำเข้า/จัดจำหน่าย', validators=[DataRequired()])
     amount = IntegerField('จำนวนที่ส่ง', validators=[DataRequired()])
-    collect_sample_during_testing = SelectField('เก็บตัวอย่างระหว่างรอทดสอบ',
-                                                 choices=[('อุณหภูมิห้อง', 'อุณหภูมิห้อง'),
+    collect_sample_during_testing = SelectField('การเก็บตัวอย่างระหว่างรอทดสอบ',
+                                                 choices=[('', 'กรุณาเลือกการเก็บตัวอย่างระหว่างรอทดสอบ'),
+                                                          ('อุณหภูมิห้อง', 'อุณหภูมิห้อง'),
                                                           ('อื่นๆ', 'อื่นๆ')],
-                                                 validate_choice=True)
+                                                 validators=[DataRequired()])
     collect_sample_during_testing_other = StringField('โปรดระบุ')
     product_type = SelectField('ประเภทผลิตภัณฑ์', choices=[('', '+ เพิ่มประเภทผลิตภัณฑ์'),
                                                            ('liquid',
@@ -504,9 +505,10 @@ class VirusDisinfectionRequestForm(FlaskForm):
     exp = StringField('วันหมดอายุ', validators=[DataRequired()])
     lot_no = StringField('เลขที่ผลิต', validators=[DataRequired()])
     amount = IntegerField('จำนวนที่ส่ง', validators=[DataRequired()])
-    service_life = StringField('อายุการใช้งานหลังเปิด', validators=[DataRequired()])
+    service_life = StringField('อายุการใช้งานหลังการเปิดใช้', validators=[DataRequired()])
     product_storage = SelectField('การเก็บรักษาผลิตภัณฑ์',
-                                  choices=[('เก็บรักษาที่อุณหภูมิห้อง', 'เก็บรักษาที่อุณหภูมิห้อง'),
+                                  choices=[('', 'กรุณาเลือกการเก็บรักษาผลิตภัณฑ์'),
+                                           ('เก็บรักษาที่อุณหภูมิห้อง', 'เก็บรักษาที่อุณหภูมิห้อง'),
                                            ('อื่นๆ', 'อื่นๆุ')], validators=[DataRequired()])
     product_storage_other = StringField('โปรดระบุ')
     product_type = SelectField('ประเภทผลิตภัณฑ์', choices=[('', '+ เพิ่มประเภทผลิตภัณฑ์'),
