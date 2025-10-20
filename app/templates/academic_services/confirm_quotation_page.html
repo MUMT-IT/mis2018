@@ -1,0 +1,30 @@
+{% extends "academic_services/service_base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "academic_services/customer_nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container has-text-centered">
+            <div class="box">
+                <span class="icon is-large has-text-success">
+                    <i class="fas fa-check-circle fa-3x"></i>
+                </span>
+                <h1 class="title is-3 mt-3">ยืนยันใบเสนอราคาสำเร็จ</h1>
+                <p class="subtitle is-5">ระบบได้บันทึกการยืนยันใบเสนอราคาของท่านเรียบร้อยแล้ว</p>
+                <div class="notification is-info is-light mt-4">
+                    กรุณาคลิกปุ่มนัดหมายส่งตัวอย่าง เพื่อดำเนินการนัดหมายส่งตัวอย่างต่อไป
+
+                </div>
+                <div class="buttons is-centered mt-5">
+                    <a href='{{ url_for('academic_services.sample_index', menu=menu) }}' class="button is-link is-light">
+                        กลับหน้าหลัก
+                    </a>
+                    <a href='{{ url_for('academic_services.create_sample_appointment', menu=menu, sample_id=sample_id) }}'
+                       class="button is-primary"
+                    >
+                        นัดหมายส่งตัวอย่าง
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

@@ -206,10 +206,13 @@ admin.add_views(ModelView(ComplaintPriority, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintRecord, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintActionRecord, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintAssignee, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintHandler, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintPerformanceReport, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintInvestigator, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintCoordinator, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintAdminTypeAssociation, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintRepairApproval, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintCommittee, db.session, category='Complaint'))
 
 
 class KPIAdminModel(ModelView):
@@ -467,7 +470,7 @@ from app.roles import admin_permission
 
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
-from app.models import (Org, OrgStructure, Mission, Holidays, Dashboard)
+from app.models import (Org, OrgStructure, Mission, Holidays, Dashboard, Province, District, Subdistrict, Zipcode)
 
 admin.add_view(ModelView(Holidays, db.session, category='Holidays'))
 
@@ -490,6 +493,10 @@ admin.add_view(MyOrgModelView(Org, db.session, category='Organization'))
 admin.add_view(ModelView(Mission, db.session, category='Organization'))
 admin.add_view(ModelView(Dashboard, db.session, category='Organization'))
 admin.add_view(ModelView(OrgStructure, db.session, category='Organization'))
+admin.add_views(ModelView(Province, db.session, category='Region'))
+admin.add_views(ModelView(District, db.session, category='Region'))
+admin.add_views(ModelView(Subdistrict, db.session, category='Region'))
+admin.add_views(ModelView(Zipcode, db.session, category='Region'))
 
 from app.asset import assetbp as asset_blueprint
 
@@ -516,6 +523,16 @@ class CostCenterAdminModel(ModelView):
 
 
 admin.add_view(CostCenterAdminModel(models.CostCenter, db.session, category='Finance'))
+
+
+class ProductCodeAdminModel(ModelView):
+    can_create = True
+    form_columns = ('id', 'name', 'branch')
+    column_list = ('id', 'name', 'branch')
+
+
+admin.add_views(ProductCodeAdminModel(models.ProductCode, db.session, category='Finance'))
+
 
 from app.lisedu import lisedu as lis_blueprint
 
@@ -772,27 +789,36 @@ app.register_blueprint(academic_services_blueprint)
 from app.academic_services.models import *
 
 admin.add_views(ModelView(ServiceNumberID, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceSequenceQuotationID, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerAccount, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerInfo, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerContact, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerAddress, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceLab, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceSubLab, db.session, category='Academic Service'))
-admin.add_views(ModelView(ServiceItem, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceStatus, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceReportLanguage, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceAdmin, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerType, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerContactType, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceRequest, db.session, category='Academic Service'))
-admin.add_views(ModelView(ServiceSample, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceReqReportLanguageAssoc, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceQuotation, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceQuotationItem, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceSample, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceTestItem, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceInvoice, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceInvoiceItem, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServicePayment, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceResult, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceResultItem, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceReceipt, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceReceiptItem, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceOrder, db.session, category='Academic Service'))
+
+from app.academic_service_payment import academic_service_payment as academic_service_payment_blueprint
+
+app.register_blueprint(academic_service_payment_blueprint)
 
 from app.software_request import software_request as software_request_blueprint
 
@@ -800,10 +826,10 @@ app.register_blueprint(software_request_blueprint)
 
 from app.software_request.models import *
 
+admin.add_views(ModelView(SoftwareRequestNumberID, db.session, category='Software Request'))
 admin.add_views(ModelView(SoftwareRequestSystem, db.session, category='Software Request'))
 admin.add_views(ModelView(SoftwareRequestDetail, db.session, category='Software Request'))
 admin.add_views(ModelView(SoftwareRequestTimeline, db.session, category='Software Request'))
-admin.add_views(ModelView(SoftwareRequestTeamDiscussion, db.session, category='Software Request'))
 
 from app.models import Dataset, DataFile
 

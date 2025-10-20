@@ -124,21 +124,26 @@ class ProcurementDetail(db.Model):
             'budget_year': self.budget_year,
             'received_date': self.received_date,
             'available': self.available,
-            'is_audio_visual_equipment': self.is_audio_visual_equipment
-
+            'is_audio_visual_equipment': self.is_audio_visual_equipment,
+            'start_guarantee_date': self.start_guarantee_date,
+            'end_guarantee_date': self.end_guarantee_date,
         }
 
     def generate_qrcode(self):
+        import qrcode
+        import io
+        import base64
+
         qr = qrcode.QRCode(version=1, box_size=10)
         qr.add_data(self.procurement_no)
         qr.make(fit=True)
         qr_img = qr.make_image()
-        qr_img.save('procurement_qrcode.png')
-        import base64
-        with open("procurement_qrcode.png", "rb") as img_file:
-            self.qrcode = base64.b64encode(img_file.read()).decode()
-            db.session.add(self)
-            db.session.commit()
+
+        buffer = io.BytesIO()
+        qr_img.save(buffer, format="PNG")
+        buffer.seek(0)
+
+        return base64.b64encode(buffer.read()).decode()
 
 
 class ProcurementPurchasingType(db.Model):

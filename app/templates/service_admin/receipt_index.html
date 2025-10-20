@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker Admin{% endblock %}
+{% block page_content %}
+    {% include "service_admin/admin_nav.html" %}
+    <section class="section">
+        {% include 'messages.html' %}
+        <div class="columns is-centered">
+            {% include 'service_admin/menu.html' %}
+            <div class="column is-9">
+                <div class="column is-11">
+                    <h1 class="title has-text-centered">รายการใบเสร็จรับเงิน</h1>
+                </div>
+                <table id='receipts' class="table is-fullwidth">
+                    <thead>
+                        <th>เลขใบเสร็จรับเงิน</th>
+                        <th>วัน-เวลาที่ออก</th>
+                        <th>รายการ</th>
+                        <th>ราคา</th>
+                        <th>ผู้ออก</th>
+                        <th>รายละเอียด</th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $.fn.dataTable.moment('lll');
+            $('#receipts').DataTable({
+                ajax: {
+                    url: {{ url_for('service_admin.get_receipts')|tojson|safe }},
+                },
+                columns: [
+                    {data: 'receipt_no'},
+                    {
+                        data: 'receipt_at',
+                        render: function (data) {
+                            if (data !== '') {
+                                let d = moment(data)
+                                return d.format('ll')
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {data: 'product'},
+                    {data: 'total_price'},
+                    {data: 'issuer'},
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if (data !== null && row.receipt_at) {
+                                var url = '/receipt_printing/receipts/pdf/' + row.receipt_id;
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-rounded is-info" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-receipt"></i></span>' +
+                                    '<span>ใบเสร็จรับเงิน</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    }
+                ]
+            });
+        });
+    </script>
+{% endblock %}

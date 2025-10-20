@@ -1,33 +1,46 @@
-{% extends "base.html" %}
+{% extends "academic_services/service_base.html" %}
 {% include "academic_services/customer_nav.html" %}
 {% block head %}
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
 {% endblock %}
 {% block page_content %}
     <section class="section">
         <div class="columns">
             {% include 'academic_services/menu.html' %}
             <div class="column is-9">
-                <div class="column is-9">
+                <div class="column is-12">
                     {% include "messages.html" %}
                     <h1 class="title has-text-centered">เพิ่มหลักฐานการชำระเงิน</h1>
                 </div>
                 <div id="edit-customer-form"></div>
-                <div class="column is-9 box">
+                <div class="column is-12 box">
                     <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
                         <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
                             <div class="field">
                                 <label class="label">เลขใบแจ้งหนี้</label>
                                 <div class="control">
-                                    {{ payment.invoice.invoice_no }}
+                                    {{ invoice.invoice_no }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">ราคา</label>
+                                <label class="label">วันที่ชำระเงิน</label>
                                 <div class="control">
-                                    {{ payment.amount_due }}
+                                    {{ form.paid_at(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">วิธีการชำระเงิน</label>
+                                <div class="select">
+                                    {{ form.payment_type() }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">จำนวนเงิน</label>
+                                <div class="control">
+                                    {{ form.amount_paid(class="input") }}
                                 </div>
                             </div>
                             <div class="field">
@@ -40,7 +53,7 @@
                                                 <i class="fas fa-upload"></i>
                                             </span>
                                             <span class="file-label">
-                                                Choose a file…
+                                                เลือกไฟล์…
                                             </span>
                                         </span>
                                         <span class="file-name" id="filename"></span>
@@ -51,11 +64,11 @@
                                 <div class="buttons is-centered">
                                     <a
                                        class="button"
-                                       href="{{ url_for('academic_services.payment_index', menu=menu) }}"
+                                       href="{{ url_for('academic_services.invoice_index', menu=menu) }}"
                                     >
-                                        Cancel
+                                        ยกเลิก
                                     </a>
-                                    <input type="submit" id="submit-form" class="button is-success" value="Submit">
+                                    <input type="submit" id="submit-form" class="button is-success" value="บันทึก">
                                 </div>
                             </div>
                         </form>
@@ -67,15 +80,30 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-
-
-<script>
-      $(document).ready(()=>{
-          $('#filename').text('None');
-      })
-      $('#file_upload').change(function(e) {
-          let fileName = e.target.files[0].name;
-          $('#filename').text(fileName);
-      });
-</script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            moment.locale('th');
+            $('input[name="paid_at"]').daterangepicker({
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 15,
+                timePicker24Hour: true,
+                showDropdowns: true,
+                autoUpdateInput: true,
+                locale: {
+                    format: 'YYYY-MM-DD HH:mm:ss'
+                }
+            });
+        });
+    </script>
+    <script>
+          $(document).ready(()=>{
+              $('#filename').text('None');
+          })
+          $('#file_upload').change(function(e) {
+              let fileName = e.target.files[0].name;
+              $('#filename').text(fileName);
+          });
+    </script>
 {% endblock %}

@@ -181,6 +181,9 @@ class Province(db.Model):
     districts = db.relationship("District",
                                 backref=db.backref('parent'))
 
+    def __str__(self):
+        return u'{}'.format(self.name)
+
 
 class District(db.Model):
     __tablename__ = 'districts'
@@ -192,6 +195,9 @@ class District(db.Model):
     subdistricts = db.relationship('Subdistrict',
                                    backref=db.backref('district'))
 
+    def __str__(self):
+        return u'{}'.format(self.name)
+
 
 class Subdistrict(db.Model):
     __tablename__ = 'subdistricts'
@@ -200,6 +206,21 @@ class Subdistrict(db.Model):
     code = db.Column('code', db.String(), nullable=False)
     district_id = db.Column(db.Integer(),
                             db.ForeignKey('districts.id'))
+    zip_code_id = db.Column('zip_code_id', db.ForeignKey('zip_codes.id'))
+    zip_code = db.relationship('Zipcode', backref=db.backref('subdistricts'))
+
+    def __str__(self):
+        return u'{}'.format(self.name)
+
+
+class Zipcode(db.Model):
+    __tablename__ = 'zip_codes'
+    id = db.Column('id', db.Integer(), primary_key=True)
+    code = db.Column('code', db.String(), nullable=False)
+    zip_code = db.Column('zip_code', db.Integer(), nullable=False)
+
+    def __str__(self):
+        return u'{}'.format(self.zip_code)
 
 
 class KPISchema(ma.SQLAlchemyAutoSchema):
@@ -220,6 +241,8 @@ class HomeAddress(db.Model):
                                db.ForeignKey('subdistricts.id'))
     postal_code = db.Column('postal_code', db.Integer())
 
+    def __str__(self):
+        return u'{}'.format(self.postal_code)
 
 class Mission(db.Model):
     __tablename__ = 'missions'
@@ -273,6 +296,20 @@ class IOCode(db.Model):
             'org': u'{}'.format(self.org.name),
             'mission': u'{}'.format(self.mission.name)
         }
+
+
+class ProductCode(db.Model):
+    __tablename__ = 'product_codes'
+    id = db.Column('id', db.String(12), primary_key=True)
+    name = db.Column('name', db.String())
+    branch = db.Column('branch', db.String())
+
+    def __repr__(self):
+        return '{} {} {}'.format(self.id, self.name, self.branch)
+
+    @property
+    def product_code(self):
+        return '{} {}'.format(self.id, self.name)
 
 
 class OrgSchema(ma.SQLAlchemyAutoSchema):

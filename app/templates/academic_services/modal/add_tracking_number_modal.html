@@ -3,12 +3,12 @@
         <div class="modal-card">
             <header class="modal-card-head">
                 <p class="modal-card-title" align="center">
-                    Add Tracking Number
+                    อัพเดตหมายเลขติดตามพัสดุ
                 </p>
                 <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
             </header>
             <section class="modal-card-body">
-                <form hx-post="{{ url_for('academic_services.add_tracking_number', sample_id=sample_id, tab=tab, menu=menu) }}"
+                <form hx-post="{{ url_for('academic_services.add_tracking_number', sample_id=sample_id, menu=menu) }}"
                       hx-indicator="#submit-form"
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
@@ -20,12 +20,12 @@
                     </div>
                     <div class="field ">
                         <div class="buttons is-centered">
-                            <a href="{{ url_for('academic_services.sample_index', tab=tab, menu=menu) }}"
+                            <a href="{{ url_for('academic_services.sample_index', menu=menu) }}"
                                class="button"
                             >
-                                Cancel
+                                ยกเลิก
                             </a>
-                            <input type="submit" id="submit-form" class="button is-success" value="Submit">
+                            <input type="submit" id="submit-form" class="button is-success" value="บันทึก">
                         </div>
                     </div>
                 </form>

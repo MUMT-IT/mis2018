@@ -15,7 +15,7 @@ from pandas import read_excel, isna
 from bahttext import bahttext
 from decimal import Decimal
 
-from sqlalchemy import or_
+from sqlalchemy import or_, case
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.sql import and_
 from flask import (render_template, flash, redirect,
@@ -236,7 +236,7 @@ def health_record_landing():
             'id': sv.id,
             'date': sv.date,
             'location': sv.location,
-            'registered': len(sv.records),
+            'registered': sv.records.count(),
             'checkedin': len([r for r in sv.records if r.checkin_datetime is not None])
         }
         services_data.append(d)
@@ -484,7 +484,19 @@ def edit_record(record_id):
     if not record.service.profiles and not record.service.groups:
         return redirect(url_for('comhealth.edit_service', service_id=record.service.id))
 
-    emptypes = ComHealthCustomerEmploymentType.query.all()
+    #emptypes = ComHealthCustomerEmploymentType.query.order_by(ComHealthCustomerEmploymentType.name.asc()).all()
+
+    emptypes = (
+        ComHealthCustomerEmploymentType.query
+            .order_by(
+            case(
+                (ComHealthCustomerEmploymentType.emptype_id == '00', 0),  # ถ้าเป็น 00 ให้เรียงก่อน
+                else_=1
+            ),
+            ComHealthCustomerEmploymentType.name.asc()  # ที่เหลือเรียงตามชื่อ
+        )
+            .all()
+    )
 
     if request.method == 'GET':
         if not record.checkin_datetime:
@@ -1272,12 +1284,17 @@ def delete_service_group(service_id=None, group_id=None):
 def summarize_specimens(service_id):
     containers = set()
     service = ComHealthService.query.get(service_id)
-    for profile in service.profiles:
-        for test_item in profile.test_items:
-            containers.add(test_item.test.container)
-    for group in service.groups:
-        for test_item in group.test_items:
-            containers.add(test_item.test.container)
+
+    valid_records = ComHealthRecord.query.filter(
+        ComHealthRecord.service_id == service_id,
+        ComHealthRecord.labno != ''
+    ).all()
+
+    for record in valid_records:
+        for test_item in record.ordered_tests:
+            if test_item.test and test_item.test.container:
+                containers.add(test_item.test.container)
+
     columns = [{'data': 'labno', 'searchable': True}]
     headers = []
     for ct in sorted(containers, key=lambda x: x.name):
@@ -1648,7 +1665,18 @@ def edit_note_data(record_id):
 def edit_customer_data(customer_id, service_id):
     form = CustomerForm()
     customer = ComHealthCustomer.query.get(customer_id)
-    form.emptype.choices = [(e.id, e.name) for e in ComHealthCustomerEmploymentType.query.all()]
+    emptypes = (
+        ComHealthCustomerEmploymentType.query
+            .order_by(
+            case(
+                (ComHealthCustomerEmploymentType.emptype_id == '00', 0),  # ให้ '00' ขึ้นก่อน
+                else_=1
+            ),
+            ComHealthCustomerEmploymentType.name.asc()  # ที่เหลือเรียงตามชื่อ
+        )
+            .all()
+    )
+    form.emptype.choices = [(e.id, e.name) for e in emptypes]
     if customer:
         if request.method == 'POST':
             if form.validate_on_submit():
@@ -1927,6 +1955,45 @@ def show_employee_info(custid):
             return redirect(url_for('comhealth.employee_kiosk_mode'))
         return redirect(url_for('comhealth.list_employees', orgid=customer.org.id))
 
+def convert_date(date_data):
+    if isna(date_data):
+        return None
+
+    # ขั้นตอนที่ 1: ดึงส่วนประกอบของวันที่ (วัน, เดือน, ปี) ออกมา ไม่ว่าจะเป็น datetime object หรือ string
+    if isinstance(date_data, datetime):
+        parsed_day = date_data.day
+        parsed_month = date_data.month
+        parsed_year = date_data.year
+    else:
+        try:
+            parts = str(date_data).split('/')
+            if len(parts) == 3:
+                parsed_day, parsed_month, parsed_year = map(int, parts)
+            else:
+                return None
+        except (ValueError, TypeError):
+            return None
+
+    # ถ้าไม่สามารถแยกส่วนประกอบของวันที่ได้ (เช่น parsed_day ยังคงเป็น None)
+    if parsed_day is None or parsed_month is None or parsed_year is None:
+        return None
+
+    # ขั้นตอนที่ 2: ตรวจสอบและแปลงปีพุทธศักราชเป็นคริสต์ศักราช
+    if parsed_year > 2300:
+        year_gregorian = parsed_year - 543
+    else:
+        year_gregorian = parsed_year # ถือว่าเป็นปีคริสต์ศักราชอยู่แล้ว
+
+    # ขั้นตอนที่ 3: (Optional) ตรวจสอบความสมเหตุสมผลของปีคริสต์ศักราชที่ได้
+    current_year = datetime.now().year
+    if not (1900 <= year_gregorian <= current_year + 10):
+        return None
+
+    try:
+        return date(year_gregorian, parsed_month, parsed_day)
+    except ValueError:
+        # กรณีวันที่ไม่ถูกต้อง เช่น 31 ก.พ. หรือ เดือนที่ไม่มีอยู่
+        return None
 
 @comhealth.route('/organizations/<int:orgid>/employees/addmany', methods=['GET', 'POST'])
 @login_required
@@ -1950,10 +2017,25 @@ def add_many_employees(orgid):
         if file.filename == '':
             flash('No file selected')
             return redirect(request.url)
+
+        messages = []  # สำหรับเก็บข้อความแจ้งเตือนทั้งหมด
+        new_customer_count = 0
+        updated_customer_count = 0
+        skipped_row_count = 0
+
         if file and allowed_file(file.filename):
             df = read_excel(file, dtype='object')
             for idx, rec in df.iterrows():
-                title, firstname, lastname, dob, gender, emp_id, department_name, division_name, unit, emptype_name, phone = rec
+                row_number = idx + 2  # แถวใน Excel (สมมติว่ามี Header)
+                row_messages = []  # ข้อความสำหรับแถวปัจจุบัน
+
+                try:
+                    title, firstname, lastname, dob, gender, emp_id, department_name, division_name, unit, emptype_name, phone = rec
+                except ValueError:
+                    row_messages.append(f"แถวที่ {row_number}: จำนวนคอลัมน์ไม่ถูกต้อง (คาดว่ามี 11 คอลัมน์)")
+                    messages.append({"type": "error", "message": "; ".join(row_messages)})
+                    skipped_row_count += 1
+                    continue
 
                 if isna(firstname):
                     firstname = None
@@ -1967,6 +2049,9 @@ def add_many_employees(orgid):
                     emp_id = None
                 if isna(phone):
                     phone = None
+
+
+
                 if not isna(department_name):
                     department = ComHealthDepartment.query.filter_by(parent_id=orgid, name=department_name).first()
                     if not department:
@@ -1986,70 +2071,114 @@ def add_many_employees(orgid):
                 else:
                     department = None
                     division = None
-                if not isna(emptype_name):
-                    emptype = ComHealthCustomerEmploymentType.query.filter_by(name=emptype_name).first()
+
+                # emptype_name (ประเภทการจ้างงาน): ค้นหาเท่านั้น, แจ้งเตือนหากไม่พบ
+                emptype = None
+                if not isna(emptype_name) and str(emptype_name).strip():
+                    emptype_name_str = str(emptype_name).strip()
+                    emptype = ComHealthCustomerEmploymentType.query.filter_by(name=emptype_name_str).first()
                     if not emptype:
-                        emptype = ComHealthCustomerEmploymentType(name=emptype_name)
-                        db.session.add(emptype)
-                else:
-                    emptype = None
-                try:
-                    day, month, year = map(int, dob.split('/'))
-                except Exception as e:
-                    if isna(dob) or isinstance(e, ValueError):
-                        dob = None
-                else:
-                    year = year - 543
-                    dob = date(year, month, day)
+                        row_messages.append(f"ไม่พบประเภทการจ้างงาน '{emptype_name_str}' ในระบบ - จะไม่ถูกบันทึก")
+                        # ไม่มีการ db.session.add(emptype) ที่นี่ตามคำขอ
+
+                parsed_phone = None
+                if not isna(phone):
+                    parsed_phone = str(phone).strip()
+                    if parsed_phone and not parsed_phone.startswith('0'):
+                        parsed_phone = '0' + parsed_phone
+
+                # dob (วันเกิด): แปลงและตรวจสอบรูปแบบ
+                parsed_dob = convert_date(dob)
+                if parsed_dob is None and not isna(dob):
+                    row_messages.append(
+                        f"วันเกิด '{dob}' มีรูปแบบไม่ถูกต้อง (คาดหวัง dd/mm/yyyy) - จะถูกตั้งค่าเป็นว่าง")
+
+                parsed_gender = None
+                if not isna(gender):
+                    try:
+                        parsed_gender = int(gender)
+                    except ValueError:
+                        row_messages.append(f"เพศ '{gender}' มีรูปแบบไม่ถูกต้อง (คาดหวังตัวเลข) - จะถูกตั้งค่าเป็นว่าง")
+
 
                 customer_ = ComHealthCustomer.query.filter_by(firstname=firstname,
                                                               lastname=lastname,
                                                               org=org).first()
 
                 if not customer_:
-                    gender = int(gender) if not isna(gender) else None
-                    new_customer = ComHealthCustomer(
-                        title=title,
-                        firstname=firstname,
-                        lastname=lastname,
-                        dob=dob,
-                        org=org,
-                        gender=gender,
-                        emp_id=emp_id,
-                        dept=department,
-                        division=division,
-                        unit=unit,
-                        emptype=emptype,
-                        phone=phone
-                    )
-                    db.session.add(new_customer)
-                    db.session.commit()
-                    new_customer.generate_hn()
-                    db.session.add(new_customer)
-                    db.session.commit()
+                    # สร้างผู้รับบริการใหม่
+                    try:
+                        new_customer = ComHealthCustomer(
+                            title=title,
+                            firstname=firstname,
+                            lastname=lastname,
+                            dob=parsed_dob,
+                            org=org,
+                            gender=parsed_gender,
+                            emp_id=emp_id,
+                            dept=department,
+                            division=division,
+                            unit=unit,
+                            emptype=emptype,
+                            phone=parsed_phone
+                        )
+                        db.session.add(new_customer)
+                        db.session.commit()  # Commit ครั้งแรกเพื่อให้ได้ ID สำหรับ generate_hn
+                        new_customer.generate_hn()  # สร้าง HN
+                        db.session.add(new_customer)  # เพิ่มเข้า session อีกครั้งหลังจากแก้ไข HN
+                        db.session.commit()
+                        new_customer_count += 1
+                        #row_messages.append(f"เพิ่มผู้รับบริการใหม่สำเร็จ")
+                    except Exception as e:
+                        db.session.rollback()  # หากเกิดข้อผิดพลาด ให้ Rollback การเปลี่ยนแปลง
+                        row_messages.append(f"ไม่สามารถเพิ่มผู้รับบริการใหม่ได้: {e}")
+                        skipped_row_count += 1
                 else:
-                    customer_.emp_id = emp_id
-                    customer_.dept = department
-                    customer_.division = division
-                    customer_.unit = unit
-                    customer_.emptype = emptype
-                    customer_.phone = phone
-                    db.session.add(customer_)
-                    db.session.commit()
+                    # อัปเดตผู้รับบริการที่มีอยู่
+                    try:
+                        print(parsed_phone)
+                        customer_.title = title if title is not None else customer_.title
+                        customer_.dob = parsed_dob if parsed_dob is not None else customer_.dob
+                        customer_.gender = parsed_gender if parsed_gender is not None else customer_.gender
+                        customer_.emp_id = emp_id if emp_id is not None else customer_.emp_id  # ใช้ emp_id ที่อ่านมาโดยไม่มีการตรวจสอบซ้ำซ้อน
+                        customer_.dept = department if department is not None else customer_.dept
+                        customer_.division = division if division is not None else customer_.division
+                        customer_.unit = unit if unit is not None else customer_.unit
+                        customer_.emptype = emptype if emptype is not None else customer_.emptype
+                        customer_.phone = parsed_phone if parsed_phone is not None else customer_.phone
+                        db.session.add(customer_)
+                        db.session.commit()
+                        updated_customer_count += 1
+                        #row_messages.append(f"อัปเดตข้อมูลพนักงานที่มีอยู่สำเร็จ")
+                    except Exception as e:
+                        db.session.rollback()  # หากเกิดข้อผิดพลาด ให้ Rollback การเปลี่ยนแปลง
+                        row_messages.append(f"ไม่สามารถอัปเดตข้อมูลผู้รับบริการได้: {e}")
+                        skipped_row_count += 1
 
-                # temporarily disable creation of a new record with predefined labno
-                '''
-                if labno_included == 'true' and labno:
-                    new_record = ComHealthRecord(
-                        date=service.date,
-                        labno=labno,
-                        service=service,
-                        customer=new_customer,
-                    )
-                    db.session.add(new_record)
-                '''
+                # รวบรวมข้อความสำหรับแถวนี้
+                if row_messages:
+                    # กำหนด type ของ message หลักตามสถานะการประมวลผล
+                    if any(msg_part in ";".join(row_messages) for msg_part in["ไม่สามารถบันทึก", "ไม่สามารถเพิ่ม", "ไม่สามารถอัปเดต"]):
+                        msg_type = "error"
+                    elif any(msg_part in ";".join(row_messages) for msg_part in["มีรูปแบบไม่ถูกต้อง", "ไม่พบประเภทการจ้างงาน", "จำนวนคอลัมน์ไม่ครบถ้วน"]):
+                        msg_type = "warning"
+                    elif "สร้าง" in ";".join(row_messages):
+                        msg_type = "info"
+                    else:
+                        msg_type = "success"
 
-            return redirect(url_for('comhealth.list_employees', orgid=org.id))
+                    messages.append({"type": msg_type, "message": f"แถวที่ {row_number}: {'; '.join(row_messages)}"})
+
+                    # Flash ข้อความทั้งหมดหลังจากประมวลผลไฟล์เสร็จสิ้น
+            for msg in messages:
+                    flash(msg["message"], msg["type"])
+
+            flash(f"--- สรุปผลการนำเข้าข้อมูล ---", 'info')
+            flash(f"เพิ่มผู้รับบริการ: {new_customer_count} คน", 'success')
+            flash(f"อัปเดตข้อมูลผู้รับบริการ: {updated_customer_count} คน", 'success')
+            flash(f"ข้ามการประมวลผล: {skipped_row_count} แถว (โปรดดูรายละเอียดในข้อความแจ้งเตือนด้านบน)", 'warning')
+
+            return render_template('comhealth/employee_upload.html', org=org)
 
     return render_template('comhealth/employee_upload.html', org=org)
 
@@ -2502,33 +2631,28 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                     item.append(
                         Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyleNumber']))
                 items.append(item)
-    if number_test < 20:
-        for x in range(20 - number_test):
-            items.append([
-                Paragraph('<font size=12>&nbsp;</font>', style=style_sheet['ThaiStyle']),
-                Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-                Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-                Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-                Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-            ])
+
     total_thai = bahttext(total)
     total_text = "รวมเงินทั้งสิ้น {}".format(total_thai)
-    items.append([
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-    ])
-    items.append([
-        Paragraph('<font size=12>{}</font>'.format(total_text), style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(total_profile_price), style=style_sheet['ThaiStyleNumber']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(total_special_price), style=style_sheet['ThaiStyleNumber']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(total), style=style_sheet['ThaiStyleNumber'])
-    ])
-    item_table = Table(items, colWidths=[40, 258, 70, 70, 70], repeatRows=1)
-    item_table.setStyle(TableStyle([
+
+    summary_rows = [
+        [
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        ],
+        [
+            Paragraph('<font size=12>{}</font>'.format(total_text), style=style_sheet['ThaiStyle']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+            Paragraph('<font size=12>{:,.2f}</font>'.format(total_profile_price), style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12>{:,.2f}</font>'.format(total_special_price), style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12>{:,.2f}</font>'.format(total), style=style_sheet['ThaiStyleNumber'])
+        ]
+    ]
+    #table style หน้าสุดท้าย
+    table_style = TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
         ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
         ('BOX', (0, 0), (0, -1), 0.25, colors.black),
@@ -2536,13 +2660,65 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
         ('BOX', (2, 0), (2, -1), 0.25, colors.black),
         ('BOX', (3, 0), (3, -1), 0.25, colors.black),
         ('BOX', (4, 0), (4, -1), 0.25, colors.black),
-        ('BOX', (0, 0), (4, 32), 0.25,colors.black),
+        ('BOX', (0, 0), (4, 32), 0.25, colors.black),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
         ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
         ('BOTTOMPADDING', (0, -2), (-1, -2), 10),
-    ]))
-    item_table.setStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')])
-    item_table.setStyle([('SPAN', (0, -1), (1, -1))])
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('SPAN', (0, -1), (1, -1)),
+    ])
+    # table style หน้าอื่นๆ
+    table_style2 = TableStyle([
+        ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
+        ('BOX', (0, 0), (0, -1), 0.25, colors.black),
+        ('BOX', (1, 0), (1, -1), 0.25, colors.black),
+        ('BOX', (2, 0), (2, -1), 0.25, colors.black),
+        ('BOX', (3, 0), (3, -1), 0.25, colors.black),
+        ('BOX', (4, 0), (4, -1), 0.25, colors.black),
+        ('BOX', (0, 0), (4, 32), 0.25, colors.black),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ])
+
+    MAX_ROWS_PER_PAGE = 24  # รวม header
+    COL_WIDTHS = [40, 258, 70, 70, 70]
+
+    item_tables = []
+
+    header_row = items[0]
+    data_rows = items[1:]
+    total_rows = len(data_rows)
+
+    for i in range(0, total_rows, MAX_ROWS_PER_PAGE - 1):
+
+        if len(data_rows) < (MAX_ROWS_PER_PAGE - 1):
+            empty_row = [
+                Paragraph('<font size=12>&nbsp;</font>', style=style_sheet['ThaiStyle']),
+                Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+                Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+                Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+                Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+            ]
+            for _ in range((MAX_ROWS_PER_PAGE - 1) - len(data_rows)):
+                data_rows.append(empty_row)
+
+        page_data = data_rows[i:i + (MAX_ROWS_PER_PAGE - 1)]
+        page_items = [header_row] + page_data
+
+        # เช็คว่าหน้านี้เป็นหน้าสุดท้ายหรือไม่
+        is_last_page = (i + (MAX_ROWS_PER_PAGE - 1) >= total_rows)
+
+        if is_last_page:
+            page_items += summary_rows
+
+        table = Table(page_items, colWidths=COL_WIDTHS, repeatRows=1)
+        table.setStyle(table_style if is_last_page else table_style2)
+
+        item_tables.append(KeepTogether(table))
+
+        if not is_last_page:
+            item_tables.append(PageBreak())
 
     if receipt.payment_method == 'cash':
         payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD เงินสด / CASH</font>',
@@ -2566,12 +2742,6 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     ])
 
     total_table = Table(total_content, colWidths=[300, 150, 50])
-
-    notice_text = '''<para align=center><font size=10>
-            สิทธิตามระเบียบกระทรวงการคลัง / Reimbursement is in accordance with the regulation of the Ministry of Finance.
-            <br/>เอกสารนี้จัดทำด้วยวิธีการทางอิเล็กทรอนิกส์</font></para>
-            '''
-    notice = Table([[Paragraph(notice_text, style=style_sheet['ThaiStyle'])]])
 
     sign_text = Paragraph(
         '<br/><font size=12>ผู้รับเงิน / Received by &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {}<br/></font>'.format(
@@ -2597,6 +2767,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
+
         # Head
         header = header_ori
         w, h = header.wrap(doc.width, doc.topMargin)
@@ -2617,24 +2788,55 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
 
         logo_image = ImageReader('app/static/img/mu-watermark.png')
         canvas.drawImage(logo_image, 140, 265, mask='auto')
+
+        # --- Footer content ---
+        footer_y = 20  # Y position for footer content
+        current_y = footer_y
+
+        footer_notice = Paragraph(
+            '<para align="center">'
+            'สิทธิตามระเบียบกระทรวงการคลัง / Reimbursement is in accordance with the regulation of the Ministry of Finance.'
+            '<br/>เอกสารนี้จัดทำด้วยวิธีการทางอิเล็กทรอนิกส์'
+            '</para>',
+            style=style_sheet['ThaiStyle']
+        )
+        w, h = footer_notice.wrap(doc.width, doc.bottomMargin)
+        footer_notice.drawOn(canvas, doc.leftMargin, current_y)
+        current_y += h + 1  # เพิ่มระยะห่างแนวตั้งเล็กน้อย
+
+        footer_qr = Paragraph(
+            'สามารถสแกน QR Code ตรวจสอบสถานะใบเสร็จรับเงินได้ที่ '
+            '<img src="app/static/img/receipt_comhealth_checking.jpg" width="30" height="30" />',
+            style=style_sheet['ThaiStyle']
+        )
+        w, h = footer_qr.wrap(doc.width, doc.bottomMargin)
+        footer_qr.drawOn(canvas, doc.leftMargin + 32 , current_y)
+        current_y += h + 1
+
+        footer_time = Paragraph(
+            'Time {} น.'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
+            style=style_sheet['ThaiStyle']
+        )
+        w, h = footer_time.wrap(doc.width, doc.bottomMargin)
+        footer_time.drawOn(canvas, doc.leftMargin + 32, current_y)
+        current_y += h + 1
+
+        footer_docno = Paragraph(
+            'เลขที่กำกับเอกสาร<br/>Regulatory Document No. {}'.format(receipt.code),
+            style=style_sheet['ThaiStyle']
+        )
+        w, h = footer_docno.wrap(doc.width, doc.bottomMargin)
+        footer_docno.drawOn(canvas, doc.leftMargin + 32, current_y)
+
         canvas.restoreState()
 
-    data.append(KeepTogether(item_table))
+    data.extend(item_tables)
     data.append(KeepTogether(Spacer(1, 6)))
     data.append(KeepTogether(total_table))
     data.append(KeepTogether(receive_officer))
     data.append(KeepTogether(issuer_personal_info))
     data.append(KeepTogether(issuer_position))
-    data.append(KeepTogether(Paragraph('เลขที่กำกับเอกสาร<br/> Regulatory Document No. {}'.format(receipt.code),
-                                       style=style_sheet['ThaiStyle'])))
-    data.append(KeepTogether(
-        Paragraph('Time {} น.'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
-                  style=style_sheet['ThaiStyle'])))
-    data.append(KeepTogether(
-        Paragraph(
-            'สามารถสแกน QR Code ตรวจสอบสถานะใบเสร็จรับเงินได้ที่ <img src="app/static/img/receipt_comhealth_checking.jpg" width="30" height="30" />',
-            style=style_sheet['ThaiStyle'])))
-    data.append(KeepTogether(notice))
+
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup, canvasmaker=PageNumCanvas)
     buffer.seek(0)
     return buffer

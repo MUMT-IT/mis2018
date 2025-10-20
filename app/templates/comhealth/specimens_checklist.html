@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 {% block head %}
-{{ super() }}
+    {{ super() }}
     <style>
-    div.dataTables_wrapper {
-        width: 1200px;
-        margin: 0 auto;
-    }
+        div.dataTables_wrapper {
+            width: 1600px;
+            margin: 0 auto;
+        }
     </style>
 {% endblock %}
 {% block page_content %}
-{% include "comhealth/nav.html" %}
+    {% include "comhealth/nav.html" %}
     <section class="hero is-light" id="app">
         <div class="hero-body">
             <div class="container">
@@ -26,15 +26,15 @@
             </div>
         </div>
     </section>
-<section class="section">
-        <div class="container">
+    <section class="section">
+        <div class="container is-fluid">
             <div class="columns">
                 <div class="column">
                     {% include "messages.html" %}
                 </div>
             </div>
             <div class="columns">
-                <div class="column is-two-thirds is-offset-2">
+                <div class="column is-full">
                     <div class="has-text-centered">
                         <a class="button is-warning"
                            href="{{ url_for('comhealth.summarize_specimens', service_id=service.id) }}">
@@ -50,8 +50,8 @@
                 <div class="column">
                     <table id="specimensTable" class="table is-striped is-narrowed is-fullwidth">
                         <thead>
-                            <th>Lab No.</th>
-                            {% for ct in headers %}
+                        <th>Lab No.</th>
+                        {% for ct in headers %}
                             <th>
                                 {{ ct.name }}
                                 <a class="button is-small is-white is-rounded"
@@ -62,7 +62,7 @@
                                     <span>view</span>
                                 </a>
                             </th>
-                            {% endfor %}
+                        {% endfor %}
                         </thead>
                         <tbody></tbody>
                     </table>
@@ -74,7 +74,7 @@
 {% block scripts %}
     {{ super() }}
     <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
             $('#specimensTable').DataTable({
                 "scrollX": true,
                 "serverSide": true,

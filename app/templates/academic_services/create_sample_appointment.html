@@ -1,0 +1,293 @@
+{% extends "academic_services/service_base.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <style>
+        .toast {
+            opacity: 1 !important;
+            transition: none !important;
+        }
+    </style>
+{% endblock %}
+{% block page_content %}
+    {% include "academic_services/customer_nav.html" %}
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-two-fifths">
+                    <h1 class="title has-text-centered">ข้อมูลคำขอรับบริการ</h1>
+                    <div class="box">
+                        <h1 class="title is-4">ใบคำขอรับบริการ <em>{{ sample.request.request_no }}</em></h1>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-flask"></i></span> งานบริการ
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ service_request.sub_lab.sub_lab }}
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="mb-4">
+                            <div class="columns">
+                                <div class="column" style="border-right: 1px solid #ddd;">
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                        <span class="icon"><i class="fas fa-receipt"></i></span> ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
+                                    </p>
+                                    <div style="margin-left: 1.75rem;">
+                                        <p>ออกในนาม : {{ service_request.quotation_name }}</p>
+                                        <p>ที่อยู่ : {{ service_request.quotation_issue_address }}</p>
+                                        <p>เลขประจำตัวผู้เสียภาษีอากร : {{ service_request.taxpayer_identification_no }}</p>
+                                        <p>เบอร์โทรศัพท์ : {{ service_request.quotation_phone_number }}</p>
+                                        <p>อีเมล : {{ service_request.customer.contact_email }}</p>
+                                    </div>
+                                </div>
+                                <div class="column">
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                        <span class="icon"><i class="fas fa-map-marker-alt"></i></span> ข้อมูลที่อยู่จัดส่งเอกสาร
+                                    </p>
+                                    <div style="margin-left: 1.75rem;">
+                                        <p>ถึง : {{ service_request.receive_name }}</p>
+                                        <p>ที่อยู่ : {{ service_request.receive_address }}</p>
+                                        <p>เบอร์โทรศัพท์ : {{ service_request.receive_phone_number }}</p>
+                                        <p>อีเมล : {{ service_request.customer.contact_email }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-user"></i></span> ข้อมูลผู้ประสานงาน
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                {% for cus_contact in service_request.customer.customer_info.customer_contacts %}
+                                    <p>ชื่อ-นามสกุล : {{ cus_contact.contact_name }}</p>
+                                    <p>เลขประจำตัวผู้เสียภาษี : {{ service_request.customer.customer_info.taxpayer_identification_no }}</p>
+                                    <p>เบอร์โทรศัพท์ : {{ cus_contact.phone_number }}</p>
+                                    <p>อีเมล : {{ cus_contact.email }}</p>
+                                    {% if cus_contact.remark %}
+                                        <p>หมายเหตุ : {{ cus_contact.remark }}</p>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-clipboard-list"></i></span> ข้อมูลผลิตภัณฑ์
+                            </p>
+                            <div class="content" style="margin-left: 1.75rem;">
+                                <ul class="ml-4">
+                                    {% for data in datas.value %}
+                                        <li>{{ data }}</li>
+                                    {% endfor %}
+                                </ul>
+                                {% if datas.table_rows %}
+                                    <table class="table is-bordered is-striped is-fullwidth mt-4">
+                                        <thead>
+                                        <tr>
+                                            {% for key in datas.table_keys %}
+                                                <th>{{ key }}</th>
+                                            {% endfor %}
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for row in datas.table_rows %}
+                                            <tr>
+                                                {% for key in datas.table_keys %}
+                                                    <td>{{ row.get(key, '-') }}</td>
+                                                {% endfor %}
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-file-alt"></i></span> ใบรายงานผล
+                            </p>
+                            <div class="content" style="margin-left: 1.75rem;">
+                                <ul>
+                                    {% if service_request.report_languages %}
+                                        {% for rl in service_request.report_languages %}
+                                                <li>{{ rl.report_language.item }}</li>
+                                        {% endfor %}
+                                    {% else %}
+                                        ไม่ได้เลือกใบรายงานผล
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="column is-two-thirds">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <h1 class="title has-text-centered">นัดหมายการส่งตัวอย่าง</h1>
+                            <div class="notification is-info is-light mt-4">
+                                <h1 class="title is-5 mt-3">คำแนะนำ</h1>
+                                1. เลือกวิธีการส่งตัวอย่าง<br/>
+                                2. เลือกสถานที่ส่งตัวอย่าง<br/>
+                                3. ถ้าในกรณีที่เลือกวิธีการส่งตัวอย่างด้วยตนเอง กรุณากำหนดวันนัดหมายส่งตัวอย่าง<br/>
+                                4. กรุณานำส่งตัวอย่างพร้อมใบนำส่งตัวอย่าง, ใบอนุญาตนำเข้าหรือผลิต และสูตรตำรับ/สูตร 100% ของตัวอย่าง
+                            </div>
+                        <div class="box">
+                            <p class="help is-danger mb-2">กรุณากรอกข้อมูลนัดหมายส่งตัวอย่าง</p>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.ship_type.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="select">
+                                    {{ form.ship_type() }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.location.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="select">
+                                    {{ form.location() }}
+                                </div>
+                            </div>
+                            <div class="field" id="address-field" style="display: none">
+                                <label class="label">
+                                    รายละเอียดสถานที่ส่งตัวอย่าง
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ service_request.sub_lab.short_address | safe }}
+                                </div>
+                            </div>
+                            <div class="field" id="appointment-date-field" style="display: none;">
+                                <label class="label">
+                                    {{ form.appointment_date.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.appointment_date(class='input', type='text') }}
+                                </div>
+                            </div>
+                            <div class="field" id="convenient-time-field" style="display: none;">
+                                <label class="label">
+                                    รายละเอียดเวลาการส่งตัวอย่าง
+                                </label>
+                                <div class="control">
+                                    {{ service_request.sub_lab.note }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">ข้อมูลติดต่อ</label>
+                                <div class="control">
+                                    {{ service_request.sub_lab.contact }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="buttons is-centered">
+                            <a class="button"
+                               href="{{ url_for('academic_services.sample_index', menu=menu) }}">
+                                ย้อนกลับ
+                            </a>
+                            <div class="control">
+                                <input type="submit" value="ยืนยันนัดหมาย" class="button is-info">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+    <script>
+        function showToast(category, message) {
+            if (category === 'success') {
+                toastr.success(message);
+            } else if (category === 'danger') {
+                toastr.error(message);
+            } else if (category === 'warning') {
+                toastr.warning(message);
+            } else {
+                toastr.info(message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        showToast('{{ category }}', {{ message|tojson }});
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            moment.locale('th');
+            const holidays = [
+                {% for h in holidays %}
+                    "{{ h.holiday_date.strftime('%Y-%m-%d') }}"{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ];
+            $('input[name="appointment_date"]').daterangepicker({
+                singleDatePicker: true,
+                showDropdowns: true,
+                autoUpdateInput: true,
+                {% if form.appointment_date.data %}
+                    startDate: {{ form.appointment_date.data.isoformat()|tojson|safe }},
+                {% else %}
+                    startDate: moment().startOf('day'),
+                {% endif %}
+                locale: {
+                    format: 'YYYY-MM-DD'
+                },
+                isInvalidDate: function(date) {
+                    const formatted = date.format('YYYY-MM-DD');
+                    const isWeekend = date.day() === 0 || date.day() === 6;
+                    const isHoliday = holidays.includes(formatted);
+                    return isWeekend || isHoliday;
+                }
+            });
+            function showAppointmentDate() {
+                var shipType = document.querySelector('[name="ship_type"]').value;
+                var appointmentDateField = document.getElementById("appointment-date-field");
+                var convenientTimeField = document.getElementById("convenient-time-field");
+                if (shipType === "ส่งด้วยตนเอง") {
+                    appointmentDateField.style.display = "block";
+                    convenientTimeField.style.display = "block";
+                } else {
+                    appointmentDateField.style.display = "none";
+                    convenientTimeField.style.display = "none";
+                }
+            }
+
+            showAppointmentDate();
+            document.querySelector('[name="ship_type"]').addEventListener("change", showAppointmentDate);
+
+            function showAddress() {
+                var locationField = document.querySelector('[name="location"]').value;
+                 console.log("Current location value:", locationField);
+                var addressField = document.getElementById("address-field");
+
+                if (locationField !== "None") {
+                    addressField.style.display = "block";
+                } else {
+                    addressField.style.display = "none";
+                }
+            }
+
+            showAddress();
+            document.querySelector('[name="location"]').addEventListener("change", showAddress);
+        })
+    </script>
+{% endblock %}

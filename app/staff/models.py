@@ -110,7 +110,8 @@ class StaffAccount(db.Model):
 
     @classmethod
     def get_it_unit(cls):
-        return [account for account in cls.query.all() if account.is_active and account.personal_info.org.name == 'หน่วยข้อมูลและสารสนเทศ']
+        return [account for account in cls.query.all() if (account.is_active and account.personal_info.org.name == 'หน่วยข้อมูลและสารสนเทศ')
+                or account.email == 'likit.pre']
 
     @property
     def fullname(self):

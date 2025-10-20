@@ -1,17 +1,21 @@
 import os
 import arrow
+import  pytz
 import requests
+from app.main import mail
+from flask_mail import Message
 from sqlalchemy import or_
-from flask import render_template, redirect, flash, url_for, jsonify, request, make_response
+from flask import render_template, redirect, flash, url_for, jsonify, request, make_response, current_app
 from flask_login import login_required, current_user
-
 from app.roles import admin_permission
 from app.software_request import software_request
-from app.software_request.forms import SoftwareRequestDetailForm
+from app.software_request.forms import create_request_form, SoftwareRequestTimelineForm
 from app.software_request.models import *
 from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
+
+localtz = pytz.timezone('Asia/Bangkok')
 
 gauth = GoogleAuth()
 keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -24,6 +28,11 @@ FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
 json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+
+
+def send_mail(recp, title, message):
+    message = Message(subject=title, body=message, recipients=recp)
+    mail.send(message)
 
 
 def initialize_gdrive():
@@ -48,17 +57,21 @@ def condition_for_service_request():
     return render_template('software_request/condition_page.html')
 
 
+@software_request.route('/request/view/<int:detail_id>')
+def view_request(detail_id):
+    detail = SoftwareRequestDetail.query.get(detail_id)
+    return render_template('software_request/view_request.html', detail=detail)
+
+
 @software_request.route('/request/add', methods=['GET', 'POST'])
 def create_request():
+    SoftwareRequestDetailForm = create_request_form(detail_id=None)
     form = SoftwareRequestDetailForm()
     if form.validate_on_submit():
         detail = SoftwareRequestDetail()
         form.populate_obj(detail)
         file = form.file_upload.data
         drive = initialize_gdrive()
-        if form.system.data:
-            system = SoftwareRequestSystem.query.get(request.form.getlist('system'))
-            detail.title = system.system
         if file:
             file_name = secure_filename(file.filename)
             file.save(file_name)
@@ -69,6 +82,9 @@ def create_request():
             file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
             detail.url = file_drive['id']
             detail.file_name = file_name
+        if form.system.data:
+            system = SoftwareRequestSystem.query.get(request.form.getlist('system'))
+            detail.title = system.system
         detail.status = 'ส่งคำขอแล้ว'
         detail.created_date = arrow.now('Asia/Bangkok').datetime
         detail.created_id = current_user.id
@@ -159,6 +175,8 @@ def get_requests():
 def update_request(detail_id):
     tab = request.args.get('tab')
     detail = SoftwareRequestDetail.query.get(detail_id)
+    status = detail.status
+    SoftwareRequestDetailForm = create_request_form(detail_id=detail_id)
     form = SoftwareRequestDetailForm(obj=detail)
     if detail.url:
         file_upload = drive.CreateFile({'id': detail.url})
@@ -166,30 +184,88 @@ def update_request(detail_id):
         file_url = file_upload.get('embedLink')
     else:
         file_url = None
+    appointment_date = form.appointment_date.data.astimezone(localtz) if form.appointment_date.data else None
     if form.validate_on_submit():
         form.populate_obj(detail)
         detail.updated_date = arrow.now('Asia/Bangkok').datetime
         detail.approver_id = current_user.id
+        detail.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').datetime if form.appointment_date.data else None
+        detail.status = form.status.data if form.status.data else status
         db.session.add(detail)
         db.session.commit()
-        flash('ส่งคำขอสำเร็จ', 'success')
-        return redirect(url_for('software_request.admin_index', tab=tab))
+        if form.status.data:
+            scheme = 'http' if current_app.debug else 'https'
+            link = url_for("software_request.view_request", detail_id=detail_id, _external=True, _scheme=scheme)
+            title = f'''แจ้งอัพเดตสถานะ{detail.title}'''
+            message = f'''เรียน คุณ{detail.created_by.fullname}\n\n'''
+            message += f'''{detail.approver.fullname} ได้ทำการอัปเดตสถานะคำร้องขอใช้ซอฟต์แวร์ของท่านเป็น "{detail.status}"\n'''
+            message += f'''ท่านสามารถตรวจสอบรายละเอียดเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
+            message += f'''{link}\n\n'''
+            message += f'''หากมีข้อสงสัยหรือต้องการสอบถามข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่รับผิดชอบ\n\n'''
+            message += f'''ขอบคุณค่ะ\n'''
+            message += f'''ระบบขอรับบริการพัฒนา Software\n'''
+            message += f'''คณะเทคนิคการแพทย์'''
+            send_mail([detail.created_by.email + '@mahidol.ac.th'], title, message)
+            flash('อัพเดตสถานะสำเร็จ', 'success')
+        else:
+            flash('อัพเดตข้อมูลสำเร็จ  ', 'success')
+            return redirect(url_for('software_request.admin_index', tab=tab))
     else:
         for er in form.errors:
             flash(er, 'danger')
     return render_template('software_request/update_request.html', form=form, tab=tab, detail=detail,
-                           file_url=file_url)
+                           file_url=file_url, appointment_date=appointment_date)
 
 
-@software_request.route('/admin/request/status/update/<int:detail_id>', methods=['GET', 'POST'])
-def update_status_of_request(detail_id):
+@software_request.route('/admin/request/timeline/add/<int:detail_id>', methods=['GET', 'POST'])
+@software_request.route('/admin/request/timeline/edit/<int:timeline_id>', methods=['GET', 'POST'])
+def create_timeline(detail_id=None, timeline_id=None):
     tab = request.args.get('tab')
-    status = request.args.get('status')
-    detail = SoftwareRequestDetail.query.get(detail_id)
-    detail.status = status
-    detail.updated_date = arrow.now('Asia/Bangkok').datetime
-    detail.approver_id = current_user.id
-    db.session.add(detail)
+    if detail_id:
+        form = SoftwareRequestTimelineForm()
+        sequence_no = SoftwareRequestNumberID.get_number('Num', db, software_request='software_request_'+str(detail_id))
+    else:
+        timeline = SoftwareRequestTimeline.query.get(timeline_id)
+        form = SoftwareRequestTimelineForm(obj=timeline)
+    if form.validate_on_submit():
+        if detail_id:
+            timeline = SoftwareRequestTimeline()
+        form.populate_obj(timeline)
+        if detail_id:
+            timeline.sequence = sequence_no.number
+            timeline.request_id = detail_id
+            timeline.created_at = arrow.now('Asia/Bangkok').datetime
+            sequence_no.count += 1
+        timeline.start = arrow.get(form.start.data, 'Asia/Bangkok').date()
+        timeline.estimate = arrow.get(form.estimate.data, 'Asia/Bangkok').date()
+        if detail_id:
+            timeline.request.updated_date = arrow.now('Asia/Bangkok').datetime
+        db.session.add(timeline)
+        db.session.commit()
+        if not detail_id:
+            timeline.request.updated_date = arrow.now('Asia/Bangkok').datetime
+            db.session.add(timeline)
+            db.session.commit()
+        if detail_id:
+            flash('เพิ่มข้อมูลสำเร็จ', 'success')
+            resp = make_response(render_template('software_request/timeline_template.html',tab=tab,
+                                                 timeline=timeline))
+            resp.headers['HX-Trigger'] = 'closeTimeline'
+        else:
+            flash('แก้ไขข้อมูลสำเร็จ', 'success')
+            resp = make_response()
+            resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('software_request/modal/create_timeline_modal.html', form=form, tab=tab,
+                           detail_id=detail_id, timeline_id=timeline_id)
+
+
+@software_request.route('/admin/request/timeline/delete/<int:timeline_id>', methods=['GET', 'DELETE'])
+def delete_timeline(timeline_id):
+    timeline = SoftwareRequestTimeline.query.get(timeline_id)
+    db.session.delete(timeline)
     db.session.commit()
-    flash('อัพเดตสถานะสำเร็จ', 'success')
-    return redirect(url_for('software_request.update_request', tab=tab, detail_id=detail_id))
+    flash('ลบข้อมูลสำเร็จ', 'success')
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp

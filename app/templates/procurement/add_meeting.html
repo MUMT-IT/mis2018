@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบสำรวจวันประชุม</title>
+    <!-- Bulma CSS CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <style>
+        /* Custom CSS สำหรับตกแต่งเพิ่มเติม */
+        body {
+            background-color: #f0f2f5; /* สีพื้นหลังอ่อนๆ */
+            font-family: 'Inter', sans-serif; /* ใช้ฟอนต์ Inter ตามคำแนะนำ */
+        }
+        .container {
+            max-width: 800px; /* จำกัดความกว้างของเนื้อหาหลัก */
+            margin-top: 40px; /* ระยะห่างจากด้านบน */
+            padding: 20px; /* ระยะห่างภายใน */
+            background-color: #ffffff; /* สีพื้นหลังกล่องเนื้อหา */
+            border-radius: 8px; /* มุมโค้งมน */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* เงาให้ดูมีมิติ */
+        }
+        .date-group {
+            margin-bottom: 20px; /* ระยะห่างระหว่างกลุ่มวัน */
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 15px;
+            background-color: #fcfcfc;
+        }
+        .date-header {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            color: #363636;
+        }
+        .time-option {
+            margin-bottom: 5px; /* ระยะห่างระหว่างตัวเลือกช่วงเวลา */
+            padding: 8px; /* ระยะห่างภายในตัวเลือกช่วงเวลา */
+            border: 1px solid #dbdbdb; /* เส้นขอบ */
+            border-radius: 4px; /* มุมโค้งมน */
+            background-color: #fafffe; /* สีพื้นหลังตัวเลือกช่วงเวลา */
+            display: flex; /* ใช้ Flexbox เพื่อจัดองค์ประกอบ */
+            align-items: center; /* จัดให้อยู่ตรงกลางแนวตั้ง */
+            justify-content: space-between; /* จัดให้ข้อความและ checkbox อยู่คนละฝั่ง */
+            cursor: pointer; /* เปลี่ยน cursor เมื่อชี้ */
+            transition: background-color 0.2s ease, border-color 0.2s ease; /* เพิ่ม Transition เพื่อความสวยงาม */
+        }
+        .time-option:hover {
+            background-color: #f5f5f5; /* สีพื้นหลังเมื่อ hover */
+        }
+        .time-option.selected {
+            background-color: #e0f2f7; /* สีพื้นหลังเมื่อถูกเลือก */
+            border-color: #2196f3; /* สีขอบเมื่อถูกเลือก */
+        }
+        .vote-button {
+            margin-top: 20px; /* ระยะห่างจากด้านบนของปุ่มโหวต */
+        }
+        .has-text-info-dark {
+            color: #007bff; /* กำหนดสี custom สำหรับหัวข้อ */
+        }
+        .input[type="date"] {
+            border-radius: 4px; /* มุมโค้งมนสำหรับ input date */
+        }
+        .button {
+            border-radius: 4px; /* มุมโค้งมนสำหรับปุ่ม */
+        }
+        /* Style for the notification message box */
+        .notification-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: opacity 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <section class="section">
+        <div class="container">
+            <h1 class="title has-text-centered has-text-info-dark">ระบบสำรวจวันประชุมคณะกรรมการ</h1>
+            <p class="has-text-centered mb-5">กรุณากำหนดช่วงวันประชุมที่ต้องการสำรวจ</p>
+
+            <!-- ช่องสำหรับเลือกวันที่เริ่มต้น -->
+            <div class="field is-horizontal">
+                <div class="field-label is-normal">
+                    <label class="label">วันที่เริ่มต้น:</label>
+                </div>
+                <div class="field-body">
+                    <div class="field">
+                        <p class="control">
+                            <input class="input" type="date" id="startDate">
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ช่องสำหรับเลือกวันที่สิ้นสุด -->
+            <div class="field is-horizontal">
+                <div class="field-label is-normal">
+                    <label class="label">วันที่สิ้นสุด:</label>
+                </div>
+                <div class="field-body">
+                    <div class="field">
+                        <p class="control">
+                            <input class="input" type="date" id="endDate">
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ปุ่มสำหรับสร้างรายการวัน -->
+            <div class="field is-grouped is-grouped-centered">
+                <p class="control">
+                    <button class="button is-info is-rounded" onclick="generateDates()">สร้างรายการวัน</button>
+                </p>
+            </div>
+
+            <hr>
+
+            <!-- พื้นที่สำหรับแสดงรายการวันที่ผู้ใช้สามารถเลือกโหวตได้ -->
+            <div id="dateList" class="mb-4">
+                <!-- วันที่ที่สร้างขึ้นจะถูกแทรกที่นี่ -->
+                <p class="has-text-centered has-text-grey" id="noDatesMessage">กรุณากด 'สร้างรายการวัน' เพื่อแสดงตัวเลือกวันประชุม</p>
+            </div>
+
+            <!-- ปุ่มสำหรับโหวตวันประชุมที่เลือก -->
+            <div class="field is-grouped is-grouped-centered vote-button">
+                <p class="control">
+                    <button class="button is-success is-large is-rounded" onclick="submitVote()" id="voteButton" disabled>โหวตวันประชุมที่เลือก</button>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // เมื่อ DOM โหลดเสร็จสิ้น
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1); // กำหนดวันพรุ่งนี้เป็นค่าเริ่มต้น
+
+            // ฟังก์ชันช่วยจัดรูปแบบวันที่ให้อยู่ในรูปแบบYYYY-MM-DD
+            const formatDate = (date) => {
+                return date.toISOString().split('T')[0];
+            };
+
+            // กำหนดค่าเริ่มต้นของวันที่เริ่มต้นและสิ้นสุด
+            document.getElementById('startDate').value = formatDate(today);
+            document.getElementById('endDate').value = formatDate(tomorrow);
+        });
+
+        // ตัวแปรสำหรับเก็บวันที่และช่วงเวลาที่ผู้ใช้เลือก
+        let selectedDateTimeSlots = [];
+
+        // ฟังก์ชันสำหรับสร้างรายการวันที่จากช่วงที่กำหนด
+        function generateDates() {
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+            const dateListDiv = document.getElementById('dateList');
+            const noDatesMessage = document.getElementById('noDatesMessage');
+            const voteButton = document.getElementById('voteButton');
+
+            // ล้างรายการวันเดิมและวันที่เลือกไว้
+            dateListDiv.innerHTML = '';
+            selectedDateTimeSlots = [];
+
+            // ซ่อนข้อความเริ่มต้น
+            if (noDatesMessage) {
+                noDatesMessage.style.display = 'none';
+            }
+
+            // ตรวจสอบว่าได้ระบุวันที่ครบถ้วนหรือไม่
+            if (!startDateInput.value || !endDateInput.value) {
+                // แทน alert ด้วยการแสดงข้อความบน UI
+                dateListDiv.innerHTML = `<p class="has-text-danger has-text-centered">กรุณาระบุวันที่เริ่มต้นและวันที่สิ้นสุดให้ครบถ้วน</p>`;
+                voteButton.disabled = true;
+                return;
+            }
+
+            const start = new Date(startDateInput.value);
+            const end = new Date(endDateInput.value);
+
+            // ตรวจสอบว่าวันที่เริ่มต้นไม่มากกว่าวันที่สิ้นสุด
+            if (start > end) {
+                // แทน alert ด้วยการแสดงข้อความบน UI
+                dateListDiv.innerHTML = `<p class="has-text-danger has-text-centered">วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด</p>`;
+                voteButton.disabled = true;
+                return;
+            }
+
+            let currentDate = new Date(start);
+            let hasDates = false;
+
+            // วนลูปเพื่อสร้างรายการวันและช่วงเวลา
+            while (currentDate <= end) {
+                hasDates = true;
+                // จัดรูปแบบวันที่ให้เป็นภาษาไทย
+                const dateString = currentDate.toLocaleDateString('th-TH', {
+                    weekday: 'long', // วันในสัปดาห์ (เช่น วันจันทร์)
+                    year: 'numeric', // ปี (เช่น 2568)
+                    month: 'long', // เดือน (เช่น มกราคม)
+                    day: 'numeric' // วันที่ (เช่น 1)
+                });
+
+                // ค่าวันที่ในรูปแบบYYYY-MM-DD เพื่อใช้ในการเก็บข้อมูล
+                const dateValue = currentDate.toISOString().split('T')[0];
+
+                // สร้างกลุ่มสำหรับแต่ละวัน
+                const dateGroup = document.createElement('div');
+                dateGroup.className = 'date-group';
+                dateGroup.innerHTML = `<div class="date-header">${dateString}</div>`;
+
+                // สร้างตัวเลือกช่วงเช้า (9.00-12.00 น.)
+                const morningDateTimeSlot = `${dateValue}-morning`;
+                const morningOption = document.createElement('div');
+                morningOption.className = 'time-option selected'; // เพิ่ม class 'selected' โดย default
+                morningOption.setAttribute('data-date-time', morningDateTimeSlot);
+                morningOption.innerHTML = `
+                    <span>ช่วงเช้า (9.00-12.00 น.)</span>
+                    <label class="checkbox">
+                        <input type="checkbox" onchange="toggleDateTimeSelection(this)" checked> <!-- เพิ่ม checked attribute -->
+                    </label>
+                `;
+                morningOption.addEventListener('click', function(event) {
+                    if (event.target.type !== 'checkbox') {
+                        const checkbox = this.querySelector('input[type="checkbox"]');
+                        checkbox.checked = !checkbox.checked;
+                        toggleDateTimeSelection(checkbox);
+                    }
+                });
+                dateGroup.appendChild(morningOption);
+                selectedDateTimeSlots.push(morningDateTimeSlot); // เพิ่มเข้า array ที่เลือกไว้
+
+                // สร้างตัวเลือกช่วงบ่าย (13.00-16.00 น.)
+                const afternoonDateTimeSlot = `${dateValue}-afternoon`;
+                const afternoonOption = document.createElement('div');
+                afternoonOption.className = 'time-option selected'; // เพิ่ม class 'selected' โดย default
+                afternoonOption.setAttribute('data-date-time', afternoonDateTimeSlot);
+                afternoonOption.innerHTML = `
+                    <span>ช่วงบ่าย (13.00-16.00 น.)</span>
+                    <label class="checkbox">
+                        <input type="checkbox" onchange="toggleDateTimeSelection(this)" checked> <!-- เพิ่ม checked attribute -->
+                    </label>
+                `;
+                afternoonOption.addEventListener('click', function(event) {
+                    if (event.target.type !== 'checkbox') {
+                        const checkbox = this.querySelector('input[type="checkbox"]');
+                        checkbox.checked = !checkbox.checked;
+                        toggleDateTimeSelection(checkbox);
+                    }
+                });
+                dateGroup.appendChild(afternoonOption);
+                selectedDateTimeSlots.push(afternoonDateTimeSlot); // เพิ่มเข้า array ที่เลือกไว้
+
+                dateListDiv.appendChild(dateGroup); // เพิ่มกลุ่มวันเข้าไปใน div รายการ
+                currentDate.setDate(currentDate.getDate() + 1); // เลื่อนไปวันถัดไป
+            }
+
+            // จัดการสถานะของปุ่มโหวตและข้อความเริ่มต้น
+            if (!hasDates) {
+                if (noDatesMessage) {
+                    noDatesMessage.style.display = 'block'; // แสดงข้อความเริ่มต้นถ้าไม่มีวัน
+                }
+                voteButton.disabled = true;
+            } else {
+                voteButton.disabled = false; // เปิดใช้งานปุ่มถ้ามีวัน
+            }
+            console.log('วันที่และช่วงเวลาที่เลือก (Default):', selectedDateTimeSlots); // แสดงวันที่และช่วงเวลาที่เลือกใน console
+        }
+
+        // ฟังก์ชันสำหรับเลือก/ยกเลิกการเลือกวันและช่วงเวลา
+        function toggleDateTimeSelection(checkbox) {
+            const timeOption = checkbox.closest('.time-option');
+            const dateTimeValue = timeOption.getAttribute('data-date-time');
+
+            if (checkbox.checked) {
+                // ถ้า checkbox ถูกเลือก และ dateTimeValue ยังไม่ได้อยู่ใน array
+                if (!selectedDateTimeSlots.includes(dateTimeValue)) {
+                    selectedDateTimeSlots.push(dateTimeValue); // เพิ่ม dateTimeValue เข้า array
+                    timeOption.classList.add('selected'); // เพิ่มคลาส selected เพื่อเปลี่ยนสไตล์
+                }
+            } else {
+                // ถ้า checkbox ถูกยกเลิกการเลือก และ dateTimeValue อยู่ใน array
+                const index = selectedDateTimeSlots.indexOf(dateTimeValue);
+                if (index > -1) {
+                    selectedDateTimeSlots.splice(index, 1); // ลบ dateTimeValue ออกจาก array
+                    timeOption.classList.remove('selected'); // ลบคลาส selected
+                }
+            }
+            console.log('วันที่และช่วงเวลาที่เลือก:', selectedDateTimeSlots); // แสดงวันที่และช่วงเวลาที่เลือกใน console
+            // เปิด/ปิดปุ่มโหวตตามจำนวนวันที่และช่วงเวลาที่เลือก
+            document.getElementById('voteButton').disabled = selectedDateTimeSlots.length === 0;
+        }
+
+        // ฟังก์ชันสำหรับส่งการโหวต
+        function submitVote() {
+            // สร้างกล่องข้อความแจ้งเตือน (notification box) แทน alert
+            const notificationBox = document.createElement('div');
+            notificationBox.classList.add('notification', 'notification-box'); // เพิ่มคลาส notification-box
+
+            if (selectedDateTimeSlots.length === 0) {
+                notificationBox.classList.add('is-danger');
+                notificationBox.innerHTML = `
+                    <button class="delete" onclick="this.parentNode.remove()"></button>
+                    กรุณาเลือกวันและช่วงเวลาประชุมอย่างน้อยหนึ่งรายการก่อนโหวต
+                `;
+            } else {
+                const selectedDatesFormatted = selectedDateTimeSlots.map(dateTimeSlot => {
+                    const [datePart, timePart] = dateTimeSlot.split('-');
+                    const d = new Date(datePart);
+                    const dateString = d.toLocaleDateString('th-TH', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    const timeString = timePart === 'morning' ? 'ช่วงเช้า (9.00-12.00 น.)' : 'ช่วงบ่าย (13.00-16.00 น.)';
+                    return `${dateString} ${timeString}`;
+                }).join(', ');
+                notificationBox.classList.add('is-info');
+                notificationBox.innerHTML = `
+                    <button class="delete" onclick="this.parentNode.remove()"></button>
+                    คุณได้โหวตวันและช่วงเวลาประชุมที่เลือก: <strong>${selectedDatesFormatted}</strong>
+                `;
+            }
+            document.body.appendChild(notificationBox);
+
+            // ซ่อนกล่องข้อความหลังจาก 5 วินาที
+            setTimeout(() => {
+                if (notificationBox && notificationBox.parentNode) {
+                    notificationBox.style.opacity = '0'; // เพิ่ม fade out effect
+                    setTimeout(() => notificationBox.parentNode.removeChild(notificationBox), 300); // ลบหลังจาก fade out
+                }
+            }, 5000); // เปลี่ยนเป็น 5 วินาทีเพื่อให้ผู้ใช้มีเวลาอ่านมากขึ้น
+
+            // ในส่วนนี้ คุณสามารถเพิ่มโค้ดสำหรับการส่งข้อมูลไปยัง backend ได้จริง
+            // เช่น fetch('/api/vote', { method: 'POST', body: JSON.stringify({ dates: selectedDateTimeSlots }) });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+{% extends "academic_services/service_base.html" %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block page_content %}
+    {% include "academic_services/customer_nav.html" %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">
+                        ฟอร์ม{{ service_request.sub_lab.sub_lab }}
+                    </h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-10 is-offset-1">
+                    <div class="box">
+                        <form method="post">
+                            <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                            <div class="field">
+                                <label class="label">ใบรายงานผล</label>
+                            </div>
+                            <div class="field">
+                                <div class="control">
+                                    <label class="label">1. ภาษาไทย</label>
+                                </div>
+                            </div>
+                            <div class="field ml-4" id="thai-options">
+                                <div class="control">
+                                {% for r in report_languages|sort(attribute='no') %}
+                                    {% if r.language == 'ไทย' %}
+                                        <label class="checkbox mb-2">
+                                            <input type="checkbox" name="check_report_language" value="{{ r.id }}"
+                                                   {% if r.id in req_report_language_id or (sub_lab != 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส' and r.type == 'ใบรายงานผล') %}checked{% endif %}
+                                            >
+                                            {{ r.type }}
+                                            {% if r.price > 0 %}
+                                                ราคา {{ "{:,.2f}".format(r.price) }} บาท
+                                            {% endif %}
+                                        </label>
+                                        <br/>
+                                    {% endif %}
+                                {% endfor %}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="control">
+                                     <label class="label">2. ภาษาอังกฤษ</label>
+                                </div>
+                            </div>
+                            <div class="field ml-4" id="eng-options">
+                                <div class="control">
+                                    {% for r in report_languages|sort(attribute='no') %}
+                                        {% if r.language == 'อังกฤษ' %}
+                                            <label class="checkbox mb-2">
+                                                <input type="checkbox" name="check_report_language" value="{{ r.id }}"
+                                                       {% if r.id in req_report_language_id or
+                                                        (sub_lab == 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส' and r.type == 'ใบรายงานผล') %}
+                                                            checked
+                                                       {% endif %}
+                                                >
+                                                {{ r.type }}
+                                                {% if r.price > 0 %}
+                                                    ราคา {{ "{:,.2f}".format(r.price) }} บาท
+                                                {% endif %}
+                                            </label>
+                                            <br/>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="buttons is-centered">
+                                    <button class="button is-success" type="submit" value="submit">บันทึกและดำเนินการต่อ</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}

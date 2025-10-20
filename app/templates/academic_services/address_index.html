@@ -1,17 +1,20 @@
-{% extends "base.html" %}
+{% extends "academic_services/service_base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
 {% block page_content %}
 {% include"academic_services/customer_nav.html" %}
     <section class="section">
         <div class="columns">
-            {% include 'academic_services/menu.html' %}
-            <div class="column is-9">
-                <div class="column is-9">
+            <div class="column is-half is-offset-3">
+                <div class="column">
                     {% include "messages.html" %}
                     <h1 class="title has-text-centered">ข้อมูลที่อยู่</h1>
                 </div>
                 <div id="address-form"></div>
-                <div class="column is-9 box">
+                <div class="column box">
                     <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
                         <b class="is-size-4">ที่อยู่ออกใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี</b>
                     </div>
@@ -27,6 +30,11 @@
                                                         <strong>{{ address.name }}</strong>
                                                             <br>
                                                             ที่อยู่ : {{ address.address }}
+                                                                {{ 'แขวง' if 'กรุงเทพมหานคร' in address.province.name else 'ตำบล' }}{{ address.subdistrict }}
+                                                                {{ 'เขต' if 'กรุงเทพมหานคร' in address.province.name else 'อำเภอ' }}{{ address.district }}
+                                                                จังหวัด{{ address.province }}{{ address.zipcode }}
+                                                            <br>
+                                                            เลขประจำตัวผู้เสียภาษีอากร : {{ address.taxpayer_identification_no }}
                                                             <br>
                                                             เบอร์โทรศัพท์ : {{ address.phone_number }}
                                                             <br>
@@ -58,7 +66,7 @@
                         </div>
                         <div id="address-form"></div>
                         <a class='button is-link is-rounded'
-                           style="margin-bottom: 1.5em"
+                           style="margin-bottom: 1.5em; margin-top: .5em"
                            hx-swap="innerHTML"
                            hx-target="#address-form"
                            hx-get="{{ url_for('academic_services.create_address', type='quotation', menu=menu) }}"
@@ -72,13 +80,13 @@
                         </a>
                     </div>
                 </div>
-                <div class="column is-9 box">
+                <div class="column box">
                     <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
                         <b class="is-size-4">ที่อยู่จัดส่งเอกสาร</b>
                     </div>
                     <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
                         <div class="container" style="margin-left: 1em">
-                            {% if addresses and not addresses|selectattr('address_type', 'equalto', 'customer')|list %}
+                            {% if addresses and not addresses|selectattr('address_type', 'equalto', 'document')|list %}
                                 <div class="field has-addons">
                                     <div class="control">
                                         <a class='button is-light is-success is-rounded'
@@ -99,7 +107,7 @@
                                            style="margin-bottom: 1.5em; width: 14em"
                                            hx-swap="innerHTML"
                                            hx-target="#address-form"
-                                           hx-get="{{ url_for('academic_services.create_address', type='customer', menu=menu) }}"
+                                           hx-get="{{ url_for('academic_services.create_address', type='document', menu=menu) }}"
                                         >
                                             <span class="icon">
                                                 <i class="fas fa-plus"></i>
@@ -113,7 +121,7 @@
                             {% endif %}
                             <div class="field">
                                 {% for address in addresses %}
-                                    {% if address.address_type == 'customer' %}
+                                    {% if address.address_type == 'document' %}
                                         <article class="media">
                                             <div class="media-content">
                                                 <div class="content">
@@ -121,6 +129,9 @@
                                                         <strong>{{ address.name }}</strong>
                                                         <br>
                                                         ที่อยู่ : {{ address.address }}
+                                                                {{ 'แขวง' if 'กรุงเทพมหานคร' in address.province.name else 'ตำบล' }}{{ address.subdistrict }}
+                                                                {{ 'เขต' if 'กรุงเทพมหานคร' in address.province.name else 'อำเภอ' }}{{ address.district }}
+                                                                จังหวัด{{ address.province }} {{ address.zipcode }}
                                                         <br>
                                                         เบอร์โทรศัพท์ : {{ address.phone_number }}
                                                         <br>
@@ -152,10 +163,16 @@
                         </div>
                     </div>
                 </div>
+                <div class="field is-grouped is-grouped-centered">
+                    <a class="button" href="{{ url_for('academic_services.lab_index', menu='new') }}">
+                        ย้อนกลับ
+                    </a>
+                </div>
             </div>
         </div>
     </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 {% endblock %}

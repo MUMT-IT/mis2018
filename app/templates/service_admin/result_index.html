@@ -2,35 +2,30 @@
 {% block title %}MUMT-MIS: Complaint Tracker Admin{% endblock %}
 
 {% block page_content %}
-{% include "service_admin/admin_nav.html" %}
+    {% include "service_admin/admin_nav.html" %}
     <section class="section">
-        <div class="container">
-            {% include 'messages.html' %}
-            <div class="columns">
-                <div class="column">
+        {% include 'messages.html' %}
+        <div class="columns is-centered">
+            {% include 'service_admin/menu.html' %}
+            <div class="column is-9">
+                <div class="column is-11">
                     <h1 class="title has-text-centered">รายงานผลการทดสอบ</h1>
-                    <div class="buttons is-centered">
-                        <a id="add_evt_btn" class="button is-info" href="{{ url_for('service_admin.create_result') }}">
-                            <span class="icon"><i class="far fa-plus"></i></span>
-                            <span>เพิ่มรายการ</span>
-                        </a>
-                    </div>
-                    <table id='results' class="table is-fullwidth">
-                        <thead>
-                            <th>เลขใบคำร้องขอ</th>
-                            <th>Lab no</th>
-                            <th>เลขพัสดุ</th>
-                            <th>วัน-เวลาทีออกผล</th>
-                            <th>รายการ</th>
-                            <th>สถานะ</th>
-                            <th>ผลการทดสอบ</th>
-                            <th>ผู้ออก</th>
-                            <th></th>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>
                 </div>
+                <table id='results' class="table is-fullwidth">
+                    <thead>
+                    <th>เลขใบคำร้องขอ</th>
+                    <th>หมายเลขติดตามพัสดุ</th>
+                    <th>วัน-เวลาที่ออกผล</th>
+                    <th>รายการ</th>
+                    <th>สถานะ</th>
+                    <th>ผลการทดสอบ</th>
+                    <th>รายละเอียดการแก้ไข</th>
+                    <th>ผู้ออก</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
             </div>
         </div>
     </section>
@@ -42,78 +37,138 @@
             $.fn.dataTable.moment('lll');
             $('#results').DataTable({
                 ajax: {
-                    url: {{ url_for('service_admin.get_results')|tojson|safe}},
+                    url: {{ url_for('service_admin.get_results')|tojson|safe }},
                 },
-                order: [[0, 'desc']],
+                order: [[2, 'desc']],
+                scrollX: true,
                 columns: [
-                    { data: 'request_no' },
-                    { data: 'lab_no' },
-                    { data: 'tracking_number' },
+                    {data: 'request_no'},
+                    {
+                        data: 'tracking_number',
+                        render: function (data, type, row) {
+                            var tracking_number_url = '/service_admin/result/tracking_number/add/' + row.id + '?menu=' + '{{ menu }}';
+                            if (data !== null) {
+                                var edit_tracking_number = '<div class="field has-addons">' +
+                                        '<div class="control">' +
+                                        '<a class="button is-small is-warning is-rounded" ' + 'href=' + tracking_number_url + '>' +
+                                        '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                        '<span>แก้ไขหมายเลขติดตามพัสดุ</span>' +
+                                        '</a>' +
+                                        '</div>' +
+                                        '</div>'
+                                return `${data} ${edit_tracking_number}`;
+                            } else {
+                                return '<div class="field has-addons">' +
+                                        '<div class="control">' +
+                                        '<a class="button is-small is-link is-rounded" ' + 'href=' + tracking_number_url + '>' +
+                                        '<span class="icon"><i class="fas fa-plus"></i></span>' +
+                                        '<span>เพิ่มหมายเลขติดตามพัสดุ</span>' +
+                                        '</a>' +
+                                        '</div>' +
+                                        '</div>'
+                            }
+                        }
+                    },
                     {
                         data: 'released_at',
-                        render: function(data) {
+                        render: function (data) {
                             if (data !== '') {
                                 let d = moment(data)
                                 return d.format('lll')
                             } else {
-                                return '-'
+                                return ''
                             }
                         }
                     },
-                    { data: 'product' },
+                    {data: 'product'},
                     {
-                        data: 'status',
+                        data: 'admin_status',
                         render: function (data) {
                             if (data !== null) {
-                                return data
-                            }
-                            else {
-                                return 'ยังไม่ออกใบเสนอราคา'
-                            }
-                        }
-                    },
-                    {
-                        data: 'file',
-                        render: function (data) {
-                            if (data) {
-                                return '<div class="field has-addons">'+
-                                            '<div class="control">'+
-                                                '<a class="button is-small is-link is-outlined is-rounded"  href="' + data + '">' +
-                                                    'คลิกเพื่อดู' +
-                                                '</a>' +
-                                            '</div>'+
-                                        '</div>'
+                                return `<span class="tag ${data.color}">${data.status}</span>`;
                             } else {
-                                return '';
+                                return `<span class="tag is-info">ยังไม่ออกผลการทดสอบ</span>`;
                             }
                         }
                     },
-                    { data: 'creator' },
+                    {data: 'files'},
+                    {
+                        data: 'note',
+                        render: function (data, type, row) {
+                            if (data !== null) {
+                                var tag = '';
+                                if (row.status_note) {
+                                    tag = `<span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>`;
+                                }
+                                return `${data} ${tag}`;
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {data: 'creator'},
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (data && row.status == 'ขอแก้ไขรายงานผล') {
-                                var url = '/service_admin/result/edit/' + data;
+                            if (row.status_id == 13 || row.status_id >= 16) {
+                                var final_result_url = '/service_admin/result/final/edit/' + data + '?request_id=' + row.request_id + '&menu=report';
                                 return '<div class="field has-addons">' +
-                                            '<div class="control">' +
-                                                '<a class="button is-small is-warning is-rounded" ' + 'href=' + url + '>' +
-                                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                                    '<span>Edit</span>' +
-                                                '</a>' +
-                                            '</div>' +
-                                        '</div>'
-                            } else if (row.status == 'รับทราบผลการทดสอบ') {
-                                var url = '/service_admin/result/tracking_number/add/' + data;
-                                return '<div class="field has-addons">' +
-                                            '<div class="control">' +
-                                                '<a class="button is-small is-primary is-rounded" ' + 'href=' + url + '>' +
-                                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                                    '<span>Add Tracking Number</span>' +
-                                                '</a>' +
-                                            '</div>' +
-                                        '</div>'
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + final_result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-alt"></i>' +
+                                    '</span>' +
+                                    '<span>อัปโหลดใบรายงานผล (ฉบับจริง)</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if ((10 <= row.status_id <= 12) || (14 <= row.status_id <= 15)) {
+                                if (row.status_id == 10) {
+                                    var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report';
+                                    var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=report';
+                                } else {
+                                    var draft_result_url = '/service_admin/result/draft/edit/' + data + '?request_id=' + row.request_id + '&menu=report';
+                                    var final_result_url = '/service_admin/result/final/edit/' + data + '?request_id=' + row.request_id + '&menu=report';
+                                }
+                                 return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + draft_result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-alt"></i>' +
+                                    '</span>' +
+                                    '<span>อัปโหลดใบรายงานผล (ฉบับร่าง)</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + final_result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-alt"></i>' +
+                                    '</span>' +
+                                    '<span>อัปโหลดใบรายงานผล (ฉบับจริง)</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
                             } else {
-                                return ''
+                                var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report';
+                                var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=report';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + draft_result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-alt"></i>' +
+                                    '</span>' +
+                                    '<span>อัปโหลดใบรายงานผล (ฉบับร่าง)</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + final_result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-alt"></i>' +
+                                    '</span>' +
+                                    '<span>อัปโหลดใบรายงานผล (ฉบับจริง)</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
                             }
                         }
                     }

@@ -1,60 +1,69 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet"/>
+    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <style>
+        .toast {
+            opacity: 1 !important;
+            transition: none !important;
+        }
+    </style>
+{% endblock %}
 {% block page_content %}
-{% include"service_admin/admin_nav.html" %}
-<section class="section">
-    <div class="container" id="app">
-        {% include 'messages.html' %}
-        <div class="columns">
-            <div class="column">
-                <h1 class="title has-text-centered">รายการนัดหมายส่งและทดสอบตัวอย่าง</h1>
-                <div class="tabs is-boxed is-centered">
-                    <ul>
-                        <li {% if tab == 'appointment' %}class="is-active"{% endif %}>
-                            <a href="{{ url_for('service_admin.sample_index', tab='appointment', menu='sample') }}">
-                                <span class="icon is-small"><i class="fas fa-user"></i></span>
-                                <span>นัดหมาย</span>
-                            </a>
-                        </li>
-                        <li {% if tab == 'test' %}class="is-active"{% endif %}>
-                            <a href="{{ url_for('service_admin.sample_index', tab='test', menu='sample') }}">
-                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
-                                <span>ทดสอบ</span>
-                            </a>
-                        </li>
-                    </ul>
+    {% include"service_admin/admin_nav.html" %}
+    <section class="section">
+        <div class="columns is-centered">
+            {% include 'service_admin/menu.html' %}
+            <div class="column is-9">
+                <div class="column is-11">
+                    <h1 class="title has-text-centered">นัดหมายส่งตัวอย่าง</h1>
                 </div>
-                <table id='samples' class="table is-fullwidth">
-                    <thead>
+                <div class="table-container">
+                    <table id='samples' class="table is-fullwidth">
+                        <thead>
                         <th>เลขใบคำร้องขอ</th>
-                        {% if tab == 'appointment' %}
-                            <th>เลขพัสดุ</th>
-                            <th>วัน-เวลาที่นัดหมาย</th>
-                            <th>วัน-เวลาที่รับ</th>
-                            <th>รายการ</th>
-                            <th>สถานะ</th>
-                            <th>สถานที่</th>
-                            <th>การส่งตัวอย่าง</th>
-                            <th>ผู้รับ</th>
-                        {% else %}
-                            <th>วัน-เวลาทีเริ่ม</th>
-                            <th>วัน-เวลาที่เสร็จสิ้น</th>
-                            <th>รายการ</th>
-                            <th>สถานะ</th>
-                            <th>ผู้ยืนยัน</th>
-                        {% endif %}
+                        <th>หมายเลขติดตามพัสดุ</th>
+                        <th>วัน-เวลาที่นัดหมาย</th>
+                        <th>วัน-เวลาที่รับ</th>
+                        <th>รายการ</th>
+                        <th>สถานะ</th>
+                        <th>สถานที่</th>
+                        <th>การส่งตัวอย่าง</th>
+                        <th>สภาพตัวอย่าง</th>
+                        <th>เอกสาร</th>
+                        <th>หมายเหตุ</th>
+                        <th>ผู้รับ</th>
                         <th></th>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+    <script>
+        function showToast(message) {
+            toastr.success(message);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        showToast({{ message|tojson }}, 7000);
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
     <script>
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
@@ -62,178 +71,171 @@
                 ajax: {
                     url: {{ url_for('service_admin.get_samples')|tojson|safe}},
                 },
-                order: [[0, 'desc']],
+                order: [[2, 'desc']],
                 columns: [
-                    { data: 'request_no' },
-                    {% if tab == 'appointment' %}
-                        { data: 'tracking_number' },
-                        {
-                            data: 'appointment_date',
-                            render: function(data) {
-                                if (data !== null) {
-                                    let d = moment(data)
-                                    return d.format('lll')
-                                } else {
-                                    return ''
-                                }
-                            }
-                        },
-                        {
-                            data: 'received_at',
-                            render: function(data) {
-                                if (data !== null) {
-                                    let d = moment(data)
-                                    return d.format('lll')
-                                } else {
-                                    return ''
-                                }
-                            }
-                        },
-                        { data: 'product' },
-                        {
-                            data: 'id',
-                            render: function (data, type, row) {
-                                if (row.received_at) {
-                                    return 'ได้รับตัวอย่าง'
-                                } else if (row.appointment_date || row.tracking_number) {
-                                    return  'รอรับตัวอย่าง'
-                                } else {
-                                    return 'ยังไม่ดำเนินการส่งตัวอย่าง'
-                                }
-                            }
-                        },
-                        { data: 'location' },
-                        { data: 'ship_type' },
-                        { data: 'received_by' },
-                        {
-                            data: 'id',
-                            render: function (data, type, row) {
-                                if ((row.appointment_date || row.tracking_number) && row.received_at == null) {
-                                    var url = '/service_admin/sample/appointment/add/' + data + '?tab=' + '{{ tab }}';
-                                    return '<div class="field has-addons">' +
-                                                '<div class="control">' +
-                                                    '<a class="button is-small is-link is-rounded" ' + 'href=' + url + '>' +
-                                                        '<span class="icon">' +
-                                                            '<i class="fas fa-check"></i>' +
-                                                        '</span>' +
-                                                        '<span>ยืนยันการรับตัวอย่าง</span>' +
-                                                    '</a>' +
-                                                '</div>' +
-                                            '</div>'
-                                } else {
-                                    return ''
-                                }
-                            }
-                        },
-                    {% else %}
-                        {
-                            data: 'started_at',
-                            render: function(data) {
-                                if (data !== null) {
-                                    let d = moment(data)
-                                    return d.format('lll')
-                                } else {
-                                    return ''
-                                }
-                            }
-                        },
-                        {
-                            data: 'finished_at',
-                            render: function(data) {
-                                if (data !== null) {
-                                    let d = moment(data)
-                                    return d.format('lll')
-                                } else {
-                                    return ''
-                                }
-                            }
-                        },
-                        { data: 'product' },
-                        {
-                            data: 'status',
-                            render: function (data, type, row) {
-                                if (row.finished_at) {
-                                    return 'ดำเนินการทดสอบสำเร็จ'
-                                } else if (row.started_at) {
-                                    return  'กำลังดำเนินการทดสอบ'
-                                } else {
-                                    return 'ยังไม่ดำเนินการทดสอบ'
-                                }
-                            }
-                        },
-                        { data: 'finished_by' },
-                        {
-                            data: 'id',
-                            render: function (data, type, row) {
-                                if (row.status == 'ได้รับตัวอย่าง') {
-                                    return '<div class="field has-addons">' +
-                                                '<div class="control">' +
-                                                    '<a class="button is-small is-warning is-rounded" onclick="vm.warn(' + data + ')">' +
-                                                        '<span class="icon">' +
-                                                            '<i class="fas fa-edit"></i>' +
-                                                        '</span>' +
-                                                        '<span>เริ่มทดสอบ</span>' +
-                                                    '</a>' +
-                                                '</div>' +
-                                            '</div>'
-                                } else if (row.status=='กำลังดำเนินการทดสอบ') {
-                                    return '<div class="field has-addons">' +
-                                                '<div class="control">' +
-                                                    '<a class="button is-small is-success is-rounded" onclick="vm.confirm(' + data + ')">' +
-                                                        '<span class="icon">' +
-                                                            '<i class="fas fa-check"></i>' +
-                                                        '</span>' +
-                                                        '<span>ยืนยันการทดสอบ</span>' +
-                                                    '</a>' +
-                                                '</div>' +
-                                            '</div>'
-                                }  else if (row.status=='ดำเนินการทดสอบเสร็จสิ้น') {
-                                    var url = '/service_admin/invoice/add/' + row.quotation_id;
-                                    return '<div class="field has-addons">' +
-                                                '<div class="control">' +
-                                                    '<a class="button is-small is-info is-outlined is-rounded" ' + 'href=' + url + '>' +
-                                                        '<span class="icon">' +
-                                                            '<i class="fas fa-file-download"></i>' +
-                                                        '</span>' +
-                                                        '<span>ออกใบแจ้งหนี้</span>' +
-                                                    '</a>' +
-                                                '</div>' +
-                                            '</div>'
-                                }   else {
-                                    return ''
-                                }
+                    {data: 'request_no'},
+                    {
+                        data: 'tracking_number',
+                        render: function (data) {
+                            if (data !== null) {
+                                return data
+                            } else {
+                                return ''
                             }
                         }
-                    {% endif %}
+                    },
+                    {
+                        data: 'appointment_date',
+                        render: function (data) {
+                            if (data !== null) {
+                                let d = moment(data)
+                                return d.format('ll')
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'received_at',
+                        render: function (data) {
+                            if (data !== null) {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {data: 'product'},
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            const hasAppointmentOrTracking = row.appointment_date || row.tracking_number;
+                            const isReceived = row.received_at;
+                            return `<ul class="steps">
+                                        <li class="steps-segment ${!hasAppointmentOrTracking && !isReceived ? 'is-active' : ''}">
+                                            <span class="steps-marker">
+                                                <span class="icon">
+                                                    <i class="fas fa-calendar"></i>
+                                                </span>
+                                            </span>
+                                            <div class="steps-content">
+                                                <p>รอการนัดหมายส่งตัวอย่าง</p>
+                                            </div>
+                                        </li>
+                                        <li class="steps-segment ${hasAppointmentOrTracking && !isReceived ? 'is-active' : ''}">
+                                            <span class="steps-marker">
+                                                <span class="icon">
+                                                    <i class="fas fa-shipping-fast"></i>
+                                                </span>
+                                            </span>
+                                            <div class="steps-content">
+                                                <p>รอรับตัวอย่าง</p>
+                                            </div>
+                                        </li>
+                                        <li class="steps-segment ${isReceived ? 'is-active' : ''}">
+                                            <span class="steps-marker">
+                                                <span class="icon">
+                                                    <i class="fa fa-check"></i>
+                                                </span>
+                                            </span>
+                                            <div class="steps-content">
+                                                <p>ได้รับตัวอย่างแล้ว</p>
+                                            </div>
+                                        </li>
+                                    </ul>`
+                        }
+                    },
+                    {data: 'location'},
+                    {data: 'ship_type'},
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            var color = row.sample_condition_status_color
+                            var status = row.sample_condition_status
+                            if (row.sample_condition_status !== null) {
+                                return `<span class="tag ${color}">${status}</span>`;
+                            }
+                            else {
+                                return `<span class="tag is-danger">ยังไม่ได้รับตัวอย่าง</span>`;
+                            }
+                        }
+                    },
+                    {
+                        data: 'file',
+                        render: function (data) {
+                            if (data !== null) {
+                                return `<span class="tag ${data.color}">${data.status}</span>`;
+                            }
+                            else {
+                                return `<span class="tag is-danger">ยังไม่ได้ส่งเอกสาร</span>`;
+                            }
+                        }
+                    },
+                    {data: 'note'},
+                    {data: 'received_by'},
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if ((row.appointment_date || row.tracking_number) && row.received_at == null) {
+                                var add_url = '/service_admin/sample/verification/add/' + data + '?menu=' + '{{ menu }}';
+                                var view_url = '/service_admin/sample/appointment/view/' + data + '?menu=' + '{{ menu }}'
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-warning is-rounded" ' + 'href=' + add_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-clipboard-check"></i>' +
+                                    '</span>' +
+                                    '<span>ดำเนินการและยืนยันรับตัวอย่าง</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + view_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-eye"></i>' +
+                                    '</span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (row.received_at){
+                                var request_url = '/service_admin/request/view/' + row.request_id+ '?menu=request';
+                                var view_url = '/service_admin/sample/appointment/view/' + data + '?menu=' + '{{ menu }}'
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + request_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-flask"></i>' +
+                                    '</span>' +
+                                    '<span>รายการทดสอบ</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + view_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-eye"></i>' +
+                                    '</span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else {
+                                var view_url = '/service_admin/sample/appointment/view/' + data + '?menu=' + '{{ menu }}'
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + view_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-eye"></i>' +
+                                    '</span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            }
+                        }
+                    }
                 ]
             });
         });
-        vm = new Vue({
-            el: '#app',
-            methods: {
-                warn: function(sample_id) {
-                    var tab = '{{ tab }}'
-                    this.$buefy.dialog.confirm({
-                        message: 'ต้องการเริ่มการทดสอบรายการนี้หรือไม่',
-                        onConfirm: () => {
-                            const url = `/service_admin/sample/process/${sample_id}?tab=${tab}`;
-                            window.location.href = url;
-                        },
-                        type: 'is-success'
-                    });
-                },
-                confirm: function(sample_id) {
-                    var tab = '{{ tab }}'
-                    this.$buefy.dialog.confirm({
-                        message: 'ต้องการยืนยันการทดสอบรายการนี้หรือไม่',
-                        onConfirm: () => {
-                            const url = `/service_admin/sample/confirm/${sample_id}?tab=${tab}`;
-                            window.location.href = url;
-                        },
-                        type: 'is-success'
-                    });
-                }
-            }
-        })
     </script>
 {% endblock %}

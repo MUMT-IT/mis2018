@@ -1,45 +1,139 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <style>
+        .toast {
+            opacity: 1 !important;
+            transition: none !important;
+        }
+    </style>
+{% endblock %}
 {% block page_content %}
-{% include"service_admin/admin_nav.html" %}
-<section class="section">
-    <div class="container" id="app">
-        {% include 'messages.html' %}
-        <div class="columns">
-            <div class="column">
-                <h1 class="title has-text-centered">รายการใบเสนอราคา</h1>
+    {% include"service_admin/admin_nav.html" %}
+    <section class="section">
+        <div class="columns is-centered">
+            {% include 'service_admin/menu.html' %}
+             <div class="column is-9">
+                <div class="column is-11">
+                    <h1 class="title has-text-centered">รายการใบเสนอราคา</h1>
+                </div>
+                <div class="tabs is-boxed is-centered">
+                    <ul>
+                        {% if is_supervisor %}
+                            <li {% if tab == 'pending_approval' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('service_admin.quotation_index', tab='pending_approval', menu='quotation') }}">
+                                    <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
+                                    <span>รายการรอการอนุมัติ</span>
+                                </a>
+                            </li>
+                        {% else %}
+                            <li {% if tab == 'draft' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('service_admin.quotation_index', tab='draft', menu='quotation') }}">
+                                    <span class="icon is-small"><i class="fas fa-file-pen"></i></span>
+                                    <span>แบบร่างใบเสนอราคา</span>
+                                </a>
+                            </li>
+                            <li {% if tab == 'pending_supervisor_approval' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('service_admin.quotation_index', tab='pending_supervisor_approval',
+                                    menu='quotation') }}">
+                                    <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
+                                    <span>รอการตรวจสอบจากหัวหน้า</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                        <li {% if tab == 'awaiting_customer' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.quotation_index', tab='awaiting_customer',
+                                menu='quotation') }}">
+                                <span class="icon is-small"><i class="fas fa-clock"></i></span>
+                                <span>รอลูกค้ายืนยัน</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'confirmed' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.quotation_index', tab='confirmed', menu='quotation') }}">
+                                <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                <span>ยืนยันแล้ว</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'reject' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.quotation_index', tab='reject', menu='quotation') }}">
+                                <span class="icon is-small"><i class="fas fa-times"></i></span>
+                                <span>ใบเสนอราคาถูกปฏิเสธ</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.quotation_index', tab='all', menu='quotation') }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ทั้งหมด</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
                 <table id='quotations' class="table is-fullwidth">
                     <thead>
-                        <th>เลขใบเสนอราคา</th>
-                        <th>วัน-เวลาทีออกใบ</th>
-                        <th>รายการ</th>
-                        <th>สถานะ</th>
-                        <th>ผู้ออก</th>
-                        <th></th>
+                    <th>เลขใบเสนอราคา</th>
+                    <th>วัน-เวลาทีออก</th>
+                    <th>ออกในนาม</th>
+                    <th>ผู้ประสานงาน</th>
+                    <th>เลขใบคำขอรับบริการ</th>
+                    <th>ราคา</th>
+                    <th>สถานะ</th>
+                    <th>หมายเหตุ</th>
+                    <th>ผู้ออก</th>
+                    <th>รายละเอียด</th>
                     </thead>
                     <tbody>
                     </tbody>
                 </table>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
+        function showToast(category, message) {
+            if (category === 'success') {
+                toastr.success(message);
+            } else if (category === 'danger') {
+                toastr.error(message);
+            } else if (category === 'warning') {
+                toastr.warning(message);
+            } else {
+                toastr.info(message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        showToast('{{ category }}', {{ message|tojson }});
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
+    <script>
+         function extractTextFromHTML(htmlString) {
+             const div = document.createElement('div');
+             div.innerHTML = htmlString;
+             return div.textContent.trim();
+        }
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
             $('#quotations').DataTable({
                 ajax: {
-                    url: {{ url_for('service_admin.get_quotations')|tojson|safe}},
+                    url: {{ url_for('service_admin.get_quotations', tab=tab)|tojson|safe}},
                 },
-                order: [[0, 'desc']],
+                order: [[1, 'desc']],
                 columns: [
-                    { data: 'quotation_no' },
+                    {data: 'quotation_no'},
                     {
                         data: 'created_at',
-                        render: function(data) {
+                        render: function (data) {
                             if (data !== null) {
                                 let d = moment(data)
                                 return d.format('lll')
@@ -48,31 +142,103 @@
                             }
                         }
                     },
-                    { data: 'product' },
+                    {data: 'name'},
+                    {data: 'customer_name'},
+                    {data: 'request_no'},
+                    {data: 'total_price'},
                     {
-                        data: 'status',
-                        render: function (data) {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            var color = row.admin_status_color
+                            var status = row.admin_status
                             if (data !== null) {
-                                return data
+                                return `<span class="tag ${color}">${status}</span>`;
                             }
                             else {
-                                return 'ยังไม่ออกใบเสนอราคา'
+                                return `<span class="tag is-info">ร่างใบเสนอราคา</span>`;
                             }
                         }
                     },
-                    { data: 'creator' },
+                    {
+                        data: 'cancel_reason',
+                        render: function (data) {
+                            if (data !== null) {
+                                return data
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {data: 'creator'},
                     {
                         data: 'id',
-                        render: function (data) {
-                            var url = '/service_admin/quotation/view/' + data;
-                            return '<div class="field has-addons">' +
-                                        '<div class="control">' +
-                                            '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
-                                                '<span class="icon"><i class="fas fa-eye"></i></span>' +
-                                                '<span>Preview</span>' +
-                                            '</a>' +
-                                        '</div>' +
+                        render: function (data, type, row) {
+                            var tab = '{{ tab }}';
+                            if (tab == 'draft') {
+                                var url = '/service_admin/admin/quotation/add/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>แก้ไข</span>' +
+                                    '</a>' +
+                                    '</div>' +
                                     '</div>'
+                            } else if (tab == 'pending_approval') {
+                                var url = '/service_admin/quotation/supervisor/approve/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>ตรวจสอบ</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (tab == 'all') {
+                                var admin = '{{ is_admin }}'
+                                var supervisor = '{{ is_supervisor }}'
+                                if (row.status_id === 3 && admin == 'True') {
+                                    var url = '/service_admin/admin/quotation/add/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}';
+                                    return '<div class="field has-addons">' +
+                                        '<div class="control">' +
+                                        '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
+                                        '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                        '<span>แก้ไข</span>' +
+                                        '</a>' +
+                                        '</div>' +
+                                        '</div>'
+                                } else if (row.status_id === 4 && supervisor == 'True') {
+                                    var url = '/service_admin/quotation/supervisor/approve/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}' ;
+                                    return '<div class="field has-addons">' +
+                                        '<div class="control">' +
+                                        '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
+                                        '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                        '<span>ตรวจสอบ</span>' +
+                                        '</a>' +
+                                        '</div>' +
+                                        '</div>'
+                                } else {
+                                    var url = '/service_admin/quotation/view/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}';
+                                    return '<div class="field has-addons">' +
+                                        '<div class="control">' +
+                                        '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
+                                        '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                        '<span>รายละเอียด</span>' +
+                                        '</a>' +
+                                        '</div>' +
+                                        '</div>'
+                                }
+                            } else {
+                                var url = '/service_admin/quotation/view/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            }
                         }
                     },
                 ]
