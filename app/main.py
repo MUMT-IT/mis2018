@@ -2,7 +2,6 @@
 
 
 import click
-import arrow
 import pandas
 import pandas as pd
 import requests
@@ -20,7 +19,6 @@ from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from flask_qrcode import QRcode
-from psycopg2._range import DateTimeRange
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 from flask_mail import Mail
@@ -232,19 +230,6 @@ admin.add_views(KPIAdminModel(models.KPI, db.session, category='KPI'))
 from app.studs import studbp as stud_blueprint
 
 app.register_blueprint(stud_blueprint, url_prefix='/stud')
-
-# from app.food import foodbp as food_blueprint
-#
-# app.register_blueprint(food_blueprint, url_prefix='/food')
-# from app.food.models import (Person, Farm, Produce, PesticideTest,
-#                              BactTest, ParasiteTest)
-#
-# admin.add_views(ModelView(Person, db.session, category='Food'))
-# admin.add_views(ModelView(Farm, db.session, category='Food'))
-# admin.add_views(ModelView(Produce, db.session, category='Food'))
-# admin.add_views(ModelView(PesticideTest, db.session, category='Food'))
-# admin.add_views(ModelView(BactTest, db.session, category='Food'))
-# admin.add_views(ModelView(ParasiteTest, db.session, category='Food'))
 
 from app.research import researchbp as research_blueprint
 
