@@ -3128,17 +3128,20 @@ def seminar_pre_register_info(seminar_id):
         is_closed = True if seminar.closed_at <= arrow.now('Asia/Bangkok').datetime else False
     if request.method == 'POST':
         if not already_register:
-            pre_register = StaffSeminarPreRegister(
-                seminar=seminar,
-                created_at=arrow.now('Asia/Bangkok').datetime,
-                attend_online=True if request.form.get('attend_type') == 'online' else False,
-                staff=current_user,
-                food_type=request.form.get('food_type') if request.form.get('food_type') else ''
-            )
-            if seminar.is_online and not seminar.is_hybrid:
-                pre_register.attend_online = True
-            db.session.add(pre_register)
-            db.session.commit()
+            if seminar:
+                pre_register = StaffSeminarPreRegister(
+                    seminar=seminar,
+                    created_at=arrow.now('Asia/Bangkok').datetime,
+                    attend_online=True if request.form.get('attend_type') == 'online' else False,
+                    staff=current_user,
+                    food_type=request.form.get('food_type') if request.form.get('food_type') else ''
+                )
+                if seminar.is_online and not seminar.is_hybrid:
+                    pre_register.attend_online = True
+                db.session.add(pre_register)
+                db.session.commit()
+            else:
+                flash('เกิดข้อผิดพลาดระหว่างการบันทึกข้อมูล กรุณาลงทะเบียนใหม่อีกครั้ง', 'danger')
         return redirect(url_for('staff.seminar_pre_register_info', seminar_id=seminar.id))
     all_hr = StaffSpecialGroup.query.filter_by(group_code='hr').first()
     for hr in all_hr.staffs:

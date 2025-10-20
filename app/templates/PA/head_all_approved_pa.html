@@ -23,10 +23,10 @@
                 <div class="notification is-info is-light">
                     <span>
                         * ขั้นตอนประเมินผลงาน<br>
-                        1. เลือก <span class="icon"><i class="fa-solid fa-user-plus"></i></span><span>กรรมการ</span>
-                        เพื่อเลือกกลุ่มกรรมการที่จะประเมินผู้รับประเมินในรอบนั้นๆ<br><br>
-                        2. เลือก <span class="icon"><i class="fa-solid fa-magnifying-glass-chart"></i></span>
+                        1. เลือก <span class="icon"><i class="fa-solid fa-magnifying-glass-chart"></i></span>
                         <span>ประเมิน</span> เพื่อดำเนินการประเมินสำหรับผู้บังคับบัญชาชั้นต้น<br><br>
+                        2. เลือก <span class="icon"><i class="fa-solid fa-user-plus"></i></span><span>กรรมการ</span>
+                        เพื่อเลือกกลุ่มกรรมการที่จะประเมินผู้รับประเมินในรอบนั้นๆ<br><br>
                         3. เลือก <span class="icon"><i class="fa-solid fa-paper-plane"></i></span>
                         <span>ส่งแบบประเมิน</span> เพื่อส่งให้กลุ่มกรรมการดำเนินการประเมินต่อ
                     </span>
@@ -83,26 +83,6 @@
                         {% elif pa.is_submitted %}
                         <div class="field has-addons">
                             <div class="control">
-                                <a href="{{ url_for('pa.assign_committee', pa_id=pa.id) }}"
-                                   class="button is-dark is-rounded is-outlined is-small">
-                                    {% if pa.is_committee %}
-                                    <span class="tag is-success is-light">
-                                        <span class="icon">
-                                            <i class="fa-solid fa-user-plus"></i>
-                                        </span>
-                                        <span>1. กรรมการ</span>
-                                    </span>
-                                    {% else %}
-                                    <span class="is-light">
-                                        <span class="icon">
-                                            <i class="fa-solid fa-user-plus"></i>
-                                        </span>
-                                        <span>1. กรรมการ</span>
-                                    </span>
-                                    {% endif %}
-                                </a>
-                            </div>
-                            <div class="control">
                                 <a href="{{ url_for('pa.create_scoresheet', pa_id=pa.id) }}"
                                    class="button is-dark is-outlined is-rounded is-small">
                                     {% if pa.is_final_head_scoresheet %}
@@ -116,7 +96,27 @@
                                     <span class="icon">
                                         <i class="fa-solid fa-magnifying-glass-chart"></i>
                                     </span>
-                                    <span>2. ประเมิน</span>
+                                    <span>1. ประเมิน</span>
+                                    {% endif %}
+                                </a>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('pa.assign_committee', pa_id=pa.id) }}"
+                                   class="button is-dark is-rounded is-outlined is-small">
+                                    {% if pa.is_committee %}
+                                    <span class="tag is-success is-light">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-user-plus"></i>
+                                        </span>
+                                        <span>2. กรรมการ</span>
+                                    </span>
+                                    {% else %}
+                                    <span class="is-light">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-user-plus"></i>
+                                        </span>
+                                        <span>2. กรรมการ</span>
+                                    </span>
                                     {% endif %}
                                 </a>
                             </div>

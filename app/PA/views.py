@@ -64,6 +64,7 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         pa = PAAgreement.query.filter_by(round_id=round_id,
                                          staff=current_user).first()
     if pa is None:
+        previous_pa = PAAgreement.query.filter_by(staff=current_user).order_by(PAAgreement.id.desc()).first()
         head_committee = PACommittee.query.filter_by(org=current_user.personal_info.org, role='ประธานกรรมการ',
                                                      round_id=round_id).first()
         head_individual = PACommittee.query.filter_by(subordinate=current_user, role='ประธานกรรมการ',
@@ -103,6 +104,50 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         else:
             flash('ไม่พบประธานกรรมการประเมิน PA กรุณาดำเนินการติดต่อ HR', 'danger')
             return redirect(url_for('pa.user_performance'))
+
+        if not pa.updated_at and pa_round.is_closed != True:
+            if previous_pa and pa:
+                kpi_item_map = {}
+
+                for kpi in previous_pa.kpis:
+                    new_kpi = PAKPI(
+                        pa=pa,
+                        type=kpi.type,
+                        detail=kpi.detail,
+                        source=kpi.source
+                    )
+                    db.session.add(new_kpi)
+
+                    for kpi_item in kpi.pa_kpi_items:
+                        new_kpi_item = PAKPIItem(
+                            level=kpi_item.level,
+                            kpi=new_kpi,
+                            goal=kpi_item.goal
+                        )
+                        db.session.add(new_kpi_item)
+
+                        kpi_item_map[kpi_item.id] = new_kpi_item
+
+                db.session.commit()
+                for item in sorted(previous_pa.pa_items, key=lambda x: x.id):
+                    new_item = PAItem(
+                        category=item.category,
+                        task=item.task,
+                        percentage=item.percentage,
+                        report='',
+                        pa=pa
+                    )
+                    db.session.add(new_item)
+
+                    for old_kpi_item in item.kpi_items:
+                        if old_kpi_item.id in kpi_item_map:
+                            new_item.kpi_items.append(kpi_item_map[old_kpi_item.id])
+                    db.session.commit()
+
+                pa.updated_at = arrow.now('Asia/Bangkok').datetime
+                db.session.add(pa)
+                db.session.commit()
+                flash('ระบบคัดลอกภาระงานล่าสุดให้เรียบร้อยแล้ว', 'success')
     if item_id:
         pa_item = PAItem.query.get(item_id)
         form = PAItemForm(obj=pa_item)
@@ -1777,8 +1822,7 @@ def detail_consensus_scoresheet(approved_id):
         approve_scoresheet.approved_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(approve_scoresheet)
         db.session.commit()
-        flash('บันทึกการอนุมัติเรียบร้อยแล้ว', 'success')
-
+        flash('บันทึกการรับรองคะแนนเรียบร้อยแล้ว', 'success')
         approve_title = 'แจ้งสถานะรับรองผลการประเมิน PA จากกรรมการ'
         approve_msg = '{} ดำเนินการรับรองคะแนนการประเมินของ {} เรียบร้อยแล้ว' \
                       '\n\n\nคณะเทคนิคการแพทย์'.format(
@@ -1788,9 +1832,30 @@ def detail_consensus_scoresheet(approved_id):
             send_mail([consolidated_score_sheet.committee.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
         else:
             print(approve_msg, consolidated_score_sheet.committee.staff.email)
-        return redirect(url_for('pa.consensus_scoresheets'))
+        return redirect(url_for('pa.all_scoresheet'))
     return render_template('PA/eva_consensus_scoresheet_detail.html', consolidated_score_sheet=consolidated_score_sheet,
                            approve_scoresheet=approve_scoresheet, core_competency_items=core_competency_items)
+
+
+@pa.route('/eva/consensus-scoresheets/<int:approved_id>/immediate', methods=['GET', 'POST'])
+@login_required
+def committee_approve_consensus_scoresheet(approved_id):
+    approve_scoresheet = PAApprovedScoreSheet.query.filter_by(id=approved_id).first()
+    consolidated_score_sheet = PAScoreSheet.query.filter_by(id=approve_scoresheet.score_sheet_id).first()
+    approve_scoresheet.approved_at = arrow.now('Asia/Bangkok').datetime
+    db.session.add(approve_scoresheet)
+    db.session.commit()
+    flash('บันทึกการรับรองคะแนนเรียบร้อยแล้ว', 'success')
+    approve_title = 'แจ้งสถานะรับรองผลการประเมิน PA จากกรรมการ'
+    approve_msg = '{} ดำเนินการรับรองคะแนนการประเมินของ {} เรียบร้อยแล้ว' \
+                      '\n\n\nคณะเทคนิคการแพทย์'.format(
+                    approve_scoresheet.committee.staff.personal_info.fullname,
+                    consolidated_score_sheet.pa.staff.personal_info.fullname)
+    if not current_app.debug:
+        send_mail([consolidated_score_sheet.committee.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
+    else:
+        print(approve_msg, consolidated_score_sheet.committee.staff.email)
+    return redirect(url_for('pa.all_scoresheet'))
 
 
 @pa.route('/eva/all-scoresheet')
@@ -1798,6 +1863,7 @@ def detail_consensus_scoresheet(approved_id):
 def all_scoresheet():
     committee = PACommittee.query.filter_by(staff=current_user).all()
     scoresheets = []
+    approved_scoresheets = []
     end_round_year = set()
     for committee in committee:
         scoresheet = PAScoreSheet.query.filter_by(committee_id=committee.id, is_consolidated=False).join(PAAgreement)\
@@ -1807,10 +1873,16 @@ def all_scoresheet():
             end_round_year.add(end_year)
             if s.pa.round.is_closed != True:
                 scoresheets.append(s)
+
+        approved_scoresheet = PAApprovedScoreSheet.query.filter_by(committee_id=committee.id).all()
+        for s in approved_scoresheet:
+            approved_scoresheets.append(s)
+
     if not committee:
         flash('สำหรับคณะกรรมการประเมิน PA เท่านั้น ขออภัยในความไม่สะดวก', 'warning')
         return redirect(url_for('pa.index'))
-    return render_template('PA/eva_all_scoresheet.html', scoresheets=scoresheets, end_round_year=end_round_year)
+    return render_template('PA/eva_all_scoresheet.html', scoresheets=scoresheets,
+                           approved_scoresheets=approved_scoresheets, end_round_year=end_round_year)
 
 
 @pa.route('/eva/all-scoresheet/year/<int:end_round_year>')
@@ -2566,8 +2638,8 @@ def fc_evaluation_detail(evaluation_id):
 @login_required
 @hr_permission.require()
 def copy_pa_committee():
-    all_pa_round = PARound.query.all()
-    fc_rounds = PAFunctionalCompetencyRound.query.all()
+    all_pa_round = PARound.query.order_by(PARound.id.desc()).all()
+    fc_rounds = PAFunctionalCompetencyRound.query.order_by(PAFunctionalCompetencyRound.id.desc()).all()
     if request.method == 'POST':
         form = request.form
         pa_round_id = form.get('pa_round')
