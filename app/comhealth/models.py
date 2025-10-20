@@ -491,7 +491,7 @@ class ComHealthReceiptID(db.Model):
 class ComHealthReceipt(db.Model):
     __tablename__ = 'comhealth_test_receipts'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
-    code = db.Column('code', db.String())
+    code = db.Column('code', db.String(), unique=True)
     copy_number = db.Column('copy_number', db.Integer, default=1)
     book_number = db.Column('book_number', db.String(16))
     created_datetime = db.Column('checkin_datetime', db.DateTime(timezone=True))
