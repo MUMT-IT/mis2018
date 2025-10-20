@@ -877,7 +877,7 @@ def remove_condition_form():
 def get_collect_sample_during_testing():
     request_id = request.args.get("request_id")
     collect_sample_during_testing = request.args.get("collect_sample_during_testing")
-    label = 'โปรดระบุ'
+    label = 'ระบุ'
 
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
@@ -888,7 +888,7 @@ def get_collect_sample_during_testing():
             collect_sample_during_testing_other = ''
     else:
         collect_sample_during_testing_other = ''
-    if collect_sample_during_testing == 'อื่นๆ':
+    if collect_sample_during_testing == 'อื่นๆ โปรดระบุ':
         html = f'''
             <div class="field">
                 <label class="label">{label}</label>
@@ -907,7 +907,7 @@ def get_collect_sample_during_testing():
 def get_product_storage():
     request_id = request.args.get("request_id")
     product_storage = request.args.get("product_storage")
-    label = 'โปรดระบุ'
+    label = 'ระบุ'
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
         if service_request and service_request.data:
@@ -917,7 +917,7 @@ def get_product_storage():
             product_storage_other = ''
     else:
         product_storage_other = ''
-    if product_storage == 'อื่นๆ':
+    if product_storage == 'อื่นๆ โปรดระบุ':
         html = f'''
             <div class="field" style='width:100%'>
                 <label class="label">{label}</label>
@@ -955,7 +955,8 @@ def get_condition_form():
         return ""
 
     fields = getattr(form, field_name)
-    return render_template("academic_services/partials/request_condition_form.html", fields=fields)
+    return render_template("academic_services/partials/request_condition_form.html", fields=fields,
+                           code=code)
 
 
 @academic_services.route('/customer/report_language/add/<int:request_id>', methods=['GET', 'POST'])
