@@ -276,4 +276,18 @@
             }
         });
     </script>
+    <script>
+        function showOtherInput() {
+            $('input[type="radio"][name$="surface_type"]').toArray().forEach((surface_type) => {
+                if ($('input[type="radio"][name$="surface_type"]:checked').val() === 'อื่นๆ โปรดระบุ') {
+                    $('input[name$="surface_type_other"]').closest('.field').show();
+                } else {
+                    $('input[name$="surface_type_other"]').closest('.field').hide();
+                    $('input[name$="surface_type_other"]').val('');
+                }
+            });
+        }
+        showOtherInput();
+        $('input[type="radio"][name$="surface_type"]').change(showOtherInput);
+    </script>
 {% endblock %}
