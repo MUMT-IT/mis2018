@@ -1,0 +1,436 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <style>
+        .toast {
+            opacity: 1 !important;
+            transition: none !important;
+        }
+    </style>
+{% endblock %}
+{% block page_content %}
+    {% include "service_admin/admin_nav.html" %}
+    <section class="section" id="app">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-two-fifths">
+                    <h1 class="title has-text-centered">ข้อมูลคำขอรับบริการ</h1>
+                    <div class="box">
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-flask"></i></span> งานบริการ
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.request.sub_lab.sub_lab }}
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="mb-4">
+                            <div class="columns">
+                                <div class="column" style="border-right: 1px solid #ddd;">
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                        <span class="icon"><i class="fas fa-receipt"></i></span>
+                                        ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
+                                    </p>
+                                    <div style="margin-left: 1.75rem;">
+                                        <p>ออกในนาม : {{ quotation.name }}</p>
+                                        <p>ที่อยู่ : {{ quotation.address }}</p>
+                                        <p>เลขประจำตัวผู้เสียภาษีอากร : {{ quotation.taxpayer_identification_no }}</p>
+                                        <p>เบอร์โทรศัพท์ : {{ quotation.request.quotation_address.phone_number }}</p>
+                                        <p>อีเมล : {{ quotation.request.customer.contact_email }}</p>
+                                    </div>
+                                </div>
+                                <div class="column">
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                        <span class="icon"><i class="fas fa-map-marker-alt"></i></span>
+                                        ข้อมูลที่อยู่จัดส่งเอกสาร
+                                    </p>
+                                    <div style="margin-left: 1.75rem;">
+                                        <p>ถึง : {{ quotation.request.document_address.name }}</p>
+                                        <p>ที่อยู่ : {{ quotation.request.document_address.address }}
+                                            {{ 'แขวง' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'ตำบล' }}{{ quotation.request.document_address.subdistrict }}
+                                            {{ 'เขต' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'อำเภอ' }}{{ quotation.request.document_address.district }}
+                                            จังหวัด{{ quotation.request.document_address.province }} {{ quotation.request.document_address.zipcode }}
+                                        </p>
+                                        <p>เบอร์โทรศัพท์ : {{ quotation.request.document_address.phone_number }}</p>
+                                        <p>อีเมล : {{ quotation.request.customer.contact_email }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-user"></i></span> ข้อมูลผู้ประสานงาน
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                {% for cus_contact in quotation.request.customer.customer_info.customer_contacts %}
+                                    <p>ชื่อ-นามสกุล : {{ cus_contact.contact_name }}</p>
+                                    <p>เลขประจำตัวผู้เสียภาษี
+                                        : {{ quotation.request.customer.customer_info.taxpayer_identification_no }}</p>
+                                    <p>เบอร์โทรศัพท์ : {{ cus_contact.phone_number }}</p>
+                                    <p>อีเมล : {{ cus_contact.email }}</p>
+                                    {% if cus_contact.remark %}
+                                        <p>หมายเหตุ : {{ cus_contact.remark }}</p>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-clipboard-list"></i></span> ข้อมูลผลิตภัณฑ์
+                            </p>
+                            <div class="content" style="margin-left: 1.75rem;">
+                                <ul class="ml-4">
+                                    {% for data in datas.value %}
+                                        <li>{{ data }}</li>
+                                    {% endfor %}
+                                </ul>
+                                {% if datas.table_rows %}
+                                    <table class="table is-bordered is-striped is-fullwidth mt-4">
+                                        <thead>
+                                        <tr>
+                                            {% for key in datas.table_keys %}
+                                                <th>{{ key }}</th>
+                                            {% endfor %}
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for row in datas.table_rows %}
+                                            <tr>
+                                                {% for key in datas.table_keys %}
+                                                    <td>{{ row.get(key, '-') }}</td>
+                                                {% endfor %}
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-file-alt"></i></span> ใบรายงานผล
+                            </p>
+                            <div class="content" style="margin-left: 1.75rem;">
+                                <ul>
+                                    {% if quotation.request.report_languages %}
+                                        {% for rl in quotation.request.report_languages %}
+                                            <li>{{ rl.report_language.item }}</li>
+                                        {% endfor %}
+                                    {% else %}
+                                        ไม่ได้เลือกใบรายงานผล
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="column is-two-thirds">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <h1 class="title has-text-centered">สร้างใบเสนอราคา</h1>
+                        <div class="box">
+                            <div class="mb-4 is-flex is-align-items-center">
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">เลขที่</p>
+                                <div style="margin-left: 1.75rem;">
+                                    {{ quotation.quotation_no }}
+                                </div>
+                            </div>
+                            <div class="mb-4 is-flex is-align-items-center">
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่ร่าง</p>
+                                <div style="margin-left: 1.75rem;">
+                                    {{ quotation.created_at.strftime('%d/%m/%Y') }}
+                                </div>
+                            </div>
+                            <div class="mb-4 is-flex is-align-items-center">
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">เรื่อง</p>
+                                <div style="margin-left: 1.75rem;">
+                                    ใบเสนอราคาค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ
+                                </div>
+                            </div>
+                            <div class="mb-4 is-flex is-align-items-center">
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">เรียน</p>
+                                <div style="margin-left: 1.75rem;">
+                                    {{ quotation.name }}
+                                </div>
+                            </div>
+                            <div class="mb-4 is-flex is-align-items-center">
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>
+                                <div style="margin-left: 1.75rem;">
+                                    {{ quotation.address }}
+                                </div>
+                            </div>
+                            <div class="mb-4 is-flex is-align-items-center">
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">เลขประจำตัวผู้เสียภาษีอากร</p>
+                                <div style="margin-left: 1.75rem;">
+                                    {{ quotation.taxpayer_identification_no or '-' }}<br>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="field">
+                                <div class="control">
+                                    <table class="table is-fullwidth">
+                                        <th class="has-text-centered">ลำดับ</th>
+                                        <th class="has-text-centered">รายการ</th>
+                                        <th class="has-text-centered">จำนวน</th>
+                                        <th class="has-text-centered">ราคา</th>
+                                        <th class="has-text-centered">จำนวนเงิน</th>
+                                        <th class="has-text-centered">ส่วนลด</th>
+                                        <th class="has-text-centered">ราคารวม</th>
+                                        <th></th>
+                                        <tbody>
+                                        {% for quotation_item in quotation.quotation_items|sort(attribute='sequence') %}
+                                            <tr data-index="{{ loop.index0 }}"
+                                                data-total-price="{{ quotation_item.total_price }}"
+                                            >
+                                                <td class="has-text-centered">{{ quotation_item.sequence }}</td>
+                                                <td>{{ quotation_item.item|safe }}</td>
+                                                <td class="has-text-centered">{{ quotation_item.quantity }}</td>
+                                                <td class="has-text-right">
+                                                    {{ "{:,.2f}".format(quotation_item.unit_price) }}
+                                                </td>
+                                                <td class="has-text-right">
+                                                    {{ "{:,.2f}".format(quotation_item.total_price) }}
+                                                </td>
+                                                {% with qt_form = form.quotation_items[loop.index0] %}
+                                                    <td>
+                                                        <div class="field">
+                                                            <label class="label">ประเภทส่วนลด</label>
+                                                            <div class="select">
+                                                                {{ qt_form.discount_type() }}
+                                                            </div>
+                                                        </div>
+                                                        <div class="field">
+                                                            <label class="label">ส่วนลด</label>
+                                                            <div class="control">
+                                                                {{ qt_form.discount(class='input') }}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                {% endwith %}
+                                                <td class="has-text-right">
+                                                    {{ "{:,.2f}".format(quotation_item.net_price()) }}
+                                                </td>
+                                                <td class="has-text-centered">
+                                                    <a @click="warn('{{ quotation_item.id }}')"
+                                                       class="button is-danger is-outlined"
+                                                    >
+                                                        <span class="icon">
+                                                            <i class="fas fa-trash"></i>
+                                                        </span>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                        <tfoot>
+                                        <tr>
+                                            <th colspan="6" class="has-text-right">รวมเป็นเงินทั้งสิ้น</th>
+                                            <th id="total-sum">0 บาท</th>
+                                        </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="mb-4 is-flex is-align-items-center">
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่สำหรับจัดส่งเอกสาร</p>
+                                </div>
+                                <div class="mb-4 is-flex is-align-items-center">
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ถึง</p>
+                                    <div style="margin-left: 1.75rem;">
+                                        {{ quotation.request.receive_name }}
+                                    </div>
+                                </div>
+                                <div class="mb-4 is-flex is-align-items-center">
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>
+                                    <div style="margin-left: 1.75rem;">
+                                        {{ quotation.request.receive_address }}
+                                    </div>
+                                </div>
+                                <div class="mb-4 is-flex is-align-items-center">
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">เบอร์โทรศัพท์</p>
+                                    <div style="margin-left: 1.75rem;">
+                                        {{ quotation.request.receive_phone_number }}
+                                    </div>
+                                </div>
+                                <div class="mb-4 is-flex is-align-items-center">
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">อีเมล</p>
+                                    <div style="margin-left: 1.75rem;">
+                                        {{ quotation.request.customer.contact_email }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="buttons is-centered">
+                                <div id="quotation_item"></div>
+                                <a class="button is-info"
+                                   hx-swap="innerHTML"
+                                   hx-target="#quotation_item"
+                                   hx-get="{{ url_for('service_admin.add_quotation_item', quotation_id=quotation.id, menu=menu,
+                                   tab=tab) }}"
+                                >
+                                    <span class="icon">
+                                        <i class="fas fa-plus"></i>
+                                    </span>
+                                    <span>เพิ่มรายการ (ถ้ามี)</span>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="buttons is-centered">
+                            <a class="button" href="{{ url_for('service_admin.quotation_index', menu=menu, tab=tab) }}">
+                                ย้อนกลับ
+                            </a>
+                            <div class="control">
+                                <button type="submit" name="action" value="save" class="button is-primary">
+                                    บันทึกข้อมูล
+                                </button>
+                            </div>
+                            <div class="control">
+                                <button type="submit" name="action" value="approve" class="button is-success">
+                                    เสนอหัวหน้าอนุมัติ
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+    <script>
+        vm = new Vue({
+            el: '#app',
+            methods: {
+                warn: function (quotation_item_id) {
+                    var menu = '{{ menu }}';
+                    this.$buefy.dialog.confirm({
+                        message: 'ท่านต้องการลบรายการนี้หรือไม่?',
+                        onConfirm: () => {
+                            const url = `/service_admin/quotation/item/delete/${quotation_item_id}?menu=${menu}`;
+                            window.location.href = url;
+                        },
+                        type: 'is-danger'
+                    });
+                }
+            }
+        })
+    </script>
+    <script>
+        function showToast(message) {
+            toastr.success(message);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        showToast({{ message|tojson }}, 7000);
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('input[name$="discount"]').forEach((discountInput) => {
+                discountInput.addEventListener('input', function () {
+                    const row = this.closest('tr');
+                    const index = row.dataset.index;
+                    const totalPrice = parseFloat(row.dataset.totalPrice) || 0;
+                    const discountInput = document.querySelector(`input[name="quotation_items-${index}-discount"]`);
+                    const discountType = document.querySelector(`select[name="quotation_items-${index}-discount_type"]`).value;
+                    let discountValue = parseFloat(discountInput.value) || 0;
+
+                    if (discountType === 'เปอร์เซ็นต์') {
+                        discountInput.setAttribute('max', '100');
+                    } else {
+                        discountInput.setAttribute('max', totalPrice);
+                    }
+                    let finalPrice = discountType === 'เปอร์เซ็นต์'
+                        ? totalPrice * (1 - (discountValue / 100))
+                        : totalPrice - discountValue;
+                    if (finalPrice < 0) finalPrice = 0;
+                    const finalCell = row.querySelector('td:nth-child(7)');
+                    finalCell.textContent = finalPrice.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
+                    updateTotalSum();
+                });
+
+                const row = discountInput.closest('tr');
+                const index = row.dataset.index;
+                const discountTypeSelect = document.querySelector(`select[name="quotation_items-${index}-discount_type"]`);
+                discountTypeSelect.addEventListener('change', function () {
+                    discountInput.dispatchEvent(new Event('input'));
+                    updateTotalSum();
+                });
+            });
+        });
+
+        document.querySelectorAll('tr[data-index]').forEach(row => {
+            const index = row.dataset.index;
+            const discountInput = document.querySelector(`input[name="quotation_items-${index}-discount"]`);
+            const discountType = document.querySelector(`select[name="quotation_items-${index}-discount_type"]`);
+            const totalPrice = parseFloat(row.dataset.totalPrice) || 0;
+
+            if (!discountInput || !discountType) return;
+
+            discountInput.addEventListener('keydown', function (e) {
+                const allowedKeys = ['Backspace', 'Tab', 'Delete', 'ArrowLeft', 'ArrowRight', ','];
+
+                if (discountType.value !== 'เปอร์เซ็นต์') {
+                    allowedKeys.push('.');
+                }
+
+                if (allowedKeys.includes(e.key)) return;
+
+                if (!/\d/.test(e.key)) {
+                    e.preventDefault();
+                    return;
+                }
+
+                const newValue = this.value + e.key;
+
+                if (discountType.value === 'เปอร์เซ็นต์') {
+                    if (parseFloat(newValue) > 100) {
+                        e.preventDefault();
+                    }
+                } else {
+                    if (parseFloat(newValue) > totalPrice) {
+                        e.preventDefault();
+                    }
+                }
+            });
+
+            discountType.addEventListener('change', () => {
+                discountInput.value = '';
+            });
+        });
+
+        function updateTotalSum() {
+            let sum = 0;
+            document.querySelectorAll('tr[data-index]').forEach(row => {
+                const netPriceCell = row.querySelector('td:nth-child(7)');
+                const text = netPriceCell.textContent.replace(/,/g, '');
+                const value = parseFloat(text) || 0;
+                sum += value;
+            });
+            document.getElementById('total-sum').textContent =
+                sum.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+        }
+
+        updateTotalSum();
+    </script>
+{% endblock %}

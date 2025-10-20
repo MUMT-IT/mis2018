@@ -30,11 +30,12 @@
                             </p>
                             <label class="label">รายชื่อผู้เข้าร่วม</label>
                             <table class="table">
-                                 <thead>
+                                <thead>
                                     <th>ชื่อ-นามสกุล</th>
                                     <th>ส่งข้อความเตือน</th>
-                                 </thead>
-                                 <tbody>
+                                    <th>วัน-เวลาที่แจ้งเตือนล่าสุด</th>
+                                </thead>
+                                <tbody>
                                     {% for p in poll.participants %}
                                         <tr>
                                             <td style="width: 25em">
@@ -43,12 +44,19 @@
                                             <td>
                                                 {% if not poll.is_closed %}
                                                     <a hx-swap="none" hx-get="{{ url_for('meeting_planner.notify_poll_participant',
-                                                            poll_id=poll.id, participant_id=p.id) }}">
+                                                        poll_id=poll.id, participant_id=p.id) }}">
                                                         <span class="icon">
                                                             <i class="fa-sharp fa-solid fa-paper-plane"></i>
                                                         </span>
                                                     </a>
                                                 {% endif %}
+                                            </td>
+                                            <td>
+                                                {% for poll_participant in poll_participants %}
+                                                    {% if poll_participant.staff_id == p.id and poll_participant.notification_date %}
+                                                        {{ poll_participant.notification_date|localdatetime }}
+                                                    {% endif %}
+                                                {% endfor %}
                                             </td>
                                         </tr>
                                     {% endfor %}
@@ -109,23 +117,23 @@
                         </div>
                         <div class="card-content">
                             <div id="vote-detail-modal"></div>
-                                {% for item in poll.poll_items %}
-                                    <span>
-                                        {{ loop.index }}. {{ item.start|localdatetime }} - {{ item.end|localdatetime }}
+                            {% for item in poll.poll_items %}
+                                <span>
+                                    {{ loop.index }}. {{ item.start|localdatetime }} - {{ item.end|localdatetime }}
+                                </span>
+                                <a hx-swap="innerHTML"
+                                   hx-target="#vote-detail-modal"
+                                   hx-get="{{ url_for('meeting_planner.show_participant_vote',
+                                   poll_item_id=item.id) }}">
+                                    <span class="icon">
+                                        <i class="fa-solid fa-eye"></i>
                                     </span>
-                                    <a hx-swap="innerHTML"
-                                       hx-target="#vote-detail-modal"
-                                       hx-get="{{ url_for('meeting_planner.show_participant_vote',
-                                       poll_item_id=item.id) }}">
-                                        <span class="icon">
-                                            <i class="fa-solid fa-eye"></i>
-                                        </span>
-                                    </a>
-                                    <span style="float:right">จำนวนผู้สำรวจ {{ item.voters.count() }}</span>
-                                    <progress class="progress is-success" value="{{ item.voters.count() }}"
-                                              max="{{ poll.participants|length }}">
-                                    </progress>
-                                {% endfor %}
+                                </a>
+                                <span style="float:right">จำนวนผู้สำรวจ {{ item.voters.count() }}</span>
+                                <progress class="progress is-success" value="{{ item.voters.count() }}"
+                                          max="{{ poll.participants|length }}">
+                                </progress>
+                            {% endfor %}
                         </div>
                     </div>
                     <br>
@@ -154,23 +162,11 @@
                                 {% if poll.poll_result %}
                                     <div class="field">
                                         <label class="label">{{ 'วัน-เวลาประชุม' }}</label>
-                                            {% for result in poll.poll_result %}
-                                                <p>
-                                                    {{ result.item.start|localdatetime }} - {{ result.item.end|localdatetime }}
-                                                </p>
-                                            {% endfor %}
-                                    </div>
-                                    <div class="field">
-                                        <div class="buttons is-centered">
-                                            <a href="{{ url_for('room.index') }}"
-                                               class="button is-warning is-light">
-                                                Reserve Room
-                                            </a>
-                                            <a href="{{ url_for('meeting_planner.create_meeting', poll_id=poll.id) }}"
-                                               class="button is-link is-light">
-                                                New Meeting
-                                            </a>
-                                        </div>
+                                        {% for result in poll.poll_result %}
+                                            <p>
+                                                {{ result.item.start|localdatetime }} - {{ result.item.end|localdatetime }}
+                                            </p>
+                                        {% endfor %}
                                     </div>
                                 {% endif %}
                             {% endif %}
@@ -189,10 +185,11 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-   <script>
+    <script>
         $(document).ready(function () {
             document.addEventListener('notifyAlert', function () {
-                alert('ส่งข้อความเตือนเรียบร้อย')
+                alert('ส่งข้อความเตือนเรียบร้อย');
+                location.reload();
             })
         })
     </script>

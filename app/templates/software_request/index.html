@@ -18,18 +18,43 @@
                     </div>
                     <table id="detail" class="table is-fullwidth">
                         <thead>
+                            <th>โครงการ/ระบบ</th>
                             <th>ประเภทคำขอ</th>
                             <th>รายละเอียด</th>
                             <th>วันที่ส่งคำขอ</th>
                             <th>สถานะ</th>
+                            <th>รายละเอียด</th>
                         </thead>
                         <tbody>
-                            {% for detail in details %}
+                            {% for detail in details|sort(attribute='created_date', reverse = True) %}
                                 <tr>
+                                    <td>{{ detail.title }}</td>
                                     <td>{{ detail.type }}</td>
                                     <td>{{ detail.description }}</td>
                                     <td>{{ detail.created_date|localdatetime }}</td>
-                                    <td>{{ detail.status }}</td>
+                                    <td>
+                                        <span {% if detail.status == 'ส่งคำขอแล้ว' %}
+                                                class="tag is-info"
+                                              {% elif detail.status == 'อยู่ระหว่างพิจารณา' %}
+                                                class="tag is-warning"
+                                              {% elif detail.status == 'อนุมัติ' %}
+                                                class="tag is-success"
+                                              {% elif detail.status == 'ไม่อนุมัติ' %}
+                                                class="tag is-danger"
+                                              {% elif detail.status == 'ยกเลิก' %}
+                                                class="tag is-dark"
+                                              {% endif %}
+                                        >
+                                            {{ detail.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('software_request.view_request', detail_id=detail.id) }}">
+                                            <span class="icon">
+                                                <i class="fas fa-eye"></i>
+                                            </span>
+                                        </a>
+                                    </td>
                                 </tr>
                         {% endfor %}
                         </tbody>
@@ -43,7 +68,9 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#detail').DataTable();
+            $('#detail').DataTable({
+                order: [[3, 'desc']]
+            });
         });
     </script>
 {% endblock %}

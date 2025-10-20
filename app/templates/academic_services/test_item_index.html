@@ -1,0 +1,103 @@
+{% extends "academic_services/service_base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block page_content %}
+    {% include"academic_services/customer_nav.html" %}
+    <section class="section">
+        {% include 'messages.html' %}
+        <div class="columns is-centered">
+            {% include 'academic_services/menu.html' %}
+            <div class="column is-9">
+                <div class="column is-11">
+                    <h1 class="title has-text-centered">รายการทดสอบ</h1>
+                </div>
+                <table id='samples' class="table is-fullwidth">
+                    <thead>
+                    <th>เลขใบคำขอรับบริการ</th>
+                    <th>วันที่รับตัวอย่าง</th>
+                    <th>ใบรายงานผล</th>
+                    <th>ใบแจ้งหนี้</th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $.fn.dataTable.moment('lll');
+            $('#samples').DataTable({
+                ajax: {
+                    url: {{ url_for('academic_services.get_test_items')|tojson|safe}},
+                },
+                order: [[0, 'desc']],
+                columns: [
+                    {
+                        data: 'request_id',
+                        render: function (data, type, row) {
+                                var url = '/academic_services/request/view/' + data;
+                                return '<a href="' + url + '">' +
+                                            '<span class="icon"><i class="fas fa-file-alt"></i></span>' +
+                                            '<span>' + row.request_no +'</span>' +
+                                        '</a>'
+                        }
+                    },
+                    {
+                        data: 'created_at',
+                        render: function (data) {
+                            if (data !== null) {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if (row.has_result == true) {
+                                var result_url = '/academic_services/customer/result/index?menu=report'
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-eye"></i>' +
+                                    '</span>' +
+                                    '<span>ดูใบรายงานผล</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if (row.has_invoice_for_user == true) {
+                                var invoice_url = '/academic_services/invoice/view/' + row.invoice_id + '?menu=invoice';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + invoice_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-eye"></i>' +
+                                    '</span>' +
+                                    '<span>ดูใบแจ้งหนี้</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    }
+                ]
+            });
+        });
+    </script>
+{% endblock %}

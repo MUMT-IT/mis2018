@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+{% endblock %}
+{% block page_content %}
+    {% include "nav.html" %}
+    <section class="section">
+        <div class="container">
+            {% include 'messages.html' %}
+            <div class="columns is-centered">
+                <div class="column is-three-fifths">
+                    <h1 class="title has-text-centered">สร้างใบอนุมัติหลักการซ่อม</h1>
+                    <div class="box">
+                        <form method="post">
+                            {{ form.hidden_tag() }}
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.repair_type.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    <label class="radio">
+                                        {{ form.repair_type() }}
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="field" id="principle-approval-type-field", style="display:none; margin-top: 0.8em; margin-bottom: 0.6em">
+                                <label class="label">
+                                    {{ form.principle_approval_type.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    <label class="radio">
+                                        {{ form.principle_approval_type() }}
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.item.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.item(class='input', id="item", oninput="syncPurposeInput()") }}
+                                </div>
+                            </div>
+                            <div class="field" id="creator-field" style="display: none;">
+                                <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">
+                                            ชื่อผู้ดำเนินการ
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.name(class='input', style="background-color: #f5f5f5; border: none;
+                                                color: #7a7a7a; cursor: not-allowed;") }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.position.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.position(class='input', style="background-color: #f5f5f5; border: none;
+                                                color: #7a7a7a; cursor: not-allowed;", readonly=True) }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    ภาควิชา/ศูนย์/งานฯ/หน่วยงาน/โครงการ
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.organization(class='input', style="background-color: #f5f5f5; border: none;
+                                        color: #7a7a7a; cursor: not-allowed;", readonly=True) }}
+                                </div>
+                            </div>
+                            <div class="field" id="purpose-field" style="display:none;">
+                                <label class="label" id="purpose-label">
+                                    มีความประสงค์จะจัดซื้อหรือจ้าง
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.purpose(class='input', id="purpose") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label id="reason-label" class="label">
+                                    เหตุผลและความจำเป็นเร่งด่วนที่ต้องซื้อหรือจ้าง
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.reason(class='textarea') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label id="detail-label" class="label">
+                                    รายละเอียดของพัสดุที่ซื้อหรือจ้าง
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.detail(class='textarea') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    วงเงินที่ซื้อหรือจ้าง
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.price(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field" id="supplier-field" style="display:none;">
+                                <label class="label">
+                                    จาก (บริษัท/ร้านค้า)
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.supplier(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field" id="receipt-field" style="display: none;">
+                                <div class="field-body" >
+                                    <div class="field">
+                                        <label class="label">
+                                            เล่มที่ใบส่งของ/ใบเสร็จรับเงิน
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.book_number(class='input') }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">
+                                            เลขที่ใบส่งของ/ใบเสร็จรับเงิน
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.receipt_number(class='input') }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">
+                                            วันที่ออกใบส่งของ/ใบเสร็จรับเงิน
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.receipt_date(class='input') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">
+                                        ประเภทการขอเบิกจ่ายเงิน
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="select">
+                                        {{ form.purchase_type() }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">
+                                        ประจำปีงบประมาณ
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="control" style="width: 34em">
+                                        {{ form.budget_year(class='input') }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field-body" style="margin-bottom: .8em; margin-top: .8em">
+                                <div class="field">
+                                    <label class="label">
+                                        รหัสศูนย์ต้นทุน
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="control">
+                                        {{ form.cost_center(class='js-example-basic-single') }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">
+                                        รหัสใบสั่งงานภายใน
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="control">
+                                        {{ form.io_code(class='js-example-basic-single') }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">
+                                        ผลผลิต
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="control">
+                                        {{ form.product_code(class='js-example-basic-single') }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label id="remark-label" class="label">ขออนุมัติขยายระยะเวลาเบิกจ่ายเงินเกิน 30 วัน (ถ้ามี)</label>
+                                <span class="help is-danger mb-2" id="note-label">
+                                    ไม่เป็นไปตามข้อบังคับมหาวิทยาลัยมหิดล ว่าด้วยการบริหารงบประมาณและการเงิน (ฉบับที่ 2) พ.ศ.2556 ข้อ 32
+                                </span>
+                                <div class="contrl">
+                                    {{ form.remark(class='textarea') }}
+                                </div>
+                            </div>
+                            <div class="field" id="borrower-field", style="display:none;">
+                                <label class="label">อนุมัติเบิกจ่ายเงิน ให้แก่ เงินทดลองจ่ายคณะเทคนิคการแพทย์ เลขที่ใบยืม</label>
+                                <div class="control">
+                                    {{ form.loan_no(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="buttons is-centered">
+                                    <a class="button is-light" href="{{ url_for('comp_tracker.edit_record_admin',
+                                        record_id=record_id) }}"
+                                    >
+                                        ย้อนกลับ
+                                    </a>
+                                    <input class="button is-success" type="submit" value="บันทึก">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            moment.locale('th');
+            $('input[name="receipt_date"]').daterangepicker({
+                singleDatePicker: true,
+                autoUpdateInput: false,
+                {% if form.receipt_date.data %}
+                    startDate: {{ form.receipt_date.data.isoformat()|tojson|safe }},
+                {% endif %}
+                locale:
+                    {
+                        format: 'YYYY-MM-DD',
+                        cancelLabel: 'Clear'
+                    }
+            });
+            $('input[name="receipt_date"]').on('apply.daterangepicker', function (ev, picker) {
+                $(this).val(picker.startDate.format('YYYY-MM-DD'));
+            });
+            $('input[name="receipt_date"]').on('cancel.daterangepicker', function (ev, picker) {
+                $(this).val('');
+            });
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            function showField() {
+                var repairType = document.querySelector('input[name="repair_type"]:checked')?.value;
+                var creatorField = document.getElementById("creator-field");
+                var receiptField = document.getElementById('receipt-field');
+                var supplierField = document.getElementById('supplier-field');
+                var borrowerField = document.getElementById('borrower-field');
+                var principleApprovalTypeField = document.getElementById('principle-approval-type-field');
+                var purposeField = document.getElementById('purpose-field');
+                var submitButton = document.querySelector('input[type="submit"]');
+                if (repairType === "เร่งด่วน") {
+                    creatorField.style.display = "block";
+                    receiptField.style.display = "block";
+                    supplierField.style.display = "block";
+                    borrowerField.style.display = "block";
+                    principleApprovalTypeField.style.display = 'none';
+                    purposeField.style.display = 'none';
+                    submitButton.value = 'บันทึก';
+                } else {
+                    creatorField.style.display = "none";
+                    receiptField.style.display = "none";
+                    supplierField.style.display = "none";
+                    borrowerField.style.display = "none";
+                    principleApprovalTypeField.style.display = 'block';
+                    purposeField.style.display = 'block';
+                    submitButton.value = 'บันทึกและดำเนินการต่อ';
+                }
+            }
+            showField();
+            document.querySelectorAll('input[name="repair_type"]').forEach(function (radio) {
+                radio.addEventListener("change", showField);
+            });
+            document.querySelector('input[name="price"]').addEventListener('input', showField);
+        });
+    </script>
+    <script>
+        $(document).ready(() => {
+            $('.js-example-basic-single').select2({
+                width: '100%',
+            });
+        });
+    </script>
+    <script>
+        function updateLabel() {
+            var repairType = document.querySelector('input[name="repair_type"]:checked')?.value;
+            var principleApprovalType = document.querySelector('input[name="principle_approval_type"]:checked')?.value;
+            const purposeLabel = document.getElementById("purpose-label");
+            const reasonLabel = document.getElementById("reason-label");
+            const detailLabel = document.getElementById("detail-label");
+            const remarkLabel = document.getElementById("remark-label");
+            const noteLabel = document.getElementById("note-label");
+            if (repairType === "เร่งด่วน") {
+                purposeLabel.textContent = "มีความประสงค์จะจัดซื้อหรือจ้าง"
+                reasonLabel.textContent = "เหตุผลและความจำเป็นเร่งด่วนที่ต้องซื้อหรือจ้าง";
+                detailLabel.textContent = "รายละเอียดของพัสดุที่ซื้อหรือจ้าง";
+                remarkLabel.textContent = "ขออนุมัติขยายระยะเวลาเบิกจ่ายเงินเกิน 30 วัน (ถ้ามี)";
+                noteLabel.textContent = "ไม่เป็นไปตามข้อบังคับมหาวิทยาลัยมหิดล ว่าด้วยการบริหารงบประมาณและการเงิน (ฉบับที่ 2) พ.ศ.2556 ข้อ 32";
+            } else if (repairType === "ไม่เร่งด่วน (ซื้อ/จ้าง)" && principleApprovalType === 'จ้างซ่อม') {
+                purposeLabel.textContent = "มีความประสงค์จะจ้างซ่อมครุภัณฑ์"
+                reasonLabel.textContent = "เหตุผลและความจำเป็นต้องจ้างซ่อม";
+                detailLabel.textContent = "รายละเอียดการซ่อม";
+                remarkLabel.textContent = "ความจำเป็นจะต้องมีการใช้พัสดุที่ผลิตจากต่างประเทศหรือนำเข้าพัสดุจาดต่างประเทศ (ถ้ามี)";
+                noteLabel.textContent = "ตามแนวทางปฏิบัติตามกฎกระทรวงกำหนดพัสดุและวิธีการจัดซื้อจัดจ้างพัสดุที่รัฐต้องการส่งเสริมหรือสนับสนุน (ฉบับที่ 2) พ.ศ. 2563 ";
+            } else {
+                purposeLabel.textContent = "มีความประสงค์จะจัดซื้อหรือจ้าง"
+                reasonLabel.textContent = "เหตุผลและความจำเป็นต้องซื้อหรือจ้าง";
+                detailLabel.textContent = "รายละเอียดของพัสดุที่ซื้อหรือจ้าง";
+                remarkLabel.textContent = "ความจำเป็นจะต้องมีการใช้พัสดุที่ผลิตจากต่างประเทศหรือนำเข้าพัสดุจาดต่างประเทศ (ถ้ามี)";
+                noteLabel.textContent = "ตามแนวทางปฏิบัติตามกฎกระทรวงกำหนดพัสดุและวิธีการจัดซื้อจัดจ้างพัสดุที่รัฐต้องการส่งเสริมหรือสนับสนุน (ฉบับที่ 2) พ.ศ. 2563 ";
+            }
+        }
+        updateLabel();
+        document.querySelectorAll('input[name="repair_type"], input[name="principle_approval_type"]').forEach(function (radio) {
+            radio.addEventListener("change", updateLabel);
+        });
+    </script>
+    <script>
+        function syncPurposeInput() {
+            var repairType = document.querySelector('input[name="repair_type"]:checked')?.value;
+            const item = document.getElementById("item");
+            const purpose = document.getElementById("purpose");
+            if (repairType === 'ไม่เร่งด่วน (ซื้อ/จ้าง)') {
+                purpose.value = item.value;
+            }
+        }
+        syncPurposeInput();
+        document.querySelectorAll('input[name="repair_type"]').forEach(function (radio) {
+            radio.addEventListener("change", syncPurposeInput);
+        });
+    </script>
+{% endblock %}

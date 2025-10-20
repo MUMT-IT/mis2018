@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <style>
+        .toast {
+            opacity: 1 !important;
+            transition: none !important;
+        }
+        .is-full-height {
+            height: 100%;
+        }
+    </style>
+{% endblock %}
+{% block page_content %}
+    {% include "service_admin/admin_nav.html" %}
+    <div class="section" id="request">
+        <div class="container">
+            <div class="columns is-flex is-align-items-stretch">
+                <div class="column">
+                    <h3 class="title is-size-3 has-text-centered">อนุมัติและตรวจสอบใบเสนอราคา</h3>
+                </div>
+                <div class="column is-one-quarter"></div>
+            </div>
+            <div class="columns is-flex is-align-items-stretch">
+                <div class="column">
+                    <div class="box is-full-height">
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เลขที่</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.quotation_no }}
+                            </div>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่ร่าง</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.created_at.strftime('%d/%m/%Y') }}
+                            </div>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เรื่อง</p>
+                            <div style="margin-left: 1.75rem;">
+                                ใบเสนอราคาค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ
+                            </div>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เรียน</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.name }}
+                            </div>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.address }}
+                            </div>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เลขประจำตัวผู้เสียภาษีอากร</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.taxpayer_identification_no or '-' }}<br>
+                            </div>
+                        </div>
+                        <table class="table is-fullwidth mt-4">
+                            <thead>
+                            <tr>
+                                <th class="has-text-centered">ลำดับ</th>
+                                <th class="has-text-centered">รายการ</th>
+                                <th class="has-text-centered">จำนวน</th>
+                                <th class="has-text-centered">ราคา</th>
+                                <th class="has-text-centered">จำนวนเงิน</th>
+                                <th class="has-text-centered">ส่วนลด</th>
+                                <th class="has-text-centered">ราคารวม</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for item in quotation.quotation_items|sort(attribute='sequence') %}
+                                <tr>
+                                    <td class="has-text-centered">{{ item.sequence }}</td>
+                                    <td>{{ item.item|safe }}</td>
+                                    <td class="has-text-centered">{{ item.quantity }}</td>
+                                    <td class="has-text-right">
+                                        {{ "{:,.2f}".format(item.unit_price) }}
+                                    </td>
+                                    <td class="has-text-right">
+                                        {{ "{:,.2f}".format(item.total_price) }}
+                                    </td>
+                                    <td class="has-text-right">{{ "{:,.2f}".format(item.get_discount_amount()) }}</td>
+                                    <td class="has-text-right">{{ "{:,.2f}".format(item.net_price()) }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        <hr>
+                        <div class="has-text-right">
+                            <p><strong>รวมเป็นเงิน : </strong>
+                                {{ "{:,.2f}".format(quotation.subtotal()) }}
+                            </p>
+                            <p>
+                                <strong>ส่วนลด : </strong>
+                                {{ "{:,.2f}".format(quotation.discount()) }}
+                            </p>
+                            <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ "{:,.2f}".format(quotation.grand_total()) }}</p>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่สำหรับจัดส่งเอกสาร</p>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ถึง</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.request.receive_name }}
+                            </div>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.request.receive_address }}
+                            </div>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เบอร์โทรศัพท์</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.request.receive_phone_number }}
+                            </div>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">อีเมล</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.request.customer.contact_email }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="column is-one-quarter">
+                    <div class="box">
+                        <aside class="menu">
+                            <p class="menu-label">
+                                งานบริการ
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {{ quotation.request.sub_lab.sub_lab }}
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                วันที่อนุมัติ
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {% if quotation.approved_at %}
+                                         <span class="icon">
+                                             <i class="fas fa-clock"></i>
+                                         </span>
+                                        {{ quotation.approved_at.strftime('%d/%m/%Y') }}
+                                    {% else %}
+                                        ยังไม่ดำเนินการอนุมัติ
+                                    {% endif %}
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                ข้อมูลผู้ประสานงาน
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {{ quotation.customer_name }}
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                สถานะ
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    <span class="tag {{ quotation.admin_status_color }}">
+                                        {{ quotation.admin_status }}
+                                    </span>
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                การดำเนินการ
+                            </p>
+                            <div id="password_modal"></div>
+                            <ul class="menu-list">
+                                <li>
+                                    <form id="approval-form" method="post">
+                                        <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                                        <a class="button is-success is-rounded is-fullwidth mb-2"
+                                           hx-swap="innerHTML"
+                                           hx-target="#password_modal"
+                                           hx-trigger="click"
+                                           hx-get="{{ url_for('service_admin.enter_password_for_sign_digital',
+                                           quotation_id=quotation_id) }}"
+                                        >
+                                            <span class="icon">
+                                                <i class="fas fa-check"></i>
+                                            </span>
+                                            <span>อนุมัติและใส่ลายเซ็นดิจิทัล</span>
+                                        </a>
+                                    </form>
+                                </li>
+{#                                <li>#}
+{#                                    <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"#}
+{#                                       @click="printQuotation()"#}
+{#                                    >#}
+{#                                        <span class="icon"><i class="fas fa-print"></i></span>#}
+{#                                        <span>พิมพ์ใบเสนอราคา</span>#}
+{#                                    </a>#}
+{#                                </li>#}
+{#                                <li>#}
+{#                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth"#}
+{#                                       href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id) }}"#}
+{#                                    >#}
+{#                                        <span class="icon"><i class="fas fa-download"></i></span>#}
+{#                                        <span>ดาวน์โหลด PDF</span>#}
+{#                                    </a>#}
+{#                                </li>#}
+                            </ul>
+                        </aside>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-two-thirds is-offset-2 has-text-centered">
+            <div class="buttons is-centered">
+                <a class="button is-light" href="{{ url_for('service_admin.quotation_index', tab=tab, menu=menu) }}">
+                    <span class="icon">
+                        <i class="fas fa-chevron-left"></i>
+                    </span>
+                    <span>ย้อนกลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+    <script>
+        function showToast(category, message) {
+            if (category === 'success') {
+                toastr.success(message);
+            } else if (category === 'danger') {
+                toastr.error(message);
+            } else if (category === 'warning') {
+                toastr.warning(message);
+            } else {
+                toastr.info(message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        showToast('{{ category }}', {{ message|tojson }});
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
+    <script type="text/javascript">
+        var vm = new Vue({
+            el: "#request",
+            delimiters: ['<%', '%>'],
+            methods: {
+                printQuotation: function () {
+                    printJS({{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id)|tojson|safe }});
+                },
+                warn: function(quotation_id) {
+                    var tab = '{{ tab }}'
+                    this.$buefy.dialog.confirm({
+                        message: 'ท่านต้องการอนุมัติใบเสนอราคารายการนี้หรือไม่?',
+                        confirmText: 'ยืนยัน',
+                        cancelText: 'ยกเลิก',
+                        onConfirm: () => {
+                            const form = document.getElementById('approval-form');
+                            form.action = `/service_admin/quotation/supervisor/approve/${quotation_id}?tab=${tab}`;
+                            form.submit();
+                        },
+                        type: 'is-success'
+                    });
+                }
+            },
+        });
+         window.document.addEventListener("closeModal", function () {
+            htmx.removeClass(htmx.find('#password-modal'), "is-active")
+        })
+    </script>
+{% endblock %}

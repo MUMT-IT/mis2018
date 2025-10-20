@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block page_content %}
+    {% include"service_admin/admin_nav.html" %}
+    <section class="section">
+        {% include 'messages.html' %}
+        <div class="columns is-centered">
+            {% include 'service_admin/menu.html' %}
+            <div class="column is-9">
+                <div class="column is-11">
+                    <h1 class="title has-text-centered">รายการทดสอบ</h1>
+                </div>
+                <table id='samples' class="table is-fullwidth">
+                    <thead>
+                        <th>เลขใบคำขอรับบริการ</th>
+                        <th>วัน-เวลาที่รับตัวอย่าง</th>
+                        <th>ลูกค้า</th>
+                        <th>ไฟล์ใบรายงานผล</th>
+                        <th>ใบรายงานผล</th>
+                        <th>ใบแจ้งหนี้</th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $.fn.dataTable.moment('lll');
+            $('#samples').DataTable({
+                ajax: {
+                    url: {{ url_for('service_admin.get_test_items')|tojson|safe}},
+                },
+                order: [[1, 'desc']],
+                columns: [
+                    {
+                        data: 'request_id',
+                        render: function (data, type, row) {
+                                var url = '/service_admin/request/view/' + data + '?menu=request';
+                                return '<a href="' + url + '">' +
+                                            '<span class="icon"><i class="fas fa-file-alt"></i></span>' +
+                                            '<span>' + row.request_no +'</span>' +
+                                        '</a>'
+                        }
+                    },
+                    {
+                        data: 'created_at',
+                        render: function (data) {
+                            if (data !== null) {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    { data: 'customer' },
+                    { data: 'files' },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if (row.status_id == 13 || row.status_id >= 16) {
+                                 var result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
+                                  return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-alt"></i>' +
+                                    '</span>' +
+                                    '<span>อัปโหลดใบรายงานผล (ฉบับจริง)</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if ((10 <= row.status_id <= 12) || (14 <= row.status_id <= 15)) {
+                                if (row.status_id == 10) {
+                                    var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report';
+                                    var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=report';
+                                } else {
+                                    var draft_result_url = '/service_admin/result/draft/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
+                                    var final_result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
+                                }
+                                 return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + draft_result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-alt"></i>' +
+                                    '</span>' +
+                                    '<span>อัปโหลดใบรายงานผล (ฉบับร่าง)</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + final_result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-alt"></i>' +
+                                    '</span>' +
+                                    '<span>อัปโหลดใบรายงานผล (ฉบับจริง)</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if (row.status_id == 13) {
+                                invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '?menu=invoice';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + invoice_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-download"></i>' +
+                                    '</span>' +
+                                    '<span>ออกใบแจ้งหนี้</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (row.status_id >= 14 && row.status_id <= 20 || row.status_id == 23) {
+                               invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + invoice_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-eye"></i>' +
+                                    '</span>' +
+                                    '<span>ดูใบแจ้งหนี้</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else {
+                                return `<span class="tag is-warning is-rounded">
+                                            <span class="icon">
+                                                <i class="fas fa-hourglass-half"></i>
+                                            </span>
+                                            <span>
+                                                รอออกใบแจ้งหนี้
+                                            </span>
+                                        </span>`;
+                            }
+                        }
+                    }
+                ]
+            });
+        });
+    </script>
+{% endblock %}

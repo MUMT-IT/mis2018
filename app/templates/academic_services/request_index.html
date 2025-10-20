@@ -1,33 +1,159 @@
-{% extends "base.html" %}
+{% extends "academic_services/service_base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
+    <style>
+        .toast {
+            opacity: 1 !important;
+            transition: none !important;
+        }
+        .has-horizontal-scroll {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .has-horizontal-scroll::-webkit-scrollbar {
+            height: 8px;
+        }
+        .has-horizontal-scroll::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 10px;
+        }
+        .has-horizontal-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+    </style>
+{% endblock %}
 {% block page_content %}
-{% include"academic_services/customer_nav.html" %}
-<section class="section">
-    {% include 'messages.html' %}
-    <div class="columns" id="app">
-        {% include 'academic_services/menu.html' %}
-        <div class="column is-9" >
+    {% include"academic_services/customer_nav.html" %}
+    <section class="section" id="app">
+        <div class="columns is-centered">
+            {% include 'academic_services/menu.html' %}
             <div class="column is-9">
-                <h1 class="title has-text-centered">ประวัติคำขอรับบริการ</h1>
-            </div>
-            <table id='requests' class="table is-fullwidth">
-                <thead>
+                <div class="column is-11">
+                    <h1 class="title has-text-centered">รายการคำขอรับบริการ</h1>
+                </div>
+                 <div class="is-flex has-horizontal-scroll mb-5">
+                    <div class="column is-one-quarter mx-3">
+                        <div class="box card-hover">
+                        <span class="icon is-large has-text-info">
+                            <i class="fa-solid fa-file-signature fa-2x"></i>
+                        </span>
+                            <h2 class="title is-4 has-text-weight-bold mt-2">คำขอรับบริการ</h2>
+                            <div class="is-size-3 has-text-weight-bold has-text-info">{{ new_request_count }}</div>
+                            <p class="is-size-7 has-text-grey">รายการใหม่</p>
+                            <div class="buttons is-centered mt-4">
+                                <a href="{{ url_for('academic_services.request_index', menu='request') }}"
+                                   class="button is-info is-rounded is-small is-fullwidth"
+                                >
+                                    ดูทั้งหมด
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-one-quarter mx-3">
+                        <div class="box card-hover">
+                        <span class="icon is-large has-text-success">
+                            <i class="fa-solid fa-file-invoice fa-2x"></i>
+                        </span>
+                            <h2 class="title is-4 has-text-weight-bold mt-2">ใบเสนอราคา</h2>
+                            <div class="is-size-3 has-text-weight-bold has-text-success">{{ quotation_pending_approval_count }}</div>
+                            <p class="is-size-7 has-text-grey">รายการที่รอการอนุมัติ</p>
+                            <div class="buttons is-centered mt-4">
+                                <a href="{{ url_for('academic_services.quotation_index', menu='quotation') }}"
+                                   class="button is-success is-rounded is-small is-fullwidth"
+                                >
+                                    ดูทั้งหมด
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-one-quarter mx-3">
+                        <div class="box card-hover">
+                        <span class="icon is-large has-text-warning">
+                            <i class="fa-solid fa-truck fa-2x"></i>
+                        </span>
+                            <h2 class="title is-4 has-text-weight-bold mt-2">นัดหมายส่งตัวอย่าง</h2>
+                            <div class="is-size-3 has-text-weight-bold has-text-warning">{{ waiting_sample_count }}</div>
+                            <p class="is-size-7 has-text-grey">รายการที่รอนัดหมายส่งตัวอย่าง</p>
+                            <div class="buttons is-centered mt-4">
+                                <a href="{{ url_for('academic_services.sample_index', menu='sample') }}"
+                                   class="button is-warning is-rounded is-small is-fullwidth"
+                                >
+                                    ดูทั้งหมด
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-one-quarter mx-3">
+                        <div class="box card-hover">
+                        <span class="icon is-large has-text-primary">
+                            <i class="fa-solid fa-flask fa-2x"></i>
+                        </span>
+                            <h2 class="title is-4 has-text-weight-bold mt-2">รายการทดสอบ</h2>
+                            <div class="is-size-3 has-text-weight-bold has-text-primary">{{ testing_count }}</div>
+                            <p class="is-size-7 has-text-grey">รายการที่กำลังทดสอบ</p>
+                            <div class="buttons is-centered mt-4">
+                                <a href="{{ url_for('academic_services.request_index', menu='request') }}"
+                                   class="button is-primary is-rounded is-small is-fullwidth"
+                                >
+                                    ดูทั้งหมด
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-one-quarter mx-3">
+                        <div class="box card-hover">
+                        <span class="icon is-large has-text-danger">
+                            <i class="fa-solid fa-receipt fa-2x"></i>
+                        </span>
+                            <h2 class="title is-4 has-text-weight-bold mt-2">ใบแจ้งนี้</h2>
+                            <div class="is-size-3 has-text-weight-bold has-text-danger">{{ unpaid_count }}</div>
+                            <p class="is-size-7 has-text-grey">รายการที่ยังไม่ชำระ</p>
+                            <div class="buttons is-centered mt-4">
+                                <a href="{{ url_for('academic_services.invoice_index', menu='invoice') }}"
+                                   class="button is-danger is-rounded is-small is-fullwidth"
+                                >
+                                    ดูทั้งหมด
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                 </div>
+                <div class="buttons">
+                    <a id="add_evt_btn" class="button is-info is-rounded"
+                       href="{{ url_for('academic_services.lab_index', menu='new') }}">
+                        <span class="icon"><i class="far fa-plus"></i></span>
+                        <span>เพิ่มรายการ</span>
+                    </a>
+                </div>
+                <table id='requests' class="table is-fullwidth">
+                    <thead>
                     <th>เลขใบคำร้องขอ</th>
                     <th>วัน-เวลาทีส่ง</th>
                     <th>รายการ</th>
                     <th>สถานะ</th>
+                    <th>ใบเสนอราคา</th>
+                    <th>นัดหมายส่งตัวอย่าง</th>
+                    <th>การทดสอบ</th>
+                    <th>ใบแจ้งหนี้</th>
+                    <th>รายงานผลการทดสอบ</th>
+                    <th>หมายเหตุ</th>
                     <th>รายละเอียด</th>
                     <th></th>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
-</section>
+    </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
@@ -35,12 +161,14 @@
                 ajax: {
                     url: {{ url_for('academic_services.get_requests')|tojson|safe}},
                 },
-                order: [[0, 'desc']],
+                order: [[1, 'desc']],
+                scrollX: true,
+                autoWidth: false,
                 columns: [
-                    { data : 'request_no' },
+                    {data: 'request_no'},
                     {
-                        data : 'created_at',
-                        render: function(data) {
+                        data: 'created_at',
+                        render: function (data) {
                             if (data !== '') {
                                 let d = moment(data)
                                 return d.format('lll')
@@ -49,60 +177,162 @@
                             }
                         }
                     },
-                    { data: 'product'},
+                    {data: 'product'},
                     {
-                        data: 'status',
-                        render: function (data) {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            var color = row.customer_status_color
+                            var status = row.customer_status
                             if (data !== null) {
-                                return data
-                            }
-                            else {
-                                return 'ยังไม่ขอใบเสนอราคา'
+                                return `<span class="tag ${color}">${status}</span>`;
+                            } else {
+                                return `<span class="tag is-info">ร่างใบเสนอราคา</span>`;
                             }
                         }
                     },
                     {
-                        data: 'id',
-                        render: function (data) {
-
-                            var url = '/academic_services/request/view/' + data + '?menu=' + '{{ menu }}';
-                            return '<div class="field has-addons">' +
-                                        '<div class="control">' +
-                                            '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
-                                                '<span class="icon"><i class="fas fa-eye"></i></span>' +
-                                                '<span>Preview</span>' +
-                                            '</a>' +
-                                        '</div>' +
+                        data: 'quotation_status_for_customer',
+                        render: function (data, type, row) {
+                            if (data.status == 'อนุมัติ' || data.status == 'รออนุมัติ') {
+                                var url = '/academic_services/quotation/view/' + data.id + '?menu=quotation';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-outlined is-rounded is-link" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-file-invoice"></i></span>' +
+                                    '<span>ใบเสนอราคา</span>' +
+                                    '</a>' +
+                                    '</div>' +
                                     '</div>'
+                            } else if (data.status == 'ไม่อนุมัติ'){
+                                return 'เหตุผลที่ไม่อนุมัติ เนื่องจาก' + data.reason;
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'sample_appointment_status_for_customer',
+                        render: function (data, type, row) {
+                            if (data.status !== null && data.status != 'รอการนัดหมายส่งตัวอย่าง') {
+                                return `<span class="tag ${data.color}">
+                                            <span class="icon">${data.icon}</span>
+                                            <span>${data.status}</span>
+                                        </span>`;
+                            } else if (data.status == 'รอการนัดหมายส่งตัวอย่าง') {
+                                var url = '/academic_services/customer/sample/add/' + data.id + '?menu=sample';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-rounded is-warning" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>นัดหมายส่งตัวอย่าง</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'test_item_status',
+                        render: function (data, type, row) {
+                            if (data.status !== null) {
+                                return `<span class="tag ${data.color}">
+                                            <span class="icon">${data.icon}</span>
+                                            <span>${data.status}</span>
+                                        </span>`;
+                            } else {
+                                return ''
+                            }
                         }
                     },
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.status === 'รอตรวจสอบ' || row.status === 'กำลังตรวจสอบ' || row.status === null) {
-                                return '<div class="field has-addons">' +
-                                            '<div class="control">' +
-                                                '<a class="button is-small is-danger is-rounded" onclick="vm.warn(' + data + ')">' +
-                                                    '<span class="icon">' +
-                                                        '<i class="far fa-trash-alt"></i>' +
-                                                    '</span>' +
-                                                    '<span>ยกเลิก</span>' +
-                                                '</a>' +
-                                            '</div>' +
-                                       '</div>'
+                            if (row.has_invoice) {
+                                dowload_url = '/academic_services/aws-s3/download/' + row.invoice_file + '?download_filename=' + row.invoice_no + '.pdf';
+                                    return `
+                                        <div class="field has-addons">
+                                           <div class="control">
+                                              <a class="button is-small is-outlined is-info is-rounded"
+                                                 href="${dowload_url}">
+                                                 <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
+                                                 <span>ใบแจ้งหนี้</span>
+                                              </a>
+                                           </div>
+                                         </div>`;
+                            } else {
+                                return ''
                             }
-                            else {
+                        }
+                    },
+                    { data: 'files' },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if (row.status_id === 2 || row.status_id === 3 || row.status_id === 4) {
+                                return `<a class="button is-white is-small btn-content-info">
+                                            <span class="icon">
+                                                <i class="fas fa-info-circle"></i>
+                                            </span>
+                                            <span>รายละเอียด</span>
+                                        </a>`;
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data) {
+                            var url = '/academic_services/request/view/' + data + '?menu=' + '{{ menu }}';
+                            return '<div class="field has-addons">' +
+                                '<div class="control">' +
+                                '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
+                                '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                '<span>แสดงใบคำขอร้บบริการ</span>' +
+                                '</a>' +
+                                '</div>' +
+                                '</div>'
+                        }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if (row.status_id === 1) {
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-danger is-rounded" onclick="vm.warn(' + data + ')">' +
+                                    '<span class="icon">' +
+                                    '<i class="far fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span>ยกเลิก</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else {
                                 return ''
                             }
                         }
                     }
                 ]
             });
+            $('#requests tbody').on('click', '.btn-content-info', function () {
+                Swal.fire({
+                    title: 'คำขอใบเสนอราคาของคุณถูกส่งเรียบร้อยแล้ว',
+                    icon: 'info',
+                    html: `<p>ขณะนี้เรากำลังรอตรวจสอบและยืนยันจากเจ้าหน้าที่ห้องปฏิบัติการ ท่านจะได้รับใบเสนอราคาเมื่อการตรวจสอบเสร็จสิ้น ซึ่งปกติใช้เวลาไม่เกิน 1-2 วันทำการ</p>`,
+                    confirmButtonText: "รับทราบ",
+                    customClass: {
+                        htmlContainer: 'swal-text-left'
+                    }
+                })
+            })
         });
         vm = new Vue({
             el: '#app',
             methods: {
-                warn: function(request_id) {
+                warn: function (request_id) {
                     var menu = '{{ menu }}';
                     this.$buefy.dialog.confirm({
                         message: 'ต้องการยกเลิกใบคำขอรับบริการนี้จริงหรือไม่',
@@ -115,5 +345,33 @@
                 }
             }
         })
+        $(document).on('click', '.Warn', function () {
+            Swal.fire({
+                title: 'กรุณาชำระเงิน',
+                icon: 'warning',
+                text: 'ท่านยังไม่ได้ดำเนินการชำระเงิน กรุณาชำระเงินเพื่อให้สามารถดาวน์โหลดรายงานผลได้ค่ะ'
+            });
+        });
+        function showQuoteModal() {
+            const modal = new bootstrap.Modal(document.getElementById('quoteStatusModal'));
+            modal.show();
+        }
+    </script>
+    <script>
+        function showToast() {
+            toastr.success('ส่งคำขอเรียบร้อยแล้ว กรุณารอเจ้าหน้าที่ดำเนินการ');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        {% if category == 'send_request' %}
+                            showToast({{ message|tojson }}, 7000);
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
     </script>
 {% endblock %}

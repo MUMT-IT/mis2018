@@ -18,45 +18,69 @@
         </div>
         <div id="navbarMenuHeroA" class="navbar-menu">
             <div class="navbar-end">
-                <a class="navbar-item" href="{{ url_for('academic_services.customer_index') }}">
-                        <span class="icon">
-                            <i class="fas fa-home"></i>
-                        </span>
-                        <span>หน้าหลัก</span>
-                    </a>
+                <a class="navbar-item"
+                   {% if not current_user.is_authenticated %}
+                        href="{{ url_for('academic_services.customer_index') }}"
+                   {% else %}
+                        href="{{ url_for('academic_services.lab_index', menu='new') }}"
+                   {% endif %}
+                >
+                    <span class="icon">
+                        <i class="fas fa-home"></i>
+                    </span>
+                    <span>หน้าหลัก</span>
+                </a>
                 {% if not current_user.is_authenticated %}
-                     <a class="navbar-item" href="{{ url_for('academic_services.create_customer_account') }}">
-                     <span class="icon">
-                        <i class="fas fa-user-edit"></i>
-                     </span>
-                     <span>
-                        สมัครสมาชิก
-                     </span>
+                    <a class="navbar-item" href="{{ url_for('academic_services.pdpa_index') }}">
+                        <span class="icon">
+                            <i class="fas fa-user-edit"></i>
+                        </span>
+                        <span>สมัครสมาชิก</span>
                     </a>
                 {% else %}
-                    <a class="navbar-item" href="{{ url_for('academic_services.account') }}">
-                       <span class="icon">
-                           <i class="fas fa-user-circle"></i>
-                       </span>
-                        <span>
-                            {{ current_user.email }}
-                       </span>
-                    </a>
+                    <div class="navbar-item has-dropdown is-hoverable">
+                        <a class="navbar-link">
+                            <span class="icon">
+                                <i class="fas fa-user"></i>
+                            </span>
+                            <span>
+                                {{ current_user.email }}
+                            </span>
+                        </a>
+                        <div class="navbar-dropdown">
+                            <a class="navbar-item" href="{{ url_for('academic_services.account') }}">
+                                <span class="icon">
+                                    <i class="fas fa-address-book"></i>
+                                </span>
+                                <span>
+                                    ข้อมูลบัญชี
+                                </span>
+                            </a>
+                            <a class="navbar-item" href="{{ url_for('academic_services.customer_account') }}">
+                                <span class="icon">
+                                    <i class="fas fa-user-tie"></i>
+                                </span>
+                                <span>
+                                    ข้อมูลลูกค้า
+                                </span>
+                            </a>
+                            <a class="navbar-item" href="{{ url_for('academic_services.address_index') }}">
+                                <span class="icon">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </span>
+                                <span>
+                                    ข้อมูลที่อยู่
+                                </span>
+                            </a>
+                         </div>
+                    </div>
                     <a class="navbar-item" href="{{ url_for('academic_services.logout') }}">
-                       <span class="icon">
-                           <i class="fas fa-sign-out-alt"></i>
-                       </span>
-                        <span>
-                           ออกจากระบบ
-                       </span>
+                        <span class="icon">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </span>
+                        <span>ออกจากระบบ</span>
                     </a>
                 {% endif %}
-                <a class="navbar-item" href="{{ url_for('academic_services.lab_index', menu='new') }}">
-                    <span class="icon">
-                        <i class="fas fa-bars"></i>
-                    </span>
-                    <span>เมนู</span>
-                </a>
                 <a class="navbar-item" href="https://mt.mahidol.ac.th/services-th/">
                     <span class="icon">
                         <i class="fa-solid fa-ellipsis-vertical"></i>

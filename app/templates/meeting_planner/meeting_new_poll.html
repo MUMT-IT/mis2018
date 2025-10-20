@@ -137,23 +137,16 @@
                                 <select class="js-example-basic-multiple" name="groups" multiple="multiple"></select>
                             </div>
                         </div>
-                        <br>
-                        <div class="card">
-                            <div class="card-header">
-                                <p class="card-header-title">รายชื่อผู้เข้าร่วม</p>
+                        <div class="field">
+                            <label class="label">รายชื่อผู้เข้าร่วม</label>
+                            <div class="control">
+                                {{ form.participants(class='js-example-basic-multiple', multiple='multiple') }}
                             </div>
-                            <div class="card-content">
-                                <div class="field">
-                                    <div class="control">
-                                        {{ form.participants(class='js-example-basic-multiple', multiple='multiple') }}
-                                    </div>
-                                    <div class="buttons is-left">
-                                        <span class="help is-danger">*หมายเหตุ : หากมีการเลือกกลุ่มแล้วไม่จำเป็นต้องเพิ่มรายชื่อผู้เข้าร่วม</span>
-                                    </div>
-                                </div>
+                            <div class="buttons is-left">
+                                <span class="help is-danger">*หมายเหตุ : หากมีการเลือกกลุ่มแล้วไม่จำเป็นต้องเพิ่มรายชื่อผู้เข้าร่วม</span>
                             </div>
                         </div>
-                        <br>
+                        <br/>
                         <div class="field is-grouped is-grouped-centered">
                             {% if poll_id %}
                                 <div class="control">

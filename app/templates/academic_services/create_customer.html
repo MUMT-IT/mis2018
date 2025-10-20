@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "academic_services/service_base.html" %}
 {% block title %}Create Customer Account{% endblock %}
 {% include "academic_services/customer_nav.html" %}
 {% block head %}
@@ -49,23 +49,9 @@
                                     </div>
                                 </div>
                                 <div class="field">
-                                    <div class="control">
-                                        {{ form.confirm_pdpa() }}
-                                        <a href="https://mt.mahidol.ac.th/wp-content/uploads/home/main/privacy-policy/2023/PDPA-MUMT.pdf">
-                                            นโยบายการเก็บรวบรวมข้อมูลส่วนบุคคล
-                                        </a>
-                                        <label class="label">
-                                            <span class="is-size-7 ml-4 has-text-link">
-                                                งานบริการตรวจวิเคราะห์มีความจำเป็นต้องเก็บรวบรวมข้อมูลส่วนบุคคลได้แก่ ชื่อ-นามสกุล เลขบัตรประจำตัวประชาชน
-                                                เบอร์โทรศัพท์ และอีเมล เพื่อประโยชน์ในการออกใบเสนอราคา และใบแจ้งหนี้</span>
-                                            <br/>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="field">
                                     <div class="buttons is-centered">
-                                        <a href="{{ url_for('academic_services.customer_index') }}" class="button">Cancel</a>
-                                        <button class="button is-success" type="submit" value="submit">Submit</button>
+                                        <a href="{{ url_for('academic_services.customer_index') }}" class="button">ยกเลิก</a>
+                                        <button class="button is-success" type="submit" value="submit">ยืนยัน</button>
                                     </div>
                                 </div>
                             </form>

@@ -581,6 +581,8 @@ def head_view_rounds():
         sent_rounds = DocRoundOrg.query.filter_by(org_id=_org.id) \
             .order_by(DocRoundOrg.sent_at.desc()).limit(60)
         return render_template('documents/head/rounds.html', sent_rounds=sent_rounds)
+    else:
+        return 'You are not a head of the department', 403
 
 
 @docbp.route('/head/sent_rounds/<int:sent_round_org_id>/docs/<int:doc_id>/review', methods=['GET', 'POST'])

@@ -1,11 +1,26 @@
 # -*- coding:utf-8 -*-
+import os
+import boto3
 from pytz import timezone
 from sqlalchemy import func
 
 from app.main import db
+from app.models import CostCenter, IOCode, ProductCode
 from app.procurement.models import ProcurementDetail
 from app.room_scheduler.models import RoomResource
 from app.staff.models import StaffAccount
+
+AWS_ACCESS_KEY_ID = os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+AWS_REGION = os.getenv('BUCKETEER_AWS_REGION')
+S3_BUCKET_NAME = os.getenv('BUCKETEER_BUCKET_NAME')
+
+s3 = boto3.client(
+    's3',
+    region_name=AWS_REGION,
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+)
 
 localtz = timezone('Asia/Bangkok')
 
@@ -165,6 +180,24 @@ class ComplaintRecord(db.Model):
     def is_editable(self):
         return self.closed_at is None
 
+    @property
+    def to_link(self):
+        return self.generate_presigned_url(s3, S3_BUCKET_NAME)
+
+    def generate_presigned_url(self):
+
+        if self.url:
+            try:
+                return s3.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': S3_BUCKET_NAME, 'Key': self.url},
+                    ExpiresIn=3600
+                )
+            except Exception as e:
+                print(f"Error generating presigned URL: {e}")
+                return None
+        return None
+
     def has_assignee(self, admin_id):
         for assignee in self.assignees:
             if assignee.assignee_id == admin_id:
@@ -176,6 +209,11 @@ class ComplaintRecord(db.Model):
             if topic.admin == admin:
                 return True
         return False
+
+    def get_record_by_status(self, status):
+        if self.status and self.status.code == status:
+                return self
+        return None
 
     def to_dict(self):
         return {
@@ -207,16 +245,6 @@ class ComplaintActionRecord(db.Model):
     deadline = db.Column('deadline', db.DateTime(timezone=True))
 
 
-class ComplaintAssignee(db.Model):
-    __tablename__ = 'complaint_assignees'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
-    record = db.relationship(ComplaintRecord, backref=db.backref('assignees', cascade='all, delete-orphan'))
-    assignee_id = db.Column('assignee_id', db.ForeignKey('complaint_admins.id'))
-    assignee = db.relationship(ComplaintAdmin, backref=db.backref('records', cascade='all, delete-orphan'))
-    assignee_datetime = db.Column('assignee_datetime', db.DateTime(timezone=True))
-
-
 class ComplaintPerformanceReport(db.Model):
     __tablename__ = 'complaint_performance_reports'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -228,6 +256,26 @@ class ComplaintPerformanceReport(db.Model):
     reporter = db.relationship(ComplaintAdmin, backref=db.backref('reports', cascade='all, delete-orphan'))
 
 
+class ComplaintAssignee(db.Model):
+    __tablename__ = 'complaint_assignees'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('assignees', cascade='all, delete-orphan'))
+    assignee_id = db.Column('assignee_id', db.ForeignKey('complaint_admins.id'))
+    assignee = db.relationship(ComplaintAdmin, backref=db.backref('records', cascade='all, delete-orphan'))
+    assignee_datetime = db.Column('assignee_datetime', db.DateTime(timezone=True))
+
+
+class ComplaintHandler(db.Model):
+    __tablename__ = 'complaint_handlers'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('handlers', cascade='all, delete-orphan'))
+    handler_id = db.Column('handler_id', db.ForeignKey('complaint_admins.id'))
+    handler = db.relationship(ComplaintAdmin, backref=db.backref('handled_records', cascade='all, delete-orphan'))
+    handled_at = db.Column('handled_at', db.DateTime(timezone=True))
+
+
 class ComplaintInvestigator(db.Model):
     __tablename__ = 'complaint_investigators'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -237,6 +285,11 @@ class ComplaintInvestigator(db.Model):
     admin = db.relationship(ComplaintAdmin, backref=db.backref('investigators', cascade='all, delete-orphan'))
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
     record = db.relationship(ComplaintRecord, backref=db.backref('investigators', cascade='all, delete-orphan'))
+
+    def get_record_by_status(self, status):
+        if self.record.status and self.record.status.code == status:
+            return self.record
+        return None
 
 
 class ComplaintAdminTypeAssociation(db.Model):
@@ -260,3 +313,73 @@ class ComplaintCoordinator(db.Model):
     record = db.relationship(ComplaintRecord, backref=db.backref('coordinators', cascade='all, delete-orphan'))
     recorder_id = db.Column('recorder_id', db.ForeignKey('staff_account.id'))
     recorder = db.relationship(StaffAccount, foreign_keys=[recorder_id])
+
+    def get_record_by_status(self, status):
+        if self.record.status and self.record.status.code == status:
+            return self.record
+        return None
+
+
+class ComplaintRepairApproval(db.Model):
+    __tablename__ = 'complaint_repair_approvals'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    procurement_no = db.Column('procurement_no', db.String(), info={'label': 'เลขครุภัณฑ์'})
+    repair_type = db.Column('repair_type', db.String(), info={'label': 'ประเภทอนุมัติหลักการซ่อม',
+                                                                  'choices': [('เร่งด่วน', 'เร่งด่วน'),
+                                                                              ('ไม่เร่งด่วน (ซื้อ/จ้าง)', 'ไม่เร่งด่วน (ซื้อ/จ้าง)'),
+                                                                              ]
+                                                                  })
+    principle_approval_type = db.Column('principle_approval_type', db.String(), info={'label': 'ประเภทการขออนุมัติ',
+                                                                                      'choices': [('ซื้อ', 'ซื้อ'),
+                                                                                                  ('จ้าง', 'จ้าง'),
+                                                                                                  ('จ้างซ่อม', 'จ้างซ่อม')
+                                                                                                  ]
+                                                                                      })
+    name = db.Column('name', db.String(), info={'label': 'ชื่อผู้ดำเนินการ'})
+    position = db.Column('position', db.String(), info={'label': 'ตำแหน่ง'})
+    organization = db.Column('organization', db.String(), info={'label': 'ภาควิชา/ศูนย์/หน่วยงาน'})
+    item = db.Column('item', db.String(), info={'label': 'รายการ/ครุภัณฑ์'})
+    reason = db.Column('reason', db.Text())
+    detail = db.Column('detail', db.Text())
+    purpose = db.Column('purpose', db.Text())
+    price = db.Column('price', db.Float())
+    supplier = db.Column('supplier', db.String())
+    book_number = db.Column('book_number', db.String(), info={'label': 'เล่มที่'})
+    receipt_number = db.Column('receipt_number', db.String(), info={'label': 'เลขที่'})
+    receipt_date = db.Column('receipt_date', db.Date(), info={'label': 'วันที่'})
+    purchase_type = db.Column('purchase_type', db.String(), info={'label': 'ประเภทการซื้อ',
+                                                                  'choices': [('รายได้ส่วนงาน', 'รายได้ส่วนงาน'),
+                                                                              ('เงินงบประมาณแผ่นดิน', 'เงินงบประมาณแผ่นดิน')
+                                                                              ]
+                                                                  })
+    budget_year = db.Column('budget_year', db.Integer(), info={'label': 'ประจำปีงบประมาณ'})
+    cost_center_id = db.Column('cost_center_id', db.ForeignKey('cost_centers.id'))
+    cost_center = db.relationship(CostCenter, backref=db.backref('repair_approvals'))
+    io_code_id = db.Column('io_code_id', db.ForeignKey('iocodes.id'))
+    io_code = db.relationship(IOCode, backref=db.backref('repair_approvals'))
+    product_code_id = db.Column('product_code_id', db.ForeignKey('product_codes.id'))
+    product_code = db.relationship(ProductCode, backref=db.backref('repair_approvals'))
+    remark = db.Column('remark', db.Text())
+    loan_no = db.Column('loan_no', db.String(), info={'label': 'เลขที่ใบยืม'})
+    created_at = db.Column('created_at', db.DateTime(timezone=True), info={'label': 'วันที่'})
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+    creator = db.relationship(StaffAccount, backref=db.backref('repair_approvals'),
+                              foreign_keys=[creator_id])
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('repair_approvals'))
+
+    def __str__(self):
+        return self.item
+
+
+class ComplaintCommittee(db.Model):
+    __tablename__ = 'complaint_committees'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    committee_name = db.Column('committee_name', db.String())
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship(StaffAccount, backref=db.backref('committees'))
+    position = db.Column('position', db.String(), info={'label': 'ตำแหน่ง'})
+    committee_position = db.Column('committee_position', db.String(), info={'label': 'ตำแหน่งคณะกรรมการ'})
+    repair_approval_id = db.Column('repair_approval_id', db.ForeignKey('complaint_repair_approvals.id'))
+    repair_approval = db.relationship(ComplaintRepairApproval, backref=db.backref('committees', cascade='all, delete-orphan'))

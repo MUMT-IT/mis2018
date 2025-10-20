@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker Admin{% endblock %}
-
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
+{% endblock %}
 {% block page_content %}
 {% include "nav.html" %}
     <section class="section">
@@ -45,77 +48,91 @@
                             </li>
                         </ul>
                     </div>
-                    <table id="records" class="table is-fullwidth">
-                        <thead>
-                        <th>รายละเอียด</th>
-                        <th>หัวข้อ</th>
-                        <th>ประเภท</th>
-                        <th>ประเภทครุภัณฑ์</th>
-                        <th>บทบาท</th>
-                        <th>วันที่สร้าง</th>
-                        <th>ระดับความรุนแรง</th>
-                        <th>สถานะ</th>
-                        <th>ตรวจสอบ</th>
-                        </thead>
-                        <tbody>
-                            {% for record in records %}
-                                <tr>
-                                    <td style="width: 20em;">{{ record.desc }}</td>
-                                    <td style="width: 15em;">{{ record.topic }}</td>
-                                    <td>{{ record.type or 'ไม่ระบุ' }}</td>
-                                    <td style="width: 10em">
-                                        {% if record.procurements %}
-                                            {% for procurement in record.procurements %}
-                                                {{ procurement.category }}
-                                            {% endfor %}
-                                        {% else %}
-                                            ไม่ระบุ
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if record.has_admin(current_user) %}
-                                            <span class="tag is-light is-link">
-                                                ผู้รับผิดชอบ
-                                            </span>
-                                        {% else %}
-                                            <span class="tag is-light is-warning">
-                                                ผู้รร่วมตรวจสอบ
-                                            </span>
-                                        {% endif %}
-                                    </td>
-                                    <td data-order="{{ record.created_at }}">
-                                        {{ record.created_at|localdatetime }}
-                                    </td>
-                                    <td style="width: 10em;">
-                                        <span class="tag {{ record.priority.color }}">
-                                            {{ record.priority or 'ไม่ระบุ'}}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        {% if record.status %}
-                                            <span class="tag {{ record.status.color }}">
-                                                {{ record.status }}
-                                            </span>
-                                            {% if record.closed_at %}
-                                                {{ record.closed_at|localdatetime }}
-                                            {% endif %}
-                                        {% else %}
-                                            <span class="tag is-danger">
-                                                ยังไม่ดำเนินการ
-                                            </span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <a href="{{ url_for('comp_tracker.edit_record_admin', record_id=record.id, tab=tab) }}">
-                                            <span class="icon">
-                                                <i class="fas fa-search"></i>
-                                            </span>
-                                        </a>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                    <form method="post" action="{{ url_for('comp_tracker.admin_index', tab=tab) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="submit" value="Print" class="button is-success">
+                        <br/>
+                        <table id="records" class="table is-fullwidth">
+                            <thead>
+                            <th></th>
+                            <th>ID</th>
+                            <th>รายละเอียด</th>
+                            <th>หัวข้อ</th>
+                            <th>ประเภท</th>
+                            <th>ประเภทครุภัณฑ์</th>
+                            <th>บทบาท</th>
+                            <th>วันที่สร้าง</th>
+                            <th>ระดับความรุนแรง</th>
+                            <th>สถานะ</th>
+                            <th>ตรวจสอบ</th>
+                            </thead>
+                            <tbody>
+                                {% if records %}
+                                    {% for record in records|sort(attribute='created_at', reverse = True) %}
+                                        <tr>
+                                            <td>
+                                                <input class="is-checkradio" id="{{ record.id }}" type="checkbox" name="selected_items" value="{{ record.id }}">
+                                                <label for="{{ record.id }}"></label>
+                                            </td>
+                                            <td>{{ record.id }}</td>
+                                            <td style="width: 20em;">{{ record.desc }}</td>
+                                            <td style="width: 15em;">{{ record.topic }}</td>
+                                            <td>{{ record.type or 'ไม่ระบุ' }}</td>
+                                            <td style="width: 10em">
+                                                {% if record.procurements %}
+                                                    {% for procurement in record.procurements %}
+                                                        {{ procurement.category }}
+                                                    {% endfor %}
+                                                {% else %}
+                                                    ไม่ระบุ
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if record.has_admin(current_user) %}
+                                                    <span class="tag is-light is-link">
+                                                        ผู้รับผิดชอบ
+                                                    </span>
+                                                {% else %}
+                                                    <span class="tag is-light is-warning">
+                                                        ผู้รร่วมตรวจสอบ
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {{ record.created_at|localdatetime }}
+                                            </td>
+                                            <td style="width: 10em;">
+                                                <span class="tag {{ record.priority.color }}">
+                                                    {{ record.priority or 'ไม่ระบุ'}}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if record.status %}
+                                                    <span class="tag {{ record.status.color }}">
+                                                        {{ record.status }}
+                                                    </span>
+                                                    {% if record.closed_at %}
+                                                        {{ record.closed_at|localdatetime }}
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="tag is-danger">
+                                                        ยังไม่ดำเนินการ
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <a href="{{ url_for('comp_tracker.edit_record_admin', record_id=record.id, tab=tab) }}">
+                                                    <span class="icon">
+                                                        <i class="fas fa-search"></i>
+                                                    </span>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </form>
                 </div>
             </div>
         </div>
@@ -126,7 +143,7 @@
     <script>
         $(document).ready(function () {
             $('#records').DataTable({
-                order: [[5, 'desc']]
+                order: [[6, 'desc']],
             })
         });
     </script>

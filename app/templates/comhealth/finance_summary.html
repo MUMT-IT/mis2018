@@ -6,6 +6,8 @@
         <h1 class="title">รายการสรุปใบเสร็จรับเงิน</h1>
         <h1 class="title is-4">{{ service.location }}</h1>
         <h1 class="subtitle">วันที่ {{ service.date }}</h1>
+        {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
+        {{ user_evaluate('comhealth_finance') }}
         <form method="post">
             <div class="field is-horizontal">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

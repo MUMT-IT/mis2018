@@ -115,7 +115,7 @@
                                                 <span class="icon">
                                                     <i class="fas fa-calendar-minus"></i>
                                                 </span>
-                                                <small>{{ poll.start_vote.strftime('%d/%m/%Y %H:%M') }} - {{ poll.close_vote.strftime('%d/%m/%Y %H:%M') }}</small>
+                                                <small>{{ poll.start_vote|localdatetime }} - {{ poll.close_vote|localdatetime }}</small>
                                                 <br>
                                                 <span class="icon">
                                                     <i class="fas fa-history"></i>
@@ -129,7 +129,7 @@
                                                 <a href="{{ url_for('meeting_planner.add_vote', poll_id=poll.id) }}">
                                                     {% if poll.start_vote <= now %}
                                                         <span class="icon">
-                                                            <i class="fas fa-reply"></i>
+                                                            <i class="fas fa-pencil"></i>
                                                         </span>
                                                      <small>{{ 'สำรวจ' }}</small>
                                                     {% endif %}
@@ -143,7 +143,7 @@
                         <footer class="card-footer">
                             <p class="card-footer-item">
                                 <strong>
-                                    <small>คลิกที่ <span><i class="fas fa-reply"></i></span> เพื่อสำรวจ</small>
+                                    <small>คลิกที่ <span><i class="fas fa-pencil"></i></span> เพื่อสำรวจ</small>
                                 </strong>
                             </p>
                         </footer>
@@ -376,7 +376,7 @@
                     </nav>
                     <nav class="panel is-danger">
                         <p class="panel-heading">Services (กำลังพัฒนาและทดลอง)</p>
-                        <a href="{{ url_for('service_admin.index') }}" class="panel-block">
+                        <a href="{{ url_for('service_admin.request_index', menu='request') }}" class="panel-block">
                             <span class="panel-icon">
                                 <i class="fa fa-exclamation-triangle has-text-warning"></i>
                             </span>
@@ -432,6 +432,12 @@
                             </span>
                             <span class="is-size-5">ระบบขอรับบริการพัฒนา Software</span>
                         </a>
+{#                        <a href="{{ url_for('service_admin.add_meeting') }}"  class="panel-block">#}
+{#                            <span class="panel-icon">#}
+{#                                <i class="fa fa-exclamation-triangle has-text-warning"></i>#}
+{#                            </span>#}
+{#                            <span class="is-size-5">ระบบนัดหมายประชุมกรรมการพัสดุ</span>#}
+{#                        </a>#}
                     </nav>
                     <nav class="panel is-info">
                         <p class="panel-heading">Analytics</p>
@@ -441,7 +447,7 @@
                             <i class="fas fa-tasks"></i>
                         </span>
                         <span class="is-size-5">
-                            กระบวนการการทำงาน
+                            ระบบฐานข้อมูลตัวชี้วัดและกระบวนการการทำงาน
                         </span>
                         </a>
                         <a href="{{ url_for('research.dashboard') }}" class="panel-block">
@@ -452,14 +458,14 @@
                             ระบบวิเคราะห์ผลงานวิจัย
                         </span>
                         </a>
-                        <a href="{{ url_for('kpi_blueprint.main') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-tachometer-alt"></i>
-                        </span>
-                            <span class="is-size-5">
-                            ระบบฐานข้อมูลตัวชี้วัดองค์กร
-                        </span>
-                        </a>
+{#                        <a href="{{ url_for('kpi_blueprint.main') }}" class="panel-block">#}
+{#                        <span class="panel-icon">#}
+{#                            <i class="fas fa-tachometer-alt"></i>#}
+{#                        </span>#}
+{#                            <span class="is-size-5">#}
+{#                            ระบบฐานข้อมูลตัวชี้วัดองค์กร#}
+{#                        </span>#}
+{#                        </a>#}
                         <a href="{{ url_for('kpi_blueprint.dashboard_index') }}"
                            class="panel-block">
                         <span class="panel-icon">

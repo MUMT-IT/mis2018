@@ -1,0 +1,191 @@
+<div class="modal is-active animate__animated" id="address-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title" align="center">
+                {% if address_id %}
+                    แก้ไขข้อมูล
+                {% elif type == 'customer' %}
+                    เพิ่มที่อยู่จัดส่งเอกสาร
+                {% elif type == 'quotation' %}
+                    เพิ่มที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
+                {% endif %}
+            </p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form {% if address_id %}
+                        hx-post="{{ url_for('service_admin.edit_customer_address', address_id=address_id) }}"
+                  {% else %}
+                        hx-post="{{ url_for('service_admin.edit_customer_address', type=type, customer_id=customer_id) }}"
+                  {% endif %}
+                  hx-indicator="#submit-form"
+            >
+                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                <div class="field">
+                    <label class="label">
+                        {% if type == 'quotation' or address_type == 'quotation' %}
+                            ออกในนาม
+                        {% else %}
+                            ถึง
+                        {% endif %}
+                        <span class="has-text-danger">*</span>
+                    </label>
+                    <div class="control has-icons-left is-expanded">
+                        {{ form.name(class="input", placeholder='Name') }}
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-user"></i>
+                        </span>
+                    </div>
+                </div>
+                {% if address_type == 'quotation' or type == 'quotation' %}
+                    <div class="field">
+                        <label class="label">
+                            {{ form.taxpayer_identification_no.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control has-icons-left is-expanded">
+                            {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X',
+                                    oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
+                            <span class="icon is-small is-left">
+                                <i class="fa-solid fa-list-ol"></i>
+                            </span>
+                        </div>
+                    </div>
+                {% endif %}
+                <div class="field ">
+                    <label class="label">
+                        {{ form.address.label }}
+                        <span class="has-text-danger">*</span>
+                    </label>
+                    <div class="control has-icons-left is-expanded">
+                        {{ form.address(class="input", placeholder='Address') }}
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </span>
+                    </div>
+                </div>
+                <div class="field-body" style="margin-bottom: .8em">
+                    <div class="field">
+                        <label class="label">
+                            {{ form.province.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ form.province(class='js-example-basic-single', onchange="updateDistricts()") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">
+                            {{ form.district.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ form.district(class='js-example-basic-single', onchange="updateSubdistricts()") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">
+                            {{ form.subdistrict.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ form.subdistrict(class='js-example-basic-single', onchange="updateZipcode()") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">
+                        รหัสไปรษณีย์
+                        <span class="has-text-danger">*</span>
+                    </label>
+                    <div class="control">
+                        {{ form.zipcode(class='input') }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">
+                        {{ form.phone_number.label }}
+                        <span class="has-text-danger">*</span>
+                    </label>
+                    <div class="control has-icons-left is-expanded">
+                        {{ form.phone_number(class="input", placeholder='08X-XXX-XXXX',
+                                oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-phone"></i>
+                        </span>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.remark.label }}</label>
+                    <div class="control has-icons-left is-expanded">
+                        {{ form.remark(class="input", placeholder='Note') }}
+                        <span class="icon is-small is-left">
+                                <i class="fa-solid fa-text-height"></i>
+                            </span>
+                    </div>
+                </div>
+                <div class="field ">
+                    <div class="buttons is-centered">
+                        <a id="cancelModal" class="button">ยกเลิก</a>
+                        <input type="submit" id="submit-form" class="button is-success" value="บันทึก">
+                    </div>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.addClass(htmx.find('#address-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#address-modal'), "is-active", 500)
+    })
+    window.document.getElementById("cancelModal").addEventListener("click", function () {
+        htmx.addClass(htmx.find('#address-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#address-modal'), "is-active", 500)
+    })
+
+    $(document).ready(()=> {
+        $('.js-example-basic-single').select2({
+            width: '100%'
+        });
+    });
+
+    function updateDistricts() {
+        const provinceId = document.getElementById('province').value;
+        fetch('/academic_services/api/get_districts?province_id=' + provinceId)
+            .then(res => res.json())
+            .then(data => {
+                const districtSelect = document.getElementById('district');
+                districtSelect.innerHTML = '<option value="">กรุณาเลือกอำเภอ</option>';
+                data.forEach(d => {
+                    districtSelect.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+                });
+                document.getElementById('subdistrict').innerHTML = '<option value="">กรุณาเลือกตำบล</option>';
+                document.getElementById('zipcode').value = '';
+            });
+    }
+
+    function updateSubdistricts() {
+        const districtId = document.getElementById('district').value;
+        fetch('/academic_services/api/get_subdistricts?district_id=' + districtId)
+            .then(res => res.json())
+            .then(data => {
+                const subSelect = document.getElementById('subdistrict');
+                subSelect.innerHTML = '<option value="">กรุณาเลือกตำบล</option>';
+                data.forEach(s => {
+                    subSelect.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+                });
+                document.getElementById('zipcode').value = '';
+            });
+    }
+
+    function updateZipcode() {
+        const subdistrictId = document.getElementById('subdistrict').value;
+        fetch('/academic_services/api/get_zipcode?subdistrict_id=' + subdistrictId)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('zipcode').value = data.zipcode || '';
+            });
+    }
+</script>

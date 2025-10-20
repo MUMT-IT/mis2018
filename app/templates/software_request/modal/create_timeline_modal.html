@@ -1,0 +1,140 @@
+<div class="modal is-active animate__animated" id="timeline-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title" align="center">
+                {% if detail_id %}
+                    Add Timeline
+                {% else %}
+                    Edit Timeline
+                {% endif %}
+            </p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form
+                    {% if timeline_id %}
+                        hx-post="{{ url_for('software_request.create_timeline', timeline_id=timeline_id, tab=tab) }}"
+                    {% else %}
+                        hx-post="{{ url_for('software_request.create_timeline', detail_id=detail_id, tab=tab) }}"
+                    {% endif %}
+                        hx-indicator="#submit-form"
+                        hx-target="#timelines"
+                        hx-swap="beforeend"
+            >
+                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                <div class="field">
+                    <label class="label">
+                        {{ form.task.label }}
+                        <span class="has-text-danger">*</span>
+                    </label>
+                    <div class="control">
+                        {{ form.task(class='textarea') }}
+                    </div>
+                </div>
+                <div class="field-body">
+                    <div class="field" style="margin-top: 1em">
+                        <label class="label">
+                            {{ form.start.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ form.start(class='input') }}
+                        </div>
+                    </div>
+                    <div class="field" style="margin-top: 1em">
+                        <label class="label">
+                            {{ form.estimate.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ form.estimate(class='input') }}
+                        </div>
+                    </div>
+                </div>
+                <div class="field-body">
+                    <div class="field" style="margin-top: 1em">
+                        <label class="label">
+                            {{ form.phase.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ form.phase(class='js-example-basic-single') }}
+                        </div>
+                    </div>
+                    <div class="field" style="margin-top: 1em">
+                        <label class="label">
+                            {{ form.status.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ form.status(class='js-example-basic-single') }}
+                        </div>
+                    </div>
+                    <div class="field" style="margin-top: 1em">
+                        <label class="label">
+                            {{ form.admin.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ form.admin(class='js-example-basic-single') }}
+                        </div>
+                    </div>
+                </div>
+                <div class="field is-grouped is-grouped-centered" style="margin-top: 1em">
+                    <div class="control">
+                        <input type="submit" id="submit-form" class="button is-success" value="บันทึก">
+                    </div>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.addClass(htmx.find('#timeline-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#timeline-modal'), "is-active", 500)
+    })
+    $(document).ready(() => {
+        moment.locale('th');
+        $('.js-example-basic-single').select2({
+            width: '100%',
+        });
+        $('input[name="start"]').daterangepicker({
+            singleDatePicker: true,
+            showDropdowns: true,
+            autoUpdateInput: false,
+            {% if form.start.data %}
+                startDate: {{ form.start.data.isoformat()|tojson|safe }},
+            {% endif %}
+            locale: {
+                format: 'YYYY-MM-DD',
+                cancelLabel: 'Clear'
+            },
+        });
+        $('input[name="start"]').on('apply.daterangepicker', function (ev, picker) {
+            $(this).val(picker.startDate.format('YYYY-MM-DD'));
+        });
+        $('input[name="start"]').on('cancel.daterangepicker', function () {
+            $(this).val('');
+        });
+         $('input[name="estimate"]').daterangepicker({
+            singleDatePicker: true,
+            showDropdowns: true,
+            autoUpdateInput: false,
+            {% if form.start.data %}
+                startDate: {{ form.start.data.isoformat()|tojson|safe }},
+            {% endif %}
+            locale: {
+                format: 'YYYY-MM-DD',
+                cancelLabel: 'Clear'
+            },
+        });
+        $('input[name="estimate"]').on('apply.daterangepicker', function (ev, picker) {
+            $(this).val(picker.startDate.format('YYYY-MM-DD'));
+        });
+        $('input[name="estimate"]').on('cancel.daterangepicker', function () {
+            $(this).val('');
+        });
+    });
+</script>
