@@ -227,22 +227,22 @@
                         </b-field>
                         <hr>
                         <br>
-                        <div class="field">
-                            <div class="field">
-                                <p class="title is-size-4">ต้องการดาวน์โหลดแบบฟอร์มขออนุมัติอบรม</p>
-                            </div>
-                            <div class="block">
-                                <b-radio native-value="want" v-model="wantdocument" name="wantdocument">ต้องการ
-                                </b-radio>
-                                <b-radio native-value="dontwant" v-model="wantdocument" name="wantdocument">ไม่ต้องการ
-                                </b-radio>
-                            </div>
-                        </div>
-                        <br>
+{#                        <div class="field">#}
+{#                            <div class="field">#}
+{#                                <p class="title is-size-4">ต้องการดาวน์โหลดแบบฟอร์มขออนุมัติอบรม</p>#}
+{#                            </div>#}
+{#                            <div class="block">#}
+{#                                <b-radio native-value="want" v-model="wantdocument" name="wantdocument">ต้องการ#}
+{#                                </b-radio>#}
+{#                                <b-radio native-value="dontwant" v-model="wantdocument" name="wantdocument">ไม่ต้องการ#}
+{#                                </b-radio>#}
+{#                            </div>#}
+{#                        </div>#}
+{#                        <br>#}
                         <div class="field" v-if="wantdocument === 'want'">
                             <div class="field is-horizontal">
                                 <div class="field is-normal">
-                                    <label class="label">ผู้บังคับบัญชาชั้นต้น</label>
+                                    <label class="label">ผู้บังคับบัญชา (ชื่อจะปรากฎบนเอกสาร)</label>
                                 </div>
                                 <div class="field-body">
                                     <div class="control">
@@ -263,20 +263,19 @@
                                          required>
                                 </b-input>
                             </b-field>#}
-                        <div class="columns">
-                            <div class="column">
-                                <div class="notification is-warning is-light">
-                                        <span>
-                                            หมายเหตุ: รองคณบดีจะยังไม่ได้รับการแจ้งเตือนการขออนุมัติไปอบรม<br>
-                                            จนกว่าผู้บังคับบัญชาชั้นต้นจะอนุมัติเรียบร้อยแล้ว
-                                        </span>
-                                    <br>
-                                </div>
-                            </div>
-                        </div>
+{#                        <div class="columns">#}
+{#                            <div class="column">#}
+{#                                <div class="notification is-warning is-light">#}
+{#                                        <span>#}
+{#                                            หมายเหตุ: รองคณบดีจะยังไม่ได้รับการแจ้งเตือนการขออนุมัติไปอบรม<br>#}
+{#                                            จนกว่าผู้บังคับบัญชาชั้นต้นจะอนุมัติเรียบร้อยแล้ว#}
+{#                                        </span>#}
+{#                                    <br>#}
+{#                                </div>#}
+{#                            </div>#}
+{#                        </div>#}
                     </div>
                 </div>
-
                 <div class="columns">
                     <div class="column is-half is-offset-one-quarter">
                         <div class="field is-grouped is-grouped-centered">

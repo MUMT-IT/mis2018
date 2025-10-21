@@ -26,6 +26,7 @@
                 <table class="table is-striped" id="seminarTable">
                     <thead>
                         <th>ประเภทกิจกรรม</th>
+                        <th>ด้าน</th>
                         <th>ชื่อกิจกรรม</th>
                         <th>วันที่เริ่มต้น</th>
                         <th>วันที่สิ้นสุด</th>
@@ -39,6 +40,7 @@
                         <td>
                             {{ record["topic_type"] }}
                         </td>
+                        <td> {{ record["missions"] }} </td>
                         <td>
                             <a href="{{ url_for('staff.seminar_attend_info_for_hr', seminar_id=record['id']) }}">
                             {{ record["name"] }}
