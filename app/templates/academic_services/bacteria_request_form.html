@@ -7,9 +7,11 @@
             width: 100%;
             table-layout: fixed;
         }
+
         th, td {
             padding: 5px;
         }
+
         .daterangepicker td,
         .daterangepicker th {
             display: table-cell !important;
@@ -164,7 +166,7 @@
                                         {% set ns = namespace(has_value=false) %}
                                         {% for sb in subform %}
                                             {% if sb.type != 'HiddenField' and sb.type != 'FormField' and sb.data %}
-                                                 {% set ns.has_value = true %}
+                                                {% set ns.has_value = true %}
                                             {% endif %}
                                         {% endfor %}
                                         {% if ns.has_value %}
@@ -179,13 +181,13 @@
                                                         {% endfor %}
                                                     </div>
                                                     <button
-                                                        type="button"
-                                                        class="button is-danger is-rounded is-small remove-subform"
-                                                        data-request-id="{{ request_id or '' }}"
-                                                        hx-post="{{ url_for('academic_services.remove_condition_form', request_id=request_id) }}"
-                                                        hx-vals='{"field": "{{ subform.name }}"}'
-                                                        hx-target=".subform-card"
-                                                        hx-swap="innerHTML"
+                                                            type="button"
+                                                            class="button is-danger is-rounded is-small remove-subform"
+                                                            data-request-id="{{ request_id or '' }}"
+                                                            hx-post="{{ url_for('academic_services.remove_condition_form', request_id=request_id) }}"
+                                                            hx-vals='{"field": "{{ subform.name }}"}'
+                                                            hx-target=".subform-card"
+                                                            hx-swap="innerHTML"
                                                     >
                                                         ลบ
                                                     </button>
@@ -264,7 +266,7 @@
         });
     </script>
     <script>
-        document.addEventListener('click', function(e) {
+        document.addEventListener('click', function (e) {
             if (e.target.classList.contains('remove-subform')) {
                 const card = e.target.closest('.subform-card');
                 const requestId = e.target.dataset.requestId;
@@ -277,17 +279,24 @@
         });
     </script>
     <script>
-        function showOtherInput() {
-            $('input[type="radio"][name$="surface_type"]').toArray().forEach((surface_type) => {
-                if ($('input[type="radio"][name$="surface_type"]:checked').val() === 'อื่นๆ โปรดระบุ') {
-                    $('input[name$="surface_type_other"]').closest('.field').show();
-                } else {
-                    $('input[name$="surface_type_other"]').closest('.field').hide();
-                    $('input[name$="surface_type_other"]').val('');
-                }
-            });
+        function showSurfaceTypeOtherInput(subform) {
+            const surfaceTypeField = subform.find('input[type="radio"][name$="surface_type"]:checked').val();
+            const surfaceTypeOtherField = subform.find('input[name$="surface_type_other"]').closest('.field');
+
+            if (surfaceTypeField === 'อื่นๆ โปรดระบุ' || surfaceTypeField === 'พื้นผิวอื่นๆ โปรดระบุ') {
+                surfaceTypeOtherField.show();
+            } else {
+                surfaceTypeOtherField.hide();
+                subform.find('input[name$="surface_type_other"]').val('');
+            }
         }
-        showOtherInput();
-        $('input[type="radio"][name$="surface_type"]').change(showOtherInput);
+
+        $('.subform-card').each(function() {
+            const subform = $(this);
+            showSurfaceTypeOtherInput(subform);
+            subform.find('input[type="radio"][name$="surface_type"]').change(function() {
+                showSurfaceTypeOtherInput(subform);
+            });
+        });
     </script>
 {% endblock %}
