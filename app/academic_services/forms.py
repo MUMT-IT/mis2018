@@ -179,14 +179,14 @@ def create_request_form(table):
     return MainForm
 
 
-liquid_organisms = [
+bacteria_liquid_organisms = [
     'S. aureus ATCC 6538',
     'S. choleraesuis ATCC 10708',
     'P. aeruginosa ATCC 15442',
     'T. mentagrophytes'
 ]
 
-wash_organisms = [
+bacteria_wash_organisms = [
     'S. aureus ATCC 6538',
     'K. pneumoniae ATCC 4352'
 ]
@@ -194,7 +194,7 @@ wash_organisms = [
 
 def create_bacteria_liquid_test_condition_form_factory():
     fields = {}
-    for i, label in enumerate(liquid_organisms):
+    for i, label in enumerate(bacteria_liquid_organisms):
         fields[f'liquid_organism_{i}'] = CheckboxField('เชื้อ', choices=[(c, c) for c in [label]])
         fields[f'liquid_ratio_{i}'] = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
         fields[f'liquid_per_water_{i}'] = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
@@ -225,7 +225,7 @@ class BacteriaLiquidConditionForm(FlaskForm):
 
 def create_bacteria_spray_test_condition_form_factory():
     fields = {}
-    for i, label in enumerate(liquid_organisms):
+    for i, label in enumerate(bacteria_liquid_organisms):
         fields[f'spray_organism_{i}'] = CheckboxField('เชื้อ', choices=[(c, c) for c in [label]])
         fields[f'spray_ratio_{i}'] = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
         fields[f'spray_per_water_{i}'] = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
@@ -258,7 +258,7 @@ class BacteriaSprayConditionForm(FlaskForm):
 
 def create_bacteria_sheet_test_condition_form_factory():
     fields = {}
-    for i, label in enumerate(liquid_organisms):
+    for i, label in enumerate(bacteria_liquid_organisms):
         fields[f'sheet_organism_{i}'] = CheckboxField('เชื้อ', choices=[(c, c) for c in [label]])
         fields[f'sheet_time_duration_{i}'] = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (นาที)', validators=[Optional()],
                                                            render_kw={'class': 'input'})
@@ -283,7 +283,7 @@ class BacteriaSheetConditionForm(FlaskForm):
 
 def create_bacteria_after_wash_test_condition_form_factory():
     fields = {}
-    for i, label in enumerate(wash_organisms):
+    for i, label in enumerate(bacteria_wash_organisms):
         fields[f'after_wash_organism_{i}'] = CheckboxField('เชื้อ', choices=[(c, c) for c in [label]])
         fields[f'after_wash_ratio_{i}'] = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()],
                                                        render_kw={'class': 'input'})
@@ -312,7 +312,7 @@ class BacteriaAfterWashConditionForm(FlaskForm):
 
 def create_bacteria_in_wash_test_condition_form_factory():
     fields = {}
-    for i, label in enumerate(wash_organisms):
+    for i, label in enumerate(bacteria_wash_organisms):
         fields[f'in_wash_organism_{i}'] = CheckboxField('เชื้อ', choices=[(c, c) for c in [label]])
         fields[f'in_wash_ratio_{i}'] = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
         fields[f'in_wash_per_water_{i}'] = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
