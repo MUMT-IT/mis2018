@@ -3268,7 +3268,11 @@ def seminar_records():
         return send_from_directory(os.getcwd(), 'attend_summary.xlsx')
     else:
         seminar_list = []
-        seminar_query = StaffSeminar.query.filter(StaffSeminar.cancelled_at == None).all()
+        seminar_query = db.session.query(StaffSeminar). \
+            outerjoin(StaffSeminarAttend, StaffSeminarAttend.seminar_id == StaffSeminar.id). \
+            outerjoin(staff_seminar_mission_assoc_table, staff_seminar_mission_assoc_table.c.seminar_attend_id == StaffSeminarAttend.id). \
+            outerjoin(StaffSeminarMission, StaffSeminarMission.id == staff_seminar_mission_assoc_table.c.seminar_mission_id). \
+            filter(StaffSeminar.cancelled_at == None).all()
         for seminar in seminar_query:
             record = {}
             record["id"] = seminar.id
@@ -3277,6 +3281,14 @@ def seminar_records():
             record["start"] = seminar.start_datetime
             record["end"] = seminar.end_datetime
             record["organize_by"] = seminar.organize_by
+            missions = []
+            for mission in db.session.query(StaffSeminarMission). \
+                    join(staff_seminar_mission_assoc_table, staff_seminar_mission_assoc_table.c.seminar_mission_id == StaffSeminarMission.id). \
+                    join(StaffSeminarAttend, StaffSeminarAttend.id == staff_seminar_mission_assoc_table.c.seminar_attend_id). \
+                    filter(StaffSeminarAttend.seminar_id == seminar.id).all():
+                missions.append(mission.mission)
+
+            record["missions"] = missions
             seminar_list.append(record)
         return render_template('staff/seminar_records.html', seminar_list=seminar_list)
 

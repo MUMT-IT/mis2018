@@ -40,7 +40,10 @@
                         <td>
                             {{ record["topic_type"] }}
                         </td>
-                        <td> {{ record["missions"] }} </td>
+                        <td>{% if record["missions"] %}
+                                {{ record["missions"] | join(' ') }}
+                            {% endif %}
+                        </td>
                         <td>
                             <a href="{{ url_for('staff.seminar_attend_info_for_hr', seminar_id=record['id']) }}">
                             {{ record["name"] }}
