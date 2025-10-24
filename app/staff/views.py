@@ -3799,7 +3799,6 @@ def seminar_attend_search_result():
         topic_type = form.get('topic_type')
         role = form.get('role')
         objective = form.get('objective')
-        print(objective)
         query = StaffSeminarAttend.query
 
         if start:
