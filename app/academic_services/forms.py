@@ -429,13 +429,8 @@ class VirusCoatTestConditionForm(FlaskForm):
 class VirusCoatConditionForm(FlaskForm):
     product_type = HiddenField('ประเภทผลิตภัณฑ์', default='ผลิตภัณฑ์ฆ่าเชื้อที่เคลือบบนพื้นผิวสำเร็จรูป',
                                render_kw={'class': 'input is-danger'})
-    coat_test_method = SelectMultipleField(
-        'วิธีทดสอบ',
-        choices=[
-            ('วิธีทดสอบ Modified ASTM E1053-20', 'วิธีทดสอบ Modified ASTM E1053-20')
-        ],
-        option_widget=widgets.CheckboxInput(),
-        widget=widgets.ListWidget(prefix_label=False))
+    coat_test_method = CheckboxField('วิธีทดสอบ', choices=[(c, c) for c in ['วิธีทดสอบ Modified ASTM E1053-20']],
+                                     validators=[Optional()])
     coat_specify_surface_type = StringField('ระบุชนิดของพื้นผิว', render_kw={'class': 'input'})
     coat_organism_fields = FieldList(FormField(VirusCoatTestConditionForm), min_entries=len(virus_liquid_organisms))
 
