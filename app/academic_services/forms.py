@@ -204,14 +204,9 @@ class BacteriaLiquidConditionForm(FlaskForm):
     product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดของเหลว หรือชนิดผง ที่ละลายน้้าได้',
                                render_kw={'class': 'input is-danger'})
-    liquid_test_method = SelectMultipleField(
-        'วิธีทดสอบ',
-        choices=[
-            ('วิธีทดสอบ Use-Dilution 60 carriers', 'วิธีทดสอบ Use-Dilution 60 carriers'),
-            ('วิธีทดสอบ Use-Dilution log (%) reduction', 'วิธีทดสอบ Use-Dilution log (%) reduction')
-        ],
-        option_widget=widgets.CheckboxInput(),
-        widget=widgets.ListWidget(prefix_label=False))
+    liquid_test_method = CheckboxField('วิธีทดสอบ', choices=[(c, c) for c in ['วิธีทดสอบ Use-Dilution 60 carriers',
+                                                                              'วิธีทดสอบ Use-Dilution log (%) reduction']],
+                                       validators=[Optional()])
     liquid_clean_type = RadioField('รูปแบบการทดสอบ',
                                    choices=[('ทดสอบแบบฆ่าเชื้ออย่างเดียว', 'ทดสอบแบบฆ่าเชื้ออย่างเดียว'), (
                                        'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)',
@@ -261,11 +256,9 @@ class BacteriaSheetConditionForm(FlaskForm):
     product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ฆ่าเชื้อชนิดแผ่น',
                                render_kw={'class': 'input is-danger'})
-    sheet_test_method = SelectMultipleField('วิธีทดสอบ', choices=[
-        ('วิธีทดสอบ Qualitative test 60 carriers', 'วิธีทดสอบ Qualitative test 60 carriers'),
-        ('วิธีทดสอบ Quantitative test log (%) reduction', 'วิธีทดสอบ Quantitative test log (%) reduction')],
-                                            option_widget=widgets.CheckboxInput(),
-                                            widget=widgets.ListWidget(prefix_label=False))
+    sheet_test_method = CheckboxField('วิธีทดสอบ', choices=[(c, c) for c in ['วิธีทดสอบ Qualitative test 60 carriers',
+                                                                             'วิธีทดสอบ Quantitative test log (%) reduction']],
+                                      validators=[Optional()])
     sheet_clean_type = RadioField('รูปแบบการทดสอบ',
                                   choices=[('ทดสอบแบบฆ่าเชื้ออย่างเดียว', 'ทดสอบแบบฆ่าเชื้ออย่างเดียว'), (
                                       'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)',
