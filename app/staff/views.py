@@ -3264,7 +3264,6 @@ def seminar_records():
                 columns[8]: u"{}".format(attend.seminar.location),
                 columns[9]: ", ".join(str(mission.mission) for mission in attend.missions),
                 columns[10]: ", ".join(str(objective.objective) for objective in attend.objectives),
-
             })
         df = DataFrame(records, columns=columns)
         df.to_excel('attend_summary.xlsx', index=False, columns=columns)
@@ -3787,6 +3786,8 @@ def seminar_attend_search_result():
     budget = 0
     distinct_topic_types = db.session.query(StaffSeminar.topic_type).distinct().all()
     distinct_role = db.session.query(StaffSeminarAttend.role).distinct().all()
+    distinct_org = db.session.query(Org.name).distinct().order_by(Org.id).all()
+    distinct_objective = db.session.query(StaffSeminarObjective.objective).distinct().all()
     if request.method == 'POST':
         form = request.form
         start_d, end_d = form.get('dates').split(' - ')
@@ -3794,14 +3795,24 @@ def seminar_attend_search_result():
         end = datetime.strptime(end_d, '%d/%m/%Y')
         personal_info_id = form.get('staff')
         staff_account = StaffAccount.query.filter_by(personal_id=personal_info_id).first()
+        org = form.get('org')
         topic_type = form.get('topic_type')
         role = form.get('role')
-
+        objective = form.get('objective')
+        print(objective)
         query = StaffSeminarAttend.query
 
         if start:
-            query = query.filter(or_(func.date(StaffSeminarAttend.start_datetime) >= start.date(),
-                                     func.date(StaffSeminarAttend.end_datetime) <= end.date()))
+            query = query.filter(
+                and_(
+                    func.date(StaffSeminarAttend.start_datetime) >= start.date(),
+                    func.date(StaffSeminarAttend.end_datetime) <= end.date()
+                )
+            )
+
+        if org:
+            query = query.join(StaffSeminarAttend.staff).join(StaffAccount.personal_info) \
+                    .join(StaffPersonalInfo.org).filter(Org.name == org)
 
         if personal_info_id:
             query = query.filter(StaffSeminarAttend.staff == staff_account)
@@ -3811,6 +3822,9 @@ def seminar_attend_search_result():
 
         if topic_type:
             query = query.filter(StaffSeminarAttend.seminar.has(StaffSeminar.topic_type == topic_type))
+
+        if objective:
+            query = query.join(StaffSeminarAttend.objectives).filter(StaffSeminarObjective.objective == objective)
 
         query = query.order_by(StaffSeminarAttend.start_datetime.asc())
         seminar_attend_records = query.all()
@@ -3824,9 +3838,11 @@ def seminar_attend_search_result():
                                personal_info_id=personal_info_id,
                                selected_staff_name=selected_staff.fullname if selected_staff else "",
                                selected_topic_type=topic_type, selected_role=role,
-                               distinct_topic_types=distinct_topic_types, distinct_role=distinct_role)
+                               distinct_topic_types=distinct_topic_types, distinct_role=distinct_role,
+                               distinct_org=distinct_org, selected_org=org, distinct_objective=distinct_objective)
     return render_template('staff/seminar_attend_search_result.html', seminar_attend_records=seminar_attend_records,
-                           budget=budget, distinct_topic_types=distinct_topic_types, distinct_role=distinct_role)
+                           budget=budget, distinct_topic_types=distinct_topic_types, distinct_role=distinct_role,
+                           distinct_org=distinct_org, distinct_objective=distinct_objective)
 
 
 @staff.route('/api/time-report')
