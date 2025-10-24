@@ -400,18 +400,14 @@ class VirusLiquidConditionForm(FlaskForm):
     liquid_organism_fields = FieldList(FormField(VirusLiquidTestConditionForm), min_entries=len(virus_liquid_organisms))
 
 
-def create_virus_spray_test_condition_form_factory():
-    fields = {}
-    for i, label in enumerate(virus_liquid_organisms):
-        fields[f'spray_organism_{i}'] = CheckboxField('เชื้อ', choices=[(c, c) for c in [label]])
-        fields[f'spray_ratio_{i}'] = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
-        fields[f'spray_per_water_{i}'] = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
-        fields[f'spray_distance_{i}'] = IntegerField('ระยะห่างในการฉีดพ่น (cm)', validators=[Optional()], render_kw={'class': 'input'})
-        fields[f'spray_of_time_{i}'] = IntegerField('ระยะเวลาฉีดพ่น (วินาที)', validators=[Optional()],
-                                                     render_kw={'class': 'input'})
-        fields[f'spray_time_duration_{i}'] = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
-                                                           render_kw={'class': 'input'})
-    return type('VirusSprayTestConditionForm', (FlaskForm,), fields)
+class VirusSprayTestConditionForm():
+    spray_organism = CheckboxField('เชื้อ', validators=[Optional()])
+    spray_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
+    spray_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
+    spray_distance = IntegerField('ระยะห่างในการฉีดพ่น (cm)', validators=[Optional()], render_kw={'class': 'input'})
+    spray_of_time = IntegerField('ระยะเวลาฉีดพ่น (วินาที)', validators=[Optional()], render_kw={'class': 'input'})
+    spray_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
+                                       render_kw={'class': 'input'})
 
 
 class VirusSprayConditionForm(FlaskForm):
@@ -437,7 +433,7 @@ class VirusSprayConditionForm(FlaskForm):
                                                                            ('ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน (แนบขวดสเปรย์มาด้วย)',
                                                                             'ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน (แนบขวดสเปรย์มาด้วย)')],
                                             validators=[Optional()])
-    spray_organism_fields = FormField(create_virus_spray_test_condition_form_factory())
+    spray_organism_fields = FieldList(FormField(VirusSprayTestConditionForm), min_entries=len(virus_liquid_organisms))
 
 
 def create_virus_coat_test_condition_form_factory():
