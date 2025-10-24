@@ -506,13 +506,10 @@ class VirusSurfaceDisinfectionConditionForm(FlaskForm):
                                                      min_entries=len(virus_airborne_organisms))
 
 
-def create_virus_airborne_disinfection_test_condition_form_factory():
-    fields = {}
-    for i, label in enumerate(virus_airborne_organisms):
-        fields[f'airborne_disinfection_organism_{i}'] = CheckboxField('เชื้อ', choices=[(c, c) for c in [label]])
-        fields[f'airborne_disinfection_period_test_{i}'] = IntegerField('ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (วินาที/นาที)', validators=[Optional()],
-                                                           render_kw={'class': 'input'})
-    return type('VirusAirborneDisinfectionConditionForm', (FlaskForm,), fields)
+class VirusAirborneDisinfectionTestConditionForm(FlaskForm):
+    airborne_disinfection_organism = CheckboxField('เชื้อ', validators=[Optional()])
+    airborne_disinfection_period_test = IntegerField('ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (วินาที/นาที)', validators=[Optional()],
+                                                     render_kw={'class': 'input'})
 
 
 class VirusAirborneDisinfectionConditionForm(FlaskForm):
@@ -525,7 +522,8 @@ class VirusAirborneDisinfectionConditionForm(FlaskForm):
             ('ทดสอบการลดปริมาณเชื้อในอากาศ (เครื่องฟอกอากาศ)', 'ทดสอบการลดปริมาณเชื้อในอากาศ (เครื่องฟอกอากาศ)'),
             ('ทดสอบการทำลายเชื้อในอากาศ (เครื่องปล่อยสารหรืออนุภาคทำลายเชื้อ)', 'ทดสอบการทำลายเชื้อในอากาศ (เครื่องปล่อยสารหรืออนุภาคทำลายเชื้อ)')
         ], validators=[Optional()])
-    airborne_disinfection_organism_fields = FormField(create_virus_airborne_disinfection_test_condition_form_factory())
+    airborne_disinfection_organism_fields = FieldList(FormField(VirusAirborneDisinfectionTestConditionForm),
+                                                      min_entries=len(virus_airborne_organisms))
 
 
 class VirusAirDisinfectionRequestForm(FlaskForm):
