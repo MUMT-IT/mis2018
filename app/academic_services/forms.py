@@ -368,15 +368,12 @@ virus_airborne_organisms = [
 ]
 
 
-def create_virus_liquid_test_condition_form_factory():
-    fields = {}
-    for i, label in enumerate(virus_liquid_organisms):
-        fields[f'liquid_organism_{i}'] = CheckboxField('เชื้อ', choices=[(c, c) for c in [label]])
-        fields[f'liquid_ratio_{i}'] = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
-        fields[f'liquid_per_water_{i}'] = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
-        fields[f'liquid_time_duration_{i}'] = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
-                                                           render_kw={'class': 'input'})
-    return type('VirusLiquidTestConditionForm', (FlaskForm,), fields)
+class VirusLiquidTestConditionForm(FlaskForm):
+    liquid_organism = CheckboxField('เชื้อ', validators=[Optional()])
+    liquid_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
+    liquid_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
+    liquid_time_duration_ = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
+                                         render_kw={'class': 'input'})
 
 
 class VirusLiquidConditionForm(FlaskForm):
@@ -400,7 +397,7 @@ class VirusLiquidConditionForm(FlaskForm):
                                                                            ('ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน',
                                                                             'ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน')],
                                             validators=[Optional()])
-    liquid_organism_fields = FormField(create_virus_liquid_test_condition_form_factory())
+    liquid_organism_fields = FieldList(FormField(VirusLiquidTestConditionForm), min_entries=len(virus_liquid_organisms))
 
 
 def create_virus_spray_test_condition_form_factory():
