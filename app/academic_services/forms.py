@@ -270,19 +270,15 @@ class BacteriaSheetConditionForm(FlaskForm):
                                   choices=[('ทดสอบแบบฆ่าเชื้ออย่างเดียว', 'ทดสอบแบบฆ่าเชื้ออย่างเดียว'), (
                                       'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)',
                                       'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)')], validators=[Optional()] )
-    sheet_organism_fields = FormField(create_bacteria_sheet_test_condition_form_factory())
+    sheet_organism_fields = FieldList(FormField(BacteriaSheetTestConditionForm), min_entries=len(bacteria_liquid_organisms))
 
 
-def create_bacteria_after_wash_test_condition_form_factory():
-    fields = {}
-    for i, label in enumerate(bacteria_wash_organisms):
-        fields[f'after_wash_organism_{i}'] = CheckboxField('เชื้อ', choices=[(c, c) for c in [label]])
-        fields[f'after_wash_ratio_{i}'] = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()],
-                                                       render_kw={'class': 'input'})
-        fields[f'after_wash_per_water_{i}'] = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
-        fields[f'after_wash_time_duration_{i}'] = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับผ้า (นาที)', validators=[Optional()],
-                                                           render_kw={'class': 'input'})
-    return type('BacteriaAfterWashTestConditionForm', (FlaskForm,), fields)
+class BacteriaAfterWashTestConditionForm(FlaskForm):
+    after_wash_organism = CheckboxField('เชื้อ', validators=[Optional()])
+    after_wash_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
+    after_wash_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
+    after_wash_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับผ้า (นาที)', validators=[Optional()],
+                                            render_kw={'class': 'input'})
 
 
 class BacteriaAfterWashConditionForm(FlaskForm):
@@ -299,7 +295,7 @@ class BacteriaAfterWashConditionForm(FlaskForm):
                                               validators=[Optional()])
     after_wash_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง'), ('ไม่เจือจาง', 'ไม่เจือจาง')],
                                      validators=[Optional()])
-    after_wash_organism_fields = FormField(create_bacteria_after_wash_test_condition_form_factory())
+    after_wash_organism_fields = FieldList(FormField(BacteriaAfterWashTestConditionForm), min_entries=len(bacteria_wash_organisms))
 
 
 def create_bacteria_in_wash_test_condition_form_factory():
