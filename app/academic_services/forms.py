@@ -223,28 +223,27 @@ class BacteriaLiquidConditionForm(FlaskForm):
     liquid_organism_fields = FormField(create_bacteria_liquid_test_condition_form_factory())
 
 
-def create_bacteria_spray_test_condition_form_factory():
-    fields = {}
-    for i, label in enumerate(bacteria_liquid_organisms):
-        fields[f'spray_organism_{i}'] = CheckboxField('เชื้อ', choices=[(c, c) for c in [label]])
-        fields[f'spray_ratio_{i}'] = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
-        fields[f'spray_per_water_{i}'] = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
-        fields[f'spray_distance_{i}'] = IntegerField('ระยะห่างในการฉีดพ่น (cm)', validators=[Optional()], render_kw={'class': 'input'})
-        fields[f'spray_of_time_{i}'] = IntegerField('ระยะเวลาฉีดพ่น (วินาที)', validators=[Optional()], render_kw={'class': 'input'})
-        fields[f'spray_time_duration_{i}'] = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (นาที)', validators=[Optional()],
-                                                           render_kw={'class': 'input'})
-    return type('BacteriaSprayTestConditionForm', (FlaskForm,), fields)
+class BacteriaSprayTestConditionForm(FlaskForm):
+    spray_organism = CheckboxField('เชื้อ', validators=[Optional()])
+    spray_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()],
+                                              render_kw={'class': 'input'})
+    spray_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
+    spray_distance = IntegerField('ระยะห่างในการฉีดพ่น (cm)', validators=[Optional()],
+                                                 render_kw={'class': 'input'})
+    spray_of_time = IntegerField('ระยะเวลาฉีดพ่น (วินาที)', validators=[Optional()],
+                                                render_kw={'class': 'input'})
+    spray_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (นาที)',
+                                                      validators=[Optional()],
+                                                      render_kw={'class': 'input'})
 
 
 class BacteriaSprayConditionForm(FlaskForm):
     product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดฉีดพ่นธรรมดา หรือ ฉีดพ่นอัดก๊าซ',
                                render_kw={'class': 'input is-danger'})
-    spray_test_method = SelectMultipleField('วิธีทดสอบ', choices=[
-        ('วิธีทดสอบ Spray germicidal assay 60 carriers', 'วิธีทดสอบ Spray germicidal assay 60 carriers'),
-        ('วิธีทดสอบ Spray germicidal assay log (%) reduction', 'วิธีทดสอบ Spray germicidal assay log (%) reduction')],
-                                            option_widget=widgets.CheckboxInput(),
-                                            widget=widgets.ListWidget(prefix_label=False))
+    spray_test_method = CheckboxField('วิธีทดสอบ', choices=[(c, c) for c in ['วิธีทดสอบ Spray germicidal assay 60 carriers',
+                                                                             'วิธีทดสอบ Spray germicidal assay log (%) reduction']],
+                                             validators=[Optional()])
     spray_clean_type = RadioField('รูปแบบการทดสอบ',
                                   choices=[('ทดสอบแบบฆ่าเชื้ออย่างเดียว', 'ทดสอบแบบฆ่าเชื้ออย่างเดียว'), (
                                       'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)',
@@ -253,7 +252,7 @@ class BacteriaSprayConditionForm(FlaskForm):
                                                             ('อื่นๆ โปรดระบุ', 'อื่นๆ โปรดระบุ')], validators=[Optional()])
     spray_surface_type_other = StringField('ระบุ', render_kw={'class': 'input'})
     spray_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง'), ('ไม่เจือจาง', 'ไม่เจือจาง')], validators=[Optional()])
-    spray_organism_fields = FormField(create_bacteria_spray_test_condition_form_factory())
+    spray_organism_fields = FieldList(FormField(BacteriaSprayTestConditionForm), min_entries=len(bacteria_liquid_organisms))
 
 
 def create_bacteria_sheet_test_condition_form_factory():
