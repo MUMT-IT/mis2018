@@ -183,7 +183,7 @@ def request_data(service_request):
     current_row = {}
     for field in form:
         if field.type == 'FormField':
-            if not any([f.data for f in field._fields.values() if f.type != 'HiddenField' and f.type != 'FormField']):
+            if not any([f.data for f in field._fields.values() if f.type != 'HiddenField' and f.type != 'FieldList']):
                 continue
             for fname, fn in field.form._fields.items():
                 if fn.type == 'FormField':
@@ -809,8 +809,8 @@ def create_request():
     return redirect(url_for(request_paths[code], code=code))
 
 
-@academic_services.route('/request/add', methods=['GET', 'POST'])
-@academic_services.route('/request/edit/<int:request_id>', methods=['GET', 'POST'])
+@academic_services.route('/request/bacteria/add', methods=['GET', 'POST'])
+@academic_services.route('/request/bacteria/edit/<int:request_id>', methods=['GET', 'POST'])
 def create_bacteria_request(request_id=None):
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
@@ -856,23 +856,6 @@ def create_bacteria_request(request_id=None):
                                form=form, request_id=request_id)
 
 
-@academic_services.route('/request/condition/remove', methods=['GET', 'POST'])
-def remove_condition_form():
-    request_id = request.args.get('request_id')
-    service_request = ServiceRequest.query.get(request_id)
-    field = request.form.get("field")
-    data = service_request.data or {}
-    if field in data:
-        del data[field]
-        db.session.execute(
-            update(ServiceRequest)
-            .where(ServiceRequest.id == request_id)
-            .values(data=data)
-        )
-        db.session.commit()
-    return ""
-
-
 @academic_services.route("/request/collect_sample_during_testing")
 def get_collect_sample_during_testing():
     request_id = request.args.get("request_id")
@@ -901,6 +884,73 @@ def get_collect_sample_during_testing():
         html = '<input type="hidden" name="collect_sample_during_testing_other" class="input" value="">'
     resp = make_response(html)
     return resp
+
+
+@academic_services.route('/request/bacteria/condition')
+def get_bacteria_condition_form():
+    product_type = request.args.get("product_type")
+    if not product_type:
+        return ''
+    form = BacteriaRequestForm()
+    for n, org in enumerate(bacteria_liquid_organisms):
+        liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
+        liquid_entry.liquid_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_liquid_organisms):
+        spray_entry = form.spray_condition_field.spray_organism_fields[n]
+        spray_entry.spray_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_liquid_organisms):
+        sheet_entry = form.sheet_condition_field.sheet_organism_fields[n]
+        sheet_entry.sheet_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_wash_organisms):
+        after_wash_entry = form.after_wash_condition_field.after_wash_organism_fields[n]
+        after_wash_entry.after_wash_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_wash_organisms):
+        in_wash_entry = form.in_wash_condition_field.in_wash_organism_fields[n]
+        in_wash_entry.in_wash_organism.choices = [(org, org)]
+    field_name = f"{product_type}_condition_field"
+    fields = getattr(form, field_name)
+    return render_template('academic_services/partials/bacteria_request_condition_form.html', fields=fields)
+
+
+@academic_services.route('/request/virus_disinfection/add', methods=['GET', 'POST'])
+@academic_services.route('/request/virus_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
+def create_virus_disinfection_request(request_id=None):
+    code = request.args.get('code')
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        data = service_request.data
+        form = VirusDisinfectionRequestForm(data=data)
+    else:
+        form = VirusDisinfectionRequestForm()
+    for n, org in enumerate(virus_liquid_organisms):
+        liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
+        liquid_entry.liquid_organism.choices = [(org, org)]
+    for n, org in enumerate(virus_liquid_organisms):
+        spray_entry = form.spray_condition_field.spray_organism_fields[n]
+        spray_entry.spray_organism.choices = [(org, org)]
+    for n, org in enumerate(virus_liquid_organisms):
+        coat_entry = form.coat_condition_field.coat_organism_fields[n]
+        coat_entry.coat_organism.choices = [(org, org)]
+    if form.validate_on_submit():
+        if request_id:
+            service_request.data = formate_data(form.data)
+            service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+        else:
+            request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.lab.code)
+            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                             sub_lab=sub_lab, request_no=request_no.number, data=formate_data(form.data))
+            request_no.count += 1
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(
+            url_for('academic_services.create_report_language', request_id=service_request.id, menu='request',
+                    code=code))
+    else:
+        for er in form.errors:
+            flash(er, 'danger')
+    return render_template('academic_services/virus_disinfection_request_form.html', code=code, sub_lab=sub_lab,
+                               form=form, request_id=request_id)
 
 
 @academic_services.route("/request/product_storage")
@@ -932,30 +982,41 @@ def get_product_storage():
     return resp
 
 
-@academic_services.route('/request/condition')
-def get_bacteria_condition_form():
+@academic_services.route('/request/virus_disinfection/condition')
+def get_virus_disinfection_condition_form():
     product_type = request.args.get("product_type")
     if not product_type:
         return ''
     form = BacteriaRequestForm()
-    for n, org in enumerate(bacteria_liquid_organisms):
+    for n, org in enumerate(virus_liquid_organisms):
         liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
         liquid_entry.liquid_organism.choices = [(org, org)]
-    for n, org in enumerate(bacteria_liquid_organisms):
+    for n, org in enumerate(virus_liquid_organisms):
         spray_entry = form.spray_condition_field.spray_organism_fields[n]
         spray_entry.spray_organism.choices = [(org, org)]
-    for n, org in enumerate(bacteria_liquid_organisms):
-        sheet_entry = form.sheet_condition_field.sheet_organism_fields[n]
-        sheet_entry.sheet_organism.choices = [(org, org)]
-    for n, org in enumerate(bacteria_wash_organisms):
-        after_wash_entry = form.after_wash_condition_field.after_wash_organism_fields[n]
-        after_wash_entry.after_wash_organism.choices = [(org, org)]
-    for n, org in enumerate(bacteria_wash_organisms):
-        in_wash_entry = form.in_wash_condition_field.in_wash_organism_fields[n]
-        in_wash_entry.in_wash_organism.choices = [(org, org)]
+    for n, org in enumerate(virus_liquid_organisms):
+        coat_entry = form.coat_condition_field.coat_organism_fields[n]
+        coat_entry.coat_organism.choices = [(org, org)]
     field_name = f"{product_type}_condition_field"
     fields = getattr(form, field_name)
-    return render_template('academic_services/partials/request_condition_form.html', fields=fields)
+    return render_template('academic_services/partials/virus_disinfection_request_condition_form.html', fields=fields)
+
+
+@academic_services.route('/request/condition/remove', methods=['GET', 'POST'])
+def remove_condition_form():
+    request_id = request.args.get('request_id')
+    service_request = ServiceRequest.query.get(request_id)
+    field = request.form.get("field")
+    data = service_request.data or {}
+    if field in data:
+        del data[field]
+        db.session.execute(
+            update(ServiceRequest)
+            .where(ServiceRequest.id == request_id)
+            .values(data=data)
+        )
+        db.session.commit()
+    return ""
 
 
 @academic_services.route('/customer/report_language/add/<int:request_id>', methods=['GET', 'POST'])
