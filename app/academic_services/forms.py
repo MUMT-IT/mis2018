@@ -252,13 +252,9 @@ class BacteriaSprayConditionForm(FlaskForm):
     spray_organism_fields = FieldList(FormField(BacteriaSprayTestConditionForm), min_entries=len(bacteria_liquid_organisms))
 
 
-def create_bacteria_sheet_test_condition_form_factory():
-    fields = {}
-    for i, label in enumerate(bacteria_liquid_organisms):
-        fields[f'sheet_organism_{i}'] = CheckboxField('เชื้อ', choices=[(c, c) for c in [label]])
-        fields[f'sheet_time_duration_{i}'] = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (นาที)', validators=[Optional()],
-                                                           render_kw={'class': 'input'})
-    return type('BacteriaSheetTestConditionForm', (FlaskForm,), fields)
+class BacteriaSheetTestConditionForm(FlaskForm):
+    sheet_organism = CheckboxField('เชื้อ', validators=[Optional()])
+    sheet_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (นาที)', validators=[Optional()], render_kw={'class': 'input'})
 
 
 class BacteriaSheetConditionForm(FlaskForm):
