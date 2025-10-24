@@ -298,15 +298,11 @@ class BacteriaAfterWashConditionForm(FlaskForm):
     after_wash_organism_fields = FieldList(FormField(BacteriaAfterWashTestConditionForm), min_entries=len(bacteria_wash_organisms))
 
 
-def create_bacteria_in_wash_test_condition_form_factory():
-    fields = {}
-    for i, label in enumerate(bacteria_wash_organisms):
-        fields[f'in_wash_organism_{i}'] = CheckboxField('เชื้อ', choices=[(c, c) for c in [label]])
-        fields[f'in_wash_ratio_{i}'] = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
-        fields[f'in_wash_per_water_{i}'] = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
-        fields[f'in_wash_time_duration_{i}'] = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับผ้า (นาที)', validators=[Optional()],
-                                                           render_kw={'class': 'input'})
-    return type('BacteriaInWashTestConditionForm', (FlaskForm,), fields)
+class BacteriaInWashTestConditionForm(FlaskForm):
+    in_wash_organism = CheckboxField('เชื้อ', validators=[Optional()])
+    in_wash_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
+    in_wash_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
+    in_wash_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับผ้า (นาที)', validators=[Optional()], render_kw={'class': 'input'})
 
 
 class BacteriaInWashConditionForm(FlaskForm):
@@ -316,7 +312,7 @@ class BacteriaInWashConditionForm(FlaskForm):
     in_wash_test_method = RadioField('วิธีทดสอบ', choices=[('ASTM E 2274-09', 'ASTM E 2274-09')], validators=[Optional()])
     in_wash_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง'), ('ไม่เจือจาง', 'ไม่เจือจาง')],
                                   validators=[Optional()])
-    in_wash_organism_fields = FormField(create_bacteria_in_wash_test_condition_form_factory())
+    in_wash_organism_fields = FieldList(FormField(BacteriaInWashTestConditionForm), min_entries=len(bacteria_wash_organisms))
 
 
 class BacteriaRequestForm(FlaskForm):
