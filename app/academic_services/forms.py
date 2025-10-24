@@ -373,15 +373,10 @@ class VirusLiquidConditionForm(FlaskForm):
     product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ฆ่าเชื้อ ชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้',
                                render_kw={'class': 'input is-danger'})
-    liquid_test_method = SelectMultipleField(
-        'วิธีทดสอบ',
-        choices=[
-            ('วิธีทดสอบ ASTM E1052-20 (Virus suspension test)', 'วิธีทดสอบ ASTM E1052-20 (Virus suspension test)'),
-            ('วิธีทดสอบ ASTM E1053-20 (Nonporous environmental surfaces)', 'วิธีทดสอบ ASTM E1053-20 (Nonporous environmental surfaces)'),
-            ('วิธีทดสอบ Modified ASTM E1053-20', 'วิธีทดสอบ Modified ASTM E1053-20')
-        ],
-        option_widget=widgets.CheckboxInput(),
-        widget=widgets.ListWidget(prefix_label=False))
+    liquid_test_method = CheckboxField('วิธีทดสอบ', choices=[(c, c) for c in ['วิธีทดสอบ ASTM E1052-20 (Virus suspension test',
+                                                                              'วิธีทดสอบ ASTM E1053-20 (Nonporous environmental surfaces)',
+                                                                              'วิธีทดสอบ Modified ASTM E1053-20']],
+                                       validators=[Optional()])
     liquid_surface_type = RadioField('ชนิดพื้นผิว', choices=[('สิ่งทอ', 'สิ่งทอ'),
                                                             ('พื้นผิวอื่นๆ โปรดระบุ', 'พื้นผิวอื่นๆ โปรดระบุ')], validators=[Optional()])
     liquid_surface_type_other = StringField('ระบุ', render_kw={'class': 'input'})
