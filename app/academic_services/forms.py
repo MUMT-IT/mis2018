@@ -484,13 +484,10 @@ class VirusDisinfectionRequestForm(FlaskForm):
     coat_condition_field = FormField(VirusCoatConditionForm, 'ผลิตภัณฑ์ฆ่าเชื้อที่เคลือบบนพื้นผิวสำเร็จรูป')
 
 
-def create_virus_surface_disinfection_test_condition_form_factory():
-    fields = {}
-    for i, label in enumerate(virus_liquid_organisms):
-        fields[f'surface_disinfection_organism_{i}'] = CheckboxField('เชื้อ', choices=[(c, c) for c in [label]])
-        fields[f'surface_disinfection_period_test_{i}'] = IntegerField('ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (วินาที/นาที)', validators=[Optional()],
+class VirusSurfaceDisinfectionTestConditionForm(FlaskForm):
+    surface_disinfection_organism = CheckboxField('เชื้อ', validators=[Optional()])
+    surface_disinfection_period_test = IntegerField('ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (วินาที/นาที)', validators=[Optional()],
                                                            render_kw={'class': 'input'})
-    return type('VirusSurfaceDisinfectionConditionForm', (FlaskForm,), fields)
 
 
 class VirusSurfaceDisinfectionConditionForm(FlaskForm):
@@ -505,7 +502,8 @@ class VirusSurfaceDisinfectionConditionForm(FlaskForm):
             ('ทดสอบการฆ่าเชื้อบนพื้นผิวชนิดอื่นๆ โปรดระบุ', 'ทดสอบการฆ่าเชื้อบนพื้นผิวชนิดอื่นๆ โปรดระบุ')
         ], validators=[Optional()])
     surface_disinfection_clean_type_other = StringField('ระบุ', render_kw={'class': 'input'})
-    surface_disinfection_organism_fields = FormField(create_virus_surface_disinfection_test_condition_form_factory())
+    surface_disinfection_organism_fields = FieldList(FormField(VirusSurfaceDisinfectionTestConditionForm),
+                                                     min_entries=len(virus_airborne_organisms))
 
 
 def create_virus_airborne_disinfection_test_condition_form_factory():
