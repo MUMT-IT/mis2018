@@ -436,18 +436,14 @@ class VirusSprayConditionForm(FlaskForm):
     spray_organism_fields = FieldList(FormField(VirusSprayTestConditionForm), min_entries=len(virus_liquid_organisms))
 
 
-def create_virus_coat_test_condition_form_factory():
-    fields = {}
-    for i, label in enumerate(virus_liquid_organisms):
-        fields[f'coat_organism_{i}'] = CheckboxField('เชื้อ', choices=[(c, c) for c in [label]])
-        fields[f'coat_time_duration_{i}'] = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
-                                                           render_kw={'class': 'input'})
-    return type('VirusCoatTestConditionForm', (FlaskForm,), fields)
+class VirusCoatTestConditionForm(FlaskForm):
+    coat_organism = CheckboxField('เชื้อ', validators=[Optional()])
+    coat_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
+                                      render_kw={'class': 'input'})
 
 
 class VirusCoatConditionForm(FlaskForm):
-    product_type = HiddenField('ประเภทผลิตภัณฑ์',
-                               default='ผลิตภัณฑ์ฆ่าเชื้อที่เคลือบบนพื้นผิวสำเร็จรูป',
+    product_type = HiddenField('ประเภทผลิตภัณฑ์', default='ผลิตภัณฑ์ฆ่าเชื้อที่เคลือบบนพื้นผิวสำเร็จรูป',
                                render_kw={'class': 'input is-danger'})
     coat_test_method = SelectMultipleField(
         'วิธีทดสอบ',
@@ -457,7 +453,7 @@ class VirusCoatConditionForm(FlaskForm):
         option_widget=widgets.CheckboxInput(),
         widget=widgets.ListWidget(prefix_label=False))
     coat_specify_surface_type = StringField('ระบุชนิดของพื้นผิว', render_kw={'class': 'input'})
-    coat_organism_fields = FormField(create_virus_coat_test_condition_form_factory())
+    coat_organism_fields = FieldList(FormField(VirusCoatTestConditionForm), min_entries=len(virus_liquid_organisms))
 
 
 class VirusDisinfectionRequestForm(FlaskForm):
