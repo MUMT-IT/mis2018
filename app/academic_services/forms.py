@@ -192,15 +192,12 @@ bacteria_wash_organisms = [
 ]
 
 
-def create_bacteria_liquid_test_condition_form_factory():
-    fields = {}
-    for i, label in enumerate(bacteria_liquid_organisms):
-        fields[f'liquid_organism_{i}'] = CheckboxField('เชื้อ', choices=[(c, c) for c in [label]])
-        fields[f'liquid_ratio_{i}'] = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
-        fields[f'liquid_per_water_{i}'] = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
-        fields[f'liquid_time_duration_{i}'] = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (นาที)', validators=[Optional()],
+class BacteriaLiquidTestConditionForm(FlaskForm):
+    liquid_organism = CheckboxField('เชื้อ', validators=[Optional()])
+    liquid_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
+    liquid_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
+    liquid_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (นาที)', validators=[Optional()],
                                                            render_kw={'class': 'input'})
-    return type('BacteriaLiquidTestConditionForm', (FlaskForm,), fields)
 
 
 class BacteriaLiquidConditionForm(FlaskForm):
@@ -220,7 +217,7 @@ class BacteriaLiquidConditionForm(FlaskForm):
                                        'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)',
                                        'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)')], validators=[Optional()])
     liquid_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง'), ('ไม่เจือจาง', 'ไม่เจือจาง')], validators=[Optional()])
-    liquid_organism_fields = FormField(create_bacteria_liquid_test_condition_form_factory())
+    liquid_organism_fields = FieldList(FormField(BacteriaLiquidTestConditionForm), min_entries=len(bacteria_liquid_organisms))
 
 
 class BacteriaSprayTestConditionForm(FlaskForm):
