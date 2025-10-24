@@ -28,10 +28,7 @@ from linebot.models import TextSendMessage
 from app.auth.views import line_bot_api
 from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
-from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
-                                         ServiceCustomerAccountForm, create_request_form, ServiceCustomerContactForm,
-                                         ServiceCustomerAddressForm, ServiceSampleForm, ServicePaymentForm,
-                                         BacteriaRequestForm, VirusDisinfectionRequestForm, VirusAirDisinfectionRequestForm)
+from app.academic_services.forms import *
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
     jsonify, send_file
@@ -805,28 +802,39 @@ def submit_request(request_id=None):
                             code=req.sub_lab.code))
 
 
+@academic_services.route('/portal/request')
+def create_request():
+    code = request.args.get('code')
+    request_paths = {'bacteria': 'academic_services.create_bacteria_request'}
+    return redirect(url_for(request_paths[code], code=code))
+
+
 @academic_services.route('/request/add', methods=['GET', 'POST'])
 @academic_services.route('/request/edit/<int:request_id>', methods=['GET', 'POST'])
-def create_request(request_id=None):
+def create_bacteria_request(request_id=None):
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
-
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
         data = service_request.data
-        if code == 'bacteria':
-            form = BacteriaRequestForm(data=data)
-        elif code == 'disinfection':
-            form = VirusDisinfectionRequestForm(data=data)
-        elif code == 'air_disinfection':
-            form = VirusAirDisinfectionRequestForm(data=data)
+        form = BacteriaRequestForm(data=data)
     else:
-        if code == 'bacteria':
-            form = BacteriaRequestForm()
-        elif code == 'disinfection':
-            form = VirusDisinfectionRequestForm()
-        elif code == 'air_disinfection':
-            form = VirusAirDisinfectionRequestForm()
+        form = BacteriaRequestForm()
+    for n, org in enumerate(bacteria_liquid_organisms):
+        liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
+        liquid_entry.liquid_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_liquid_organisms):
+        spray_entry = form.spray_condition_field.spray_organism_fields[n]
+        spray_entry.spray_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_liquid_organisms):
+        sheet_entry = form.sheet_condition_field.sheet_organism_fields[n]
+        sheet_entry.sheet_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_wash_organisms):
+        after_wash_entry = form.after_wash_condition_field.after_wash_organism_fields[n]
+        after_wash_entry.after_wash_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_wash_organisms):
+        in_wash_entry = form.in_wash_condition_field.in_wash_organism_fields[n]
+        in_wash_entry.in_wash_organism.choices = [(org, org)]
     if form.validate_on_submit():
         if request_id:
             service_request.data = formate_data(form.data)
@@ -834,8 +842,7 @@ def create_request(request_id=None):
         else:
             request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.lab.code)
             service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                             sub_lab=sub_lab,
-                                             request_no=request_no.number, data=formate_data(form.data))
+                                             sub_lab=sub_lab, request_no=request_no.number, data=formate_data(form.data))
             request_no.count += 1
         db.session.add(service_request)
         db.session.commit()
@@ -845,14 +852,7 @@ def create_request(request_id=None):
     else:
         for er in form.errors:
             flash(er, 'danger')
-    if code == 'bacteria':
-        return render_template('academic_services/bacteria_request_form.html', code=code, sub_lab=sub_lab,
-                               form=form, request_id=request_id)
-    elif code == 'disinfection':
-        return render_template('academic_services/virus_disinfection_request_form.html', code=code, sub_lab=sub_lab,
-                               form=form, request_id=request_id)
-    elif code=='air_disinfection':
-        return render_template('academic_services/virus_air_disinfection_request_form.html', code=code, sub_lab=sub_lab,
+    return render_template('academic_services/bacteria_request_form.html', code=code, sub_lab=sub_lab,
                                form=form, request_id=request_id)
 
 
@@ -933,30 +933,29 @@ def get_product_storage():
 
 
 @academic_services.route('/request/condition')
-def get_condition_form():
-    code = request.args.get('code')
+def get_bacteria_condition_form():
     product_type = request.args.get("product_type")
-    disinfection_type = request.args.get('disinfection_type')
-    if code == 'bacteria':
-        form = BacteriaRequestForm()
-    elif code == 'disinfection':
-        form = VirusDisinfectionRequestForm()
-    elif code == 'air_disinfection':
-        form = VirusAirDisinfectionRequestForm()
-    else:
-        form = ''
-    if disinfection_type:
-        field_name = f"{disinfection_type}_condition_field"
-    elif product_type:
-        field_name = f"{product_type}_condition_field"
-    else:
-        field_name = ''
-    if not hasattr(form, field_name):
-        return ""
-
+    if not product_type:
+        return ''
+    form = BacteriaRequestForm()
+    for n, org in enumerate(bacteria_liquid_organisms):
+        liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
+        liquid_entry.liquid_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_liquid_organisms):
+        spray_entry = form.spray_condition_field.spray_organism_fields[n]
+        spray_entry.spray_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_liquid_organisms):
+        sheet_entry = form.sheet_condition_field.sheet_organism_fields[n]
+        sheet_entry.sheet_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_wash_organisms):
+        after_wash_entry = form.after_wash_condition_field.after_wash_organism_fields[n]
+        after_wash_entry.after_wash_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_wash_organisms):
+        in_wash_entry = form.in_wash_condition_field.in_wash_organism_fields[n]
+        in_wash_entry.in_wash_organism.choices = [(org, org)]
+    field_name = f"{product_type}_condition_field"
     fields = getattr(form, field_name)
-    return render_template("academic_services/partials/request_condition_form.html", fields=fields,
-                           code=code)
+    return render_template('academic_services/partials/request_condition_form.html', fields=fields)
 
 
 @academic_services.route('/customer/report_language/add/<int:request_id>', methods=['GET', 'POST'])
