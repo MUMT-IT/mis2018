@@ -806,7 +806,10 @@ def submit_request(request_id=None):
 def create_request():
     code = request.args.get('code')
     request_id = request.args.get('request_id')
-    request_paths = {'bacteria': 'academic_services.create_bacteria_request'}
+    request_paths = {'bacteria': 'academic_services.create_bacteria_request',
+                     'disinfection': 'academic_services.create_virus_disinfection_request',
+                     'air_disinfection': 'academic_services.create_virus_air_disinfection_request'
+                     }
     return redirect(url_for(request_paths[code], code=code, request_id=request_id))
 
 
@@ -998,6 +1001,61 @@ def get_virus_disinfection_condition_form():
     for n, org in enumerate(virus_liquid_organisms):
         coat_entry = form.coat_condition_field.coat_organism_fields[n]
         coat_entry.coat_organism.choices = [(org, org)]
+    field_name = f"{product_type}_condition_field"
+    fields = getattr(form, field_name)
+    return render_template('academic_services/partials/virus_disinfection_request_condition_form.html', fields=fields)
+
+
+@academic_services.route('/request/virus_air_disinfection/add', methods=['GET', 'POST'])
+@academic_services.route('/request/virus_air_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
+def create_virus_air_disinfection_request(request_id=None):
+    code = request.args.get('code')
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        data = service_request.data
+        form = VirusAirDisinfectionRequestForm(data=data)
+    else:
+        form = VirusAirDisinfectionRequestForm()
+    for n, org in enumerate(virus_airborne_organisms):
+        surface_entry = form.surface_condition_field.surface_disinfection_organism_fields[n]
+        surface_entry.surface_disinfection_organism.choices = [(org, org)]
+    for n, org in enumerate(virus_airborne_organisms):
+        airborne_entry = form.airborne_condition_field.airborne_disinfection_organism_fields[n]
+        airborne_entry.airborne_disinfection_organism.choices = [(org, org)]
+    if form.validate_on_submit():
+        if request_id:
+            service_request.data = formate_data(form.data)
+            service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+        else:
+            request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.lab.code)
+            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                             sub_lab=sub_lab, request_no=request_no.number, data=formate_data(form.data))
+            request_no.count += 1
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(
+            url_for('academic_services.create_report_language', request_id=service_request.id, menu='request',
+                    code=code))
+    else:
+        for er in form.errors:
+            flash(er, 'danger')
+    return render_template('academic_services/virus_air_disinfection_request_form.html', code=code, sub_lab=sub_lab,
+                               form=form, request_id=request_id)
+
+
+@academic_services.route('/request/virus_air_disinfection/condition')
+def get_virus_air_disinfection_condition_form():
+    product_type = request.args.get("product_type")
+    if not product_type:
+        return ''
+    form = BacteriaRequestForm()
+    for n, org in enumerate(virus_airborne_organisms):
+        surface_entry = form.surface_condition_field.surface_disinfection_organism_fields[n]
+        surface_entry.surface_disinfection_organism.choices = [(org, org)]
+    for n, org in enumerate(virus_airborne_organisms):
+        airborne_entry = form.airborne_condition_field.airborne_disinfection_organism_fields[n]
+        airborne_entry.airborne_disinfection_organism.choices = [(org, org)]
     field_name = f"{product_type}_condition_field"
     fields = getattr(form, field_name)
     return render_template('academic_services/partials/virus_disinfection_request_condition_form.html', fields=fields)
