@@ -3249,7 +3249,7 @@ def seminar_records():
         attends = StaffSeminarAttend.query.filter(and_(StaffSeminarAttend.start_datetime >= start_datetime,
                                                        StaffSeminarAttend.start_datetime <= end_datetime))
         columns = [u'ชื่อ-นามสกุล', u'ประเภท', u'ประเภทที่ไป', u'เรื่อง',
-                   u'ประเภทแหล่งเงิน', u'จำนวนเงิน', u'วันที่เริ่มต้น', u'วันที่สิ้นสุด', u'สถานที่']
+                   u'ประเภทแหล่งเงิน', u'จำนวนเงิน', u'วันที่เริ่มต้น', u'วันที่สิ้นสุด', u'สถานที่', u'พัฒนาด้าน', u'ภายใต้โครงการ']
         for attend in attends:
             records.append({
                 columns[0]: u"{}".format(attend.staff.personal_info.fullname),
@@ -3262,6 +3262,9 @@ def seminar_records():
                 columns[7]: u"{}".format(attend.end_datetime.date()
                                          if attend.end_datetime else attend.start_datetime.date()),
                 columns[8]: u"{}".format(attend.seminar.location),
+                columns[9]: ", ".join(str(mission.mission) for mission in attend.missions),
+                columns[10]: ", ".join(str(objective.objective) for objective in attend.objectives),
+
             })
         df = DataFrame(records, columns=columns)
         df.to_excel('attend_summary.xlsx', index=False, columns=columns)
