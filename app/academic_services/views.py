@@ -805,8 +805,9 @@ def submit_request(request_id=None):
 @academic_services.route('/portal/request')
 def create_request():
     code = request.args.get('code')
+    request_id = request.args.get('request_id')
     request_paths = {'bacteria': 'academic_services.create_bacteria_request'}
-    return redirect(url_for(request_paths[code], code=code))
+    return redirect(url_for(request_paths[code], code=code, request_id=request_id))
 
 
 @academic_services.route('/request/bacteria/add', methods=['GET', 'POST'])
