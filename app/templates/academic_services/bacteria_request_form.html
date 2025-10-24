@@ -18,23 +18,19 @@
         }
     </style>
 {% endblock %}
-{% from "academic_services/bacteria/macros/organism_form_field_macro.html" import organism_form_field %}
 {% block page_content %}
     {% include "academic_services/customer_nav.html" %}
     {% include 'messages.html' %}
-    <div class="container is-max-widescreen">
-        <div class="column">
-            <h1 class="title is-3 has-text-centered has-text-grey-dark">ฟอร์ม{{ sub_lab.sub_lab }}</h1>
-            <form method="post">
-                {{ form.hidden_tag() }}
-                <div class="card mb-5">
-                    <header class="card-header has-background-light">
-                        <p class="card-header-title has-text-grey-darker">
-                            ข้อมูลผลิตภัณฑ์
-                        </p>
-                    </header>
-                    <div class="card-content">
-                        <div class="content">
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-12">
+                    <h1 class="title is-3 has-text-centered has-text-grey-dark">ฟอร์ม{{ sub_lab.sub_lab }}</h1>
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="box">
+                            <h5 class="title is-size-5">ข้อมูลผลิตภัณฑ์</h5>
+                            <hr style="background-color: gainsboro">
                             <div class="field">
                                 <label class="label">{{ form.sample_name.label }}</label>
                                 <div class="control">
@@ -124,10 +120,11 @@
                                         <div class="select is-fullwidth">
                                             {{ form.collect_sample_during_testing(
                                                 **{'hx-get': url_for("academic_services.get_collect_sample_during_testing",
-                                                request_id=request_id),
-                                                'hx-target': '#collect-samples-other-container',
-                                                 'hx-swap': 'innerHTML',
-                                                 'hx-trigger': 'change, load'}) }}
+                                                    request_id=request_id),
+                                                    'hx-target': '#collect-samples-other-container',
+                                                    'hx-swap': 'innerHTML',
+                                                    'hx-trigger': 'change, load'
+                                                    }) }}
                                         </div>
                                     </div>
                                     <div id="collect-samples-other-container" style='width:55%'>
@@ -135,27 +132,10 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-                <div class="card mb-5">
-                    <header class="card-header has-background-light" style="display: flex; justify-content: space-between;
-                    align-items: center;">
-                        <p class="card-header-title has-text-grey-darker" style="margin: 0;">
-                            รายการทดสอบ
-                        </p>
-                        <div style="display: flex; justify-content: center; align-items: center;">
-                            <div class="select">
-                                {{ form.product_type(
-                                **{'hx-get': url_for("academic_services.get_condition_form", code=code),
-                                'hx-target': '#condition-fields',
-                                 'hx-swap': 'beforeend',
-                                 'hx-trigger': 'change, load'}) }}
-                            </div>
-                        </div>
-                    </header>
-                    <div class="card-content">
-                        {% if request_id %}
-                            <div class="field">
+                        <div class="box">
+                            <h5 class="title is-size-5">รายการทดสอบ</h5>
+                            <hr style="background-color: gainsboro">
+                            {% if request_id %}
                                 <div class="field">
                                     <label class="label">
                                         {{ form.label }}
@@ -165,23 +145,54 @@
                                     {% if subform.type == 'FormField' %}
                                         {% set ns = namespace(has_value=false) %}
                                         {% for sb in subform %}
-                                            {% if sb.type != 'HiddenField' and sb.type != 'FormField' and sb.data %}
+                                            {% if sb.type != 'HiddenField' and sb.type != 'FieldList' and sb.data %}
                                                 {% set ns.has_value = true %}
                                             {% endif %}
                                         {% endfor %}
                                         {% if ns.has_value %}
-                                            <div class="card mb-2 subform-card">
+                                            <div class="card subform-card">
+                                                <header class="card-header">
+                                                    <p class="card-header-title">{{ subform.label }}</p>
+                                                </header>
                                                 <div class="card-content">
-                                                    <div class="field">
-                                                        <label class="label">{{ subform.label.text }}</label>
-                                                        {% for sf in subform if sf.type != 'HiddenField' and sf.type != 'CSRFTokenField' %}
-                                                            <div class="field">
-                                                                {{ sf() }}
-                                                            </div>
-                                                        {% endfor %}
-                                                    </div>
-                                                    <button
-                                                            type="button"
+                                                    {% for field in subform %}
+                                                        {% if field.type != 'HiddenField' and field.type != 'CSRFTokenField' %}
+                                                            {% if field.type == 'FieldList' %}
+                                                                <table class="table is-fullwidth ">
+                                                                    <thead>
+                                                                    {% for subfield in field %}
+                                                                        {% if loop.first %}
+                                                                            {% for _field in subfield %}
+                                                                                {% if _field.type != 'CSRFTokenField' %}
+                                                                                    <th style="border: none">{{ _field.label.text }}</th>
+                                                                                {% endif %}
+                                                                            {% endfor %}
+                                                                        {% endif %}
+                                                                    {% endfor %}
+                                                                    </thead>
+                                                                    <tbody>
+                                                                    {% for subfield in field %}
+                                                                        <tr>
+                                                                            {% for _field in subfield %}
+                                                                                {% if _field.type != 'CSRFTokenField' %}
+                                                                                    <td style="border: none">{{ _field() }}</td>
+                                                                                {% endif %}
+                                                                            {% endfor %}
+                                                                        </tr>
+                                                                    {% endfor %}
+                                                                    </tbody>
+                                                                </table>
+                                                            {% else %}
+                                                                <div class="field">
+                                                                    <label class="label">{{ field.label }}</label>
+                                                                    <div class="control">
+                                                                        {{ field() }}
+                                                                    </div>
+                                                                </div>
+                                                            {% endif %}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                    <button type="button"
                                                             class="button is-danger is-rounded is-small remove-subform"
                                                             data-request-id="{{ request_id or '' }}"
                                                             hx-post="{{ url_for('academic_services.remove_condition_form', request_id=request_id) }}"
@@ -193,24 +204,34 @@
                                                     </button>
                                                 </div>
                                             </div>
+                                            <br>
                                         {% endif %}
                                     {% endif %}
                                 {% endfor %}
+                            {% endif %}
+                            <div class="field">
+                                <div id="condition-fields"></div>
                             </div>
-                        {% endif %}
-                        <div class="field">
-                            <div id="condition-fields"></div>
+                            <div class="field">
+                                <div class="select">
+                                    {{ form.product_type(
+                                        **{'hx-get': url_for("academic_services.get_bacteria_condition_form", code=code),
+                                        'hx-target': '#condition-fields',
+                                         'hx-swap': 'beforeend',
+                                         'hx-trigger': 'change, load'}) }}
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                        <div class="field is-grouped is-justify-content-center">
+                            <div class="control">
+                                <input type="submit" value="บันทึกและดำเนินการต่อ" class="button is-success">
+                            </div>
+                        </div>
+                    </form>
                 </div>
-                <div class="field is-grouped is-justify-content-center">
-                    <div class="control">
-                        <input type="submit" value="บันทึกและดำเนินการต่อ" class="button is-success">
-                    </div>
-                </div>
-            </form>
+            </div>
         </div>
-    </div>
+    </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
@@ -291,10 +312,10 @@
             }
         }
 
-        $('.subform-card').each(function() {
+        $('.subform-card').each(function () {
             const subform = $(this);
             showSurfaceTypeOtherInput(subform);
-            subform.find('input[type="radio"][name$="surface_type"]').change(function() {
+            subform.find('input[type="radio"][name$="surface_type"]').change(function () {
                 showSurfaceTypeOtherInput(subform);
             });
         });
