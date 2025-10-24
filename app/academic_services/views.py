@@ -973,7 +973,7 @@ def get_product_storage():
         product_storage_other = ''
     if product_storage == 'อื่นๆ โปรดระบุ':
         html = f'''
-            <div class="field" style='width:100%'>
+            <div class="field">
                 <label class="label">{label}</label>
                 <div class="control">
                     <input name="product_storage_other" class="input" value="{product_storage_other}" required>
@@ -991,7 +991,7 @@ def get_virus_disinfection_condition_form():
     product_type = request.args.get("product_type")
     if not product_type:
         return ''
-    form = BacteriaRequestForm()
+    form = VirusDisinfectionRequestForm()
     for n, org in enumerate(virus_liquid_organisms):
         liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
         liquid_entry.liquid_organism.choices = [(org, org)]
@@ -1049,7 +1049,7 @@ def get_virus_air_disinfection_condition_form():
     product_type = request.args.get("product_type")
     if not product_type:
         return ''
-    form = BacteriaRequestForm()
+    form = VirusAirDisinfectionRequestForm()
     for n, org in enumerate(virus_airborne_organisms):
         surface_entry = form.surface_condition_field.surface_disinfection_organism_fields[n]
         surface_entry.surface_disinfection_organism.choices = [(org, org)]
