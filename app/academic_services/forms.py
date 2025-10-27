@@ -482,7 +482,7 @@ class VirusSurfaceDisinfectionConditionForm(FlaskForm):
         ], validators=[Optional()])
     surface_disinfection_clean_type_other = StringField('ระบุ', render_kw={'class': 'input'})
     surface_disinfection_organism_fields = FieldList(FormField(VirusSurfaceDisinfectionTestConditionForm),
-                                                     min_entries=len(virus_airborne_organisms))
+                                                     min_entries=len(virus_liquid_organisms))
 
 
 class VirusAirborneDisinfectionTestConditionForm(FlaskForm):
