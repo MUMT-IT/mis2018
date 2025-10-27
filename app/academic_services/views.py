@@ -178,68 +178,43 @@ def request_data(service_request):
     else:
         form = ''
     values = []
-    table_rows = []
     set_fields = set()
-    current_row = {}
     for field in form:
         if field.type == 'FormField':
             if not any([f.data for f in field._fields.values() if f.type != 'HiddenField' and f.type != 'FieldList']):
                 continue
-            for fname, fn in field.form._fields.items():
-                if fn.type == 'FormField':
-                    for f_name, f in fn.form._fields.items():
-                        if f.data and f.label not in set_fields:
-                            set_fields.add(f.label)
-                            label = f.label.text
-                            value = ', '.join(
-                                f.data) if f.type == 'SelectMultipleField' or f.type == 'CheckboxField' else f.data
-                            if label.startswith("เชื้อ"):
-                                value = Markup(f"<i>{value}</i>")
-                                if current_row:
-                                    table_rows.append(current_row)
-                                    current_row = {}
-                                current_row["เชื้อ"] = value
-                            elif "อัตราส่วน" in label:
-                                current_row["อัตราส่วนเจือจาง"] = value
-                            elif "ต่อน้ำ" in label:
-                                current_row["ต่อน้ำ"] = value
-                            elif "ระยะห่าง" in label:
-                                current_row["ระยะห่างในการฉีดพ่น (cm)"] = value
-                            elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
-                                current_row["ระยะเวลาฉีดพ่น (วินาที)"] = value
-                            elif "สัมผัสกับเชื้อ" in label:
-                                current_row["ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)"] = value
-                            elif "สัมผัสกับผ้า" in label:
-                                current_row["ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับผ้า (นาที)"] = value
-                            elif "ทดสอบเพื่อทำลายเชื้อ" in label:
-                                current_row["ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (วินาที/นาที)"] = value
-                            else:
-                                values.append(f"{label} : {value}")
+            for fname, fn in field._fields.items():
+                if fn.type == 'FieldList':
+                    rows = []
+                    for entry in fn.entries:
+                        row = {}
+                        for f_name, f in entry._fields.items():
+                            if f.data and f.label not in set_fields:
+                                set_fields.add(f.label)
+                                label = f.label.text
+                                if label.startswith("เชื้อ"):
+                                    data = ', '.join(f.data) if isinstance(f.data, list) else str(f.data or '')
+                                    row[label] = Markup(f"<i>{data}</i>")
+                                else:
+                                    row[label] = f.data
+                        if row:
+                            rows.append(row)
+                    if rows:
+                        values.append({'type': 'table', 'data': rows})
+                        print('v', values)
                 else:
                     if fn.data and fn.label not in set_fields:
                         set_fields.add(fn.label)
                         label = fn.label.text
-                        value = ', '.join(fn.data) if fn.type == 'SelectMultipleField' else fn.data
-                        values.append(f"{label} : {value}")
+                        value = ', '.join(fn.data) if fn.type == 'CheckboxField' else fn.data
+                        values.append({'type': 'text', 'data': f"{label} : {value}"})
         else:
             if field.data and field.label not in set_fields:
                 set_fields.add(field.label)
                 label = field.label.text
-                value = ', '.join(f.data) if field.type == 'SelectMultipleField' else field.data
-                values.append(f"{label} : {value}")
-    if current_row:
-        table_rows.append(current_row)
-    table_keys = []
-    for row in table_rows:
-        for key in row:
-            if key not in table_keys:
-                table_keys.append(key)
-
-    return {
-        "value": values,
-        "table_rows": table_rows,
-        "table_keys": table_keys
-    }
+                value = ', '.join(f.data) if field.type == 'CheckboxField' else field.data
+                values.append({'type': 'text', 'data': f"{label} : {value}"})
+    return values
 
 
 def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', depth=''):
