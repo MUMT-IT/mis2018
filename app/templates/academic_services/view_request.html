@@ -118,11 +118,11 @@
                                     {% else %}
                                         <table class="table is-bordered is-striped is-fullwidth">
                                             <thead>
-                                            <tr>
-                                                {% for col in item.data[0].keys() %}
-                                                    <th>{{ col }}</th>
-                                                {% endfor %}
-                                            </tr>
+                                                <tr>
+                                                    {% for col in item.data[0].keys() %}
+                                                        <th>{{ col }}</th>
+                                                    {% endfor %}
+                                                </tr>
                                             </thead>
                                             <tbody>
                                                 {% for row in item.data %}
