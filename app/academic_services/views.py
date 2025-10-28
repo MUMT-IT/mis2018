@@ -79,11 +79,11 @@ def send_mail_for_account(recp, title, message):
     mail.send(message)
 
 
-def formate_data(data):
+def format_data(data):
     if isinstance(data, dict):
-        return {k: formate_data(v) for k, v in data.items() if k != "csrf_token" and k != 'submit'}
+        return {k: format_data(v) for k, v in data.items() if k != "csrf_token" and k != 'submit'}
     elif isinstance(data, list):
-        return [formate_data(item) for item in data]
+        return [format_data(item) for item in data]
     elif isinstance(data, (date)):
         return data.isoformat()
     return data
@@ -167,7 +167,7 @@ def get_status(s_id):
 #         "table_keys": table_keys
 #     }
 
-def request_data(service_request):
+def request_data(service_request, type):
     data = service_request.data
     if service_request.sub_lab.code == 'bacteria':
         form = BacteriaRequestForm(data=data)
@@ -194,7 +194,10 @@ def request_data(service_request):
                                 label = f.label.text
                                 if label.startswith("เชื้อ"):
                                     data = ', '.join(f.data) if isinstance(f.data, list) else str(f.data or '')
-                                    row[label] = Markup(f"<i>{data}</i>")
+                                    if type == 'form':
+                                        row[label] = Markup(f"<i>{data}</i>")
+                                    else:
+                                        row[label] = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>", data)
                                 else:
                                     row[label] = f.data
                         if row:
@@ -763,13 +766,13 @@ def submit_request(request_id=None):
                 products.append(values['test_sample_of_heavy'])
     if request_id:
         req = ServiceRequest.query.get(request_id)
-        req.data = formate_data(form.data)
+        req.data = format_data(form.data)
         req.modified_at = arrow.now('Asia/Bangkok').datetime
         req.product = products
     else:
         req = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
                              sub_lab=sub_lab,
-                             request_no=request_no.number, product=products, data=formate_data(form.data))
+                             request_no=request_no.number, product=products, data=format_data(form.data))
         request_no.count += 1
     db.session.add(req)
     db.session.commit()
@@ -816,12 +819,12 @@ def create_bacteria_request(request_id=None):
         in_wash_entry.in_wash_organism.choices = [(org, org)]
     if form.validate_on_submit():
         if request_id:
-            service_request.data = formate_data(form.data)
+            service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
             request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.lab.code)
             service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                             sub_lab=sub_lab, request_no=request_no.number, data=formate_data(form.data))
+                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data))
             request_no.count += 1
         db.session.add(service_request)
         db.session.commit()
@@ -913,12 +916,12 @@ def create_virus_disinfection_request(request_id=None):
         coat_entry.coat_organism.choices = [(org, org)]
     if form.validate_on_submit():
         if request_id:
-            service_request.data = formate_data(form.data)
+            service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
             request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.lab.code)
             service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                             sub_lab=sub_lab, request_no=request_no.number, data=formate_data(form.data))
+                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data))
             request_no.count += 1
         db.session.add(service_request)
         db.session.commit()
@@ -978,7 +981,8 @@ def get_virus_disinfection_condition_form():
         coat_entry.coat_organism.choices = [(org, org)]
     field_name = f"{product_type}_condition_field"
     fields = getattr(form, field_name)
-    return render_template('academic_services/partials/virus_disinfection_request_condition_form.html', fields=fields)
+    return render_template('academic_services/partials/virus_disinfection_request_condition_form.html',
+                           fields=fields, product_type=product_type)
 
 
 @academic_services.route('/request/virus_air_disinfection/add', methods=['GET', 'POST'])
@@ -1000,12 +1004,12 @@ def create_virus_air_disinfection_request(request_id=None):
         airborne_entry.airborne_disinfection_organism.choices = [(org, org)]
     if form.validate_on_submit():
         if request_id:
-            service_request.data = formate_data(form.data)
+            service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
             request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.lab.code)
             service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                             sub_lab=sub_lab, request_no=request_no.number, data=formate_data(form.data))
+                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data))
             request_no.count += 1
         db.session.add(service_request)
         db.session.commit()
@@ -1295,7 +1299,7 @@ def get_requests():
 def view_request(request_id=None):
     menu = request.args.get('menu')
     service_request = ServiceRequest.query.get(request_id)
-    datas = request_data(service_request)
+    datas = request_data(service_request, type='form')
     return render_template('academic_services/view_request.html', service_request=service_request, menu=menu,
                            datas=datas)
 
@@ -1312,85 +1316,13 @@ def generate_request_pdf(service_request):
         qr_code = Image(qr_buffer, width=80, height=80)
         qr_code.hAlign = 'LEFT'
 
-    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
-    gc = get_credential(json_keyfile)
-    wks = gc.open_by_key(sheetid)
-    sheet = wks.worksheet(service_request.sub_lab.sheet)
-    df = pandas.DataFrame(sheet.get_all_records())
-    data = service_request.data
-    form = create_request_form(df)(**data)
-    values = []
-    set_fields = set()
-    table_rows = []
-    current_row = {}
-    for fn in df.fieldGroup:
-        for field in getattr(form, fn):
-            if field.type == 'FieldList':
-                for fd in field:
-                    for f in fd:
-                        if f.data != None and f.data != '' and f.data != [] and f.label not in set_fields:
-                            set_fields.add(f.label)
-                            label = f.label.text
-                            value = ', '.join(f.data) if f.type == 'CheckboxField' else f.data
-                            # if f.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or f.label.text == 'สารสำคัญที่ออกฤทธิ์':
-                            #     items = [item.strip() for item in str(f.data).split(',')]
-                            #     values.append(f"{f.label.text}")
-                            #     for item in items:
-                            #         values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
-                            if label.startswith("เชื้อ"):
-                                germ = f"<i>{value}</i>"
-                                value = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>", germ)
-                                if current_row:
-                                    table_rows.append(current_row)
-                                    current_row = {}
-                                current_row["เชื้อ"] = value
-                            elif "อัตราส่วน" in label:
-                                current_row["อัตราส่วนเจือจาง"] = value
-                            elif "ระยะห่าง" in label:
-                                current_row["ระยะห่างในการฉีดพ่น"] = value
-                            elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
-                                current_row["ระยะเวลาฉีดพ่น"] = value
-                            elif "สัมผัสกับเชื้อ" in label:
-                                current_row["ระยะเวลาสัมผัสเชื้อ"] = value
-                            else:
-                                values.append(f"{label} : {value}")
-            else:
-                if field.data != None and field.data != '' and field.data != [] and field.label not in set_fields:
-                    set_fields.add(field.label)
-                    label = field.label.text
-                    value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
-                    # if field.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or field.label.text == 'สารสำคัญที่ออกฤทธิ์':
-                    #     items = [item.strip() for item in str(field.data).split(',')]
-                    #     values.append(f"{field.label.text}")
-                    #     for item in items:
-                    #         values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
-                    if label.startswith("เชื้อ"):
-                        germ = f"<i>{value}</i>"
-                        value = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>", germ)
-                        if current_row:
-                            table_rows.append(current_row)
-                            current_row = {}
-                        current_row["เชื้อ"] = value
-                    elif "อัตราส่วน" in label:
-                        current_row["อัตราส่วนเจือจาง"] = value
-                    elif "ระยะห่าง" in label:
-                        current_row["ระยะห่างในการฉีดพ่น"] = value
-                    elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
-                        current_row["ระยะเวลาฉีดพ่น"] = value
-                    elif "สัมผัสกับเชื้อ" in label:
-                        current_row["ระยะเวลาสัมผัสเชื้อ"] = value
-                    else:
-                        values.append(f"{label} : {value}")
-    if current_row:
-        table_rows.append(current_row)
-    table_keys = []
-    for row in table_rows:
-        for key in row:
-            if key not in table_keys:
-                table_keys.append(key)
-
+    values = request_data(service_request, type='pdf')
     if service_request.report_languages:
-        values.append("ใบรายงานผล : " + ", ".join([rl.report_language.item for rl in service_request.report_languages]))
+        langs = ", ".join([rl.report_language.item for rl in service_request.report_languages])
+        values.append({
+            'type': 'text',
+            'data': f"ใบรายงานผล : {langs}"
+        })
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -1551,102 +1483,58 @@ def generate_request_pdf(service_request):
     data.append(KeepTogether(address_table))
     data.append(KeepTogether(customer_table))
 
-    details = 'ข้อมูลผลิตภัณฑ์' + "<br/>" + "<br/>".join(values)
-    first_page_limit = 410
-    remaining_text = ""
-    current_length = 0
-    lines = details.split("<br/>")
-    first_page_lines = []
-
-    for line in lines:
-        if current_length + detail_style.leading <= first_page_limit:
-            first_page_lines.append(line)
-            current_length += detail_style.leading
+    content = []
+    content.append(Paragraph("ข้อมูลผลิตภัณฑ์", style=detail_style))
+    content.append(Spacer(1, 6))
+    for idx, item in enumerate(values):
+        if item['type'] == 'text':
+            text_data = Table(Paragraph(f"{item['data']}", style=detail_style))
+            text_data.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ]))
+            content.append(Paragraph(text_data, style=detail_style))
         else:
-            remaining_text += line + "<br/>"
+            rows = item['data']
+            headers = list(rows[0].keys())
 
-    first_page = Paragraph("<br/>".join(first_page_lines), style=detail_style)
-    first_page_paragraph = [[first_page]]
-    first_page_table = Table(first_page_paragraph, colWidths=[530])
-    first_page_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-        ('LINEBELOW', (0, 0), (-1, 0), 0, colors.white),
-        ('LINEABOVE', (0, 1), (-1, 1), 0, colors.white),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('ALIGN', (0, 0), (-1, 0), 'LEFT'),
-        ('ALIGN', (0, 1), (-1, 1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-    data.append(KeepTogether(first_page_table))
+            table_data = [[Paragraph(h, detail_style) for h in headers]]
+            for row in rows:
+                table_row = [Paragraph(str(row.get(h, '')), detail_style) for h in headers]
+                table_data.append(table_row)
 
-    if remaining_text:
-        remaining_page = Paragraph(remaining_text, style=detail_style)
-        remaining_page_paragraph = [[remaining_page]]
-        data.append(PageBreak())
-        remaining_page_table = Table(remaining_page_paragraph, colWidths=[530])
-        remaining_page_table.setStyle(TableStyle([
+            table = Table(table_data, colWidths=[530 / len(headers)] * len(headers), repeatRows=1)
+            table.setStyle(TableStyle([
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                ('SPLITROWS', (0, 0), (-1, -1), True)
+            ]))
+
+            content.append(table)
+    data.append(KeepTogether(content))
+    data.append(Spacer(1, 4))
+
+    if service_request.sub_lab.code == 'bacteira' or service_request.sub_lab.code == 'disinfection' or service_request.sub_lab.code == 'air_disinfection':
+        lab_test = '''<para><font size=12>
+                            สำหรับเจ้าหน้าที่<br/>
+                            Lab No. : _________________________________________________________________<br/>
+                            สภาพตัวอย่าง : O ปกติ<br/>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; O ไม่ปกติ<br/>
+                            </font></para>'''
+
+        lab_test_table = Table([[Paragraph(lab_test, style=detail_style)]], colWidths=[530])
+        lab_test_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-            ('LINEBELOW', (0, 0), (-1, 0), 0, colors.white),
-            ('LINEABOVE', (0, 1), (-1, 1), 0, colors.white),
-            ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('ALIGN', (0, 0), (-1, 0), 'LEFT'),
-            ('ALIGN', (0, 1), (-1, 1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ]))
-
-        data.append(KeepTogether(Spacer(20, 20)))
-        data.append(KeepTogether(content_header))
-        data.append(KeepTogether(Spacer(7, 7)))
-        data.append(KeepTogether(remaining_page_table))
-
-    height = 0
-    if table_rows:
-        height = (len(table_rows) + 1) * detail_style.leading
-        header_table = [Paragraph(f"<b>{key}</b>", detail_style) for key in table_keys]
-        content_table = [header_table]
-        for row in table_rows:
-            row_data = [Paragraph(str(row.get(k, '')), detail_style) for k in table_keys]
-            content_table.append(row_data)
-
-        germ_table = Table(content_table, colWidths=[530 / len(table_keys)])
-        germ_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ]))
 
-        total_height = current_length + height
-        if total_height > first_page_limit and not remaining_text:
-            data.append(PageBreak())
-            data.append(KeepTogether(Spacer(20, 20)))
-            data.append(KeepTogether(content_header))
-            data.append(KeepTogether(Spacer(7, 7)))
-        data.append(KeepTogether(germ_table))
-
-    lab_test = '''<para><font size=12>
-                    สำหรับเจ้าหน้าที่<br/>
-                    Lab No. : _________________________________________________________________________________________________________________<br/>
-                    สภาพตัวอย่าง : O ปกติ<br/>
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; O ไม่ปกติ<br/>
-                    </font></para>'''
-
-    lab_test_table = Table([[Paragraph(lab_test, style=detail_style)]], colWidths=[530])
-
-    lab_test_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-
-    if service_request.lab == 'bacteria' or service_request.lab == 'virology':
-        lab_table_height = detail_style.leading * lab_test.count('<br/>')
-        if not remaining_text and (height + lab_table_height > first_page_limit):
-            data.append(PageBreak())
-            data.append(Spacer(20, 20))
-            data.append(content_header)
-            data.append(Spacer(7, 7))
+        data.append(Spacer(1, 6))
         data.append(lab_test_table)
 
     if service_request.samples:
