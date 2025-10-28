@@ -131,7 +131,6 @@ def request_data(service_request, type):
                             rows.append(row)
                     if rows:
                         values.append({'type': 'table', 'data': rows})
-                        print('v', values)
                 else:
                     if fn.data and fn.label not in set_fields:
                         set_fields.add(fn.label)
@@ -2717,8 +2716,10 @@ def generate_quotation():
                 quote_prices[key] = row['other_price']
         if service_request.sub_lab.code == 'bacteria':
             form = BacteriaRequestForm(data=data)
+        elif  service_request.sub_lab.code == 'disinfection':
+            form = VirusDisinfectionRequestForm(data=data)
         else:
-            form = VirusRequestForm(data=data)
+            form = VirusAirDisinfectionRequestForm(data=data)
         for field in form:
             if field.label.text not in quote_column_names:
                 continue
@@ -2787,6 +2788,7 @@ def generate_quotation():
         return render_template('service_admin/quotation_created_confirmation_page.html',
                                quotation_id=quotation.id, request_no=service_request.request_no, menu=menu)
 
+
 @service_admin.route('/admin/quotation/add/<int:quotation_id>', methods=['GET', 'POST', 'PATCH'])
 @login_required
 def create_quotation_for_admin(quotation_id):
@@ -2794,7 +2796,7 @@ def create_quotation_for_admin(quotation_id):
     tab = request.args.get('tab')
     action = request.form.get('action')
     quotation = ServiceQuotation.query.get(quotation_id)
-    datas = request_data(quotation.request)
+    datas = request_data(quotation.request, type='form')
     quotation.quotation_items = sorted(quotation.quotation_items, key=lambda x: x.sequence)
     form = ServiceQuotationForm(obj=quotation)
     if form.validate_on_submit():
