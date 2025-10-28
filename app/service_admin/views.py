@@ -12,11 +12,10 @@ from pytz import timezone
 from datetime import date
 from base64 import b64decode
 from sqlalchemy.orm import make_transient
-from wtforms import FormField, FieldList
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from app.auth.views import line_bot_api
-from app.academic_services.forms import create_request_form, ServicePaymentForm, BacteriaRequestForm
+from app.academic_services.forms import create_request_form, ServicePaymentForm
 from app.e_sign_api import e_sign
 from app.models import Org
 from app.scb_payment_service.views import generate_qrcode
@@ -26,10 +25,7 @@ from flask import render_template, flash, redirect, url_for, request, session, m
     send_file
 from flask_login import current_user, login_required
 from sqlalchemy import or_
-from app.service_admin.forms import (ServiceCustomerInfoForm, crate_address_form, create_quotation_item_form,
-                                     ServiceInvoiceForm, ServiceQuotationForm, ServiceSampleForm,
-                                     PasswordOfSignDigitalForm,
-                                     ServiceResultForm, ServiceCustomerContactForm)
+from app.service_admin.forms import *
 from app.main import app, get_credential, json_keyfile
 from app.main import mail
 from flask_mail import Message
@@ -98,77 +94,57 @@ def sort_quotation_item(items):
     return (priority, items.id)
 
 
-def request_data(service_request):
-    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
-    gc = get_credential(json_keyfile)
-    wks = gc.open_by_key(sheetid)
-    sheet = wks.worksheet(service_request.sub_lab.sheet)
-    df = pandas.DataFrame(sheet.get_all_records())
+def request_data(service_request, type):
     data = service_request.data
-    form = create_request_form(df)(**data)
+    if service_request.sub_lab.code == 'bacteria':
+        form = BacteriaRequestForm(data=data)
+    elif service_request.sub_lab.code == 'disinfection':
+        form = VirusDisinfectionRequestForm(data=data)
+    elif service_request.sub_lab.code == 'air_disinfection':
+        form = VirusAirDisinfectionRequestForm(data=data)
+    else:
+        form = ''
     values = []
-    table_rows = []
     set_fields = set()
-    current_row = {}
-    for fn in df.fieldGroup:
-        for field in getattr(form, fn):
-            if field.type == 'FieldList':
-                for fd in field:
-                    for f in fd:
-                        if f.data != None and f.data != '' and f.data != [] and f.label not in set_fields:
-                            set_fields.add(f.label)
-                            label = f.label.text
-                            value = ', '.join(f.data) if f.type == 'CheckboxField' else f.data
-                            if label.startswith("เชื้อ"):
-                                value = Markup(f"<i>{value}</i>")
-                                if current_row:
-                                    table_rows.append(current_row)
-                                    current_row = {}
-                                current_row["เชื้อ"] = value
-                            elif "อัตราส่วน" in label:
-                                current_row["อัตราส่วนเจือจาง"] = value
-                            elif "ระยะห่าง" in label:
-                                current_row["ระยะห่างในการฉีดพ่น"] = value
-                            elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
-                                current_row["ระยะเวลาฉีดพ่น"] = value
-                            elif "สัมผัสกับเชื้อ" in label:
-                                current_row["ระยะเวลาสัมผัสเชื้อ"] = value
-                            else:
-                                values.append(f"{label} : {value}")
-            else:
-                if field.data != None and field.data != '' and field.data != [] and field.label not in set_fields:
-                    set_fields.add(field.label)
-                    label = field.label.text
-                    value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
-                    if label.startswith("เชื้อ"):
-                        value = Markup(f"<i>{value}</i>")
-                        if current_row:
-                            table_rows.append(current_row)
-                            current_row = {}
-                        current_row["เชื้อ"] = value
-                    elif "อัตราส่วน" in label:
-                        current_row["อัตราส่วนเจือจาง"] = value
-                    elif "ระยะห่าง" in label:
-                        current_row["ระยะห่างในการฉีดพ่น"] = value
-                    elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
-                        current_row["ระยะเวลาฉีดพ่น"] = value
-                    elif "สัมผัสกับเชื้อ" in label:
-                        current_row["ระยะเวลาสัมผัสเชื้อ"] = value
-                    else:
-                        values.append(f"{label} : {value}")
-    if current_row:
-        table_rows.append(current_row)
-    table_keys = []
-    for row in table_rows:
-        for key in row:
-            if key not in table_keys:
-                table_keys.append(key)
-
-    return {
-        "value": values,
-        "table_rows": table_rows,
-        "table_keys": table_keys
-    }
+    for field in form:
+        if field.type == 'FormField':
+            if not any([f.data for f in field._fields.values() if f.type != 'HiddenField' and f.type != 'FieldList']):
+                continue
+            for fname, fn in field._fields.items():
+                if fn.type == 'FieldList':
+                    rows = []
+                    for entry in fn.entries:
+                        row = {}
+                        for f_name, f in entry._fields.items():
+                            if f.data and f.label not in set_fields:
+                                set_fields.add(f.label)
+                                label = f.label.text
+                                if label.startswith("เชื้อ"):
+                                    data = ', '.join(f.data) if isinstance(f.data, list) else str(f.data or '')
+                                    if type == 'form':
+                                        row[label] = Markup(f"<i>{data}</i>")
+                                    else:
+                                        row[label] = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>", data)
+                                else:
+                                    row[label] = f.data
+                        if row:
+                            rows.append(row)
+                    if rows:
+                        values.append({'type': 'table', 'data': rows})
+                        print('v', values)
+                else:
+                    if fn.data and fn.label not in set_fields:
+                        set_fields.add(fn.label)
+                        label = fn.label.text
+                        value = ', '.join(fn.data) if fn.type == 'CheckboxField' else fn.data
+                        values.append({'type': 'text', 'data': f"{label} : {value}"})
+        else:
+            if field.data and field.label not in set_fields:
+                set_fields.add(field.label)
+                label = field.label.text
+                value = ', '.join(f.data) if field.type == 'CheckboxField' else field.data
+                values.append({'type': 'text', 'data': f"{label} : {value}"})
+    return values
 
 
 def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', depth=''):
