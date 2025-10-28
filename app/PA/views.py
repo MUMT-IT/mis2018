@@ -37,6 +37,11 @@ def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
     mail.send(message)
 
+def get_org_and_children_ids(org):
+    ids = [org.id]
+    for child in org.children:
+        ids.extend(get_org_and_children_ids(child))
+    return ids
 
 @pa.route('/user-performance')
 @login_required
@@ -2005,66 +2010,50 @@ def all_pa():
     round_id = request.args.get('roundid', type=int)
     departments = Org.query.order_by(Org.id.asc()).all()
     pending_pa_staff = []
-    if org_id is None:
+    query = (
+        db.session.query(PAAgreement)
+        .join(StaffAccount, PAAgreement.staff_account_id == StaffAccount.id)
+        .join(StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id)
+    )
+    if org_id:
+        org = Org.query.get(org_id)
+        org_ids = get_org_and_children_ids(org)
+        query = query.filter(StaffPersonalInfo.org_id.in_(org_ids))
         if round_id:
-            org_round_pa = []
-            all_pa = PAAgreement.query.filter_by(round_id=round_id).all()
-            for pa in all_pa:
-                if not pa.staff.is_retired:
-                    org_round_pa.append(pa)
-                pa = org_round_pa
-        else:
-            org_round_pa = []
-            round = PARound.query.order_by(PARound.id.desc()).first()
-            all_pa = PAAgreement.query.filter_by(round_id=round.id).all()
-            for pa in all_pa:
-                if not pa.staff.is_retired:
-                    org_round_pa.append(pa)
-                pa = org_round_pa
-    else:
-        if round_id:
-            org_round_pa = []
-            all_pa = PAAgreement.query.filter_by(round_id=round_id).all()
-            for pa in all_pa:
-                if pa.staff.personal_info.org_id == org_id:
-                    if not pa.staff.is_retired:
-                        org_round_pa.append(pa)
-                pa = org_round_pa
-            pending_pa_staff = []
+            all_pa = PAAgreement.query.filter_by(round_id=int(round_id)).all()
             round = PARound.query.get(round_id)
-            for employment in round.employments:
-                for staff in StaffAccount.query.join(StaffPersonalInfo).filter(StaffPersonalInfo.org_id == org_id,
-                               or_(StaffPersonalInfo.retired == None,StaffPersonalInfo.retired == False),
-                               StaffPersonalInfo.employment_id == employment.id).all():
-                    if staff.personal_info.employed_date <= round.start:
-                        has_activity = False
-                        for pa_staff in pa:
-                            if staff == pa_staff.staff:
-                                has_activity = True
-                                break
-                        if not has_activity:
-                            pending_pa_staff.append(staff)
-            pending_pa_staff = pending_pa_staff
+            employment_ids = [e.id for e in round.employments]
+            accounts = (
+                StaffAccount.query.join(StaffPersonalInfo)
+                .filter(
+                    StaffPersonalInfo.org_id.in_(org_ids), StaffPersonalInfo.employment_id.in_(employment_ids),
+                    StaffPersonalInfo.employed_date <= round.start, StaffPersonalInfo.retired == False).all()
+            )
+            for account in accounts:
+                has_agreement = any(ag.staff_account_id == account.id for ag in all_pa)
+                if not has_agreement:
+                    pending_pa_staff.append(account)
         else:
-            org_round_pa = []
-            all_pa = PAAgreement.query.all()
-            for pa in all_pa:
-                if pa.staff.personal_info.org_id == org_id:
-                    if not pa.staff.is_retired:
-                        org_round_pa.append(pa)
-                pa = org_round_pa
-            pending_pa_staff = []
-            for staff in StaffAccount.query.join(StaffPersonalInfo).\
-                    filter(StaffPersonalInfo.org_id == org_id, StaffPersonalInfo.retired == False).all():
-                has_activity = False
-                for pa_staff in pa:
-                    if staff == pa_staff.staff:
-                        has_activity = True
-                        break
-                if not has_activity:
-                    pending_pa_staff.append(staff)
-
+            for o_id in org_ids:
+                for staff in StaffAccount.query.join(StaffPersonalInfo).\
+                        filter(StaffPersonalInfo.org_id == o_id, StaffPersonalInfo.retired == False).all():
+                    has_activity = False
+                    for pa_staff in pa:
+                        if staff == pa_staff.staff:
+                            has_activity = True
+                            break
+                    if not has_activity:
+                        pending_pa_staff.append(staff)
             pending_pa_staff = pending_pa_staff
+    if round_id:
+        query = query.filter(PAAgreement.round_id == int(round_id))
+    else:
+        current_round = PAAgreement.query.order_by(PAAgreement.round_id.desc()).first()
+        if current_round:
+            query = query.filter(PAAgreement.round_id == current_round.round_id)
+
+    query = query.filter(StaffPersonalInfo.retired == False)
+    pa = query.all()
 
     if request.method == 'POST':
         round_id = request.form.get('round_id')
