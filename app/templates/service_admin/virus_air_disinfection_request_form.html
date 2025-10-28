@@ -1,0 +1,249 @@
+{% extends "academic_services/service_base.html" %}
+{% block head %}
+    {{ super() }}
+    <style>
+        table {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        th, td {
+            padding: 5px;
+        }
+
+        .daterangepicker td,
+        .daterangepicker th {
+            display: table-cell !important;
+        }
+    </style>
+{% endblock %}
+{% block page_content %}
+    {% include "academic_services/customer_nav.html" %}
+    {% include 'messages.html' %}
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-12">
+                    <h1 class="title is-3 has-text-centered has-text-grey-dark">ฟอร์ม{{ sub_lab.sub_lab }}</h1>
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="box">
+                            <h5 class="title is-size-5">ข้อมูลผลิตภัณฑ์</h5>
+                            <hr style="background-color: gainsboro">
+                            <div class="field">
+                                <label class="label">{{ form.product_name.label }}</label>
+                                <div class="control">
+                                    {{ form.product_name(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.disinfection_system.label }}</label>
+                                <div class="control">
+                                    {{ form.disinfection_system(class='textarea') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">{{ form.model.label }}</label>
+                                        <div class="control">
+                                            {{ form.model(class='input') }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">{{ form.serial_no.label }}</label>
+                                        <div class="control">
+                                            {{ form.serial_no(class='input') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.equipment_test_operation.label }}</label>
+                                <div class="control">
+                                    {{ form.equipment_test_operation(class='textarea') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.manufacturer.label }}</label>
+                                <div class="control">
+                                    {{ form.manufacturer(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.manufacturer_address.label }}</label>
+                                <div class="control">
+                                    {{ form.manufacturer_address(class='textarea') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.importer.label }}</label>
+                                <div class="control">
+                                    {{ form.importer(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.importer_address.label }}</label>
+                                <div class="control">
+                                    {{ form.importer_address(class='textarea') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.distributor.label }}</label>
+                                <div class="control">
+                                    {{ form.distributor(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.distributor_address.label }}</label>
+                                <div class="control">
+                                    {{ form.distributor_address(class='textarea') }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="box">
+                            <h5 class="title is-size-5">รายการทดสอบ</h5>
+                            <hr style="background-color: gainsboro">
+                            {% if request_id %}
+                                <div class="field">
+                                    <label class="label">
+                                        {{ form.label }}
+                                    </label>
+                                </div>
+                                {% for subform in form %}
+                                    {% if subform.type == 'FormField' %}
+                                        {% set ns = namespace(has_value=false) %}
+                                        {% for sb in subform %}
+                                            {% if sb.type != 'HiddenField' and sb.type != 'FieldList' and sb.data %}
+                                                {% set ns.has_value = true %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if ns.has_value %}
+                                            <div class="card subform-card mb-4">
+                                                <header class="card-header">
+                                                    <p class="card-header-title">{{ subform.label }}</p>
+                                                </header>
+                                                <div class="card-content">
+                                                    {% for field in subform %}
+                                                        {% if field.type != 'HiddenField' and field.type != 'CSRFTokenField' %}
+                                                            {% if field.type == 'FieldList' %}
+                                                                <table class="table is-fullwidth ">
+                                                                    <thead>
+                                                                    {% for subfield in field %}
+                                                                        {% if loop.first %}
+                                                                            {% for _field in subfield %}
+                                                                                {% if _field.type != 'CSRFTokenField' %}
+                                                                                    <th style="border: none">{{ _field.label.text }}</th>
+                                                                                {% endif %}
+                                                                            {% endfor %}
+                                                                        {% endif %}
+                                                                    {% endfor %}
+                                                                    </thead>
+                                                                    <tbody>
+                                                                    {% for subfield in field %}
+                                                                        <tr>
+                                                                            {% for _field in subfield %}
+                                                                                {% if _field.type != 'CSRFTokenField' %}
+                                                                                    <td style="border: none">{{ _field() }}</td>
+                                                                                {% endif %}
+                                                                            {% endfor %}
+                                                                        </tr>
+                                                                    {% endfor %}
+                                                                    </tbody>
+                                                                </table>
+                                                            {% else %}
+                                                                <div class="field">
+                                                                    <label class="label">{{ field.label }}</label>
+                                                                    <div class="control">
+                                                                        {{ field() }}
+                                                                    </div>
+                                                                </div>
+                                                            {% endif %}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                    <button type="button"
+                                                            class="button is-danger is-rounded is-small remove-subform"
+                                                            data-request-id="{{ request_id or '' }}"
+                                                            hx-post="{{ url_for('service_admin.remove_condition_form', request_id=request_id) }}"
+                                                            hx-vals='{"field": "{{ subform.name }}"}'
+                                                            hx-target=".subform-card"
+                                                            hx-swap="innerHTML"
+                                                    >
+                                                        ลบ
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                            <div class="field">
+                                <div id="condition-fields"></div>
+                            </div>
+                            <div class="field">
+                                <div class="select">
+                                    {{ form.product_type(
+                                        **{'hx-get': url_for("service_admin.get_virus_air_disinfection_condition_form", code=code),
+                                        'hx-target': '#condition-fields',
+                                         'hx-swap': 'beforeend',
+                                         'hx-trigger': 'change, load'}) }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-justify-content-center">
+                            <div class="control">
+                                <input type="submit" value="บันทึกและดำเนินการต่อ" class="button is-success">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        document.body.addEventListener('htmx:afterRequest', (e) => {
+            const select = document.getElementById('product_type');
+            if (select) {
+                select.selectedIndex = 0;
+            }
+        });
+    </script>
+    <script>
+        document.addEventListener('click', function (e) {
+            if (e.target.classList.contains('remove-subform')) {
+                const btn = e.target;
+                const card = btn.closest('.subform-card');
+                const requestId = btn.dataset.requestId;
+
+                if (!requestId) {
+                    card.remove();
+                    e.preventDefault();
+                }
+            }
+        });
+    </script>
+    <script>
+        function showClenTypeOtherInput(subform) {
+            const cleanTypeField = subform.find('input[type="radio"][name$="clean_type"]:checked').val();
+            const cleanTypeOtherField = subform.find('input[name$="clean_type_other"]').closest('.field');
+
+            if (cleanTypeField && cleanTypeField.includes('อื่นๆ โปรดระบุ')) {
+                cleanTypeOtherField.show();
+            } else {
+                cleanTypeOtherField.hide();
+                subform.find('input[name$="clean_type_other"]').val('');
+            }
+        }
+
+        $('.subform-card').each(function () {
+            const subform = $(this);
+            showClenTypeOtherInput(subform);
+            subform.find('input[type="radio"][name$="clean_type"]').change(function () {
+                showClenTypeOtherInput(subform);
+            });
+        });
+    </script>
+{% endblock %}
