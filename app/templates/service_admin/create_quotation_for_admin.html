@@ -79,35 +79,36 @@
                         </div>
                         <hr>
                         <div class="mb-4">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                            <p class="subtitle is-6 mb-3 has-text-weight-semibold">
                                 <span class="icon"><i class="fas fa-clipboard-list"></i></span> ข้อมูลผลิตภัณฑ์
                             </p>
                             <div class="content" style="margin-left: 1.75rem;">
-                                <ul class="ml-4">
-                                    {% for data in datas.value %}
-                                        <li>{{ data }}</li>
-                                    {% endfor %}
-                                </ul>
-                                {% if datas.table_rows %}
-                                    <table class="table is-bordered is-striped is-fullwidth mt-4">
-                                        <thead>
-                                        <tr>
-                                            {% for key in datas.table_keys %}
-                                                <th>{{ key }}</th>
-                                            {% endfor %}
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        {% for row in datas.table_rows %}
-                                            <tr>
-                                                {% for key in datas.table_keys %}
-                                                    <td>{{ row.get(key, '-') }}</td>
+                                {% for item in datas %}
+                                    {% if item.type == 'text' %}
+                                        <ul class="ml-4">
+                                            <li style="line-height: .6;">{{ item.data }}</li>
+                                        </ul>
+                                    {% else %}
+                                        <table class="table is-bordered is-striped is-fullwidth">
+                                            <thead>
+                                                <tr>
+                                                    {% for col in item.data[0].keys() %}
+                                                        <th>{{ col }}</th>
+                                                    {% endfor %}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for row in item.data %}
+                                                    <tr>
+                                                        {% for val in row.values() %}
+                                                            <td>{{ val|safe }}</td>
+                                                        {% endfor %}
+                                                    </tr>
                                                 {% endfor %}
-                                            </tr>
-                                        {% endfor %}
-                                        </tbody>
-                                    </table>
-                                {% endif %}
+                                            </tbody>
+                                        </table>
+                                    {% endif %}
+                                {% endfor %}
                             </div>
                         </div>
                         <hr>
