@@ -24,7 +24,7 @@ from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, session, make_response, jsonify, current_app, \
     send_file
 from flask_login import current_user, login_required
-from sqlalchemy import or_
+from sqlalchemy import or_, update
 from app.service_admin.forms import *
 from app.main import app, get_credential, json_keyfile
 from app.main import mail
@@ -340,88 +340,371 @@ def get_requests():
                     })
 
 
-@service_admin.route('/request/add/<int:customer_id>', methods=['GET'])
-@service_admin.route('/request/edit/<int:request_id>', methods=['GET'])
-@login_required
-def create_request(request_id=None, customer_id=None):
-    code = request.args.get('code')
-    sub_lab = ServiceSubLab.query.filter_by(code=code)
-    return render_template('service_admin/create_request.html', code=code, request_id=request_id,
-                           customer_id=customer_id, sub_lab=sub_lab)
+# @service_admin.route('/request/add/<int:customer_id>', methods=['GET'])
+# @service_admin.route('/request/edit/<int:request_id>', methods=['GET'])
+# @login_required
+# def create_request(request_id=None, customer_id=None):
+#     code = request.args.get('code')
+#     sub_lab = ServiceSubLab.query.filter_by(code=code)
+#     return render_template('service_admin/create_request.html', code=code, request_id=request_id,
+#                            customer_id=customer_id, sub_lab=sub_lab)
+#
 
+# @service_admin.route('/api/request/form', methods=['GET'])
+# def get_request_form():
+#     code = request.args.get('code')
+#     request_id = request.args.get('request_id')
+#     service_request = ServiceRequest.query.get(request_id)
+#     sub_lab = ServiceSubLab.query.filter_by(code=code).first() if code else ServiceSubLab.query.filter_by(
+#         code=service_request.sub_lab.code).first()
+#     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+#     print('Authorizing with Google..')
+#     gc = get_credential(json_keyfile)
+#     wks = gc.open_by_key(sheetid)
+#     sheet = wks.worksheet(sub_lab.sheet)
+#     df = pandas.DataFrame(sheet.get_all_records())
+#     if request_id:
+#         data = service_request.data
+#         form = create_request_form(df)(**data)
+#     else:
+#         form = create_request_form(df)()
+#     template = ''
+#     for f in form:
+#         template += str(f)
+#     return template
+#
+#
+# @service_admin.route('/submit-request/add/<int:customer_id>', methods=['POST'])
+# @service_admin.route('/submit-request/edit/<int:request_id>', methods=['POST'])
+# def submit_request(request_id=None, customer_id=None):
+#     if request_id:
+#         service_request = ServiceRequest.query.get(request_id)
+#         sub_lab = ServiceSubLab.query.filter_by(code=service_request.sub_lab.code).first()
+#     else:
+#         code = request.args.get('code')
+#         sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+#         request_no = ServiceNumberID.get_number('RQ', db,
+#                                                 lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' else code)
+#     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+#     gc = get_credential(json_keyfile)
+#     wks = gc.open_by_key(sheetid)
+#     sheet = wks.worksheet(sub_lab.sheet)
+#     df = pandas.DataFrame(sheet.get_all_records())
+#     form = create_request_form(df)(request.form)
+#     products = []
+#     for _, values in form.data.items():
+#         if isinstance(values, dict):
+#             if 'product_name' in values:
+#                 products.append(values['product_name'])
+#             elif 'ware_name' in values:
+#                 products.append(values['ware_name'])
+#             elif 'sample_name' in values:
+#                 products.append(values['sample_name'])
+#             elif 'รายการ' in values:
+#                 for v in values['รายการ']:
+#                     if 'sample_name' in v:
+#                         products.append(v['sample_name'])
+#             elif 'test_sample_of_trace' in values:
+#                 products.append(values['test_sample_of_trace'])
+#             elif 'test_sample_of_heavy' in values:
+#                 products.append(values['test_sample_of_heavy'])
+#     if request_id:
+#         service_request.data = format_data(form.data)
+#         service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+#         service_request.product = products
+#     else:
+#         service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id,
+#                                          created_at=arrow.now('Asia/Bangkok').datetime, lab=code,
+#                                          request_no=request_no.number,
+#                                          product=products, data=format_data(form.data))
+#         request_no.count += 1
+#     db.session.add(service_request)
+#     db.session.commit()
+#     return redirect(url_for('service_admin.create_report_language', request_id=service_request.id,
+#                             code=service_request.sub_lab.code))
 
-@service_admin.route('/api/request/form', methods=['GET'])
-def get_request_form():
+@service_admin.route('/portal/request')
+def create_request():
     code = request.args.get('code')
     request_id = request.args.get('request_id')
-    service_request = ServiceRequest.query.get(request_id)
-    sub_lab = ServiceSubLab.query.filter_by(code=code).first() if code else ServiceSubLab.query.filter_by(
-        code=service_request.sub_lab.code).first()
-    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
-    print('Authorizing with Google..')
-    gc = get_credential(json_keyfile)
-    wks = gc.open_by_key(sheetid)
-    sheet = wks.worksheet(sub_lab.sheet)
-    df = pandas.DataFrame(sheet.get_all_records())
-    if request_id:
-        data = service_request.data
-        form = create_request_form(df)(**data)
-    else:
-        form = create_request_form(df)()
-    template = ''
-    for f in form:
-        template += str(f)
-    return template
+    customer_id = request.args.get('customer_id')
+    request_paths = {'bacteria': 'service_admin.create_bacteria_request',
+                     'disinfection': 'service_admin.create_virus_disinfection_request',
+                     'air_disinfection': 'service_admin.create_virus_air_disinfection_request'
+                     }
+    return redirect(url_for(request_paths[code], code=code, request_id=request_id, customer_id=customer_id))
 
 
-@service_admin.route('/submit-request/add/<int:customer_id>', methods=['POST'])
-@service_admin.route('/submit-request/edit/<int:request_id>', methods=['POST'])
-def submit_request(request_id=None, customer_id=None):
+@service_admin.route('/request/bacteria/add', methods=['GET', 'POST'])
+@service_admin.route('/request/bacteria/edit/<int:request_id>', methods=['GET', 'POST'])
+def create_bacteria_request(request_id=None):
+    code = request.args.get('code')
+    customer_id = request.args.get('customer_id')
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
-        sub_lab = ServiceSubLab.query.filter_by(code=service_request.sub_lab.code).first()
+        data = service_request.data
+        form = BacteriaRequestForm(data=data)
     else:
-        code = request.args.get('code')
-        sub_lab = ServiceSubLab.query.filter_by(code=code).first()
-        request_no = ServiceNumberID.get_number('RQ', db,
-                                                lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' else code)
-    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
-    gc = get_credential(json_keyfile)
-    wks = gc.open_by_key(sheetid)
-    sheet = wks.worksheet(sub_lab.sheet)
-    df = pandas.DataFrame(sheet.get_all_records())
-    form = create_request_form(df)(request.form)
-    products = []
-    for _, values in form.data.items():
-        if isinstance(values, dict):
-            if 'product_name' in values:
-                products.append(values['product_name'])
-            elif 'ware_name' in values:
-                products.append(values['ware_name'])
-            elif 'sample_name' in values:
-                products.append(values['sample_name'])
-            elif 'รายการ' in values:
-                for v in values['รายการ']:
-                    if 'sample_name' in v:
-                        products.append(v['sample_name'])
-            elif 'test_sample_of_trace' in values:
-                products.append(values['test_sample_of_trace'])
-            elif 'test_sample_of_heavy' in values:
-                products.append(values['test_sample_of_heavy'])
+        form = BacteriaRequestForm()
+    for n, org in enumerate(bacteria_liquid_organisms):
+        liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
+        liquid_entry.liquid_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_liquid_organisms):
+        spray_entry = form.spray_condition_field.spray_organism_fields[n]
+        spray_entry.spray_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_liquid_organisms):
+        sheet_entry = form.sheet_condition_field.sheet_organism_fields[n]
+        sheet_entry.sheet_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_wash_organisms):
+        after_wash_entry = form.after_wash_condition_field.after_wash_organism_fields[n]
+        after_wash_entry.after_wash_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_wash_organisms):
+        in_wash_entry = form.in_wash_condition_field.in_wash_organism_fields[n]
+        in_wash_entry.in_wash_organism.choices = [(org, org)]
+    if form.validate_on_submit():
+        if request_id:
+            service_request.data = format_data(form.data)
+            service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+        else:
+            request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.lab.code)
+            service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id,
+                                             created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
+                                             request_no=request_no.number, data=format_data(form.data))
+            request_no.count += 1
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(
+            url_for('service_admin.create_report_language', request_id=service_request.id, menu='request',
+                    code=code))
+    else:
+        for er in form.errors:
+            flash(er, 'danger')
+    return render_template('service_admin/bacteria_request_form.html', code=code, sub_lab=sub_lab,
+                               form=form, request_id=request_id)
+
+
+@service_admin.route("/request/collect_sample_during_testing")
+def get_collect_sample_during_testing():
+    request_id = request.args.get("request_id")
+    collect_sample_during_testing = request.args.get("collect_sample_during_testing")
+    label = 'ระบุ'
+
     if request_id:
-        service_request.data = form_data(form.data)
-        service_request.modified_at = arrow.now('Asia/Bangkok').datetime
-        service_request.product = products
+        service_request = ServiceRequest.query.get(request_id)
+        if service_request and service_request.data:
+            data = service_request.data
+            collect_sample_during_testing_other = data.get('collect_sample_during_testing_other', '')
+        else:
+            collect_sample_during_testing_other = ''
     else:
-        service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id,
-                                         created_at=arrow.now('Asia/Bangkok').datetime, lab=code,
-                                         request_no=request_no.number,
-                                         product=products, data=form_data(form.data))
-        request_no.count += 1
-    db.session.add(service_request)
-    db.session.commit()
-    return redirect(url_for('service_admin.create_report_language', request_id=service_request.id,
-                            code=service_request.sub_lab.code))
+        collect_sample_during_testing_other = ''
+    if collect_sample_during_testing == 'อื่นๆ โปรดระบุ':
+        html = f'''
+            <div class="field">
+                <label class="label">{label}</label>
+                <div class="control">
+                    <input name="collect_sample_during_testing_other" class="input" value="{collect_sample_during_testing_other}" required>
+                </div>
+            </div>
+        '''
+    else:
+        html = '<input type="hidden" name="collect_sample_during_testing_other" class="input" value="">'
+    resp = make_response(html)
+    return resp
+
+
+@service_admin.route('/request/bacteria/condition')
+def get_bacteria_condition_form():
+    product_type = request.args.get("product_type")
+    if not product_type:
+        return ''
+    form = BacteriaRequestForm()
+    for n, org in enumerate(bacteria_liquid_organisms):
+        liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
+        liquid_entry.liquid_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_liquid_organisms):
+        spray_entry = form.spray_condition_field.spray_organism_fields[n]
+        spray_entry.spray_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_liquid_organisms):
+        sheet_entry = form.sheet_condition_field.sheet_organism_fields[n]
+        sheet_entry.sheet_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_wash_organisms):
+        after_wash_entry = form.after_wash_condition_field.after_wash_organism_fields[n]
+        after_wash_entry.after_wash_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_wash_organisms):
+        in_wash_entry = form.in_wash_condition_field.in_wash_organism_fields[n]
+        in_wash_entry.in_wash_organism.choices = [(org, org)]
+    field_name = f"{product_type}_condition_field"
+    fields = getattr(form, field_name)
+    return render_template('service_admin/partials/bacteria_request_condition_form.html', fields=fields)
+
+
+@service_admin.route('/request/virus_disinfection/add', methods=['GET', 'POST'])
+@service_admin.route('/request/virus_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
+def create_virus_disinfection_request(request_id=None):
+    code = request.args.get('code')
+    customer_id = request.args.get('customer_id')
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        data = service_request.data
+        form = VirusDisinfectionRequestForm(data=data)
+    else:
+        form = VirusDisinfectionRequestForm()
+    for n, org in enumerate(virus_liquid_organisms):
+        liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
+        liquid_entry.liquid_organism.choices = [(org, org)]
+    for n, org in enumerate(virus_liquid_organisms):
+        spray_entry = form.spray_condition_field.spray_organism_fields[n]
+        spray_entry.spray_organism.choices = [(org, org)]
+    for n, org in enumerate(virus_liquid_organisms):
+        coat_entry = form.coat_condition_field.coat_organism_fields[n]
+        coat_entry.coat_organism.choices = [(org, org)]
+    if form.validate_on_submit():
+        if request_id:
+            service_request.data = format_data(form.data)
+            service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+        else:
+            request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.lab.code)
+            service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id,
+                                             created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
+                                             request_no=request_no.number, data=format_data(form.data))
+            request_no.count += 1
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(
+            url_for('service_admin.create_report_language', request_id=service_request.id, menu='request',
+                    code=code))
+    else:
+        for er in form.errors:
+            flash(er, 'danger')
+    return render_template('service_admin/virus_disinfection_request_form.html', code=code, sub_lab=sub_lab,
+                               form=form, request_id=request_id)
+
+
+@service_admin.route("/request/product_storage")
+def get_product_storage():
+    request_id = request.args.get("request_id")
+    product_storage = request.args.get("product_storage")
+    label = 'ระบุ'
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        if service_request and service_request.data:
+            data = service_request.data
+            product_storage_other = data.get('product_storage_other', '')
+        else:
+            product_storage_other = ''
+    else:
+        product_storage_other = ''
+    if product_storage == 'อื่นๆ โปรดระบุ':
+        html = f'''
+            <div class="field">
+                <label class="label">{label}</label>
+                <div class="control">
+                    <input name="product_storage_other" class="input" value="{product_storage_other}" required>
+                </div>
+            </div>
+        '''
+    else:
+        html = '<input type="hidden" name="product_storage_other" class="input" value="">'
+    resp = make_response(html)
+    return resp
+
+
+@service_admin.route('/request/virus_disinfection/condition')
+def get_virus_disinfection_condition_form():
+    product_type = request.args.get("product_type")
+    if not product_type:
+        return ''
+    form = VirusDisinfectionRequestForm()
+    for n, org in enumerate(virus_liquid_organisms):
+        liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
+        liquid_entry.liquid_organism.choices = [(org, org)]
+    for n, org in enumerate(virus_liquid_organisms):
+        spray_entry = form.spray_condition_field.spray_organism_fields[n]
+        spray_entry.spray_organism.choices = [(org, org)]
+    for n, org in enumerate(virus_liquid_organisms):
+        coat_entry = form.coat_condition_field.coat_organism_fields[n]
+        coat_entry.coat_organism.choices = [(org, org)]
+    field_name = f"{product_type}_condition_field"
+    fields = getattr(form, field_name)
+    return render_template('service_admin/partials/virus_disinfection_request_condition_form.html',
+                           fields=fields, product_type=product_type)
+
+
+@service_admin.route('/request/virus_air_disinfection/add', methods=['GET', 'POST'])
+@service_admin.route('/request/virus_air_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
+def create_virus_air_disinfection_request(request_id=None):
+    code = request.args.get('code')
+    customer_id = request.args.get('customer_id')
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        data = service_request.data
+        form = VirusAirDisinfectionRequestForm(data=data)
+    else:
+        form = VirusAirDisinfectionRequestForm()
+    for n, org in enumerate(virus_liquid_organisms):
+        surface_entry = form.surface_condition_field.surface_disinfection_organism_fields[n]
+        surface_entry.surface_disinfection_organism.choices = [(org, org)]
+    for n, org in enumerate(virus_airborne_organisms):
+        airborne_entry = form.airborne_condition_field.airborne_disinfection_organism_fields[n]
+        airborne_entry.airborne_disinfection_organism.choices = [(org, org)]
+    if form.validate_on_submit():
+        if request_id:
+            service_request.data = format_data(form.data)
+            service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+        else:
+            request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.lab.code)
+            service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id,
+                                             created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
+                                             request_no=request_no.number, data=format_data(form.data))
+            request_no.count += 1
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(
+            url_for('service_admin.create_report_language', request_id=service_request.id, menu='request',
+                    code=code))
+    else:
+        for er in form.errors:
+            flash(er, 'danger')
+    return render_template('service_admin/virus_air_disinfection_request_form.html', code=code, sub_lab=sub_lab,
+                               form=form, request_id=request_id)
+
+
+@service_admin.route('/request/virus_air_disinfection/condition')
+def get_virus_air_disinfection_condition_form():
+    product_type = request.args.get("product_type")
+    if not product_type:
+        return ''
+    form = VirusAirDisinfectionRequestForm()
+    for n, org in enumerate(virus_liquid_organisms):
+        surface_entry = form.surface_condition_field.surface_disinfection_organism_fields[n]
+        surface_entry.surface_disinfection_organism.choices = [(org, org)]
+    for n, org in enumerate(virus_airborne_organisms):
+        airborne_entry = form.airborne_condition_field.airborne_disinfection_organism_fields[n]
+        airborne_entry.airborne_disinfection_organism.choices = [(org, org)]
+    field_name = f"{product_type}_condition_field"
+    fields = getattr(form, field_name)
+    return render_template('service_admin/partials/virus_air_disinfection_request_condition_form.html', fields=fields)
+
+
+@service_admin.route('/request/condition/remove', methods=['GET', 'POST'])
+def remove_condition_form():
+    request_id = request.args.get('request_id')
+    service_request = ServiceRequest.query.get(request_id)
+    field = request.form.get("field")
+    data = service_request.data or {}
+    if field in data:
+        del data[field]
+        db.session.execute(
+            update(ServiceRequest)
+            .where(ServiceRequest.id == request_id)
+            .values(data=data)
+        )
+        db.session.commit()
+    return ""
 
 
 @service_admin.route('/request/report_language/add/<int:request_id>', methods=['GET', 'POST'])
@@ -825,7 +1108,7 @@ def view_request(request_id=None):
     menu = request.args.get('menu')
     service_request = ServiceRequest.query.get(request_id)
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab)
-    datas = request_data(service_request)
+    datas = request_data(service_request, type='form')
     if service_request.results:
         for result in service_request.results:
             result_id = result.id
