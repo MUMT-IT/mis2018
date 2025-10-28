@@ -65,7 +65,7 @@ class BacteriaLiquidTestConditionForm(FlaskForm):
     liquid_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
     liquid_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
     liquid_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (นาที)', validators=[Optional()],
-                                                           render_kw={'class': 'input'})
+                                        render_kw={'class': 'input'})
 
 
 class BacteriaLiquidConditionForm(FlaskForm):
@@ -78,46 +78,55 @@ class BacteriaLiquidConditionForm(FlaskForm):
     liquid_clean_type = RadioField('รูปแบบการทดสอบ',
                                    choices=[('ทดสอบแบบฆ่าเชื้ออย่างเดียว', 'ทดสอบแบบฆ่าเชื้ออย่างเดียว'), (
                                        'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)',
-                                       'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)')], validators=[Optional()])
-    liquid_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง'), ('ไม่เจือจาง', 'ไม่เจือจาง')], validators=[Optional()])
-    liquid_organism_fields = FieldList(FormField(BacteriaLiquidTestConditionForm), min_entries=len(bacteria_liquid_organisms))
+                                       'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)')],
+                                   validators=[Optional()])
+    liquid_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง'), ('ไม่เจือจาง', 'ไม่เจือจาง')],
+                                 validators=[Optional()])
+    liquid_organism_fields = FieldList(FormField(BacteriaLiquidTestConditionForm),
+                                       min_entries=len(bacteria_liquid_organisms))
 
 
 class BacteriaSprayTestConditionForm(FlaskForm):
     spray_organism = CheckboxField('เชื้อ', validators=[Optional()])
     spray_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()],
-                                              render_kw={'class': 'input'})
+                               render_kw={'class': 'input'})
     spray_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
     spray_distance = IntegerField('ระยะห่างในการฉีดพ่น (cm)', validators=[Optional()],
-                                                 render_kw={'class': 'input'})
+                                  render_kw={'class': 'input'})
     spray_of_time = IntegerField('ระยะเวลาฉีดพ่น (วินาที)', validators=[Optional()],
-                                                render_kw={'class': 'input'})
+                                 render_kw={'class': 'input'})
     spray_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (นาที)',
-                                                      validators=[Optional()],
-                                                      render_kw={'class': 'input'})
+                                       validators=[Optional()],
+                                       render_kw={'class': 'input'})
 
 
 class BacteriaSprayConditionForm(FlaskForm):
     product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดฉีดพ่นธรรมดา หรือ ฉีดพ่นอัดก๊าซ',
                                render_kw={'class': 'input is-danger'})
-    spray_test_method = CheckboxField('วิธีทดสอบ', choices=[(c, c) for c in ['วิธีทดสอบ Spray germicidal assay 60 carriers',
-                                                                             'วิธีทดสอบ Spray germicidal assay log (%) reduction']],
-                                             validators=[Optional()])
+    spray_test_method = CheckboxField('วิธีทดสอบ',
+                                      choices=[(c, c) for c in ['วิธีทดสอบ Spray germicidal assay 60 carriers',
+                                                                'วิธีทดสอบ Spray germicidal assay log (%) reduction']],
+                                      validators=[Optional()])
     spray_clean_type = RadioField('รูปแบบการทดสอบ',
                                   choices=[('ทดสอบแบบฆ่าเชื้ออย่างเดียว', 'ทดสอบแบบฆ่าเชื้ออย่างเดียว'), (
                                       'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)',
-                                      'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)')], validators=[Optional()])
+                                      'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)')],
+                                  validators=[Optional()])
     spray_surface_type = RadioField('ชนิดพื้นผิว', choices=[('พื้นผิวแข็งไม่มีรูพรุน', 'พื้นผิวแข็งไม่มีรูพรุน'),
-                                                            ('อื่นๆ โปรดระบุ', 'อื่นๆ โปรดระบุ')], validators=[Optional()])
+                                                            ('อื่นๆ โปรดระบุ', 'อื่นๆ โปรดระบุ')],
+                                    validators=[Optional()])
     spray_surface_type_other = StringField('ระบุ', render_kw={'class': 'input'})
-    spray_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง'), ('ไม่เจือจาง', 'ไม่เจือจาง')], validators=[Optional()])
-    spray_organism_fields = FieldList(FormField(BacteriaSprayTestConditionForm), min_entries=len(bacteria_liquid_organisms))
+    spray_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง'), ('ไม่เจือจาง', 'ไม่เจือจาง')],
+                                validators=[Optional()])
+    spray_organism_fields = FieldList(FormField(BacteriaSprayTestConditionForm),
+                                      min_entries=len(bacteria_liquid_organisms))
 
 
 class BacteriaSheetTestConditionForm(FlaskForm):
     sheet_organism = CheckboxField('เชื้อ', validators=[Optional()])
-    sheet_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (นาที)', validators=[Optional()], render_kw={'class': 'input'})
+    sheet_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (นาที)', validators=[Optional()],
+                                       render_kw={'class': 'input'})
 
 
 class BacteriaSheetConditionForm(FlaskForm):
@@ -130,8 +139,10 @@ class BacteriaSheetConditionForm(FlaskForm):
     sheet_clean_type = RadioField('รูปแบบการทดสอบ',
                                   choices=[('ทดสอบแบบฆ่าเชื้ออย่างเดียว', 'ทดสอบแบบฆ่าเชื้ออย่างเดียว'), (
                                       'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)',
-                                      'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)')], validators=[Optional()] )
-    sheet_organism_fields = FieldList(FormField(BacteriaSheetTestConditionForm), min_entries=len(bacteria_liquid_organisms))
+                                      'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)')],
+                                  validators=[Optional()])
+    sheet_organism_fields = FieldList(FormField(BacteriaSheetTestConditionForm),
+                                      min_entries=len(bacteria_liquid_organisms))
 
 
 class BacteriaAfterWashTestConditionForm(FlaskForm):
@@ -156,24 +167,28 @@ class BacteriaAfterWashConditionForm(FlaskForm):
                                               validators=[Optional()])
     after_wash_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง'), ('ไม่เจือจาง', 'ไม่เจือจาง')],
                                      validators=[Optional()])
-    after_wash_organism_fields = FieldList(FormField(BacteriaAfterWashTestConditionForm), min_entries=len(bacteria_wash_organisms))
+    after_wash_organism_fields = FieldList(FormField(BacteriaAfterWashTestConditionForm),
+                                           min_entries=len(bacteria_wash_organisms))
 
 
 class BacteriaInWashTestConditionForm(FlaskForm):
     in_wash_organism = CheckboxField('เชื้อ', validators=[Optional()])
     in_wash_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
     in_wash_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
-    in_wash_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับผ้า (นาที)', validators=[Optional()], render_kw={'class': 'input'})
+    in_wash_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับผ้า (นาที)', validators=[Optional()],
+                                         render_kw={'class': 'input'})
 
 
 class BacteriaInWashConditionForm(FlaskForm):
     product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (In Wash Claim)',
                                render_kw={'class': 'input is-danger'})
-    in_wash_test_method = RadioField('วิธีทดสอบ', choices=[('ASTM E 2274-09', 'ASTM E 2274-09')], validators=[Optional()])
+    in_wash_test_method = RadioField('วิธีทดสอบ', choices=[('ASTM E 2274-09', 'ASTM E 2274-09')],
+                                     validators=[Optional()])
     in_wash_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง'), ('ไม่เจือจาง', 'ไม่เจือจาง')],
                                   validators=[Optional()])
-    in_wash_organism_fields = FieldList(FormField(BacteriaInWashTestConditionForm), min_entries=len(bacteria_wash_organisms))
+    in_wash_organism_fields = FieldList(FormField(BacteriaInWashTestConditionForm),
+                                        min_entries=len(bacteria_wash_organisms))
 
 
 class BacteriaRequestForm(FlaskForm):
@@ -191,29 +206,27 @@ class BacteriaRequestForm(FlaskForm):
     importanddistributor_address = TextAreaField('ที่อยู่ผู้นำเข้า/จัดจำหน่าย', validators=[DataRequired()])
     amount = IntegerField('จำนวนที่ส่ง', validators=[DataRequired()])
     collect_sample_during_testing = SelectField('การเก็บตัวอย่างระหว่างรอทดสอบ',
-                                                 choices=[('', 'กรุณาเลือกการเก็บตัวอย่างระหว่างรอทดสอบ'),
-                                                          ('อุณหภูมิห้อง', 'อุณหภูมิห้อง'),
-                                                          ('อื่นๆ โปรดระบุ', 'อื่นๆ โปรดระบุ')],
-                                                 validators=[DataRequired()])
+                                                choices=[('', 'กรุณาเลือกการเก็บตัวอย่างระหว่างรอทดสอบ'),
+                                                         ('อุณหภูมิห้อง', 'อุณหภูมิห้อง'),
+                                                         ('อื่นๆ โปรดระบุ', 'อื่นๆ โปรดระบุ')],
+                                                validators=[DataRequired()])
     collect_sample_during_testing_other = StringField('ระบุ')
-    product_type = SelectField('ประเภทผลิตภัณฑ์', choices={('', '+ เพิ่มประเภทผลิตภัณฑ์'),
-                                                           ('liquid',
-                                                            'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดของเหลว หรือชนิดผง ที่ละลายน้้าได้'),
-                                                           ('spray',
-                                                            'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดฉีดพ่นธรรมดา หรือ ฉีดพ่นอัดก๊าซ'),
+    product_type = SelectField('ประเภทผลิตภัณฑ์', choices=[('', '+ เพิ่มประเภทผลิตภัณฑ์'),
+                                                           ('liquid', 'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดของเหลว หรือชนิดผง ที่ละลายน้้าได้'),
+                                                           ('spray', 'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดฉีดพ่นธรรมดา หรือ ฉีดพ่นอัดก๊าซ'),
                                                            ('sheet', 'ผลิตภัณฑ์ฆ่าเชื้อชนิดแผ่น'),
-                                                           ('after_wash',
-                                                            'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ตกค้างหลังซัก (After Wash Claim)'),
-                                                           ('in_wash',
-                                                            'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (In Wash Claim)')})
+                                                           ('after_wash', 'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ตกค้างหลังซัก (After Wash Claim)'),
+                                                           ('in_wash', 'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (In Wash Claim)')
+                                                           ])
     liquid_condition_field = FormField(BacteriaLiquidConditionForm,
                                        'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดของเหลว หรือชนิดผง ที่ละลายน้้าได้')
     spray_condition_field = FormField(BacteriaSprayConditionForm,
-                                       'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดฉีดพ่นธรรมดา หรือ ฉีดพ่นอัดก๊าซ')
+                                      'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดฉีดพ่นธรรมดา หรือ ฉีดพ่นอัดก๊าซ')
     sheet_condition_field = FormField(BacteriaSheetConditionForm, 'ผลิตภัณฑ์ฆ่าเชื้อชนิดแผ่น')
-    after_wash_condition_field = FormField(BacteriaAfterWashConditionForm, 'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ตกค้างหลังซัก (After Wash Claim)')
+    after_wash_condition_field = FormField(BacteriaAfterWashConditionForm,
+                                           'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ตกค้างหลังซัก (After Wash Claim)')
     in_wash_condition_field = FormField(BacteriaInWashConditionForm,
-                                           'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (After Wash Claim)')
+                                        'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (After Wash Claim)')
 
 
 virus_liquid_organisms = [
@@ -222,7 +235,6 @@ virus_liquid_organisms = [
     'Respiratory syncytial virus',
     'SARS-CoV-2'
 ]
-
 
 virus_airborne_organisms = [
     'Influenza virus A (H1N1)'
@@ -241,17 +253,20 @@ class VirusLiquidConditionForm(FlaskForm):
     product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ฆ่าเชื้อ ชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้',
                                render_kw={'class': 'input is-danger'})
-    liquid_test_method = CheckboxField('วิธีทดสอบ', choices=[(c, c) for c in ['วิธีทดสอบ ASTM E1052-20 (Virus suspension test',
-                                                                              'วิธีทดสอบ ASTM E1053-20 (Nonporous environmental surfaces)',
-                                                                              'วิธีทดสอบ Modified ASTM E1053-20']],
+    liquid_test_method = CheckboxField('วิธีทดสอบ',
+                                       choices=[(c, c) for c in ['วิธีทดสอบ ASTM E1052-20 (Virus suspension test',
+                                                                 'วิธีทดสอบ ASTM E1053-20 (Nonporous environmental surfaces)',
+                                                                 'วิธีทดสอบ Modified ASTM E1053-20']],
                                        validators=[Optional()])
     liquid_surface_type = RadioField('ชนิดพื้นผิว', choices=[('สิ่งทอ', 'สิ่งทอ'),
-                                                            ('พื้นผิวอื่นๆ โปรดระบุ', 'พื้นผิวอื่นๆ โปรดระบุ')], validators=[Optional()])
+                                                             ('พื้นผิวอื่นๆ โปรดระบุ', 'พื้นผิวอื่นๆ โปรดระบุ')],
+                                     validators=[Optional()])
     liquid_surface_type_other = StringField('ระบุ', render_kw={'class': 'input'})
-    liquid_product_preparation = RadioField('การเตรียมผลิตภัณฑ์เพื่อการทดสอบ', choices=[('น้ำยาอยู่ในสภาพพร้อมใช้ (ready to use)',
-                                                                            'น้ำยาอยู่ในสภาพพร้อมใช้ (ready to use)'),
-                                                                           ('ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน',
-                                                                            'ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน')],
+    liquid_product_preparation = RadioField('การเตรียมผลิตภัณฑ์เพื่อการทดสอบ',
+                                            choices=[('น้ำยาอยู่ในสภาพพร้อมใช้ (ready to use)',
+                                                      'น้ำยาอยู่ในสภาพพร้อมใช้ (ready to use)'),
+                                                     ('ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน',
+                                                      'ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน')],
                                             validators=[Optional()])
     liquid_organism_fields = FieldList(FormField(VirusLiquidTestConditionForm), min_entries=len(virus_liquid_organisms))
 
@@ -270,21 +285,25 @@ class VirusSprayConditionForm(FlaskForm):
     product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ฆ่าเชื้อ ชนิดฉีดพ่น',
                                render_kw={'class': 'input is-danger'})
-    spray_inject_type = RadioField('ประเภทการฉีด', choices=[('ฉีดพ่นธรรมดา (Trigger spray)', 'ฉีดพ่นธรรมดา (Trigger spray)'),
-                                                            ('ฉีดพ่นอัดก๊าซ (Aerosol spray)', 'ฉีดพ่นอัดก๊าซ (Aerosol spray)')],
+    spray_inject_type = RadioField('ประเภทการฉีด',
+                                   choices=[('ฉีดพ่นธรรมดา (Trigger spray)', 'ฉีดพ่นธรรมดา (Trigger spray)'),
+                                            ('ฉีดพ่นอัดก๊าซ (Aerosol spray)', 'ฉีดพ่นอัดก๊าซ (Aerosol spray)')],
                                    validators=[Optional()])
-    spray_test_method = CheckboxField('วิธีทดสอบ', choices=[(c, c) for c in ['วิธีทดสอบ ASTM E1053-20 (Nonporous environmental surfaces)',
-                                                                             'วิธีทดสอบ Modified ASTM E1053-20']],
+    spray_test_method = CheckboxField('วิธีทดสอบ', choices=[(c, c) for c in [
+        'วิธีทดสอบ ASTM E1053-20 (Nonporous environmental surfaces)',
+        'วิธีทดสอบ Modified ASTM E1053-20']],
                                       validators=[Optional()])
 
     spray_surface_type = RadioField('ชนิดพื้นผิว', choices=[('สิ่งทอ', 'สิ่งทอ'),
-                                                            ('พื้นผิวอื่นๆ โปรดระบุ', 'พื้นผิวอื่นๆ โปรดระบุ')], validators=[Optional()])
+                                                            ('พื้นผิวอื่นๆ โปรดระบุ', 'พื้นผิวอื่นๆ โปรดระบุ')],
+                                    validators=[Optional()])
     spray_surface_type_other = StringField('ระบุ', render_kw={'class': 'input'})
-    spray_product_preparation = RadioField('การเตรียมผลิตภัณฑ์เพื่อการทดสอบ', choices=[('น้ำยาอยู่ในสภาพพร้อมใช้ (ready to use)',
-                                                                            'น้ำยาอยู่ในสภาพพร้อมใช้ (ready to use)'),
-                                                                           ('ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน (แนบขวดสเปรย์มาด้วย)',
-                                                                            'ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน (แนบขวดสเปรย์มาด้วย)')],
-                                            validators=[Optional()])
+    spray_product_preparation = RadioField('การเตรียมผลิตภัณฑ์เพื่อการทดสอบ',
+                                           choices=[('น้ำยาอยู่ในสภาพพร้อมใช้ (ready to use)',
+                                                     'น้ำยาอยู่ในสภาพพร้อมใช้ (ready to use)'),
+                                                    ('ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน (แนบขวดสเปรย์มาด้วย)',
+                                                     'ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน (แนบขวดสเปรย์มาด้วย)')],
+                                           validators=[Optional()])
     spray_organism_fields = FieldList(FormField(VirusSprayTestConditionForm), min_entries=len(virus_liquid_organisms))
 
 
@@ -333,8 +352,9 @@ class VirusDisinfectionRequestForm(FlaskForm):
 
 class VirusSurfaceDisinfectionTestConditionForm(FlaskForm):
     surface_disinfection_organism = CheckboxField('เชื้อ', validators=[Optional()])
-    surface_disinfection_period_test = IntegerField('ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (วินาที/นาที)', validators=[Optional()],
-                                                           render_kw={'class': 'input'})
+    surface_disinfection_period_test = IntegerField('ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (วินาที/นาที)',
+                                                    validators=[Optional()],
+                                                    render_kw={'class': 'input'})
 
 
 class VirusSurfaceDisinfectionConditionForm(FlaskForm):
@@ -355,7 +375,8 @@ class VirusSurfaceDisinfectionConditionForm(FlaskForm):
 
 class VirusAirborneDisinfectionTestConditionForm(FlaskForm):
     airborne_disinfection_organism = CheckboxField('เชื้อ', validators=[Optional()])
-    airborne_disinfection_period_test = IntegerField('ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (วินาที/นาที)', validators=[Optional()],
+    airborne_disinfection_period_test = IntegerField('ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (วินาที/นาที)',
+                                                     validators=[Optional()],
                                                      render_kw={'class': 'input'})
 
 
@@ -367,7 +388,8 @@ class VirusAirborneDisinfectionConditionForm(FlaskForm):
         'รูปแบบการทดสอบ',
         choices=[
             ('ทดสอบการลดปริมาณเชื้อในอากาศ (เครื่องฟอกอากาศ)', 'ทดสอบการลดปริมาณเชื้อในอากาศ (เครื่องฟอกอากาศ)'),
-            ('ทดสอบการทำลายเชื้อในอากาศ (เครื่องปล่อยสารหรืออนุภาคทำลายเชื้อ)', 'ทดสอบการทำลายเชื้อในอากาศ (เครื่องปล่อยสารหรืออนุภาคทำลายเชื้อ)')
+            ('ทดสอบการทำลายเชื้อในอากาศ (เครื่องปล่อยสารหรืออนุภาคทำลายเชื้อ)',
+             'ทดสอบการทำลายเชื้อในอากาศ (เครื่องปล่อยสารหรืออนุภาคทำลายเชื้อ)')
         ], validators=[Optional()])
     airborne_disinfection_organism_fields = FieldList(FormField(VirusAirborneDisinfectionTestConditionForm),
                                                       min_entries=len(virus_airborne_organisms))
@@ -378,7 +400,8 @@ class VirusAirDisinfectionRequestForm(FlaskForm):
     disinfection_system = TextAreaField('ระบบการกำจัดเชื้อของผลิตภัณฑ์', validators=[DataRequired()])
     model = StringField('รุ่น', validators=[DataRequired()])
     serial_no = StringField('หมายเลขประจำเครื่อง', validators=[DataRequired()])
-    equipment_test_operation = TextAreaField('วิธีการใช้งานเครื่องหรืออุปกรณ์เพื่อทำการทดสอบ', validators=[DataRequired()])
+    equipment_test_operation = TextAreaField('วิธีการใช้งานเครื่องหรืออุปกรณ์เพื่อทำการทดสอบ',
+                                             validators=[DataRequired()])
     manufacturer = StringField('ผู้ผลิต', validators=[DataRequired()])
     manufacturer_address = TextAreaField('ที่อยู่ผู้ผลิต', validators=[DataRequired()])
     importer = StringField('ผู้นำเข้า', validators=[DataRequired()])
@@ -386,9 +409,9 @@ class VirusAirDisinfectionRequestForm(FlaskForm):
     distributor = StringField('ผู้จัดจำหน่าย', validators=[DataRequired()])
     distributor_address = TextAreaField('ที่อยู่ผู้จัดจำหน่าย', validators=[DataRequired()])
     product_type = SelectField('ประเภทการฆ่า/ทำลายเชื้อ', choices=[('', '+ เพิ่มประเภทการฆ่า/ทำลายเชื้อ'),
-                                                                        ('surface', 'การฆ่าเชื้อบนพื้นผิว'),
-                                                                        ('airborne', 'การลด/ทำลายเชื้อในอากาศ')],
-                                    validators=[Optional()])
+                                                                   ('surface', 'การฆ่าเชื้อบนพื้นผิว'),
+                                                                   ('airborne', 'การลด/ทำลายเชื้อในอากาศ')],
+                               validators=[Optional()])
     surface_condition_field = FormField(VirusSurfaceDisinfectionConditionForm, 'การฆ่าเชื้อบนพื้นผิว')
     airborne_condition_field = FormField(VirusAirborneDisinfectionConditionForm, 'การลด/ทำลายเชื้อในอากาศ')
 
@@ -412,9 +435,11 @@ def crate_address_form(use_type=False):
     class ServiceCustomerAddressForm(ModelForm):
         class Meta:
             model = ServiceCustomerAddress
-        if use_type==True:
-            address_type = RadioField('ประเภทที่อยู่', choices=[(c, c) for c in ['ที่อยู่จัดส่งเอกสาร', 'ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี']],
-                              validators=[DataRequired()])
+
+        if use_type == True:
+            address_type = RadioField('ประเภทที่อยู่', choices=[(c, c) for c in ['ที่อยู่จัดส่งเอกสาร',
+                                                                                 'ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี']],
+                                      validators=[DataRequired()])
         name = StringField(validators=[DataRequired()])
         address = StringField('ที่อยู่', validators=[DataRequired()])
         province = QuerySelectField('จังหวัด', query_factory=lambda: Province.query.order_by(Province.name),
@@ -432,6 +457,7 @@ def crate_address_form(use_type=False):
                                        validators=[DataRequired(message='กรุณาเลือกแขวง/ตำบล')])
         zipcode = StringField('รหัสไปรษณีย์', validators=[DataRequired()])
         phone_number = StringField('เบอร์โทรศัพท์', validators=[DataRequired()])
+
     return ServiceCustomerAddressForm
 
 
@@ -443,6 +469,7 @@ def create_quotation_item_form(is_form=False):
                 exclude = ['total_price']
             if is_form == False:
                 exclude = ['item', 'quantity', 'unit_price', 'total_price']
+
     return ServiceQuotationItemForm
 
 
@@ -450,6 +477,7 @@ class ServiceQuotationForm(ModelForm):
     class Meta:
         model = ServiceQuotation
         exclude = ['digital_signature']
+
     quotation_items = FieldList(FormField(create_quotation_item_form(is_form=False), default=ServiceQuotationItem))
 
 
@@ -459,23 +487,29 @@ class ServiceSampleForm(ModelForm):
 
     sample_integrity = RadioField('สภาพความสมบูรณ์ของตัวอย่าง', choices=[(c, c) for c in ['สมบูรณ์', 'ไม่สมบูรณ์']],
                                   default='สมบูรณ์', validators=[Optional()])
-    packaging_sealed = RadioField('สภาพการปิดสนิทของภาชนะบรรจุตัวอย่าง', choices=[(c, c) for c in ['ปิดสนิท', 'ปิดไม่สนิท']],
+    packaging_sealed = RadioField('สภาพการปิดสนิทของภาชนะบรรจุตัวอย่าง',
+                                  choices=[(c, c) for c in ['ปิดสนิท', 'ปิดไม่สนิท']],
                                   default='ปิดสนิท', validators=[Optional()])
-    container_strength = RadioField('ความแข็งแรงของภาชนะบรรจุตัวอย่าง', choices=[(c, c) for c in ['แข็งแรง', 'ไม่แข็งแรง']],
+    container_strength = RadioField('ความแข็งแรงของภาชนะบรรจุตัวอย่าง',
+                                    choices=[(c, c) for c in ['แข็งแรง', 'ไม่แข็งแรง']],
                                     default='แข็งแรง', validators=[Optional()])
     container_durability = RadioField('ความคงทนของภาชนะบรรจุตัวอย่าง', choices=[(c, c) for c in ['คงทน', 'ไม่คงทน']],
-                                    default='คงทน', validators=[Optional()])
-    container_damage = RadioField('สภาพการแตก/หักของภาชนะบรรจุตัวอย่าง', choices=[(c, c) for c in ['ไม่แตก/หัก', 'แตก/หัก']],
-                                    default='ไม่แตก/หัก', validators=[Optional()])
-    info_match = RadioField('รายละเอียดบนภาชนะบรรจุตัวอย่างตรงกับใบคำขอรับบริการ', choices=[(c, c) for c in ['ตรง', 'ไม่ตรง']],
-                                    default='ตรง', validators=[Optional()])
-    same_production_lot = RadioField('ตัวอย่างชุดเดียวกันแต่มีหลายชิ้น (ถ้ามี)', choices=[(c, c) for c in ['ทุกชิ้นเป็นรุ่นผลิตเดียวกัน', 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน']],
-                                    validators=[Optional()])
+                                      default='คงทน', validators=[Optional()])
+    container_damage = RadioField('สภาพการแตก/หักของภาชนะบรรจุตัวอย่าง',
+                                  choices=[(c, c) for c in ['ไม่แตก/หัก', 'แตก/หัก']],
+                                  default='ไม่แตก/หัก', validators=[Optional()])
+    info_match = RadioField('รายละเอียดบนภาชนะบรรจุตัวอย่างตรงกับใบคำขอรับบริการ',
+                            choices=[(c, c) for c in ['ตรง', 'ไม่ตรง']],
+                            default='ตรง', validators=[Optional()])
+    same_production_lot = RadioField('ตัวอย่างชุดเดียวกันแต่มีหลายชิ้น (ถ้ามี)', choices=[(c, c) for c in [
+        'ทุกชิ้นเป็นรุ่นผลิตเดียวกัน', 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน']],
+                                     validators=[Optional()])
 
 
 class ServiceInvoiceForm(ModelForm):
     class Meta:
         model = ServiceInvoice
+
     file_upload = FileField('File Upload')
 
 
@@ -487,10 +521,12 @@ class ServiceResultForm(ModelForm):
 class ServiceResultItemForm(ModelForm):
     class Meta:
         model = ServiceResultItem
+
     file_upload = FileField('File Upload')
 
 
 class ServicePaymentForm(ModelForm):
     class Meta:
         model = ServicePayment
+
     file_upload = FileField('File Upload')
