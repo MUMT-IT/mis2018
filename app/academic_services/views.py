@@ -204,7 +204,6 @@ def request_data(service_request, type):
                             rows.append(row)
                     if rows:
                         values.append({'type': 'table', 'data': rows})
-                        print('v', values)
                 else:
                     if fn.data and fn.label not in set_fields:
                         set_fields.add(fn.label)
@@ -2210,7 +2209,7 @@ def create_sample_appointment(sample_id):
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
     service_request = ServiceRequest.query.get(sample.request_id)
-    datas = request_data(service_request)
+    datas = request_data(service_request, type='form')
     form = ServiceSampleForm(obj=sample)
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=sample.request.sub_lab.code)).all()
     holidays = Holidays.query.all()
