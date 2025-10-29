@@ -38,9 +38,14 @@
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.active_substance.label }}</label>
+                                <label class="label">
+                                    {{ form.active_substance.label }}
+                                    เช่น Formaldyhyde 37% w/w, Ethyl Alcohol 50% w/w
+                                </label>
                                 <div class="control">
-                                    {{ form.active_substance(class='textarea') }}
+                                    {{ form.active_substance(class='textarea',
+                                        placeholder='เช่น Formaldyhyde 37% w/w, Ethyl Alcohol 50% w/w')
+                                            }}
                                 </div>
                             </div>
                             <div class="field">
