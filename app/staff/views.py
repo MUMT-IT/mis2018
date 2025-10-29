@@ -3324,33 +3324,34 @@ def seminar_create_record(seminar_id):
             db.session.add(attend)
             db.session.commit()
 
-            req_title = u'ทดสอบแจ้งการขออนุมัติ' + attend.seminar.topic_type
-            req_msg = u'{} ขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
-                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
-                format(attend.staff.personal_info, attend.seminar.topic_type, attend.seminar.topic,
-                       attend.start_datetime, attend.end_datetime,
-                       url_for("staff.seminar_request_for_proposal", seminar_attend_id=attend.id
-                               , _external=True, _scheme='https'))
-            if attend.lower_level_approver_account_id:
-                approver = StaffLeaveApprover.query.filter_by(
-                    approver_account_id=attend.lower_level_approver_account_id).first()
-                approver_email = approver.account.email
-                is_notify_line = approver.notified_by_line
-                line_id = approver.account.line_id
-                if not current_app.debug:
-                    send_mail([approver_email + "@mahidol.ac.th"], req_title, req_msg)
-                    if is_notify_line and line_id:
-                        try:
-                            line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
-                        except LineBotApiError:
-                            flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
-                else:
-                    print(req_msg, approver_email)
-                flash('ส่งคำขอไปยังผู้บังคับบัญชาของท่านเรียบร้อยแล้ว ', 'success')
-            else:
-                flash('เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
+            # req_title = u'ทดสอบแจ้งการขออนุมัติ' + attend.seminar.topic_type
+            # req_msg = u'{} ขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
+            #           u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+            #     format(attend.staff.personal_info, attend.seminar.topic_type, attend.seminar.topic,
+            #            attend.start_datetime, attend.end_datetime,
+            #            url_for("staff.seminar_request_for_proposal", seminar_attend_id=attend.id
+            #                    , _external=True, _scheme='https'))
+            # if attend.lower_level_approver_account_id:
+            #     approver = StaffLeaveApprover.query.filter_by(
+            #         approver_account_id=attend.lower_level_approver_account_id).first()
+            #     approver_email = approver.account.email
+            #     is_notify_line = approver.notified_by_line
+            #     line_id = approver.account.line_id
+            #     if not current_app.debug:
+            #         send_mail([approver_email + "@mahidol.ac.th"], req_title, req_msg)
+            #         if is_notify_line and line_id:
+            #             try:
+            #                 line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
+            #             except LineBotApiError:
+            #                 flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
+            #     else:
+            #         print(req_msg, approver_email)
+            #     flash('ส่งคำขอไปยังผู้บังคับบัญชาของท่านเรียบร้อยแล้ว ', 'success')
+            # else:
+            #     flash('เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
+            flash('เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
         else:
-            flash('มีการลงชื่ออบรมนี้เรียบร้อยแล้ว', 'success')
+            flash('มีการลงชื่ออบรมนี้แล้ว', 'success')
         return redirect(url_for('staff.seminar_attend_info', seminar_id=seminar_id))
     else:
         for err in form.errors:
@@ -3658,8 +3659,43 @@ def show_seminar_info_each_person(record_id):
             upload_file_url = upload_file.get('embedLink')
         else:
             upload_file_url = None
+
+    seminar_attend = StaffSeminarAttend.query.get(record_id)
+    if seminar_attend.staff.personal_info.org.parent:
+        org_name = seminar_attend.staff.personal_info.org.parent.name
+    else:
+        org_name = seminar_attend.staff.personal_info.org.name
+    registration_fee = seminar_attend.registration_fee if seminar_attend.registration_fee else '-'
+    transaction_fee = u'ค่าธรรมเนียมการโอนเงิน(ถ้ามี) {} บาท '.format(
+        seminar_attend.transaction_fee) if seminar_attend.transaction_fee else ''
+    budget = seminar_attend.budget if seminar_attend.budget else '-'
+    accommodation_cost = u'ค่าที่พัก {} บาท '.format(
+        seminar_attend.accommodation_cost) if seminar_attend.accommodation_cost else ''
+    flight_ticket_cost = u'ค่าตั๋วเครื่องบิน {} บาท '.format(
+        seminar_attend.flight_ticket_cost) if seminar_attend.flight_ticket_cost else ''
+    train_ticket_cost = u'ค่ารถไฟ {} บาท '.format(
+        seminar_attend.train_ticket_cost) if seminar_attend.train_ticket_cost else ''
+    taxi_cost = u'ค่าแท็กซี่ {} บาท '.format(seminar_attend.taxi_cost) if seminar_attend.taxi_cost else ''
+    fuel_cost = u'ค่าน้ำมัน {} บาท '.format(seminar_attend.fuel_cost) if seminar_attend.fuel_cost else ''
+    attend_online = u' เข้าร่วมผ่านช่องทางออนไลน์' if seminar_attend.attend_online else ''
+    academic_position = StaffAcademicPositionRecord.query.filter_by \
+        (personal_info_id=current_user.personal_info.id).first()
+    if academic_position:
+        prefix_position = academic_position.position.fullname_th
+    elif current_user.personal_info.academic_staff:
+        prefix_position = u'อาจารย์'
+    else:
+        prefix_position = ''
+    telephone = seminar_attend.staff.personal_info.telephone if seminar_attend.staff.personal_info.telephone \
+        else '.......'
+
     return render_template('staff/seminar_each_record.html', attend=attend, approval=approval,
-                           proposal=proposal, is_hr=is_hr, upload_file_url=upload_file_url)
+                           proposal=proposal, is_hr=is_hr, upload_file_url=upload_file_url,
+                           registration_fee=registration_fee, seminar_attend=seminar_attend,
+                           transaction_fee=transaction_fee, budget=budget, accommodation_cost=accommodation_cost,
+                           flight_ticket_cost=flight_ticket_cost, train_ticket_cost=train_ticket_cost,
+                           taxi_cost=taxi_cost, fuel_cost=fuel_cost, org_name=org_name, attend_online=attend_online,
+                           prefix_position=prefix_position, telephone=telephone)
 
 
 @staff.route('/seminar/edit-seminar/<int:seminar_id>', methods=['GET', 'POST'])
