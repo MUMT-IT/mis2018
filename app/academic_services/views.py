@@ -197,7 +197,7 @@ def request_data(service_request, type):
                                     if type == 'form':
                                         row[label] = Markup(f"<i>{data}</i>")
                                     else:
-                                        row[label] = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>", data)
+                                        row[label] = f"<font name='SarabunItalic'>{data}</font>"
                                 else:
                                     row[label] = f.data
                         if row:
@@ -834,7 +834,7 @@ def create_bacteria_request(request_id=None):
         for er in form.errors:
             flash(er, 'danger')
     return render_template('academic_services/bacteria_request_form.html', code=code, sub_lab=sub_lab,
-                               form=form, request_id=request_id)
+                           form=form, request_id=request_id)
 
 
 @academic_services.route("/request/collect_sample_during_testing")
@@ -931,7 +931,7 @@ def create_virus_disinfection_request(request_id=None):
         for er in form.errors:
             flash(er, 'danger')
     return render_template('academic_services/virus_disinfection_request_form.html', code=code, sub_lab=sub_lab,
-                               form=form, request_id=request_id)
+                           form=form, request_id=request_id)
 
 
 @academic_services.route("/request/product_storage")
@@ -1019,7 +1019,7 @@ def create_virus_air_disinfection_request(request_id=None):
         for er in form.errors:
             flash(er, 'danger')
     return render_template('academic_services/virus_air_disinfection_request_form.html', code=code, sub_lab=sub_lab,
-                               form=form, request_id=request_id)
+                           form=form, request_id=request_id)
 
 
 @academic_services.route('/request/virus_air_disinfection/condition')
@@ -1036,7 +1036,8 @@ def get_virus_air_disinfection_condition_form():
         airborne_entry.airborne_disinfection_organism.choices = [(org, org)]
     field_name = f"{product_type}_condition_field"
     fields = getattr(form, field_name)
-    return render_template('academic_services/partials/virus_air_disinfection_request_condition_form.html', fields=fields)
+    return render_template('academic_services/partials/virus_air_disinfection_request_condition_form.html',
+                           fields=fields)
 
 
 @academic_services.route('/request/condition/remove', methods=['GET', 'POST'])
@@ -1482,42 +1483,128 @@ def generate_request_pdf(service_request):
     data.append(KeepTogether(address_table))
     data.append(KeepTogether(customer_table))
 
-    content = []
-    content.append(Paragraph("ข้อมูลผลิตภัณฑ์", style=detail_style))
-    content.append(Spacer(1, 6))
-    for idx, item in enumerate(values):
+    # details = ["ข้อมูลผลิตภัณฑ์"]
+    # for item in values:
+    #     if item['type'] == 'text':
+    #         details.append(item['data'])
+    #     else:
+    #         headers = list(item['data'][0].keys())
+    #         table_data = [[Paragraph(h, detail_style) for h in headers]]
+    #         for row in item['data']:
+    #             table_row = [Paragraph(str(row.get(h, "")), detail_style) for h in headers]
+    #             table_data.append(table_row)
+    #         table = Table(table_data, colWidths=[530 / len(headers)] * len(headers))
+    #         table.setStyle(TableStyle([
+    #             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+    #             ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+    #             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    #             ('LEFTPADDING', (0, 0), (-1, -1), 4),
+    #             ('RIGHTPADDING', (0, 0), (-1, -1), 4)
+    #         ]))
+    #
+    #         details.append(table)
+    #
+    # # แบ่งหน้าตามความสูง
+    # first_page_limit = 410
+    # remaining_text = ""
+    # current_length = 0
+    # first_page_lines = []
+    #
+    # for line in details:
+    #     if current_length + detail_style.leading <= first_page_limit:
+    #         first_page_lines.append(line)
+    #         current_length += detail_style.leading
+    #     else:
+    #         remaining_text += line + "<br/>"
+    #
+    # first_page_para = Paragraph("<br/>".join(first_page_lines), style=detail_style)
+    # first_page_table = Table([[first_page_para]], colWidths=[530])
+    # first_page_table.setStyle(TableStyle([
+    #     ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+    #     ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+    #     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+    #     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    # ]))
+    # data.append(KeepTogether(first_page_table))
+    #
+    # if remaining_text:
+    #     data.append(PageBreak())
+    #     remaining_page_para = Paragraph(remaining_text, style=detail_style)
+    #     remaining_page_table = Table([[remaining_page_para]], colWidths=[530])
+    #     remaining_page_table.setStyle(TableStyle([
+    #         ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+    #         ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+    #         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+    #         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    #     ]))
+    #     data.append(KeepTogether(remaining_page_table))
+    first_page_lines = []
+    first_page_objects = []
+    remaining_lines = []
+    remaining_objects = []
+
+    first_page_limit = 410
+    current_length = 0
+    height = 0
+    for item in values:
         if item['type'] == 'text':
-            text_data = Table(Paragraph(f"{item['data']}", style=detail_style))
-            text_data.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ]))
-            content.append(Paragraph(text_data, style=detail_style))
+            lines = item['data'].split("<br/>")
+            for line in lines:
+                if current_length + detail_style.leading <= first_page_limit:
+                    first_page_lines.append(line)
+                    current_length += detail_style.leading
+                else:
+                    remaining_lines.append(line)
         else:
             rows = item['data']
             headers = list(rows[0].keys())
-
             table_data = [[Paragraph(h, detail_style) for h in headers]]
             for row in rows:
-                table_row = [Paragraph(str(row.get(h, '')), detail_style) for h in headers]
-                table_data.append(table_row)
+                table_data.append([Paragraph(str(row.get(h, "")), detail_style) for h in headers])
 
-            table = Table(table_data, colWidths=[530 / len(headers)] * len(headers), repeatRows=1)
+            table = Table(table_data, colWidths=[530 / len(headers)] * len(headers))
             table.setStyle(TableStyle([
                 ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
                 ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                 ('LEFTPADDING', (0, 0), (-1, -1), 4),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-                ('SPLITROWS', (0, 0), (-1, -1), True)
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4)
             ]))
 
-            content.append(table)
-    data.append(KeepTogether(content))
-    data.append(Spacer(1, 4))
+            total_height = current_length + height
+            if total_height <= first_page_limit:
+                first_page_objects.append(table)
+                current_length += total_height
+            else:
+                remaining_objects.append(table)
 
+    if first_page_lines:
+        first_para = Paragraph("<br/>".join(first_page_lines), style=detail_style)
+        first_page_table = Table([[first_para]], colWidths=[530])
+        first_page_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+            ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        first_page_objects.insert(0, first_page_table)
+
+    for obj in first_page_objects:
+        data.append(KeepTogether(obj))
+
+    if remaining_lines:
+        data.append(PageBreak())
+        rem_para = Paragraph("<br/>".join(remaining_lines), style=detail_style)
+        rem_table = Table([[rem_para]], colWidths=[530])
+        rem_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+            ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        remaining_objects.insert(0, rem_table)
+    for obj in remaining_objects:
+        data.append(KeepTogether(obj))
     if service_request.sub_lab.code == 'bacteira' or service_request.sub_lab.code == 'disinfection' or service_request.sub_lab.code == 'air_disinfection':
         lab_test = '''<para><font size=12>
                             สำหรับเจ้าหน้าที่<br/>
