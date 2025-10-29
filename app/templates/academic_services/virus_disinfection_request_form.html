@@ -38,9 +38,14 @@
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.active_substance.label }}</label>
+                                <label class="label">
+                                    {{ form.active_substance.label }}
+                                    เช่น Formaldyhyde 37% w/w, Ethyl Alcohol 50% w/w
+                                </label>
                                 <div class="control">
-                                    {{ form.active_substance(class='textarea') }}
+                                    {{ form.active_substance(class='textarea',
+                                    placeholder='เช่น Formaldyhyde 37% w/w, Ethyl Alcohol 50% w/w')
+                                            }}
                                 </div>
                             </div>
                             <div class="field">
@@ -306,7 +311,7 @@
                 surfaceTypeField.prop('disabled', false);
             } else {
                 surfaceTypeField.prop('disabled', true);
-                surfaceTypeField.filter(':checked').prop('checked', false);
+                surfaceTypeField.prop('checked', false);
                 surfaceTypeOtherField.closest('.field').hide();
                 surfaceTypeOtherField.val('');
             }
@@ -315,7 +320,6 @@
         function showSurfaceTypeOtherInput(subform) {
             const surfaceTypeField = subform.find('input[type="radio"][name$="surface_type"]:checked').val();
             const surfaceTypeOtherField = subform.find('input[name$="surface_type_other"]').closest('.field');
-            console.log('surfaceTypeField:', surfaceTypeField);
 
             if (surfaceTypeField && surfaceTypeField.includes('อื่นๆ โปรดระบุ')) {
                 surfaceTypeOtherField.show();
