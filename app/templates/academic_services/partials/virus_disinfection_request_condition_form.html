@@ -66,14 +66,21 @@
             }
         });
 
-         if (isASTMSelected) {
-                surfaceTypeField.prop('disabled', false);
-            } else {
-                surfaceTypeField.prop('disabled', true);
-                surfaceTypeField.prop('checked', false);
-                surfaceTypeOtherField.closest('.field').hide();
-                surfaceTypeOtherField.val('');
-            }
+        if (isASTMSelected) {
+            surfaceTypeField.prop('disabled', false);
+        } else {
+            surfaceTypeField.each(function () {
+                let name = $(this).attr('name');
+                console.log('s', name)
+                if (subform.find('input[name="' + name + '"][type="hidden"]').length === 0) {
+                    subform.append('<input type="hidden" name="' + name + '" value="">');
+                }
+            });
+            surfaceTypeField.prop('disabled', true);
+            surfaceTypeField.prop('checked', false)
+            surfaceTypeOtherField.closest('.field').hide();
+            surfaceTypeOtherField.val('');
+        }
     }
 
     function showSurfaceTypeOtherInput(subform) {
