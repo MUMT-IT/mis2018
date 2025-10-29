@@ -179,8 +179,13 @@ def request_data(service_request, type):
         form = ''
     values = []
     set_fields = set()
+    product_header = False
+    test_header = False
     for field in form:
         if field.type == 'FormField':
+            if not test_header:
+                values.append({'type': 'header', 'data': 'รายการทดสอบ'})
+                test_header = True
             if not any([f.data for f in field._fields.values() if f.type != 'HiddenField' and f.type != 'FieldList']):
                 continue
             for fname, fn in field._fields.items():
@@ -195,7 +200,7 @@ def request_data(service_request, type):
                                 if label.startswith("เชื้อ"):
                                     data = ', '.join(f.data) if isinstance(f.data, list) else str(f.data or '')
                                     if type == 'form':
-                                        row[label] = Markup(f"<i>{data}</i>")
+                                        row[label] = f"<i>{data}</i>"
                                     else:
                                         row[label] = f"<font name='SarabunItalic'>{data}</font>"
                                 else:
@@ -211,6 +216,9 @@ def request_data(service_request, type):
                         value = ', '.join(fn.data) if fn.type == 'CheckboxField' else fn.data
                         values.append({'type': 'text', 'data': f"{label} : {value}"})
         else:
+            if not product_header:
+                values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
+                product_header = True
             if field.data and field.label not in set_fields:
                 set_fields.add(field.label)
                 label = field.label.text
