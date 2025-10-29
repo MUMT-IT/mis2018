@@ -110,13 +110,17 @@
                                 <span class="icon"><i class="fas fa-clipboard-list"></i></span> ข้อมูลผลิตภัณฑ์
                             </p>
                             <div class="content" style="margin-left: 1.75rem;">
+                                {% set ns = namespace(index=1) %}
                                 {% for item in datas %}
-                                    {% if item.type == 'text' %}
-                                        <ul class="ml-4">
-                                            <li style="line-height: .6;">{{ item.data }}</li>
-                                        </ul>
+                                    {% if item.type == 'header' %}
+                                        <div class="box mb-4">
+                                            <b>{{ ns.index }}. {{ item.data }}</b>
+                                            {% set ns.index = ns.index + 1 %}
+                                            <hr>
+                                    {% elif item.type == 'text' %}
+                                        - {{ item.data }}<br>
                                     {% else %}
-                                        <table class="table is-bordered is-striped is-fullwidth">
+                                        <table class="table is-bordered is-striped is-fullwidth mt-2">
                                             <thead>
                                                 <tr>
                                                     {% for col in item.data[0].keys() %}
@@ -134,6 +138,9 @@
                                                 {% endfor %}
                                             </tbody>
                                         </table>
+                                    {% endif %}
+                                    {% if loop.nextitem and loop.nextitem.type == 'header' or loop.last %}
+                                        </div>
                                     {% endif %}
                                 {% endfor %}
                             </div>
