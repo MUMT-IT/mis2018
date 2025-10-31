@@ -24,7 +24,7 @@ from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, session, make_response, jsonify, current_app, \
     send_file
 from flask_login import current_user, login_required
-from sqlalchemy import or_, update
+from sqlalchemy import or_, update, and_
 from app.service_admin.forms import *
 from app.main import app, get_credential, json_keyfile
 from app.main import mail
@@ -289,12 +289,20 @@ def get_requests():
     sub_labs = []
     for a in admin:
         sub_labs.append(a.sub_lab.code)
-    query = ServiceRequest.query.filter(ServiceRequest.status.has(ServiceStatus.status_id != 1),
-                                        or_(ServiceRequest.admin.has(
-                                            id=current_user.id),
-                                            ServiceRequest.sub_lab.has(
-                                                ServiceSubLab.admins.any(
-                                                    ServiceAdmin.admin_id == current_user.id))))
+    query = ServiceRequest.query.filter(
+        ServiceRequest.status.has(
+            and_(
+                ServiceStatus.status_id != 1,
+                ServiceStatus.status_id != 23
+            )
+        ),
+        or_(
+            ServiceRequest.admin.has(id=current_user.id),
+            ServiceRequest.sub_lab.has(
+                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+            )
+        )
+    )
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -488,7 +496,7 @@ def create_bacteria_request(request_id=None):
         for er in form.errors:
             flash(er, 'danger')
     return render_template('service_admin/bacteria_request_form.html', code=code, sub_lab=sub_lab,
-                               form=form, request_id=request_id)
+                           form=form, request_id=request_id)
 
 
 @service_admin.route("/request/collect_sample_during_testing")
@@ -587,7 +595,7 @@ def create_virus_disinfection_request(request_id=None):
         for er in form.errors:
             flash(er, 'danger')
     return render_template('service_admin/virus_disinfection_request_form.html', code=code, sub_lab=sub_lab,
-                               form=form, request_id=request_id)
+                           form=form, request_id=request_id)
 
 
 @service_admin.route("/request/product_storage")
@@ -677,7 +685,7 @@ def create_virus_air_disinfection_request(request_id=None):
         for er in form.errors:
             flash(er, 'danger')
     return render_template('service_admin/virus_air_disinfection_request_form.html', code=code, sub_lab=sub_lab,
-                               form=form, request_id=request_id)
+                           form=form, request_id=request_id)
 
 
 @service_admin.route('/request/virus_air_disinfection/condition')
@@ -2724,7 +2732,7 @@ def generate_quotation():
                 quote_prices[key] = row['other_price']
         if service_request.sub_lab.code == 'bacteria':
             form = BacteriaRequestForm(data=data)
-        elif  service_request.sub_lab.code == 'disinfection':
+        elif service_request.sub_lab.code == 'disinfection':
             form = VirusDisinfectionRequestForm(data=data)
         else:
             form = VirusAirDisinfectionRequestForm(data=data)
