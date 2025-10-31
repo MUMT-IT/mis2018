@@ -37,6 +37,13 @@
                             {{ field() }}
                         </div>
                     </div>
+                {% elif field.name.endswith('surface_type_other') %}
+                    <div class="field ml-4">
+                        <label class="label">{{ field.label }}</label>
+                        <div class="control">
+                            {{ field() }}
+                        </div>
+                    </div>
                 {% else %}
                     <div class="field">
                         <label class="label">{{ field.label }}</label>
