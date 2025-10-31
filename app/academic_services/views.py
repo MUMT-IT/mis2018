@@ -2787,8 +2787,9 @@ def export_invoice_pdf(invoice_id):
 @academic_services.route('/customer/request/cancel/<int:request_id>', methods=['GET'])
 def cancel_request(request_id):
     menu = request.args.get('menu')
+    status_id = get_status(23)
     service_request = ServiceRequest.query.get(request_id)
-    service_request.status = 'ยกเลิกใบคำขอรับบริการ'
+    service_request.status_id = status_id
     db.session.add(service_request)
     db.session.commit()
     flash('ยกเลิกคำขอรับบริการสำเร็จ', 'success')
