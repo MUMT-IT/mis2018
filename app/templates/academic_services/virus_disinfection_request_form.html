@@ -44,8 +44,7 @@
                                 </label>
                                 <div class="control">
                                     {{ form.active_substance(class='textarea',
-                                    placeholder='เช่น Formaldyhyde 37% w/w, Ethyl Alcohol 50% w/w')
-                                            }}
+                                    placeholder='เช่น Formaldyhyde 37% w/w, Ethyl Alcohol 50% w/w') }}
                                 </div>
                             </div>
                             <div class="field">
@@ -172,6 +171,13 @@
                                                                     </tbody>
                                                                 </table>
                                                             {% elif field.name.endswith('surface_type') %}
+                                                                <div class="field ml-4">
+                                                                    <label class="label">{{ field.label }}</label>
+                                                                    <div class="control">
+                                                                        {{ field() }}
+                                                                    </div>
+                                                                </div>
+                                                            {% elif field.name.endswith('surface_type_other') %}
                                                                 <div class="field ml-4">
                                                                     <label class="label">{{ field.label }}</label>
                                                                     <div class="control">
@@ -310,11 +316,11 @@
             if (isASTMSelected) {
                 surfaceTypeField.prop('disabled', false);
             } else {
-                surfaceTypeField.each(function() {
+                surfaceTypeField.each(function () {
                     let name = $(this).attr('name');
                     console.log('s', name)
-                    if (subform.find('input[name="'+name+'"][type="hidden"]').length === 0) {
-                        subform.append('<input type="hidden" name="'+name+'" value="">');
+                    if (subform.find('input[name="' + name + '"][type="hidden"]').length === 0) {
+                        subform.append('<input type="hidden" name="' + name + '" value="">');
                     }
                 });
                 surfaceTypeField.prop('disabled', true);
