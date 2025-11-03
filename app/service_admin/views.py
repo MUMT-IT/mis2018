@@ -11,6 +11,8 @@ from markupsafe import Markup
 from pytz import timezone
 from datetime import date
 from base64 import b64decode
+
+from reportlab.lib.pagesizes import A4
 from sqlalchemy.orm import make_transient
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
@@ -141,7 +143,10 @@ def request_data(service_request, type):
                         set_fields.add(fn.label)
                         label = fn.label.text
                         value = ', '.join(fn.data) if fn.type == 'CheckboxField' else fn.data
-                        values.append({'type': 'text', 'data': f"{label} : {value}"})
+                        if fn.type == 'HiddenField':
+                            values.append({'type': 'content_header', 'data': f"{value}"})
+                        else:
+                            values.append({'type': 'text', 'data': f"{label} : {value}"})
         else:
             if not product_header:
                 values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
@@ -1136,7 +1141,7 @@ def view_request(request_id=None):
 def generate_request_pdf(service_request):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
     if service_request.samples:
-        sample_id = int(''.join(str(s.id) for s in service_request.samples)) if service_request.samples else None
+        sample_id = int(''.join(str(s.id) for s in service_request.samples))
         qr_buffer = BytesIO()
         qr_img = qrcode.make(url_for('service_admin.sample_verification', sample_id=sample_id, menu='sample',
                                      _external=True))
@@ -1145,87 +1150,16 @@ def generate_request_pdf(service_request):
         qr_code = Image(qr_buffer, width=80, height=80)
         qr_code.hAlign = 'LEFT'
 
-    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
-    gc = get_credential(json_keyfile)
-    wks = gc.open_by_key(sheetid)
-    sheet = wks.worksheet(service_request.sub_lab.sheet)
-    df = pandas.DataFrame(sheet.get_all_records())
-    data = service_request.data
-    form = create_request_form(df)(**data)
-    values = []
-    set_fields = set()
-    table_rows = []
-    current_row = {}
-    for fn in df.fieldGroup:
-        for field in getattr(form, fn):
-            if field.type == 'FieldList':
-                for fd in field:
-                    for f in fd:
-                        if f.data != None and f.data != '' and f.data != [] and f.label not in set_fields:
-                            set_fields.add(f.label)
-                            label = f.label.text
-                            value = ', '.join(f.data) if f.type == 'CheckboxField' else f.data
-                            # if f.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or f.label.text == 'สารสำคัญที่ออกฤทธิ์':
-                            #     items = [item.strip() for item in str(f.data).split(',')]
-                            #     values.append(f"{f.label.text}")
-                            #     for item in items:
-                            #         values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
-                            if label.startswith("เชื้อ"):
-                                germ = f"<i>{value}</i>"
-                                value = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>", germ)
-                                if current_row:
-                                    table_rows.append(current_row)
-                                    current_row = {}
-                                current_row["เชื้อ"] = value
-                            elif "อัตราส่วน" in label:
-                                current_row["อัตราส่วนเจือจาง"] = value
-                            elif "ระยะห่าง" in label:
-                                current_row["ระยะห่างในการฉีดพ่น"] = value
-                            elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
-                                current_row["ระยะเวลาฉีดพ่น"] = value
-                            elif "สัมผัสกับเชื้อ" in label:
-                                current_row["ระยะเวลาสัมผัสเชื้อ"] = value
-                            else:
-                                values.append(f"{label} : {value}")
-            else:
-                if field.data != None and field.data != '' and field.data != [] and field.label not in set_fields:
-                    set_fields.add(field.label)
-                    label = field.label.text
-                    value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
-                    # if field.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or field.label.text == 'สารสำคัญที่ออกฤทธิ์':
-                    #     items = [item.strip() for item in str(field.data).split(',')]
-                    #     values.append(f"{field.label.text}")
-                    #     for item in items:
-                    #         values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
-                    if label.startswith("เชื้อ"):
-                        germ = f"<i>{value}</i>"
-                        value = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>", germ)
-                        if current_row:
-                            table_rows.append(current_row)
-                            current_row = {}
-                        current_row["เชื้อ"] = value
-                    elif "อัตราส่วน" in label:
-                        current_row["อัตราส่วนเจือจาง"] = value
-                    elif "ระยะห่าง" in label:
-                        current_row["ระยะห่างในการฉีดพ่น"] = value
-                    elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
-                        current_row["ระยะเวลาฉีดพ่น"] = value
-                    elif "สัมผัสกับเชื้อ" in label:
-                        current_row["ระยะเวลาสัมผัสเชื้อ"] = value
-                    else:
-                        values.append(f"{label} : {value}")
-    if current_row:
-        table_rows.append(current_row)
-    table_keys = []
-    for row in table_rows:
-        for key in row:
-            if key not in table_keys:
-                table_keys.append(key)
-
+    values = request_data(service_request, type='pdf')
     if service_request.report_languages:
-        values.append("ใบรายงานผล : " + ", ".join([rl.report_language.item for rl in service_request.report_languages]))
+        langs = ", ".join([rl.report_language.item for rl in service_request.report_languages])
+        values.append({
+            'type': 'text',
+            'data': f"ใบรายงานผล : {langs}"
+        })
 
     def all_page_setup(canvas, doc):
+        global page_number
         canvas.saveState()
         canvas.setFont("Sarabun", 12)
         page_number = canvas.getPageNumber()
@@ -1233,15 +1167,16 @@ def generate_request_pdf(service_request):
         canvas.restoreState()
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer,
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
                             rightMargin=20,
                             leftMargin=20,
-                            topMargin=10,
-                            bottomMargin=10
+                            topMargin=40,
+                            bottomMargin=40
                             )
 
     data = []
-
+    first_page_limit = 341
+    current_height = 0
     header_style = ParagraphStyle(
         'HeaderStyle',
         parent=style_sheet['ThaiStyle'],
@@ -1258,9 +1193,9 @@ def generate_request_pdf(service_request):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
-    lab_address = '''<para><font size=12>
-                    {address}
-                    </font></para>'''.format(address=service_request.sub_lab.address)
+    lab_address = '''<para><font size=13>
+                        {address}
+                        </font></para>'''.format(address=service_request.sub_lab.address)
 
     lab_table = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
 
@@ -1268,12 +1203,12 @@ def generate_request_pdf(service_request):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
-    staff_only = '''<para><font size=12>
-                สำหรับเจ้าหน้าที่ / Staff only<br/>
-                เลขที่ใบคำขอ &nbsp;  <u>&nbsp;{request_no}&nbsp;&nbsp;</u><br/>
-                วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
-                วันที่รายงานผล <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
-                </font></para>'''.format(request_no=service_request.request_no)
+    staff_only = '''<para><font size=13>
+                    สำหรับเจ้าหน้าที่ / Staff only<br/>
+                    เลขที่ใบคำขอ &nbsp;  <u>&nbsp;{request_no}&nbsp;&nbsp;</u><br/>
+                    วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
+                    วันที่รายงานผล <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
+                    </font></para>'''.format(request_no=service_request.request_no)
 
     staff_table = Table([[Paragraph(staff_only, style=style_sheet['ThaiStyle'])]], colWidths=[150])
 
@@ -1300,28 +1235,28 @@ def generate_request_pdf(service_request):
     detail_style = ParagraphStyle(
         'ThaiStyle',
         parent=style_sheet['ThaiStyle'],
-        fontSize=12,
+        fontSize=13,
         leading=18
     )
 
     center_style = ParagraphStyle(
         'CenterStyle',
         parent=style_sheet['ThaiStyle'],
-        fontSize=12,
+        fontSize=13,
         leading=25,
         alignment=TA_CENTER
     )
 
     customer = '''<para>ข้อมูลผู้ประสานงาน<br/>
-                                ชื่อ-นามสกุล : {cus_contact}<br/>
-                                เลขประจำตัวผู้เสียภาษี : {taxpayer_identification_no}<br/>
-                                เบอร์โทรศัพท์ : {phone_number}<br/>
-                                อีเมล : {email}
-                            </para>
-                            '''.format(cus_contact=service_request.customer.customer_name,
-                                       taxpayer_identification_no=service_request.customer.customer_info.taxpayer_identification_no,
-                                       phone_number=service_request.customer.contact_phone_number,
-                                       email=service_request.customer.contact_email)
+                            ชื่อ-นามสกุล : {cus_contact}<br/>
+                            เลขประจำตัวผู้เสียภาษี : {taxpayer_identification_no}<br/>
+                            เบอร์โทรศัพท์ : {phone_number}<br/>
+                            อีเมล : {email}
+                        </para>
+                        '''.format(cus_contact=service_request.customer.customer_name,
+                                   taxpayer_identification_no=service_request.customer.customer_info.taxpayer_identification_no,
+                                   phone_number=service_request.customer.contact_phone_number,
+                                   email=service_request.customer.contact_email)
 
     customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[530])
 
@@ -1333,30 +1268,30 @@ def generate_request_pdf(service_request):
     ]))
 
     document_address = '''<para>ข้อมูลที่อยู่จัดส่งเอกสาร<br/>
-                                    ถึง : {name}<br/>
-                                    ที่อยู่ : {address}<br/>
-                                    เบอร์โทรศัพท์ : {phone_number}<br/>
-                                    อีเมล : {email}
-                                </para>
-                                '''.format(name=service_request.receive_name,
-                                           address=service_request.receive_address,
-                                           phone_number=service_request.receive_phone_number,
-                                           email=service_request.customer.contact_email)
+                                       ถึง : {name}<br/>
+                                       ที่อยู่ : {address}<br/>
+                                       เบอร์โทรศัพท์ : {phone_number}<br/>
+                                       อีเมล : {email}
+                                   </para>
+                                   '''.format(name=service_request.receive_name,
+                                              address=service_request.receive_address,
+                                              phone_number=service_request.receive_phone_number,
+                                              email=service_request.customer.contact_email)
 
     document_address_table = Table([[Paragraph(document_address, style=detail_style)]], colWidths=[265])
 
     quotation_address = '''<para>ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี<br/>
-                                        ออกในนาม : {name}<br/>
-                                        ที่อยู่ : {address}<br/>
-                                        เลขประจำตัวผู้เสียภาษีอากร : {taxpayer_identification_no}<br/>
-                                        เบอร์โทรศัพท์ : {phone_number}<br/>
-                                        อีเมล : {email}
-                                    </para>
-                                    '''.format(name=service_request.quotation_name,
-                                               address=service_request.quotation_issue_address,
-                                               taxpayer_identification_no=service_request.taxpayer_identification_no,
-                                               phone_number=service_request.quotation_phone_number,
-                                               email=service_request.customer.contact_email)
+                                           ออกในนาม : {name}<br/>
+                                           ที่อยู่ : {address}<br/>
+                                           เลขประจำตัวผู้เสียภาษีอากร : {taxpayer_identification_no}<br/>
+                                           เบอร์โทรศัพท์ : {phone_number}<br/>
+                                           อีเมล : {email}
+                                       </para>
+                                       '''.format(name=service_request.quotation_name,
+                                                  address=service_request.quotation_issue_address,
+                                                  taxpayer_identification_no=service_request.taxpayer_identification_no,
+                                                  phone_number=service_request.quotation_phone_number,
+                                                  email=service_request.customer.contact_email)
 
     quotation_address_table = Table([[Paragraph(quotation_address, style=detail_style)]], colWidths=[265])
 
@@ -1371,6 +1306,15 @@ def generate_request_pdf(service_request):
         ('BOX', (1, 0), (1, 0), 0.5, colors.grey),
     ]))
 
+    test_method_header = Table([[Paragraph('<b>รายการทดสอบ / Test Method</b>', style=header_style)]], colWidths=[530],
+                               rowHeights=[25])
+
+    test_method_header.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
     data.append(KeepTogether(Spacer(7, 7)))
     data.append(
         KeepTogether(Paragraph('<para align=center><font size=18>ใบขอรับบริการ / REQUEST<br/><br/></font></para>',
@@ -1380,106 +1324,117 @@ def generate_request_pdf(service_request):
     data.append(KeepTogether(combined_table))
     data.append(KeepTogether(Spacer(3, 3)))
     data.append(KeepTogether(content_header))
-    data.append(KeepTogether(Spacer(7, 7)))
+    data.append(KeepTogether(Spacer(3, 3)))
     data.append(KeepTogether(address_table))
     data.append(KeepTogether(customer_table))
+    data.append(KeepTogether(Spacer(3, 3)))
+    data.append(KeepTogether(test_method_header))
+    data.append(KeepTogether(Spacer(3, 3)))
 
-    details = 'ข้อมูลผลิตภัณฑ์' + "<br/>" + "<br/>".join(values)
-    first_page_limit = 410
-    remaining_text = ""
-    current_length = 0
-    lines = details.split("<br/>")
-    first_page_lines = []
+    current_height += detail_style.leading
 
-    for line in lines:
-        if current_length + detail_style.leading <= first_page_limit:
-            first_page_lines.append(line)
-            current_length += detail_style.leading
+    contents = []
+    current_contents = []
+
+    for item in values:
+        if item['type'] == 'header':
+            if current_contents:
+                contents.append(current_contents)
+                current_contents = []
+            header_line = item['data'].split("<br/>")
+            current_contents.extend(header_line)
+        elif item['type'] == 'text':
+            text_data = item['data'].split("<br/>")
+            current_contents.extend(text_data)
         else:
-            remaining_text += line + "<br/>"
+            rows = item['data']
+            headers = list(rows[0].keys())
+            table_data = [[Paragraph(h, detail_style) for h in headers]]
+            for row in rows:
+                table_data.append([Paragraph(str(row.get(h, "")), detail_style) for h in headers])
+            table = Table(table_data, colWidths=[530 / len(headers)] * len(headers))
+            table.setStyle(TableStyle([
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4)
+            ]))
+            current_contents.append(table)
+    if current_contents:
+        contents.append(current_contents)
+    for content in contents:
+        text_section = []
+        for c in content:
+            if isinstance(c, str):
+                text_section.append(c)
+                current_height += detail_style.leading
+            elif isinstance(c, Table):
+                if text_section:
+                    para = Paragraph("<br/>".join(text_section), style=detail_style)
+                    table_section = Table([[para]], colWidths=[530])
+                    table_section.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+                        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ]))
+                    if current_height > first_page_limit:
+                        data.append(PageBreak())
+                        current_height = 0
+                        data.append(KeepTogether(Spacer(7, 7)))
+                        data.append(KeepTogether(test_method_header))
+                        data.append(KeepTogether(Spacer(3, 3)))
+                    current_height += detail_style.leading
+                    data.append(KeepTogether(table_section))
+                    text_section = []
+                if current_height > first_page_limit:
+                    data.append(PageBreak())
+                    current_height = 0
+                    data.append(KeepTogether(Spacer(7, 7)))
+                    data.append(KeepTogether(test_method_header))
+                    data.append(KeepTogether(Spacer(3, 3)))
+                current_height += detail_style.leading
+                data.append(KeepTogether(c))
+        if text_section:
+            para = Paragraph("<br/>".join(text_section), style=detail_style)
+            text_box = Table([[para]], colWidths=[530])
+            text_box.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+                ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ]))
+            if current_height > first_page_limit:
+                data.append(PageBreak())
+                current_height = 0
+                data.append(KeepTogether(Spacer(7, 7)))
+                data.append(KeepTogether(test_method_header))
+                data.append(KeepTogether(Spacer(3, 3)))
+            current_height += detail_style.leading
+            data.append(KeepTogether(text_box))
 
-    first_page = Paragraph("<br/>".join(first_page_lines), style=detail_style)
-    first_page_paragraph = [[first_page]]
-    first_page_table = Table(first_page_paragraph, colWidths=[530])
-    first_page_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-        ('LINEBELOW', (0, 0), (-1, 0), 0, colors.white),
-        ('LINEABOVE', (0, 1), (-1, 1), 0, colors.white),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('ALIGN', (0, 0), (-1, 0), 'LEFT'),
-        ('ALIGN', (0, 1), (-1, 1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-    data.append(KeepTogether(first_page_table))
+    if (service_request.sub_lab.code == 'bacteria' or service_request.sub_lab.code == 'disinfection' or
+            service_request.sub_lab.code == 'air_disinfection'):
+        lab_test = '''<para><font size=12>
+                            สำหรับเจ้าหน้าที่<br/>
+                            Lab No. : _________________________________________________________________<br/>
+                            สภาพตัวอย่าง : O ปกติ<br/>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; O ไม่ปกติ<br/>
+                            </font></para>'''
 
-    if remaining_text:
-        remaining_page = Paragraph(remaining_text, style=detail_style)
-        remaining_page_paragraph = [[remaining_page]]
-        data.append(PageBreak())
-        remaining_page_table = Table(remaining_page_paragraph, colWidths=[530])
-        remaining_page_table.setStyle(TableStyle([
+        lab_test_table = Table([[Paragraph(lab_test, style=detail_style)]], colWidths=[530])
+        lab_test_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-            ('LINEBELOW', (0, 0), (-1, 0), 0, colors.white),
-            ('LINEABOVE', (0, 1), (-1, 1), 0, colors.white),
-            ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('ALIGN', (0, 0), (-1, 0), 'LEFT'),
-            ('ALIGN', (0, 1), (-1, 1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ]))
-
-        data.append(KeepTogether(Spacer(20, 20)))
-        data.append(KeepTogether(content_header))
-        data.append(KeepTogether(Spacer(7, 7)))
-        data.append(KeepTogether(remaining_page_table))
-
-    height = 0
-    if table_rows:
-        height = (len(table_rows) + 1) * detail_style.leading
-        header_table = [Paragraph(f"<b>{key}</b>", detail_style) for key in table_keys]
-        content_table = [header_table]
-        for row in table_rows:
-            row_data = [Paragraph(str(row.get(k, '')), detail_style) for k in table_keys]
-            content_table.append(row_data)
-
-        germ_table = Table(content_table, colWidths=[530 / len(table_keys)])
-        germ_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ]))
-
-        total_height = current_length + height
-        if total_height > first_page_limit and not remaining_text:
+        if current_height > first_page_limit:
             data.append(PageBreak())
-            data.append(Spacer(20, 20))
-            data.append(content_header)
-            data.append(Spacer(7, 7))
-        data.append(germ_table)
-
-    lab_test = '''<para><font size=12>
-                    สำหรับเจ้าหน้าที่<br/>
-                    Lab No. : _________________________________________________________________________________________________________________<br/>
-                    สภาพตัวอย่าง : O ปกติ<br/>
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; O ไม่ปกติ<br/>
-                    </font></para>'''
-
-    lab_test_table = Table([[Paragraph(lab_test, style=detail_style)]], colWidths=[530])
-
-    lab_test_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-
-    if service_request.lab == 'bacteria' or service_request.lab == 'virology':
-        lab_table_height = detail_style.leading * lab_test.count('<br/>')
-        if not remaining_text and (height + lab_table_height > first_page_limit):
-            data.append(PageBreak())
-            data.append(Spacer(20, 20))
-            data.append(content_header)
-            data.append(Spacer(7, 7))
+            current_height = detail_style.leading
+            data.append(KeepTogether(Spacer(7, 7)))
+            data.append(KeepTogether(test_method_header))
+            data.append(KeepTogether(Spacer(3, 3)))
         data.append(lab_test_table)
 
     if service_request.samples:
@@ -1522,7 +1477,6 @@ def generate_request_pdf(service_request):
             ('ALIGN', (0, 0), (0, 0), 'CENTER'),
             ('ALIGN', (2, 0), (2, 0), 'CENTER'),
         ]))
-
         data.append(Spacer(1, 50))
         data.append(footer_table)
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
