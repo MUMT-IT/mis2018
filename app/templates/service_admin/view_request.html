@@ -57,92 +57,104 @@
                         </div>
                         <hr>
                         <div class="mb-4">
-                            <div class="columns">
-                                <div class="column" style="border-right: 1px solid #ddd;">
-                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                        <span class="icon"><i class="fas fa-receipt"></i></span>
-                                        ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
-                                    </p>
-                                    <div style="margin-left: 1.75rem;">
-                                        <p>ออกในนาม : {{ service_request.quotation_name }}</p>
-                                        <p>ที่อยู่ : {{ service_request.quotation_issue_address }}</p>
-                                        <p>เลขประจำตัวผู้เสียภาษีอากร : {{ service_request.taxpayer_identification_no }}</p>
-                                        <p>เบอร์โทรศัพท์ : {{ service_request.quotation_phone_number }}</p>
-                                        <p>อีเมล : {{ service_request.customer.contact_email }}</p>
-                                    </div>
-                                </div>
-                                <div class="column">
-                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                        <span class="icon"><i class="fas fa-map-marker-alt"></i></span>
-                                        ข้อมูลที่อยู่จัดส่งเอกสาร
-                                    </p>
-                                    <div style="margin-left: 1.75rem;">
-                                        <p>ถึง : {{ service_request.receive_name }}</p>
-                                        <p>ที่อยู่ : {{ service_request.receive_address }}</p>
-                                        <p>เบอร์โทรศัพท์ : {{ service_request.receive_phone_number }}</p>
-                                        <p>อีเมล : {{ service_request.customer.contact_email }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="mb-4">
                             <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                <span class="icon"><i class="fas fa-user"></i></span> ข้อมูลผู้ประสานงาน
+                                <span class="icon"><i class="fas fa-id-badge"></i></span>
+                                ข้อมูลผู้ส่งตรวจ
                             </p>
-                            <div style="margin-left: 1.75rem;">
-                                {% for cus_contact in service_request.customer.customer_info.customer_contacts %}
-                                    <p>ชื่อ-นามสกุล : {{ cus_contact.contact_name }}</p>
-                                    <p>เลขประจำตัวผู้เสียภาษี
-                                        : {{ service_request.customer.customer_info.taxpayer_identification_no }}</p>
-                                    <p>เบอร์โทรศัพท์ : {{ cus_contact.phone_number }}</p>
-                                    <p>อีเมล : {{ cus_contact.email }}</p>
-                                    {% if cus_contact.remark %}
-                                        <p>หมายเหตุ : {{ cus_contact.remark }}</p>
-                                    {% endif %}
-                                {% endfor %}
+                            <div class="field ml-5">
+                                <div class="mb-4 mt-3">
+                                    <div class="columns">
+                                        <div class="column" style="border-right: 1px solid #ddd;">
+                                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                                <span class="icon"><i class="fas fa-receipt"></i></span>
+                                                ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
+                                            </p>
+                                            <div style="margin-left: 1.75rem;">
+                                                <p>ออกในนาม : {{ service_request.quotation_name }}</p>
+                                                <p>ที่อยู่ : {{ service_request.quotation_issue_address }}</p>
+                                                <p>เลขประจำตัวผู้เสียภาษีอากร
+                                                    : {{ service_request.taxpayer_identification_no }}</p>
+                                                <p>เบอร์โทรศัพท์ : {{ service_request.quotation_phone_number }}</p>
+                                                <p>อีเมล : {{ service_request.customer.contact_email }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="column">
+                                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                                <span class="icon"><i class="fas fa-map-marker-alt"></i></span>
+                                                ข้อมูลที่อยู่จัดส่งเอกสาร
+                                            </p>
+                                            <div style="margin-left: 1.75rem;">
+                                                <p>ถึง : {{ service_request.receive_name }}</p>
+                                                <p>ที่อยู่ : {{ service_request.receive_address }}</p>
+                                                <p>เบอร์โทรศัพท์ : {{ service_request.receive_phone_number }}</p>
+                                                <p>อีเมล : {{ service_request.customer.contact_email }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="mb-4">
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                        <span class="icon"><i class="fas fa-user"></i></span> ข้อมูลผู้ประสานงาน
+                                    </p>
+                                    <div style="margin-left: 1.75rem;">
+                                        {% for cus_contact in service_request.customer.customer_info.customer_contacts %}
+                                            <p>ชื่อ-นามสกุล : {{ cus_contact.contact_name }}</p>
+                                            <p>เลขประจำตัวผู้เสียภาษี
+                                                : {{ service_request.customer.customer_info.taxpayer_identification_no }}</p>
+                                            <p>เบอร์โทรศัพท์ : {{ cus_contact.phone_number }}</p>
+                                            <p>อีเมล : {{ cus_contact.email }}</p>
+                                            {% if cus_contact.remark %}
+                                                <p>หมายเหตุ : {{ cus_contact.remark }}</p>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <hr>
                         <div class="mb-4">
-                            <p class="subtitle is-6 mb-3 has-text-weight-semibold">
-                                <span class="icon"><i class="fas fa-clipboard-list"></i></span> รายการทดสอบ
-                            </p>
-                            <div class="content" style="margin-left: 1.75rem;">
-                                {% set ns = namespace(index=1) %}
-                                {% for item in datas %}
-                                    {% if item.type == 'header' %}
-                                        <div class="box mb-4">
-                                            <b>{{ ns.index }}. {{ item.data }}</b>
-                                            {% set ns.index = ns.index + 1 %}
-                                            <hr>
+                            {% set ns = namespace(index=1) %}
+                            {% for item in datas %}
+                                {% if item.type == 'header' %}
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                        <span class="icon"><i class="fas fa-clipboard-list"></i></span>
+                                        {{ item.data }}
+                                    </p>
+                                {% endif %}
+                                <div style="margin-left: 1.75rem;">
+                                    {% if item.type == 'content_header' %}
+                                        <p class="subtitle is-6 mt-2 has-text-weight-semibold">
+                                            {{ ns.index }}. {{ item.data }}
+                                        </p>
+                                        {% set ns.index = ns.index + 1 %}
                                     {% elif item.type == 'text' %}
-                                        - {{ item.data }}<br>
-                                    {% else %}
+                                        - {{ item.data }}<br/>
+                                    {% elif item.type == 'table' %}
                                         <table class="table is-bordered is-striped is-fullwidth mt-2">
                                             <thead>
-                                                <tr>
-                                                    {% for col in item.data[0].keys() %}
-                                                        <th>{{ col }}</th>
-                                                    {% endfor %}
-                                                </tr>
+                                            <tr>
+                                                {% for col in item.data[0].keys() %}
+                                                    <th>{{ col }}</th>
+                                                {% endfor %}
+                                            </tr>
                                             </thead>
                                             <tbody>
-                                                {% for row in item.data %}
-                                                    <tr>
-                                                        {% for val in row.values() %}
-                                                            <td>{{ val|safe }}</td>
-                                                        {% endfor %}
-                                                    </tr>
-                                                {% endfor %}
+                                            {% for row in item.data %}
+                                                <tr>
+                                                    {% for val in row.values() %}
+                                                        <td>{{ val|safe }}</td>
+                                                    {% endfor %}
+                                                </tr>
+                                            {% endfor %}
                                             </tbody>
                                         </table>
                                     {% endif %}
-                                    {% if loop.nextitem and loop.nextitem.type == 'header' or loop.last %}
-                                        </div>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
+                                </div>
+                                {% if loop.nextitem and loop.nextitem.type == 'header' %}
+                                    <hr>
+                                {% endif %}
+                            {% endfor %}
                         </div>
                         <hr>
                         <div class="mb-4">
