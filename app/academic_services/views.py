@@ -1323,12 +1323,6 @@ def generate_request_pdf(service_request):
         qr_code.hAlign = 'LEFT'
 
     values = request_data(service_request, type='pdf')
-    if service_request.report_languages:
-        langs = ", ".join([rl.report_language.item for rl in service_request.report_languages])
-        values.append({
-            'type': 'text',
-            'data': f"ใบรายงานผล : {langs}"
-        })
 
     def all_page_setup(canvas, doc):
         global page_number
@@ -1347,7 +1341,7 @@ def generate_request_pdf(service_request):
                             )
 
     data = []
-    first_page_limit = 341
+    first_page_limit = 305
     current_height = 0
     header_style = ParagraphStyle(
         'HeaderStyle',
@@ -1395,10 +1389,10 @@ def generate_request_pdf(service_request):
         ('BOX', (1, 0), (1, 0), 0.5, colors.grey),
     ]))
 
-    content_header = Table([[Paragraph('<b>รายละเอียด / Detail</b>', style=header_style)]], colWidths=[530],
+    customer_header = Table([[Paragraph('<b>ข้อมูลผู้ส่งตรวจ / Customer</b>', style=header_style)]], colWidths=[530],
                            rowHeights=[25])
 
-    content_header.setStyle(TableStyle([
+    customer_header.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
@@ -1478,16 +1472,6 @@ def generate_request_pdf(service_request):
         ('BOX', (1, 0), (1, 0), 0.5, colors.grey),
     ]))
 
-    test_method_header = Table([[Paragraph('<b>รายการทดสอบ / Test Method</b>', style=header_style)]], colWidths=[530],
-                               rowHeights=[25])
-
-    test_method_header.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-
-    data.append(KeepTogether(Spacer(7, 7)))
     data.append(
         KeepTogether(Paragraph('<para align=center><font size=18>ใบขอรับบริการ / REQUEST<br/><br/></font></para>',
                                style=style_sheet['ThaiStyle'])))
@@ -1495,104 +1479,150 @@ def generate_request_pdf(service_request):
     data.append(KeepTogether(Spacer(3, 3)))
     data.append(KeepTogether(combined_table))
     data.append(KeepTogether(Spacer(3, 3)))
-    data.append(KeepTogether(content_header))
+    data.append(KeepTogether(customer_header))
     data.append(KeepTogether(Spacer(3, 3)))
     data.append(KeepTogether(address_table))
     data.append(KeepTogether(customer_table))
-    data.append(KeepTogether(Spacer(3, 3)))
-    data.append(KeepTogether(test_method_header))
-    data.append(KeepTogether(Spacer(3, 3)))
 
     current_height += detail_style.leading
 
-    contents = []
-    current_contents = []
+    groups = []
+    current_group = None
 
     for item in values:
         if item['type'] == 'header':
-            if current_contents:
-                contents.append(current_contents)
-                current_contents = []
-            header_line = item['data'].split("<br/>")
-            current_contents.extend(header_line)
-        elif item['type'] == 'text':
-            text_data = item['data'].split("<br/>")
-            current_contents.extend(text_data)
+            if current_group:
+                groups.append(current_group)
+            current_group = {'header': item['data'], 'contents': []}
         else:
-            rows = item['data']
-            headers = list(rows[0].keys())
-            table_data = [[Paragraph(h, detail_style) for h in headers]]
-            for row in rows:
-                table_data.append([Paragraph(str(row.get(h, "")), detail_style) for h in headers])
-            table = Table(table_data, colWidths=[530 / len(headers)] * len(headers))
-            table.setStyle(TableStyle([
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('LEFTPADDING', (0, 0), (-1, -1), 4),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 4)
-            ]))
-            current_contents.append(table)
-    if current_contents:
-        contents.append(current_contents)
-    for content in contents:
+            if current_group is None:
+                current_group = {'header': 'รายการทดสอบ', 'contents': []}
+            current_group['contents'].append(item)
+    if current_group:
+        groups.append(current_group)
+
+    for group in groups:
+        eng_header = 'Sample Detail' if group['header'] == 'ข้อมูลผลิตภัณฑ์' else 'Test Method'
+        header_table = Table(
+            [[Paragraph(f"<b>{group['header']} / {eng_header}</b>", style=header_style)]],
+            colWidths=[530], rowHeights=[25]
+        )
+        header_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+
+        if current_height > first_page_limit:
+            data.append(PageBreak())
+            current_height = 0
+        data.append(KeepTogether(Spacer(3, 3)))
+        data.append(KeepTogether(header_table))
+        current_height += detail_style.leading
+        data.append(KeepTogether(Spacer(3, 3)))
+
         text_section = []
-        for c in content:
-            if isinstance(c, str):
-                text_section.append(c)
-                current_height += detail_style.leading
-            elif isinstance(c, Table):
+        for g in group['contents']:
+            if g['type'] == 'text':
+                text_section.extend(g['data'].split("<br/>"))
+            elif g['type'] == 'table':
                 if text_section:
                     para = Paragraph("<br/>".join(text_section), style=detail_style)
-                    table_section = Table([[para]], colWidths=[530])
-                    table_section.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+                    box = Table([[para]], colWidths=[530])
+                    box.setStyle(TableStyle([
                         ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                     ]))
                     if current_height > first_page_limit:
                         data.append(PageBreak())
                         current_height = 0
-                        data.append(KeepTogether(Spacer(7, 7)))
-                        data.append(KeepTogether(test_method_header))
+                        data.append(KeepTogether(header_table))
                         data.append(KeepTogether(Spacer(3, 3)))
-                    current_height += detail_style.leading
-                    data.append(KeepTogether(table_section))
+                    data.append(KeepTogether(box))
+                    current_height += detail_style.leading * len(text_section)
                     text_section = []
+
+                rows = g['data']
+                headers = list(rows[0].keys())
+                table_data = [[Paragraph(h, detail_style) for h in headers]]
+                for row in rows:
+                    table_data.append([Paragraph(str(row.get(h, "")), detail_style) for h in headers])
+                table = Table(table_data, colWidths=[530 / len(headers)] * len(headers))
+                table.setStyle(TableStyle([
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 4)
+                ]))
                 if current_height > first_page_limit:
                     data.append(PageBreak())
                     current_height = 0
-                    data.append(KeepTogether(Spacer(7, 7)))
-                    data.append(KeepTogether(test_method_header))
+                    data.append(KeepTogether(header_table))
                     data.append(KeepTogether(Spacer(3, 3)))
-                current_height += detail_style.leading
-                data.append(KeepTogether(c))
+                data.append(KeepTogether(table))
+                current_height += detail_style.leading * (len(rows) + 1)
+
         if text_section:
             para = Paragraph("<br/>".join(text_section), style=detail_style)
-            text_box = Table([[para]], colWidths=[530])
-            text_box.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+            box = Table([[para]], colWidths=[530])
+            box.setStyle(TableStyle([
                 ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ]))
             if current_height > first_page_limit:
                 data.append(PageBreak())
                 current_height = 0
-                data.append(KeepTogether(Spacer(7, 7)))
-                data.append(KeepTogether(test_method_header))
+                data.append(KeepTogether(header_table))
                 data.append(KeepTogether(Spacer(3, 3)))
-            current_height += detail_style.leading
-            data.append(KeepTogether(text_box))
+            data.append(KeepTogether(box))
+            current_height += detail_style.leading * len(text_section)
+
+    if service_request.report_languages:
+        report_header = Table([[Paragraph('<b>ใบรายงานผล / Report</b>', style=header_style)]],
+                                colWidths=[530],
+                                rowHeights=[25])
+
+        report_header.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+
+        report = Paragraph("<br/>".join([f"- {rl.report_language.item}" for rl in service_request.report_languages]),
+                           style=detail_style)
+        report_table = Table([[report]], colWidths=[530])
+        report_table.setStyle(TableStyle([
+            ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        if current_height > first_page_limit:
+            data.append(PageBreak())
+            current_height = 0
+        else:
+            data.append(KeepTogether(Spacer(3, 3)))
+        data.append(KeepTogether(report_header))
+        data.append(KeepTogether(Spacer(3, 3)))
+        data.append(KeepTogether(report_table))
+        current_height += detail_style.leading
 
     if (service_request.sub_lab.code == 'bacteria' or service_request.sub_lab.code == 'disinfection' or
             service_request.sub_lab.code == 'air_disinfection'):
+        lab_test_header = Table([[Paragraph('<b>สำหรับเจ้าหน้าที่ / Staff Only</b>', style=header_style)]],
+                              colWidths=[530],
+                              rowHeights=[25])
+
+        lab_test_header.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+
         lab_test = '''<para><font size=12>
                             สำหรับเจ้าหน้าที่<br/>
                             Lab No. : _________________________________________________________________<br/>
                             สภาพตัวอย่าง : O ปกติ<br/>
-                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; O ไม่ปกติ<br/>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; O ไม่ปกติ<br/>
                             </font></para>'''
 
         lab_test_table = Table([[Paragraph(lab_test, style=detail_style)]], colWidths=[530])
@@ -1601,11 +1631,10 @@ def generate_request_pdf(service_request):
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ]))
+
         if current_height > first_page_limit:
             data.append(PageBreak())
-            current_height = detail_style.leading
-            data.append(KeepTogether(Spacer(7, 7)))
-            data.append(KeepTogether(test_method_header))
+            data.append(KeepTogether(lab_test_header))
             data.append(KeepTogether(Spacer(3, 3)))
         data.append(lab_test_table)
 
