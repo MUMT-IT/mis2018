@@ -21,7 +21,7 @@
             <div class="column is-11">
                 <h1 class="title has-text-centered">รายงานผลการทดสอบ</h1>
             </div>
-            <table id='requests' class="table is-fullwidth">
+            <table id='results' class="table is-fullwidth">
                 <thead>
                 <th>เลขใบคำขอรับบริการ</th>
                 <th>หมายเลขติดตามพัสดุ</th>
@@ -145,7 +145,7 @@
     </script>
     <script>
         $(document).ready(function () {
-            $('#requests').DataTable({
+            $('#results').DataTable({
                 scrollX: true,
             });
             $('.Warn').click(() => {
