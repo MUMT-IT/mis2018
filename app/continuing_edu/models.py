@@ -11,6 +11,51 @@ import boto3
 
 
 
+class OrganizationType(db.Model):
+    """Lookup for organization categories (e.g., hospital, lab)."""
+    __tablename__ = 'organization_types'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name_en = db.Column(db.String(150), unique=True, nullable=False)
+    name_th = db.Column(db.String(150), nullable=True)
+    is_user_defined = db.Column(db.Boolean, default=False, nullable=False)
+
+    organizations = relationship("Organization", back_populates="organization_type", lazy=True)
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<OrganizationType {self.name_en}>"
+
+
+class Organization(db.Model):
+    """Stores organizations/institutions for members."""
+    __tablename__ = 'organizations'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(255), unique=True, nullable=False)
+    organization_type_id = db.Column(db.Integer, ForeignKey('organization_types.id'), nullable=True)
+    country = db.Column(db.String(100), nullable=True)
+    is_user_defined = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+
+    organization_type = relationship("OrganizationType", back_populates="organizations")
+    members = relationship("Member", back_populates="organization", lazy=True)
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<Organization {self.name}>"
+
+
+class Occupation(db.Model):
+    """Lookup table for occupations."""
+    __tablename__ = 'occupations'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name_en = db.Column(db.String(150), unique=True, nullable=False)
+    name_th = db.Column(db.String(150), nullable=True)
+    is_user_defined = db.Column(db.Boolean, default=False, nullable=False)
+
+    members = relationship("Member", back_populates="occupation", lazy=True)
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<Occupation {self.name_en}>"
+
+
 class MemberType(db.Model):
     """Lookup table for member types."""
     __tablename__ = 'member_types'
@@ -174,6 +219,9 @@ class Member(db.Model):
     terms_condition_accepted = db.Column(db.Boolean)
     received_news = db.Column(db.Boolean)
 
+    organization_id = db.Column(db.Integer, ForeignKey('organizations.id'), nullable=True)
+    occupation_id = db.Column(db.Integer, ForeignKey('occupations.id'), nullable=True)
+
 
     is_verified = db.Column(db.Boolean, default=False, nullable=False, comment="ยืนยันอีเมลแล้ว")
     created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
@@ -185,6 +233,9 @@ class Member(db.Model):
     # Relationships
     registrations = relationship("MemberRegistration", back_populates="member", lazy=True)
     payments = relationship("RegisterPayment", back_populates="member", lazy=True)
+    addresses = relationship("MemberAddress", back_populates="member", cascade="all, delete-orphan", lazy=True)
+    organization = relationship("Organization", back_populates="members")
+    occupation = relationship("Occupation", back_populates="members")
 
     # is_admin = db.Column(db.Boolean, default=False, nullable=False, comment="Is the member an admin user")
 
@@ -729,3 +780,24 @@ class EventCertificateManager(db.Model):
 
     def __repr__(self) -> str:
         return f"<EventCertificateManager Event:{self.event_entity_id} Staff:{self.staff_id}>"
+
+class MemberAddress(db.Model):
+    """Stores multiple addresses per member."""
+    __tablename__ = 'member_addresses'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    member_id = db.Column(db.Integer, ForeignKey('members.id', ondelete='CASCADE'), nullable=False)
+    address_type = db.Column(db.String(50), nullable=False, comment="e.g., current, billing")
+    label = db.Column(db.String(100), nullable=True)
+    line1 = db.Column(db.String(255), nullable=False)
+    line2 = db.Column(db.String(255), nullable=True)
+    city = db.Column(db.String(120), nullable=True)
+    state = db.Column(db.String(120), nullable=True)
+    postal_code = db.Column(db.String(50), nullable=True)
+    country_code = db.Column(db.String(2), nullable=True)
+    country_name = db.Column(db.String(120), nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+
+    member = relationship("Member", back_populates="addresses")
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<MemberAddress {self.address_type} Member:{self.member_id}>"

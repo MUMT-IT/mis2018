@@ -1,79 +1,439 @@
 {% extends 'continueing_edu/admin/base.html' %}
+
+{% block head %}
+{{ super() }}
+<style>
+  .stats-card {
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(10, 10, 10, 0.08);
+    height: 100%;
+  }
+  .stats-card .heading {
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+  }
+  .dashboard-panel {
+    display: none;
+  }
+  .dashboard-panel.is-active {
+    display: block;
+  }
+  .mini-table {
+    font-size: 0.9rem;
+  }
+  .mini-table th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .chart-wrapper {
+    position: relative;
+    min-height: 280px;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-
 <div class="container">
-          <h1 class="title">Welcome, {{ logged_in_admin.fullname }}</h1>
-          <p class="subtitle">Today is {{ current_date }}.</p>
-          <div class="columns is-multiline mb-5">
-                    <div class="column is-one-quarter">
-                              <div class="box has-background-link has-text-white has-text-centered">
-                                        <p class="heading">Total Members</p>
-                                        <p class="title">{{ member_count }}</p>
-                              </div>
-                    </div>
-                    <div class="column is-one-quarter">
-                              <div class="box has-background-primary has-text-white has-text-centered">
-                                        <p class="heading">Courses Open for Registration</p>
-                                        <p class="title">{{ course_count }}</p>
-                              </div>
-                    </div>
+  <div class="level mb-5">
+    <div class="level-left">
+      <div>
+        <h1 class="title">สวัสดี {{ logged_in_admin.fullname }}</h1>
+        <p class="subtitle">ข้อมูล ณ {{ current_date }}</p>
+      </div>
+    </div>
+  </div>
 
-                    <div class="column is-one-quarter">
-                              <div class="box has-background-success has-text-white has-text-centered">
-                                        <p class="heading">Total Payments</p>
-                                        <p class="title">{{ payment_sum | round(2) }}</p>
-                              </div>
-                    </div>
-                    <div class="column is-one-quarter">
-                              <div class="box has-background-warning has-text-white has-text-centered">
-                                        <p class="heading">Total Registrations</p>
-                                        <p class="title">{{ registration_count }}</p>
-                              </div>
-                    </div>
-          </div>
+  <div class="tabs is-boxed">
+    <ul>
+      <li class="is-active" data-tab-target="operations"><a><span class="icon"><i class="fas fa-chart-line"></i></span><span>ภาพรวมการดำเนินงาน</span></a></li>
+      <li data-tab-target="analytics"><a><span class="icon"><i class="fas fa-chart-pie"></i></span><span>เชิงวิเคราะห์</span></a></li>
+    </ul>
+  </div>
 
-          <h2 class="subtitle mt-6 mb-3">Latest Courses</h2>
-          <div class="table-container">
-                    <table class="table dataTable is-fullwidth is-striped is-hoverable">
-                              <thead>
-                                        <tr>
-                                                  <th>Course Title</th>
-                                                  <th>Created At</th>
-                                                  <th>Format</th>
-                                                  <th>Registrations / Limit</th>
-                                                  <th>Paid</th>
-                                                  <th>Status</th>
-                                                  <th>Actions</th>
-                                        </tr>
-                              </thead>
-                              <tbody>
-                                        {% for course in latest_courses %}
-                                        <tr>
-                                                  <td>{{ course.title_en or course.title_th }}</td>
-                                                  <td>{{ course.created_at.strftime('%Y-%m-%d') if
-                                                            course.created_at else '-' }}</td>
-                                                  <td>{{ course.format_en or course.format_th or '-'
-                                                            }}</td>
-                                                  <td>{{ course.registrations|length }} / {{
-                                                            course.limit or '-' }}</td>
-                                                  <td>{{ course.payments|selectattr('payment_status_ref.name_en',
-                                                            'equalto', 'Paid')|list|length }}</td>
-                                                  <td>Open</td>
-                                                  <td>
-                                                            <a href="{{ url_for('continuing_edu_admin.manage_events') }}?edit_id={{ course.id }}"
-                                                                      class="button is-small is-info">Edit</a>
-                                                            <a href="{{ url_for('continuing_edu_admin.manage_events') }}?detail_id={{ course.id }}"
-                                                                      class="button is-small is-light">Details</a>
-                                                  </td>
-                                        </tr>
-                                        {% else %}
-                                        <tr>
-                                                  <td colspan="7">No recent courses found.</td>
-                                        </tr>
-                                        {% endfor %}
-                              </tbody>
-                    </table>
+  <!-- Operational Dashboard -->
+  <div class="dashboard-panel is-active" id="tab-operations">
+    <div class="columns is-multiline">
+      <div class="column is-one-quarter-desktop is-half-tablet">
+        <div class="box stats-card has-background-link has-text-white">
+          <p class="heading">สมาชิกทั้งหมด</p>
+          <p class="title is-3">{{ member_count }}</p>
+          <p class="is-size-7">+{{ new_members_30d }} ภายใน 30 วันที่ผ่านมา</p>
+        </div>
+      </div>
+      <div class="column is-one-quarter-desktop is-half-tablet">
+        <div class="box stats-card has-background-primary has-text-white">
+          <p class="heading">การลงทะเบียนทั้งหมด</p>
+          <p class="title is-3">{{ registration_count }}</p>
+          <p class="is-size-7">+{{ registrations_30d }} ใน 30 วันที่ผ่านมา</p>
+        </div>
+      </div>
+      <div class="column is-one-quarter-desktop is-half-tablet">
+        <div class="box stats-card has-background-success has-text-white">
+          <p class="heading">ยอดชำระเงินรวม (THB)</p>
+          <p class="title is-3">{{ "{:,.2f}".format(payment_sum or 0) }}</p>
+          <p class="is-size-7">รายการใหม่ {{ payments_30d }} ใน 30 วัน</p>
+        </div>
+      </div>
+      <div class="column is-one-quarter-desktop is-half-tablet">
+        <div class="box stats-card has-background-warning has-text-dark">
+          <p class="heading">ประเภทกิจกรรม</p>
+          <p class="title is-4">คอร์ส {{ course_count }} | เวิร์กช็อป {{ webinar_count }}</p>
+          <p class="is-size-7">อัปเดตล่าสุด</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="columns is-multiline">
+      <div class="column is-half">
+        <div class="box stats-card">
+          <p class="heading">สถานะการชำระเงิน</p>
+          <table class="table is-fullwidth mini-table">
+            <thead>
+              <tr>
+                <th>สถานะ</th>
+                <th class="has-text-right">จำนวน</th>
+                <th class="has-text-right">มูลค่า (THB)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in payment_status_summary %}
+              <tr>
+                <td>{{ row.label }}</td>
+                <td class="has-text-right">{{ row.count }}</td>
+                <td class="has-text-right">{{ "{:,.2f}".format(row.amount or 0) }}</td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="3">ไม่มีข้อมูลการชำระเงิน</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="column is-half">
+        <div class="box stats-card">
+          <p class="heading">ประเภทสมาชิก</p>
+          <table class="table is-fullwidth mini-table">
+            <thead>
+              <tr>
+                <th>ประเภท</th>
+                <th class="has-text-right">จำนวน</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in member_type_breakdown %}
+              <tr>
+                <td>{{ item.label }}</td>
+                <td class="has-text-right">{{ item.count }}</td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="2">ไม่มีข้อมูลประเภทสมาชิก</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="columns is-multiline">
+      <div class="column is-half">
+        <div class="box stats-card">
+          <p class="heading">การลงทะเบียนล่าสุด</p>
+          <table class="table is-fullwidth mini-table">
+            <thead>
+              <tr>
+                <th>ผู้ใช้</th>
+                <th>กิจกรรม</th>
+                <th>วันที่</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for reg in recent_registrations %}
+              <tr>
+                <td>{{ reg.member.full_name_en or reg.member.username }}</td>
+                <td>{{ reg.event_entity.title_en or reg.event_entity.title_th }}</td>
+                <td>{{ reg.registration_date.strftime('%Y-%m-%d') if reg.registration_date else '-' }}</td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="3">ยังไม่มีการลงทะเบียน</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="column is-half">
+        <div class="box stats-card">
+          <p class="heading">การชำระเงินล่าสุด</p>
+          <table class="table is-fullwidth mini-table">
+            <thead>
+              <tr>
+                <th>สมาชิก</th>
+                <th>กิจกรรม</th>
+                <th class="has-text-right">ยอดชำระ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for pay in recent_payments %}
+              <tr>
+                <td>{{ pay.member.full_name_en or pay.member.username }}</td>
+                <td>{{ pay.event_entity.title_en or pay.event_entity.title_th }}</td>
+                <td class="has-text-right">{{ "{:,.2f}".format(pay.payment_amount or 0) }}</td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="3">ยังไม่มีการชำระเงิน</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="box stats-card">
+      <div class="level">
+        <div class="level-left">
+          <h2 class="title is-5">รายการคอร์สล่าสุด</h2>
+        </div>
+        <div class="level-right">
+          <a class="button is-light is-small" href="{{ url_for('continuing_edu_admin.manage_events') }}">ดูทั้งหมด</a>
+        </div>
+      </div>
+      <div class="table-container">
+        <table class="table is-fullwidth is-striped is-hoverable mini-table">
+          <thead>
+            <tr>
+              <th>ชื่อหลักสูตร</th>
+              <th>สร้างเมื่อ</th>
+              <th>รูปแบบ</th>
+              <th class="has-text-centered">ลงทะเบียน</th>
+              <th class="has-text-right">ชำระแล้ว</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for course in latest_courses %}
+            <tr>
+              <td>{{ course.title_en or course.title_th }}</td>
+              <td>{{ course.created_at.strftime('%Y-%m-%d') if course.created_at else '-' }}</td>
+              <td>{{ course.format_en or course.format_th or '-' }}</td>
+              <td class="has-text-centered">{{ course.registrations|length }}</td>
+              <td class="has-text-right">{{ course.payments|length }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5">ยังไม่มีหลักสูตรใหม่</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analytics Dashboard -->
+  <div class="dashboard-panel" id="tab-analytics">
+    <div class="columns is-multiline">
+      <div class="column is-half">
+        <div class="box stats-card">
+          <p class="heading">จำนวนการลงทะเบียนรายเดือน</p>
+          <div class="chart-wrapper">
+            <canvas id="monthlyRegistrationsChart"></canvas>
           </div>
+        </div>
+      </div>
+      <div class="column is-half">
+        <div class="box stats-card">
+          <p class="heading">สัดส่วนประเภทสมาชิก</p>
+          <div class="chart-wrapper">
+            <canvas id="memberTypeChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="columns is-multiline">
+      <div class="column is-half">
+        <div class="box stats-card">
+          <p class="heading">สถานะการชำระเงิน (เชิงมูลค่า)</p>
+          <div class="chart-wrapper">
+            <canvas id="paymentStatusChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="column is-one-quarter">
+        <div class="box stats-card">
+          <p class="heading">ค่าเฉลี่ยเวลาการอนุมัติชำระเงิน</p>
+          <p class="title is-3">
+            {% if avg_payment_approval_hours is not none %}
+              {{ avg_payment_approval_hours }} ชม.
+            {% else %}
+              ไม่มีข้อมูล
+            {% endif %}
+          </p>
+          <p class="is-size-7">วัดจากรายการที่ได้รับการอนุมัติ</p>
+        </div>
+      </div>
+      <div class="column is-one-quarter">
+        <div class="box stats-card">
+          <p class="heading">สมาชิกที่มีส่วนร่วมสูงสุด</p>
+          <ul>
+            {% for member in top_members %}
+            <li>{{ member.name }} <span class="tag is-light">{{ member.registrations }} การลงทะเบียน</span></li>
+            {% else %}
+            <li>ยังไม่มีข้อมูล</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="columns is-multiline">
+      <div class="column is-two-thirds">
+        <div class="box stats-card">
+          <div class="level">
+            <div class="level-left">
+              <p class="heading">กิจกรรมยอดนิยม</p>
+            </div>
+          </div>
+          <table class="table is-fullwidth mini-table">
+            <thead>
+              <tr>
+                <th>กิจกรรม</th>
+                <th>ประเภท</th>
+                <th class="has-text-right">การลงทะเบียน</th>
+                <th class="has-text-right">มูลค่าชำระ (THB)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for event in popular_events %}
+              <tr>
+                <td>{{ event.title }}</td>
+                <td>{{ event.event_type|capitalize }}</td>
+                <td class="has-text-right">{{ event.registrations }}</td>
+                <td class="has-text-right">{{ "{:,.2f}".format(event.revenue or 0) }}</td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="4">ยังไม่มีข้อมูลยอดนิยม</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="column is-one-third">
+        <div class="box stats-card">
+          <p class="heading">หมวดหมู่ยอดนิยม</p>
+          <ul>
+            {% for category in popular_categories %}
+            <li class="mb-2">{{ category.label }} <span class="tag is-info is-light">{{ category.count }} ลงทะเบียน</span></li>
+            {% else %}
+            <li>ยังไม่มีข้อมูล</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
+{{ super() }}
+<script src="https://kit.fontawesome.com/4ad8a7934d.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  document.querySelectorAll('.tabs li').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      document.querySelectorAll('.tabs li').forEach(function (item) {
+        item.classList.remove('is-active');
+      });
+      document.querySelectorAll('.dashboard-panel').forEach(function (panel) {
+        panel.classList.remove('is-active');
+      });
+      tab.classList.add('is-active');
+      var target = tab.getAttribute('data-tab-target');
+      if (target) {
+        document.getElementById('tab-' + target).classList.add('is-active');
+      }
+    });
+  });
+
+  const monthlyLabels = {{ monthly_registration_labels|tojson }};
+  const monthlyCounts = {{ monthly_registration_counts|tojson }};
+  const memberTypeData = {{ member_type_breakdown|tojson }};
+  const paymentStatusData = {{ payment_status_summary|tojson }};
+
+  function buildChart(ctxId, config) {
+    const ctx = document.getElementById(ctxId);
+    if (!ctx) return;
+    return new Chart(ctx, config);
+  }
+
+  buildChart('monthlyRegistrationsChart', {
+    type: 'line',
+    data: {
+      labels: monthlyLabels,
+      datasets: [{
+        label: 'Registrations',
+        data: monthlyCounts,
+        borderColor: '#3273dc',
+        backgroundColor: 'rgba(50, 115, 220, 0.15)',
+        tension: 0.35,
+        fill: true
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0 } },
+        x: { ticks: { autoSkip: true, maxTicksLimit: 12 } }
+      }
+    }
+  });
+
+  buildChart('memberTypeChart', {
+    type: 'doughnut',
+    data: {
+      labels: memberTypeData.map(item => item.label),
+      datasets: [{
+        data: memberTypeData.map(item => item.count),
+        backgroundColor: ['#485fc7', '#3e8ed0', '#48c78e', '#f14668', '#ffdd57', '#00d1b2']
+      }]
+    },
+    options: { plugins: { legend: { position: 'bottom' } } }
+  });
+
+  buildChart('paymentStatusChart', {
+    type: 'bar',
+    data: {
+      labels: paymentStatusData.map(item => item.label),
+      datasets: [{
+        label: 'ยอดชำระ (THB)',
+        data: paymentStatusData.map(item => item.amount),
+        backgroundColor: '#48c78e'
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return Intl.NumberFormat('th-TH').format(value);
+            }
+          }
+        }
+      }
+    }
+  });
+</script>
 {% endblock %}

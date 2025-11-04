@@ -167,8 +167,10 @@
             class="container is-fluid is-flex is-flex-direction-column is-flex-direction-row-desktop is-justify-content-space-between is-align-items-center">
             <div class="navbar-brand">
                 <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}" class="navbar-item">
-                    <img src="https://placehold.co/100x40/4338CA/FFFFFF?text=LOGO" alt="[Image of University Logo]"
-                        class="university-logo">
+                    <figure class="image" style="max-height:48px;">
+                        <img src="{{ url_for('static', filename='img/LOGO_MT-Mahidol.png') }}"
+                            alt="Mahidol Faculty of Medical Technology Logo" style="max-height:48px; width:auto;">
+                    </figure>
                 </a>
                 <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}"
                     class="navbar-item title is-4 has-text-indigo-700 rounded-md">{{ texts.university_name }}</a>
@@ -258,12 +260,16 @@
                         class="has-text-indigo-700">{{ texts.register_btn }}</a>
                 </p>
                 <p class="has-text-centered mt-2">
-                    <a href="{{ url_for('continuing_edu.forgot_password', lang=current_lang) }}" class="has-text-grey">{{ 'ลืมรหัสผ่าน?' if current_lang=='th' else 'Forgot your password?' }}</a>
+                    <a href="{{ url_for('continuing_edu.forgot_password', lang=current_lang) }}"
+                        class="has-text-grey">{{ 'ลืมรหัสผ่าน?' if current_lang=='th' else 'Forgot your password?'
+                        }}</a>
                 </p>
 
                 <div class="has-text-centered mt-4">
-                    <a class="button is-light" href="{{ url_for('continuing_edu.google_login', lang=current_lang, next=next) }}">
-                        <span class="icon"><img src="https://www.google.com/favicon.ico" alt="G" style="height:16px;width:16px;"></span>
+                    <a class="button is-light"
+                        href="{{ url_for('continuing_edu.google_login', lang=current_lang, next=next) }}">
+                        <span class="icon"><img src="https://www.google.com/favicon.ico" alt="G"
+                                style="height:16px;width:16px;"></span>
                         <span>Login with Google</span>
                     </a>
                 </div>

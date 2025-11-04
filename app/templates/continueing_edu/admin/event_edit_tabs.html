@@ -603,10 +603,14 @@
                 'N/A' }}</span>
             </div>
             <div class="is-size-7">Issued: {{ reg.certificate_issued_date or '-' }}</div>
-            {% if reg.certificate_url %}
-            <div class="mt-1"><a class="button is-small is-success is-light"
-                href="{{ reg.certificate_presigned_url() }}" target="_blank">View</a></div>
-            {% endif %}
+            <div class="buttons mt-1">
+              {% if reg.certificate_url %}
+              <a class="button is-small is-success is-light" href="{{ reg.certificate_presigned_url() }}" target="_blank">View</a>
+              {% endif %}
+              <a class="button is-small is-link"
+                href="{{ url_for('continuing_edu_admin.certificates_registration_pdf', reg_id=reg.id, lang='en') }}"
+                target="_blank">PDF</a>
+            </div>
             <div class="buttons mt-2">
               <form method="post"
                 action="{{ url_for('continuing_edu_admin.update_registration_certificate', event_id=event.id, reg_id=reg.id) }}">

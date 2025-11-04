@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ texts.university_name }} - {{ texts.login_page_title }}</title>
+    <title>{{ texts.university_name }} - {{ texts.register_page_title }}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -169,8 +169,10 @@
             class="container is-fluid is-flex is-flex-direction-column is-flex-direction-row-desktop is-justify-content-space-between is-align-items-center">
             <div class="navbar-brand">
                 <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}" class="navbar-item">
-                    <img src="https://placehold.co/100x40/4338CA/FFFFFF?text=LOGO" alt="[Image of University Logo]"
-                        class="university-logo">
+                    <figure class="image" style="max-height:48px;">
+                        <img src="{{ url_for('static', filename='img/LOGO_MT-Mahidol.png') }}"
+                            alt="Mahidol Faculty of Medical Technology Logo" style="max-height:48px; width:auto;">
+                    </figure>
                 </a>
                 <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}"
                     class="navbar-item title is-4 has-text-indigo-700 rounded-md">{{ texts.university_name }}</a>
@@ -228,37 +230,400 @@
 
                 <div class=" mt-6 mb-4">
 
+                    {% set form = form_values or {} %}
                     <form method="post" class="">
-
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                         <div class="field mb-4">
                             <label class="label">{{ texts.username_label }}</label>
                             <div class="control">
-                                <input class="input" type="text" name="username" required>
+                                <input class="input" type="text" name="username" value="{{ form.get('username', '') }}"
+                                    required>
                             </div>
                         </div>
                         <div class="field mb-4">
                             <label class="label">{{ texts.email_label }}</label>
                             <div class="control">
-                                <input class="input" type="email" name="email">
+                                <input class="input" type="email" name="email" value="{{ form.get('email', '') }}">
                             </div>
                         </div>
-                        <div class="field mb-4">
-                            <label class="label">{{ texts.password_label }}</label>
-                            <div class="control">
-                                <input class="input" type="password" name="password" required>
+                        <div class="columns">
+                            <div class="column">
+                                <div class="field mb-4">
+                                    <label class="label">{{ texts.password_label }}</label>
+                                    <div class="control">
+                                        <input class="input" type="password" name="password" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="field mb-4">
+                                    <label class="label">{{ texts.confirm_password_label }}</label>
+                                    <div class="control">
+                                        <input class="input" type="password" name="confirm_password" required>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="field mb-4">
-                            <label class="label">{{ texts.confirm_password_label }}</label>
-                            <div class="control">
-                                <input class="input" type="password" name="confirm_password" required>
+
+                        <div class="box has-background-light is-shadowless mb-5">
+                            <h2 class="title is-5 has-text-grey-dark">{{ texts.organization_label }}</h2>
+                            <div class="field mb-4">
+                                <label class="label">{{ texts.organization_label }}</label>
+                                <div class="control">
+                                    <input class="input" type="text" name="organization_name"
+                                        list="organization-name-options" value="{{ form.get('organization_name', '') }}"
+                                        placeholder="{{ texts.organization_placeholder }}">
+                                    <datalist id="organization-name-options">
+                                        {% for org in organizations %}
+                                        <option value="{{ org.name }}"></option>
+                                        {% endfor %}
+                                    </datalist>
+                                </div>
+                            </div>
+                            <div class="columns">
+                                <div class="column is-6">
+                                    <div class="field mb-4">
+                                        <label class="label">{{ texts.organization_type_label }}</label>
+                                        <div class="select is-fullwidth">
+                                            <select name="organization_type_id" id="organization-type-select">
+                                                <option value="">{{ '-- ' ~ texts.organization_type_label ~ ' --' }}
+                                                </option>
+                                                {% for org_type in organization_types %}
+                                                {% set type_label = org_type.name_th if current_lang == 'th' and
+                                                org_type.name_th else org_type.name_en %}
+                                                <option value="{{ org_type.id }}" {% if
+                                                    form.get('organization_type_id')==org_type.id|string %}selected{%
+                                                    endif %}>{{ type_label }}</option>
+                                                {% endfor %}
+                                                <option value="other" {% if form.get('organization_type_id')=='other'
+                                                    %}selected{% endif %}>{{ texts.address_type_other }}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="column is-6">
+                                    <div class="field mb-4">
+                                        <label class="label">{{ texts.organization_type_other_placeholder }}</label>
+                                        <div class="control">
+                                            <input class="input" type="text" name="organization_type_other"
+                                                value="{{ form.get('organization_type_other', '') }}"
+                                                id="organization-type-other-input"
+                                                style="{% if form.get('organization_type_id') != 'other' %}display:none;{% endif %}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="columns">
+                                <div class="column is-6">
+                                    <div class="field mb-4">
+                                        <label class="label">{{ texts.occupation_label }}</label>
+                                        <div class="select is-fullwidth">
+                                            <select name="occupation_id" id="occupation-select">
+                                                <option value="">{{ '-- ' ~ texts.occupation_label ~ ' --' }}</option>
+                                                {% for occupation in occupations %}
+                                                {% set occupation_label = occupation.name_th if current_lang == 'th' and
+                                                occupation.name_th else occupation.name_en %}
+                                                <option value="{{ occupation.id }}" {% if
+                                                    form.get('occupation_id')==occupation.id|string %}selected{% endif
+                                                    %}>{{ occupation_label }}</option>
+                                                {% endfor %}
+                                                <option value="other" {% if form.get('occupation_id')=='other'
+                                                    %}selected{% endif %}>{{ texts.address_type_other }}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="column is-6">
+                                    <div class="field mb-4">
+                                        <label class="label">{{ texts.occupation_other_placeholder }}</label>
+                                        <div class="control">
+                                            <input class="input" type="text" name="occupation_other"
+                                                value="{{ form.get('occupation_other', '') }}"
+                                                id="occupation-other-input"
+                                                style="{% if form.get('occupation_id') != 'other' %}display:none;{% endif %}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="columns">
+                                <div class="column is-6">
+                                    <div class="field mb-4">
+                                        <label class="label">{{ texts.address_country_label }}</label>
+                                        <div class="select is-fullwidth">
+                                            <select name="organization_country" id="organization-country-select">
+                                                <option value="">{{ '-- ' ~ texts.address_country_label ~ ' --' }}
+                                                </option>
+                                                {% for country in country_options %}
+                                                <option value="{{ country.code }}" {% if
+                                                    form.get('organization_country', 'TH' )==country.code %}selected{%
+                                                    endif %}>{{ country.name }}</option>
+                                                {% endfor %}
+                                                <option value="OTHER" {% if form.get('organization_country')=='OTHER'
+                                                    %}selected{% endif %}>{{ texts.address_type_other }}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="column is-6">
+                                    <div class="field mb-4">
+                                        <label class="label">{{ texts.address_country_label }}</label>
+                                        <div class="control">
+                                            <input class="input" type="text" name="organization_country_other"
+                                                value="{{ form.get('organization_country_other', '') }}"
+                                                id="organization-country-other-input"
+                                                style="{% if form.get('organization_country') != 'OTHER' %}display:none;{% endif %}">
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
+                        <div class="box has-background-light is-shadowless mb-5">
+                            <h2 class="title is-5 has-text-grey-dark">{{ texts.addresses_section_title }}</h2>
+                            <div id="addresses-container">
+                                {% for address in address_entries %}
+                                {% set idx = loop.index0 %}
+                                {% set type_value = address.type or '' %}
+                                {% set selected_country = address.country_code or '' %}
+                                {% set show_country_other = (selected_country == 'OTHER') or (not selected_country and
+                                address.country_other) %}
+                                <div class="box address-entry mb-4" data-index="{{ idx }}">
+                                    <div class="columns is-multiline">
+                                        <div class="column is-4">
+                                            <div class="field">
+                                                <label class="label">{{ texts.label_type }}</label>
+                                                <div class="select is-fullwidth">
+                                                    <select name="address_type[]" class="address-type-select">
+                                                        <option value="current" {% if type_value=='current' %}selected{%
+                                                            endif %}>{{ texts.address_type_current }}</option>
+                                                        <option value="billing" {% if type_value=='billing' %}selected{%
+                                                            endif %}>{{ texts.address_type_billing }}</option>
+                                                        <option value="other" {% if type_value=='other' %}selected{%
+                                                            endif %}>{{ texts.address_type_other }}</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column is-4">
+                                            <div class="field">
+                                                <label class="label">{{ texts.address_label_field }}</label>
+                                                <div class="control">
+                                                    <input class="input" type="text" name="address_label[]"
+                                                        value="{{ address.label or '' }}">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column is-4">
+                                            <div class="field">
+                                                <label class="label">{{ texts.address_type_other_placeholder }}</label>
+                                                <div class="control">
+                                                    <input class="input address-type-other-input" type="text"
+                                                        name="address_type_other[]"
+                                                        value="{{ address.type_other or '' }}"
+                                                        style="{% if type_value != 'other' %}display:none;{% endif %}">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column is-12">
+                                            <div class="field">
+                                                <label class="label">{{ texts.address_line1_label }}</label>
+                                                <div class="control">
+                                                    <input class="input" type="text" name="address_line1[]"
+                                                        value="{{ address.line1 or '' }}">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column is-12">
+                                            <div class="field">
+                                                <label class="label">{{ texts.address_line2_label }}</label>
+                                                <div class="control">
+                                                    <input class="input" type="text" name="address_line2[]"
+                                                        value="{{ address.line2 or '' }}">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column is-4">
+                                            <div class="field">
+                                                <label class="label">{{ texts.address_city_label }}</label>
+                                                <div class="control">
+                                                    <input class="input" type="text" name="address_city[]"
+                                                        value="{{ address.city or '' }}">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column is-4">
+                                            <div class="field">
+                                                <label class="label">{{ texts.address_state_label }}</label>
+                                                <div class="control">
+                                                    <input class="input" type="text" name="address_state[]"
+                                                        value="{{ address.state or '' }}">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column is-4">
+                                            <div class="field">
+                                                <label class="label">{{ texts.address_postal_label }}</label>
+                                                <div class="control">
+                                                    <input class="input" type="text" name="address_postal[]"
+                                                        value="{{ address.postal or '' }}">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column is-6">
+                                            <div class="field">
+                                                <label class="label">{{ texts.address_country_label }}</label>
+                                                <div class="select is-fullwidth">
+                                                    <select name="address_country[]" class="address-country-select">
+                                                        <option value="">{{ '-- ' ~ texts.address_country_label ~ ' --'
+                                                            }}</option>
+                                                        {% for country in country_options %}
+                                                        <option value="{{ country.code }}" {% if
+                                                            selected_country==country.code %}selected{% endif %}>{{
+                                                            country.name }}</option>
+                                                        {% endfor %}
+                                                        <option value="OTHER" {% if selected_country=='OTHER'
+                                                            %}selected{% endif %}>{{ texts.address_type_other }}
+                                                        </option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column is-6">
+                                            <div class="field">
+                                                <label class="label">{{ texts.address_country_label }}</label>
+                                                <div class="control">
+                                                    <input class="input address-country-other-input" type="text"
+                                                        name="address_country_other[]"
+                                                        value="{{ address.country_other or '' }}"
+                                                        style="{% if not show_country_other %}display:none;{% endif %}">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column is-12 has-text-right">
+                                            <button type="button" class="button is-danger is-light remove-address" {% if
+                                                loop.length==1 %}disabled{% endif %}>{{ texts.address_remove_button
+                                                }}</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <button type="button" class="button is-light is-small mt-3" id="add-address-button">{{
+                                texts.address_add_button }}</button>
+                            <template id="address-template">
+                                <div class="box address-entry mb-4" data-index="__INDEX__">
+                                    <div class="columns is-multiline">
+                                        <div class="column is-4">
+                                            <div class="field">
+                                                <label class="label">{{ texts.label_type }}</label>
+                                                <div class="select is-fullwidth">
+                                                    <select name="address_type[]" class="address-type-select">
+                                                        <option value="current">{{ texts.address_type_current }}
+                                                        </option>
+                                                        <option value="billing">{{ texts.address_type_billing }}
+                                                        </option>
+                                                        <option value="other">{{ texts.address_type_other }}</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column is-4">
+                                            <div class="field">
+                                                <label class="label">{{ texts.address_label_field }}</label>
+                                                <div class="control">
+                                                    <input class="input" type="text" name="address_label[]" value="">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column is-4">
+                                            <div class="field">
+                                                <label class="label">{{ texts.address_type_other_placeholder }}</label>
+                                                <div class="control">
+                                                    <input class="input address-type-other-input" type="text"
+                                                        name="address_type_other[]" value="" style="display:none;">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column is-12">
+                                            <div class="field">
+                                                <label class="label">{{ texts.address_line1_label }}</label>
+                                                <div class="control">
+                                                    <input class="input" type="text" name="address_line1[]" value="">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column is-12">
+                                            <div class="field">
+                                                <label class="label">{{ texts.address_line2_label }}</label>
+                                                <div class="control">
+                                                    <input class="input" type="text" name="address_line2[]" value="">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column is-4">
+                                            <div class="field">
+                                                <label class="label">{{ texts.address_city_label }}</label>
+                                                <div class="control">
+                                                    <input class="input" type="text" name="address_city[]" value="">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column is-4">
+                                            <div class="field">
+                                                <label class="label">{{ texts.address_state_label }}</label>
+                                                <div class="control">
+                                                    <input class="input" type="text" name="address_state[]" value="">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column is-4">
+                                            <div class="field">
+                                                <label class="label">{{ texts.address_postal_label }}</label>
+                                                <div class="control">
+                                                    <input class="input" type="text" name="address_postal[]" value="">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column is-6">
+                                            <div class="field">
+                                                <label class="label">{{ texts.address_country_label }}</label>
+                                                <div class="select is-fullwidth">
+                                                    <select name="address_country[]" class="address-country-select">
+                                                        <option value="">{{ '-- ' ~ texts.address_country_label ~ ' --'
+                                                            }}</option>
+                                                        {% for country in country_options %}
+                                                        <option value="{{ country.code }}" {% if country.code=='TH'
+                                                            %}selected{% endif %}>{{ country.name }}</option>
+                                                        {% endfor %}
+                                                        <option value="OTHER">{{ texts.address_type_other }}</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column is-6">
+                                            <div class="field">
+                                                <label class="label">{{ texts.address_country_label }}</label>
+                                                <div class="control">
+                                                    <input class="input address-country-other-input" type="text"
+                                                        name="address_country_other[]" value="" style="display:none;">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column is-12 has-text-right">
+                                            <button type="button" class="button is-danger is-light remove-address">{{
+                                                texts.address_remove_button }}</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
                         <div class="field mb-4">
                             <div class="control">
                                 <label class="checkbox">
-                                    <input type="checkbox" name="accept_privacy" required>
+                                    <input type="checkbox" name="accept_privacy" {% if form.get('accept_privacy')
+                                        %}checked{% endif %} required>
                                     {{ texts.i_accept }} <a href="#" target="_blank">{{ texts.accept_policy }}</a>
                                 </label>
                             </div>
@@ -266,7 +631,8 @@
                         <div class="field mb-4">
                             <div class="control">
                                 <label class="checkbox">
-                                    <input type="checkbox" name="accept_terms" required>
+                                    <input type="checkbox" name="accept_terms" {% if form.get('accept_terms')
+                                        %}checked{% endif %} required>
                                     {{ texts.i_accept }} <a href="#" target="_blank">{{ texts.accept_terms }}</a>
                                 </label>
                             </div>
@@ -274,7 +640,8 @@
                         <div class="field mb-4">
                             <div class="control">
                                 <label class="checkbox">
-                                    <input type="checkbox" name="accept_news">
+                                    <input type="checkbox" name="accept_news" {% if form.get('accept_news') %}checked{%
+                                        endif %}>
                                     {{ texts.receive_news }}
                                 </label>
                             </div>
@@ -282,7 +649,7 @@
                         <div class="field mb-4">
                             <label class="label">{{ texts.not_a_bot_label }}</label>
                             <div class="control">
-                                <input class="input" type="text" name="not_bot"
+                                <input class="input" type="text" name="not_bot" value="{{ form.get('not_bot', '') }}"
                                     placeholder="พิมพ์คำว่า 'มนุษย์' / Type 'human'" required>
                             </div>
                         </div>
@@ -340,6 +707,131 @@
     <div id="g_id_onload" data-client_id="206836986017-1dctro1ehrqta2r91e5appn5j78spn9h.apps.googleusercontent.com"
         data-context="signin" data-ux_mode="popup" data-callback="handleCredentialResponse" data-auto_prompt="true">
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const organizationTypeSelect = document.getElementById('organization-type-select');
+            const organizationTypeOtherInput = document.getElementById('organization-type-other-input');
+            if (organizationTypeSelect && organizationTypeOtherInput) {
+                const toggleOrganizationType = () => {
+                    if (organizationTypeSelect.value === 'other') {
+                        organizationTypeOtherInput.style.display = '';
+                    } else {
+                        organizationTypeOtherInput.style.display = 'none';
+                    }
+                };
+                organizationTypeSelect.addEventListener('change', toggleOrganizationType);
+                toggleOrganizationType();
+            }
+
+            const occupationSelect = document.getElementById('occupation-select');
+            const occupationOtherInput = document.getElementById('occupation-other-input');
+            if (occupationSelect && occupationOtherInput) {
+                const toggleOccupation = () => {
+                    if (occupationSelect.value === 'other') {
+                        occupationOtherInput.style.display = '';
+                    } else {
+                        occupationOtherInput.style.display = 'none';
+                    }
+                };
+                occupationSelect.addEventListener('change', toggleOccupation);
+                toggleOccupation();
+            }
+
+            const organizationCountrySelect = document.getElementById('organization-country-select');
+            const organizationCountryOther = document.getElementById('organization-country-other-input');
+            if (organizationCountrySelect && organizationCountryOther) {
+                const toggleOrganizationCountry = () => {
+                    if (organizationCountrySelect.value === 'OTHER') {
+                        organizationCountryOther.style.display = '';
+                    } else {
+                        organizationCountryOther.style.display = 'none';
+                    }
+                };
+                organizationCountrySelect.addEventListener('change', toggleOrganizationCountry);
+                toggleOrganizationCountry();
+            }
+
+            const addressesContainer = document.getElementById('addresses-container');
+            const addressTemplate = document.getElementById('address-template');
+            const addAddressButton = document.getElementById('add-address-button');
+
+            const updateRemoveButtons = () => {
+                if (!addressesContainer) {
+                    return;
+                }
+                const entries = addressesContainer.querySelectorAll('.address-entry');
+                entries.forEach((entry) => {
+                    const removeButton = entry.querySelector('.remove-address');
+                    if (removeButton) {
+                        removeButton.disabled = entries.length <= 1;
+                    }
+                });
+            };
+
+            const setupAddressEntry = (entry) => {
+                const typeSelect = entry.querySelector('.address-type-select');
+                const typeOtherInput = entry.querySelector('.address-type-other-input');
+                if (typeSelect && typeOtherInput) {
+                    const toggleTypeOther = () => {
+                        if (typeSelect.value === 'other') {
+                            typeOtherInput.style.display = '';
+                        } else {
+                            typeOtherInput.style.display = 'none';
+                        }
+                    };
+                    typeSelect.addEventListener('change', toggleTypeOther);
+                    toggleTypeOther();
+                }
+
+                const countrySelect = entry.querySelector('.address-country-select');
+                const countryOtherInput = entry.querySelector('.address-country-other-input');
+                if (countrySelect && countryOtherInput) {
+                    const toggleCountryOther = () => {
+                        if (countrySelect.value === 'OTHER') {
+                            countryOtherInput.style.display = '';
+                        } else {
+                            countryOtherInput.style.display = 'none';
+                        }
+                    };
+                    countrySelect.addEventListener('change', toggleCountryOther);
+                    toggleCountryOther();
+                }
+
+                const removeButton = entry.querySelector('.remove-address');
+                if (removeButton && addressesContainer) {
+                    removeButton.addEventListener('click', () => {
+                        const entries = addressesContainer.querySelectorAll('.address-entry');
+                        if (entries.length > 1) {
+                            entry.remove();
+                            updateRemoveButtons();
+                        }
+                    });
+                }
+            };
+
+            if (addressesContainer) {
+                addressesContainer.querySelectorAll('.address-entry').forEach(setupAddressEntry);
+                updateRemoveButtons();
+            }
+
+            let addressIndex = addressesContainer ? addressesContainer.querySelectorAll('.address-entry').length : 0;
+
+            if (addAddressButton && addressTemplate && addressesContainer) {
+                addAddressButton.addEventListener('click', () => {
+                    addressIndex += 1;
+                    const wrapper = document.createElement('div');
+                    wrapper.innerHTML = addressTemplate.innerHTML.replace(/__INDEX__/g, String(addressIndex)).trim();
+                    const newEntry = wrapper.firstElementChild;
+                    if (newEntry) {
+                        addressesContainer.appendChild(newEntry);
+                        setupAddressEntry(newEntry);
+                        updateRemoveButtons();
+                    }
+                });
+            }
+        });
+    </script>
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script>

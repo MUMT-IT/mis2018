@@ -1,0 +1,159 @@
+{% extends 'continueing_edu/admin/base.html' %}
+{% block title %}Registration Report{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="level">
+    <div class="level-left">
+      <h1 class="title">Registration Report</h1>
+    </div>
+    <div class="level-right">
+      <span class="tag is-light">Total {{ total_count }} records</span>
+    </div>
+  </div>
+
+  <form class="box" method="get">
+    <div class="columns is-multiline">
+      <div class="column is-3">
+        <label class="label">Start Date</label>
+        <input class="input" type="date" name="start" value="{{ start_value or '' }}">
+      </div>
+      <div class="column is-3">
+        <label class="label">End Date</label>
+        <input class="input" type="date" name="end" value="{{ end_value or '' }}">
+      </div>
+      <div class="column is-3">
+        <label class="label">Event Type</label>
+        <div class="select is-fullwidth">
+          <select name="event_type">
+            <option value="">All</option>
+            {% for et in available_event_types %}
+              <option value="{{ et }}" {% if selected_event_type == et %}selected{% endif %}>{{ et|capitalize }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="column is-3">
+        <label class="label">Registration Status</label>
+        <div class="select is-fullwidth">
+          <select name="status_id">
+            <option value="">All</option>
+            {% for status in registration_statuses %}
+              <option value="{{ status.id }}" {% if selected_status_id == status.id|string %}selected{% endif %}>{{ status.name_en }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="column is-2">
+        <label class="label">Rows</label>
+        <div class="select is-fullwidth">
+          <select name="per_page">
+            {% for size in [25, 50, 100] %}
+              <option value="{{ size }}" {% if pagination.per_page == size %}selected{% endif %}>{{ size }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="column is-2 is-offset-0">
+        <label class="label">&nbsp;</label>
+        <button class="button is-link is-fullwidth" type="submit">Filter</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="columns is-multiline">
+    <div class="column is-one-quarter">
+      <div class="box has-background-primary has-text-white">
+        <p class="heading">Total Registrations</p>
+        <p class="title is-3">{{ total_count }}</p>
+      </div>
+    </div>
+    <div class="column is-one-quarter">
+      <div class="box has-background-link has-text-white">
+        <p class="heading">Unique Members</p>
+        <p class="title is-3">{{ unique_members }}</p>
+      </div>
+    </div>
+    <div class="column is-one-quarter">
+      <div class="box">
+        <p class="heading">Status Breakdown</p>
+        <ul>
+          {% for item in status_breakdown %}
+            <li>{{ item.label }} <span class="tag is-light">{{ item.count }}</span></li>
+          {% else %}
+            <li>No data</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    <div class="column is-one-quarter">
+      <div class="box">
+        <p class="heading">Top Events</p>
+        <ul>
+          {% for event in top_events %}
+            <li>{{ event.title }} <span class="tag is-info is-light">{{ event.count }}</span></li>
+          {% else %}
+            <li>No events</li>
+          {% endfor %}
+        </ul>
+        <hr>
+        <p class="heading">By Event Type</p>
+        <ul>
+          {% for item in event_breakdown %}
+            <li>{{ item.label|capitalize }} <span class="tag is-warning is-light">{{ item.count }}</span></li>
+          {% else %}
+            <li>No data</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="table-container">
+      <table class="table is-fullwidth is-striped is-hoverable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Member</th>
+            <th>Email</th>
+            <th>Event</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Certificate</th>
+            <th>Registered At</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for reg in registrations %}
+          <tr>
+            <td>{{ reg.id }}</td>
+            <td>{{ reg.member.full_name_en or reg.member.full_name_th or reg.member.username }}</td>
+            <td>{{ reg.member.email or '-' }}</td>
+            <td>{{ reg.event_entity.title_en or reg.event_entity.title_th }}</td>
+            <td>{{ reg.event_entity.event_type|capitalize }}</td>
+            <td>{{ reg.status_ref.name_en if reg.status_ref else '-' }}</td>
+            <td>{{ reg.certificate_status_ref.name_en if reg.certificate_status_ref else '-' }}</td>
+            <td>{{ reg.registration_date.strftime('%Y-%m-%d %H:%M') if reg.registration_date else '-' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" class="has-text-centered has-text-grey">No registrations found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if pagination and pagination.pages > 1 %}
+  <nav class="pagination is-centered" role="navigation" aria-label="pagination">
+    {% set query_params = 'per_page=' ~ pagination.per_page ~ '&start=' ~ (start_value or '') ~ '&end=' ~ (end_value or '') ~ '&event_type=' ~ (selected_event_type or '') ~ '&status_id=' ~ (selected_status_id or '') %}
+    <a class="pagination-previous" href="?page={{ pagination.prev_num }}&{{ query_params }}" {% if not pagination.has_prev %}disabled{% endif %}>Previous</a>
+    <a class="pagination-next" href="?page={{ pagination.next_num }}&{{ query_params }}" {% if not pagination.has_next %}disabled{% endif %}>Next</a>
+    <ul class="pagination-list">
+      <li><span class="pagination-link is-current">Page {{ pagination.page }} of {{ pagination.pages }}</span></li>
+    </ul>
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}

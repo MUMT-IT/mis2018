@@ -18,8 +18,13 @@ from .models import (
     EventRegistrationFee,
     RegisterPayment,
     RegisterPaymentStatus,
+    Organization,
+    OrganizationType,
+    Occupation,
+    MemberAddress,
 )
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, func
+from sqlalchemy.exc import IntegrityError
 from werkzeug.exceptions import NotFound
 
 from app.main import mail
@@ -35,12 +40,124 @@ from requests_oauthlib import OAuth2Session
 from datetime import datetime, timezone
 
 from werkzeug.utils import secure_filename
+from textwrap import shorten
 
 from . import translations as tr  # Import translations from local package
 from .status_utils import get_registration_status, get_certificate_status
 from .certificate_utils import issue_certificate, can_issue_certificate
 
 current_lang = 'en'  # This should be dynamically set based on user preference or request
+
+
+COUNTRY_OPTIONS = [
+    {'code': 'TH', 'name': 'Thailand'},
+    {'code': 'SG', 'name': 'Singapore'},
+    {'code': 'MY', 'name': 'Malaysia'},
+    {'code': 'VN', 'name': 'Vietnam'},
+    {'code': 'LA', 'name': 'Laos'},
+    {'code': 'KH', 'name': 'Cambodia'},
+    {'code': 'MM', 'name': 'Myanmar'},
+    {'code': 'PH', 'name': 'Philippines'},
+    {'code': 'ID', 'name': 'Indonesia'},
+    {'code': 'BN', 'name': 'Brunei Darussalam'},
+    {'code': 'CN', 'name': 'China'},
+    {'code': 'HK', 'name': 'Hong Kong'},
+    {'code': 'JP', 'name': 'Japan'},
+    {'code': 'KR', 'name': 'South Korea'},
+    {'code': 'IN', 'name': 'India'},
+    {'code': 'AE', 'name': 'United Arab Emirates'},
+    {'code': 'QA', 'name': 'Qatar'},
+    {'code': 'SA', 'name': 'Saudi Arabia'},
+    {'code': 'AU', 'name': 'Australia'},
+    {'code': 'NZ', 'name': 'New Zealand'},
+    {'code': 'GB', 'name': 'United Kingdom'},
+    {'code': 'US', 'name': 'United States'},
+    {'code': 'CA', 'name': 'Canada'},
+    {'code': 'DE', 'name': 'Germany'},
+    {'code': 'FR', 'name': 'France'},
+    {'code': 'CH', 'name': 'Switzerland'},
+    {'code': 'SE', 'name': 'Sweden'},
+    {'code': 'NO', 'name': 'Norway'},
+    {'code': 'FI', 'name': 'Finland'},
+]
+
+
+def _default_address_entries():
+    return [
+        {
+            'type': 'current',
+            'type_other': '',
+            'label': '',
+            'line1': '',
+            'line2': '',
+            'city': '',
+            'state': '',
+            'postal': '',
+            'country_code': 'TH',
+            'country_other': '',
+        },
+        {
+            'type': 'billing',
+            'type_other': '',
+            'label': '',
+            'line1': '',
+            'line2': '',
+            'city': '',
+            'state': '',
+            'postal': '',
+            'country_code': 'TH',
+            'country_other': '',
+        },
+    ]
+
+
+def _collect_address_entries_from_form(form):
+    if not form:
+        return []
+
+    def _safe_list(key):
+        return [value.strip() for value in form.getlist(key)]
+
+    address_types = _safe_list('address_type[]')
+    address_type_custom = _safe_list('address_type_other[]')
+    address_labels = _safe_list('address_label[]')
+    line1_list = _safe_list('address_line1[]')
+    line2_list = _safe_list('address_line2[]')
+    city_list = _safe_list('address_city[]')
+    state_list = _safe_list('address_state[]')
+    postal_list = _safe_list('address_postal[]')
+    country_codes = _safe_list('address_country[]')
+    country_other = _safe_list('address_country_other[]')
+
+    max_len = max(
+        len(address_types),
+        len(address_type_custom),
+        len(address_labels),
+        len(line1_list),
+        len(line2_list),
+        len(city_list),
+        len(state_list),
+        len(postal_list),
+        len(country_codes),
+        len(country_other),
+    ) if form else 0
+
+    entries = []
+    for idx in range(max_len):
+        entries.append({
+            'type': address_types[idx] if idx < len(address_types) else '',
+            'type_other': address_type_custom[idx] if idx < len(address_type_custom) else '',
+            'label': address_labels[idx] if idx < len(address_labels) else '',
+            'line1': line1_list[idx] if idx < len(line1_list) else '',
+            'line2': line2_list[idx] if idx < len(line2_list) else '',
+            'city': city_list[idx] if idx < len(city_list) else '',
+            'state': state_list[idx] if idx < len(state_list) else '',
+            'postal': postal_list[idx] if idx < len(postal_list) else '',
+            'country_code': country_codes[idx] if idx < len(country_codes) else '',
+            'country_other': country_other[idx] if idx < len(country_other) else '',
+        })
+
+    return entries
 
 
 def get_current_user():
@@ -116,61 +233,280 @@ def logout():
 def register():
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
+
+    form_values = request.form.to_dict() if request.method == 'POST' else {}
+    address_entries = _collect_address_entries_from_form(request.form) if request.method == 'POST' else _default_address_entries()
+    if not address_entries:
+        address_entries = _default_address_entries()
+
+    organization_types = OrganizationType.query.order_by(OrganizationType.name_en.asc()).all()
+    occupations = Occupation.query.order_by(Occupation.name_en.asc()).all()
+    organizations = Organization.query.order_by(Organization.name.asc()).limit(50).all()
+
     if request.method == 'POST':
-        username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
-        accept_privacy = request.form.get('accept_privacy')
-        accept_terms = request.form.get('accept_terms')
-        accept_news = request.form.get('accept_news')
-        not_bot = request.form.get('not_bot')
+        username = request.form.get('username', '').strip()
+        email = (request.form.get('email') or '').strip() or None
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        accept_privacy = bool(request.form.get('accept_privacy'))
+        accept_terms = bool(request.form.get('accept_terms'))
+        accept_news = bool(request.form.get('accept_news'))
+        not_bot = (request.form.get('not_bot') or '').strip().lower()
 
-        # Basic required fields
+        organization_name = (request.form.get('organization_name') or '').strip()
+        organization_type_choice = (request.form.get('organization_type_id') or '').strip()
+        organization_type_other = (request.form.get('organization_type_other') or '').strip()
+        organization_country_code = (request.form.get('organization_country') or '').strip()
+        organization_country_other = (request.form.get('organization_country_other') or '').strip()
+
+        occupation_choice = (request.form.get('occupation_id') or '').strip()
+        occupation_other = (request.form.get('occupation_other') or '').strip()
+
+        errors = []
         if not username or not password:
-            flash(texts.get('register_error_required',  'Username and password required.' if lang == 'en' else 'ชื่อผู้ใช้และรหัสผ่านจำเป็นต้องกรอก'), 'danger')
+            errors.append(texts.get('register_error_required', 'Username and password required.'))
+        if password and password != confirm_password:
+            errors.append('รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน' if lang == 'th' else 'Passwords do not match.')
+        if not accept_privacy:
+            errors.append('กรุณายอมรับนโยบายความเป็นส่วนตัว' if lang == 'th' else 'Please accept the privacy policy.')
+        if not accept_terms:
+            errors.append('กรุณายอมรับข้อกำหนดและเงื่อนไข' if lang == 'th' else 'Please accept the terms and conditions.')
+        if not (not_bot and not_bot in ('มนุษย์', 'human')):
+            errors.append('กรุณายืนยันว่าคุณไม่ใช่บอท โดยพิมพ์คำว่า "มนุษย์" หรือ "human"' if lang == 'th' else 'Please confirm you are not a bot by typing "มนุษย์" or "human".')
 
-        # Confirm password
-        elif password != confirm_password:
+        if organization_type_choice == 'other' and not organization_type_other:
+            errors.append(texts.get('organization_type_other_placeholder', 'Please specify organization type.'))
+        if occupation_choice == 'other' and not occupation_other:
+            errors.append(texts.get('occupation_other_placeholder', 'Please specify occupation.'))
 
-            flash( 'รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน' if lang == 'th' else 'Passwords do not match.', 'danger')
-        # Privacy policy
-        elif not accept_privacy:
-            flash('กรุณายอมรับนโยบายความเป็นส่วนตัว' if lang == 'th' else 'Please accept the privacy policy.', 'danger')
-        # Terms of service
-        elif not accept_terms:
-            flash('กรุณายอมรับข้อกำหนดและเงื่อนไข' if lang == 'th' else 'Please accept the terms and conditions.', 'danger')
-        # Anti-bot
-        elif not not_bot or not_bot.strip().lower() != 'มนุษย์' and not_bot.strip().lower() != 'human':
-            flash('กรุณายืนยันว่าคุณไม่ใช่บอท โดยพิมพ์คำว่า "มนุษย์" หรือ "human"' if lang == 'th' else 'Please confirm you are not a bot by typing "มนุษย์" or "human".', 'danger')
-        else:
-            from .models import Member
-            import random
-            if Member.query.filter_by(username=username).first():
-                flash(texts.get('register_error_exists', 'Username already exists.'), 'danger')
-            elif Member.query.filter_by(email=email).first():
-                # Email already registered, show comeback options
-                return render_template('continueing_edu/email_already_registered.html', email=email, current_lang=lang, texts=texts)
+        # Address validations
+        meaningful_addresses = []
+        for entry in address_entries:
+            has_content = bool(entry.get('line1'))
+            if has_content:
+                meaningful_addresses.append(entry)
+            if entry.get('type') == 'other' and has_content and not entry.get('type_other'):
+                errors.append(texts.get('address_type_other_prompt', 'Please specify address type for custom entries.'))
+            if entry.get('country_code') == 'OTHER' and has_content and not entry.get('country_other'):
+                errors.append(texts.get('address_country_other_prompt', 'Please specify country name.'))
+
+        if not meaningful_addresses:
+            errors.append(texts.get('address_required_message', 'Please provide at least one address.'))
+
+        if username and Member.query.filter_by(username=username).first():
+            errors.append(texts.get('register_error_exists', 'Username already exists.'))
+        if email and Member.query.filter_by(email=email).first():
+            return render_template(
+                'continueing_edu/email_already_registered.html',
+                email=email,
+                current_lang=lang,
+                texts=texts,
+            )
+
+        if errors:
+            for message in errors:
+                flash(message, 'danger')
+            return render_template(
+                'continueing_edu/register.html',
+                texts=texts,
+                current_lang=lang,
+                form_values=form_values,
+                organization_types=organization_types,
+                occupations=occupations,
+                organizations=organizations,
+                address_entries=address_entries,
+                country_options=COUNTRY_OPTIONS,
+            )
+
+        organization_type = None
+        if organization_type_choice:
+            if organization_type_choice == 'other' and organization_type_other:
+                lookup = organization_type_other.lower()
+                organization_type = (OrganizationType.query
+                                     .filter(func.lower(OrganizationType.name_en) == lookup)
+                                     .first())
+                if not organization_type:
+                    organization_type = (OrganizationType.query
+                                         .filter(func.lower(OrganizationType.name_th) == lookup)
+                                         .first())
+                if not organization_type:
+                    organization_type = OrganizationType(
+                        name_en=organization_type_other,
+                        name_th=organization_type_other,
+                        is_user_defined=True,
+                    )
+                    db.session.add(organization_type)
+                    db.session.flush()
             else:
-                member = Member(
-                    username=username,
-                    email=email,
-                    password_hash=generate_password_hash(password)
-                )
-                db.session.add(member)
-                db.session.commit()
-                # Generate OTP and send email
-                otp_code = '{:06d}'.format(random.randint(0, 999999))
-                session['otp_code'] = otp_code
-                session['otp_username'] = username
-                session['otp_email'] = email
                 try:
+                    organization_type = OrganizationType.query.get(int(organization_type_choice))
+                except (ValueError, TypeError):
+                    organization_type = None
 
-                    send_mail([email], 'รหัส OTP สำหรับการลงทะเบียนของคุณ' if lang == 'th' else 'Your Registration OTP Code', f'รหัส OTP ของคุณคือ: {otp_code}' if lang == 'th' else f'Your OTP code is: {otp_code}')
-                except Exception as e:
-                    flash(f'ไม่สามารถส่งอีเมล OTP ได้: {e}' if lang == 'th' else f'Unable to send OTP email: {e}', 'danger')
-                return render_template('continueing_edu/otp_verify.html', username=username, current_lang=lang, texts=texts)
-    return render_template('continueing_edu/register.html', texts=texts, current_lang=lang)
+        occupation = None
+        if occupation_choice:
+            if occupation_choice == 'other' and occupation_other:
+                lookup = occupation_other.lower()
+                occupation = (Occupation.query
+                              .filter(func.lower(Occupation.name_en) == lookup)
+                              .first())
+                if not occupation:
+                    occupation = (Occupation.query
+                                  .filter(func.lower(Occupation.name_th) == lookup)
+                                  .first())
+                if not occupation:
+                    occupation = Occupation(
+                        name_en=occupation_other,
+                        name_th=occupation_other,
+                        is_user_defined=True,
+                    )
+                    db.session.add(occupation)
+                    db.session.flush()
+            else:
+                try:
+                    occupation = Occupation.query.get(int(occupation_choice))
+                except (ValueError, TypeError):
+                    occupation = None
+
+        organization_country_name = None
+        organization_country_code_final = None
+        if organization_country_code == 'OTHER' and organization_country_other:
+            organization_country_name = organization_country_other
+        elif organization_country_code:
+            organization_country_code_final = organization_country_code
+            organization_country_name = next(
+                (item['name'] for item in COUNTRY_OPTIONS if item['code'] == organization_country_code),
+                organization_country_code,
+            )
+
+        organization = None
+        if organization_name:
+            organization = (Organization.query
+                            .filter(func.lower(Organization.name) == organization_name.lower())
+                            .first())
+            if not organization:
+                organization = Organization(
+                    name=organization_name,
+                    organization_type=organization_type,
+                    country=organization_country_name,
+                    is_user_defined=True,
+                )
+                db.session.add(organization)
+                db.session.flush()
+            else:
+                if organization_type and not organization.organization_type_id:
+                    organization.organization_type = organization_type
+                if organization_country_name and not organization.country:
+                    organization.country = organization_country_name
+
+        member = Member(
+            username=username,
+            email=email,
+            password_hash=generate_password_hash(password),
+            organization=organization,
+            occupation=occupation,
+            received_news=accept_news,
+        )
+        db.session.add(member)
+        db.session.flush()
+
+        created_addresses = []
+        for entry in address_entries:
+            line1 = entry.get('line1')
+            if not line1:
+                continue
+
+            address_type_value = entry.get('type') or ''
+            if address_type_value == 'other' and entry.get('type_other'):
+                address_type_value = entry['type_other']
+
+            country_code = entry.get('country_code') or ''
+            country_other_value = entry.get('country_other') or ''
+            if country_code == 'OTHER' and country_other_value:
+                country_name = country_other_value
+                country_code_value = None
+            elif country_code:
+                country_name = next((item['name'] for item in COUNTRY_OPTIONS if item['code'] == country_code), country_code)
+                country_code_value = country_code
+            else:
+                country_name = None
+                country_code_value = None
+
+            address = MemberAddress(
+                member=member,
+                address_type=address_type_value or 'other',
+                label=entry.get('label') or None,
+                line1=line1,
+                line2=entry.get('line2') or None,
+                city=entry.get('city') or None,
+                state=entry.get('state') or None,
+                postal_code=entry.get('postal') or None,
+                country_code=country_code_value,
+                country_name=country_name,
+            )
+            db.session.add(address)
+            created_addresses.append(address)
+
+        if created_addresses and not member.address:
+            member.address = created_addresses[0].line1
+            member.province = created_addresses[0].state
+            member.zip_code = created_addresses[0].postal_code
+            member.country = created_addresses[0].country_name
+
+        try:
+            db.session.commit()
+        except IntegrityError as exc:
+            db.session.rollback()
+            flash(texts.get('register_error_generic', 'We could not complete your registration. Please try again.'), 'danger')
+            return render_template(
+                'continueing_edu/register.html',
+                texts=texts,
+                current_lang=lang,
+                form_values=form_values,
+                organization_types=organization_types,
+                occupations=occupations,
+                organizations=organizations,
+                address_entries=address_entries,
+                country_options=COUNTRY_OPTIONS,
+            )
+
+        import random
+
+        otp_code = '{:06d}'.format(random.randint(0, 999999))
+        session['otp_code'] = otp_code
+        session['otp_username'] = username
+        session['otp_email'] = email
+        try:
+            if email:
+                send_mail(
+                    [email],
+                    'รหัส OTP สำหรับการลงทะเบียนของคุณ' if lang == 'th' else 'Your Registration OTP Code',
+                    f'รหัส OTP ของคุณคือ: {otp_code}' if lang == 'th' else f'Your OTP code is: {otp_code}',
+                )
+            else:
+                flash(
+                    texts.get('otp_email_missing', 'Please provide an email address to receive your OTP code.'),
+                    'warning',
+                )
+        except Exception as e:
+            flash(
+                f'ไม่สามารถส่งอีเมล OTP ได้: {e}' if lang == 'th' else f'Unable to send OTP email: {e}',
+                'danger',
+            )
+
+        return render_template('continueing_edu/otp_verify.html', username=username, current_lang=lang, texts=texts)
+
+    return render_template(
+        'continueing_edu/register.html',
+        texts=texts,
+        current_lang=lang,
+        form_values=form_values,
+        organization_types=organization_types,
+        occupations=occupations,
+        organizations=organizations,
+        address_entries=address_entries,
+        country_options=COUNTRY_OPTIONS,
+    )
 
 
 
@@ -627,7 +963,90 @@ def dashboard():
     registered_only = request.args.get('registered_only') in ('1', 'true', 'yes')
     if registered_only and user:
         events = [e for e in events if e.id in registered_ids]
-    return render_template('continueing_edu/index.html', events=events, active_menu='All Events', texts=texts, current_lang=lang, logged_in_user=user, registered_ids=registered_ids, registered_only=registered_only)
+
+    hero_query = EventEntity.query
+    is_active_column = getattr(EventEntity, 'is_active', None)
+    if is_active_column is not None:
+        hero_query = hero_query.filter(is_active_column.is_(True))
+    hero_events = (hero_query
+                   .order_by(EventEntity.created_at.desc())
+                   .limit(5)
+                   .all())
+    if not hero_events:
+        hero_events = events[:5]
+
+    placeholder_image = 'https://placehold.co/1920x1080/1f2937/FFFFFF?text=Continuing+Education'
+    hero_slides = []
+    for ev in hero_events:
+        image_candidates = [
+            ev.cover_presigned_url() if hasattr(ev, 'cover_presigned_url') else None,
+            getattr(ev, 'cover_image_url', None),
+            ev.poster_presigned_url() if hasattr(ev, 'poster_presigned_url') else None,
+            getattr(ev, 'poster_image_url', None),
+            getattr(ev, 'image_url', None),
+        ]
+        image = next((img for img in image_candidates if img), None) or placeholder_image
+
+        desc = (ev.description_en or ev.description_th or '')
+        if desc:
+            desc = shorten(desc, width=180, placeholder='…')
+
+        speaker_names = []
+        try:
+            for sp in (ev.speakers or []):
+                if getattr(sp, 'name_en', None):
+                    speaker_names.append(sp.name_en)
+                elif getattr(sp, 'name_th', None):
+                    speaker_names.append(sp.name_th)
+        except Exception:
+            pass
+        speakers_label = ', '.join(speaker_names[:3]) if speaker_names else ''
+
+        if ev.event_type == 'course':
+            detail_url = url_for('continuing_edu.course_detail', course_id=ev.id, lang=lang)
+        elif ev.event_type == 'webinar':
+            detail_url = url_for('continuing_edu.webinar_detail', webinar_id=ev.id, lang=lang)
+        else:
+            detail_url = url_for('continuing_edu.index', lang=lang)
+
+        hero_slides.append({
+            'id': ev.id,
+            'title': ev.title_en or ev.title_th or f"Event #{ev.id}",
+            'subtitle': desc,
+            'image': image,
+            'cta_url': detail_url,
+            'cta_label': texts.get('hero_view_event', 'View Event'),
+            'event_type': ev.event_type,
+            'event_type_label': texts.get(f"event_type_{(ev.event_type or '').lower()}", (ev.event_type or 'Event').title()),
+            'schedule_label': ev.created_at.strftime('%d %b %Y') if getattr(ev, 'created_at', None) else '',
+            'speakers': speakers_label,
+        })
+
+    if not hero_slides:
+        hero_slides.append({
+            'id': 0,
+            'title': texts.hero_title,
+            'subtitle': texts.hero_subtitle,
+            'image': placeholder_image,
+            'cta_url': url_for('continuing_edu.index', lang=lang),
+            'cta_label': texts.get('explore_courses_btn', 'Explore Courses'),
+            'event_type': '',
+            'event_type_label': '',
+            'schedule_label': '',
+            'speakers': '',
+        })
+
+    return render_template(
+        'continueing_edu/index.html',
+        events=events,
+        active_menu='All Events',
+        texts=texts,
+        current_lang=lang,
+        logged_in_user=user,
+        registered_ids=registered_ids,
+        registered_only=registered_only,
+        hero_slides=hero_slides,
+    )
 
 
 @ce_bp.route('/courses')

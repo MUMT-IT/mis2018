@@ -1,36 +1,50 @@
 {% extends 'continueing_edu/admin/base.html' %}
-{% block title %}Certificates Management{% endblock %}
+{% block title %}Certificates Overview{% endblock %}
 {% block content %}
 <div class="container">
-  <h1 class="title is-3">Certificates Management</h1>
-  <p class="mb-4">Select an event to review participant progress and certificates.</p>
-  {% if events %}
-  <table class="table is-fullwidth is-striped">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Title</th>
-        <th>Type</th>
-        <th>Created</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for event in events %}
-      <tr>
-        <td>{{ event.id }}</td>
-        <td>{{ event.title_en or event.title_th }}</td>
-        <td>{{ event.event_type|capitalize }}</td>
-        <td>{{ event.created_at }}</td>
-        <td class="has-text-right">
-          <a class="button is-link is-small" href="{{ url_for('continuing_edu_admin_certificates.event', event_id=event.id) }}">Manage</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <p>No events found.</p>
-  {% endif %}
+  <div class="level">
+    <div class="level-left">
+      <h1 class="title">Certificates Overview</h1>
+    </div>
+    <div class="level-right">
+      <a class="button is-link" href="{{ url_for('continuing_edu_admin.manage_events') }}">Manage Events</a>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="table-container">
+      <table class="table is-fullwidth is-striped is-hoverable">
+        <thead>
+          <tr>
+            <th>Event</th>
+            <th>Type</th>
+            <th class="has-text-right">Registrations</th>
+            <th class="has-text-right">Issued</th>
+            <th class="has-text-right">Pending</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in events_data %}
+          <tr>
+            <td>{{ row.event.title_en or row.event.title_th or 'Untitled Event' }}</td>
+            <td>{{ row.event.event_type|capitalize }}</td>
+            <td class="has-text-right">{{ row.total_regs }}</td>
+            <td class="has-text-right">{{ row.issued }}</td>
+            <td class="has-text-right">{{ row.pending }}</td>
+            <td class="has-text-right">
+              <a class="button is-small is-link"
+                href="{{ url_for('continuing_edu_admin.certificates_event_detail', event_id=row.event.id) }}">View</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="has-text-centered has-text-grey">No events available.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 {% endblock %}

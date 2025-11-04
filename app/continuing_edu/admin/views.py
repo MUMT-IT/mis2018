@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SelectField, SubmitField
 from wtforms.validators import DataRequired
 
-from flask import Blueprint, render_template, request, session, redirect, url_for, flash
+from flask import Blueprint, render_template, request, session, redirect, url_for, flash, Response
 from app.staff.models import StaffAccount
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -31,13 +31,33 @@ from app.continuing_edu.models import (
 )
 from sqlalchemy import func
 import datetime
+import calendar
+from collections import OrderedDict
 import os
 from app.main import db, mail
+from sqlalchemy.orm import joinedload
+
+try:
+    from weasyprint import HTML
+except Exception:  # pragma: no cover - optional dependency
+    HTML = None
 from app.continuing_edu.status_utils import get_registration_status, get_certificate_status
 from app.continuing_edu.certificate_utils import issue_certificate as issue_certificate_util, reset_certificate as reset_certificate_util, can_issue_certificate
 
 admin_bp = Blueprint('continuing_edu_admin', __name__, url_prefix='/continuing_edu/admin')
 
+
+def _parse_date_arg(value: str, *, end: bool = False):
+    """Parse YYYY-MM-DD into timezone-aware datetime in UTC."""
+    if not value:
+        return None
+    try:
+        dt = datetime.datetime.strptime(value, '%Y-%m-%d')
+        if end:
+            dt += datetime.timedelta(days=1)
+        return dt.replace(tzinfo=datetime.timezone.utc)
+    except ValueError:
+        return None
 
 class EventCreateStep1Form(FlaskForm):
     event_type = SelectField('Event Type', choices=[('course', 'Course'), ('webinar', 'Webinar')], validators=[DataRequired()])
@@ -179,27 +199,850 @@ def dashboard():
     admin = get_current_admin()
     if not admin:
         return redirect(url_for('continuing_edu_admin.login'))
-    # Summary counts
-    current_date = datetime.date.today().strftime('%A %d %B %Y')
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    current_date = now_utc.astimezone().strftime('%A %d %B %Y')
 
+    # Summary counts & momentum
     course_count = EventEntity.query.filter_by(event_type='course').count()
+    webinar_count = EventEntity.query.filter_by(event_type='webinar').count()
     member_count = Member.query.count()
-    payment_sum = RegisterPayment.query.with_entities(func.sum(RegisterPayment.payment_amount)).scalar() or 0
     registration_count = MemberRegistration.query.count()
+    payment_sum = RegisterPayment.query.with_entities(func.coalesce(func.sum(RegisterPayment.payment_amount), 0)).scalar() or 0
 
-    # Latest courses (limit 5)
-    latest_courses = EventEntity.query.filter_by(event_type='course').order_by(EventEntity.created_at.desc()).limit(5).all()
+    last_30_days = now_utc - datetime.timedelta(days=30)
+    registrations_30d = MemberRegistration.query.filter(MemberRegistration.registration_date >= last_30_days).count()
+    payments_30d = RegisterPayment.query.filter(RegisterPayment.payment_date >= last_30_days).count()
+    new_members_30d = Member.query.filter(Member.created_at >= last_30_days).count()
+
+    # Payment status distribution
+    payment_status_rows = (
+        db.session.query(
+            RegisterPaymentStatus.name_en,
+            func.count(RegisterPayment.id),
+            func.coalesce(func.sum(RegisterPayment.payment_amount), 0)
+        )
+        .outerjoin(RegisterPayment, RegisterPayment.payment_status_id == RegisterPaymentStatus.id)
+        .group_by(RegisterPaymentStatus.id)
+        .order_by(RegisterPaymentStatus.name_en.asc())
+        .all()
+    )
+    payment_status_summary = [
+        {
+            'label': row[0] or 'Unknown',
+            'count': row[1] or 0,
+            'amount': float(row[2] or 0)
+        }
+        for row in payment_status_rows
+    ]
+
+    # Member type breakdown
+    member_type_rows = (
+        db.session.query(
+            MemberType.name_en,
+            func.count(Member.id)
+        )
+        .outerjoin(Member, Member.member_type_id == MemberType.id)
+        .group_by(MemberType.id)
+        .order_by(func.count(Member.id).desc())
+        .all()
+    )
+    member_type_breakdown = [
+        {
+            'label': row[0] or 'Unspecified',
+            'count': row[1] or 0
+        }
+        for row in member_type_rows
+    ]
+
+    unspecified_members = Member.query.filter(Member.member_type_id.is_(None)).count()
+    if unspecified_members:
+        # avoid duplicating label if already present without explicit name
+        if not any(item['label'] == 'Unspecified' for item in member_type_breakdown):
+            member_type_breakdown.append({'label': 'Unspecified', 'count': unspecified_members})
+        else:
+            for item in member_type_breakdown:
+                if item['label'] == 'Unspecified':
+                    item['count'] += unspecified_members
+                    break
+
+    # Recent activity
+    recent_registrations = (
+        MemberRegistration.query
+        .order_by(MemberRegistration.registration_date.desc())
+        .limit(8)
+        .all()
+    )
+    recent_payments = (
+        RegisterPayment.query
+        .order_by(RegisterPayment.payment_date.desc())
+        .limit(8)
+        .all()
+    )
+
+    # Monthly registrations (last 12 months)
+    months = []
+    year = now_utc.year
+    month = now_utc.month
+    for _ in range(12):
+        months.append((year, month))
+        month -= 1
+        if month == 0:
+            month = 12
+            year -= 1
+    months = list(reversed(months))
+
+    first_month_year, first_month = months[0]
+    month_start = datetime.datetime(first_month_year, first_month, 1, tzinfo=datetime.timezone.utc)
+    monthly_regs = OrderedDict()
+    for y, m in months:
+        label = f"{calendar.month_abbr[m]} {str(y)[-2:]}"
+        monthly_regs[(y, m)] = {'label': label, 'count': 0}
+
+    registrations_for_chart = (
+        MemberRegistration.query
+        .filter(MemberRegistration.registration_date >= month_start)
+        .with_entities(MemberRegistration.registration_date)
+        .all()
+    )
+    for (reg_date,) in registrations_for_chart:
+        if not reg_date:
+            continue
+        if reg_date.tzinfo is None:
+            reg_dt = reg_date.replace(tzinfo=datetime.timezone.utc)
+        else:
+            reg_dt = reg_date.astimezone(datetime.timezone.utc)
+        key = (reg_dt.year, reg_dt.month)
+        if key in monthly_regs:
+            monthly_regs[key]['count'] += 1
+
+    monthly_registration_labels = [item['label'] for item in monthly_regs.values()]
+    monthly_registration_counts = [item['count'] for item in monthly_regs.values()]
+
+    # Average payment approval time
+    approval_rows = (
+        RegisterPayment.query
+        .filter(RegisterPayment.approval_date.isnot(None), RegisterPayment.payment_date.isnot(None))
+        .with_entities(RegisterPayment.payment_date, RegisterPayment.approval_date)
+        .all()
+    )
+    total_seconds = 0
+    approvals_count = 0
+    for payment_date, approval_date in approval_rows:
+        pay_dt = payment_date
+        appr_dt = approval_date
+        if pay_dt.tzinfo is None:
+            pay_dt = pay_dt.replace(tzinfo=datetime.timezone.utc)
+        if appr_dt.tzinfo is None:
+            appr_dt = appr_dt.replace(tzinfo=datetime.timezone.utc)
+        delta = (appr_dt - pay_dt).total_seconds()
+        if delta >= 0:
+            total_seconds += delta
+            approvals_count += 1
+    avg_payment_approval_hours = round(total_seconds / approvals_count / 3600, 2) if approvals_count else None
+
+    # Popular events (top 5 by registrations)
+    registration_counts = dict(
+        db.session.query(
+            MemberRegistration.event_entity_id,
+            func.count(MemberRegistration.id)
+        ).group_by(MemberRegistration.event_entity_id).all()
+    )
+    top_event_ids = [event_id for event_id, _ in sorted(registration_counts.items(), key=lambda item: item[1], reverse=True)[:5]]
+    popular_events = []
+    if top_event_ids:
+        events = EventEntity.query.filter(EventEntity.id.in_(top_event_ids)).all()
+        events_map = {event.id: event for event in events}
+        payment_totals = dict(
+            db.session.query(
+                RegisterPayment.event_entity_id,
+                func.coalesce(func.sum(RegisterPayment.payment_amount), 0)
+            ).group_by(RegisterPayment.event_entity_id).all()
+        )
+        for event_id in top_event_ids:
+            event = events_map.get(event_id)
+            if not event:
+                continue
+            popular_events.append({
+                'id': event.id,
+                'title': event.title_en or event.title_th or f"Event #{event.id}",
+                'event_type': event.event_type,
+                'registrations': registration_counts.get(event_id, 0),
+                'revenue': float(payment_totals.get(event_id, 0))
+            })
+
+    # Popular course categories (top 5)
+    category_rows = (
+        db.session.query(
+            EntityCategory.name_en,
+            func.count(MemberRegistration.id)
+        )
+        .join(EventEntity, EventEntity.category_id == EntityCategory.id)
+        .join(MemberRegistration, MemberRegistration.event_entity_id == EventEntity.id)
+        .group_by(EntityCategory.id)
+        .order_by(func.count(MemberRegistration.id).desc())
+        .limit(5)
+        .all()
+    )
+    popular_categories = [
+        {
+            'label': row[0] or 'Uncategorized',
+            'count': row[1] or 0
+        }
+        for row in category_rows
+    ]
+
+    # Top engaged members (registrations)
+    top_members_rows = (
+        db.session.query(
+            Member.id,
+            Member.full_name_en,
+            Member.username,
+            func.count(MemberRegistration.id).label('reg_count')
+        )
+        .join(MemberRegistration, MemberRegistration.member_id == Member.id)
+        .group_by(Member.id)
+        .order_by(func.count(MemberRegistration.id).desc())
+        .limit(5)
+        .all()
+    )
+    top_members = [
+        {
+            'name': row[1] or row[2] or f"Member #{row[0]}",
+            'registrations': row[3]
+        }
+        for row in top_members_rows
+    ]
+
+    # Latest courses for operational overview
+    latest_courses = (
+        EventEntity.query
+        .filter_by(event_type='course')
+        .order_by(EventEntity.created_at.desc())
+        .limit(5)
+        .all()
+    )
 
     return render_template(
         'continueing_edu/admin/dashboard.html',
         logged_in_admin=admin,
+        current_date=current_date,
         course_count=course_count,
+        webinar_count=webinar_count,
         member_count=member_count,
-        payment_sum=payment_sum,
         registration_count=registration_count,
+        payment_sum=payment_sum,
+        registrations_30d=registrations_30d,
+        payments_30d=payments_30d,
+        new_members_30d=new_members_30d,
+        payment_status_summary=payment_status_summary,
+        member_type_breakdown=member_type_breakdown,
+        recent_registrations=recent_registrations,
+        recent_payments=recent_payments,
+        monthly_registration_labels=monthly_registration_labels,
+        monthly_registration_counts=monthly_registration_counts,
+        avg_payment_approval_hours=avg_payment_approval_hours,
+        popular_events=popular_events,
+        popular_categories=popular_categories,
+        top_members=top_members,
         latest_courses=latest_courses,
-        current_date=current_date
     )
+
+
+@admin_bp.route('/reports/registrations')
+def registrations_report():
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 50, type=int)
+    start_raw = request.args.get('start')
+    end_raw = request.args.get('end')
+    event_type = (request.args.get('event_type') or '').strip()
+    status_raw = (request.args.get('status_id') or '').strip()
+
+    start_dt = _parse_date_arg(start_raw)
+    end_dt = _parse_date_arg(end_raw, end=True)
+
+    filters = []
+    if start_dt:
+        filters.append(MemberRegistration.registration_date >= start_dt)
+    if end_dt:
+        filters.append(MemberRegistration.registration_date < end_dt)
+    if event_type:
+        filters.append(EventEntity.event_type == event_type)
+
+    status_id = None
+    if status_raw:
+        try:
+            status_id = int(status_raw)
+            filters.append(MemberRegistration.status_id == status_id)
+        except ValueError:
+            status_id = None
+
+    base_query = (
+        MemberRegistration.query
+        .join(Member)
+        .join(EventEntity)
+        .options(
+            joinedload(MemberRegistration.member),
+            joinedload(MemberRegistration.event_entity),
+            joinedload(MemberRegistration.status_ref),
+            joinedload(MemberRegistration.certificate_status_ref),
+        )
+        .filter(*filters)
+    )
+
+    pagination = base_query.order_by(MemberRegistration.registration_date.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    registrations = pagination.items
+
+    total_count = base_query.count()
+    unique_members = base_query.with_entities(func.count(func.distinct(MemberRegistration.member_id))).scalar() or 0
+
+    status_breakdown_rows = (
+        db.session.query(
+            RegistrationStatus.name_en,
+            func.count(MemberRegistration.id)
+        )
+        .join(MemberRegistration)
+        .join(EventEntity)
+        .filter(*filters)
+        .group_by(RegistrationStatus.id)
+        .order_by(func.count(MemberRegistration.id).desc())
+        .all()
+    )
+    status_breakdown = [{'label': row[0], 'count': row[1]} for row in status_breakdown_rows]
+
+    event_breakdown_rows = (
+        db.session.query(
+            EventEntity.event_type,
+            func.count(MemberRegistration.id)
+        )
+        .join(MemberRegistration, MemberRegistration.event_entity_id == EventEntity.id)
+        .filter(*filters)
+        .group_by(EventEntity.event_type)
+        .order_by(func.count(MemberRegistration.id).desc())
+        .all()
+    )
+    event_breakdown = [{'label': row[0], 'count': row[1]} for row in event_breakdown_rows]
+
+    top_events_rows = (
+        db.session.query(
+            EventEntity.title_en,
+            EventEntity.title_th,
+            func.count(MemberRegistration.id)
+        )
+        .join(MemberRegistration, MemberRegistration.event_entity_id == EventEntity.id)
+        .filter(*filters)
+        .group_by(EventEntity.id)
+        .order_by(func.count(MemberRegistration.id).desc())
+        .limit(5)
+        .all()
+    )
+    top_events = [
+        {
+            'title': title_en or title_th or 'Unnamed Event',
+            'count': count
+        }
+        for title_en, title_th, count in top_events_rows
+    ]
+
+    registration_statuses = RegistrationStatus.query.order_by(RegistrationStatus.name_en.asc()).all()
+    available_event_types = [row[0] for row in db.session.query(EventEntity.event_type).distinct().order_by(EventEntity.event_type).all() if row[0]]
+
+    return render_template(
+        'continueing_edu/admin/reports/registrations_report.html',
+        logged_in_admin=admin,
+        registrations=registrations,
+        pagination=pagination,
+        total_count=total_count,
+        unique_members=unique_members,
+        status_breakdown=status_breakdown,
+        event_breakdown=event_breakdown,
+        top_events=top_events,
+        registration_statuses=registration_statuses,
+        available_event_types=available_event_types,
+        selected_event_type=event_type,
+        selected_status_id=status_raw,
+        start_value=start_raw,
+        end_value=end_raw,
+    )
+
+
+@admin_bp.route('/reports/payments')
+def payments_report():
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 50, type=int)
+    start_raw = request.args.get('start')
+    end_raw = request.args.get('end')
+    event_type = (request.args.get('event_type') or '').strip()
+    status_raw = (request.args.get('status_id') or '').strip()
+
+    start_dt = _parse_date_arg(start_raw)
+    end_dt = _parse_date_arg(end_raw, end=True)
+
+    filters = []
+    if start_dt:
+        filters.append(RegisterPayment.payment_date >= start_dt)
+    if end_dt:
+        filters.append(RegisterPayment.payment_date < end_dt)
+    if event_type:
+        filters.append(EventEntity.event_type == event_type)
+
+    status_id = None
+    if status_raw:
+        try:
+            status_id = int(status_raw)
+            filters.append(RegisterPayment.payment_status_id == status_id)
+        except ValueError:
+            status_id = None
+
+    base_query = (
+        RegisterPayment.query
+        .join(Member)
+        .join(EventEntity)
+        .join(RegisterPaymentStatus)
+        .options(
+            joinedload(RegisterPayment.member),
+            joinedload(RegisterPayment.event_entity),
+            joinedload(RegisterPayment.payment_status_ref),
+            joinedload(RegisterPayment.receipt),
+        )
+        .filter(*filters)
+    )
+
+    pagination = base_query.order_by(RegisterPayment.payment_date.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    payments = pagination.items
+
+    total_payments = base_query.count()
+    total_amount = base_query.with_entities(func.coalesce(func.sum(RegisterPayment.payment_amount), 0)).scalar() or 0
+
+    status_breakdown_rows = (
+        db.session.query(
+            RegisterPaymentStatus.name_en,
+            func.count(RegisterPayment.id),
+            func.coalesce(func.sum(RegisterPayment.payment_amount), 0)
+        )
+        .join(RegisterPayment)
+        .join(EventEntity)
+        .filter(*filters)
+        .group_by(RegisterPaymentStatus.id)
+        .order_by(func.count(RegisterPayment.id).desc())
+        .all()
+    )
+    status_breakdown = [
+        {
+            'label': row[0],
+            'count': row[1],
+            'amount': float(row[2] or 0)
+        }
+        for row in status_breakdown_rows
+    ]
+
+    event_breakdown_rows = (
+        db.session.query(
+            EventEntity.title_en,
+            EventEntity.title_th,
+            func.coalesce(func.sum(RegisterPayment.payment_amount), 0)
+        )
+        .join(RegisterPayment)
+        .filter(*filters)
+        .group_by(EventEntity.id)
+        .order_by(func.coalesce(func.sum(RegisterPayment.payment_amount), 0).desc())
+        .limit(5)
+        .all()
+    )
+    top_revenue_events = [
+        {
+            'title': title_en or title_th or 'Unnamed Event',
+            'amount': float(amount or 0)
+        }
+        for title_en, title_th, amount in event_breakdown_rows
+    ]
+
+    payment_statuses = RegisterPaymentStatus.query.order_by(RegisterPaymentStatus.name_en.asc()).all()
+    available_event_types = [row[0] for row in db.session.query(EventEntity.event_type).distinct().order_by(EventEntity.event_type).all() if row[0]]
+
+    average_ticket = float(total_amount / total_payments) if total_payments else 0
+
+    return render_template(
+        'continueing_edu/admin/reports/payments_report.html',
+        logged_in_admin=admin,
+        payments=payments,
+        pagination=pagination,
+        total_payments=total_payments,
+        total_amount=total_amount,
+        average_ticket=average_ticket,
+        status_breakdown=status_breakdown,
+        top_revenue_events=top_revenue_events,
+        payment_statuses=payment_statuses,
+        available_event_types=available_event_types,
+        selected_event_type=event_type,
+        selected_status_id=status_raw,
+        start_value=start_raw,
+        end_value=end_raw,
+    )
+
+
+@admin_bp.route('/reports/courses')
+def courses_report():
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 25, type=int)
+    event_type = (request.args.get('event_type') or 'course').strip()
+    category_raw = (request.args.get('category_id') or '').strip()
+    start_raw = request.args.get('start')
+    end_raw = request.args.get('end')
+
+    start_dt = _parse_date_arg(start_raw)
+    end_dt = _parse_date_arg(end_raw, end=True)
+
+    filters = []
+    if event_type:
+        filters.append(EventEntity.event_type == event_type)
+    if category_raw:
+        try:
+            filters.append(EventEntity.category_id == int(category_raw))
+        except ValueError:
+            category_raw = ''
+    if start_dt:
+        filters.append(EventEntity.created_at >= start_dt)
+    if end_dt:
+        filters.append(EventEntity.created_at < end_dt)
+
+    events_query = EventEntity.query.filter(*filters)
+
+    pagination = events_query.order_by(EventEntity.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    events = pagination.items
+
+    # Aggregate metrics for filtered events
+    reg_metrics_rows = (
+        db.session.query(
+            MemberRegistration.event_entity_id,
+            func.count(MemberRegistration.id),
+            func.count(func.distinct(MemberRegistration.member_id))
+        )
+        .join(EventEntity, MemberRegistration.event_entity_id == EventEntity.id)
+        .filter(*filters)
+        .group_by(MemberRegistration.event_entity_id)
+        .all()
+    )
+    reg_counts = {row[0]: {'registrations': row[1], 'unique_members': row[2]} for row in reg_metrics_rows}
+
+    payment_metrics_rows = (
+        db.session.query(
+            RegisterPayment.event_entity_id,
+            func.coalesce(func.sum(RegisterPayment.payment_amount), 0),
+            func.count(RegisterPayment.id)
+        )
+        .join(EventEntity, RegisterPayment.event_entity_id == EventEntity.id)
+        .filter(*filters)
+        .group_by(RegisterPayment.event_entity_id)
+        .all()
+    )
+    payment_totals = {row[0]: {'amount': float(row[1] or 0), 'payments': row[2]} for row in payment_metrics_rows}
+
+    events_data = []
+    for event in events:
+        reg_info = reg_counts.get(event.id, {'registrations': 0, 'unique_members': 0})
+        pay_info = payment_totals.get(event.id, {'amount': 0.0, 'payments': 0})
+        events_data.append({
+            'event': event,
+            'registrations': reg_info['registrations'],
+            'unique_members': reg_info['unique_members'],
+            'payments': pay_info['payments'],
+            'amount': pay_info['amount'],
+        })
+
+    total_events = events_query.count()
+    total_registrations = sum(item['registrations'] for item in events_data)
+    total_amount = sum(item['amount'] for item in events_data)
+
+    categories = EntityCategory.query.order_by(EntityCategory.name_en.asc()).all()
+    available_event_types = [row[0] for row in db.session.query(EventEntity.event_type).distinct().order_by(EventEntity.event_type).all() if row[0]]
+
+    return render_template(
+        'continueing_edu/admin/reports/courses_report.html',
+        logged_in_admin=admin,
+        events_data=events_data,
+        pagination=pagination,
+        total_events=total_events,
+        total_registrations=total_registrations,
+        total_amount=total_amount,
+        categories=categories,
+        available_event_types=available_event_types,
+        selected_event_type=event_type,
+        selected_category_id=category_raw,
+        start_value=start_raw,
+        end_value=end_raw,
+    )
+
+
+@admin_bp.route('/reports/members')
+def members_report():
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 50, type=int)
+    q = (request.args.get('q') or '').strip()
+    member_type_raw = (request.args.get('member_type_id') or '').strip()
+    verified = (request.args.get('is_verified') or '').strip()
+    start_raw = request.args.get('start')
+    end_raw = request.args.get('end')
+
+    start_dt = _parse_date_arg(start_raw)
+    end_dt = _parse_date_arg(end_raw, end=True)
+
+    members_query = Member.query
+    if q:
+        like = f"%{q}%"
+        members_query = members_query.filter(
+            (Member.username.ilike(like)) |
+            (Member.email.ilike(like)) |
+            (Member.full_name_en.ilike(like)) |
+            (Member.full_name_th.ilike(like))
+        )
+    if member_type_raw:
+        try:
+            members_query = members_query.filter(Member.member_type_id == int(member_type_raw))
+        except ValueError:
+            member_type_raw = ''
+    if verified in ('0', '1'):
+        members_query = members_query.filter(Member.is_verified == (verified == '1'))
+    if start_dt:
+        members_query = members_query.filter(Member.created_at >= start_dt)
+    if end_dt:
+        members_query = members_query.filter(Member.created_at < end_dt)
+
+    pagination = members_query.order_by(Member.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    members = pagination.items
+
+    member_ids = [m.id for m in members]
+
+    reg_counts = {}
+    reg_last = {}
+    payment_sums = {}
+    payment_last = {}
+
+    if member_ids:
+        reg_counts = dict(
+            db.session.query(
+                MemberRegistration.member_id,
+                func.count(MemberRegistration.id)
+            )
+            .filter(MemberRegistration.member_id.in_(member_ids))
+            .group_by(MemberRegistration.member_id)
+            .all()
+        )
+        reg_last = dict(
+            db.session.query(
+                MemberRegistration.member_id,
+                func.max(MemberRegistration.registration_date)
+            )
+            .filter(MemberRegistration.member_id.in_(member_ids))
+            .group_by(MemberRegistration.member_id)
+            .all()
+        )
+        payment_sums = dict(
+            db.session.query(
+                RegisterPayment.member_id,
+                func.coalesce(func.sum(RegisterPayment.payment_amount), 0)
+            )
+            .filter(RegisterPayment.member_id.in_(member_ids))
+            .group_by(RegisterPayment.member_id)
+            .all()
+        )
+        payment_last = dict(
+            db.session.query(
+                RegisterPayment.member_id,
+                func.max(RegisterPayment.payment_date)
+            )
+            .filter(RegisterPayment.member_id.in_(member_ids))
+            .group_by(RegisterPayment.member_id)
+            .all()
+        )
+
+    members_data = []
+    for member in members:
+        members_data.append({
+            'member': member,
+            'registrations': reg_counts.get(member.id, 0),
+            'last_registration': reg_last.get(member.id),
+            'payments_total': float(payment_sums.get(member.id, 0) or 0),
+            'last_payment': payment_last.get(member.id),
+        })
+
+    total_members = members_query.count()
+    total_registrations = sum(item['registrations'] for item in members_data)
+    total_payments = sum(item['payments_total'] for item in members_data)
+
+    member_types = MemberType.query.order_by(MemberType.name_en.asc()).all()
+
+    return render_template(
+        'continueing_edu/admin/reports/members_report.html',
+        logged_in_admin=admin,
+        members_data=members_data,
+        pagination=pagination,
+        total_members=total_members,
+        total_registrations=total_registrations,
+        total_payments=total_payments,
+        member_types=member_types,
+        q=q,
+        member_type_id=member_type_raw,
+        verified=verified,
+        start_value=start_raw,
+        end_value=end_raw,
+    )
+
+
+@admin_bp.route('/certificates')
+def certificates_index():
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+
+    events = EventEntity.query.order_by(EventEntity.created_at.desc()).all()
+    event_ids = [e.id for e in events]
+
+    reg_counts = {}
+    issued_counts = {}
+    pending_counts = {}
+    if event_ids:
+        reg_counts = dict(
+            db.session.query(
+                MemberRegistration.event_entity_id,
+                func.count(MemberRegistration.id)
+            )
+            .filter(MemberRegistration.event_entity_id.in_(event_ids))
+            .group_by(MemberRegistration.event_entity_id)
+            .all()
+        )
+        issued_counts = dict(
+            db.session.query(
+                MemberRegistration.event_entity_id,
+                func.count(MemberRegistration.id)
+            )
+            .filter(
+                MemberRegistration.event_entity_id.in_(event_ids),
+                MemberRegistration.certificate_issued_date.isnot(None)
+            )
+            .group_by(MemberRegistration.event_entity_id)
+            .all()
+        )
+        pending_counts = dict(
+            db.session.query(
+                MemberRegistration.event_entity_id,
+                func.count(MemberRegistration.id)
+            )
+            .join(MemberRegistration.certificate_status_ref)
+            .filter(
+                MemberRegistration.event_entity_id.in_(event_ids),
+                MemberCertificateStatus.name_en.ilike('%pending%')
+            )
+            .group_by(MemberRegistration.event_entity_id)
+            .all()
+        )
+
+    events_data = []
+    for event in events:
+        total_regs = reg_counts.get(event.id, 0)
+        issued = issued_counts.get(event.id, 0)
+        pending = pending_counts.get(event.id, 0)
+        events_data.append({
+            'event': event,
+            'total_regs': total_regs,
+            'issued': issued,
+            'pending': pending,
+        })
+
+    return render_template(
+        'continueing_edu/admin/certificates_index.html',
+        logged_in_admin=admin,
+        events_data=events_data,
+    )
+
+
+@admin_bp.route('/certificates/event/<int:event_id>')
+def certificates_event_detail(event_id):
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+
+    event = EventEntity.query.get_or_404(event_id)
+
+    registrations = (
+        MemberRegistration.query
+        .filter_by(event_entity_id=event_id)
+        .options(
+            joinedload(MemberRegistration.member),
+            joinedload(MemberRegistration.status_ref),
+            joinedload(MemberRegistration.certificate_status_ref),
+        )
+        .order_by(MemberRegistration.registration_date.desc())
+        .all()
+    )
+
+    member_ids = [reg.member_id for reg in registrations]
+    payments_map = {}
+    if member_ids:
+        payments = (
+            RegisterPayment.query
+            .filter(RegisterPayment.event_entity_id == event_id, RegisterPayment.member_id.in_(member_ids))
+            .order_by(RegisterPayment.payment_date.desc())
+            .all()
+        )
+        for payment in payments:
+            if payment.member_id not in payments_map:
+                payments_map[payment.member_id] = payment
+
+    return render_template(
+        'continueing_edu/admin/certificates_event.html',
+        logged_in_admin=admin,
+        event=event,
+        registrations=registrations,
+        payments_map=payments_map,
+    )
+
+
+@admin_bp.route('/certificates/registration/<int:reg_id>/pdf')
+def certificates_registration_pdf(reg_id):
+    admin = get_current_admin()
+    if not admin:
+        return redirect(url_for('continuing_edu_admin.login'))
+
+    reg = MemberRegistration.query.get_or_404(reg_id)
+    event_id = reg.event_entity_id
+    lang = request.args.get('lang', 'en')
+
+    if reg.certificate_url:
+        url = reg.certificate_presigned_url()
+        if url:
+            return redirect(url)
+        return redirect(reg.certificate_url)
+
+    if HTML is None:
+        flash('PDF rendering library is not available on this server.', 'danger')
+        return redirect(url_for('continuing_edu_admin.certificates_event_detail', event_id=event_id))
+
+    html = render_template(
+        'continueing_edu/certificate_pdf.html',
+        reg=reg,
+        event=reg.event_entity,
+        member=reg.member,
+        current_lang=lang,
+    )
+    pdf = HTML(string=html, base_url=request.base_url).write_pdf()
+    filename = f"certificate_{reg.member_id}_{event_id}.pdf"
+    return Response(pdf, mimetype='application/pdf', headers={'Content-Disposition': f'inline; filename="{filename}"'})
 
 @admin_bp.route('/events')
 def manage_events():

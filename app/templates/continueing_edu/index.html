@@ -474,11 +474,13 @@
                 class="container is-fluid is-flex is-flex-direction-column is-flex-direction-row-desktop is-justify-content-space-between is-align-items-center">
                 <div class="navbar-brand">
                     <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}" class="navbar-item">
-                        <img src="https://placehold.co/100x40/4338CA/FFFFFF?text=LOGO" alt="University Logo"
-                            class="university-logo">
+                        <figure class="image" style="max-height:48px;">
+                            <img src="{{ url_for('static', filename='img/LOGO_MT-Mahidol.png') }}"
+                                alt="Mahidol Faculty of Medical Technology Logo" style="max-height:48px; width:auto;">
+                        </figure>
                     </a>
                     <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}"
-                        class="navbar-item title is-4 has-text-indigo-700 rounded-md">{{ texts.university_name }}</a>
+                        class="navbar-item title is-4 has-text-indigo-700 rounded-md"></a>
                     <div class="navbar-burger burger" data-target="navbarMenu">
                         <span></span>
                         <span></span>
@@ -578,12 +580,61 @@
     {% endwith %}
 
     <div style="height:90px;"></div> <!-- Spacer for fixed navbar -->
-    <section class="hero hero-section is-large has-text-centered rounded-b-lg shadow-lg">
+    <section id="hero_section" class="hero hero-section is-large ">
         <div class="hero-background-slider" id="hero-background-slider"></div>
         <div class="hero-body container" data-aos="fade-up">
-            <h1 class="title is-1 has-text-white mb-4 rounded-md" style="text-shadow:0 2px 8px #000a;">{{
+            <div class="columns is-vcentered">
+                <div class="column is-7 has-text-left">
+                    <h1 class="title is-2 has-text-white has-text-weight-semibold mb-3" id="hero-feature-title">{{
+                        hero_slides[0].title | default(texts.hero_title, true) }}</h1>
+                    <p class="subtitle is-5 has-text-white has-text-weight-normal mb-5" id="hero-feature-desc">{{
+                        hero_slides[0].subtitle | default(texts.hero_subtitle, true) }}</p>
+
+                </div>
+                <div class="column is-5">
+                    <div class="hero-feature-panel"
+                        style="padding:2.5rem; background:rgba(17,24,39,0.55); border-radius:24px; backdrop-filter: blur(6px); color:#fff;">
+                        <div class="is-flex is-align-items-center mb-3 is-flex-wrap">
+                            <span class="tag is-warning is-light mr-2 mb-2" id="hero-feature-type">{{
+                                hero_slides[0].event_type_label | default('', true) }}</span>
+                            <span class="is-size-6 has-text-white-ter mb-2" id="hero-feature-schedule">{{
+                                hero_slides[0].schedule_label | default('', true) }}</span>
+                        </div>
+                        <div class="is-size-6 has-text-white" id="hero-feature-speakers"
+                            style="{{ '' if hero_slides[0].speakers else 'display:none;' }}">
+                            <span class="has-text-weight-semibold" style="opacity:0.8;">{{ texts.hero_speakers_label
+                                }}:</span>
+                            {{ hero_slides[0].speakers | default('', true) }}
+                        </div>
+                        <div class="is-size-6 has-text-white mt-3" id="hero-feature-venue"
+                            style="{{ '' if hero_slides[0].venue else 'display:none;' }}">
+                            <span class="has-text-weight-semibold" style="opacity:0.8;">Venue:</span>
+                            {{ hero_slides[0].venue | default('', true) }}
+                        </div>
+                        <div class="is-size-6 has-text-white mt-3" id="hero-feature-price"
+                            style="{{ '' if hero_slides[0].price else 'display:none;' }}">
+                            <span class="has-text-weight-semibold" style="opacity:0.8;">Price:</span>
+                            {{ hero_slides[0].price | default('', true) }}
+                        </div>
+
+                        <div class="buttons">
+                            <a class="button is-warning is-medium is-rounded" id="hero-feature-link"
+                                href="{{ hero_slides[0].cta_url | default(url_for('continuing_edu.index', lang=current_lang)) }}">{{
+                                hero_slides[0].cta_label | default('View Event', true) }}</a>
+
+                        </div>
+
+
+                    </div>
+                </div>
+            </div>
+    </section>
+
+    <section id="hero_title" class="hero is-medium is-link">
+        <div class="hero-body container" data-aos="fade-up">
+            <h1 class="title is-1 has-text-white mb-4 " style="text-shadow:0 2px 8px #000a;">{{
                 texts.hero_title }}</h1>
-            <p class="subtitle is-4 has-text-white mb-8 max-w-3xl mx-auto rounded-md"
+            <p class="subtitle is-4 has-text-white mb-8 max-w-3xl mx-auto rounded-md has-text-centered"
                 style="text-shadow:0 1px 6px #0007;">
                 {{ texts.hero_subtitle }}
             </p>
@@ -599,6 +650,7 @@
                     {{ texts.discover_webinars_btn }}
                 </a>
             </div>
+
         </div>
     </section>
 
@@ -952,22 +1004,70 @@
 
             // Hero Background Slider Logic
             const heroSlider = document.getElementById('hero-background-slider');
-            const images = [
-                'https://placehold.co/1920x1080/6366f1/FFFFFF?text=University+Campus+1',
-                'https://placehold.co/1920x1080/8b5cf6/FFFFFF?text=University+Campus+2',
-                'https://placehold.co/1920x1080/4338ca/FFFFFF?text=University+Campus+3'
-            ];
-            let currentImageIndex = 0;
+            const heroSlides = {{ hero_slides| tojson | safe
+        }};
+        const fallbackImages = [
+            'https://placehold.co/1920x1080/6366f1/FFFFFF?text=University+Campus+1',
+            'https://placehold.co/1920x1080/8b5cf6/FFFFFF?text=University+Campus+2',
+            'https://placehold.co/1920x1080/4338ca/FFFFFF?text=University+Campus+3'
+        ];
 
-            function changeHeroBackground() {
-                heroSlider.style.backgroundImage = `url('${images[currentImageIndex]}')`;
-                currentImageIndex = (currentImageIndex + 1) % images.length;
+        let images = [];
+        if (heroSlides.length) {
+            images = heroSlides.map(slide => slide.image).filter(Boolean);
+        }
+        if (!images.length) {
+            images = fallbackImages.slice();
+        }
+
+        const heroFeatureTitle = document.getElementById('hero-feature-title');
+        const heroFeatureDesc = document.getElementById('hero-feature-desc');
+        const heroFeatureLink = document.getElementById('hero-feature-link');
+        const heroFeatureType = document.getElementById('hero-feature-type');
+        const heroFeatureSchedule = document.getElementById('hero-feature-schedule');
+        const heroFeatureSpeakers = document.getElementById('hero-feature-speakers');
+
+        let currentImageIndex = 0;
+
+        function applyHeroSlide(index) {
+            if (!heroSlider || !images.length) {
+                return;
             }
+            heroSlider.style.backgroundImage = `url('${images[index]}')`;
+            if (heroSlides.length) {
+                const slide = heroSlides[index % heroSlides.length];
+                if (heroFeatureTitle && slide.title) {
+                    heroFeatureTitle.textContent = slide.title;
+                }
+                if (heroFeatureDesc) {
+                    heroFeatureDesc.textContent = slide.subtitle || '';
+                }
+                if (heroFeatureLink && slide.cta_url) {
+                    heroFeatureLink.href = slide.cta_url;
+                    if (slide.cta_label) {
+                        heroFeatureLink.textContent = slide.cta_label;
+                    }
+                }
+                if (heroFeatureType) {
+                    heroFeatureType.textContent = slide.event_type_label || '';
+                }
+                if (heroFeatureSchedule) {
+                    heroFeatureSchedule.textContent = slide.schedule_label || '';
+                }
+                if (heroFeatureSpeakers) {
+                    heroFeatureSpeakers.textContent = slide.speakers || '';
+                    heroFeatureSpeakers.style.display = slide.speakers ? '' : 'none';
+                }
+            }
+        }
 
-            // Initial background set
-            changeHeroBackground();
-            // Change background every 5 seconds
-            setInterval(changeHeroBackground, 5000);
+        applyHeroSlide(currentImageIndex);
+        if (images.length > 1) {
+            setInterval(() => {
+                currentImageIndex = (currentImageIndex + 1) % images.length;
+                applyHeroSlide(currentImageIndex);
+            }, 5000);
+        }
         });
     </script>
 
