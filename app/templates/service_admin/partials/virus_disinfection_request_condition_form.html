@@ -62,6 +62,33 @@
     </div>
 </div>
 <script>
+    function toggleTable() {
+        $('table tbody tr').each(function () {
+            const row = $(this);
+            const checkbox = row.find('input[type="checkbox"]');
+            const textInputs = row.find('input[type="text"]');
+
+            if (checkbox.is(':checked')) {
+                textInputs.prop('disabled', false).attr('required', true);
+            } else {
+                textInputs.prop('disabled', true).val('').removeAttr('required');
+            }
+        });
+
+        $('table tbody tr input[type="checkbox"]').on('change', function () {
+            const row = $(this).closest('tr');
+            const checked = $(this).is(':checked');
+
+            row.find('input[type="text"]').each(function () {
+                if (checked) {
+                    $(this).prop('disabled', false).attr('required', true);
+                } else {
+                    $(this).prop('disabled', true).val('').removeAttr('required');
+                }
+            });
+        });
+    }
+
     function toggleSurfaceTypeInput(subform) {
         const surfaceTypeField = subform.find('input[name$="surface_type"]');
         const surfaceTypeOtherField = subform.find('input[name$="surface_type_other"]');
@@ -104,6 +131,7 @@
 
     $('.subform-card').each(function () {
         const subform = $(this);
+        toggleTable();
         toggleSurfaceTypeInput(subform);
         showSurfaceTypeOtherInput(subform);
 

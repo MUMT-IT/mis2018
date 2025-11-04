@@ -44,8 +44,7 @@
                                 </label>
                                 <div class="control">
                                     {{ form.active_substance(class='textarea',
-                                        placeholder='เช่น Formaldyhyde 37% w/w, Ethyl Alcohol 50% w/w')
-                                            }}
+                                        placeholder='เช่น Formaldyhyde 37% w/w, Ethyl Alcohol 50% w/w') }}
                                 </div>
                             </div>
                             <div class="field">
@@ -304,6 +303,33 @@
         });
     </script>
     <script>
+        function toggleTable() {
+            $('table tbody tr').each(function () {
+                const row = $(this);
+                const checkbox = row.find('input[type="checkbox"]');
+                const textInputs = row.find('input[type="text"]');
+
+                if (checkbox.is(':checked')) {
+                    textInputs.prop('disabled', false).attr('required', true);
+                } else {
+                    textInputs.prop('disabled', true).val('').removeAttr('required');
+                }
+            });
+
+            $('table tbody tr input[type="checkbox"]').on('change', function () {
+                const row = $(this).closest('tr');
+                const checked = $(this).is(':checked');
+
+                row.find('input[type="text"]').each(function () {
+                    if (checked) {
+                        $(this).prop('disabled', false).attr('required', true);
+                    } else {
+                        $(this).prop('disabled', true).val('').removeAttr('required');
+                    }
+                });
+            });
+        }
+
         function showSurfaceTypeOtherInput(subform) {
             const surfaceTypeField = subform.find('input[type="radio"][name$="surface_type"]:checked').val();
             const surfaceTypeOtherField = subform.find('input[name$="surface_type_other"]').closest('.field');
@@ -318,6 +344,7 @@
 
         $('.subform-card').each(function () {
             const subform = $(this);
+            toggleTable();
             showSurfaceTypeOtherInput(subform);
             subform.find('input[type="radio"][name$="surface_type"]').change(function () {
                 showSurfaceTypeOtherInput(subform);
