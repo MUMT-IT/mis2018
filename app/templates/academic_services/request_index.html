@@ -44,7 +44,6 @@
                 <div class="column is-11">
                     <h1 class="title has-text-centered">รายการคำขอรับบริการ</h1>
                 </div>
-
                 <div class="buttons">
                     <a id="add_evt_btn" class="button is-info is-rounded"
                        href="{{ url_for('academic_services.lab_index', menu='new') }}">
@@ -240,16 +239,14 @@
                 ]
             });
 
-            function applyFilter(statusIds) {
+            function applyFilter(status_id) {
                 $.fn.dataTable.ext.search = [];
-
-                if (statusIds && statusIds.length) {
+                if (status_id && status_id.length) {
                     $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
                         const row = table.row(dataIndex).data();
-                        return row && statusIds.includes(row.status_id);
+                        return row && status_id.includes(row.status_id);
                     });
                 }
-
                 table.draw();
             }
 
@@ -261,8 +258,8 @@
             $(document).on('click', '.filter-reset', function () {
                 applyFilter(null);
             });
-        });
-        $('#requests tbody').on('click', '.btn-content-info', function () {
+
+            $('#requests tbody').on('click', '.btn-content-info', function () {
             Swal.fire({
                 title: 'คำขอใบเสนอราคาของคุณถูกส่งเรียบร้อยแล้ว',
                 icon: 'info',
@@ -272,6 +269,7 @@
                     htmlContainer: 'swal-text-left'
                 }
             })
+        });
         });
         vm = new Vue({
             el: '#app',
