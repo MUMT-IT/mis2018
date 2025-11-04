@@ -1209,28 +1209,67 @@ def create_customer_detail(request_id):
 @login_required
 def request_index():
     menu = request.args.get('menu')
-    new_request_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
-                                                                    ServiceRequest.status.has(
-                                                                        or_(ServiceStatus.status_id == 1,
-                                                                            ServiceStatus.status_id == 2)))])
-    quotation_pending_approval_count = len(
-        [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
-                                                ServiceRequest.status.has(ServiceStatus.status_id == 5))])
-    waiting_sample_count = len(
-        [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
-                                                ServiceRequest.status.has(or_(ServiceStatus.status_id == 8,
-                                                                              ServiceStatus.status_id == 9)))])
-    testing_count = len(
-        [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
-                                                ServiceRequest.status.has(ServiceStatus.status_id == 11))])
-    unpaid_count = len(
-        [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
-                                                ServiceRequest.status.has(ServiceStatus.status_id == 19))])
-    return render_template('academic_services/request_index.html', menu=menu,
-                           new_request_count=new_request_count,
-                           quotation_pending_approval_count=quotation_pending_approval_count,
-                           waiting_sample_count=waiting_sample_count, testing_count=testing_count,
-                           unpaid_count=unpaid_count)
+    status_groups = {
+        'send_request': {
+            'id': [1, 2],
+            'name': 'ส่งคำขอรับบริการ',
+            'color': 'is-info'
+        },
+        'wait_quotation': {
+            'id': [3, 4],
+            'name': 'รอเจ้าหน้าที่จัดทำใบเสนอราคา',
+            'color': 'is-warning'
+        },
+        'confirm_quotation': {
+            'id': [5, 6, 8],
+            'name': 'ยืนยันใบเสนอราคาและกำหนดส่งตัวอย่าง',
+            'color': 'is-success'
+        },
+        'send_sample': {
+            'id': [9],
+            'name': 'ส่งตัวอย่างตามวันที่กำหนด',
+            'color': 'is-link'
+        },
+        'wait_test': {
+            'id': [10],
+            'name': 'รอตรวจวิเคราะห์',
+            'color': 'is-warning'
+        },
+        'wait_report': {
+            'id': [11],
+            'name': 'รอผลตรวจใบรายงานผลฉบับร่าง',
+            'color': 'is-warning'
+        },
+        'confirm_report': {
+            'id': [12],
+            'name': 'ตรวจสอบและยืนยันใบรายงานผฉบับร่าง',
+            'color': 'is-info'
+        },
+        'wait_invoice': {
+            'id': [13, 16, 17, 18, 19],
+            'name': 'รอรับใบแจ้งหนี้',
+            'color': 'is-warning'
+        },
+        'payment': {
+            'id': [20, 21],
+            'name': 'ชำระเงินและอัปโหลดหลักฐาน',
+            'color': 'is-danger'
+        },
+        'download_report': {
+            'id': [22],
+            'name': 'ดาวโหดใบรายงานผลฉบับจริง',
+            'color': 'is-success'
+        }
+    }
+
+    for key, group in status_groups.items():
+        service_request = ServiceRequest.query.filter(
+            ServiceRequest.customer_id == current_user.id,
+            ServiceRequest.status.has(ServiceStatus.status_id.in_(group['id']))
+        ).count()
+
+        status_groups[key]['count'] = service_request
+    return render_template('academic_services/request_index.html', menu=menu, status_groups=status_groups)
 
 
 @academic_services.route('/api/request/index')
