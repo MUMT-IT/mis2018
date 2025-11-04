@@ -256,36 +256,76 @@ def request_index():
         else:
             admin = True
         sub_labs.append(a.sub_lab.code)
-    quotation_request_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=2),
-                                                                          or_(ServiceRequest.admin.has(
-                                                                              id=current_user.id),
-                                                                              ServiceRequest.sub_lab.has(
-                                                                                  ServiceSubLab.admins.any(
-                                                                                      ServiceAdmin.admin_id == current_user.id))))])
-    quotation_pending_approval_count = len(
-        [r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=5),
-                                                or_(ServiceRequest.admin.has(
-                                                    id=current_user.id),
-                                                    ServiceRequest.sub_lab.has(
-                                                        ServiceSubLab.admins.any(
-                                                            ServiceAdmin.admin_id == current_user.id))))])
-    waiting_sample_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=9),
-                                                                       or_(ServiceRequest.admin.has(
-                                                                           id=current_user.id),
-                                                                           ServiceRequest.sub_lab.has(
-                                                                               ServiceSubLab.admins.any(
-                                                                                   ServiceAdmin.admin_id == current_user.id))))])
-    testing_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=11),
-                                                                or_(ServiceRequest.admin.has(
-                                                                    id=current_user.id),
-                                                                    ServiceRequest.sub_lab.has(
-                                                                        ServiceSubLab.admins.any(
-                                                                            ServiceAdmin.admin_id == current_user.id))))])
-    return render_template('service_admin/request_index.html', menu=menu,
-                           quotation_request_count=quotation_request_count,
-                           quotation_pending_approval_count=quotation_pending_approval_count,
-                           waiting_sample_count=waiting_sample_count,
-                           testing_count=testing_count, admin=admin, supervisor=supervisor, assistant=assistant)
+
+    status_groups = {
+        'check_request': {
+            'id': [2],
+            'name': 'ตรวจสอบคำขอที่ลูกค้าส่งเข้ามา',
+            'color': 'is-info'
+        },
+        'draft_quotation': {
+            'id': [3],
+            'name': 'ร่างใบเสนอราคา',
+            'color': 'is-light'
+        },
+        'wait_approved_quotation': {
+            'id': [4],
+            'name': 'รอหัวหน้าอนุมัติใบเสนอราคา',
+            'color': 'is-warning'
+        },
+        'notify_quotation': {
+            'id': [5, 6, 8],
+            'name': 'แจ้งใบเสนอราคาให้ลูกค้าพร้อมรอการยืนยัน',
+            'color': 'is-link'
+        },
+        'sample_received': {
+            'id': [9],
+            'name': 'รับตัวอย่างเข้าสู่ระบบ และเตรียมการตรวจวิเคราะห์',
+            'color': 'is-success'
+        },
+        'wait_test': {
+            'id': [10],
+            'name': 'กำลังดำเนินการตรวจวิเคราะห์',
+            'color': 'is-warning'
+        },
+        'create_report': {
+            'id': [11],
+            'name': 'จัดทำใบรายงานผลฉบับร่าง',
+            'color': 'is-light'
+        },
+        'send_report': {
+            'id': [12],
+            'name': 'ส่งรายงานให้ลูกค้าตรวจทาน',
+            'color': 'is-success'
+        },
+        'create_invoice': {
+            'id': [13, 16, 17, 18, 19, 20],
+            'name': 'ออกใบแจ้งหนี้หลังลูกค้ายืนยันใบรายงานผลฉบับร่าง',
+            'color': 'is-info'
+        },
+        'check_payment': {
+            'id': [21],
+            'name': 'ตรวจสอบหลักฐานการชำระเงิน',
+            'color': 'is-warning'
+        },
+        'confirm_payment': {
+            'id': [22],
+            'name': 'ยืนยันการชำระเงิน และเผยแพร่ใบรายงานผลฉบับจริงให้ลูกค้า',
+            'color': 'is-success'
+        }
+    }
+
+    for key, group in status_groups.items():
+        query = ServiceRequest.query.filter(
+            ServiceRequest.status.has(ServiceStatus.status_id.in_(group['id'])
+        ), or_(ServiceRequest.admin.has(id=current_user.id),
+               ServiceRequest.sub_lab.has(ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+                                          )
+               )
+        ).count()
+        status_groups[key]['count'] = query
+    return render_template('service_admin/request_index.html', menu=menu, admin=admin,
+                           supervisor=supervisor, assistant=assistant, status_groups=status_groups)
 
 
 @service_admin.route('/api/request/index')
