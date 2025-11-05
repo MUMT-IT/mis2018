@@ -1,4 +1,4 @@
-{% extends "academic_services/service_base.html" %}
+{% extends "base.html" %}
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
@@ -19,7 +19,7 @@
     </style>
 {% endblock %}
 {% block page_content %}
-    {% include "academic_services/customer_nav.html" %}
+    {% include "service_admin/admin_nav.html" %}
     {% include 'messages.html' %}
     <section class="section">
         <div class="container">
