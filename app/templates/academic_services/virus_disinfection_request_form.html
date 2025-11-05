@@ -243,36 +243,30 @@
             moment.locale('th');
             $('input[name="mfg"]').daterangepicker({
                 singleDatePicker: true,
-                timePicker: true,
-                timePickerIncrement: 15,
-                timePicker24Hour: true,
                 autoUpdateInput: false,
                 locale:
                     {
-                        format: 'YYYY-MM-DD HH:mm:ss',
+                        format: 'YYYY-MM-DD',
                         cancelLabel: 'Clear'
                     }
             });
             $('input[name="mfg"]').on('apply.daterangepicker', function (ev, picker) {
-                $(this).val(picker.startDate.format('YYYY-MM-DD HH:mm:ss'));
+                $(this).val(picker.startDate.format('YYYY-MM-DD'));
             });
             $('input[name="mfg"]').on('cancel.daterangepicker', function () {
                 $(this).val('');
             });
             $('input[name="exp"]').daterangepicker({
                 singleDatePicker: true,
-                timePicker: true,
-                timePickerIncrement: 15,
-                timePicker24Hour: true,
                 autoUpdateInput: false,
                 locale:
                     {
-                        format: 'YYYY-MM-DD HH:mm:ss',
+                        format: 'YYYY-MM-DD',
                         cancelLabel: 'Clear'
                     }
             });
             $('input[name="exp"]').on('apply.daterangepicker', function (ev, picker) {
-                $(this).val(picker.startDate.format('YYYY-MM-DD HH:mm:ss'));
+                $(this).val(picker.startDate.format('YYYY-MM-DD'));
             });
             $('input[name="exp"]').on('cancel.daterangepicker', function () {
                 $(this).val('');
