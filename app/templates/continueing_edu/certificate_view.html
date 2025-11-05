@@ -1,1 +1,37 @@
-Certificate
+{% extends 'continueing_edu/base.html' %}
+{% set TH = (current_lang == 'th') %}
+{% block title %}{{ 'ใบประกาศนียบัตร' if TH else 'Certificate' }}{% endblock %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="level">
+            <div class="level-left">
+                <div>
+                    <h1 class="title is-3">{{ 'ใบประกาศนียบัตร' if TH else 'Certificate' }}</h1>
+                    <p class="subtitle is-5">
+                        {{ (event.certificate_name_th or event.title_th) if TH else (event.certificate_name_en or event.title_en) }}
+                    </p>
+                </div>
+            </div>
+            <div class="level-right">
+                <div class="buttons">
+                    <a class="button is-link" target="_blank"
+                       href="{{ url_for('continuing_edu.certificate_pdf', reg_id=reg.id, lang=current_lang) }}">
+                        <span class="icon"><i class="fa-solid fa-download"></i></span>
+                        <span>{{ 'ดาวน์โหลด PDF' if TH else 'Download PDF' }}</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="box">
+            <iframe
+                src="{{ url_for('continuing_edu.certificate_pdf', reg_id=reg.id, lang=current_lang) }}"
+                title="Certificate"
+                width="100%"
+                style="min-height: 720px; border: 0;"
+            ></iframe>
+        </div>
+    </div>
+</section>
+{% endblock %}

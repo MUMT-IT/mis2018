@@ -42,7 +42,12 @@ try:
 except Exception:  # pragma: no cover - optional dependency
     HTML = None
 from app.continuing_edu.status_utils import get_registration_status, get_certificate_status
-from app.continuing_edu.certificate_utils import issue_certificate as issue_certificate_util, reset_certificate as reset_certificate_util, can_issue_certificate
+from app.continuing_edu.certificate_utils import (
+    issue_certificate as issue_certificate_util,
+    reset_certificate as reset_certificate_util,
+    can_issue_certificate,
+    build_certificate_context,
+)
 
 admin_bp = Blueprint('continuing_edu_admin', __name__, url_prefix='/continuing_edu/admin')
 
@@ -1033,14 +1038,9 @@ def certificates_registration_pdf(reg_id):
         flash('PDF rendering library is not available on this server.', 'danger')
         return redirect(url_for('continuing_edu_admin.certificates_event_detail', event_id=event_id))
 
-    html = render_template(
-        'continueing_edu/certificate_pdf.html',
-        reg=reg,
-        event=reg.event_entity,
-        member=reg.member,
-        current_lang=lang,
-    )
-    pdf = HTML(string=html, base_url=request.base_url).write_pdf()
+    context = build_certificate_context(reg, lang=lang, base_url=request.url_root)
+    html = render_template('continueing_edu/certificate_pdf.html', **context)
+    pdf = HTML(string=html, base_url=request.url_root).write_pdf()
     filename = f"certificate_{reg.member_id}_{event_id}.pdf"
     return Response(pdf, mimetype='application/pdf', headers={'Content-Disposition': f'inline; filename="{filename}"'})
 
@@ -2665,7 +2665,7 @@ def update_registration_certificate(event_id, reg_id):
         status = get_registration_status('completed', 'completed', 'สำเร็จแล้ว', 'is-success')
         reg.status_id = status.id
         reg.assessment_passed = True
-        issue_certificate_util(reg, lang=lang, base_url=request.base_url)
+        issue_certificate_util(reg, lang=lang, base_url=request.url_root)
         flash('Certificate issued.', 'success')
         return redirect(url_for('continuing_edu_admin.edit_event', event_id=event_id, tab='certificates'))
 

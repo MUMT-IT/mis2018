@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 from sqlalchemy import func
 from sqlalchemy.ext.associationproxy import association_proxy
-from wtforms.fields.core import RadioField
+from wtforms.fields import RadioField
 
 from app.main import db
 from app.staff.models import StaffAccount

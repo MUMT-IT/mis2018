@@ -3,9 +3,11 @@ from __future__ import annotations
 import os
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
+from urllib.parse import urljoin
 
-from flask import render_template
+from flask import render_template, current_app
 
 from .models import (
     db,
@@ -18,6 +20,38 @@ try:
     from weasyprint import HTML  # type: ignore
 except Exception:  # pragma: no cover - optional dependency
     HTML = None
+
+
+def _resolve_static_base(base_url: Optional[str]) -> str:
+    """
+    Resolve an absolute path that WeasyPrint can use to fetch static assets.
+    When running inside a request we prefer HTTP(S) URLs; otherwise fall back to file:// paths.
+    """
+    try:
+        static_url_path = (current_app.static_url_path or '/static').lstrip('/')
+        static_folder = current_app.static_folder
+    except RuntimeError:
+        static_url_path = 'static'
+        static_folder = os.path.join(os.getcwd(), 'app', 'static')
+
+    if base_url:
+        normalized = base_url if base_url.endswith('/') else base_url + '/'
+        if normalized.startswith(('http://', 'https://', 'file://')):
+            return urljoin(normalized, f"{static_url_path.rstrip('/')}/")
+    if static_folder:
+        return Path(static_folder).resolve().as_uri().rstrip('/') + '/'
+    return '/static/'
+
+
+def build_certificate_context(reg: MemberRegistration, lang: str = 'en', base_url: Optional[str] = None) -> dict:
+    """Prepare template context for certificate rendering with absolute static asset paths."""
+    return {
+        'reg': reg,
+        'event': reg.event_entity,
+        'member': reg.member,
+        'current_lang': lang,
+        'certificate_static_base': _resolve_static_base(base_url),
+    }
 
 
 def ensure_certificate_status(name_en: str, name_th: Optional[str] = None, css_badge: Optional[str] = None) -> MemberCertificateStatus:
@@ -44,16 +78,10 @@ def issue_certificate(reg: MemberRegistration, lang: str = 'en', base_url: Optio
     reg.certificate_issued_date = datetime.now(timezone.utc)
 
     if HTML is not None:
-        event = reg.event_entity
-        member = reg.member
-        html = render_template(
-            'continueing_edu/certificate_pdf.html',
-            reg=reg,
-            event=event,
-            member=member,
-            current_lang=lang,
-        )
-        pdf_bytes = HTML(string=html, base_url=base_url).write_pdf()
+        context = build_certificate_context(reg, lang=lang, base_url=base_url)
+        html = render_template('continueing_edu/certificate_pdf.html', **context)
+        pdf_base_url = base_url or context['certificate_static_base']
+        pdf_bytes = HTML(string=html, base_url=pdf_base_url).write_pdf()
         fname = f"cert_{reg.member_id}_{reg.event_entity_id}_{int(time.time())}.pdf"
         storage = os.getenv('CE_CERT_STORAGE', 'disk').lower()
         _delete_certificate_file(reg)

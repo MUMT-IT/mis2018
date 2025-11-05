@@ -97,7 +97,7 @@ def update_registration(event_id, reg_id):
         reg.completed_at = reg.completed_at or reg.started_at or reg.registration_date
         reg.status_id = get_registration_status('completed', 'completed', 'สำเร็จแล้ว', 'is-success').id
         reg.assessment_passed = True
-        issue_certificate_util(reg, lang=request.args.get('lang', 'en'), base_url=request.base_url)
+        issue_certificate_util(reg, lang=request.args.get('lang', 'en'), base_url=request.url_root)
         flash('Certificate issued.', 'success')
     elif action == 'reset_certificate':
         reset_certificate_util(reg)
@@ -113,4 +113,3 @@ def update_registration(event_id, reg_id):
         db.session.commit()
         flash('Statuses updated.', 'success')
     return redirect(url_for('.event', event_id=event_id))
-

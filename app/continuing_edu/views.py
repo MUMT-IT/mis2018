@@ -44,7 +44,7 @@ from textwrap import shorten
 
 from . import translations as tr  # Import translations from local package
 from .status_utils import get_registration_status, get_certificate_status
-from .certificate_utils import issue_certificate, can_issue_certificate
+from .certificate_utils import issue_certificate, can_issue_certificate, build_certificate_context
 
 current_lang = 'en'  # This should be dynamically set based on user preference or request
 
@@ -1272,6 +1272,44 @@ def payments_list():
                            all_payment_statuses=all_payment_statuses)
 
 
+@ce_bp.route('/dashboard')
+def member_dashboard():
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+
+    regs = (MemberRegistration.query
+            .filter_by(member_id=user.id)
+            .order_by(MemberRegistration.registration_date.desc())
+            .all())
+    in_progress_regs = [r for r in regs if r.started_at and not r.completed_at]
+    completed_regs = [r for r in regs if r.completed_at]
+
+    payments = (RegisterPayment.query
+                .filter_by(member_id=user.id)
+                .order_by(RegisterPayment.id.desc())
+                .all())
+    latest_payment_by_event = {}
+    for payment in payments:
+        if payment.event_entity_id not in latest_payment_by_event:
+            latest_payment_by_event[payment.event_entity_id] = payment
+    payment_gateway_url = os.environ.get('PAYMENT_GATEWAY_URL')
+
+    return render_template(
+        'continueing_edu/dashboard.html',
+        texts=texts,
+        current_lang=lang,
+        in_progress_regs=in_progress_regs,
+        completed_regs=completed_regs,
+        payments=payments,
+        payment_map=latest_payment_by_event,
+        payment_gateway_url=payment_gateway_url,
+    )
+
+
 @ce_bp.route('/my-registrations')
 def my_registrations():
     lang = request.args.get('lang', 'en')
@@ -1492,7 +1530,7 @@ def view_receipt_pdf(receipt_id):
         flash('PDF rendering library is not available on server.', 'danger')
         return redirect(url_for('continuing_edu.view_receipt', receipt_id=receipt_id, lang=lang))
     html = render_template('continueing_edu/receipt_pdf.html', receipt=rc, payment=pay, member=user, texts=texts, current_lang=lang)
-    pdf = HTML(string=html, base_url=request.base_url).write_pdf()
+    pdf = HTML(string=html, base_url=request.url_root).write_pdf()
 
     filename = f"receipt_{rc.receipt_number}.pdf"
     return Response(pdf, mimetype='application/pdf', headers={'Content-Disposition': f'inline; filename="{filename}"'})
@@ -1552,7 +1590,7 @@ def complete_progress(event_id):
         reg.certificate_status_id = pending.id
         approved = can_issue_certificate(reg)
         if approved:
-            issue_certificate(reg, lang=lang, base_url=request.base_url)
+            issue_certificate(reg, lang=lang, base_url=request.url_root)
             flash(texts.get('certificate_issued', 'Certificate issued.'), 'success')
         else:
             db.session.add(reg)
@@ -1585,8 +1623,9 @@ def certificate_pdf(reg_id):
         flash('PDF rendering library is not available on server.', 'danger')
         return redirect(url_for('continuing_edu.my_registrations', lang=lang))
     # Generate on the fly
-    html = render_template('continueing_edu/certificate_pdf.html', reg=reg, event=reg.event_entity, member=reg.member, current_lang=lang)
-    pdf = HTML(string=html, base_url=request.base_url).write_pdf()
+    context = build_certificate_context(reg, lang=lang, base_url=request.url_root)
+    html = render_template('continueing_edu/certificate_pdf.html', **context)
+    pdf = HTML(string=html, base_url=request.url_root).write_pdf()
    
     filename = f"certificate_{reg.member_id}_{reg.event_entity_id}.pdf"
     return Response(pdf, mimetype='application/pdf', headers={'Content-Disposition': f'inline; filename="{filename}"'})

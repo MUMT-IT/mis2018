@@ -1,38 +1,166 @@
-<html>
-
+<html lang="{{ current_lang }}">
 <head>
-          <meta charset="UTF-8">
-          <style>
-                    body {
-                              font-family: Arial, sans-serif;
-                              text-align: center;
-                              padding: 60px
-                    }
+    <meta charset="UTF-8">
+    <title>Certificate</title>
+    <style>
+        {% set static_base = certificate_static_base.rstrip('/') if certificate_static_base else url_for('static', filename='').rstrip('/') %}
 
-                    .title {
-                              font-size: 26pt;
-                              font-weight: 700
-                    }
+        @page {
+            size: A4 landscape;
+            margin: 0;
+        }
 
-                    .name {
-                              font-size: 20pt;
-                              margin: 8px 0
-                    }
+        @font-face {
+            font-family: 'THSarabunNew';
+            src: url('{{ static_base }}/fonts/THSarabunNew.ttf') format('truetype');
+        }
 
-                    .meta {
-                              color: #666
-                    }
-          </style>
+        @font-face {
+            font-family: 'THSarabunNew';
+            font-weight: 700;
+            src: url('{{ static_base }}/fonts/THSarabunNewBold.ttf') format('truetype');
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            background-image: url('{{ static_base }}/img/continuing_edu_certificate_bg.jpg');
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: cover;
+            font-family: 'THSarabunNew', Arial, sans-serif;
+            color: #0b132b;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .certificate {
+            width: 88%;
+            max-width: 1000px;
+            padding: 50px 60px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .certificate-title {
+            font-size: 46pt;
+            font-weight: 700;
+            margin-bottom: 10pt;
+        }
+
+        .certificate-subtitle {
+            font-size: 22pt;
+            margin-bottom: 40pt;
+        }
+
+        .recipient-name {
+            font-size: 36pt;
+            font-weight: 700;
+            text-transform: none;
+            margin-bottom: 16pt;
+        }
+
+        .certificate-body {
+            font-size: 22pt;
+            line-height: 1.4;
+            margin-bottom: 32pt;
+        }
+
+        .issue-details {
+            font-size: 18pt;
+            margin-top: 20pt;
+            color: #1b263b;
+        }
+
+        .institution {
+            font-size: 18pt;
+            margin-top: 36pt;
+        }
+
+        .signatures {
+            width: 100%;
+            margin-top: 60pt;
+            display: flex;
+            justify-content: space-between;
+            font-size: 18pt;
+            color: #1b263b;
+        }
+
+        .signature-block {
+            width: 45%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .signature-line {
+            width: 80%;
+            border-bottom: 1px solid #1b263b;
+            margin-bottom: 8pt;
+            height: 0;
+        }
+
+        .signature-name {
+            font-weight: 700;
+        }
+
+        .signature-title {
+            font-size: 16pt;
+        }
+    </style>
 </head>
-
-<body>{% set TH = (current_lang == 'th') %}<div class="title">{{ event.certificate_name_th if TH and
-                    event.certificate_name_th else (event.certificate_name_en or ('ประกาศนียบัตร' if TH else
-                    'Certificate')) }}</div>
-          <div>{{ 'ขอมอบให้แก่' if TH else 'This is awarded to' }}</div>
-          <div class="name">{{ member.full_name_en or member.username }}</div>
-          <div>{{ 'ในโอกาสสำเร็จการอบรม' if TH else 'For successfully completing' }}</div>
-          <div>{{ event.title_en or event.title_th }}</div>
-          <div class="meta">{{ 'เมื่อวันที่' if TH else 'Dated' }}: {{ reg.certificate_issued_date }}</div>
+<body>
+{% set TH = (current_lang == 'th') %}
+{% set issued_at = reg.certificate_issued_date or reg.completed_at or reg.registration_date %}
+{% set event_title = event.title_th if TH and event.title_th else event.title_en %}
+{% set cert_title = event.certificate_name_th if TH and event.certificate_name_th else (event.certificate_name_en or ('ประกาศนียบัตร' if TH else 'Certificate of Achievement')) %}
+<div class="certificate">
+    <div class="certificate-title">{{ cert_title }}</div>
+    <div class="certificate-subtitle">
+        {{ 'ขอมอบให้แก่' if TH else 'Presented to' }}
+    </div>
+    <div class="recipient-name">
+        {{ member.full_name_th if TH and member.full_name_th else (member.full_name_en or member.username) }}
+    </div>
+    <div class="certificate-body">
+        {{ 'เพื่อรับรองว่าได้ผ่านการอบรมในหัวข้อ' if TH else 'In recognition of completing' }}<br>
+        <strong>{{ event_title }}</strong>
+        {% if event.continue_education_score %}
+            <br>{{ 'ได้รับหน่วยกิตการศึกษาต่อเนื่องจำนวน' if TH else 'Earned continuing education credits' }}
+            {{ event.continue_education_score }} {{ 'หน่วย' if TH else 'units' }}
+        {% endif %}
+    </div>
+    {% if issued_at %}
+    <div class="issue-details">
+        {{ 'ออกให้ ณ วันที่' if TH else 'Issued on' }}
+        {{ issued_at.strftime('%d %B %Y') if issued_at else '' }}
+    </div>
+    {% endif %}
+    <div class="institution">
+        {{ event.department_or_unit or event.creating_institution }}
+    </div>
+    <div class="signatures">
+        <div class="signature-block">
+            <div class="signature-line"></div>
+            <div class="signature-name">{{ event.creating_institution }}</div>
+            <div class="signature-title">{{ 'หน่วยงานผู้ออกใบประกาศ' if TH else 'Issuing Institution' }}</div>
+        </div>
+        <div class="signature-block">
+            <div class="signature-line"></div>
+            <div class="signature-name">{{ member.full_name_th if TH and member.full_name_th else (member.full_name_en or member.username) }}</div>
+            <div class="signature-title">{{ 'ผู้รับประกาศนียบัตร' if TH else 'Award Recipient' }}</div>
+        </div>
+    </div>
+</div>
 </body>
-
 </html>

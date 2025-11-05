@@ -8,25 +8,31 @@
     box-shadow: 0 8px 20px rgba(10, 10, 10, 0.08);
     height: 100%;
   }
+
   .stats-card .heading {
     letter-spacing: 0.05em;
     text-transform: uppercase;
     font-size: 0.75rem;
   }
+
   .dashboard-panel {
     display: none;
   }
+
   .dashboard-panel.is-active {
     display: block;
   }
+
   .mini-table {
     font-size: 0.9rem;
   }
+
   .mini-table th {
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
+
   .chart-wrapper {
     position: relative;
     min-height: 280px;
@@ -39,7 +45,7 @@
   <div class="level mb-5">
     <div class="level-left">
       <div>
-        <h1 class="title">สวัสดี {{ logged_in_admin.fullname }}</h1>
+        <h1 class="title">Welcome! Admin</h1>
         <p class="subtitle">ข้อมูล ณ {{ current_date }}</p>
       </div>
     </div>
@@ -47,8 +53,10 @@
 
   <div class="tabs is-boxed">
     <ul>
-      <li class="is-active" data-tab-target="operations"><a><span class="icon"><i class="fas fa-chart-line"></i></span><span>ภาพรวมการดำเนินงาน</span></a></li>
-      <li data-tab-target="analytics"><a><span class="icon"><i class="fas fa-chart-pie"></i></span><span>เชิงวิเคราะห์</span></a></li>
+      <li class="is-active" data-tab-target="operations"><a><span class="icon"><i
+              class="fas fa-chart-line"></i></span><span>ภาพรวมการดำเนินงาน</span></a></li>
+      <li data-tab-target="analytics"><a><span class="icon"><i
+              class="fas fa-chart-pie"></i></span><span>เชิงวิเคราะห์</span></a></li>
     </ul>
   </div>
 
@@ -272,9 +280,9 @@
           <p class="heading">ค่าเฉลี่ยเวลาการอนุมัติชำระเงิน</p>
           <p class="title is-3">
             {% if avg_payment_approval_hours is not none %}
-              {{ avg_payment_approval_hours }} ชม.
+            {{ avg_payment_approval_hours }} ชม.
             {% else %}
-              ไม่มีข้อมูล
+            ไม่มีข้อมูล
             {% endif %}
           </p>
           <p class="is-size-7">วัดจากรายการที่ได้รับการอนุมัติ</p>
@@ -333,7 +341,8 @@
           <p class="heading">หมวดหมู่ยอดนิยม</p>
           <ul>
             {% for category in popular_categories %}
-            <li class="mb-2">{{ category.label }} <span class="tag is-info is-light">{{ category.count }} ลงทะเบียน</span></li>
+            <li class="mb-2">{{ category.label }} <span class="tag is-info is-light">{{ category.count }}
+                ลงทะเบียน</span></li>
             {% else %}
             <li>ยังไม่มีข้อมูล</li>
             {% endfor %}
@@ -366,10 +375,10 @@
     });
   });
 
-  const monthlyLabels = {{ monthly_registration_labels|tojson }};
-  const monthlyCounts = {{ monthly_registration_counts|tojson }};
-  const memberTypeData = {{ member_type_breakdown|tojson }};
-  const paymentStatusData = {{ payment_status_summary|tojson }};
+  const monthlyLabels = {{ monthly_registration_labels| tojson }};
+  const monthlyCounts = {{ monthly_registration_counts| tojson }};
+  const memberTypeData = {{ member_type_breakdown| tojson }};
+  const paymentStatusData = {{ payment_status_summary| tojson }};
 
   function buildChart(ctxId, config) {
     const ctx = document.getElementById(ctxId);
@@ -427,7 +436,7 @@
         y: {
           beginAtZero: true,
           ticks: {
-            callback: function(value) {
+            callback: function (value) {
               return Intl.NumberFormat('th-TH').format(value);
             }
           }

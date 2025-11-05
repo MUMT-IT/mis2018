@@ -453,6 +453,82 @@
             width: auto;
             /* Maintain aspect ratio */
         }
+
+        /* Carousel Styles */
+        .carousel-container {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1;
+        }
+
+        .hero-slide.active {
+            opacity: 1;
+            transform: translateX(0);
+            z-index: 2;
+        }
+
+        .hero-slide.prev {
+            transform: translateX(-100%);
+        }
+
+        .carousel-indicator.active {
+            background: rgba(255, 255, 255, 0.9) !important;
+            transform: scale(1.2);
+        }
+
+        .carousel-prev:hover,
+        .carousel-next:hover {
+            background: rgba(255, 255, 255, 0.4) !important;
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .carousel-indicator:hover {
+            background: rgba(255, 255, 255, 0.6) !important;
+        }
+
+        /* Animation classes */
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .slide-in-right {
+            animation: slideInRight 0.8s ease-out;
+        }
+
+        .slide-in-left {
+            animation: slideInLeft 0.8s ease-out;
+        }
     </style>
 </head>
 
@@ -518,6 +594,9 @@
                             {{ texts.contact_us_nav }}
                         </a>
                         {% if logged_in_user %}
+                        <a href="{{ url_for('continuing_edu.member_dashboard', lang=current_lang) }}"
+                            class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">{{
+                            texts.dashboard_nav }}</a>
                         <a href="{{ url_for('continuing_edu.account_settings', lang=current_lang) }}"
                             class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">My
                             Account</a>
@@ -580,55 +659,203 @@
     {% endwith %}
 
     <div style="height:90px;"></div> <!-- Spacer for fixed navbar -->
-    <section id="hero_section" class="hero hero-section is-large ">
-        <div class="hero-background-slider" id="hero-background-slider"></div>
-        <div class="hero-body container" data-aos="fade-up">
-            <div class="columns is-vcentered">
-                <div class="column is-7 has-text-left">
-                    <h1 class="title is-2 has-text-white has-text-weight-semibold mb-3" id="hero-feature-title">{{
-                        hero_slides[0].title | default(texts.hero_title, true) }}</h1>
-                    <p class="subtitle is-5 has-text-white has-text-weight-normal mb-5" id="hero-feature-desc">{{
-                        hero_slides[0].subtitle | default(texts.hero_subtitle, true) }}</p>
 
-                </div>
-                <div class="column is-5">
-                    <div class="hero-feature-panel"
-                        style="padding:2.5rem; background:rgba(17,24,39,0.55); border-radius:24px; backdrop-filter: blur(6px); color:#fff;">
-                        <div class="is-flex is-align-items-center mb-3 is-flex-wrap">
-                            <span class="tag is-warning is-light mr-2 mb-2" id="hero-feature-type">{{
-                                hero_slides[0].event_type_label | default('', true) }}</span>
-                            <span class="is-size-6 has-text-white-ter mb-2" id="hero-feature-schedule">{{
-                                hero_slides[0].schedule_label | default('', true) }}</span>
-                        </div>
-                        <div class="is-size-6 has-text-white" id="hero-feature-speakers"
-                            style="{{ '' if hero_slides[0].speakers else 'display:none;' }}">
-                            <span class="has-text-weight-semibold" style="opacity:0.8;">{{ texts.hero_speakers_label
-                                }}:</span>
-                            {{ hero_slides[0].speakers | default('', true) }}
-                        </div>
-                        <div class="is-size-6 has-text-white mt-3" id="hero-feature-venue"
-                            style="{{ '' if hero_slides[0].venue else 'display:none;' }}">
-                            <span class="has-text-weight-semibold" style="opacity:0.8;">Venue:</span>
-                            {{ hero_slides[0].venue | default('', true) }}
-                        </div>
-                        <div class="is-size-6 has-text-white mt-3" id="hero-feature-price"
-                            style="{{ '' if hero_slides[0].price else 'display:none;' }}">
-                            <span class="has-text-weight-semibold" style="opacity:0.8;">Price:</span>
-                            {{ hero_slides[0].price | default('', true) }}
-                        </div>
+    <!-- Dynamic Hero Carousel Section -->
+    <section id="hero_carousel" class="hero is-large" style="position: relative; overflow: hidden;">
+        <!-- Carousel Container -->
+        <div class="carousel-container" style="position: relative; height: 100vh; min-height: 600px;">
 
-                        <div class="buttons">
-                            <a class="button is-warning is-medium is-rounded" id="hero-feature-link"
-                                href="{{ hero_slides[0].cta_url | default(url_for('continuing_edu.index', lang=current_lang)) }}">{{
-                                hero_slides[0].cta_label | default('View Event', true) }}</a>
-
+            <!-- Slide 1 -->
+            <div class="hero-slide active" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="hero-body">
+                    <div class="container">
+                        <div class="columns is-vcentered">
+                            <div class="column is-6">
+                                <h1 class="title is-1 has-text-white mb-5" data-aos="fade-right">
+                                    พัฒนาทักษะใหม่<br>เพื่ออนาคตที่ดีกว่า
+                                </h1>
+                                <p class="subtitle is-4 has-text-white mb-6" data-aos="fade-right" data-aos-delay="200">
+                                    เข้าร่วมหลักสูตรออนไลน์และสัมมนาที่ทันสมัย<br>พร้อมใบประกาศจากมหาวิทยาลัยมหิดล
+                                </p>
+                                <div class="buttons" data-aos="fade-up" data-aos-delay="400">
+                                    <a href="#short-courses" class="button is-warning is-large is-rounded">
+                                        <span class="icon"><i class="fas fa-graduation-cap"></i></span>
+                                        <span>เริ่มเรียนเลย</span>
+                                    </a>
+                                    <a href="#webinars" class="button is-white is-outlined is-large is-rounded">
+                                        <span class="icon"><i class="fas fa-video"></i></span>
+                                        <span>ดูสัมมนา</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="column is-6" data-aos="fade-left" data-aos-delay="300">
+                                <figure class="image">
+                                    <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                                        alt="Students learning"
+                                        style="border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+                                </figure>
+                            </div>
                         </div>
-
-
                     </div>
                 </div>
             </div>
+
+            <!-- Slide 2 -->
+            <div class="hero-slide" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="hero-body">
+                    <div class="container">
+                        <div class="columns is-vcentered">
+                            <div class="column is-6">
+                                <h1 class="title is-1 has-text-white mb-5" data-aos="fade-right">
+                                    สัมมนาออนไลน์<br>จากผู้เชี่ยวชาญ
+                                </h1>
+                                <p class="subtitle is-4 has-text-white mb-6" data-aos="fade-right" data-aos-delay="200">
+                                    เรียนรู้เทคนิคใหม่ๆ จากวิทยากรมืออาชีพ<br>ทุกวันเสาร์ เวลา 13:00-16:00 น.
+                                </p>
+                                <div class="buttons" data-aos="fade-up" data-aos-delay="400">
+                                    <a href="#webinars" class="button is-warning is-large is-rounded">
+                                        <span class="icon"><i class="fas fa-calendar-check"></i></span>
+                                        <span>ลงทะเบียนฟรี</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="column is-6" data-aos="fade-left" data-aos-delay="300">
+                                <figure class="image">
+                                    <img src="https://images.unsplash.com/photo-1560472354-b33ff0c44a43?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                                        alt="Online seminar"
+                                        style="border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 3 -->
+            <div class="hero-slide" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <div class="hero-body">
+                    <div class="container">
+                        <div class="columns is-vcentered">
+                            <div class="column is-6">
+                                <h1 class="title is-1 has-text-white mb-5" data-aos="fade-right">
+                                    ใบประกาศ<br>มาตรฐานสากล
+                                </h1>
+                                <p class="subtitle is-4 has-text-white mb-6" data-aos="fade-right" data-aos-delay="200">
+                                    รับใบประกาศจากคณะเทคนิคการแพทย์<br>มหาวิทยาลัยมหิดล ที่ได้รับการยอมรับ
+                                </p>
+                                <div class="buttons" data-aos="fade-up" data-aos-delay="400">
+                                    <a href="#short-courses" class="button is-warning is-large is-rounded">
+                                        <span class="icon"><i class="fas fa-certificate"></i></span>
+                                        <span>ดูหลักสูตร</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="column is-6" data-aos="fade-left" data-aos-delay="300">
+                                <figure class="image">
+                                    <img src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                                        alt="Certificate"
+                                        style="border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 4 -->
+            <div class="hero-slide" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                <div class="hero-body">
+                    <div class="container">
+                        <div class="columns is-vcentered">
+                            <div class="column is-6">
+                                <h1 class="title is-1 has-text-white mb-5" data-aos="fade-right">
+                                    เรียนได้ทุกที่<br>ทุกเวลา
+                                </h1>
+                                <p class="subtitle is-4 has-text-white mb-6" data-aos="fade-right" data-aos-delay="200">
+                                    ระบบเรียนออนไลน์ที่ใช้งานง่าย<br>รองรับทุกอุปกรณ์ มือถือ แท็บเล็ต คอมพิวเตอร์
+                                </p>
+                                <div class="buttons" data-aos="fade-up" data-aos-delay="400">
+                                    <a href="{{ url_for('continuing_edu.register', lang=current_lang) }}"
+                                        class="button is-warning is-large is-rounded">
+                                        <span class="icon"><i class="fas fa-mobile-alt"></i></span>
+                                        <span>ลองใช้ฟรี</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="column is-6" data-aos="fade-left" data-aos-delay="300">
+                                <figure class="image">
+                                    <img src="https://images.unsplash.com/photo-1531482615713-2afd69097998?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                                        alt="Mobile learning"
+                                        style="border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 5 -->
+            <div class="hero-slide" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
+                <div class="hero-body">
+                    <div class="container">
+                        <div class="columns is-vcentered">
+                            <div class="column is-6">
+                                <h1 class="title is-1 has-text-dark mb-5" data-aos="fade-right">
+                                    ชุมชนผู้เรียน<br>ขนาดใหญ่
+                                </h1>
+                                <p class="subtitle is-4 has-text-dark mb-6" data-aos="fade-right" data-aos-delay="200">
+                                    เข้าร่วมกับผู้เรียนกว่า 10,000+ คน<br>แลกเปลี่ยนประสบการณ์และเรียนรู้ร่วมกัน
+                                </p>
+                                <div class="buttons" data-aos="fade-up" data-aos-delay="400">
+                                    <a href="{{ url_for('continuing_edu.register', lang=current_lang) }}"
+                                        class="button is-info is-large is-rounded">
+                                        <span class="icon"><i class="fas fa-users"></i></span>
+                                        <span>เข้าร่วมชุมชน</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="column is-6" data-aos="fade-left" data-aos-delay="300">
+                                <figure class="image">
+                                    <img src="https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                                        alt="Community learning"
+                                        style="border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+                                </figure>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Carousel Navigation -->
+        <div class="carousel-nav"
+            style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 20;">
+            <div class="buttons has-addons">
+                <button class="carousel-indicator active" data-slide="0"
+                    style="background: rgba(255,255,255,0.7); border: none; width: 40px; height: 8px; margin: 0 5px; border-radius: 4px; cursor: pointer; transition: all 0.3s;"></button>
+                <button class="carousel-indicator" data-slide="1"
+                    style="background: rgba(255,255,255,0.4); border: none; width: 40px; height: 8px; margin: 0 5px; border-radius: 4px; cursor: pointer; transition: all 0.3s;"></button>
+                <button class="carousel-indicator" data-slide="2"
+                    style="background: rgba(255,255,255,0.4); border: none; width: 40px; height: 8px; margin: 0 5px; border-radius: 4px; cursor: pointer; transition: all 0.3s;"></button>
+                <button class="carousel-indicator" data-slide="3"
+                    style="background: rgba(255,255,255,0.4); border: none; width: 40px; height: 8px; margin: 0 5px; border-radius: 4px; cursor: pointer; transition: all 0.3s;"></button>
+                <button class="carousel-indicator" data-slide="4"
+                    style="background: rgba(255,255,255,0.4); border: none; width: 40px; height: 8px; margin: 0 5px; border-radius: 4px; cursor: pointer; transition: all 0.3s;"></button>
+            </div>
+        </div>
+
+        <!-- Arrow Navigation -->
+        <button class="carousel-prev"
+            style="position: absolute; left: 30px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; color: white; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; transition: all 0.3s; z-index: 20;">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="carousel-next"
+            style="position: absolute; right: 30px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; color: white; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; transition: all 0.3s; z-index: 20;">
+            <i class="fas fa-chevron-right"></i>
+        </button>
     </section>
+
+
 
     <section id="hero_title" class="hero is-medium is-link">
         <div class="hero-body container" data-aos="fade-up">
@@ -1002,72 +1229,96 @@
                 });
             });
 
-            // Hero Background Slider Logic
-            const heroSlider = document.getElementById('hero-background-slider');
-            const heroSlides = {{ hero_slides| tojson | safe
-        }};
-        const fallbackImages = [
-            'https://placehold.co/1920x1080/6366f1/FFFFFF?text=University+Campus+1',
-            'https://placehold.co/1920x1080/8b5cf6/FFFFFF?text=University+Campus+2',
-            'https://placehold.co/1920x1080/4338ca/FFFFFF?text=University+Campus+3'
-        ];
+            // Hero Carousel Logic
+            const slides = document.querySelectorAll('.hero-slide');
+            const indicators = document.querySelectorAll('.carousel-indicator');
+            const prevBtn = document.querySelector('.carousel-prev');
+            const nextBtn = document.querySelector('.carousel-next');
 
-        let images = [];
-        if (heroSlides.length) {
-            images = heroSlides.map(slide => slide.image).filter(Boolean);
-        }
-        if (!images.length) {
-            images = fallbackImages.slice();
-        }
+            let currentSlide = 0;
+            let isTransitioning = false;
 
-        const heroFeatureTitle = document.getElementById('hero-feature-title');
-        const heroFeatureDesc = document.getElementById('hero-feature-desc');
-        const heroFeatureLink = document.getElementById('hero-feature-link');
-        const heroFeatureType = document.getElementById('hero-feature-type');
-        const heroFeatureSchedule = document.getElementById('hero-feature-schedule');
-        const heroFeatureSpeakers = document.getElementById('hero-feature-speakers');
+            function showSlide(index) {
+                if (isTransitioning) return;
+                isTransitioning = true;
 
-        let currentImageIndex = 0;
+                // Remove active class from all slides and indicators
+                slides.forEach(slide => slide.classList.remove('active'));
+                indicators.forEach(indicator => indicator.classList.remove('active'));
 
-        function applyHeroSlide(index) {
-            if (!heroSlider || !images.length) {
-                return;
+                // Add active class to current slide and indicator
+                slides[index].classList.add('active');
+                indicators[index].classList.add('active');
+
+                // Add slide animation classes
+                const currentSlideElement = slides[index];
+                const leftColumn = currentSlideElement.querySelector('.column:first-child');
+                const rightColumn = currentSlideElement.querySelector('.column:last-child');
+
+                if (leftColumn) {
+                    leftColumn.classList.add('slide-in-left');
+                    setTimeout(() => leftColumn.classList.remove('slide-in-left'), 800);
+                }
+
+                if (rightColumn) {
+                    rightColumn.classList.add('slide-in-right');
+                    setTimeout(() => rightColumn.classList.remove('slide-in-right'), 800);
+                }
+
+                setTimeout(() => {
+                    isTransitioning = false;
+                }, 800);
             }
-            heroSlider.style.backgroundImage = `url('${images[index]}')`;
-            if (heroSlides.length) {
-                const slide = heroSlides[index % heroSlides.length];
-                if (heroFeatureTitle && slide.title) {
-                    heroFeatureTitle.textContent = slide.title;
-                }
-                if (heroFeatureDesc) {
-                    heroFeatureDesc.textContent = slide.subtitle || '';
-                }
-                if (heroFeatureLink && slide.cta_url) {
-                    heroFeatureLink.href = slide.cta_url;
-                    if (slide.cta_label) {
-                        heroFeatureLink.textContent = slide.cta_label;
+
+            function nextSlide() {
+                currentSlide = (currentSlide + 1) % slides.length;
+                showSlide(currentSlide);
+            }
+
+            function prevSlide() {
+                currentSlide = (currentSlide - 1 + slides.length) % slides.length;
+                showSlide(currentSlide);
+            }
+
+            // Event listeners for navigation
+            if (nextBtn) {
+                nextBtn.addEventListener('click', nextSlide);
+            }
+
+            if (prevBtn) {
+                prevBtn.addEventListener('click', prevSlide);
+            }
+
+            // Event listeners for indicators
+            indicators.forEach((indicator, index) => {
+                indicator.addEventListener('click', () => {
+                    if (currentSlide !== index) {
+                        currentSlide = index;
+                        showSlide(currentSlide);
                     }
-                }
-                if (heroFeatureType) {
-                    heroFeatureType.textContent = slide.event_type_label || '';
-                }
-                if (heroFeatureSchedule) {
-                    heroFeatureSchedule.textContent = slide.schedule_label || '';
-                }
-                if (heroFeatureSpeakers) {
-                    heroFeatureSpeakers.textContent = slide.speakers || '';
-                    heroFeatureSpeakers.style.display = slide.speakers ? '' : 'none';
-                }
-            }
-        }
+                });
+            });
 
-        applyHeroSlide(currentImageIndex);
-        if (images.length > 1) {
+            // Auto-advance slides every 7 seconds
             setInterval(() => {
-                currentImageIndex = (currentImageIndex + 1) % images.length;
-                applyHeroSlide(currentImageIndex);
-            }, 5000);
-        }
+                if (!isTransitioning) {
+                    nextSlide();
+                }
+            }, 7000);
+
+            // Initialize first slide
+            if (slides.length > 0) {
+                showSlide(0);
+            }
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') {
+                    prevSlide();
+                } else if (e.key === 'ArrowRight') {
+                    nextSlide();
+                }
+            });
         });
     </script>
 

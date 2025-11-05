@@ -2,7 +2,7 @@
 
 from flask_wtf import FlaskForm
 from wtforms import FormField, FieldList, FileField, StringField, RadioField, Field, TextAreaField, SelectField, \
-    PasswordField, SubmitField, validators
+    PasswordField, SubmitField
 from wtforms.validators import DataRequired
 from wtforms.widgets import TextInput
 from wtforms_alchemy import model_form_factory, QuerySelectField
@@ -45,15 +45,15 @@ class ReceiptListForm(ModelForm):
     cost_center = QuerySelectField('Cost Center',
                                    query_factory=lambda: CostCenter.query.all(),
                                    get_label='id', blank_text='Select Cost Center..', allow_blank=True
-                                   ,validators=[validators.Required(message=('Cost Center is required'))])
+    ,validators=[DataRequired(message=('Cost Center is required'))])
     internal_order_code = QuerySelectField('Internal Order Code',
                                       query_factory=lambda: IOCode.query.filter_by(is_active=True),
                                       blank_text='Select Internal Order/IO..', allow_blank=True
-                                    ,validators=[validators.Required(message=('Internal Order Code is required'))])
+                                    ,validators=[DataRequired(message=('Internal Order Code is required'))])
     gl = QuerySelectField('GL',
                           query_factory=lambda: ElectronicReceiptGL.query.all(),
                           blank_text='Select GL..', allow_blank=True,
-                          validators=[validators.Required(message=('GL is required'))])
+                          validators=[DataRequired(message=('GL is required'))])
 
 
 class ReceiptDetailForm(ModelForm):
