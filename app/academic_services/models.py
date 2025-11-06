@@ -328,6 +328,7 @@ class ServiceReportLanguage(db.Model):
     no = db.Column('no', db.Integer())
     type = db.Column('type', db.String())
     language = db.Column('language', db.String())
+    category = db.Column('category', db.String())
     item = db.Column('item', db.String())
     price = db.Column('price', db.Numeric())
 
