@@ -1353,7 +1353,7 @@ def generate_request_pdf(service_request):
     data.append(KeepTogether(customer_table))
 
     current_height += detail_style.leading
-
+    index = 1
     groups = []
     current_group = None
 
@@ -1391,7 +1391,10 @@ def generate_request_pdf(service_request):
 
         text_section = []
         for g in group['contents']:
-            if g['type'] == 'text':
+            if g['type'] == 'content_header':
+                text_section.append(f"{index}. {g['data'].strip()}")
+                index += 1
+            elif g['type'] == 'text':
                 text_section.extend(g['data'].split("<br/>"))
             elif g['type'] == 'table':
                 if text_section:
@@ -1488,11 +1491,12 @@ def generate_request_pdf(service_request):
         ]))
 
         lab_test = '''<para><font size=12>
-                            สำหรับเจ้าหน้าที่<br/>
-                            Lab No. : _________________________________________________________________<br/>
-                            สภาพตัวอย่าง : O ปกติ<br/>
-                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; O ไม่ปกติ<br/>
-                            </font></para>'''
+                                    Lab No.<br/>
+                                    __________________________________________________________________________________________________________________________<br/>
+                                    สภาพตัวอย่าง <br/>
+                                    O ปกติ<br/>
+                                    O ไม่ปกติ<br/>
+                                    </font></para>'''
 
         lab_test_table = Table([[Paragraph(lab_test, style=detail_style)]], colWidths=[530])
         lab_test_table.setStyle(TableStyle([
