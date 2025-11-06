@@ -28,25 +28,29 @@
                             </div>
                             <div class="field ml-4" id="thai-options">
                                 <div class="control">
-                                {% for r in report_languages|sort(attribute='no') %}
-                                    {% if r.language == 'ไทย' %}
-                                        <label class="checkbox mb-2">
-                                            <input type="checkbox" name="check_report_language" value="{{ r.id }}"
-                                                   {% if r.id in req_report_language_id or (sub_lab != 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส' and r.type == 'ใบรายงานผล') %}checked{% endif %}
-                                            >
-                                            {{ r.type }}
-                                            {% if r.price > 0 %}
-                                                ราคา {{ "{:,.2f}".format(r.price) }} บาท
-                                            {% endif %}
-                                        </label>
-                                        <br/>
-                                    {% endif %}
-                                {% endfor %}
+                                    {% for r in report_languages|sort(attribute='no') %}
+                                        {% if r.language == 'ไทย' %}
+                                            <label class="checkbox mb-2">
+                                                <input id="{{ r.category }}" type="checkbox"
+                                                       name="check_report_language"
+                                                       value="{{ r.id }}"
+                                                        {% if r.id in req_report_language_id or (sub_lab != 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส' and r.type == 'ใบรายงานผล') %}
+                                                       checked
+                                                        {% endif %}
+                                                >
+                                                {{ r.type }}
+                                                {% if r.price > 0 %}
+                                                    ราคา {{ "{:,.2f}".format(r.price) }} บาท
+                                                {% endif %}
+                                            </label>
+                                            <br/>
+                                        {% endif %}
+                                    {% endfor %}
                                 </div>
                             </div>
                             <div class="field">
                                 <div class="control">
-                                     <label class="label">2. ภาษาอังกฤษ</label>
+                                    <label class="label">2. ภาษาอังกฤษ</label>
                                 </div>
                             </div>
                             <div class="field ml-4" id="eng-options">
@@ -54,11 +58,13 @@
                                     {% for r in report_languages|sort(attribute='no') %}
                                         {% if r.language == 'อังกฤษ' %}
                                             <label class="checkbox mb-2">
-                                                <input type="checkbox" name="check_report_language" value="{{ r.id }}"
-                                                       {% if r.id in req_report_language_id or
+                                                <input id="{{ r.category }}" type="checkbox"
+                                                       name="check_report_language"
+                                                       value="{{ r.id }}"
+                                                        {% if r.id in req_report_language_id or
                                                         (sub_lab == 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส' and r.type == 'ใบรายงานผล') %}
-                                                            checked
-                                                       {% endif %}
+                                                       checked
+                                                        {% endif %}
                                                 >
                                                 {{ r.type }}
                                                 {% if r.price > 0 %}
@@ -72,7 +78,9 @@
                             </div>
                             <div class="field">
                                 <div class="buttons is-centered">
-                                    <button class="button is-success" type="submit" value="submit">บันทึกและดำเนินการต่อ</button>
+                                    <button class="button is-success" type="submit" value="submit">
+                                        บันทึกและดำเนินการต่อ
+                                    </button>
                                 </div>
                             </div>
                         </form>
@@ -84,4 +92,32 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script>
+        function updateDisableThaiCopy() {
+            const thaiOriginals = document.querySelectorAll('#thai-options input[id^="original"]');
+            const thaiCopy = document.querySelector('#thai-options input#copy');
+            const anyChecked = Array.from(thaiOriginals).some(cb => cb.checked);
+            thaiCopy.disabled = !anyChecked;
+            if (!anyChecked) thaiCopy.checked = false;
+        }
+
+        updateDisableThaiCopy();
+
+        document.querySelectorAll('#thai-options input[id^="original"]').forEach(function (checkbox) {
+            checkbox.addEventListener("change", updateDisableThaiCopy);
+        });
+
+        function updateDisableEngCopy() {
+            const engOriginals = document.querySelectorAll('#eng-options input[id^="original"]');
+            const engCopy = document.querySelector('#eng-options input#copy');
+            const anyChecked = Array.from(engOriginals).some(cb => cb.checked);
+            engCopy.disabled = !anyChecked;
+            if (!anyChecked) engCopy.checked = false;
+        }
+
+        updateDisableEngCopy();
+        document.querySelectorAll('#eng-options input[id^="original"]').forEach(function (checkbox) {
+            checkbox.addEventListener("change", updateDisableEngCopy);
+        });
+    </script>
 {% endblock %}
