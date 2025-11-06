@@ -366,9 +366,9 @@
 
                 row.find('input[type="text"]').each(function () {
                     if (checked) {
-                        $(this).prop('disabled', false).attr('required', true);
+                        $(this).prop('disabled', false);
                     } else {
-                        $(this).prop('disabled', true).val('').removeAttr('required');
+                        $(this).prop('disabled', true).val('');
                     }
                 });
             });
