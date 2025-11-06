@@ -1,4 +1,4 @@
-<div class="card subform-card mb-4">
+<div class="card subform-card mb-4" id="{{ fields.name }}">
     <header class="card-header">
         <p class="card-header-title">{{ fields.label }}</p>
     </header>
@@ -40,7 +40,7 @@
                 {% endif %}
             {% endif %}
         {% endfor %}
-        <button type="button" class="button is-danger is-rounded is-small remove-subform" hx-target=".subform-card"
+        <button id="{{ fields.name }}" type="button" class="button is-danger is-rounded is-small remove-subform" hx-target=".subform-card"
                 hx-swap="innerHTML"
         >
             ลบ
