@@ -838,7 +838,7 @@ def create_bacteria_request(request_id=None):
                     code=code))
     else:
         for er in form.errors:
-            flash(er, 'danger')
+            flash(f'{er} {form.errors[er]}', 'danger')
     return render_template('academic_services/bacteria_request_form.html', code=code, sub_lab=sub_lab,
                            form=form, request_id=request_id)
 
