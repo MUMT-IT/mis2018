@@ -154,7 +154,7 @@
                                             {% endif %}
                                         {% endfor %}
                                         {% if ns.has_value %}
-                                            <div class="card subform-card mb-4">
+                                            <div class="card subform-card mb-4" id="{{ subform.name }}">
                                                 <header class="card-header">
                                                     <p class="card-header-title">{{ subform.label }}</p>
                                                 </header>
@@ -196,7 +196,7 @@
                                                             {% endif %}
                                                         {% endif %}
                                                     {% endfor %}
-                                                    <button type="button"
+                                                    <button id="{{ subform.name }}" type="button"
                                                             class="button is-danger is-rounded is-small remove-subform"
                                                             data-request-id="{{ request_id or '' }}"
                                                             hx-post="{{ url_for('service_admin.remove_condition_form', request_id=request_id) }}"
@@ -238,8 +238,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript"
-            src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
         $(document).ready(function () {
             moment.locale('th');
@@ -276,11 +275,75 @@
         })
     </script>
     <script>
-        document.body.addEventListener('htmx:afterRequest', (e) => {
-            const select = document.getElementById('product_type');
-            if (select) {
-                select.selectedIndex = 0;
+        function removeProductTypeOptions() {
+            const productType = document.getElementById('product_type');
+            const subforms = document.querySelectorAll('.subform-card');
+            for (let i = productType.options.length - 1; i >= 0; i--) {
+                const option = productType.options[i];
+                if (option.value === '') continue;
+                subforms.forEach(subform => {
+                    const subformId = subform.id.split(/[\s_]+/)[0];
+                    if (option.value === subformId) {
+                        option.remove();
+                    }
+                });
             }
+            productType.selectedIndex = 0;
+        }
+
+        document.addEventListener('DOMContentLoaded', removeProductTypeOptions);
+
+        document.body.addEventListener('htmx:afterSwap', function (evt) {
+            if (evt.target.id === 'condition-fields') {
+                removeProductTypeOptions();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const productType = document.getElementById('product_type');
+            const subforms = document.querySelectorAll('.subform-card');
+            for (let i = productType.options.length - 1; i >= 0; i--) {
+                const option = productType.options[i];
+                if (option.value === '') continue;
+                subforms.forEach(subform => {
+                    const subformId = subform.id.split(/[\s_]+/)[0];
+                    if (option.value === subformId) {
+                        option.remove();
+                    }
+                });
+            }
+            productType.selectedIndex = 0;
+        });
+    </script>
+    <script>
+        document.addEventListener('click', function (e) {
+            const productType = document.getElementById('product_type');
+            if (e.target.classList.contains('remove-subform')) {
+                const card = e.target.closest('.subform-card');
+                const requestId = e.target.dataset.requestId;
+                const text = card.querySelector('label').textContent.trim();
+                if (!requestId) {
+                    card.remove();
+                    e.preventDefault();
+                }
+                const subformId = e.target.id.split(/[\s_]+/)[0];
+
+                let hasOptions = false;
+                for (let i = 0; i < productType.options.length; i++) {
+                    if (productType.options[i].value === subformId) {
+                        hasOptions = true;
+                        break;
+                    }
+                }
+
+                if (!hasOptions) {
+                    const option = document.createElement('option');
+                    option.value = subformId;
+                    option.text = text;
+                    productType.appendChild(option);
+                }
+            }
+            productType.selectedIndex = 0;
         });
     </script>
     <script>
