@@ -54,7 +54,8 @@
                 {% endif %}
             {% endif %}
         {% endfor %}
-        <button id="{{ fields.name }}" type="button" class="button is-danger is-rounded is-small remove-subform" hx-target=".subform-card"
+        <button id="{{ fields.name }}" type="button" class="button is-danger is-rounded is-small remove-subform"
+                hx-target=".subform-card"
                 hx-swap="innerHTML"
         >
             ลบ
@@ -101,11 +102,10 @@
         });
 
         if (isASTMSelected) {
-            surfaceTypeField.prop('disabled', false);
+            surfaceTypeField.prop('disabled', false).attr('required', true);
         } else {
             surfaceTypeField.each(function () {
                 let name = $(this).attr('name');
-                console.log('s', name)
                 if (subform.find('input[name="' + name + '"][type="hidden"]').length === 0) {
                     subform.append('<input type="hidden" name="' + name + '" value="">');
                 }
@@ -119,13 +119,15 @@
 
     function showSurfaceTypeOtherInput(subform) {
         const surfaceTypeField = subform.find('input[type="radio"][name$="surface_type"]:checked').val();
-        const surfaceTypeOtherField = subform.find('input[name$="surface_type_other"]').closest('.field');
+        const surfaceTypeOtherInput = subform.find('input[name$="surface_type_other"]');
+        const surfaceTypeOtherField = surfaceTypeOtherInput.closest('.field');
 
         if (surfaceTypeField && surfaceTypeField.includes('อื่นๆ โปรดระบุ')) {
             surfaceTypeOtherField.show();
+            surfaceTypeOtherInput.prop('required', true);
         } else {
             surfaceTypeOtherField.hide();
-            subform.find('input[name$="surface_type_other"]').val('');
+            surfaceTypeOtherInput.val('');
         }
     }
 
