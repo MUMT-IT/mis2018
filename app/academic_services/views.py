@@ -1380,7 +1380,7 @@ def generate_request_pdf(service_request):
                             )
 
     data = []
-    first_page_limit = 330 
+    first_page_limit = 700
     current_height = 0
     header_style = ParagraphStyle(
         'HeaderStyle',
@@ -1429,7 +1429,7 @@ def generate_request_pdf(service_request):
     ]))
 
     customer_header = Table([[Paragraph('<b>ข้อมูลผู้ส่งตรวจ / Customer</b>', style=header_style)]], colWidths=[530],
-                           rowHeights=[25])
+                            rowHeights=[25])
 
     customer_header.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
@@ -1511,18 +1511,36 @@ def generate_request_pdf(service_request):
         ('BOX', (1, 0), (1, 0), 0.5, colors.grey),
     ]))
 
+    title_table = Paragraph(
+        '<para align=center><font size=18>ใบขอรับบริการ / REQUEST<br/><br/></font></para>',
+        style=style_sheet['ThaiStyle']
+    )
+
     data.append(
-        KeepTogether(Paragraph('<para align=center><font size=18>ใบขอรับบริการ / REQUEST<br/><br/></font></para>',
-                               style=style_sheet['ThaiStyle'])))
+        KeepTogether(title_table))
+    w, h = title_table.wrap(doc.width, first_page_limit)
+    current_height += h
     data.append(KeepTogether(header))
+    w, h = header.wrap(doc.width, first_page_limit)
+    current_height += h
     data.append(KeepTogether(Spacer(3, 3)))
+    current_height += 3
     data.append(KeepTogether(combined_table))
+    w, h = combined_table.wrap(doc.width, first_page_limit)
+    current_height += h
     data.append(KeepTogether(Spacer(3, 3)))
+    current_height += 3
     data.append(KeepTogether(customer_header))
+    w, h = customer_header.wrap(doc.width, first_page_limit)
+    current_height += h
     data.append(KeepTogether(Spacer(3, 3)))
+    current_height += 3
     data.append(KeepTogether(address_table))
+    w, h = address_table.wrap(doc.width, first_page_limit)
+    current_height += h
     data.append(KeepTogether(customer_table))
-    current_height += detail_style.leading
+    w, h = customer_table.wrap(doc.width, first_page_limit)
+    current_height += h
 
     index = 1
     groups = []
@@ -1552,16 +1570,18 @@ def generate_request_pdf(service_request):
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ]))
 
-        if current_height > first_page_limit:
+        w, h_header = header_table.wrap(doc.width, first_page_limit)
+
+        reserve_space = 50
+        if current_height + h_header + reserve_space > first_page_limit:
             data.append(PageBreak())
             current_height = 0
         data.append(KeepTogether(Spacer(3, 3)))
-        current_height += detail_style.leading
+        current_height += 3
         data.append(KeepTogether(header_table))
-        current_height += detail_style.leading
+        current_height += h_header
         data.append(KeepTogether(Spacer(3, 3)))
-        current_height += detail_style.leading
-
+        current_height += 3
         text_section = []
         for g in group['contents']:
             if g['type'] == 'content_header':
@@ -1581,9 +1601,13 @@ def generate_request_pdf(service_request):
                         data.append(PageBreak())
                         current_height = 0
                         data.append(KeepTogether(header_table))
+                        w, h = header_table.wrap(doc.width, first_page_limit)
+                        current_height += h
                         data.append(KeepTogether(Spacer(3, 3)))
+                        current_height += 3
                     data.append(KeepTogether(box))
-                    current_height += detail_style.leading * len(text_section)
+                    w, h = box.wrap(doc.width, first_page_limit)
+                    current_height += h
                     text_section = []
 
                 rows = g['data']
@@ -1603,9 +1627,13 @@ def generate_request_pdf(service_request):
                     data.append(PageBreak())
                     current_height = 0
                     data.append(KeepTogether(header_table))
+                    w, h = header_table.wrap(doc.width, first_page_limit)
+                    current_height += h
                     data.append(KeepTogether(Spacer(3, 3)))
+                    current_height += 3
                 data.append(KeepTogether(table))
-                current_height += detail_style.leading * (len(rows) + 1)
+                w, h = table.wrap(doc.width, first_page_limit)
+                current_height += h
 
         if text_section:
             para = Paragraph("<br/>".join(text_section), style=detail_style)
@@ -1614,18 +1642,14 @@ def generate_request_pdf(service_request):
                 ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ]))
-            if current_height > first_page_limit:
-                data.append(PageBreak())
-                current_height = 0
-                data.append(KeepTogether(header_table))
-                data.append(KeepTogether(Spacer(3, 3)))
             data.append(KeepTogether(box))
-            current_height += detail_style.leading * len(text_section)
+            w, h = box.wrap(doc.width, first_page_limit)
+            current_height += h
 
     if service_request.report_languages:
         report_header = Table([[Paragraph('<b>ใบรายงานผล / Report</b>', style=header_style)]],
-                                colWidths=[530],
-                                rowHeights=[25])
+                              colWidths=[530],
+                              rowHeights=[25])
 
         report_header.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
@@ -1645,16 +1669,21 @@ def generate_request_pdf(service_request):
             current_height = 0
         else:
             data.append(KeepTogether(Spacer(3, 3)))
+            current_height += 3
         data.append(KeepTogether(report_header))
+        w, h = report_header.wrap(doc.width, first_page_limit)
+        current_height += h
         data.append(KeepTogether(Spacer(3, 3)))
+        current_height += 3
         data.append(KeepTogether(report_table))
-        current_height += detail_style.leading
+        w, h = report_table.wrap(doc.width, first_page_limit)
+        current_height += h
 
     if (service_request.sub_lab.code == 'bacteria' or service_request.sub_lab.code == 'disinfection' or
             service_request.sub_lab.code == 'air_disinfection'):
         lab_test_header = Table([[Paragraph('<b>สำหรับเจ้าหน้าที่ / Staff Only</b>', style=header_style)]],
-                              colWidths=[530],
-                              rowHeights=[25])
+                                colWidths=[530],
+                                rowHeights=[25])
 
         lab_test_header.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
@@ -1679,8 +1708,12 @@ def generate_request_pdf(service_request):
 
         if current_height > first_page_limit:
             data.append(PageBreak())
-            data.append(KeepTogether(lab_test_header))
+            current_height = 0
+        else:
             data.append(KeepTogether(Spacer(3, 3)))
+            current_height += 3
+        data.append(KeepTogether(lab_test_header))
+        data.append(KeepTogether(Spacer(3, 3)))
         data.append(lab_test_table)
 
     if service_request.samples:
