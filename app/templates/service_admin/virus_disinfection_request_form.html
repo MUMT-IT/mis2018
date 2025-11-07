@@ -399,7 +399,8 @@
             });
 
             if (isASTMSelected) {
-                surfaceTypeField.prop('disabled', false);
+                surfaceTypeField.prop('disabled', false).attr('required', true);
+                ;
             } else {
                 surfaceTypeField.each(function () {
                     let name = $(this).attr('name');
@@ -417,13 +418,15 @@
 
         function showSurfaceTypeOtherInput(subform) {
             const surfaceTypeField = subform.find('input[type="radio"][name$="surface_type"]:checked').val();
-            const surfaceTypeOtherField = subform.find('input[name$="surface_type_other"]').closest('.field');
+            const surfaceTypeOtherInput = subform.find('input[name$="surface_type_other"]');
+            const surfaceTypeOtherField = surfaceTypeOtherInput.closest('.field');
 
             if (surfaceTypeField && surfaceTypeField.includes('อื่นๆ โปรดระบุ')) {
                 surfaceTypeOtherField.show();
+                surfaceTypeOtherInput.prop('required', true);
             } else {
                 surfaceTypeOtherField.hide();
-                subform.find('input[name$="surface_type_other"]').val('');
+                surfaceTypeOtherInput.val('');
             }
         }
 
