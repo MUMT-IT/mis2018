@@ -319,13 +319,15 @@
 
         function showClenTypeOtherInput(subform) {
             const cleanTypeField = subform.find('input[type="radio"][name$="clean_type"]:checked').val();
-            const cleanTypeOtherField = subform.find('input[name$="clean_type_other"]').closest('.field');
+            const cleanTypeOtherInput = subform.find('input[name$="clean_type_other"]');
+            const cleanTypeOtherField = cleanTypeOtherInput.closest('.field');
 
             if (cleanTypeField && cleanTypeField.includes('อื่นๆ โปรดระบุ')) {
                 cleanTypeOtherField.show();
+                cleanTypeOtherInput.prop('required', true);
             } else {
                 cleanTypeOtherField.hide();
-                subform.find('input[name$="clean_type_other"]').val('');
+                cleanTypeOtherInput.val('');
             }
         }
 
