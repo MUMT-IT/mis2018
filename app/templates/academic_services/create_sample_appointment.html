@@ -101,7 +101,25 @@
                                         </p>
                                         {% set ns.index = ns.index + 1 %}
                                     {% elif item.type == 'text' %}
-                                        - {{ item.data }}<br/>
+                                        {% if ',' in item.data %}
+                                            <ul style="margin-bottom:0">
+                                                <li>
+                                                    {{ item.data.split(':', 1)[0] }} :
+                                                </li>
+                                            </ul>
+                                            <div style="margin-left: 1.75rem;">
+                                                {% set i = item.data.split(':', 1)[1] %}
+                                                {% for val in i.split(',') %}
+                                                    {% if val.strip() %}
+                                                        - {{ val.strip() }}<br/>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        {% else %}
+                                            <ul>
+                                                <li>{{ item.data }}</li>
+                                            </ul>
+                                        {% endif %}
                                     {% elif item.type == 'table' %}
                                         <table class="table is-bordered is-striped is-fullwidth mt-2">
                                             <thead>
