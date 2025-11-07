@@ -238,7 +238,8 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript"
+            src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
         $(document).ready(function () {
             moment.locale('th');
@@ -389,13 +390,15 @@
 
         function showSurfaceTypeOtherInput(subform) {
             const surfaceTypeField = subform.find('input[type="radio"][name$="surface_type"]:checked').val();
-            const surfaceTypeOtherField = subform.find('input[name$="surface_type_other"]').closest('.field');
+            const surfaceTypeOtherInput = subform.find('input[name$="surface_type_other"]');
+            const surfaceTypeOtherField = surfaceTypeOtherInput.closest('.field');
 
             if (surfaceTypeField && surfaceTypeField.includes('อื่นๆ โปรดระบุ')) {
                 surfaceTypeOtherField.show();
+                surfaceTypeOtherInput.prop('required', true);
             } else {
                 surfaceTypeOtherField.hide();
-                subform.find('input[name$="surface_type_other"]').val('');
+                surfaceTypeOtherInput.val('');
             }
         }
 

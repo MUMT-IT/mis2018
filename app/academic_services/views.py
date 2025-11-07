@@ -1380,7 +1380,7 @@ def generate_request_pdf(service_request):
                             )
 
     data = []
-    first_page_limit = 305
+    first_page_limit = 330 
     current_height = 0
     header_style = ParagraphStyle(
         'HeaderStyle',
@@ -1522,7 +1522,6 @@ def generate_request_pdf(service_request):
     data.append(KeepTogether(Spacer(3, 3)))
     data.append(KeepTogether(address_table))
     data.append(KeepTogether(customer_table))
-
     current_height += detail_style.leading
 
     index = 1
@@ -1557,9 +1556,11 @@ def generate_request_pdf(service_request):
             data.append(PageBreak())
             current_height = 0
         data.append(KeepTogether(Spacer(3, 3)))
+        current_height += detail_style.leading
         data.append(KeepTogether(header_table))
         current_height += detail_style.leading
         data.append(KeepTogether(Spacer(3, 3)))
+        current_height += detail_style.leading
 
         text_section = []
         for g in group['contents']:
