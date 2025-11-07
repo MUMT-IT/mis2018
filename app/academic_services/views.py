@@ -1588,7 +1588,21 @@ def generate_request_pdf(service_request):
                 text_section.append(f"{index}. {g['data'].strip()}")
                 index += 1
             elif g['type'] == 'text':
-                text_section.extend(g['data'].split("<br/>"))
+                text_content = g['data'].split("<br/>")
+                for t in text_content:
+                    text = t.strip()
+                    if not text:
+                        continue
+
+                    if ":" in text and "," in text:
+                        header, contents = text.split(":", 1)
+                        text_section.append(header.strip() + " " + ":")
+                        for c in contents.split(","):
+                            content = c.strip()
+                            if content:
+                                text_section.append(f"- {content}")
+                    else:
+                        text_section.append(text)
             elif g['type'] == 'table':
                 if text_section:
                     para = Paragraph("<br/>".join(text_section), style=detail_style)
