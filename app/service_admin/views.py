@@ -324,8 +324,36 @@ def request_index():
                )
         ).count()
         status_groups[key]['count'] = query
+    quotation_request_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=2),
+                                                                          or_(ServiceRequest.admin.has(
+                                                                              id=current_user.id),
+                                                                              ServiceRequest.sub_lab.has(
+                                                                                  ServiceSubLab.admins.any(
+                                                                                      ServiceAdmin.admin_id == current_user.id))))])
+    quotation_pending_approval_count = len(
+        [r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=5),
+                                                or_(ServiceRequest.admin.has(
+                                                    id=current_user.id),
+                                                    ServiceRequest.sub_lab.has(
+                                                        ServiceSubLab.admins.any(
+                                                            ServiceAdmin.admin_id == current_user.id))))])
+    waiting_sample_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=9),
+                                                                       or_(ServiceRequest.admin.has(
+                                                                           id=current_user.id),
+                                                                           ServiceRequest.sub_lab.has(
+                                                                               ServiceSubLab.admins.any(
+                                                                                   ServiceAdmin.admin_id == current_user.id))))])
+    testing_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=11),
+                                                                or_(ServiceRequest.admin.has(
+                                                                    id=current_user.id),
+                                                                    ServiceRequest.sub_lab.has(
+                                                                        ServiceSubLab.admins.any(
+                                                                            ServiceAdmin.admin_id == current_user.id))))])
     return render_template('service_admin/request_index.html', menu=menu, admin=admin,
-                           supervisor=supervisor, assistant=assistant, status_groups=status_groups)
+                           supervisor=supervisor, assistant=assistant, status_groups=status_groups,
+                           quotation_pending_approval_count=quotation_pending_approval_count,
+                           quotation_request_count=quotation_request_count, waiting_sample_count=waiting_sample_count,
+                           testing_count=testing_count)
 
 
 @service_admin.route('/api/request/index')
