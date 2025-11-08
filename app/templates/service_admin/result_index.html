@@ -11,7 +11,7 @@
                 <div class="column is-11">
                     <h1 class="title has-text-centered">รายงานผลการทดสอบ</h1>
                 </div>
-                <div class="tabs is-boxed is-centered">
+                <div class="tabs">
                     <ul>
                         <li {% if tab == 'pending' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('service_admin.result_index', tab='pending', menu=menu) }}">
