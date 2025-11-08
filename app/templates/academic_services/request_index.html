@@ -9,6 +9,20 @@
             opacity: 1 !important;
             transition: none !important;
         }
+        .has-horizontal-scroll {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .has-horizontal-scroll::-webkit-scrollbar {
+            height: 8px;
+        }
+        .has-horizontal-scroll::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 10px;
+        }
+        .has-horizontal-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
     </style>
 {% endblock %}
 {% block page_content %}
@@ -44,6 +58,93 @@
                 <div class="column is-11">
                     <h1 class="title has-text-centered">รายการคำขอรับบริการ</h1>
                 </div>
+                <div class="is-flex has-horizontal-scroll mb-5">
+                    <div class="column is-one-quarter mx-3">
+                        <div class="box card-hover">
+                        <span class="icon is-large has-text-info">
+                            <i class="fa-solid fa-file-signature fa-2x"></i>
+                        </span>
+                            <h2 class="title is-4 has-text-weight-bold mt-2">คำขอรับบริการ</h2>
+                            <div class="is-size-3 has-text-weight-bold has-text-info">{{ new_request_count }}</div>
+                            <p class="is-size-7 has-text-grey">รายการใหม่</p>
+                            <div class="buttons is-centered mt-4">
+                                <a href="{{ url_for('academic_services.request_index', menu='request') }}"
+                                   class="button is-info is-rounded is-small is-fullwidth"
+                                >
+                                    ดูทั้งหมด
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-one-quarter mx-3">
+                        <div class="box card-hover">
+                        <span class="icon is-large has-text-success">
+                            <i class="fa-solid fa-file-invoice fa-2x"></i>
+                        </span>
+                            <h2 class="title is-4 has-text-weight-bold mt-2">ใบเสนอราคา</h2>
+                            <div class="is-size-3 has-text-weight-bold has-text-success">{{ quotation_pending_approval_count }}</div>
+                            <p class="is-size-7 has-text-grey">รายการที่รอการอนุมัติ</p>
+                            <div class="buttons is-centered mt-4">
+                                <a href="{{ url_for('academic_services.quotation_index', menu='quotation') }}"
+                                   class="button is-success is-rounded is-small is-fullwidth"
+                                >
+                                    ดูทั้งหมด
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-one-quarter mx-3">
+                        <div class="box card-hover">
+                        <span class="icon is-large has-text-warning">
+                            <i class="fa-solid fa-truck fa-2x"></i>
+                        </span>
+                            <h2 class="title is-4 has-text-weight-bold mt-2">นัดหมายส่งตัวอย่าง</h2>
+                            <div class="is-size-3 has-text-weight-bold has-text-warning">{{ waiting_sample_count }}</div>
+                            <p class="is-size-7 has-text-grey">รายการที่รอนัดหมายส่งตัวอย่าง</p>
+                            <div class="buttons is-centered mt-4">
+                                <a href="{{ url_for('academic_services.sample_index', menu='sample') }}"
+                                   class="button is-warning is-rounded is-small is-fullwidth"
+                                >
+                                    ดูทั้งหมด
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-one-quarter mx-3">
+                        <div class="box card-hover">
+                        <span class="icon is-large has-text-primary">
+                            <i class="fa-solid fa-flask fa-2x"></i>
+                        </span>
+                            <h2 class="title is-4 has-text-weight-bold mt-2">รายการทดสอบ</h2>
+                            <div class="is-size-3 has-text-weight-bold has-text-primary">{{ testing_count }}</div>
+                            <p class="is-size-7 has-text-grey">รายการที่กำลังทดสอบ</p>
+                            <div class="buttons is-centered mt-4">
+                                <a href="{{ url_for('academic_services.request_index', menu='request') }}"
+                                   class="button is-primary is-rounded is-small is-fullwidth"
+                                >
+                                    ดูทั้งหมด
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-one-quarter mx-3">
+                        <div class="box card-hover">
+                        <span class="icon is-large has-text-danger">
+                            <i class="fa-solid fa-receipt fa-2x"></i>
+                        </span>
+                            <h2 class="title is-4 has-text-weight-bold mt-2">ใบแจ้งนี้</h2>
+                            <div class="is-size-3 has-text-weight-bold has-text-danger">{{ unpaid_count }}</div>
+                            <p class="is-size-7 has-text-grey">รายการที่ยังไม่ชำระ</p>
+                            <div class="buttons is-centered mt-4">
+                                <a href="{{ url_for('academic_services.invoice_index', menu='invoice') }}"
+                                   class="button is-danger is-rounded is-small is-fullwidth"
+                                >
+                                    ดูทั้งหมด
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                 </div>
                 <div class="buttons">
                     <a id="add_evt_btn" class="button is-info is-rounded"
                        href="{{ url_for('academic_services.lab_index', menu='new') }}">

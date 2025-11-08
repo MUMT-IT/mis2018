@@ -34,6 +34,76 @@
                 <div class="column is-11">
                     <h1 class="title has-text-centered">รายการคำขอรับบริการ</h1>
                 </div>
+                <div class="is-flex mb-5">
+                    <div class="column is-one-quarter mx-3">
+                        <div class="box card-hover">
+                        <span class="icon is-large has-text-info">
+                            <i class="fa-solid fa-file-signature fa-2x"></i>
+                        </span>
+                            <h2 class="title is-4 has-text-weight-bold mt-2">คำขอรับบริการ</h2>
+                            <div class="is-size-3 has-text-weight-bold has-text-info">{{ quotation_request_count }}</div>
+                            <p class="is-size-7 has-text-grey">รายการที่รอทำใบเสนอราคา</p>
+                            <div class="buttons is-centered mt-4">
+                                <a href="{{ url_for('service_admin.request_index', menu='request') }}"
+                                   class="button is-info is-rounded is-small is-fullwidth"
+                                >
+                                    ดูทั้งหมด
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-one-quarter mx-3">
+                        <div class="box card-hover">
+                            <span class="icon is-large has-text-success">
+                                <i class="fa-solid fa-file-invoice fa-2x"></i>
+                            </span>
+                            <h2 class="title is-4 has-text-weight-bold mt-2">ใบเสนอราคา</h2>
+                            <div class="is-size-3 has-text-weight-bold has-text-success">{{ quotation_pending_approval_count }}</div>
+                            <p class="is-size-7 has-text-grey">รายการที่รอลูกค้าอนุมัติ</p>
+                            <div class="buttons is-centered mt-4">
+                                <a href="{{ url_for('service_admin.quotation_index', menu='quotation', tab='all') }}"
+                                   class="button is-success is-rounded is-small is-fullwidth"
+                                >
+                                    ดูทั้งหมด
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-one-quarter mx-3">
+                        <div class="box card-hover">
+                            <span class="icon is-large has-text-warning">
+                                <i class="fa-solid fa-truck fa-2x"></i>
+                            </span>
+                            <h2 class="title is-4 has-text-weight-bold mt-2">นัดหมายส่งตัวอย่าง</h2>
+                            <div class="is-size-3 has-text-weight-bold has-text-warning">{{ waiting_sample_count }}</div>
+                            <p class="is-size-7 has-text-grey">รายการที่รอนัดหมายรับตัวอย่าง</p>
+                            <div class="buttons is-centered mt-4">
+                                <a href="{{ url_for('service_admin.sample_index', menu='sample') }}"
+                                   class="button is-warning is-rounded is-small is-fullwidth"
+                                >
+                                    ดูทั้งหมด
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-one-quarter mx-3">
+                        <div class="box card-hover">
+                        <span class="icon is-large has-text-primary">
+                            <i class="fa-solid fa-flask fa-2x"></i>
+                        </span>
+                            <h2 class="title is-4 has-text-weight-bold mt-2">รายการทดสอบ</h2>
+                            <div class="is-size-3 has-text-weight-bold has-text-primary">{{ testing_count }}</div>
+                            <p class="is-size-7 has-text-grey">รายการที่กำลังทดสอบ</p>
+                            <div class="buttons is-centered mt-4">
+                                <a href="{{ url_for('service_admin.test_item_index', menu='test_item') }}"
+                                   class="button is-primary is-rounded is-small is-fullwidth"
+                                >
+                                    ดูทั้งหมด
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <table id='requests' class="table is-fullwidth">
                     <thead>
                     <th>เลขใบคำร้องขอ</th>
