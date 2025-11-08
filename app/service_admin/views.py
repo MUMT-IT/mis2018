@@ -1973,19 +1973,44 @@ def address_index(customer_id):
 @service_admin.route('/invoice/index')
 @login_required
 def invoice_index():
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     is_central_admin = ServiceAdmin.query.filter_by(admin_id=current_user.id, is_central_admin=True).first()
-    return render_template('service_admin/invoice_index.html', menu=menu,
+    return render_template('service_admin/invoice_index.html', menu=menu, tab=tab,
                            is_central_admin=is_central_admin)
 
 
 @service_admin.route('/api/invoice/index')
 def get_invoices():
+    tab = request.args.get('tab')
+    today = arrow.now('Asia/Bangkok').date()
     query = ServiceInvoice.query.filter(or_(ServiceInvoice.creator_id == current_user.id,
                                             ServiceInvoice.quotation.has(ServiceQuotation.request.has(
                                                 ServiceRequest.sub_lab.has(
                                                     ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
                                                 )))))
+    if tab == 'draft':
+        query = query.filter(ServiceInvoice.sent_at == None, ServiceInvoice.head_approved_at == None,
+                             ServiceInvoice.assistant_approved_at == None, ServiceInvoice.file_attached_at == None,
+                             ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None)
+    elif tab == 'pending_supervisor':
+        query = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at == None,
+                             ServiceInvoice.assistant_approved_at == None, ServiceInvoice.file_attached_at == None,
+                             ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None)
+    elif tab == 'pending_assistant':
+        query = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at != None,
+                             ServiceInvoice.assistant_approved_at == None, ServiceInvoice.file_attached_at == None,
+                             ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None)
+    elif tab == 'pending_dean':
+        query = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at != None,
+                             ServiceInvoice.assistant_approved_at != None, ServiceInvoice.file_attached_at == None,
+                             ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None)
+    elif tab == 'waiting_payment':
+        query = query.filter(or_(ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None))
+    elif tab == 'payment':
+        query = query.filter(ServiceInvoice.is_paid != None)
+    else:
+        query = query
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
