@@ -1895,14 +1895,24 @@ def request_quotation(request_id):
 @academic_services.route('/customer/quotation/index')
 @login_required
 def quotation_index():
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
-    return render_template('academic_services/quotation_index.html', menu=menu)
+    return render_template('academic_services/quotation_index.html', menu=menu, tab=tab)
 
 
 @academic_services.route('/api/quotation/index')
 def get_quotations():
+    tab = request.args.get('tab')
     query = ServiceQuotation.query.filter(ServiceQuotation.request.has(customer_id=current_user.id),
                                           ServiceQuotation.approved_at != None)
+    if tab == 'pending':
+        query = query.filter(ServiceQuotation.confirmed_at == None, ServiceQuotation.cancelled_at == None)
+    elif tab == 'confirm':
+        query = query.filter(ServiceQuotation.confirmed_at != None)
+    elif tab == 'cancel':
+        query = query.filter(ServiceQuotation.cancelled_at != None)
+    else:
+        query = query
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
