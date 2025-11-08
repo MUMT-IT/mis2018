@@ -10,6 +10,46 @@
                 <div class="column is-11">
                     <h1 class="title has-text-centered">รายการทดสอบ</h1>
                 </div>
+                <div class="tabs is-boxed is-centered">
+                    <ul>
+                        <li {% if tab == 'not_started' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.test_item_index', tab='not_started', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-ban"></i></span>
+                                <span>ยังไม่ดำเนินการทดสอบ</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'testing' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.test_item_index', tab='testing', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-vial"></i></span>
+                                <span>กำลังทดสอบตัวอย่าง</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'edit_report' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.test_item_index', tab='edit_report', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-pencil-alt"></i></span>
+                                <span>ขอแก้ไขใบรายงานผล</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'pending_invoice' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.test_item_index', tab='pending_invoice', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
+                                <span>รอออกใบแจ้งหนี้</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'invoice' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.test_item_index', tab='invoice', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
+                                <span>ออกใบแจ้งหนี้แล้ว</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.test_item_index', tab='all', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ทั้งหมด</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
                 <table id='samples' class="table is-fullwidth">
                     <thead>
                         <th>เลขใบคำขอรับบริการ</th>
@@ -33,7 +73,7 @@
             $.fn.dataTable.moment('lll');
             $('#samples').DataTable({
                 ajax: {
-                    url: {{ url_for('service_admin.get_test_items')|tojson|safe}},
+                    url: {{ url_for('service_admin.get_test_items', tab=tab)|tojson|safe}},
                 },
                 order: [[1, 'desc']],
                 columns: [
@@ -75,7 +115,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if ((10 <= row.status_id <= 12) || (14 <= row.status_id <= 15)) {
+                            } else if (row.status_id == 10 || row.status_id == 11 || row.status_id == 14) {
                                 if (row.status_id == 10) {
                                     var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report';
                                     var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=report';
@@ -101,6 +141,15 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
+                            } else if (row.status_id == 12 || row.status_id == 15) {
+                                return `<span class="tag is-warning is-rounded">
+                                            <span class="icon">
+                                                <i class="fas fa-hourglass-half"></i>
+                                            </span>
+                                            <span>
+                                                รอยืนยันใบรายงานผล
+                                            </span>
+                                        </span>`;
                             } else {
                                 return ''
                             }
@@ -121,7 +170,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.status_id >= 14 && row.status_id <= 20 || row.status_id == 23) {
+                            } else if (row.status_id >= 16) {
                                invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
