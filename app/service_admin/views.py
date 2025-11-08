@@ -1104,15 +1104,29 @@ def view_sample_appointment(sample_id):
 @service_admin.route('/test-item/index')
 @login_required
 def test_item_index():
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
-    return render_template('service_admin/test_item_index.html', menu=menu)
+    return render_template('service_admin/test_item_index.html', menu=menu, tab=tab)
 
 
 @service_admin.route('/api/test-item/index')
 def get_test_items():
+    tab = request.args.get('tab')
     query = ServiceTestItem.query.filter(ServiceTestItem.request.has(ServiceRequest.sub_lab.has(
         ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
     )))
+    if tab == 'not_started':
+        query = query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 10)))
+    elif tab == 'testing':
+        query = query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(or_(ServiceStatus.status_id == 11,
+                                                             ServiceStatus.status_id == 12,
+                                                             ServiceStatus.status_id == 15))))
+    elif tab == 'edit_report':
+        query = query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 14)))
+    elif tab == 'pending_invoice':
+        query = query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 13)))
+    elif tab == 'invoice':
+        query = query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id >= 16)))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
