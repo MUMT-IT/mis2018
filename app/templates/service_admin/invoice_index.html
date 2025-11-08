@@ -14,6 +14,52 @@
                 <div class="column is-11">
                     <h1 class="title has-text-centered">รายการใบแจ้งหนี้</h1>
                 </div>
+                <div class="tabs">
+                    <ul>
+                        <li {% if tab == 'draft' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.invoice_index', tab='draft', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-clipboard"></i></span>
+                                <span>ร่างใบแจ้งหนี้</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'pending_supervisor' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.invoice_index', tab='pending_supervisor', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
+                                <span>รอหัวหน้าอนุมัติ</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'pending_assistant' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.invoice_index', tab='pending_assistant', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-clock"></i></span>
+                                <span>รอผู้ช่วยคณบดีอนุมัติ</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'pending_dean' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.invoice_index', tab='pending_dean', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-file-signature"></i></span>
+                                <span>รอคณบดีอนุมัติและออกเลข อว.</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'waiting_payment' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.invoice_index', tab='waiting_payment', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
+                                <span>รอชำระเงิน</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'payment' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.invoice_index', tab='payment', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                <span>ชำระเงินแล้ว</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.invoice_index', tab='all', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ทั้งหมด</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
                 <table id='results' class="table is-fullwidth">
                     <thead>
                     <th>เลขใบแจ้งหนี้</th>
@@ -60,7 +106,7 @@
             $.fn.dataTable.moment('lll');
             $('#results').DataTable({
                 ajax: {
-                    url: {{ url_for('service_admin.get_invoices')|tojson|safe}},
+                    url: {{ url_for('service_admin.get_invoices', tab=tab)|tojson|safe}},
                 },
                 order: [[1, 'desc']],
                 scrollX: true,
