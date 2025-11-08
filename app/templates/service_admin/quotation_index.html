@@ -15,7 +15,7 @@
     <section class="section">
         <div class="columns is-centered">
             {% include 'service_admin/menu.html' %}
-             <div class="column is-9">
+            <div class="column is-9">
                 <div class="column is-11">
                     <h1 class="title has-text-centered">รายการใบเสนอราคา</h1>
                 </div>
@@ -117,11 +117,12 @@
         });
     </script>
     <script>
-         function extractTextFromHTML(htmlString) {
-             const div = document.createElement('div');
-             div.innerHTML = htmlString;
-             return div.textContent.trim();
+        function extractTextFromHTML(htmlString) {
+            const div = document.createElement('div');
+            div.innerHTML = htmlString;
+            return div.textContent.trim();
         }
+
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
             $('#quotations').DataTable({
@@ -153,8 +154,7 @@
                             var status = row.admin_status
                             if (data !== null) {
                                 return `<span class="tag ${color}">${status}</span>`;
-                            }
-                            else {
+                            } else {
                                 return `<span class="tag is-info">ร่างใบเสนอราคา</span>`;
                             }
                         }
@@ -208,7 +208,7 @@
                                         '</div>' +
                                         '</div>'
                                 } else if (row.status_id === 4 && supervisor == 'True') {
-                                    var url = '/service_admin/quotation/supervisor/approve/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}' ;
+                                    var url = '/service_admin/quotation/supervisor/approve/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}';
                                     return '<div class="field has-addons">' +
                                         '<div class="control">' +
                                         '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +

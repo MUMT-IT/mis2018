@@ -20,6 +20,34 @@
                 <div class="column is-11">
                     <h1 class="title has-text-centered">นัดหมายส่งตัวอย่าง</h1>
                 </div>
+                <div class="tabs is-boxed is-centered">
+                    <ul>
+                        <li {% if tab == 'schedule' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.sample_index', tab='schedule', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-calendar"></i></span>
+                                <span>รอการนัดหมายส่งตัวอย่าง</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'delivery' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.sample_index', tab='delivery', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-shipping-fast"></i></span>
+                                <span>รอรับตัวอย่าง</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'received' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.sample_index', tab='received', menu=menu) }}">
+                                <span class="icon is-small"><i class="fa fa-check"></i></span>
+                                <span>ได้รับตัวอย่างแล้ว</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.sample_index', tab='all', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ทั้งหมด</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
                 <div class="table-container">
                     <table id='samples' class="table is-fullwidth">
                         <thead>
@@ -68,7 +96,7 @@
             $.fn.dataTable.moment('lll');
             $('#samples').DataTable({
                 ajax: {
-                    url: {{ url_for('service_admin.get_samples')|tojson|safe}},
+                    url: {{ url_for('service_admin.get_samples', tab=tab)|tojson|safe}},
                 },
                 order: [[2, 'desc']],
                 columns: [
@@ -153,8 +181,7 @@
                             var status = row.sample_condition_status
                             if (row.sample_condition_status !== null) {
                                 return `<span class="tag ${color}">${status}</span>`;
-                            }
-                            else {
+                            } else {
                                 return `<span class="tag is-danger">ยังไม่ได้รับตัวอย่าง</span>`;
                             }
                         }
@@ -164,8 +191,7 @@
                         render: function (data) {
                             if (data !== null) {
                                 return `<span class="tag ${data.color}">${data.status}</span>`;
-                            }
-                            else {
+                            } else {
                                 return `<span class="tag is-danger">ยังไม่ได้ส่งเอกสาร</span>`;
                             }
                         }
@@ -196,8 +222,8 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.received_at){
-                                var request_url = '/service_admin/request/view/' + row.request_id+ '?menu=request';
+                            } else if (row.received_at) {
+                                var request_url = '/service_admin/request/view/' + row.request_id + '?menu=request';
                                 var view_url = '/service_admin/sample/appointment/view/' + data + '?menu=' + '{{ menu }}'
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
