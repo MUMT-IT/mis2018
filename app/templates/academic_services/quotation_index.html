@@ -10,6 +10,34 @@
                 <div class="column is-11">
                     <h1 class="title has-text-centered">รายการใบเสนอราคา</h1>
                 </div>
+                <div class="tabs">
+                    <ul>
+                        <li {% if tab == 'pending' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.quotation_index', tab='pending', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
+                                <span>รอยืนยัน</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'confirm' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.quotation_index', tab='confirm', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                <span>ยืนยันแล้ว</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'cancel' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.quotation_index', tab='cancel', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-times"></i></span>
+                                <span>ยกเลิก</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.quotation_index', tab='all', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ทั้งหมด</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
                 <table id='quotations' class="table is-fullwidth">
                     <thead>
                         <th>เลขใบเสนอราคา</th>
@@ -33,7 +61,7 @@
             $.fn.dataTable.moment('lll');
             $('#quotations').DataTable({
                 ajax: {
-                    url: {{ url_for('academic_services.get_quotations')|tojson|safe}},
+                    url: {{ url_for('academic_services.get_quotations', tab=tab)|tojson|safe}},
                 },
                 order: [[1, 'desc']],
                 columns: [
