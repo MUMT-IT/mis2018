@@ -22,19 +22,19 @@
                         <li {% if tab == 'edit' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('service_admin.result_index', tab='edit', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-pencil-alt"></i></span>
-                                <span>ขอแก้ไข</span>
+                                <span>ขอแก้ไขผล</span>
                             </a>
                         </li>
                         <li {% if tab == 'approve' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('service_admin.result_index', tab='approve', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
-                                <span>รอยืนยัน</span>
+                                <span>รอยืนยันผล</span>
                             </a>
                         </li>
                         <li {% if tab == 'confirm' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('service_admin.result_index', tab='confirm', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-check"></i></span>
-                                <span>ยืนยันแล้ว</span>
+                                <span>ยืนยันผลแล้ว</span>
                             </a>
                         </li>
                         <li {% if tab == 'all' %}class="is-active"{% endif %}>

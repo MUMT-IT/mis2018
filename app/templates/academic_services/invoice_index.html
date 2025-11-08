@@ -21,6 +21,40 @@
                 <div class="column is-11">
                     <h1 class="title has-text-centered">รายการใบแจ้งหนี้</h1>
                 </div>
+                <div class="tabs">
+                    <ul>
+                        <li {% if tab == 'pending' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.invoice_index', tab='pending', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
+                                <span>รอชำระเงิน</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'verify' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.invoice_index', tab='verify', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-clipboard"></i></span>
+                                <span>รอเจ้าหน้าที่ตรวจสอบ</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'payment' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.invoice_index', tab='payment', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                <span>ชำระเงินแล้ว</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'overdue' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.invoice_index', tab='overdue', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-circle-exclamation"></i></span>
+                                <span>ค้างชำระ</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.invoice_index', tab='all', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ทั้งหมด</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
                 <table id='invoices' class="table is-fullwidth">
                     <thead>
                         <th>เลขใบแจ้งหนี้</th>
@@ -87,7 +121,7 @@
             $.fn.dataTable.moment('lll');
             $('#invoices').DataTable({
                 ajax: {
-                    url: {{ url_for('academic_services.get_invoices')|tojson|safe}},
+                    url: {{ url_for('academic_services.get_invoices', tab=tab)|tojson|safe}},
                 },
                 order: [[1, 'desc']],
                 scrollX: true,
