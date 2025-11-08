@@ -318,10 +318,11 @@ def request_index():
     for key, group in status_groups.items():
         query = ServiceRequest.query.filter(
             ServiceRequest.status.has(ServiceStatus.status_id.in_(group['id'])
-        ), or_(ServiceRequest.admin.has(id=current_user.id),
-               ServiceRequest.sub_lab.has(ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-                                          )
-               )
+                                      ), or_(ServiceRequest.admin.has(id=current_user.id),
+                                             ServiceRequest.sub_lab.has(
+                                                 ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+                                                 )
+                                             )
         ).count()
         status_groups[key]['count'] = query
     quotation_request_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=2),
@@ -1119,8 +1120,8 @@ def get_test_items():
         query = query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 10)))
     elif tab == 'testing':
         query = query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(or_(ServiceStatus.status_id == 11,
-                                                             ServiceStatus.status_id == 12,
-                                                             ServiceStatus.status_id == 15))))
+                                                                                       ServiceStatus.status_id == 12,
+                                                                                       ServiceStatus.status_id == 15))))
     elif tab == 'edit_report':
         query = query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 14)))
     elif tab == 'pending_invoice':
@@ -1682,16 +1683,14 @@ def download_file(key):
 @service_admin.route('/result/index')
 @login_required
 def result_index():
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
-    return render_template('service_admin/result_index.html', menu=menu)
+    return render_template('service_admin/result_index.html', menu=menu, tab=tab)
 
 
 @service_admin.route('/api/result/index')
 def get_results():
-    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
-    sub_labs = []
-    for a in admin:
-        sub_labs.append(a.sub_lab.code)
+    tab = request.args.get('tab')
     query = ServiceResult.query.filter(or_(ServiceResult.creator_id == current_user.id,
                                            ServiceResult.request.has(ServiceRequest.sub_lab.has(
                                                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
@@ -1699,6 +1698,21 @@ def get_results():
                                            )
                                            )
                                        )
+    if tab == 'pending':
+        query = query.filter(or_(ServiceResult.status_id == None,
+                                 ServiceResult.status.has(or_(
+                                     ServiceStatus.status_id == 10, ServiceStatus.status_id == 11)
+                                 )
+                                 )
+                             )
+    elif tab == 'edit':
+        query = query.filter(ServiceResult.status.has(ServiceStatus.status_id == 14))
+    elif tab == 'approve':
+        query = query.filter(ServiceResult.status.has(or_(ServiceStatus.status_id == 12, ServiceStatus.status_id == 15)))
+    elif tab == 'confirm':
+        query = query.filter(ServiceResult.status.has(ServiceStatus.status_id == 13))
+    else:
+        query = query
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
