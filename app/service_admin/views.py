@@ -1008,18 +1008,26 @@ def submit_same_address(address_id):
 @login_required
 def sample_index():
     menu = request.args.get('menu')
-    return render_template('service_admin/sample_index.html', menu=menu)
+    tab = request.args.get('tab')
+    return render_template('service_admin/sample_index.html', menu=menu, tab=tab)
 
 
 @service_admin.route('/api/sample/index')
 def get_samples():
-    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
-    sub_labs = []
-    for a in admin:
-        sub_labs.append(a.sub_lab.code)
+    tab = request.args.get('tab')
     query = ServiceSample.query.filter(ServiceSample.request.has(ServiceRequest.sub_lab.has(
         ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
     )))
+    if tab == 'schedule':
+        query = query.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
+                             ServiceSample.received_at == None)
+    elif tab == 'delivery':
+        query = query.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
+                             ServiceSample.received_at == None)
+    elif tab == 'received':
+        query = query.filter(ServiceSample.received_at != None)
+    else:
+        query = query
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
