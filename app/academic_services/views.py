@@ -3016,9 +3016,25 @@ def get_receipts():
 @academic_services.route('/customer/result/index')
 @login_required
 def result_index():
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     results = ServiceResult.query.filter(ServiceResult.request.has(customer_id=current_user.id))
-    return render_template('academic_services/result_index.html', results=results, menu=menu)
+    if tab == 'pending':
+        results = results.filter(or_(ServiceResult.status_id == None,
+                                 ServiceResult.status.has(or_(
+                                     ServiceStatus.status_id == 10, ServiceStatus.status_id == 11)
+                                 )
+                                 )
+                             )
+    elif tab == 'edit':
+        results = results.filter(ServiceResult.status.has(ServiceStatus.status_id == 14))
+    elif tab == 'approve':
+        results = results.filter(ServiceResult.status.has(or_(ServiceStatus.status_id == 12, ServiceStatus.status_id == 15)))
+    elif tab == 'confirm':
+        results = results.filter(ServiceResult.status.has(ServiceStatus.status_id == 13))
+    else:
+        results = results
+    return render_template('academic_services/result_index.html', results=results, menu=menu, tab=tab)
 
 
 @academic_services.route('/customer/result/confirm/<int:result_id>', methods=['GET', 'POST'])
