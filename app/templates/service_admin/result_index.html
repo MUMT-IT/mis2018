@@ -11,6 +11,40 @@
                 <div class="column is-11">
                     <h1 class="title has-text-centered">รายงานผลการทดสอบ</h1>
                 </div>
+                <div class="tabs is-boxed is-centered">
+                    <ul>
+                        <li {% if tab == 'pending' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.result_index', tab='pending', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-clock"></i></span>
+                                <span>รอออกผล</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'edit' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.result_index', tab='edit', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-pencil-alt"></i></span>
+                                <span>ขอแก้ไข</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'approve' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.result_index', tab='approve', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
+                                <span>รอยืนยัน</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'confirm' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.result_index', tab='confirm', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                <span>ยืนยันแล้ว</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.result_index', tab='all', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ทั้งหมด</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
                 <table id='results' class="table is-fullwidth">
                     <thead>
                     <th>เลขใบคำร้องขอ</th>
@@ -36,7 +70,7 @@
             $.fn.dataTable.moment('lll');
             $('#results').DataTable({
                 ajax: {
-                    url: {{ url_for('service_admin.get_results')|tojson|safe }},
+                    url: {{ url_for('service_admin.get_results', tab=tab)|tojson|safe }},
                 },
                 order: [[2, 'desc']],
                 scrollX: true,
@@ -120,7 +154,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if ((10 <= row.status_id <= 12) || (14 <= row.status_id <= 15)) {
+                            } else if (row.status_id == 10 || row.status_id == 11 || row.status_id == 14) {
                                 if (row.status_id == 10) {
                                     var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report';
                                     var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=report';
@@ -146,7 +180,16 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else {
+                            } else if (row.status_id == 12 || row.status_id == 15) {
+                                return `<span class="tag is-warning is-rounded">
+                                            <span class="icon">
+                                                <i class="fas fa-hourglass-half"></i>
+                                            </span>
+                                            <span>
+                                                รอยืนยันใบรายงานผล
+                                            </span>
+                                        </span>`;
+                            }  else {
                                 var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report';
                                 var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=report';
                                 return '<div class="field has-addons">' +
