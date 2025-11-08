@@ -12,109 +12,143 @@
     </style>
 {% endblock %}
 {% block page_content %}
-{% include"academic_services/customer_nav.html" %}
-<section class="section">
-    {% include 'messages.html' %}
-    <div class="columns is-centered">
-        {% include 'academic_services/menu.html' %}
-        <div class="column is-9">
-            <div class="column is-11">
-                <h1 class="title has-text-centered">รายงานผลการทดสอบ</h1>
-            </div>
-            <table id='results' class="table is-fullwidth">
-                <thead>
-                <th>เลขใบคำขอรับบริการ</th>
-                <th>หมายเลขติดตามพัสดุ</th>
-                <th>วัน-เวลาที่ออกผล</th>
-                <th>สถานะ</th>
-                <th>ผลการทดสอบ</th>
-                <th>รายละเอียดการแก้ไข</th>
-                <th></th>
-                </thead>
-                <tbody>
-                {% for result in results|sort(attribute='created_at', reverse = True) %}
-                <tr>
-                    <td>{{ result.request.request_no }}</td>
-                    <td>{{ result.tracking_number or '' }}</td>
-                    <td>{{ result.released_at|localdatetime or '' }}</td>
-                    <td>
+    {% include"academic_services/customer_nav.html" %}
+    <section class="section">
+        {% include 'messages.html' %}
+        <div class="columns is-centered">
+            {% include 'academic_services/menu.html' %}
+            <div class="column is-9">
+                <div class="column is-11">
+                    <h1 class="title has-text-centered">รายงานผลการทดสอบ</h1>
+                </div>
+                <div class="tabs">
+                    <ul>
+                        <li {% if tab == 'pending' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.result_index', tab='pending', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-clock"></i></span>
+                                <span>รอออกผล</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'edit' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.result_index', tab='edit', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-pencil-alt"></i></span>
+                                <span>ขอแก้ไขผล</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'approve' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.result_index', tab='approve', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
+                                <span>รอยืนยันผล</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'confirm' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.result_index', tab='confirm', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                <span>ยืนยันผลแล้ว</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.result_index', tab='all', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ทั้งหมด</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <table id='results' class="table is-fullwidth">
+                    <thead>
+                    <th>เลขใบคำขอรับบริการ</th>
+                    <th>หมายเลขติดตามพัสดุ</th>
+                    <th>วัน-เวลาที่ออกผล</th>
+                    <th>สถานะ</th>
+                    <th>ผลการทดสอบ</th>
+                    <th>รายละเอียดการแก้ไข</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    {% for result in results|sort(attribute='created_at', reverse = True) %}
+                        <tr>
+                            <td>{{ result.request.request_no }}</td>
+                            <td>{{ result.tracking_number or '' }}</td>
+                            <td>{{ result.released_at|localdatetime or '' }}</td>
+                            <td>
                         <span class="tag {{ result.customer_status.color }}">
                             {{ result.customer_status.status }}
                         </span>
-                    </td>
-                    <td>
-                        {% for item in result.result_items %}
-                            {% if item.final_file %}
-                                <div class="field has-addons">
-                                    <div class="control">
-                                        <a {% if result.status.status_id == 22 %}
-                                                class="button is-small is-link is-light is-rounded"
-                                                href="{{ url_for('academic_services.download_file', key=item.final_file,
+                            </td>
+                            <td>
+                                {% for item in result.result_items %}
+                                    {% if item.final_file %}
+                                        <div class="field has-addons">
+                                            <div class="control">
+                                                <a {% if result.status.status_id == 22 %}
+                                                    class="button is-small is-link is-light is-rounded"
+                                                    href="{{ url_for('academic_services.download_file', key=item.final_file,
                                                 download_filename=item.report_language + ' ' + '(ฉบับจริง)' + '.pdf') }}"
-                                           {% else %}
-                                                class="button is-small is-link is-light is-rounded Warn"
-                                           {% endif %}
-                                        >
-                                            <span>{{ item.report_language + ' ' + '(ฉบับจริง)' or 'ไม่ระบุภาษา' }}</span>
-                                            <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                        </a>
-                                    </div>
-                                </div>
-                            {% elif item.draft_file %}
-                                <div class="field has-addons">
-                                    <div class="control">
-                                        <a class="button is-small is-link is-light is-rounded"
-                                           href="{{ url_for('academic_services.download_file', key=item.draft_file,
+                                                {% else %}
+                                                    class="button is-small is-link is-light is-rounded Warn"
+                                                {% endif %}
+                                                >
+                                                    <span>{{ item.report_language + ' ' + '(ฉบับจริง)' or 'ไม่ระบุภาษา' }}</span>
+                                                    <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    {% elif item.draft_file %}
+                                        <div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-link is-light is-rounded"
+                                                   href="{{ url_for('academic_services.download_file', key=item.draft_file,
                                                        download_filename=item.report_language +  ' ' +'(ฉบับร่าง)' + '.pdf') }}">
-                                            <span>{{ item.report_language +  ' ' +'(ฉบับร่าง)' or 'ไม่ระบุภาษา' }}</span>
-                                            <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                        </a>
-                                    </div>
-                                </div>
-                            {% else %}
-                                {{ '' }}
-                            {% endif %}
-                        {% endfor %}
-                    </td>
-                    <td>
-                        {{ result.note or '' }}
-                        {% if result.status_note %}
-                            <span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if result.request.status.status_id == 12 %}
-                            <div id="result-form"></div>
-                            <div class="field has-addons">
-                                <div class="control">
-                                    <a class="button is-small is-success is-rounded"
-                                       href="{{ url_for('academic_services.confirm_result', result_id=result.id,
+                                                    <span>{{ item.report_language +  ' ' +'(ฉบับร่าง)' or 'ไม่ระบุภาษา' }}</span>
+                                                    <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        {{ '' }}
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td>
+                                {{ result.note or '' }}
+                                {% if result.status_note %}
+                                    <span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if result.request.status.status_id == 12 %}
+                                    <div id="result-form"></div>
+                                    <div class="field has-addons">
+                                        <div class="control">
+                                            <a class="button is-small is-success is-rounded"
+                                               href="{{ url_for('academic_services.confirm_result', result_id=result.id,
                                                        menu=menu) }}">
-                                        <span class="icon is-small"><i class="fas fa-check"></i></span>
-                                        <span>ยืนยัน</span>
-                                    </a>
-                                </div>
-                                <div class="control">
-                                    <a class="button is-small is-warning is-rounded"
-                                       hx-swap="innerHTML"
-                                       hx-target="#result-form"
-                                       hx-get="{{ url_for('academic_services.edit_result', result_id=result.id, menu=menu) }}">
-                                        <span class="icon is-small"><i class="fas fa-pen"></i></span>
-                                        <span>ขอแก้ไข</span>
-                                    </a>
-                                </div>
-                            </div>
-                        {% else %}
-                            {{ '' }}
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-                </tbody>
-            </table>
+                                                <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                                <span>ยืนยัน</span>
+                                            </a>
+                                        </div>
+                                        <div class="control">
+                                            <a class="button is-small is-warning is-rounded"
+                                               hx-swap="innerHTML"
+                                               hx-target="#result-form"
+                                               hx-get="{{ url_for('academic_services.edit_result', result_id=result.id, menu=menu) }}">
+                                                <span class="icon is-small"><i class="fas fa-pen"></i></span>
+                                                <span>ขอแก้ไข</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    {{ '' }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
-</section>
+    </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
