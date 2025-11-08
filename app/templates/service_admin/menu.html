@@ -20,14 +20,14 @@
             </li>
             <li>
                 <a {% if menu=='sample' %} class="is-active" {% endif %}  href="{{ url_for('service_admin.sample_index',
-                    menu='sample') }}">
+                    menu='sample', tab='all') }}">
                     <span class="icon"><i class="fas fa-truck"></i></span>
                     <span>นัดหมายส่งตัวอย่าง</span>
                 </a>
             </li>
             <li>
                 <a {% if menu=='test_item' %} class="is-active" {% endif %}  href="{{ url_for('service_admin.test_item_index',
-                    menu='test_item') }}">
+                    menu='test_item', tab='all') }}">
                     <span class="icon"><i class="fas fa-vial"></i></span>
                     <span>รายการทดสอบ</span>
                 </a>
@@ -35,7 +35,7 @@
             <li>
             <li>
                 <a {% if menu=='invoice' %} class="is-active" {% endif %} href="{{ url_for('service_admin.invoice_index',
-                    menu='invoice') }}">
+                    menu='invoice', tab='all') }}">
                     <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>
                     <span>ใบแจ้งหนี้</span>
                 </a>
@@ -50,7 +50,7 @@
             </li>
             <li>
                 <a {% if menu=='report' %} class="is-active" {% endif %} href="{{ url_for('service_admin.result_index',
-                    menu='report') }}">
+                    menu='report', tab='all') }}">
                     <span class="icon"><i class="fas fa-file-alt"></i></span>
                     <span>รายงานผลการทดสอบ</span>
                 </a>
