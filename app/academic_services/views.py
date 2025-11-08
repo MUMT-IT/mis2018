@@ -2422,9 +2422,20 @@ def submit_same_address(address_id):
 @academic_services.route('/customer/sample/index')
 @login_required
 def sample_index():
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     samples = ServiceSample.query.filter(ServiceSample.request.has(customer_id=current_user.id))
-    return render_template('academic_services/sample_index.html', samples=samples, menu=menu)
+    if tab == 'schedule':
+        samples = samples.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
+                             ServiceSample.received_at == None)
+    elif tab == 'delivery':
+        samples = samples.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
+                             ServiceSample.received_at == None)
+    elif tab == 'received':
+        samples = samples.filter(ServiceSample.received_at != None)
+    else:
+        samples = samples
+    return render_template('academic_services/sample_index.html', samples=samples, menu=menu, tab=tab)
 
 
 @academic_services.route('/customer/sample/add/<int:sample_id>', methods=['GET', 'POST'])
