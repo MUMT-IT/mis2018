@@ -317,6 +317,12 @@
             });
         }
 
+        function addRequiredField(subform) {
+            const cleanTypeInput = subform.find('input[name$="clean_type"]');
+
+            cleanTypeInput.prop('required', true);
+        }
+
         function showClenTypeOtherInput(subform) {
             const cleanTypeField = subform.find('input[type="radio"][name$="clean_type"]:checked').val();
             const cleanTypeOtherInput = subform.find('input[name$="clean_type_other"]');
@@ -334,6 +340,7 @@
         $('.subform-card').each(function () {
             const subform = $(this);
             toggleTable();
+            addRequiredField(subform);
             showClenTypeOtherInput(subform);
             subform.find('input[type="radio"][name$="clean_type"]').change(function () {
                 showClenTypeOtherInput(subform);
