@@ -258,60 +258,47 @@ def request_index():
         sub_labs.append(a.sub_lab.code)
 
     status_groups = {
-        'check_request': {
-            'id': [2],
-            'name': 'ตรวจสอบคำขอที่ลูกค้าส่งเข้ามา',
-            'color': 'is-info'
+        'create_quotation': {
+            'id': [2, 3, 4, 5],
+            'name': 'รอออก/ยืนยันใบเสนอราคา',
+            'color': 'is-info',
+            'icon': '<i class="fas fa-file-signature"></i>'
         },
-        'draft_quotation': {
-            'id': [3],
-            'name': 'ร่างใบเสนอราคา',
-            'color': 'is-light'
+        'received_sample': {
+            'id': [6, 8, 9],
+            'name': 'รอรับตัวอย่าง',
+            'color': 'is-info',
+            'icon': '<i class="fas fa-people-carry"></i>'
         },
-        'wait_approved_quotation': {
-            'id': [4],
-            'name': 'รอหัวหน้าอนุมัติใบเสนอราคา',
-            'color': 'is-warning'
-        },
-        'notify_quotation': {
-            'id': [5, 6, 8],
-            'name': 'แจ้งใบเสนอราคาให้ลูกค้าพร้อมรอการยืนยัน',
-            'color': 'is-link'
-        },
-        'sample_received': {
-            'id': [9],
-            'name': 'รับตัวอย่างเข้าสู่ระบบ และเตรียมการตรวจวิเคราะห์',
-            'color': 'is-success'
-        },
-        'wait_test': {
+        'waiting_test': {
             'id': [10],
-            'name': 'กำลังดำเนินการตรวจวิเคราะห์',
-            'color': 'is-warning'
+            'name': 'รอทดสอบตัวอย่าง',
+            'color': 'is-info',
+            'icon': '<i class="fas fa-vial"></i>'
         },
-        'create_report': {
-            'id': [11],
-            'name': 'จัดทำใบรายงานผลฉบับร่าง',
-            'color': 'is-light'
-        },
-        'send_report': {
-            'id': [12],
-            'name': 'ส่งรายงานให้ลูกค้าตรวจทาน',
-            'color': 'is-success'
+        'waiting_report': {
+            'id': [11, 12, 14, 15],
+            'name': 'รอออกใบรายงานผล',
+            'color': 'is-info',
+            'icon': '<i class="fas fa-file-invoice"></i>'
         },
         'create_invoice': {
-            'id': [13, 16, 17, 18, 19, 20],
-            'name': 'ออกใบแจ้งหนี้หลังลูกค้ายืนยันใบรายงานผลฉบับร่าง',
-            'color': 'is-info'
+            'id': [13, 16, 17, 18, 19],
+            'name': 'รอออก/ยืนยันใบแจ้งหนี้',
+            'color': 'is-info',
+            'icon': '<i class="fas fa-file-invoice-dollar"></i>'
         },
-        'check_payment': {
-            'id': [21],
-            'name': 'ตรวจสอบหลักฐานการชำระเงิน',
-            'color': 'is-warning'
+        'wait_payment': {
+            'id': [20, 21],
+            'name': 'รอชำระเงิน',
+            'color': 'is-info',
+            'icon': '<i class="fas fa-money-check-alt"></i>'
         },
         'confirm_payment': {
-            'id': [22],
-            'name': 'ยืนยันการชำระเงิน และเผยแพร่ใบรายงานผลฉบับจริงให้ลูกค้า',
-            'color': 'is-success'
+            'id': [20],
+            'name': 'ชำระเงินสำเร็จ',
+            'color': 'is-light',
+            'icon': '<i class="fas fa-check"></i>'
         }
     }
 
