@@ -7,28 +7,6 @@
         <div class="columns is-centered">
             <div class="column">
                 {% include 'service_admin/menu.html' %}
-                <div class="column">
-                    <div class="box card-hover">
-                        <h3 class="title is-5 mb-4">
-                            <span class="icon"><i class="fas fa-clipboard-list"></i></span>
-                            <span>สถานะคำขอของฉัน</span>
-                        </h3>
-                        <div class="menu">
-                            <ul class="menu-list grid">
-                                {% for key, group in status_groups.items() %}
-                                    <li>
-                                        <a class="filter-btn" id="{{ group.id }}">
-                                            <span class="tag is-rounded {{ group.color }}"
-                                                  style="width:0.8rem;height:0.8rem;padding:0;"></span>
-                                            <span>{{ group.name }}</span>
-                                            <span class="tag is-danger is-rounded">{{ group.count }}</span>
-                                        </a>
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
             </div>
             <div class="column is-9">
                 <div class="column is-11">
