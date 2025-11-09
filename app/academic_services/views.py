@@ -1212,53 +1212,45 @@ def request_index():
     status_groups = {
         'send_request': {
             'id': [1, 2],
-            'name': 'ส่งคำขอรับบริการ',
-            'color': 'is-info'
-        },
-        'wait_quotation': {
-            'id': [3, 4],
-            'name': 'รอเจ้าหน้าที่จัดทำใบเสนอราคา',
-            'color': 'is-warning'
+            'name': 'รอส่งคำขอรับบริการ',
+            'color': 'is-info',
+            'icon': '<i class="fas fa-paper-plane"></i>'
         },
         'confirm_quotation': {
-            'id': [5, 6, 8],
-            'name': 'ยืนยันใบเสนอราคาและกำหนดส่งตัวอย่าง',
-            'color': 'is-success'
+            'id': [3, 4, 5],
+            'name': 'รอยืนยันใบเสนอราคา',
+            'color': 'is-info',
+            'icon': '<i class="fas fa-file-invoice"></i>'
         },
         'send_sample': {
-            'id': [9],
-            'name': 'ส่งตัวอย่างตามวันที่กำหนด',
-            'color': 'is-link'
+            'id': [6, 8, 9],
+            'name': 'รอส่งตัวอย่าง',
+            'color': 'is-info',
+            'icon': '<i class="fas fa-truck"></i>'
         },
         'wait_test': {
-            'id': [10],
-            'name': 'รอตรวจวิเคราะห์',
-            'color': 'is-warning'
+            'id': [10, 11, 14],
+            'name': 'รอทดสอบตัวอย่าง',
+            'color': 'is-info',
+            'icon': '<i class="fas fa-vial"></i>'
         },
         'wait_report': {
-            'id': [11],
-            'name': 'รอผลตรวจใบรายงานผลฉบับร่าง',
-            'color': 'is-warning'
+            'id': [12, 15],
+            'name': 'รอยืนยันใบรายงานผลฉบับร่าง',
+            'color': 'is-info',
+            'icon': '<i class="fas fa-clipboard-check"></i>'
         },
-        'confirm_report': {
-            'id': [12],
-            'name': 'ตรวจสอบและยืนยันใบรายงานผฉบับร่าง',
-            'color': 'is-info'
-        },
-        'wait_invoice': {
-            'id': [13, 16, 17, 18, 19],
-            'name': 'รอรับใบแจ้งหนี้',
-            'color': 'is-warning'
-        },
-        'payment': {
-            'id': [20, 21],
-            'name': 'ชำระเงินและอัปโหลดหลักฐาน',
-            'color': 'is-danger'
+        'wait_payment': {
+            'id': [13, 16, 17, 18, 19, 20, 21],
+            'name': 'รอชำระเงิน',
+            'color': 'is-info',
+            'icon': '<i class="fas fa-money-check-alt"></i>'
         },
         'download_report': {
             'id': [22],
             'name': 'ดาวโหดใบรายงานผลฉบับจริง',
-            'color': 'is-success'
+            'color': 'is-info',
+            'icon': '<i class="fas fa-download"></i>'
         }
     }
 
@@ -1269,27 +1261,7 @@ def request_index():
         ).count()
 
         status_groups[key]['count'] = query
-    new_request_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
-                                                                    ServiceRequest.status.has(
-                                                                        or_(ServiceStatus.status_id == 1,
-                                                                            ServiceStatus.status_id == 2)))])
-    quotation_pending_approval_count = len(
-        [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
-                                                ServiceRequest.status.has(ServiceStatus.status_id == 5))])
-    waiting_sample_count = len(
-        [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
-                                                ServiceRequest.status.has(or_(ServiceStatus.status_id == 8,
-                                                                              ServiceStatus.status_id == 9)))])
-    testing_count = len(
-        [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
-                                                ServiceRequest.status.has(ServiceStatus.status_id == 11))])
-    unpaid_count = len(
-        [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
-                                                ServiceRequest.status.has(ServiceStatus.status_id == 19))])
-
-    return render_template('academic_services/request_index.html', menu=menu, status_groups=status_groups,
-                           new_request_count=new_request_count, quotation_pending_approval_count=quotation_pending_approval_count,
-                           waiting_sample_count=waiting_sample_count, testing_count=testing_count, unpaid_count=unpaid_count)
+    return render_template('academic_services/request_index.html', menu=menu, status_groups=status_groups)
 
 
 @academic_services.route('/api/request/index')
