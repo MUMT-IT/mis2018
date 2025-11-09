@@ -90,6 +90,23 @@
         });
     }
 
+    function addRequiredField(subform) {
+        const testMethodInput = subform.find('input[name$="test_method"]');
+        const injectTypeInput = subform.find('input[name$="inject_type"]');
+        const productPreparationInput = subform.find('input[name$="product_preparation"]');
+
+        const checkedCount = testMethodInput.filter(':checked').length;
+        testMethodInput.prop('required', checkedCount === 0);
+
+        testMethodInput.on('change', function () {
+            const checkedCount = testMethodInput.filter(':checked').length;
+            testMethodInput.prop('required', checkedCount === 0);
+        });
+
+        injectTypeInput.prop('required', true);
+        productPreparationInput.prop('required', true);
+    }
+
     function toggleSurfaceTypeInput(subform) {
         const surfaceTypeField = subform.find('input[name$="surface_type"]');
         const surfaceTypeOtherField = subform.find('input[name$="surface_type_other"]');
@@ -134,6 +151,7 @@
     $('.subform-card').each(function () {
         const subform = $(this);
         toggleTable();
+        addRequiredField(subform);
         toggleSurfaceTypeInput(subform);
         showSurfaceTypeOtherInput(subform);
 
