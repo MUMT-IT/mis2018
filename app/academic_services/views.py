@@ -862,7 +862,10 @@ def get_collect_sample_during_testing():
     if collect_sample_during_testing == 'อื่นๆ โปรดระบุ':
         html = f'''
             <div class="field">
-                <label class="label">{label}</label>
+                <label class="label">
+                    {label}
+                    <span class="has-text-danger">*</span>
+                </label>
                 <div class="control">
                     <input name="collect_sample_during_testing_other" class="input" value="{collect_sample_during_testing_other}" required>
                 </div>
@@ -958,7 +961,10 @@ def get_product_storage():
     if product_storage == 'อื่นๆ โปรดระบุ':
         html = f'''
             <div class="field">
-                <label class="label">{label}</label>
+                <label class="label">
+                    {label}
+                    <span class="has-text-danger">*</span>
+                </label>
                 <div class="control">
                     <input name="product_storage_other" class="input" value="{product_storage_other}" required>
                 </div>
