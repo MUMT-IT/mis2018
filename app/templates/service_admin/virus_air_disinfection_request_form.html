@@ -31,13 +31,19 @@
                             <h5 class="title is-size-5">ข้อมูลผลิตภัณฑ์</h5>
                             <hr style="background-color: gainsboro">
                             <div class="field">
-                                <label class="label">{{ form.product_name.label }}</label>
+                                <label class="label">
+                                    {{ form.product_name.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="control">
                                     {{ form.product_name(class='input') }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.disinfection_system.label }}</label>
+                                <label class="label">
+                                    {{ form.disinfection_system.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="control">
                                     {{ form.disinfection_system(class='textarea') }}
                                 </div>
@@ -45,13 +51,19 @@
                             <div class="field">
                                 <div class="field-body">
                                     <div class="field">
-                                        <label class="label">{{ form.model.label }}</label>
+                                        <label class="label">
+                                            {{ form.model.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
                                         <div class="control">
                                             {{ form.model(class='input') }}
                                         </div>
                                     </div>
                                     <div class="field">
-                                        <label class="label">{{ form.serial_no.label }}</label>
+                                        <label class="label">
+                                            {{ form.serial_no.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
                                         <div class="control">
                                             {{ form.serial_no(class='input') }}
                                         </div>
@@ -59,43 +71,64 @@
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.equipment_test_operation.label }}</label>
+                                <label class="label">
+                                    {{ form.equipment_test_operation.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="control">
                                     {{ form.equipment_test_operation(class='textarea') }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.manufacturer.label }}</label>
+                                <label class="label">
+                                    {{ form.manufacturer.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="control">
                                     {{ form.manufacturer(class='input') }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.manufacturer_address.label }}</label>
+                                <label class="label">
+                                    {{ form.manufacturer_address.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="control">
                                     {{ form.manufacturer_address(class='textarea') }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.importer.label }}</label>
+                                <label class="label">
+                                    {{ form.importer.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="control">
                                     {{ form.importer(class='input') }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.importer_address.label }}</label>
+                                <label class="label">
+                                    {{ form.importer_address.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="control">
                                     {{ form.importer_address(class='textarea') }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.distributor.label }}</label>
+                                <label class="label">
+                                    {{ form.distributor.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="control">
                                     {{ form.distributor(class='input') }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.distributor_address.label }}</label>
+                                <label class="label">
+                                    {{ form.distributor_address.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="control">
                                     {{ form.distributor_address(class='textarea') }}
                                 </div>
@@ -133,7 +166,10 @@
                                                                         {% if loop.first %}
                                                                             {% for _field in subfield %}
                                                                                 {% if _field.type != 'CSRFTokenField' %}
-                                                                                    <th style="border: none">{{ _field.label.text }}</th>
+                                                                                    <th style="border: none">
+                                                                                        {{ _field.label.text }}
+                                                                                        <span class="has-text-danger">*</span>
+                                                                                    </th>
                                                                                 {% endif %}
                                                                             {% endfor %}
                                                                         {% endif %}
@@ -153,7 +189,10 @@
                                                                 </table>
                                                             {% else %}
                                                                 <div class="field">
-                                                                    <label class="label">{{ field.label }}</label>
+                                                                    <label class="label">
+                                                                        {{ field.label }}
+                                                                        <span class="has-text-danger">*</span>
+                                                                    </label>
                                                                     <div class="control">
                                                                         {{ field() }}
                                                                     </div>

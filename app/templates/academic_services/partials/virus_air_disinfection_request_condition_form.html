@@ -12,7 +12,10 @@
                             {% if loop.first %}
                                 {% for _field in subform %}
                                     {% if _field.type != 'CSRFTokenField' %}
-                                        <th style="border: none">{{ _field.label.text }}</th>
+                                        <th style="border: none">
+                                            {{ _field.label.text }}
+                                            <span class="has-text-danger">*</span>
+                                        </th>
                                     {% endif %}
                                 {% endfor %}
                             {% endif %}
@@ -32,7 +35,10 @@
                     </table>
                 {% else %}
                     <div class="field">
-                        <label class="label">{{ field.label }}</label>
+                        <label class="label">
+                            {{ field.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
                         <div class="control">
                             {{ field() }}
                         </div>
