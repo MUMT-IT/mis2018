@@ -1213,48 +1213,49 @@ def request_index():
         'send_request': {
             'id': [1, 2],
             'name': 'รอส่งคำขอรับบริการ',
-            'color': 'is-info',
             'icon': '<i class="fas fa-paper-plane"></i>'
         },
         'confirm_quotation': {
             'id': [3, 4, 5],
             'name': 'รอยืนยันใบเสนอราคา',
-            'color': 'is-info',
             'icon': '<i class="fas fa-file-invoice"></i>'
         },
         'send_sample': {
             'id': [6, 8, 9],
             'name': 'รอส่งตัวอย่าง',
-            'color': 'is-info',
             'icon': '<i class="fas fa-truck"></i>'
         },
         'wait_test': {
             'id': [10, 11, 14],
             'name': 'รอทดสอบตัวอย่าง',
-            'color': 'is-info',
             'icon': '<i class="fas fa-vial"></i>'
         },
         'wait_report': {
             'id': [12, 15],
             'name': 'รอยืนยันใบรายงานผลฉบับร่าง',
-            'color': 'is-info',
             'icon': '<i class="fas fa-clipboard-check"></i>'
         },
         'wait_payment': {
             'id': [13, 16, 17, 18, 19, 20, 21],
             'name': 'รอชำระเงิน',
-            'color': 'is-info',
             'icon': '<i class="fas fa-money-check-alt"></i>'
         },
         'download_report': {
             'id': [22],
             'name': 'ดาวโหดใบรายงานผลฉบับจริง',
-            'color': 'is-info',
             'icon': '<i class="fas fa-download"></i>'
+        },
+        'all': {
+            'id': [],
+            'name': 'รายการทั้งหมด',
+            'icon': '<i class="fas fa-list-ul"></i>'
         }
     }
 
     for key, group in status_groups.items():
+        if key != 'all':
+            status_groups['all']['id'].extend(group['id'])
+
         query = ServiceRequest.query.filter(
             ServiceRequest.customer_id == current_user.id,
             ServiceRequest.status.has(ServiceStatus.status_id.in_(group['id']))

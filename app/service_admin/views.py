@@ -299,10 +299,18 @@ def request_index():
             'name': 'ชำระเงินสำเร็จ',
             'color': 'is-light',
             'icon': '<i class="fas fa-check"></i>'
+        },
+        'all': {
+            'id': [],
+            'name': 'รายการทั้งหมด',
+            'icon': '<i class="fas fa-list-ul"></i>'
         }
     }
 
     for key, group in status_groups.items():
+        if key != 'all':
+            status_groups['all']['id'].extend(group['id'])
+
         query = ServiceRequest.query.filter(
             ServiceRequest.status.has(ServiceStatus.status_id.in_(group['id'])
                                       ), or_(ServiceRequest.admin.has(id=current_user.id),
