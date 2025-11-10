@@ -30,7 +30,7 @@
                                 <div class="control">
                                 {% for r in report_languages|sort(attribute='no') %}
                                     {% if r.language == 'ไทย' %}
-                                        <label class="checkbox mb-2">
+                                        <label {% if r.category == 'copy' %}class="checkbox mb-2 ml-5" {% else %} class="checkbox mb-2" {% endif %}>
                                             <input id="{{ r.category }}" type="checkbox" name="check_report_language"
                                                    value="{{ r.id }}"
                                                    {% if r.id in req_report_language_id or
@@ -57,7 +57,7 @@
                                 <div class="control">
                                     {% for r in report_languages|sort(attribute='no') %}
                                         {% if r.language == 'อังกฤษ' %}
-                                            <label class="checkbox mb-2">
+                                            <label {% if r.category == 'copy' %}class="checkbox mb-2 ml-5" {% else %} class="checkbox mb-2" {% endif %}>
                                                 <input id="{{ r.category }}" type="checkbox" name="check_report_language"
                                                        value="{{ r.id }}"
                                                        {% if r.id in req_report_language_id or
