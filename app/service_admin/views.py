@@ -1439,7 +1439,7 @@ def generate_request_pdf(service_request):
 
         w, h_header = header_table.wrap(doc.width, first_page_limit)
 
-        reserve_space = 50
+        reserve_space = 30
         if current_height + h_header + reserve_space > first_page_limit:
             data.append(PageBreak())
             current_height = 0
@@ -1477,6 +1477,7 @@ def generate_request_pdf(service_request):
                     box.setStyle(TableStyle([
                         ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
                         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ('LINEBELOW', (-1, 0), (-1, -1), 0, colors.white),
                     ]))
                     if current_height > first_page_limit:
                         data.append(PageBreak())
@@ -1496,13 +1497,21 @@ def generate_request_pdf(service_request):
                 table_data = [[Paragraph(h, detail_style) for h in headers]]
                 for row in rows:
                     table_data.append([Paragraph(str(row.get(h, "")), detail_style) for h in headers])
-                table = Table(table_data, colWidths=[530 / len(headers)] * len(headers))
+                table = Table(table_data, colWidths=[450 / len(headers)] * len(headers))
                 table.setStyle(TableStyle([
                     ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
                     ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                     ('LEFTPADDING', (0, 0), (-1, -1), 4),
                     ('RIGHTPADDING', (0, 0), (-1, -1), 4)
+                ]))
+
+                table_box = Table([[table]], colWidths=[530])
+                table_box.setStyle(TableStyle([
+                    ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('LINEABOVE', (0, 0), (-1, 0), 0, colors.white),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER')
                 ]))
                 if current_height > first_page_limit:
                     data.append(PageBreak())
