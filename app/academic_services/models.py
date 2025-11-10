@@ -883,9 +883,6 @@ class ServiceSample(db.Model):
         return {
             'id': self.id,
             'appointment_date': self.appointment_date,
-            'product': ", ".join(
-                [p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
-            if self.request else None,
             'ship_type': self.ship_type,
             'location': self.location,
             'tracking_number': self.tracking_number,
@@ -1017,9 +1014,6 @@ class ServiceInvoice(db.Model):
             'invoice_no': self.invoice_no,
             'name': self.name if self.name else None,
             'customer_name': self.customer_name if self.customer_name else None,
-            'product': ", ".join([p.strip().strip('"') for p in self.quotation.request.product.strip("{}").split(",") if
-                                  p.strip().strip('"')])
-            if self.quotation else None,
             'admin_status': self.admin_status if self.admin_status else None,
             'admin_status_color': self.admin_status_color if self.admin_status_color else None,
             'customer_status': self.customer_status if self.customer_status else None,
@@ -1278,9 +1272,6 @@ class ServiceResult(db.Model):
             'lab_no': self.lab_no,
             'request_no': self.request.request_no if self.request else None,
             'tracking_number': self.tracking_number,
-            'product': ", ".join(
-                [p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
-            if self.request else None,
             'status_id': self.status.status_id if self.status else None,
             'admin_status': self.admin_status if self.status else None,
             'customer_status': self.customer_status if self.status else None,
