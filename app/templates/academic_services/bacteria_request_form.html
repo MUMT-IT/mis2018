@@ -349,6 +349,13 @@
     </script>
     <script>
         function toggleTable() {
+            const anyChecked = $('table tbody tr input[type="checkbox"]:checked').length > 0;
+            if (!anyChecked) {
+                $('table tbody tr input[type="checkbox"]').attr('required', true);
+            } else {
+                $('table tbody tr input[type="checkbox"]').removeAttr('required');
+            }
+
             $('table tbody tr').each(function () {
                 const row = $(this);
                 const checkbox = row.find('input[type="checkbox"]');
@@ -362,6 +369,13 @@
             });
 
             $('table tbody tr input[type="checkbox"]').on('change', function () {
+                const anyChecked = $('table tbody tr input[type="checkbox"]:checked').length > 0;
+                if (!anyChecked) {
+                    $('table tbody tr input[type="checkbox"]').attr('required', true);
+                } else {
+                    $('table tbody tr input[type="checkbox"]').removeAttr('required');
+                }
+
                 const row = $(this).closest('tr');
                 const checked = $(this).is(':checked');
 
@@ -372,6 +386,7 @@
                         $(this).prop('disabled', true).val('');
                     }
                 });
+
             });
         }
 
