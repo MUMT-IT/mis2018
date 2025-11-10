@@ -3,6 +3,7 @@ import uuid
 import qrcode
 from bahttext import bahttext
 from reportlab.lib.pagesizes import A4
+from reportlab.pdfbase.pdfmetrics import stringWidth
 from sqlalchemy import or_, update
 from datetime import date, datetime
 import arrow
@@ -1620,10 +1621,26 @@ def generate_request_pdf(service_request):
 
                 rows = g['data']
                 headers = list(rows[0].keys())
+                raw_widths = []
+                for h in headers:
+                    w = stringWidth(str(h), detail_style.fontName, detail_style.fontSize)
+                    if h == "เชื้อ":
+                        w += 100
+                    else:
+                        w += 20
+                    raw_widths.append(w)
+                total_width = sum(raw_widths)
+                max_total = 490
+
+                if total_width > max_total:
+                    scale = max_total / total_width
+                    col_widths = [w * scale for w in raw_widths]
+                else:
+                    col_widths = raw_widths
                 table_data = [[Paragraph(h, detail_style) for h in headers]]
                 for row in rows:
                     table_data.append([Paragraph(str(row.get(h, "")), detail_style) for h in headers])
-                table = Table(table_data, colWidths=[450 / len(headers)] * len(headers))
+                table = Table(table_data, colWidths=col_widths)
                 table.setStyle(TableStyle([
                     ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
                     ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
