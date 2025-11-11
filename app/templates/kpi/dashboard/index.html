@@ -2,59 +2,45 @@
 {% block title %}MUMT-MIS: KPI Dashboard{% endblock %}
 {% include "kpi/dashboard/nav.html" %}
 {% block page_content %}
-<section class="section">
-  <div class="container">
-    <div class="columns">
-      <div class="column is-half is-offset-one-quarter has-text-centered">
-        {% include 'messages.html' %}
-      </div>
-    </div>
-    <div class="columns">
-      <div class="column is-half is-offset-one-quarter">
-        <nav class="panel is-primary">
-          <p class="panel-heading">KPI Dashboard</p>
-        <a href="https://datastudio.google.com/s/tjk8y8Dn9WI" target="_blank" class="panel-block">
-            <span class="panel-icon">
-                <i class="fas fa-tachometer-alt"></i>
-            </span>
-            <span>MUKPI Report 2021</span>
-        </a>
-        <a href="https://datastudio.google.com/s/tgbKKV-w4Co" target="_blank" class="panel-block">
-            <span class="panel-icon">
-                <i class="fas fa-tachometer-alt"></i>
-            </span>
-            <span>MUKPI Report 2022</span>
-        </a>
-{#            <a href="https://datastudio.google.com/s/tWNk0XLwzwE" target="_blank" class="panel-block">#}
-{#            <span class="panel-icon">#}
-{#                <i class="fas fa-tachometer-alt"></i>#}
-{#            </span>#}
-{#                <span>ศูนย์สุขภาพองค์รวม</span>#}
-{#            </a>#}
-            <a href="https://datastudio.google.com/s/vA0Ivid1Jns" target="_blank" class="panel-block">
-            <span class="panel-icon">
-                <i class="fas fa-tachometer-alt"></i>
-            </span>
-                <span>HR</span>
-            </a>
-        </nav>
-      </div>
-    </div>
-    <div class="columns">
-        <div class="column is-half is-offset-one-quarter">
-            <nav class="panel is-primary">
-                <p class="panel-heading">Power BI dashboard</p>
-                {% for d in dashboard %}
-                <a href="{{ d.url }}" target="_blank" class="panel-block">
-                    <span class="panel-icon">
-                        <i class="fas fa-tachometer-alt"></i>
-                    </span>
-                    <span>{{ d.name }}</span>
-                </a>
-                {% endfor %}
-            </nav>
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter has-text-centered">
+                    {% include 'messages.html' %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <nav class="panel is-primary">
+                        <p class="panel-heading">KPI Dashboard</p>
+                        {% for d in dashboard %}
+                            {% if d.is_kpi %}
+                            <a href="{{ d.url }}" target="_blank" class="panel-block">
+                                <span class="panel-icon">
+                                    <i class="fas fa-tachometer-alt"></i>
+                                </span>
+                                <span>{{ d.name }}</span>
+                            </a>
+                            {% endif %}
+                        {% endfor %}
+                    </nav>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <nav class="panel is-primary">
+                        <p class="panel-heading">Dashboard งานประจำ</p>
+                        {% for d in dashboard %}
+                            <a href="{{ d.url }}" target="_blank" class="panel-block">
+                                <span class="panel-icon">
+                                    <i class="fas fa-tachometer-alt"></i>
+                                </span>
+                                <span>{{ d.name }}</span>
+                            </a>
+                        {% endfor %}
+                    </nav>
+                </div>
+            </div>
         </div>
-    </div>
-  </div>
-</section>
+    </section>
 {% endblock %}
