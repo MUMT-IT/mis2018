@@ -360,15 +360,18 @@
         });
     </script>
     <script>
-        function toggleTable() {
-            const anyChecked = $('table tbody tr input[type="checkbox"]:checked').length > 0;
+        function toggleTable(subform) {
+            const table = subform.find('table');
+            const checkboxes = table.find('tbody tr input[type="checkbox"]');
+
+            const anyChecked = checkboxes.filter(':checked').length > 0;
             if (!anyChecked) {
-                $('table tbody tr input[type="checkbox"]').attr('required', true);
+                checkboxes.attr('required', true);
             } else {
-                $('table tbody tr input[type="checkbox"]').removeAttr('required');
+                checkboxes.removeAttr('required');
             }
 
-            $('table tbody tr').each(function () {
+            table.find('tbody tr').each(function () {
                 const row = $(this);
                 const checkbox = row.find('input[type="checkbox"]');
                 const textInputs = row.find('input[type="text"]');
@@ -380,25 +383,22 @@
                 }
             });
 
-            $('table tbody tr input[type="checkbox"]').on('change', function () {
-                const anyChecked = $('table tbody tr input[type="checkbox"]:checked').length > 0;
+            checkboxes.on('change', function () {
+                const anyChecked = checkboxes.filter(':checked').length > 0;
                 if (!anyChecked) {
-                    $('table tbody tr input[type="checkbox"]').attr('required', true);
+                    checkboxes.attr('required', true);
                 } else {
-                    $('table tbody tr input[type="checkbox"]').removeAttr('required');
+                    checkboxes.removeAttr('required');
                 }
 
                 const row = $(this).closest('tr');
-                const checked = $(this).is(':checked');
+                const textInputs = row.find('input[type="text"]');
 
-                row.find('input[type="text"]').each(function () {
-                    if (checked) {
-                        $(this).prop('disabled', false);
-                    } else {
-                        $(this).prop('disabled', true).val('');
-                    }
-                });
-
+                if ($(this).is(':checked')) {
+                    textInputs.prop('disabled', false).attr('required', true);
+                } else {
+                    textInputs.prop('disabled', true).val('').removeAttr('required');
+                }
             });
         }
 
@@ -468,7 +468,7 @@
 
         $('.subform-card').each(function () {
             const subform = $(this);
-            toggleTable();
+            toggleTable(subform);
             addRequiredField(subform);
             toggleSurfaceTypeInput(subform);
             showSurfaceTypeOtherInput(subform);
