@@ -1374,9 +1374,9 @@ def leave_request_result_by_date():
         start_dt, end_dt = form.get('dates').split(' - ')
         start_date = datetime.strptime(start_dt, '%d/%m/%Y')
         end_date = datetime.strptime(end_dt, '%d/%m/%Y')
-
-        leaves = StaffLeaveRequest.query.filter(and_(StaffLeaveRequest.start_datetime >= start_date,
-                                                     StaffLeaveRequest.end_datetime <= end_date))
+        end_date = end_date.replace(hour=23, minute=59, second=59)
+        leaves = StaffLeaveRequest.query.filter(and_(StaffLeaveRequest.start_datetime <= end_date,
+                                                     StaffLeaveRequest.end_datetime >= start_date))
         return render_template('staff/leave_request_result_by_date.html', leaves=leaves,
                                start_date=start_date.date(), end_date=end_date.date())
     else:
@@ -3349,7 +3349,7 @@ def seminar_create_record(seminar_id):
             #     flash('ส่งคำขอไปยังผู้บังคับบัญชาของท่านเรียบร้อยแล้ว ', 'success')
             # else:
             #     flash('เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
-            flash('เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
+            flash('เพิ่มรายชื่อของท่านเรียบร้อยแล้ว สามารถ download เอกสารเพื่อดำเนินการขออนุมัติตามขั้นตอนปกติได้ต่อไป', 'success')
         else:
             flash('มีการลงชื่ออบรมนี้แล้ว', 'success')
         return redirect(url_for('staff.seminar_attend_info', seminar_id=seminar_id))
@@ -3357,6 +3357,36 @@ def seminar_create_record(seminar_id):
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
     return render_template('staff/seminar_create_record.html', seminar=seminar, form=form)
+
+
+@staff.route('/seminar/head-position', methods=['GET'])
+@login_required
+def get_positions():
+    approver_id = request.args.get('approver', type=int)
+    if not approver_id:
+        select_html = ''
+        resp = make_response(select_html)
+        resp.headers['HX-Trigger-After-Swap'] = 'initSelect2'
+        return resp
+    try:
+        leave_approver = StaffLeaveApprover.query.get(approver_id)
+        approver_id = leave_approver.approver_account_id
+    except ValueError:
+        return "Invalid approver ID", 400
+
+    positions = StaffHeadPosition.query.filter_by(staff_account_id=approver_id).all()
+    if not positions:
+        return "<p>No positions found for this approver.</p>"
+    select_html = '<label>ตำแหน่ง</label>'
+    select_html += '<div class="select">'
+    select_html += '<select name="position" class="form-control">'
+    for pos in positions:
+        select_html += f'<option value="{pos.id}">{pos.position}</option>'
+    select_html += '</select></div>'
+
+    resp = make_response(select_html)
+    resp.headers['HX-Trigger-After-Swap'] = 'initSelect2'
+    return resp
 
 
 @staff.route('/seminar/requests/proposal/info')
