@@ -1253,16 +1253,13 @@ def request_index():
             'icon': '<i class="fas fa-download"></i>'
         },
         'all': {
-            'id': [],
+            'id': list(range(1, 24)),
             'name': 'รายการทั้งหมด',
             'icon': '<i class="fas fa-list-ul"></i>'
         }
     }
 
     for key, group in status_groups.items():
-        if key != 'all':
-            status_groups['all']['id'].extend(group['id'])
-
         query = ServiceRequest.query.filter(
             ServiceRequest.customer_id == current_user.id,
             ServiceRequest.status.has(ServiceStatus.status_id.in_(group['id']))
