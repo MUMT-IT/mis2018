@@ -460,6 +460,11 @@
             const quantitativeTestChecked = quantitativeTestInput.is(':checked');
 
             if (qualitativeTestChecked || quantitativeTestChecked) {
+                if (qualitativeTestChecked) {
+                    quantitativeTestInput.closest('.field').find('label .has-text-danger').remove();
+                } else {
+                    qualitativeTestInput.closest('.field').find('label .has-text-danger').remove();
+                }
                 qualitativeTestInput.prop('required', false);
                 quantitativeTestInput.prop('required', false);
             } else {
@@ -471,6 +476,11 @@
                 const qualitativeTestChecked = qualitativeTestInput.is(':checked');
                 const quantitativeTestChecked = quantitativeTestInput.is(':checked');
                 if (qualitativeTestChecked || quantitativeTestChecked) {
+                    if (qualitativeTestChecked) {
+                        quantitativeTestInput.closest('.field').find('label .has-text-danger').remove();
+                    } else {
+                        qualitativeTestInput.closest('.field').find('label .has-text-danger').remove();
+                    }
                     qualitativeTestInput.prop('required', false);
                     quantitativeTestInput.prop('required', false);
                 } else {
@@ -483,6 +493,11 @@
                 const qualitativeTestChecked = qualitativeTestInput.is(':checked');
                 const quantitativeTestChecked = quantitativeTestInput.is(':checked');
                 if (qualitativeTestChecked || quantitativeTestChecked) {
+                    if (qualitativeTestChecked) {
+                        quantitativeTestInput.closest('.field').find('label .has-text-danger').remove();
+                    } else {
+                        qualitativeTestInput.closest('.field').find('label .has-text-danger').remove();
+                    }
                     qualitativeTestInput.prop('required', false);
                     quantitativeTestInput.prop('required', false);
                 } else {
