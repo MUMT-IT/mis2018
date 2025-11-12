@@ -1,4 +1,4 @@
-{% extends "academic_services/service_base.html" %}
+{% extends "base.html" %}
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
@@ -19,7 +19,7 @@
     </style>
 {% endblock %}
 {% block page_content %}
-    {% include "academic_services/customer_nav.html" %}
+    {% include "service_admin/admin_nav.html" %}
     {% include 'messages.html' %}
     <section class="section">
         <div class="container">
@@ -123,7 +123,7 @@
                                         <label class="label">{{ form.collect_sample_during_testing.label }}</label>
                                         <div class="select is-fullwidth">
                                             {{ form.collect_sample_during_testing(
-                                                **{'hx-get': url_for("academic_services.get_collect_sample_during_testing",
+                                                **{'hx-get': url_for("service_admin.get_collect_sample_during_testing",
                                                     request_id=request_id),
                                                     'hx-target': '#collect-samples-other-container',
                                                     'hx-swap': 'innerHTML',
@@ -154,7 +154,7 @@
                                             {% endif %}
                                         {% endfor %}
                                         {% if ns.has_value %}
-                                            <div class="card subform-card mb-4" id="{{ subform.name }}">
+                                            <div class="card subform-card mb-4">
                                                 <header class="card-header">
                                                     <p class="card-header-title">{{ subform.label }}</p>
                                                 </header>
@@ -196,10 +196,10 @@
                                                             {% endif %}
                                                         {% endif %}
                                                     {% endfor %}
-                                                    <button type="button" id="{{ subform.name }}"
+                                                    <button type="button"
                                                             class="button is-danger is-rounded is-small remove-subform"
                                                             data-request-id="{{ request_id or '' }}"
-                                                            hx-post="{{ url_for('academic_services.remove_condition_form', request_id=request_id) }}"
+                                                            hx-post="{{ url_for('service_admin.remove_condition_form', request_id=request_id) }}"
                                                             hx-vals='{"field": "{{ subform.name }}"}'
                                                             hx-target=".subform-card"
                                                             hx-swap="innerHTML"
@@ -218,7 +218,7 @@
                             <div class="field">
                                 <div class="select">
                                     {{ form.product_type(
-                                        **{'hx-get': url_for("academic_services.get_bacteria_condition_form", code=code),
+                                        **{'hx-get': url_for("service_admin.get_bacteria_condition_form", code=code),
                                         'hx-target': '#condition-fields',
                                          'hx-swap': 'beforeend',
                                          'hx-trigger': 'change, load'}) }}
@@ -238,7 +238,8 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript"
+            src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
         $(document).ready(function () {
             moment.locale('th');
@@ -275,75 +276,24 @@
         })
     </script>
     <script>
-        function removeProductTypeOptions() {
-            const productType = document.getElementById('product_type');
-            const subforms = document.querySelectorAll('.subform-card');
-            for (let i = productType.options.length - 1; i >= 0; i--) {
-                const option = productType.options[i];
-                if (option.value === '') continue;
-                subforms.forEach(subform => {
-                    const subformId = subform.id.split(/[\s_]+/)[0];
-                    if (option.value === subformId) {
-                        option.remove();
-                    }
-                });
+        document.body.addEventListener('htmx:afterRequest', (e) => {
+            const select = document.getElementById('product_type');
+            if (select) {
+                select.selectedIndex = 0;
             }
-            productType.selectedIndex = 0;
-        }
-
-        document.addEventListener('DOMContentLoaded', removeProductTypeOptions);
-
-        document.body.addEventListener('htmx:afterSwap', function (evt) {
-            if (evt.target.id === 'condition-fields') {
-                removeProductTypeOptions();
-            }
-        });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const productType = document.getElementById('product_type');
-            const subforms = document.querySelectorAll('.subform-card');
-            for (let i = productType.options.length - 1; i >= 0; i--) {
-                const option = productType.options[i];
-                if (option.value === '') continue;
-                subforms.forEach(subform => {
-                    const subformId = subform.id.split(/[\s_]+/)[0];
-                    if (option.value === subformId) {
-                        option.remove();
-                    }
-                });
-            }
-            productType.selectedIndex = 0;
         });
     </script>
     <script>
         document.addEventListener('click', function (e) {
-            const productType = document.getElementById('product_type');
             if (e.target.classList.contains('remove-subform')) {
                 const card = e.target.closest('.subform-card');
                 const requestId = e.target.dataset.requestId;
-                const text = card.querySelector('label').textContent.trim();
+
                 if (!requestId) {
                     card.remove();
                     e.preventDefault();
                 }
-                const subformId = e.target.id.split(/[\s_]+/)[0];
-
-                let hasOptions = false;
-                for (let i = 0; i < productType.options.length; i++) {
-                    if (productType.options[i].value === subformId) {
-                        hasOptions = true;
-                        break;
-                    }
-                }
-
-                if (!hasOptions) {
-                    const option = document.createElement('option');
-                    option.value = subformId;
-                    option.text = text;
-                    productType.appendChild(option);
-                }
             }
-            productType.selectedIndex = 0;
         });
     </script>
     <script>
@@ -366,9 +316,9 @@
 
                 row.find('input[type="text"]').each(function () {
                     if (checked) {
-                        $(this).prop('disabled', false);
+                        $(this).prop('disabled', false).attr('required', true);
                     } else {
-                        $(this).prop('disabled', true).val('');
+                        $(this).prop('disabled', true).val('').removeAttr('required');
                     }
                 });
             });

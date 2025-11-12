@@ -30,7 +30,6 @@
                         <th>หมายเลขติดตามพัสดุ</th>
                         <th>วัน-เวลาที่นัดหมาย</th>
                         <th>วัน-เวลาที่รับ</th>
-                        <th>รายการ</th>
                         <th>สถานะ</th>
                         <th>สถานที่</th>
                         <th>การส่งตัวอย่าง</th>
@@ -83,11 +82,6 @@
                                     {% endif %}
                                 </td>
                                 <td>{{ sample.received_at|localdatetime or '' }}</td>
-                                <td>
-                                    {% set product = sample.request.product | replace('{', '') | replace('}', '') | replace('"', '') %}
-                                    {% set product_list = product.split(',') %}
-                                    {{ product_list | selectattr('strip') | reject('eq', '') | join(', ') }}
-                                </td>
                                 <td>
                                     <ul class="steps">
                                         <li class="steps-segment {% if not sample.appointment_date and not sample.tracking_number %} is-active {% endif %}">

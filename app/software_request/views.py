@@ -238,14 +238,11 @@ def create_timeline(detail_id=None, timeline_id=None):
             sequence_no.count += 1
         timeline.start = arrow.get(form.start.data, 'Asia/Bangkok').date()
         timeline.estimate = arrow.get(form.estimate.data, 'Asia/Bangkok').date()
-        if detail_id:
-            timeline.request.updated_date = arrow.now('Asia/Bangkok').datetime
         db.session.add(timeline)
         db.session.commit()
-        if not detail_id:
-            timeline.request.updated_date = arrow.now('Asia/Bangkok').datetime
-            db.session.add(timeline)
-            db.session.commit()
+        timeline.request.updated_date = arrow.now('Asia/Bangkok').datetime
+        db.session.add(timeline)
+        db.session.commit()
         if detail_id:
             flash('เพิ่มข้อมูลสำเร็จ', 'success')
             resp = make_response(render_template('software_request/timeline_template.html',tab=tab,
@@ -263,6 +260,9 @@ def create_timeline(detail_id=None, timeline_id=None):
 @software_request.route('/admin/request/timeline/delete/<int:timeline_id>', methods=['GET', 'DELETE'])
 def delete_timeline(timeline_id):
     timeline = SoftwareRequestTimeline.query.get(timeline_id)
+    timeline.request.updated_date = arrow.now('Asia/Bangkok').datetime
+    db.session.add(timeline)
+    db.session.commit()
     db.session.delete(timeline)
     db.session.commit()
     flash('ลบข้อมูลสำเร็จ', 'success')

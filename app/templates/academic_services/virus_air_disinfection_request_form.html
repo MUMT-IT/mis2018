@@ -1,7 +1,6 @@
 {% extends "academic_services/service_base.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
     <style>
         table {
             width: 100%;
@@ -32,59 +31,37 @@
                             <h5 class="title is-size-5">ข้อมูลผลิตภัณฑ์</h5>
                             <hr style="background-color: gainsboro">
                             <div class="field">
-                                <label class="label">{{ form.sample_name.label }}</label>
+                                <label class="label">{{ form.product_name.label }}</label>
                                 <div class="control">
-                                    {{ form.sample_name(class='input') }}
+                                    {{ form.product_name(class='input') }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">
-                                    {{ form.active_substance.label }}
-                                    เช่น Formaldyhyde 37% w/w, Ethyl Alcohol 50% w/w
-                                </label>
+                                <label class="label">{{ form.disinfection_system.label }}</label>
                                 <div class="control">
-                                    {{ form.active_substance(class='textarea',
-                                        placeholder='เช่น Formaldyhyde 37% w/w, Ethyl Alcohol 50% w/w') }}
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">{{ form.product_appearance.label }}</label>
-                                <div class="control">
-                                    {{ form.product_appearance(class='input') }}
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">{{ form.kind.label }}</label>
-                                <div class="contol">
-                                    {{ form.kind(class='input') }}
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">{{ form.size.label }}</label>
-                                <div class="control">
-                                    {{ form.size(class='input') }}
+                                    {{ form.disinfection_system(class='textarea') }}
                                 </div>
                             </div>
                             <div class="field">
                                 <div class="field-body">
                                     <div class="field">
-                                        <label class="label">{{ form.mfg.label }}</label>
+                                        <label class="label">{{ form.model.label }}</label>
                                         <div class="control">
-                                            {{ form.mfg(class='input') }}
+                                            {{ form.model(class='input') }}
                                         </div>
                                     </div>
                                     <div class="field">
-                                        <label class="label">{{ form.exp.label }}</label>
+                                        <label class="label">{{ form.serial_no.label }}</label>
                                         <div class="control">
-                                            {{ form.exp(class='input') }}
+                                            {{ form.serial_no(class='input') }}
                                         </div>
                                     </div>
-                                    <div class="field">
-                                        <label class="label">{{ form.lot_no.label }}</label>
-                                        <div class="control">
-                                            {{ form.lot_no(class='input') }}
-                                        </div>
-                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.equipment_test_operation.label }}</label>
+                                <div class="control">
+                                    {{ form.equipment_test_operation(class='textarea') }}
                                 </div>
                             </div>
                             <div class="field">
@@ -100,39 +77,27 @@
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.importanddistributor.label }}</label>
+                                <label class="label">{{ form.importer.label }}</label>
                                 <div class="control">
-                                    {{ form.importanddistributor(class='input') }}
+                                    {{ form.importer(class='input') }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.importanddistributor_address.label }}</label>
+                                <label class="label">{{ form.importer_address.label }}</label>
                                 <div class="control">
-                                    {{ form.importanddistributor_address(class='textarea') }}
+                                    {{ form.importer_address(class='textarea') }}
                                 </div>
                             </div>
                             <div class="field">
-                                <div class="field-body">
-                                    <div class="field">
-                                        <label class="label">{{ form.amount.label }}</label>
-                                        <div class="control">
-                                            {{ form.amount(class='input') }}
-                                        </div>
-                                    </div>
-                                    <div class="field">
-                                        <label class="label">{{ form.collect_sample_during_testing.label }}</label>
-                                        <div class="select is-fullwidth">
-                                            {{ form.collect_sample_during_testing(
-                                                **{'hx-get': url_for("academic_services.get_collect_sample_during_testing",
-                                                    request_id=request_id),
-                                                    'hx-target': '#collect-samples-other-container',
-                                                    'hx-swap': 'innerHTML',
-                                                    'hx-trigger': 'change, load'
-                                                    }) }}
-                                        </div>
-                                    </div>
-                                    <div id="collect-samples-other-container" style='width:55%'>
-                                    </div>
+                                <label class="label">{{ form.distributor.label }}</label>
+                                <div class="control">
+                                    {{ form.distributor(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.distributor_address.label }}</label>
+                                <div class="control">
+                                    {{ form.distributor_address(class='textarea') }}
                                 </div>
                             </div>
                         </div>
@@ -196,7 +161,7 @@
                                                             {% endif %}
                                                         {% endif %}
                                                     {% endfor %}
-                                                    <button type="button" id="{{ subform.name }}"
+                                                    <button ind="{{ subform.name }}" type="button"
                                                             class="button is-danger is-rounded is-small remove-subform"
                                                             data-request-id="{{ request_id or '' }}"
                                                             hx-post="{{ url_for('academic_services.remove_condition_form', request_id=request_id) }}"
@@ -218,7 +183,7 @@
                             <div class="field">
                                 <div class="select">
                                     {{ form.product_type(
-                                        **{'hx-get': url_for("academic_services.get_bacteria_condition_form", code=code),
+                                        **{'hx-get': url_for("academic_services.get_virus_air_disinfection_condition_form", code=code),
                                         'hx-target': '#condition-fields',
                                          'hx-swap': 'beforeend',
                                          'hx-trigger': 'change, load'}) }}
@@ -238,43 +203,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-    <script>
-        $(document).ready(function () {
-            moment.locale('th');
-            $('input[name="mfg"]').daterangepicker({
-                singleDatePicker: true,
-                autoUpdateInput: false,
-                locale:
-                    {
-                        format: 'YYYY-MM-DD',
-                        cancelLabel: 'Clear'
-                    }
-            });
-            $('input[name="mfg"]').on('apply.daterangepicker', function (ev, picker) {
-                $(this).val(picker.startDate.format('YYYY-MM-DD'));
-            });
-            $('input[name="mfg"]').on('cancel.daterangepicker', function () {
-                $(this).val('');
-            });
-            $('input[name="exp"]').daterangepicker({
-                singleDatePicker: true,
-                autoUpdateInput: false,
-                locale:
-                    {
-                        format: 'YYYY-MM-DD',
-                        cancelLabel: 'Clear'
-                    }
-            });
-            $('input[name="exp"]').on('apply.daterangepicker', function (ev, picker) {
-                $(this).val(picker.startDate.format('YYYY-MM-DD'));
-            });
-            $('input[name="exp"]').on('cancel.daterangepicker', function () {
-                $(this).val('');
-            });
-        })
-    </script>
-    <script>
+        <script>
         function removeProductTypeOptions() {
             const productType = document.getElementById('product_type');
             const subforms = document.querySelectorAll('.subform-card');
@@ -347,6 +276,20 @@
         });
     </script>
     <script>
+        document.addEventListener('click', function (e) {
+            if (e.target.classList.contains('remove-subform')) {
+                const btn = e.target;
+                const card = btn.closest('.subform-card');
+                const requestId = btn.dataset.requestId;
+
+                if (!requestId) {
+                    card.remove();
+                    e.preventDefault();
+                }
+            }
+        });
+    </script>
+    <script>
         function toggleTable() {
             $('table tbody tr').each(function () {
                 const row = $(this);
@@ -366,32 +309,32 @@
 
                 row.find('input[type="text"]').each(function () {
                     if (checked) {
-                        $(this).prop('disabled', false);
+                        $(this).prop('disabled', false).attr('required', true);
                     } else {
-                        $(this).prop('disabled', true).val('');
+                        $(this).prop('disabled', true).val('').removeAttr('required');
                     }
                 });
             });
         }
 
-        function showSurfaceTypeOtherInput(subform) {
-            const surfaceTypeField = subform.find('input[type="radio"][name$="surface_type"]:checked').val();
-            const surfaceTypeOtherField = subform.find('input[name$="surface_type_other"]').closest('.field');
+        function showClenTypeOtherInput(subform) {
+            const cleanTypeField = subform.find('input[type="radio"][name$="clean_type"]:checked').val();
+            const cleanTypeOtherField = subform.find('input[name$="clean_type_other"]').closest('.field');
 
-            if (surfaceTypeField && surfaceTypeField.includes('อื่นๆ โปรดระบุ')) {
-                surfaceTypeOtherField.show();
+            if (cleanTypeField && cleanTypeField.includes('อื่นๆ โปรดระบุ')) {
+                cleanTypeOtherField.show();
             } else {
-                surfaceTypeOtherField.hide();
-                subform.find('input[name$="surface_type_other"]').val('');
+                cleanTypeOtherField.hide();
+                subform.find('input[name$="clean_type_other"]').val('');
             }
         }
 
         $('.subform-card').each(function () {
             const subform = $(this);
             toggleTable();
-            showSurfaceTypeOtherInput(subform);
-            subform.find('input[type="radio"][name$="surface_type"]').change(function () {
-                showSurfaceTypeOtherInput(subform);
+            showClenTypeOtherInput(subform);
+            subform.find('input[type="radio"][name$="clean_type"]').change(function () {
+                showClenTypeOtherInput(subform);
             });
         });
     </script>

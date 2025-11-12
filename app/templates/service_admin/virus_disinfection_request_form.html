@@ -1,4 +1,4 @@
-{% extends "academic_services/service_base.html" %}
+{% extends "base.html" %}
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
@@ -19,7 +19,7 @@
     </style>
 {% endblock %}
 {% block page_content %}
-    {% include "academic_services/customer_nav.html" %}
+    {% include "service_admin/admin_nav.html " %}
     {% include 'messages.html' %}
     <section class="section">
         <div class="container">
@@ -32,9 +32,9 @@
                             <h5 class="title is-size-5">ข้อมูลผลิตภัณฑ์</h5>
                             <hr style="background-color: gainsboro">
                             <div class="field">
-                                <label class="label">{{ form.sample_name.label }}</label>
+                                <label class="label">{{ form.product_name.label }}</label>
                                 <div class="control">
-                                    {{ form.sample_name(class='input') }}
+                                    {{ form.product_name(class='input') }}
                                 </div>
                             </div>
                             <div class="field">
@@ -88,30 +88,6 @@
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.manufacturer.label }}</label>
-                                <div class="control">
-                                    {{ form.manufacturer(class='input') }}
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">{{ form.manufacturer_address.label }}</label>
-                                <div class="control">
-                                    {{ form.manufacturer_address(class='textarea') }}
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">{{ form.importanddistributor.label }}</label>
-                                <div class="control">
-                                    {{ form.importanddistributor(class='input') }}
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">{{ form.importanddistributor_address.label }}</label>
-                                <div class="control">
-                                    {{ form.importanddistributor_address(class='textarea') }}
-                                </div>
-                            </div>
-                            <div class="field">
                                 <div class="field-body">
                                     <div class="field">
                                         <label class="label">{{ form.amount.label }}</label>
@@ -120,19 +96,27 @@
                                         </div>
                                     </div>
                                     <div class="field">
-                                        <label class="label">{{ form.collect_sample_during_testing.label }}</label>
-                                        <div class="select is-fullwidth">
-                                            {{ form.collect_sample_during_testing(
-                                                **{'hx-get': url_for("academic_services.get_collect_sample_during_testing",
-                                                    request_id=request_id),
-                                                    'hx-target': '#collect-samples-other-container',
-                                                    'hx-swap': 'innerHTML',
-                                                    'hx-trigger': 'change, load'
-                                                    }) }}
+                                        <label class="label">{{ form.service_life.label }}</label>
+                                        <div class="control">
+                                            {{ form.service_life(class='input') }}
                                         </div>
                                     </div>
-                                    <div id="collect-samples-other-container" style='width:55%'>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">{{ form.product_storage.label }}</label>
+                                        <div class="select is-fullwidth">
+                                            {{ form.product_storage(
+                                                        **{'hx-get': url_for("service_admin.get_product_storage",
+                                                          request_id=request_id),
+                                                         'hx-target': '#product-storage-other-container',
+                                                         'hx-swap': 'innerHTML',
+                                                         'hx-trigger': 'change, load'}) }}
+                                        </div>
                                     </div>
+                                    <div id="product-storage-other-container" style='width:75%'></div>
                                 </div>
                             </div>
                         </div>
@@ -154,7 +138,7 @@
                                             {% endif %}
                                         {% endfor %}
                                         {% if ns.has_value %}
-                                            <div class="card subform-card mb-4" id="{{ subform.name }}">
+                                            <div class="card subform-card mb-4">
                                                 <header class="card-header">
                                                     <p class="card-header-title">{{ subform.label }}</p>
                                                 </header>
@@ -186,6 +170,20 @@
                                                                     {% endfor %}
                                                                     </tbody>
                                                                 </table>
+                                                            {% elif field.name.endswith('surface_type') %}
+                                                                <div class="field ml-4">
+                                                                    <label class="label">{{ field.label }}</label>
+                                                                    <div class="control">
+                                                                        {{ field() }}
+                                                                    </div>
+                                                                </div>
+                                                            {% elif field.name.endswith('surface_type_other') %}
+                                                                <div class="field ml-4">
+                                                                    <label class="label">{{ field.label }}</label>
+                                                                    <div class="control">
+                                                                        {{ field() }}
+                                                                    </div>
+                                                                </div>
                                                             {% else %}
                                                                 <div class="field">
                                                                     <label class="label">{{ field.label }}</label>
@@ -196,10 +194,10 @@
                                                             {% endif %}
                                                         {% endif %}
                                                     {% endfor %}
-                                                    <button type="button" id="{{ subform.name }}"
+                                                    <button type="button"
                                                             class="button is-danger is-rounded is-small remove-subform"
                                                             data-request-id="{{ request_id or '' }}"
-                                                            hx-post="{{ url_for('academic_services.remove_condition_form', request_id=request_id) }}"
+                                                            hx-post="{{ url_for('service_admin.remove_condition_form', request_id=request_id) }}"
                                                             hx-vals='{"field": "{{ subform.name }}"}'
                                                             hx-target=".subform-card"
                                                             hx-swap="innerHTML"
@@ -218,7 +216,7 @@
                             <div class="field">
                                 <div class="select">
                                     {{ form.product_type(
-                                        **{'hx-get': url_for("academic_services.get_bacteria_condition_form", code=code),
+                                        **{'hx-get': url_for("service_admin.get_virus_disinfection_condition_form", code=code),
                                         'hx-target': '#condition-fields',
                                          'hx-swap': 'beforeend',
                                          'hx-trigger': 'change, load'}) }}
@@ -238,7 +236,8 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript"
+            src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
         $(document).ready(function () {
             moment.locale('th');
@@ -275,75 +274,25 @@
         })
     </script>
     <script>
-        function removeProductTypeOptions() {
-            const productType = document.getElementById('product_type');
-            const subforms = document.querySelectorAll('.subform-card');
-            for (let i = productType.options.length - 1; i >= 0; i--) {
-                const option = productType.options[i];
-                if (option.value === '') continue;
-                subforms.forEach(subform => {
-                    const subformId = subform.id.split(/[\s_]+/)[0];
-                    if (option.value === subformId) {
-                        option.remove();
-                    }
-                });
+        document.body.addEventListener('htmx:afterRequest', (e) => {
+            const select = document.getElementById('product_type');
+            if (select) {
+                select.selectedIndex = 0;
             }
-            productType.selectedIndex = 0;
-        }
-
-        document.addEventListener('DOMContentLoaded', removeProductTypeOptions);
-
-        document.body.addEventListener('htmx:afterSwap', function (evt) {
-            if (evt.target.id === 'condition-fields') {
-                removeProductTypeOptions();
-            }
-        });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const productType = document.getElementById('product_type');
-            const subforms = document.querySelectorAll('.subform-card');
-            for (let i = productType.options.length - 1; i >= 0; i--) {
-                const option = productType.options[i];
-                if (option.value === '') continue;
-                subforms.forEach(subform => {
-                    const subformId = subform.id.split(/[\s_]+/)[0];
-                    if (option.value === subformId) {
-                        option.remove();
-                    }
-                });
-            }
-            productType.selectedIndex = 0;
         });
     </script>
     <script>
         document.addEventListener('click', function (e) {
-            const productType = document.getElementById('product_type');
             if (e.target.classList.contains('remove-subform')) {
-                const card = e.target.closest('.subform-card');
-                const requestId = e.target.dataset.requestId;
-                const text = card.querySelector('label').textContent.trim();
+                const btn = e.target;
+                const card = btn.closest('.subform-card');
+                const requestId = btn.dataset.requestId;
+
                 if (!requestId) {
                     card.remove();
                     e.preventDefault();
                 }
-                const subformId = e.target.id.split(/[\s_]+/)[0];
-
-                let hasOptions = false;
-                for (let i = 0; i < productType.options.length; i++) {
-                    if (productType.options[i].value === subformId) {
-                        hasOptions = true;
-                        break;
-                    }
-                }
-
-                if (!hasOptions) {
-                    const option = document.createElement('option');
-                    option.value = subformId;
-                    option.text = text;
-                    productType.appendChild(option);
-                }
             }
-            productType.selectedIndex = 0;
         });
     </script>
     <script>
@@ -366,12 +315,40 @@
 
                 row.find('input[type="text"]').each(function () {
                     if (checked) {
-                        $(this).prop('disabled', false);
+                        $(this).prop('disabled', false).attr('required', true);
                     } else {
-                        $(this).prop('disabled', true).val('');
+                        $(this).prop('disabled', true).val('').removeAttr('required');
                     }
                 });
             });
+        }
+
+        function toggleSurfaceTypeInput(subform) {
+            const surfaceTypeField = subform.find('input[name$="surface_type"]');
+            const surfaceTypeOtherField = subform.find('input[name$="surface_type_other"]');
+            let isASTMSelected = false;
+
+            subform.find('input[type="checkbox"][name$="test_method"]').each(function () {
+                if (this.checked && this.value.includes('Modified ASTM E1053-20')) {
+                    isASTMSelected = true;
+                }
+            });
+
+            if (isASTMSelected) {
+                surfaceTypeField.prop('disabled', false);
+            } else {
+                surfaceTypeField.each(function () {
+                    let name = $(this).attr('name');
+                    console.log('s', name)
+                    if (subform.find('input[name="' + name + '"][type="hidden"]').length === 0) {
+                        subform.append('<input type="hidden" name="' + name + '" value="">');
+                    }
+                });
+                surfaceTypeField.prop('disabled', true);
+                surfaceTypeField.prop('checked', false)
+                surfaceTypeOtherField.closest('.field').hide();
+                surfaceTypeOtherField.val('');
+            }
         }
 
         function showSurfaceTypeOtherInput(subform) {
@@ -389,7 +366,14 @@
         $('.subform-card').each(function () {
             const subform = $(this);
             toggleTable();
+            toggleSurfaceTypeInput(subform);
             showSurfaceTypeOtherInput(subform);
+
+            subform.find('input[type="checkbox"][name$="test_method"]').change(function () {
+                toggleSurfaceTypeInput(subform);
+                showSurfaceTypeOtherInput(subform);
+            });
+
             subform.find('input[type="radio"][name$="surface_type"]').change(function () {
                 showSurfaceTypeOtherInput(subform);
             });

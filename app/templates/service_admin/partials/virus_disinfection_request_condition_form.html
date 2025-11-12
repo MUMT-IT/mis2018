@@ -1,0 +1,147 @@
+<div class="card subform-card mb-4">
+    <header class="card-header">
+        <p class="card-header-title">{{ fields.label }}</p>
+    </header>
+    <div class="card-content">
+        {% for field in fields %}
+            {% if field.type != 'HiddenField' and field.type != 'CSRFTokenField' %}
+                {% if field.type == 'FieldList' %}
+                    <table class="table is-fullwidth ">
+                        <thead>
+                        {% for subform in field %}
+                            {% if loop.first %}
+                                {% for _field in subform %}
+                                    {% if _field.type != 'CSRFTokenField' %}
+                                        <th style="border: none">{{ _field.label.text }}</th>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                        </thead>
+                        <tbody>
+                        {% for subform in field %}
+                            <tr>
+                                {% for _field in subform %}
+                                    {% if _field.type != 'CSRFTokenField' %}
+                                        <td style="border: none">{{ _field() }}</td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                {% elif field.name.endswith('surface_type') %}
+                    <div class="field ml-4">
+                        <label class="label">{{ field.label }}</label>
+                        <div class="control">
+                            {{ field() }}
+                        </div>
+                    </div>
+                {% elif field.name.endswith('surface_type_other') %}
+                    <div class="field ml-4">
+                        <label class="label">{{ field.label }}</label>
+                        <div class="control">
+                            {{ field() }}
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="field">
+                        <label class="label">{{ field.label }}</label>
+                        <div class="control">
+                            {{ field() }}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+        <button type="button" class="button is-danger is-rounded is-small remove-subform" hx-target=".subform-card"
+                hx-swap="innerHTML"
+        >
+            ลบ
+        </button>
+    </div>
+</div>
+<script>
+    function toggleTable() {
+        $('table tbody tr').each(function () {
+            const row = $(this);
+            const checkbox = row.find('input[type="checkbox"]');
+            const textInputs = row.find('input[type="text"]');
+
+            if (checkbox.is(':checked')) {
+                textInputs.prop('disabled', false).attr('required', true);
+            } else {
+                textInputs.prop('disabled', true).val('').removeAttr('required');
+            }
+        });
+
+        $('table tbody tr input[type="checkbox"]').on('change', function () {
+            const row = $(this).closest('tr');
+            const checked = $(this).is(':checked');
+
+            row.find('input[type="text"]').each(function () {
+                if (checked) {
+                    $(this).prop('disabled', false).attr('required', true);
+                } else {
+                    $(this).prop('disabled', true).val('').removeAttr('required');
+                }
+            });
+        });
+    }
+
+    function toggleSurfaceTypeInput(subform) {
+        const surfaceTypeField = subform.find('input[name$="surface_type"]');
+        const surfaceTypeOtherField = subform.find('input[name$="surface_type_other"]');
+        let isASTMSelected = false;
+
+        subform.find('input[type="checkbox"][name$="test_method"]').each(function () {
+            if (this.checked && this.value.includes('Modified ASTM E1053-20')) {
+                isASTMSelected = true;
+            }
+        });
+
+        if (isASTMSelected) {
+            surfaceTypeField.prop('disabled', false);
+        } else {
+            surfaceTypeField.each(function () {
+                let name = $(this).attr('name');
+                console.log('s', name)
+                if (subform.find('input[name="' + name + '"][type="hidden"]').length === 0) {
+                    subform.append('<input type="hidden" name="' + name + '" value="">');
+                }
+            });
+            surfaceTypeField.prop('disabled', true);
+            surfaceTypeField.prop('checked', false)
+            surfaceTypeOtherField.closest('.field').hide();
+            surfaceTypeOtherField.val('');
+        }
+    }
+
+    function showSurfaceTypeOtherInput(subform) {
+        const surfaceTypeField = subform.find('input[type="radio"][name$="surface_type"]:checked').val();
+        const surfaceTypeOtherField = subform.find('input[name$="surface_type_other"]').closest('.field');
+
+        if (surfaceTypeField && surfaceTypeField.includes('อื่นๆ โปรดระบุ')) {
+            surfaceTypeOtherField.show();
+        } else {
+            surfaceTypeOtherField.hide();
+            subform.find('input[name$="surface_type_other"]').val('');
+        }
+    }
+
+    $('.subform-card').each(function () {
+        const subform = $(this);
+        toggleTable();
+        toggleSurfaceTypeInput(subform);
+        showSurfaceTypeOtherInput(subform);
+
+        subform.find('input[type="checkbox"][name$="test_method"]').change(function () {
+            toggleSurfaceTypeInput(subform);
+            showSurfaceTypeOtherInput(subform);
+        });
+
+        subform.find('input[type="radio"][name$="surface_type"]').change(function () {
+            showSurfaceTypeOtherInput(subform);
+        });
+    });
+</script>

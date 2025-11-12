@@ -404,9 +404,6 @@ class ServiceRequest(db.Model):
             'id': self.id,
             'request_no': self.request_no,
             'created_at': self.created_at,
-            'product': ", ".join(
-                [p.strip().strip('"') for p in self.product.strip("{}").split(",") if p.strip().strip('"')])
-            if self.product else None,
             'sender': self.customer.customer_info.cus_name if self.customer else None,
             'status_id': self.status.status_id if self.status else None,
             'admin_status': self.status.admin_status if self.status else None,
@@ -653,6 +650,15 @@ class ServiceRequest(db.Model):
         return {'status': status, 'color': color, 'icon': icon}
 
 
+class ServiceRequestDataItem(db.Model):
+    __tablename__ = 'service_request_data_items'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
+    request = db.relationship(ServiceRequest, backref=db.backref('data_items'))
+    data = db.Column('data', JSONB)
+
+
 class ServiceReqReportLanguageAssoc(db.Model):
     __tablename__ = 'service_req_report_language_assocs'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -698,9 +704,6 @@ class ServiceQuotation(db.Model):
             'quotation_no': self.quotation_no,
             'name': self.name,
             'customer_name': self.customer_name,
-            'product': ", ".join(
-                [p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
-            if self.request else None,
             'created_at': self.created_at,
             'total_price': '{:,.2f}'.format(self.grand_total()),
             'status_id': self.request.status.status_id if self.request.status else None,
