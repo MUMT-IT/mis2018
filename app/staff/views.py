@@ -1374,9 +1374,9 @@ def leave_request_result_by_date():
         start_dt, end_dt = form.get('dates').split(' - ')
         start_date = datetime.strptime(start_dt, '%d/%m/%Y')
         end_date = datetime.strptime(end_dt, '%d/%m/%Y')
-
-        leaves = StaffLeaveRequest.query.filter(and_(StaffLeaveRequest.start_datetime >= start_date,
-                                                     StaffLeaveRequest.end_datetime <= end_date))
+        end_date = end_date.replace(hour=23, minute=59, second=59)
+        leaves = StaffLeaveRequest.query.filter(and_(StaffLeaveRequest.start_datetime <= end_date,
+                                                     StaffLeaveRequest.end_datetime >= start_date))
         return render_template('staff/leave_request_result_by_date.html', leaves=leaves,
                                start_date=start_date.date(), end_date=end_date.date())
     else:
@@ -3249,7 +3249,7 @@ def seminar_records():
         attends = StaffSeminarAttend.query.filter(and_(StaffSeminarAttend.start_datetime >= start_datetime,
                                                        StaffSeminarAttend.start_datetime <= end_datetime))
         columns = [u'ชื่อ-นามสกุล', u'ประเภท', u'ประเภทที่ไป', u'เรื่อง',
-                   u'ประเภทแหล่งเงิน', u'จำนวนเงิน', u'วันที่เริ่มต้น', u'วันที่สิ้นสุด', u'สถานที่']
+                   u'ประเภทแหล่งเงิน', u'จำนวนเงิน', u'วันที่เริ่มต้น', u'วันที่สิ้นสุด', u'สถานที่', u'พัฒนาด้าน', u'ภายใต้โครงการ']
         for attend in attends:
             records.append({
                 columns[0]: u"{}".format(attend.staff.personal_info.fullname),
@@ -3262,13 +3262,19 @@ def seminar_records():
                 columns[7]: u"{}".format(attend.end_datetime.date()
                                          if attend.end_datetime else attend.start_datetime.date()),
                 columns[8]: u"{}".format(attend.seminar.location),
+                columns[9]: ", ".join(str(mission.mission) for mission in attend.missions),
+                columns[10]: ", ".join(str(objective.objective) for objective in attend.objectives),
             })
         df = DataFrame(records, columns=columns)
         df.to_excel('attend_summary.xlsx', index=False, columns=columns)
         return send_from_directory(os.getcwd(), 'attend_summary.xlsx')
     else:
         seminar_list = []
-        seminar_query = StaffSeminar.query.filter(StaffSeminar.cancelled_at == None).all()
+        seminar_query = db.session.query(StaffSeminar). \
+            outerjoin(StaffSeminarAttend, StaffSeminarAttend.seminar_id == StaffSeminar.id). \
+            outerjoin(staff_seminar_mission_assoc_table, staff_seminar_mission_assoc_table.c.seminar_attend_id == StaffSeminarAttend.id). \
+            outerjoin(StaffSeminarMission, StaffSeminarMission.id == staff_seminar_mission_assoc_table.c.seminar_mission_id). \
+            filter(StaffSeminar.cancelled_at == None).all()
         for seminar in seminar_query:
             record = {}
             record["id"] = seminar.id
@@ -3277,6 +3283,14 @@ def seminar_records():
             record["start"] = seminar.start_datetime
             record["end"] = seminar.end_datetime
             record["organize_by"] = seminar.organize_by
+            missions = []
+            for mission in db.session.query(StaffSeminarMission). \
+                    join(staff_seminar_mission_assoc_table, staff_seminar_mission_assoc_table.c.seminar_mission_id == StaffSeminarMission.id). \
+                    join(StaffSeminarAttend, StaffSeminarAttend.id == staff_seminar_mission_assoc_table.c.seminar_attend_id). \
+                    filter(StaffSeminarAttend.seminar_id == seminar.id).all():
+                missions.append(mission.mission)
+
+            record["missions"] = missions
             seminar_list.append(record)
         return render_template('staff/seminar_records.html', seminar_list=seminar_list)
 
@@ -3310,38 +3324,69 @@ def seminar_create_record(seminar_id):
             db.session.add(attend)
             db.session.commit()
 
-            req_title = u'ทดสอบแจ้งการขออนุมัติ' + attend.seminar.topic_type
-            req_msg = u'{} ขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
-                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
-                format(attend.staff.personal_info, attend.seminar.topic_type, attend.seminar.topic,
-                       attend.start_datetime, attend.end_datetime,
-                       url_for("staff.seminar_request_for_proposal", seminar_attend_id=attend.id
-                               , _external=True, _scheme='https'))
-            if attend.lower_level_approver_account_id:
-                approver = StaffLeaveApprover.query.filter_by(
-                    approver_account_id=attend.lower_level_approver_account_id).first()
-                approver_email = approver.account.email
-                is_notify_line = approver.notified_by_line
-                line_id = approver.account.line_id
-                if not current_app.debug:
-                    send_mail([approver_email + "@mahidol.ac.th"], req_title, req_msg)
-                    if is_notify_line and line_id:
-                        try:
-                            line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
-                        except LineBotApiError:
-                            flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
-                else:
-                    print(req_msg, approver_email)
-                flash('ส่งคำขอไปยังผู้บังคับบัญชาของท่านเรียบร้อยแล้ว ', 'success')
-            else:
-                flash('เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
+            # req_title = u'ทดสอบแจ้งการขออนุมัติ' + attend.seminar.topic_type
+            # req_msg = u'{} ขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
+            #           u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+            #     format(attend.staff.personal_info, attend.seminar.topic_type, attend.seminar.topic,
+            #            attend.start_datetime, attend.end_datetime,
+            #            url_for("staff.seminar_request_for_proposal", seminar_attend_id=attend.id
+            #                    , _external=True, _scheme='https'))
+            # if attend.lower_level_approver_account_id:
+            #     approver = StaffLeaveApprover.query.filter_by(
+            #         approver_account_id=attend.lower_level_approver_account_id).first()
+            #     approver_email = approver.account.email
+            #     is_notify_line = approver.notified_by_line
+            #     line_id = approver.account.line_id
+            #     if not current_app.debug:
+            #         send_mail([approver_email + "@mahidol.ac.th"], req_title, req_msg)
+            #         if is_notify_line and line_id:
+            #             try:
+            #                 line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
+            #             except LineBotApiError:
+            #                 flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
+            #     else:
+            #         print(req_msg, approver_email)
+            #     flash('ส่งคำขอไปยังผู้บังคับบัญชาของท่านเรียบร้อยแล้ว ', 'success')
+            # else:
+            #     flash('เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
+            flash('เพิ่มรายชื่อของท่านเรียบร้อยแล้ว สามารถ download เอกสารเพื่อดำเนินการขออนุมัติตามขั้นตอนปกติได้ต่อไป', 'success')
         else:
-            flash('มีการลงชื่ออบรมนี้เรียบร้อยแล้ว', 'success')
+            flash('มีการลงชื่ออบรมนี้แล้ว', 'success')
         return redirect(url_for('staff.seminar_attend_info', seminar_id=seminar_id))
     else:
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
     return render_template('staff/seminar_create_record.html', seminar=seminar, form=form)
+
+
+@staff.route('/seminar/head-position', methods=['GET'])
+@login_required
+def get_positions():
+    approver_id = request.args.get('approver', type=int)
+    if not approver_id:
+        select_html = ''
+        resp = make_response(select_html)
+        resp.headers['HX-Trigger-After-Swap'] = 'initSelect2'
+        return resp
+    try:
+        leave_approver = StaffLeaveApprover.query.get(approver_id)
+        approver_id = leave_approver.approver_account_id
+    except ValueError:
+        return "Invalid approver ID", 400
+
+    positions = StaffHeadPosition.query.filter_by(staff_account_id=approver_id).all()
+    if not positions:
+        return "<p>No positions found for this approver.</p>"
+    select_html = '<label>ตำแหน่ง</label>'
+    select_html += '<div class="select">'
+    select_html += '<select name="position" class="form-control">'
+    for pos in positions:
+        select_html += f'<option value="{pos.id}">{pos.position}</option>'
+    select_html += '</select></div>'
+
+    resp = make_response(select_html)
+    resp.headers['HX-Trigger-After-Swap'] = 'initSelect2'
+    return resp
 
 
 @staff.route('/seminar/requests/proposal/info')
@@ -3586,8 +3631,8 @@ def seminar_add_attendee(seminar_id):
         form = request.form
         start_datetime = datetime.strptime(form.get('start_dt'), '%d/%m/%Y %H:%M')
         end_datetime = datetime.strptime(form.get('end_dt'), '%d/%m/%Y %H:%M')
-        objective = StaffSeminarObjective.query.filter_by(objective=form.get('objective')).first()
-        mission = StaffSeminarMission.query.filter_by(mission=form.get('mission')).first()
+        #objective = StaffSeminarObjective.query.filter_by(objective=form.get('objective')).first()
+        #mission = StaffSeminarMission.query.filter_by(mission=form.get('mission')).first()
         for staff_id in form.getlist("participants"):
             attend = StaffSeminarAttend(
                 staff_account_id=staff_id,
@@ -3606,10 +3651,10 @@ def seminar_add_attendee(seminar_id):
                 flight_ticket_cost=form.get('flight_ticket_cost') if form.get("flight_ticket_cost") else 0
             )
             db.session.add(attend)
-            if attend:
-                if objective:
-                    objective.objective_attends.append(attend)
-                    mission.mission_attends.append(attend)
+            # if attend:
+            #     if objective:
+            #         objective.objective_attends.append(attend)
+            #         mission.mission_attends.append(attend)
             db.session.commit()
         flash('เพิ่มผู้เข้าร่วมใหม่เรียบร้อยแล้ว', 'success')
         return redirect( url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar_id))
@@ -3644,8 +3689,43 @@ def show_seminar_info_each_person(record_id):
             upload_file_url = upload_file.get('embedLink')
         else:
             upload_file_url = None
+
+    seminar_attend = StaffSeminarAttend.query.get(record_id)
+    if seminar_attend.staff.personal_info.org.parent:
+        org_name = seminar_attend.staff.personal_info.org.parent.name
+    else:
+        org_name = seminar_attend.staff.personal_info.org.name
+    registration_fee = seminar_attend.registration_fee if seminar_attend.registration_fee else '-'
+    transaction_fee = u'ค่าธรรมเนียมการโอนเงิน(ถ้ามี) {} บาท '.format(
+        seminar_attend.transaction_fee) if seminar_attend.transaction_fee else ''
+    budget = seminar_attend.budget if seminar_attend.budget else '-'
+    accommodation_cost = u'ค่าที่พัก {} บาท '.format(
+        seminar_attend.accommodation_cost) if seminar_attend.accommodation_cost else ''
+    flight_ticket_cost = u'ค่าตั๋วเครื่องบิน {} บาท '.format(
+        seminar_attend.flight_ticket_cost) if seminar_attend.flight_ticket_cost else ''
+    train_ticket_cost = u'ค่ารถไฟ {} บาท '.format(
+        seminar_attend.train_ticket_cost) if seminar_attend.train_ticket_cost else ''
+    taxi_cost = u'ค่าแท็กซี่ {} บาท '.format(seminar_attend.taxi_cost) if seminar_attend.taxi_cost else ''
+    fuel_cost = u'ค่าน้ำมัน {} บาท '.format(seminar_attend.fuel_cost) if seminar_attend.fuel_cost else ''
+    attend_online = u' เข้าร่วมผ่านช่องทางออนไลน์' if seminar_attend.attend_online else ''
+    academic_position = StaffAcademicPositionRecord.query.filter_by \
+        (personal_info_id=current_user.personal_info.id).first()
+    if academic_position:
+        prefix_position = academic_position.position.fullname_th
+    elif current_user.personal_info.academic_staff:
+        prefix_position = u'อาจารย์'
+    else:
+        prefix_position = ''
+    telephone = seminar_attend.staff.personal_info.telephone if seminar_attend.staff.personal_info.telephone \
+        else '.......'
+
     return render_template('staff/seminar_each_record.html', attend=attend, approval=approval,
-                           proposal=proposal, is_hr=is_hr, upload_file_url=upload_file_url)
+                           proposal=proposal, is_hr=is_hr, upload_file_url=upload_file_url,
+                           registration_fee=registration_fee, seminar_attend=seminar_attend,
+                           transaction_fee=transaction_fee, budget=budget, accommodation_cost=accommodation_cost,
+                           flight_ticket_cost=flight_ticket_cost, train_ticket_cost=train_ticket_cost,
+                           taxi_cost=taxi_cost, fuel_cost=fuel_cost, org_name=org_name, attend_online=attend_online,
+                           prefix_position=prefix_position, telephone=telephone)
 
 
 @staff.route('/seminar/edit-seminar/<int:seminar_id>', methods=['GET', 'POST'])
@@ -3772,6 +3852,8 @@ def seminar_attend_search_result():
     budget = 0
     distinct_topic_types = db.session.query(StaffSeminar.topic_type).distinct().all()
     distinct_role = db.session.query(StaffSeminarAttend.role).distinct().all()
+    distinct_org = db.session.query(Org.name).distinct().order_by(Org.id).all()
+    distinct_objective = db.session.query(StaffSeminarObjective.objective).distinct().all()
     if request.method == 'POST':
         form = request.form
         start_d, end_d = form.get('dates').split(' - ')
@@ -3779,14 +3861,23 @@ def seminar_attend_search_result():
         end = datetime.strptime(end_d, '%d/%m/%Y')
         personal_info_id = form.get('staff')
         staff_account = StaffAccount.query.filter_by(personal_id=personal_info_id).first()
+        org = form.get('org')
         topic_type = form.get('topic_type')
         role = form.get('role')
-
+        objective = form.get('objective')
         query = StaffSeminarAttend.query
 
         if start:
-            query = query.filter(or_(func.date(StaffSeminarAttend.start_datetime) >= start.date(),
-                                     func.date(StaffSeminarAttend.end_datetime) <= end.date()))
+            query = query.filter(
+                and_(
+                    func.date(StaffSeminarAttend.start_datetime) >= start.date(),
+                    func.date(StaffSeminarAttend.end_datetime) <= end.date()
+                )
+            )
+
+        if org:
+            query = query.join(StaffSeminarAttend.staff).join(StaffAccount.personal_info) \
+                    .join(StaffPersonalInfo.org).filter(Org.name == org)
 
         if personal_info_id:
             query = query.filter(StaffSeminarAttend.staff == staff_account)
@@ -3796,6 +3887,9 @@ def seminar_attend_search_result():
 
         if topic_type:
             query = query.filter(StaffSeminarAttend.seminar.has(StaffSeminar.topic_type == topic_type))
+
+        if objective:
+            query = query.join(StaffSeminarAttend.objectives).filter(StaffSeminarObjective.objective == objective)
 
         query = query.order_by(StaffSeminarAttend.start_datetime.asc())
         seminar_attend_records = query.all()
@@ -3809,9 +3903,11 @@ def seminar_attend_search_result():
                                personal_info_id=personal_info_id,
                                selected_staff_name=selected_staff.fullname if selected_staff else "",
                                selected_topic_type=topic_type, selected_role=role,
-                               distinct_topic_types=distinct_topic_types, distinct_role=distinct_role)
+                               distinct_topic_types=distinct_topic_types, distinct_role=distinct_role,
+                               distinct_org=distinct_org, selected_org=org, distinct_objective=distinct_objective)
     return render_template('staff/seminar_attend_search_result.html', seminar_attend_records=seminar_attend_records,
-                           budget=budget, distinct_topic_types=distinct_topic_types, distinct_role=distinct_role)
+                           budget=budget, distinct_topic_types=distinct_topic_types, distinct_role=distinct_role,
+                           distinct_org=distinct_org, distinct_objective=distinct_objective)
 
 
 @staff.route('/api/time-report')

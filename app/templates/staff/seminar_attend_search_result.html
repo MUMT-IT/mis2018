@@ -20,6 +20,23 @@
                                 </span>
                             </div>
                         </div>
+                        <div class="column">
+                        </div>
+                    </div>
+                    <div class="field-body">
+                        <div class="column"><p>หน่วยงาน</p>
+                           <div class="select">
+                                <select name="org">
+                                    <option value="" {% if not selected_org %}selected{% endif %}>ทุกประเภท</option>
+                                    {% for org in distinct_org %}
+                                        <option value="{{ org.name }}"
+                                                {% if org.name == selected_org %}selected{% endif %}>
+                                            {{ org.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
                         <div class="column">ชื่อ
                             <div class="control">
                                 <select class="js-example-basic" name="staff">
@@ -39,6 +56,19 @@
                                         <option value="{{ topic.topic_type }}"
                                                 {% if topic.topic_type == selected_topic_type %}selected{% endif %}>
                                             {{ topic.topic_type }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="column"><p>ด้าน</p>
+                            <div class="select">
+                                <select name="objective">
+                                    <option value="" {% if not selected_objective %}selected{% endif %}>ทุกประเภท</option>
+                                    {% for objective in distinct_objective %}
+                                        <option value="{{ objective.objective }}"
+                                                {% if objective.objective == selected_objective %}selected{% endif %}>
+                                            {{ objective.objective }}
                                         </option>
                                     {% endfor %}
                                 </select>
@@ -73,11 +103,13 @@
                 <div class="column">
                     <table class="table is-striped" id="seminarTable">
                         <thead>
+                        <th>หน่วยงาน</th>
                         <th>ชื่อ</th>
                         <th>ประเภท</th>
                         <th>ประเภทที่ไป</th>
                         <th>ประเภทกิจกรรม</th>
                         <th>ชื่อกิจกรรม</th>
+                        <th>ด้าน</th>
                         <th>ค่าใช้จ่าย</th>
                         <th>วันที่เริ่มต้น</th>
                         <th>วันที่สิ้นสุด</th>
@@ -88,11 +120,13 @@
                         <tbody>
                         {% for record in seminar_attend_records %}
                             <tr>
+                                <td>{{ record.staff.personal_info.org }}</td>
                                 <td>{{ record.staff.fullname }}</td>
                                 <td>{% if record.staff.personal_info.academic_staff %}สายวิชาการ{% else %}สายสนับสนุน{% endif %}</td>
                                 <td>{{ record.role }}</td>
                                 <td>{{ record.seminar.topic_type }}</td>
                                 <td>{{ record.seminar }}</td>
+                                <td>{% for obj in record.objectives %}{{ obj.objective }}{% endfor %}</td>
                                 <td>{{ record.budget }}</td>
                                 <td>{{ record.start_datetime|localdatetime }}</td>
                                 <td>{{ record.end_datetime|localdatetime }}</td>
