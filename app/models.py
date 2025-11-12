@@ -599,3 +599,4 @@ class Dashboard(db.Model):
     url = db.Column('url', db.String())
     mission_id = db.Column('mission_id', db.Integer(), db.ForeignKey('missions.id'), nullable=False)
     mission = db.relationship('Mission', backref=db.backref('dashboard'))
+    is_kpi = db.Column('is_kpi', db.Boolean(), default=False)

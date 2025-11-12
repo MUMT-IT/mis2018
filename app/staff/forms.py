@@ -28,7 +28,7 @@ def create_seminar_attend_form(current_user):
             model = StaffSeminarAttend
 
         missions = QuerySelectMultipleField(u'เพื่อพัฒนาในด้าน', get_label='mission',
-                                              query_factory=lambda: StaffSeminarMission.query.all(),
+                                              query_factory=lambda: StaffSeminarMission.query.filter_by(is_active=True).all(),
                                               widget=widgets.ListWidget(prefix_label=False),
                                               option_widget=widgets.CheckboxInput(),
                                               validators=[DataRequired()]
@@ -36,9 +36,9 @@ def create_seminar_attend_form(current_user):
         approver = QuerySelectField(u'ผู้บังคับบัญชา',
                                     get_label='approver_name',
                                     allow_blank=True,
-                                    blank_text=u'กรุณาเลือกผู้อนุมัติ',
+                                    blank_text=u'กรุณาเลือก',
                                     query_factory=lambda: StaffLeaveApprover.
-                                    query.filter_by(staff_account_id=current_user.id).all())
+                                    query.filter_by(staff_account_id=current_user.id, is_active=True).all())
 
     return StaffSeminarAttendForm
 

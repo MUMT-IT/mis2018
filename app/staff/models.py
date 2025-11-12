@@ -856,6 +856,17 @@ class StaffSeminarAttend(db.Model):
         return [o.objective for o in self.objectives]
 
 
+class StaffSeminarDocumentApprover(db.Model):
+    __tablename__ = 'staff_seminar_document_approvers'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    seminar_attend_id = db.Column('seminar_attend_id', db.ForeignKey('staff_seminar_attends.id'))
+    seminar_attend = db.relationship('StaffSeminarAttend', foreign_keys=[seminar_attend_id],
+                                     backref=db.backref('document_approver', lazy='dynamic'))
+    position_id = db.Column('position_id', db.ForeignKey('staff_head_positions.id'))
+    position = db.relationship('StaffHeadPosition', foreign_keys=[position_id],
+                                    backref=db.backref('position_document_approver'))
+
+
 class StaffSeminarProposal(db.Model):
     __tablename__ = 'staff_seminar_proposals'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
