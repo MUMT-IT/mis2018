@@ -5,7 +5,7 @@ from wtforms.validators import DataRequired
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash, Response
 from app.staff.models import StaffAccount
 from werkzeug.security import check_password_hash, generate_password_hash
-
+from flask_login import login_required, current_user
 
 from app.continuing_edu.models import (
     EventEntity,
@@ -200,6 +200,7 @@ def logout():
 
 
 @admin_bp.route('/')
+@login_required
 def dashboard():
     admin = get_current_admin()
     if not admin:

@@ -416,9 +416,7 @@
 
         /* Custom styles for language buttons */
         .language-button {
-            margin-left: 0.5rem;
-            /* Add some spacing between buttons */
-            min-width: 40px;
+            min-width: 60px;
             /* Ensure a minimum width */
             text-align: center;
         }
@@ -442,6 +440,17 @@
             background-color: #c7d2fe;
             /* Indigo 200 */
             border-color: #c7d2fe;
+        }
+
+        /* Fix for language buttons with has-addons */
+        .buttons.has-addons .language-button:first-child {
+            border-top-left-radius: 290486px;
+            border-bottom-left-radius: 290486px;
+        }
+
+        .buttons.has-addons .language-button:last-child {
+            border-top-right-radius: 290486px;
+            border-bottom-right-radius: 290486px;
         }
 
         /* Style for the university logo */
@@ -625,13 +634,13 @@
                         {% endif %}
                         <div class="navbar-item">
                             <div class="buttons has-addons">
-                                <a class="button is-small is-rounded language-button {% if current_lang == 'en' %}is-active{% endif %}"
+                                <a class="button is-small language-button {% if current_lang == 'en' %}is-active{% endif %}"
                                     href="{{ url_for('continuing_edu.index', lang='en') }}">
-                                    ENGLISH
+                                    EN
                                 </a>
-                                <a class="button is-small is-rounded language-button {% if current_lang == 'th' %}is-active{% endif %}"
+                                <a class="button is-small language-button {% if current_lang == 'th' %}is-active{% endif %}"
                                     href="{{ url_for('continuing_edu.index', lang='th') }}">
-                                    ไทย
+                                    TH
                                 </a>
                             </div>
                         </div>

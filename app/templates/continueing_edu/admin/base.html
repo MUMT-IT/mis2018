@@ -5,6 +5,26 @@
           <meta charset="UTF-8">
           <title>{% block title %}Continuing Education Admin{% endblock %}</title>
           <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+          <style>
+                    /* Admin navbar styling */
+                    .navbar {
+                              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    }
+
+                    .navbar-dropdown .navbar-item {
+                              padding-left: 2rem;
+                    }
+
+                    .navbar-dropdown .navbar-item .icon {
+                              width: 1.5rem;
+                              margin-right: 0.5rem;
+                    }
+
+                    .navbar-link .icon {
+                              margin-right: 0.25rem;
+                    }
+          </style>
           {% block head %}{% endblock %}
 </head>
 
@@ -15,60 +35,418 @@
                     </div>
                     <div class="navbar-menu">
                               <div class="navbar-end">
+                                        <!-- 1. Event Management -->
                                         <div class="navbar-item has-dropdown is-hoverable">
-                                                  <a class="navbar-link" href="#">Events</a>
+                                                  <a class="navbar-link">
+                                                            <span class="icon"><i
+                                                                                class="fas fa-calendar-alt"></i></span>
+                                                            <span>Events</span>
+                                                  </a>
                                                   <div class="navbar-dropdown">
-                                                            <a class="navbar-item" href="/continuing_edu/admin/events/create">Create New Event</a>
-                                                            <a class="navbar-item" href="/continuing_edu/admin/events">All Active Events</a>
-                                                            <a class="navbar-item" href="/continuing_edu/admin/events?status=inactive">Inactive Events</a>
-                                                            <a class="navbar-item" href="/continuing_edu/admin/events?status=old">Old Events</a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/events/create">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-plus-circle"></i></span>
+                                                                      <span>Create New Event</span>
+                                                            </a>
                                                             <hr class="navbar-divider">
-                                                            <a class="navbar-item" href="/continuing_edu/admin/events">Progress Dashboard</a>
-                                                            <a class="navbar-item" href="/continuing_edu/admin/events">Email Promotions</a>
+                                                            <a class="navbar-item" href="/continuing_edu/admin/events">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-list"></i></span>
+                                                                      <span>All Events</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/events?status=published">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-check-circle"></i></span>
+                                                                      <span>Published Events</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/events?status=draft">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-edit"></i></span>
+                                                                      <span>Draft Events</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/events?status=completed">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-flag-checkered"></i></span>
+                                                                      <span>Completed Events</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/events?status=archived">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-archive"></i></span>
+                                                                      <span>Archived Events</span>
+                                                            </a>
                                                   </div>
                                         </div>
-                                        <a class="navbar-item" href="/continuing_edu/admin/events">Registration</a>
-                                        <a class="navbar-item" href="/continuing_edu/admin/payments">Payments</a>
-                                        <a class="navbar-item" href="/continuing_edu/admin/members">Members</a>
-                                        <a class="navbar-item" href="/continuing_edu/admin/certificates">Certificates</a>
 
+                                        <!-- 2. Registration Management -->
                                         <div class="navbar-item has-dropdown is-hoverable">
-                                                  <a class="navbar-link" href="#">Reports</a>
+                                                  <a class="navbar-link">
+                                                            <span class="icon"><i class="fas fa-user-plus"></i></span>
+                                                            <span>Registrations</span>
+                                                  </a>
                                                   <div class="navbar-dropdown">
                                                             <a class="navbar-item"
-                                                                      href="/continuing_edu/admin/reports/registrations">Registration
-                                                                      Report</a>
+                                                                      href="/continuing_edu/admin/registrations">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-list-ul"></i></span>
+                                                                      <span>All Registrations</span>
+                                                            </a>
                                                             <a class="navbar-item"
-                                                                      href="/continuing_edu/admin/reports/payments">Payment
-                                                                      Report</a>
+                                                                      href="/continuing_edu/admin/registrations?status=pending">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-clock"></i></span>
+                                                                      <span>Pending Approval</span>
+                                                            </a>
                                                             <a class="navbar-item"
-                                                                      href="/continuing_edu/admin/reports/courses">Course
-                                                                      Report</a>
+                                                                      href="/continuing_edu/admin/registrations?status=confirmed">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-check"></i></span>
+                                                                      <span>Confirmed</span>
+                                                            </a>
                                                             <a class="navbar-item"
-                                                                      href="/continuing_edu/admin/reports/members">Member
-                                                                      Report</a>
+                                                                      href="/continuing_edu/admin/registrations?status=cancelled">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-times-circle"></i></span>
+                                                                      <span>Cancelled</span>
+                                                            </a>
+                                                            <hr class="navbar-divider">
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/registrations/bulk">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-tasks"></i></span>
+                                                                      <span>Bulk Actions</span>
+                                                            </a>
                                                   </div>
                                         </div>
 
-
+                                        <!-- 3. Payment Management -->
                                         <div class="navbar-item has-dropdown is-hoverable">
-                                                  <a class="navbar-link" href="#">General Settings</a>
+                                                  <a class="navbar-link">
+                                                            <span class="icon"><i
+                                                                                class="fas fa-money-bill-wave"></i></span>
+                                                            <span>Payments</span>
+                                                  </a>
                                                   <div class="navbar-dropdown">
-                                                            <a class="navbar-item" href="/continuing_edu/admin/events">Site Settings</a>
-                                                            <a class="navbar-item" href="/continuing_edu/admin/speakers">อาจารย์ หรือผู้บรรยาย</a>
-                                                            <a class="navbar-item" href="/continuing_edu/admin/bootstrap_defaults">Bootstrap Defaults</a>
-
-
-
-                                                            <a class="navbar-item" href="/continuing_edu/admin/settings/member_types">Member Types</a>
-                                                            <a class="navbar-item" href="/continuing_edu/admin/settings/registration_statuses">Registration Statuses</a>
-                                                            <a class="navbar-item" href="/continuing_edu/admin/settings/payment_statuses">Payment Statuses</a>
-                                                            <a class="navbar-item" href="/continuing_edu/admin/settings/entity_categories">Entity Categories</a>
                                                             <a class="navbar-item"
-                                                                      href="/continuing_edu/admin/events">API Keys</a>
+                                                                      href="/continuing_edu/admin/payments">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-list"></i></span>
+                                                                      <span>All Payments</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/payments?status=pending">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-hourglass-half"></i></span>
+                                                                      <span>Pending Approval</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/payments?status=approved">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-check-double"></i></span>
+                                                                      <span>Approved</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/payments?status=rejected">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-ban"></i></span>
+                                                                      <span>Rejected</span>
+                                                            </a>
+                                                            <hr class="navbar-divider">
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/receipts">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-receipt"></i></span>
+                                                                      <span>Receipt Management</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/payments/bulk">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-file-invoice-dollar"></i></span>
+                                                                      <span>Bulk Approval</span>
+                                                            </a>
                                                   </div>
                                         </div>
-                                        <a class="navbar-item" href="/continuing_edu/admin/logout">Logout</a>
+
+                                        <!-- 4. Attendance & Scores -->
+                                        <div class="navbar-item has-dropdown is-hoverable">
+                                                  <a class="navbar-link">
+                                                            <span class="icon"><i
+                                                                                class="fas fa-clipboard-check"></i></span>
+                                                            <span>Attendance</span>
+                                                  </a>
+                                                  <div class="navbar-dropdown">
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/attendance">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-user-check"></i></span>
+                                                                      <span>Track Attendance</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/attendance/qrcode">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-qrcode"></i></span>
+                                                                      <span>QR Code Check-in</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/attendance/import">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-file-upload"></i></span>
+                                                                      <span>Import Attendance</span>
+                                                            </a>
+                                                            <hr class="navbar-divider">
+                                                            <a class="navbar-item" href="/continuing_edu/admin/scores">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-star"></i></span>
+                                                                      <span>Manage Test Scores</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/scores/import">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-file-csv"></i></span>
+                                                                      <span>Import Scores</span>
+                                                            </a>
+                                                  </div>
+                                        </div>
+
+                                        <!-- 5. Certificate Management -->
+                                        <div class="navbar-item has-dropdown is-hoverable">
+                                                  <a class="navbar-link">
+                                                            <span class="icon"><i class="fas fa-certificate"></i></span>
+                                                            <span>Certificates</span>
+                                                  </a>
+                                                  <div class="navbar-dropdown">
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/certificates">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-list-alt"></i></span>
+                                                                      <span>All Certificates</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/certificates/eligible">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-user-graduate"></i></span>
+                                                                      <span>Eligible Members</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/certificates/generate">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-file-pdf"></i></span>
+                                                                      <span>Generate Certificates</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/certificates/bulk">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-layer-group"></i></span>
+                                                                      <span>Bulk Generate</span>
+                                                            </a>
+                                                            <hr class="navbar-divider">
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/certificates/templates">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-file-alt"></i></span>
+                                                                      <span>Certificate Templates</span>
+                                                            </a>
+                                                  </div>
+                                        </div>
+
+                                        <!-- 6. Members -->
+                                        <div class="navbar-item has-dropdown is-hoverable">
+                                                  <a class="navbar-link">
+                                                            <span class="icon"><i class="fas fa-users"></i></span>
+                                                            <span>Members</span>
+                                                  </a>
+                                                  <div class="navbar-dropdown">
+                                                            <a class="navbar-item" href="/continuing_edu/admin/members">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-list"></i></span>
+                                                                      <span>All Members</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/members?verified=true">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-check-circle"></i></span>
+                                                                      <span>Verified Members</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/members?verified=false">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-user-clock"></i></span>
+                                                                      <span>Pending Verification</span>
+                                                            </a>
+                                                            <hr class="navbar-divider">
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/members/import">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-file-import"></i></span>
+                                                                      <span>Import Members</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/members/export">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-file-export"></i></span>
+                                                                      <span>Export Members</span>
+                                                            </a>
+                                                  </div>
+                                        </div>
+
+                                        <!-- 7. Reports -->
+                                        <div class="navbar-item has-dropdown is-hoverable">
+                                                  <a class="navbar-link">
+                                                            <span class="icon"><i class="fas fa-chart-bar"></i></span>
+                                                            <span>Reports</span>
+                                                  </a>
+                                                  <div class="navbar-dropdown">
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/reports/dashboard">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-tachometer-alt"></i></span>
+                                                                      <span>Analytics Dashboard</span>
+                                                            </a>
+                                                            <hr class="navbar-divider">
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/reports/registrations">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-user-plus"></i></span>
+                                                                      <span>Registration Report</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/reports/payments">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-dollar-sign"></i></span>
+                                                                      <span>Payment Report</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/reports/attendance">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-clipboard-list"></i></span>
+                                                                      <span>Attendance Report</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/reports/certificates">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-award"></i></span>
+                                                                      <span>Certificate Report</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/reports/members">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-users"></i></span>
+                                                                      <span>Member Activity Report</span>
+                                                            </a>
+                                                            <hr class="navbar-divider">
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/reports/export">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-download"></i></span>
+                                                                      <span>Export All Reports</span>
+                                                            </a>
+                                                  </div>
+                                        </div>
+
+                                        <!-- 8. Communications -->
+                                        <div class="navbar-item has-dropdown is-hoverable">
+                                                  <a class="navbar-link">
+                                                            <span class="icon"><i class="fas fa-envelope"></i></span>
+                                                            <span>Communications</span>
+                                                  </a>
+                                                  <div class="navbar-dropdown">
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/emails/compose">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-pencil-alt"></i></span>
+                                                                      <span>Compose Email</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/emails/templates">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-file-alt"></i></span>
+                                                                      <span>Email Templates</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/emails/history">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-history"></i></span>
+                                                                      <span>Email History</span>
+                                                            </a>
+                                                            <hr class="navbar-divider">
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/notifications">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-bell"></i></span>
+                                                                      <span>Notifications</span>
+                                                            </a>
+                                                  </div>
+                                        </div>
+
+                                        <!-- 9. Settings -->
+                                        <div class="navbar-item has-dropdown is-hoverable">
+                                                  <a class="navbar-link">
+                                                            <span class="icon"><i class="fas fa-cog"></i></span>
+                                                            <span>Settings</span>
+                                                  </a>
+                                                  <div class="navbar-dropdown">
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/settings/site">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-globe"></i></span>
+                                                                      <span>Site Settings</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/speakers">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-chalkboard-teacher"></i></span>
+                                                                      <span>Speakers/Lecturers</span>
+                                                            </a>
+                                                            <hr class="navbar-divider">
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/settings/member_types">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-user-tag"></i></span>
+                                                                      <span>Member Types</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/settings/registration_statuses">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-flag"></i></span>
+                                                                      <span>Registration Statuses</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/settings/payment_statuses">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-coins"></i></span>
+                                                                      <span>Payment Statuses</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/settings/entity_categories">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-folder"></i></span>
+                                                                      <span>Event Categories</span>
+                                                            </a>
+                                                            <hr class="navbar-divider">
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/settings/staff">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-user-shield"></i></span>
+                                                                      <span>Staff Roles</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/bootstrap_defaults">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-database"></i></span>
+                                                                      <span>Bootstrap Data</span>
+                                                            </a>
+                                                  </div>
+                                        </div>
+
+                                        <!-- 10. Logout -->
+                                        <a class="navbar-item" href="/continuing_edu/admin/logout">
+                                                  <span class="icon"><i class="fas fa-sign-out-alt"></i></span>
+                                                  <span>Logout</span>
+                                        </a>
                               </div>
                     </div>
           </nav>
