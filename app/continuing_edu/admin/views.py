@@ -7,6 +7,18 @@ from app.staff.models import StaffAccount
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_login import login_required, current_user
 
+from app.continuing_edu.admin.decorators import (
+    admin_required,
+    get_current_staff,
+    require_event_role,
+    can_manage_registrations,
+    can_manage_payments,
+    can_issue_receipts,
+    can_manage_certificates,
+    get_staff_permissions,
+    filter_events_by_permission
+)
+
 from app.continuing_edu.models import (
     EventEntity,
     Member,
@@ -49,6 +61,7 @@ from app.continuing_edu.certificate_utils import (
     build_certificate_context,
 )
 
+# Blueprint definition (imported by __init__.py and main.py)
 admin_bp = Blueprint('continuing_edu_admin', __name__, url_prefix='/continuing_edu/admin')
 
 
@@ -70,25 +83,32 @@ class EventCreateStep1Form(FlaskForm):
     submit = SubmitField('Next')
 
 @admin_bp.route('/events/create', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def create_event():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     form = EventCreateStep1Form()
     if form.validate_on_submit():
         # Create EventEntity row with minimal info
-        event = EventEntity(event_type=form.event_type.data, title_en=form.title.data, staff_id=admin.id)
+        event = EventEntity(event_type=form.event_type.data, title_en=form.title.data, staff_id=staff.id)
         db.session.add(event)
         db.session.commit()
+        
+        # Automatically assign creator as editor
+        editor = EventEditor(event_entity_id=event.id, staff_id=staff.id)
+        db.session.add(editor)
+        db.session.commit()
+        
+        flash('Event created successfully. You have been assigned as editor.', 'success')
         # Redirect to edit page with tabs for further info
         return redirect(url_for('continuing_edu_admin.edit_event', event_id=event.id))
-    return render_template('continueing_edu/admin/event_create_step1.html', form=form, logged_in_admin=admin)
+    return render_template('continueing_edu/admin/event_create_step1.html', form=form, logged_in_admin=staff)
 
 @admin_bp.route('/events/<int:event_id>/edit', methods=['GET'])
+@login_required
+@require_event_role('editor')
 def edit_event(event_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     event = EventEntity.query.get_or_404(event_id)
 
     # Load related data for all tabs
@@ -117,7 +137,7 @@ def edit_event(event_id):
     registration_statuses = []
     certificate_statuses = []
     if active_tab == 'certificates':
-        if not _is_certificate_manager(admin, event.id):
+        if not can_manage_certificates(event.id):
             flash('You do not have permission to manage certificates for this event.', 'danger')
             return redirect(url_for('continuing_edu_admin.edit_event', event_id=event.id))
         registrations = MemberRegistration.query.filter_by(event_entity_id=event.id).order_by(MemberRegistration.registration_date.asc()).all()
@@ -151,7 +171,7 @@ def edit_event(event_id):
         receipt_issuers=receipt_issuers,
         certificate_managers=certificate_managers,
         active_tab=active_tab,
-        logged_in_admin=admin,
+        logged_in_admin=staff,
         registrations=registrations,
         payments_map=payments_map,
         registration_statuses=registration_statuses,
@@ -159,52 +179,14 @@ def edit_event(event_id):
         can_issue_certificate=can_issue_certificate,
     )
 
-def get_current_admin():
-    admin_id = session.get('admin_id')
-    if admin_id:
-        return StaffAccount.query.get(admin_id)
-    return None
-
-@admin_bp.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form['username'].split('@')[0]  # Use part before '@' as username
-        password = request.form['password']
-        print('Username:', username)
-        latest_courses = EventEntity.query.filter_by(event_type='course').order_by(EventEntity.created_at.desc()).limit(5).all()
-
-    # Attach .limit property if not present, and ensure payments/registrations are loaded
-        for course in latest_courses:
-          if not hasattr(course, 'limit'):
-                    # You can replace this with the real field if exists
-                    course.limit = getattr(course, 'max_registrations', None) or '-'  # fallback if not set
-          # Force load relationships if lazy
-          _ = course.registrations
-          _ = course.payments
-
-          staff = StaffAccount.query.filter_by(email=username).first()
-          if staff and staff.verify_password(password):
-                    session['admin_id'] = staff.id
-                    flash('Login successful', 'success')
-                    return redirect(url_for('continuing_edu_admin.dashboard'))
-          else:
-                    flash('Invalid credentials', 'danger')
-    return render_template('continueing_edu/admin/login.html')
-
-@admin_bp.route('/logout')
-def logout():
-    session.pop('admin_id', None)
-    flash('Logged out', 'success')
-    return redirect(url_for('continuing_edu_admin.login'))
-
-
+# Login/logout now handled by main MIS system via @login_required
 
 @admin_bp.route('/')
 @login_required
+@admin_required
 def dashboard():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
+    print(staff)
     now_utc = datetime.datetime.now(datetime.timezone.utc)
     current_date = now_utc.astimezone().strftime('%A %d %B %Y')
 
@@ -430,7 +412,7 @@ def dashboard():
 
     return render_template(
         'continueing_edu/admin/dashboard.html',
-        logged_in_admin=admin,
+        logged_in_admin=staff,
         current_date=current_date,
         course_count=course_count,
         webinar_count=webinar_count,
@@ -455,10 +437,10 @@ def dashboard():
 
 
 @admin_bp.route('/reports/registrations')
+@login_required
+@admin_required
 def registrations_report():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
 
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
@@ -558,7 +540,7 @@ def registrations_report():
 
     return render_template(
         'continueing_edu/admin/reports/registrations_report.html',
-        logged_in_admin=admin,
+        logged_in_admin=staff,
         registrations=registrations,
         pagination=pagination,
         total_count=total_count,
@@ -576,10 +558,10 @@ def registrations_report():
 
 
 @admin_bp.route('/reports/payments')
+@login_required
+@admin_required
 def payments_report():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
 
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
@@ -677,7 +659,7 @@ def payments_report():
 
     return render_template(
         'continueing_edu/admin/reports/payments_report.html',
-        logged_in_admin=admin,
+        logged_in_admin=staff,
         payments=payments,
         pagination=pagination,
         total_payments=total_payments,
@@ -695,10 +677,10 @@ def payments_report():
 
 
 @admin_bp.route('/reports/courses')
+@login_required
+@admin_required
 def courses_report():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
 
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 25, type=int)
@@ -776,7 +758,7 @@ def courses_report():
 
     return render_template(
         'continueing_edu/admin/reports/courses_report.html',
-        logged_in_admin=admin,
+        logged_in_admin=staff,
         events_data=events_data,
         pagination=pagination,
         total_events=total_events,
@@ -792,10 +774,10 @@ def courses_report():
 
 
 @admin_bp.route('/reports/members')
+@login_required
+@admin_required
 def members_report():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
 
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
@@ -895,7 +877,7 @@ def members_report():
 
     return render_template(
         'continueing_edu/admin/reports/members_report.html',
-        logged_in_admin=admin,
+        logged_in_admin=staff,
         members_data=members_data,
         pagination=pagination,
         total_members=total_members,
@@ -911,10 +893,10 @@ def members_report():
 
 
 @admin_bp.route('/certificates')
+@login_required
+@admin_required
 def certificates_index():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
 
     events = EventEntity.query.order_by(EventEntity.created_at.desc()).all()
     event_ids = [e.id for e in events]
@@ -972,16 +954,16 @@ def certificates_index():
 
     return render_template(
         'continueing_edu/admin/certificates_index.html',
-        logged_in_admin=admin,
+        logged_in_admin=staff,
         events_data=events_data,
     )
 
 
 @admin_bp.route('/certificates/event/<int:event_id>')
+@login_required
+@admin_required
 def certificates_event_detail(event_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
 
     event = EventEntity.query.get_or_404(event_id)
 
@@ -1012,7 +994,7 @@ def certificates_event_detail(event_id):
 
     return render_template(
         'continueing_edu/admin/certificates_event.html',
-        logged_in_admin=admin,
+        logged_in_admin=staff,
         event=event,
         registrations=registrations,
         payments_map=payments_map,
@@ -1020,10 +1002,10 @@ def certificates_event_detail(event_id):
 
 
 @admin_bp.route('/certificates/registration/<int:reg_id>/pdf')
+@login_required
+@admin_required
 def certificates_registration_pdf(reg_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
 
     reg = MemberRegistration.query.get_or_404(reg_id)
     event_id = reg.event_entity_id
@@ -1046,19 +1028,19 @@ def certificates_registration_pdf(reg_id):
     return Response(pdf, mimetype='application/pdf', headers={'Content-Disposition': f'inline; filename="{filename}"'})
 
 @admin_bp.route('/events')
+@login_required
+@admin_required
 def manage_events():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     events = EventEntity.query.order_by(EventEntity.created_at.desc()).all()
-    return render_template('continueing_edu/admin/events.html', logged_in_admin=admin, events=events)
+    return render_template('continueing_edu/admin/events.html', logged_in_admin=staff, events=events)
 
 
 @admin_bp.route('/progress')
+@login_required
+@admin_required
 def progress_index():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     events = EventEntity.query.order_by(EventEntity.created_at.desc()).all()
     # Build simple stats per event
     stats = {}
@@ -1073,26 +1055,26 @@ def progress_index():
             'completed': completed,
             'cert_issued': issued,
         }
-    return render_template('continueing_edu/admin/progress_index.html', logged_in_admin=admin, events=events, stats=stats)
+    return render_template('continueing_edu/admin/progress_index.html', logged_in_admin=staff, events=events, stats=stats)
 
 
 @admin_bp.route('/promotions')
+@login_required
+@admin_required
 def promotions_index():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     events = EventEntity.query.order_by(EventEntity.created_at.desc()).all()
-    return render_template('continueing_edu/admin/promotions_index.html', logged_in_admin=admin, events=events)
+    return render_template('continueing_edu/admin/promotions_index.html', logged_in_admin=staff, events=events)
 
 
 # -----------------------------
 # Members Management (CRUD)
 # -----------------------------
 @admin_bp.route('/members')
+@login_required
+@admin_required
 def members_index():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     q = request.args.get('q', '').strip()
     member_type_id = request.args.get('member_type_id')
     is_verified = request.args.get('is_verified')
@@ -1123,7 +1105,7 @@ def members_index():
     members = pagination.items
     member_types = MemberType.query.order_by(MemberType.name_en.asc()).all()
     return render_template('continueing_edu/admin/members.html',
-                           logged_in_admin=admin,
+                           logged_in_admin=staff,
                            members=members,
                            pagination=pagination,
                            q=q,
@@ -1134,10 +1116,10 @@ def members_index():
 
 
 @admin_bp.route('/members/create', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def members_create():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         email = request.form.get('email', '').strip() or None
@@ -1187,17 +1169,17 @@ def members_create():
 
     member_types = MemberType.query.order_by(MemberType.name_en.asc()).all()
     return render_template('continueing_edu/admin/member_form.html',
-                           logged_in_admin=admin,
+                           logged_in_admin=staff,
                            member=None,
                            member_types=member_types,
                            form_action=url_for('continuing_edu_admin.members_create'))
 
 
 @admin_bp.route('/members/<int:member_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def members_edit(member_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     member = Member.query.get_or_404(member_id)
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -1244,17 +1226,17 @@ def members_edit(member_id):
 
     member_types = MemberType.query.order_by(MemberType.name_en.asc()).all()
     return render_template('continueing_edu/admin/member_form.html',
-                           logged_in_admin=admin,
+                           logged_in_admin=staff,
                            member=member,
                            member_types=member_types,
                            form_action=url_for('continuing_edu_admin.members_edit', member_id=member.id))
 
 
 @admin_bp.route('/members/<int:member_id>/delete', methods=['POST'])
+@login_required
+@admin_required
 def members_delete(member_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     member = Member.query.get_or_404(member_id)
     try:
         db.session.delete(member)
@@ -1270,10 +1252,10 @@ def members_delete(member_id):
 # General Settings: Member Types
 # -----------------------------
 @admin_bp.route('/settings/member_types', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def settings_member_types():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     if request.method == 'POST':
         name_en = request.form.get('name_en', '').strip()
         name_th = request.form.get('name_th', '').strip()
@@ -1291,14 +1273,14 @@ def settings_member_types():
                 flash(f'Error: {e}', 'danger')
         return redirect(url_for('continuing_edu_admin.settings_member_types'))
     mtypes = MemberType.query.order_by(MemberType.name_en.asc()).all()
-    return render_template('continueing_edu/admin/settings_member_types.html', logged_in_admin=admin, items=mtypes)
+    return render_template('continueing_edu/admin/settings_member_types.html', logged_in_admin=staff, items=mtypes)
 
 
 @admin_bp.route('/settings/member_types/<int:item_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def settings_member_types_edit(item_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     mt = MemberType.query.get_or_404(item_id)
     if request.method == 'POST':
         mt.name_en = request.form.get('name_en', mt.name_en)
@@ -1313,14 +1295,14 @@ def settings_member_types_edit(item_id):
         except Exception as e:
             db.session.rollback()
             flash(f'Error: {e}', 'danger')
-    return render_template('continueing_edu/admin/settings_member_types_form.html', logged_in_admin=admin, item=mt)
+    return render_template('continueing_edu/admin/settings_member_types_form.html', logged_in_admin=staff, item=mt)
 
 
 @admin_bp.route('/settings/member_types/<int:item_id>/delete', methods=['POST'])
+@login_required
+@admin_required
 def settings_member_types_delete(item_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     mt = MemberType.query.get_or_404(item_id)
     try:
         db.session.delete(mt)
@@ -1336,10 +1318,10 @@ def settings_member_types_delete(item_id):
 # General Settings: Registration Statuses
 # -----------------------------
 @admin_bp.route('/settings/registration_statuses', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def settings_registration_statuses():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     if request.method == 'POST':
         name_en = request.form.get('name_en', '').strip()
         name_th = request.form.get('name_th', '').strip()
@@ -1359,14 +1341,14 @@ def settings_registration_statuses():
                 flash(f'Error: {e}', 'danger')
         return redirect(url_for('continuing_edu_admin.settings_registration_statuses'))
     items = RegistrationStatus.query.order_by(RegistrationStatus.name_en.asc()).all()
-    return render_template('continueing_edu/admin/settings_registration_statuses.html', logged_in_admin=admin, items=items)
+    return render_template('continueing_edu/admin/settings_registration_statuses.html', logged_in_admin=staff, items=items)
 
 
 @admin_bp.route('/settings/registration_statuses/<int:item_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def settings_registration_statuses_edit(item_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     st = RegistrationStatus.query.get_or_404(item_id)
     if request.method == 'POST':
         st.name_en = request.form.get('name_en', st.name_en)
@@ -1381,14 +1363,14 @@ def settings_registration_statuses_edit(item_id):
         except Exception as e:
             db.session.rollback()
             flash(f'Error: {e}', 'danger')
-    return render_template('continueing_edu/admin/settings_registration_statuses_form.html', logged_in_admin=admin, item=st)
+    return render_template('continueing_edu/admin/settings_registration_statuses_form.html', logged_in_admin=staff, item=st)
 
 
 @admin_bp.route('/settings/registration_statuses/<int:item_id>/delete', methods=['POST'])
+@login_required
+@admin_required
 def settings_registration_statuses_delete(item_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     st = RegistrationStatus.query.get_or_404(item_id)
     try:
         db.session.delete(st)
@@ -1404,10 +1386,10 @@ def settings_registration_statuses_delete(item_id):
 # General Settings: Payment Statuses
 # -----------------------------
 @admin_bp.route('/settings/payment_statuses', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def settings_payment_statuses():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     if request.method == 'POST':
         name_en = request.form.get('name_en', '').strip()
         name_th = request.form.get('name_th', '').strip()
@@ -1427,14 +1409,14 @@ def settings_payment_statuses():
                 flash(f'Error: {e}', 'danger')
         return redirect(url_for('continuing_edu_admin.settings_payment_statuses'))
     items = RegisterPaymentStatus.query.order_by(RegisterPaymentStatus.name_en.asc()).all()
-    return render_template('continueing_edu/admin/settings_payment_statuses.html', logged_in_admin=admin, items=items)
+    return render_template('continueing_edu/admin/settings_payment_statuses.html', logged_in_admin=staff, items=items)
 
 
 @admin_bp.route('/settings/payment_statuses/<int:item_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def settings_payment_statuses_edit(item_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     st = RegisterPaymentStatus.query.get_or_404(item_id)
     if request.method == 'POST':
         st.name_en = request.form.get('name_en', st.name_en)
@@ -1449,14 +1431,14 @@ def settings_payment_statuses_edit(item_id):
         except Exception as e:
             db.session.rollback()
             flash(f'Error: {e}', 'danger')
-    return render_template('continueing_edu/admin/settings_payment_statuses_form.html', logged_in_admin=admin, item=st)
+    return render_template('continueing_edu/admin/settings_payment_statuses_form.html', logged_in_admin=staff, item=st)
 
 
 @admin_bp.route('/settings/payment_statuses/<int:item_id>/delete', methods=['POST'])
+@login_required
+@admin_required
 def settings_payment_statuses_delete(item_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     st = RegisterPaymentStatus.query.get_or_404(item_id)
     try:
         db.session.delete(st)
@@ -1472,10 +1454,10 @@ def settings_payment_statuses_delete(item_id):
 # General Settings: Entity Categories
 # -----------------------------
 @admin_bp.route('/settings/entity_categories', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def settings_entity_categories():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     if request.method == 'POST':
         name_en = request.form.get('name_en', '').strip()
         name_th = request.form.get('name_th', '').strip()
@@ -1494,14 +1476,14 @@ def settings_entity_categories():
                 flash(f'Error: {e}', 'danger')
         return redirect(url_for('continuing_edu_admin.settings_entity_categories'))
     items = EntityCategory.query.order_by(EntityCategory.name_en.asc()).all()
-    return render_template('continueing_edu/admin/settings_entity_categories.html', logged_in_admin=admin, items=items)
+    return render_template('continueing_edu/admin/settings_entity_categories.html', logged_in_admin=staff, items=items)
 
 
 @admin_bp.route('/settings/entity_categories/<int:item_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def settings_entity_categories_edit(item_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     cat = EntityCategory.query.get_or_404(item_id)
     if request.method == 'POST':
         cat.name_en = request.form.get('name_en', cat.name_en)
@@ -1516,14 +1498,14 @@ def settings_entity_categories_edit(item_id):
         except Exception as e:
             db.session.rollback()
             flash(f'Error: {e}', 'danger')
-    return render_template('continueing_edu/admin/settings_entity_categories_form.html', logged_in_admin=admin, item=cat)
+    return render_template('continueing_edu/admin/settings_entity_categories_form.html', logged_in_admin=staff, item=cat)
 
 
 @admin_bp.route('/settings/entity_categories/<int:item_id>/delete', methods=['POST'])
+@login_required
+@admin_required
 def settings_entity_categories_delete(item_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     cat = EntityCategory.query.get_or_404(item_id)
     try:
         db.session.delete(cat)
@@ -1536,10 +1518,10 @@ def settings_entity_categories_delete(item_id):
 
 
 @admin_bp.route('/events/<int:event_id>/notify', methods=['GET','POST'])
+@login_required
+@admin_required
 def event_notify(event_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     event = EventEntity.query.get_or_404(event_id)
     # Audience filters
     only_optin = (request.values.get('only_optin', '1') in ('1','true','yes','on'))
@@ -1650,10 +1632,10 @@ def event_notify(event_id):
 # Admin Payments Review
 # -----------------------------
 @admin_bp.route('/payments')
+@login_required
+@admin_required
 def payments_index():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     q = request.args.get('q', '').strip()
     status = request.args.get('status', '')
     start_date = request.args.get('start_date', '')
@@ -1711,15 +1693,15 @@ def payments_index():
         total_amount=total_amount,
         total_count=total_count,
         status_counts=status_counts,
-        logged_in_admin=admin,
+        logged_in_admin=staff,
     )
 
 
 @admin_bp.route('/payments/<int:payment_id>/receipt')
+@login_required
+@admin_required
 def payment_receipt(payment_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     pay = RegisterPayment.query.get_or_404(payment_id)
     rc = pay.receipt
     if not rc:
@@ -1749,32 +1731,32 @@ def _set_payment_status(pay: RegisterPayment, status_en: str, staff_id: int):
 
 
 @admin_bp.route('/payments/<int:payment_id>/approve', methods=['POST'])
+@login_required
+@require_event_role('payment_approver')
 def payment_approve(payment_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     pay = RegisterPayment.query.get_or_404(payment_id)
-    _set_payment_status(pay, 'approved', admin.id)
+    _set_payment_status(pay, 'approved', staff.id)
     flash('Payment approved.', 'success')
     return redirect(url_for('continuing_edu_admin.payments_index'))
 
 
 @admin_bp.route('/payments/<int:payment_id>/reject', methods=['POST'])
+@login_required
+@require_event_role('payment_approver')
 def payment_reject(payment_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     pay = RegisterPayment.query.get_or_404(payment_id)
-    _set_payment_status(pay, 'rejected', admin.id)
+    _set_payment_status(pay, 'rejected', staff.id)
     flash('Payment rejected.', 'warning')
     return redirect(url_for('continuing_edu_admin.payments_index'))
 
 
 @admin_bp.route('/payments/export')
+@login_required
+@admin_required
 def payments_export_csv():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     from datetime import datetime, timedelta
     import csv
     from io import StringIO
@@ -1828,10 +1810,10 @@ def payments_export_csv():
 
 
 @admin_bp.route('/bootstrap_defaults')
+@login_required
+@admin_required
 def bootstrap_defaults():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     created = []
     # Seed RegisterPaymentStatus values
     for name_en, name_th, badge in [
@@ -1884,10 +1866,10 @@ def bootstrap_defaults():
 # General Info Tab Handlers
 # -----------------------------
 @admin_bp.route('/events/<int:event_id>/update_general', methods=['POST'])
+@login_required
+@admin_required
 def update_event_general(event_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     event = EventEntity.query.get_or_404(event_id)
 
     # Basic fields; extend as needed
@@ -1973,10 +1955,10 @@ def update_event_general(event_id):
 # Speakers Tab Handlers
 # -----------------------------
 @admin_bp.route('/events/<int:event_id>/speakers/add', methods=['POST'])
+@login_required
+@admin_required
 def add_event_speaker(event_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     event = EventEntity.query.get_or_404(event_id)
 
     required = ['title_en','title_th','name_th','name_en','email','phone','institution_th','institution_en']
@@ -2008,10 +1990,10 @@ def add_event_speaker(event_id):
 
 
 @admin_bp.route('/events/<int:event_id>/speakers/attach', methods=['POST'])
+@login_required
+@admin_required
 def attach_existing_speaker(event_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     src_id = request.form.get('speaker_id')
     if not src_id:
         flash('Please select a speaker to attach.', 'danger')
@@ -2053,10 +2035,10 @@ def attach_existing_speaker(event_id):
 # Admin SpeakerProfile Management
 # -----------------------------
 @admin_bp.route('/speakers')
+@login_required
+@admin_required
 def speakers_index():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     q = request.args.get('q', '').strip()
     query = SpeakerProfile.query
     if q:
@@ -2069,32 +2051,32 @@ def speakers_index():
             (SpeakerProfile.institution_th.ilike(like))
         )
     profiles = query.order_by(SpeakerProfile.name_en.asc()).all()
-    return render_template('continueing_edu/admin/speakers_list.html', profiles=profiles, q=q, logged_in_admin=admin)
+    return render_template('continueing_edu/admin/speakers_list.html', profiles=profiles, q=q, logged_in_admin=staff)
 
 
 @admin_bp.route('/speakers/<int:profile_id>')
+@login_required
+@admin_required
 def speakers_view(profile_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     sp = SpeakerProfile.query.get_or_404(profile_id)
-    return render_template('continueing_edu/admin/speakers_profile.html', profile=sp, logged_in_admin=admin)
+    return render_template('continueing_edu/admin/speakers_profile.html', profile=sp, logged_in_admin=staff)
 
 
 @admin_bp.route('/speakers/new', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def speakers_new():
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     if request.method == 'POST':
         required = ['title_en','title_th','name_en','name_th','email','institution_en','institution_th']
         missing = [f for f in required if not (request.form.get(f) and request.form.get(f).strip())]
         if missing:
             flash('Missing required fields: ' + ', '.join(missing), 'danger')
-            return render_template('continueing_edu/admin/speakers_form.html', mode='new', data=request.form, logged_in_admin=admin)
+            return render_template('continueing_edu/admin/speakers_form.html', mode='new', data=request.form, logged_in_admin=staff)
         if SpeakerProfile.query.filter_by(email=request.form.get('email')).first():
             flash('Email already exists in speaker profiles.', 'danger')
-            return render_template('continueing_edu/admin/speakers_form.html', mode='new', data=request.form, logged_in_admin=admin)
+            return render_template('continueing_edu/admin/speakers_form.html', mode='new', data=request.form, logged_in_admin=staff)
 
         sp = SpeakerProfile(
             title_en=request.form.get('title_en'),
@@ -2117,25 +2099,25 @@ def speakers_new():
         flash('Speaker profile created.', 'success')
         return redirect(url_for('continuing_edu_admin.speakers_index'))
 
-    return render_template('continueing_edu/admin/speakers_form.html', mode='new', data=None, logged_in_admin=admin)
+    return render_template('continueing_edu/admin/speakers_form.html', mode='new', data=None, logged_in_admin=staff)
 
 
 @admin_bp.route('/speakers/<int:profile_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def speakers_edit(profile_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     sp = SpeakerProfile.query.get_or_404(profile_id)
     if request.method == 'POST':
         # Basic validation
         email = request.form.get('email')
         if not email:
             flash('Email is required.', 'danger')
-            return render_template('continueing_edu/admin/speakers_form.html', mode='edit', data=sp, logged_in_admin=admin)
+            return render_template('continueing_edu/admin/speakers_form.html', mode='edit', data=sp, logged_in_admin=staff)
         exists = SpeakerProfile.query.filter(SpeakerProfile.email == email, SpeakerProfile.id != sp.id).first()
         if exists:
             flash('Another profile already uses this email.', 'danger')
-            return render_template('continueing_edu/admin/speakers_form.html', mode='edit', data=sp, logged_in_admin=admin)
+            return render_template('continueing_edu/admin/speakers_form.html', mode='edit', data=sp, logged_in_admin=staff)
 
         # Update fields
         for field in ['title_en','title_th','name_en','name_th','email','phone','position_en','position_th','institution_en','institution_th','image_url','bio_en','bio_th']:
@@ -2146,14 +2128,14 @@ def speakers_edit(profile_id):
         flash('Speaker profile updated.', 'success')
         return redirect(url_for('continuing_edu_admin.speakers_index'))
 
-    return render_template('continueing_edu/admin/speakers_form.html', mode='edit', data=sp, logged_in_admin=admin)
+    return render_template('continueing_edu/admin/speakers_form.html', mode='edit', data=sp, logged_in_admin=staff)
 
 
 @admin_bp.route('/speakers/<int:profile_id>/delete', methods=['POST'])
+@login_required
+@admin_required
 def speakers_delete(profile_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     sp = SpeakerProfile.query.get_or_404(profile_id)
     db.session.delete(sp)
     db.session.commit()
@@ -2162,10 +2144,10 @@ def speakers_delete(profile_id):
 
 
 @admin_bp.route('/events/<int:event_id>/speakers/<int:speaker_id>/update', methods=['POST'])
+@login_required
+@admin_required
 def update_event_speaker(event_id, speaker_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     sp = EventSpeaker.query.filter_by(id=speaker_id, event_entity_id=event_id).first_or_404()
     for field in [
         'title_en','title_th','name_th','name_en','email','phone','position_th','position_en',
@@ -2179,10 +2161,10 @@ def update_event_speaker(event_id, speaker_id):
 
 
 @admin_bp.route('/events/<int:event_id>/speakers/<int:speaker_id>/delete', methods=['POST'])
+@login_required
+@admin_required
 def delete_event_speaker(event_id, speaker_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     sp = EventSpeaker.query.filter_by(id=speaker_id, event_entity_id=event_id).first_or_404()
     db.session.delete(sp)
     db.session.commit()
@@ -2204,10 +2186,10 @@ def _parse_dt(val):
 
 
 @admin_bp.route('/events/<int:event_id>/agendas/add', methods=['POST'])
+@login_required
+@admin_required
 def add_event_agenda(event_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     event = EventEntity.query.get_or_404(event_id)
     title_en = request.form.get('title_en', '')
     title_th = request.form.get('title_th', '')
@@ -2239,10 +2221,10 @@ def add_event_agenda(event_id):
 
 
 @admin_bp.route('/events/<int:event_id>/agendas/<int:agenda_id>/update', methods=['POST'])
+@login_required
+@admin_required
 def update_event_agenda(event_id, agenda_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     ag = EventAgenda.query.filter_by(id=agenda_id, event_entity_id=event_id).first_or_404()
     ag.title_th = request.form.get('title_th', ag.title_th)
     ag.title_en = request.form.get('title_en', ag.title_en)
@@ -2268,10 +2250,10 @@ def update_event_agenda(event_id, agenda_id):
 
 
 @admin_bp.route('/events/<int:event_id>/agendas/<int:agenda_id>/delete', methods=['POST'])
+@login_required
+@admin_required
 def delete_event_agenda(event_id, agenda_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     ag = EventAgenda.query.filter_by(id=agenda_id, event_entity_id=event_id).first_or_404()
     db.session.delete(ag)
     db.session.commit()
@@ -2285,10 +2267,10 @@ def delete_event_agenda(event_id, agenda_id):
 # Materials Tab Handlers
 # -----------------------------
 @admin_bp.route('/events/<int:event_id>/materials/add', methods=['POST'])
+@login_required
+@admin_required
 def add_event_material(event_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     event = EventEntity.query.get_or_404(event_id)
     title_en = request.form.get('title_en')
     title_th = request.form.get('title_th')
@@ -2314,10 +2296,10 @@ def add_event_material(event_id):
 
 
 @admin_bp.route('/events/<int:event_id>/materials/<int:material_id>/update', methods=['POST'])
+@login_required
+@admin_required
 def update_event_material(event_id, material_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     mt = EventMaterial.query.filter_by(id=material_id, event_entity_id=event_id).first_or_404()
     mt.order = int(request.form.get('order') or mt.order or 0)
     mt.title_th = request.form.get('title_th', mt.title_th)
@@ -2334,10 +2316,10 @@ def update_event_material(event_id, material_id):
 
 
 @admin_bp.route('/events/<int:event_id>/materials/<int:material_id>/delete', methods=['POST'])
+@login_required
+@admin_required
 def delete_event_material(event_id, material_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     mt = EventMaterial.query.filter_by(id=material_id, event_entity_id=event_id).first_or_404()
     db.session.delete(mt)
     db.session.commit()
@@ -2351,10 +2333,10 @@ def delete_event_material(event_id, material_id):
 # Registration Fees Tab Handlers
 # -----------------------------
 @admin_bp.route('/events/<int:event_id>/fees/add', methods=['POST'])
+@login_required
+@admin_required
 def add_event_fee(event_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     event = EventEntity.query.get_or_404(event_id)
     member_type_id = request.form.get('member_type_id')
     price = request.form.get('price')
@@ -2405,11 +2387,15 @@ def _render_materials_partial(event_id):
 
 
 @admin_bp.route('/events/<int:event_id>/agendas/partial')
+@login_required
+@admin_required
 def agendas_partial(event_id):
     return _render_agenda_partial(event_id)
 
 
 @admin_bp.route('/events/<int:event_id>/materials/partial')
+@login_required
+@admin_required
 def materials_partial(event_id):
     return _render_materials_partial(event_id)
 
@@ -2430,6 +2416,8 @@ def _swap_order(queryset, current, direction):
 
 
 @admin_bp.route('/events/<int:event_id>/agendas/<int:agenda_id>/move', methods=['POST'])
+@login_required
+@admin_required
 def move_agenda(event_id, agenda_id):
     direction = request.form.get('direction', 'up')
     agendas = EventAgenda.query.filter_by(event_entity_id=event_id).order_by(EventAgenda.order.asc()).all()
@@ -2442,6 +2430,8 @@ def move_agenda(event_id, agenda_id):
 
 
 @admin_bp.route('/events/<int:event_id>/materials/<int:material_id>/move', methods=['POST'])
+@login_required
+@admin_required
 def move_material(event_id, material_id):
     direction = request.form.get('direction', 'up')
     materials = EventMaterial.query.filter_by(event_entity_id=event_id).order_by(EventMaterial.order.asc()).all()
@@ -2454,6 +2444,8 @@ def move_material(event_id, material_id):
 
 
 @admin_bp.route('/events/<int:event_id>/agendas/reorder', methods=['POST'])
+@login_required
+@admin_required
 def reorder_agendas(event_id):
     order_ids = []
     if request.is_json:
@@ -2482,6 +2474,8 @@ def reorder_agendas(event_id):
 
 
 @admin_bp.route('/events/<int:event_id>/materials/reorder', methods=['POST'])
+@login_required
+@admin_required
 def reorder_materials(event_id):
     order_ids = []
     if request.is_json:
@@ -2509,10 +2503,10 @@ def reorder_materials(event_id):
 
 
 @admin_bp.route('/events/<int:event_id>/fees/<int:fee_id>/update', methods=['POST'])
+@login_required
+@admin_required
 def update_event_fee(event_id, fee_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     fee = EventRegistrationFee.query.filter_by(id=fee_id, event_entity_id=event_id).first_or_404()
     if 'member_type_id' in request.form:
         fee.member_type_id = int(request.form.get('member_type_id'))
@@ -2528,10 +2522,10 @@ def update_event_fee(event_id, fee_id):
 
 
 @admin_bp.route('/events/<int:event_id>/fees/<int:fee_id>/delete', methods=['POST'])
+@login_required
+@admin_required
 def delete_event_fee(event_id, fee_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
     fee = EventRegistrationFee.query.filter_by(id=fee_id, event_entity_id=event_id).first_or_404()
     db.session.delete(fee)
     db.session.commit()
@@ -2564,10 +2558,10 @@ def _remove_staff_role(model_cls, role_id, event_id):
 
 
 @admin_bp.route('/events/<int:event_id>/roles/update', methods=['POST'])
+@login_required
+@admin_required
 def update_event_roles(event_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
+    staff = get_current_staff()
 
     # Add roles from selects (single add per submit)
     to_add_type = request.form.get('role_type')
@@ -2608,13 +2602,10 @@ def update_event_roles(event_id):
 
 
 @admin_bp.route('/events/<int:event_id>/registrations/<int:reg_id>/update', methods=['POST'])
+@login_required
+@require_event_role('certificate_manager')
 def update_registration_certificate(event_id, reg_id):
-    admin = get_current_admin()
-    if not admin:
-        return redirect(url_for('continuing_edu_admin.login'))
-    if not _is_certificate_manager(admin, event_id):
-        flash('You do not have permission to manage certificates for this event.', 'danger')
-        return redirect(url_for('continuing_edu_admin.edit_event', event_id=event_id, tab='certificates'))
+    staff = get_current_staff()
 
     reg = MemberRegistration.query.filter_by(id=reg_id, event_entity_id=event_id).first_or_404()
     action = request.form.get('action')

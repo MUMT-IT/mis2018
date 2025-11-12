@@ -1,0 +1,233 @@
+{% extends "continueing_edu/admin/base.html" %}
+
+{% block title %}จัดการผู้ดูแลระบบ - Continuing Education Admin{% endblock %}
+
+{% block content %}
+<section class="section">
+          <div class="container">
+                    <h1 class="title">
+                              <span class="icon-text">
+                                        <span class="icon"><i class="fas fa-user-shield"></i></span>
+                                        <span>จัดการผู้ดูแลระบบ</span>
+                              </span>
+                    </h1>
+                    <p class="subtitle">กำหนดสิทธิ์การเข้าถึงระบบ Continuing Education Admin</p>
+
+                    <div class="columns">
+                              <!-- Current Administrators -->
+                              <div class="column is-8">
+                                        <div class="box">
+                                                  <h2 class="title is-4">
+                                                            <span class="icon-text">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-users"></i></span>
+                                                                      <span>ผู้ดูแลระบบปัจจุบัน</span>
+                                                            </span>
+                                                  </h2>
+
+                                                  {% if admins %}
+                                                  <div class="table-container">
+                                                            <table class="table is-fullwidth is-hoverable">
+                                                                      <thead>
+                                                                                <tr>
+                                                                                          <th width="60">#</th>
+                                                                                          <th>ชื่อ-นามสกุล</th>
+                                                                                          <th>Email</th>
+                                                                                          <th>หน่วยงาน</th>
+                                                                                          <th width="100"
+                                                                                                    class="has-text-centered">
+                                                                                                    การจัดการ</th>
+                                                                                </tr>
+                                                                      </thead>
+                                                                      <tbody>
+                                                                                {% for admin in admins %}
+                                                                                <tr>
+                                                                                          <td>{{ loop.index }}</td>
+                                                                                          <td>
+                                                                                                    <strong>{{ admin.fullname
+                                                                                                              }}</strong>
+                                                                                                    {% if admin.id ==
+                                                                                                    logged_in_admin.id
+                                                                                                    %}
+                                                                                                    <span
+                                                                                                              class="tag is-primary is-light ml-2">คุณ</span>
+                                                                                                    {% endif %}
+                                                                                          </td>
+                                                                                          <td>{{ admin.email }}</td>
+                                                                                          <td>
+                                                                                                    {% if
+                                                                                                    admin.personal_info
+                                                                                                    and
+                                                                                                    admin.personal_info.org
+                                                                                                    %}
+                                                                                                    {{
+                                                                                                    admin.personal_info.org.name
+                                                                                                    }}
+                                                                                                    {% else %}
+                                                                                                    <span
+                                                                                                              class="has-text-grey">-</span>
+                                                                                                    {% endif %}
+                                                                                          </td>
+                                                                                          <td class="has-text-centered">
+                                                                                                    {% if admins|length
+                                                                                                    > 1 %}
+                                                                                                    <form method="POST"
+                                                                                                              action="{{ url_for('continuing_edu_admin.settings_administrators_remove', staff_id=admin.id) }}"
+                                                                                                              onsubmit="return confirm('ต้องการลบสิทธิ์ของ {{ admin.fullname }} หรือไม่?');">
+                                                                                                              <input type="hidden"
+                                                                                                                        name="csrf_token"
+                                                                                                                        value="{{ csrf_token() }}" />
+                                                                                                              <button type="submit"
+                                                                                                                        class="button is-small is-danger is-outlined">
+                                                                                                                        <span
+                                                                                                                                  class="icon is-small">
+                                                                                                                                  <i
+                                                                                                                                            class="fas fa-user-times"></i>
+                                                                                                                        </span>
+                                                                                                                        <span>ลบ</span>
+                                                                                                              </button>
+                                                                                                    </form>
+                                                                                                    {% else %}
+                                                                                                    <span
+                                                                                                              class="tag is-info is-light">
+                                                                                                              <span
+                                                                                                                        class="icon"><i
+                                                                                                                                  class="fas fa-lock"></i></span>
+                                                                                                              <span>ต้องมีอย่างน้อย
+                                                                                                                        1
+                                                                                                                        คน</span>
+                                                                                                    </span>
+                                                                                                    {% endif %}
+                                                                                          </td>
+                                                                                </tr>
+                                                                                {% endfor %}
+                                                                      </tbody>
+                                                            </table>
+                                                  </div>
+                                                  {% else %}
+                                                  <article class="message is-warning">
+                                                            <div class="message-body">
+                                                                      <p class="icon-text">
+                                                                                <span class="icon"><i
+                                                                                                    class="fas fa-exclamation-triangle"></i></span>
+                                                                                <span>ยังไม่มีผู้ดูแลระบบ
+                                                                                          กรุณาเพิ่มผู้ดูแลระบบอย่างน้อย
+                                                                                          1 คน</span>
+                                                                      </p>
+                                                            </div>
+                                                  </article>
+                                                  {% endif %}
+
+                                                  <div class="notification is-info is-light mt-5">
+                                                            <p class="icon-text">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-info-circle"></i></span>
+                                                                      <span><strong>หมายเหตุ:</strong>
+                                                                                ผู้ดูแลระบบสามารถเข้าถึงทุกฟังก์ชันใน
+                                                                                Continuing Education Admin
+                                                                                รวมถึงการเพิ่ม/ลบผู้ดูแลคนอื่นๆ</span>
+                                                            </p>
+                                                  </div>
+                                        </div>
+                              </div>
+
+                              <!-- Add New Administrator -->
+                              <div class="column is-4">
+                                        <div class="box">
+                                                  <h2 class="title is-4">
+                                                            <span class="icon-text">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-user-plus"></i></span>
+                                                                      <span>เพิ่มผู้ดูแลระบบ</span>
+                                                            </span>
+                                                  </h2>
+
+                                                  {% if available_staff %}
+                                                  <form method="POST"
+                                                            action="{{ url_for('continuing_edu_admin.settings_administrators_add') }}">
+                                                            <div class="field">
+                                                                      <input type="hidden" name="csrf_token"
+                                                                                value="{{ csrf_token() }}" />
+                                                                      <label class="label">เลือกเจ้าหน้าที่</label>
+                                                                      <div class="control has-icons-left">
+                                                                                <div class="select is-fullwidth">
+                                                                                          <select name="staff_id"
+                                                                                                    required>
+                                                                                                    <option value="">--
+                                                                                                              เลือกเจ้าหน้าที่
+                                                                                                              --
+                                                                                                    </option>
+                                                                                                    {% for staff in
+                                                                                                    available_staff %}
+                                                                                                    <option
+                                                                                                              value="{{ staff.id }}">
+                                                                                                              {{
+                                                                                                              staff.fullname
+                                                                                                              }} ({{
+                                                                                                              staff.email
+                                                                                                              }})
+                                                                                                    </option>
+                                                                                                    {% endfor %}
+                                                                                          </select>
+                                                                                </div>
+                                                                                <span class="icon is-left">
+                                                                                          <i class="fas fa-user"></i>
+                                                                                </span>
+                                                                      </div>
+                                                                      <p class="help">
+                                                                                เลือกเจ้าหน้าที่ที่ต้องการให้เป็นผู้ดูแลระบบ
+                                                                      </p>
+                                                            </div>
+
+                                                            <div class="field">
+                                                                      <div class="control">
+                                                                                <button type="submit"
+                                                                                          class="button is-primary is-fullwidth">
+                                                                                          <span class="icon">
+                                                                                                    <i
+                                                                                                              class="fas fa-plus"></i>
+                                                                                          </span>
+                                                                                          <span>เพิ่มผู้ดูแลระบบ</span>
+                                                                                </button>
+                                                                      </div>
+                                                            </div>
+                                                  </form>
+                                                  {% else %}
+                                                  <article class="message is-info">
+                                                            <div class="message-body">
+                                                                      <p class="icon-text">
+                                                                                <span class="icon"><i
+                                                                                                    class="fas fa-check-circle"></i></span>
+                                                                                <span>เจ้าหน้าที่ทุกคนมีสิทธิ์ผู้ดูแลระบบแล้ว</span>
+                                                                      </p>
+                                                            </div>
+                                                  </article>
+                                                  {% endif %}
+                                        </div>
+
+                                        <!-- Quick Info -->
+                                        <div class="box has-background-primary-light">
+                                                  <h3 class="title is-5 has-text-primary">
+                                                            <span class="icon-text">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-question-circle"></i></span>
+                                                                      <span>สิทธิ์ของผู้ดูแลระบบ</span>
+                                                            </span>
+                                                  </h3>
+                                                  <div class="content">
+                                                            <p>ผู้ดูแลระบบมีสิทธิ์ดังนี้:</p>
+                                                            <ul>
+                                                                      <li>เข้าถึง Dashboard และรายงานทั้งหมด</li>
+                                                                      <li>จัดการคอร์สอบรมและกิจกรรม</li>
+                                                                      <li>จัดการสมาชิกและการลงทะเบียน</li>
+                                                                      <li>อนุมัติการชำระเงิน</li>
+                                                                      <li>ออกใบเสร็จและใบประกาศนียบัตร</li>
+                                                                      <li>ตั้งค่าระบบและจัดการผู้ดูแลอื่นๆ</li>
+                                                            </ul>
+                                                  </div>
+                                        </div>
+                              </div>
+                    </div>
+          </div>
+</section>
+{% endblock %}

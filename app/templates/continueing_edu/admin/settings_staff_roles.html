@@ -1,0 +1,181 @@
+{% extends "continueing_edu/admin/base.html" %}
+
+{% block title %}จัดการสิทธิ์เจ้าหน้าที่{% endblock %}
+
+{% block content %}
+<section class="section">
+          <div class="container">
+                    <h1 class="title">
+                              <span class="icon-text">
+                                        <span class="icon"><i class="fas fa-users-cog"></i></span>
+                                        <span>จัดการสิทธิ์เจ้าหน้าที่</span>
+                              </span>
+                    </h1>
+                    <p class="subtitle">กำหนดสิทธิ์เจ้าหน้าที่สำหรับแต่ละคอร์สอบรม</p>
+
+                    <!-- Permission Types Info -->
+                    <div class="notification is-info is-light mb-5">
+                              <p class="title is-6">ประเภทสิทธิ์ที่กำหนดได้</p>
+                              <div class="content">
+                                        <ul>
+                                                  <li><strong>จัดการคอร์ส (Editor):</strong> แก้ไขรายละเอียดคอร์ส,
+                                                            วิทยากร, ตารางเวลา, เอกสาร, ค่าใช้จ่าย
+                                                            และกำหนดสิทธิ์ให้เจ้าหน้าที่คนอื่น</li>
+                                                  <li><strong>ตรวจสอบการลงทะเบียน (Registration Reviewer):</strong>
+                                                            ดูและอนุมัติการลงทะเบียนเข้าร่วมคอร์ส</li>
+                                                  <li><strong>อนุมัติการชำระเงิน (Payment Approver):</strong>
+                                                            อนุมัติ/ปฏิเสธการชำระเงิน ดูประวัติการชำระเงิน</li>
+                                                  <li><strong>ออกใบเสร็จ (Receipt Issuer):</strong> ออกใบเสร็จรับเงิน
+                                                            พิมพ์ใบเสร็จอย่างเป็นทางการ</li>
+                                                  <li><strong>จัดการใบประกาศนียบัตร (Certificate Manager):</strong>
+                                                            ออกใบประกาศนียบัตร ติดตามสถานะการผ่านคอร์ส</li>
+                                        </ul>
+                              </div>
+                    </div>
+
+                    <!-- Events List -->
+                    <div class="box">
+                              <h2 class="title is-4 mb-4">คอร์สอบรม</h2>
+
+                              {% if events %}
+                              <div class="table-container">
+                                        <table class="table is-fullwidth is-striped is-hoverable">
+                                                  <thead>
+                                                            <tr>
+                                                                      <th>ชื่อคอร์ส</th>
+                                                                      <th>วันที่จัด</th>
+                                                                      <th>สถานะ</th>
+                                                                      <th class="has-text-centered">ผู้จัดการ</th>
+                                                                      <th class="has-text-centered">จัดการสิทธิ์</th>
+                                                            </tr>
+                                                  </thead>
+                                                  <tbody>
+                                                            {% for event in events %}
+                                                            <tr>
+                                                                      <td>
+                                                                                <strong>{{ event.title_th
+                                                                                          }}</strong><br>
+                                                                                <small class="has-text-grey">{{
+                                                                                          event.title_en or '-'
+                                                                                          }}</small>
+                                                                      </td>
+                                                                      <td>
+                                                                                {% if event.start_datetime %}
+                                                                                {{
+                                                                                event.start_datetime.strftime('%d/%m/%Y')
+                                                                                }}
+                                                                                {% else %}
+                                                                                -
+                                                                                {% endif %}
+                                                                      </td>
+                                                                      <td>
+                                                                                {% if event.is_published %}
+                                                                                <span
+                                                                                          class="tag is-success">เผยแพร่แล้ว</span>
+                                                                                {% else %}
+                                                                                <span
+                                                                                          class="tag is-warning">ฉบับร่าง</span>
+                                                                                {% endif %}
+                                                                      </td>
+                                                                      <td class="has-text-centered">
+                                                                                {% set editors = event.editors %}
+                                                                                <span class="tag is-info">{{
+                                                                                          editors|length }} คน</span>
+                                                                      </td>
+                                                                      <td class="has-text-centered">
+                                                                                <a href="{{ url_for('continuing_edu_admin.event_staff_roles', event_id=event.id) }}"
+                                                                                          class="button is-small is-primary">
+                                                                                          <span class="icon is-small"><i
+                                                                                                              class="fas fa-user-cog"></i></span>
+                                                                                          <span>จัดการ</span>
+                                                                                </a>
+                                                                      </td>
+                                                            </tr>
+                                                            {% endfor %}
+                                                  </tbody>
+                                        </table>
+                              </div>
+                              {% else %}
+                              <div class="notification is-warning is-light">
+                                        <p class="has-text-centered">
+                                                  <span class="icon"><i class="fas fa-info-circle"></i></span>
+                                                  ยังไม่มีคอร์สอบรมในระบบ
+                                        </p>
+                              </div>
+                              {% endif %}
+                    </div>
+
+                    <!-- Staff Overview -->
+                    <div class="box mt-5">
+                              <h2 class="title is-4 mb-4">เจ้าหน้าที่ทั้งหมด</h2>
+
+                              {% if all_staff %}
+                              <div class="table-container">
+                                        <table class="table is-fullwidth is-striped">
+                                                  <thead>
+                                                            <tr>
+                                                                      <th>ชื่อ-นามสกุล</th>
+                                                                      <th>อีเมล</th>
+                                                                      <th>หน่วยงาน</th>
+                                                                      <th class="has-text-centered">
+                                                                                จำนวนคอร์สที่รับผิดชอบ</th>
+                                                            </tr>
+                                                  </thead>
+                                                  <tbody>
+                                                            {% for staff in all_staff %}
+                                                            <tr>
+                                                                      <td>{{ staff.fullname }}</td>
+                                                                      <td><small>{{ staff.email }}</small></td>
+                                                                      <td>
+                                                                                {% if staff.personal_info and
+                                                                                staff.personal_info.org_name %}
+                                                                                {{ staff.personal_info.org_name }}
+                                                                                {% else %}
+                                                                                -
+                                                                                {% endif %}
+                                                                      </td>
+                                                                      <td class="has-text-centered">
+                                                                                {% set editor_count =
+                                                                                staff.event_editor_assignments|length %}
+                                                                                {% if editor_count > 0 %}
+                                                                                <span class="tag is-info">{{
+                                                                                          editor_count }}</span>
+                                                                                {% else %}
+                                                                                <span class="tag is-light">0</span>
+                                                                                {% endif %}
+                                                                      </td>
+                                                            </tr>
+                                                            {% endfor %}
+                                                  </tbody>
+                                        </table>
+                              </div>
+                              {% else %}
+                              <div class="notification is-warning is-light">
+                                        <p class="has-text-centered">ไม่พบข้อมูลเจ้าหน้าที่</p>
+                              </div>
+                              {% endif %}
+                    </div>
+
+                    <!-- Help Section -->
+                    <div class="notification is-primary is-light mt-5">
+                              <p class="title is-6">
+                                        <span class="icon-text">
+                                                  <span class="icon"><i class="fas fa-question-circle"></i></span>
+                                                  <span>วิธีการใช้งาน</span>
+                                        </span>
+                              </p>
+                              <div class="content">
+                                        <ol>
+                                                  <li>เลือกคอร์สที่ต้องการจัดการสิทธิ์จากตารางด้านบน</li>
+                                                  <li>คลิกปุ่ม "จัดการ" เพื่อเข้าสู่หน้ากำหนดสิทธิ์</li>
+                                                  <li>เพิ่มเจ้าหน้าที่และเลือกประเภทสิทธิ์ที่ต้องการให้</li>
+                                                  <li>เจ้าหน้าที่จะสามารถเข้าถึงฟังก์ชันตามสิทธิ์ที่กำหนด</li>
+                                        </ol>
+                                        <p><strong>หมายเหตุ:</strong> เฉพาะผู้ที่เป็น Editor ของคอร์สนั้นๆ
+                                                  เท่านั้นที่สามารถกำหนดสิทธิ์ให้คนอื่นได้</p>
+                              </div>
+                    </div>
+
+          </div>
+</section>
+{% endblock %}

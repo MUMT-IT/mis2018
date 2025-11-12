@@ -428,9 +428,15 @@
                                                             </a>
                                                             <hr class="navbar-divider">
                                                             <a class="navbar-item"
-                                                                      href="/continuing_edu/admin/settings/staff">
+                                                                      href="{{ url_for('continuing_edu_admin.settings_administrators') }}">
                                                                       <span class="icon"><i
                                                                                           class="fas fa-user-shield"></i></span>
+                                                                      <span>Administrators</span>
+                                                            </a>
+                                                            <a class="navbar-item"
+                                                                      href="/continuing_edu/admin/settings/staff">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-users-cog"></i></span>
                                                                       <span>Staff Roles</span>
                                                             </a>
                                                             <a class="navbar-item"
