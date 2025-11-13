@@ -2987,6 +2987,7 @@ def generate_quotation():
                 sequence_no.count += 1
                 db.session.add(quotation_item)
                 db.session.commit()
+        flash('ร่างใบเสนอราคาสำเร็จ กรุณาดำเนินการตรวจสอบข้อมูล','success')
         return redirect(
             url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
     else:
