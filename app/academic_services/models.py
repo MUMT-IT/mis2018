@@ -271,6 +271,8 @@ class ServiceLab(db.Model):
     service_manual = db.Column('service_manual', db.String())
     service_rate = db.Column('service_rate', db.String())
     contact = db.Column('contact', db.String())
+    phone_number = db.Column('phone_number', db.String())
+    email = db.Column('email', db.String())
 
     def __str__(self):
         return self.code
