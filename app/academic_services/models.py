@@ -286,7 +286,6 @@ class ServiceSubLab(db.Model):
     address = db.Column('address', db.Text(), info={'label': 'ที่อยู่'})
     code = db.Column('code', db.String())
     sheet = db.Column('sheet', db.String())
-    contact = db.Column('contact', db.String())
     note = db.Column('note', db.String())
     lab_id = db.Column('lab_id', db.ForeignKey('service_labs.id'))
     lab = db.relationship(ServiceLab, backref=db.backref('sub_labs', cascade='all, delete-orphan'))
