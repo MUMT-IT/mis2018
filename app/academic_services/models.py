@@ -706,6 +706,7 @@ class ServiceQuotation(db.Model):
             'name': self.name,
             'customer_name': self.customer_name,
             'created_at': self.created_at,
+            'approved_at': self.approved_at if self.approved_at else None,
             'total_price': '{:,.2f}'.format(self.grand_total()),
             'status_id': self.request.status.status_id if self.request.status else None,
             'customer_status': self.customer_status if self.customer_status else None,
@@ -755,13 +756,13 @@ class ServiceQuotation(db.Model):
     @property
     def admin_status(self):
         if self.cancelled_at:
-            status = 'ลูกค้าไม่อนุมัติใบเสนอราคา'
+            status = 'ลูกค้าไม่ยืนยันใบเสนอราคา'
         elif self.confirmed_at:
-            status = 'ลูกค้าอนุมัติใบเสนอราคา'
+            status = 'ลูกค้ายืนยันใบเสนอราคา'
         elif self.approved_at:
-            status = 'รอลูกค้าอนุมัติใบเสนอราคา'
+            status = 'รอลูกค้ายืนยันใบเสนอราคา'
         elif self.sent_at:
-            status = 'รออนุมัติใบเสนอราคา'
+            status = 'รอยืนยันใบเสนอราคา'
         else:
             status = 'ร่างใบเสนอราคา'
         return status
@@ -783,11 +784,11 @@ class ServiceQuotation(db.Model):
     @property
     def customer_status(self):
         if self.cancelled_at:
-            status = 'ไม่อนุมัติ'
+            status = 'ไม่ยืนยัน'
         elif self.confirmed_at:
-            status = 'อนุมัติ'
+            status = 'ยืนยัน'
         else:
-            status = 'รออนุมัติ'
+            status = 'รอยืนยัน'
         return status
 
     @property
