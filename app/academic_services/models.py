@@ -283,6 +283,8 @@ class ServiceSubLab(db.Model):
     sub_lab = db.Column('sub_lab', db.String())
     lab_information = db.Column('lab_information', db.Text(), info={'label': 'ข้อมูลห้องปฏิบัติการทดสอบ'})
     address = db.Column('address', db.Text(), info={'label': 'ที่อยู่'})
+    siriraj_address = db.Column('siriraj_address', db.Text(), info={'label': 'ที่อยู่ศิริราช'})
+    salaya_address = db.Column('salaya_address', db.Text(), info={'label': 'ที่อยู่ศาลายา'})
     code = db.Column('code', db.String())
     sheet = db.Column('sheet', db.String())
     note = db.Column('note', db.String())
