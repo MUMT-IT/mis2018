@@ -296,13 +296,13 @@ def request_index():
             'icon': '<i class="fas fa-money-check-alt"></i>'
         },
         'confirm_payment': {
-            'id': [20],
+            'id': [22],
             'name': 'ชำระเงินสำเร็จ',
             'color': 'is-light',
             'icon': '<i class="fas fa-check"></i>'
         },
         'all': {
-            'id': list(range(1, 24)),
+            'id': list(range(2, 23)),
             'name': 'รายการทั้งหมด',
             'icon': '<i class="fas fa-list-ul"></i>'
         }
