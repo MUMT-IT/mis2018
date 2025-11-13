@@ -73,7 +73,8 @@
                 <table id='quotations' class="table is-fullwidth">
                     <thead>
                     <th>เลขใบเสนอราคา</th>
-                    <th>วัน-เวลาทีออก</th>
+                    <th>วันที่สร้าง</th>
+                    <th>วันที่ออก</th>
                     <th>ออกในนาม</th>
                     <th>ผู้ประสานงาน</th>
                     <th>เลขใบคำขอรับบริการ</th>
@@ -134,6 +135,17 @@
                     {data: 'quotation_no'},
                     {
                         data: 'created_at',
+                        render: function (data) {
+                            if (data !== null) {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'approved_at',
                         render: function (data) {
                             if (data !== null) {
                                 let d = moment(data)
