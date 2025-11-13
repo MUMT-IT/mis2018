@@ -1239,7 +1239,7 @@ def request_index():
         },
         'wait_report': {
             'id': [12, 15],
-            'name': 'รอยืนยันใบรายงานผลฉบับร่าง',
+            'name': 'รอยืนยันใบรายงานผล',
             'icon': '<i class="fas fa-clipboard-check"></i>'
         },
         'wait_payment': {
@@ -1249,7 +1249,7 @@ def request_index():
         },
         'download_report': {
             'id': [22],
-            'name': 'ดาวโหดใบรายงานผลฉบับจริง',
+            'name': 'ใบรายงานผลฉบับจริง',
             'icon': '<i class="fas fa-download"></i>'
         },
         'all': {
