@@ -1395,11 +1395,11 @@ def generate_request_pdf(service_request):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
-    lab_address = '''<para><font size=13>
+    lab_information = '''<para><font size=13>
                         {address}
-                        </font></para>'''.format(address=service_request.sub_lab.address)
+                        </font></para>'''.format(address=service_request.sub_lab.lab_information)
 
-    lab_table = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
+    lab_table = Table([[logo, Paragraph(lab_information, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
 
     lab_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
@@ -2779,9 +2779,9 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
                                </font></para>
                                '''
 
-    lab_address = '''<para><font size=12>
-                            {address}
-                            </font></para>'''.format(address=lab.address if lab else sub_lab.address)
+    # lab_address = '''<para><font size=12>
+    #                         {address}
+    #                         </font></para>'''.format(address=lab.address if lab else sub_lab.address)
 
     invoice_no = '''<br/><br/><font size=10>
                         เลขที่/No. {invoice_no}<br/>
