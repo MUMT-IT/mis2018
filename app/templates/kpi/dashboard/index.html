@@ -2,6 +2,11 @@
 {% block title %}MUMT-MIS: KPI Dashboard{% endblock %}
 {% include "kpi/dashboard/nav.html" %}
 {% block page_content %}
+    <section class="section hero is-primary is-small">
+        <div class="hero-body">
+            <p class="title">Dashboard สำหรับการบริหารและติดตามงานประจำ</p>
+        </div>
+    </section>
     <section class="section">
         <div class="container">
             <div class="columns">
@@ -10,17 +15,50 @@
                 </div>
             </div>
             <div class="columns">
+                <div class="column">
+                    <div class="box has-text-centered">
+                        <a href="#executive-dashboard">
+                            <figure class="image is-128x128 is-inline-block">
+                               <img src="{{ url_for('static', filename='img/speedometer.png') }}"/>
+                            </figure>
+                        </a>
+                        <h1 class="title is-size-4">ข้อมูลสำหรับงานบริหาร</h1>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box has-text-centered">
+                        <a href="#routine-dashboard">
+                            <figure class="image is-128x128 is-inline-block">
+                                <img src="{{ url_for('static', filename='img/dashboard.png') }}"/>
+                            </figure>
+                        </a>
+                        <h1 class="title is-size-4">ข้อมูลสำหรับปฏิบัติการ</h1>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="section">
+        <div class="container">
+            <div class="columns">
                 <div class="column is-half is-offset-one-quarter">
                     <nav class="panel is-primary">
-                        <p class="panel-heading">KPI Dashboard</p>
-                        {% for d in dashboard %}
-                            {% if d.is_kpi %}
-                            <a href="{{ d.url }}" target="_blank" class="panel-block">
+                        <p class="panel-heading" id="executive-dashboard">Dashboard สำหรับงานบริหาร</p>
+                        {% for d in dashboard|sort(attribute='id') %}
+                            {% if d.category == 'บริหาร' %}
+                                <a {% if executive_permission.can() %} href="{{ d.url }}" {% endif %}
+                                        target="_blank" class="panel-block">
+                                {% if executive_permission.can() %}
                                 <span class="panel-icon">
                                     <i class="fas fa-tachometer-alt"></i>
                                 </span>
-                                <span>{{ d.name }}</span>
-                            </a>
+                                {% else %}
+                                <span class="panel-icon">
+                                    <i class="fa-solid fa-lock"></i>
+                                </span>
+                                {% endif %}
+                                    <span>{{ d.name }}</span>
+                                </a>
                             {% endif %}
                         {% endfor %}
                     </nav>
@@ -29,14 +67,16 @@
             <div class="columns">
                 <div class="column is-half is-offset-one-quarter">
                     <nav class="panel is-primary">
-                        <p class="panel-heading">Dashboard งานประจำ</p>
+                        <p class="panel-heading" id="routine-dashboard">Dashboard สำหรับงานประจำ</p>
                         {% for d in dashboard %}
-                            <a href="{{ d.url }}" target="_blank" class="panel-block">
+                            {% if d.category == 'ปฏิบัติการ' %}
+                                <a href="{{ d.url }}" target="_blank" class="panel-block">
                                 <span class="panel-icon">
                                     <i class="fas fa-tachometer-alt"></i>
                                 </span>
-                                <span>{{ d.name }}</span>
-                            </a>
+                                    <span>{{ d.name }}</span>
+                                </a>
+                            {% endif %}
                         {% endfor %}
                     </nav>
                 </div>
