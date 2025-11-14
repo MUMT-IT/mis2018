@@ -155,7 +155,7 @@
                                 <ul>
                                     {% if service_request.report_languages %}
                                         {% for rl in service_request.report_languages %}
-                                                <li>{{ rl.report_language.item }}</li>
+                                            <li>{{ rl.report_language.item }}</li>
                                         {% endfor %}
                                     {% else %}
                                         ไม่ได้เลือกใบรายงานผล
@@ -169,13 +169,6 @@
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <h1 class="title has-text-centered">นัดหมายการส่งตัวอย่าง</h1>
-                            <div class="notification is-info is-light mt-4">
-                                <h1 class="title is-5 mt-3">คำแนะนำ</h1>
-                                1. เลือกวิธีการส่งตัวอย่าง<br/>
-                                2. เลือกสถานที่ส่งตัวอย่าง<br/>
-                                3. ถ้าในกรณีที่เลือกวิธีการส่งตัวอย่างด้วยตนเอง กรุณากำหนดวันนัดหมายส่งตัวอย่าง<br/>
-                                4. กรุณานำส่งตัวอย่างพร้อมใบนำส่งตัวอย่าง, ใบอนุญาตนำเข้าหรือผลิต และสูตรตำรับ/สูตร 100% ของตัวอย่าง
-                            </div>
                         <div class="box">
                             <p class="help is-danger mb-2">กรุณากรอกข้อมูลนัดหมายส่งตัวอย่าง</p>
                             <div class="field">
@@ -183,26 +176,17 @@
                                     {{ form.ship_type.label }}
                                     <span class="has-text-danger">*</span>
                                 </label>
-                                <div class="select">
+                                <div class="control">
                                     {{ form.ship_type() }}
                                 </div>
                             </div>
-                            <div class="field">
+                            <div class="field" id="location-field" style="display:none;">
                                 <label class="label">
                                     {{ form.location.label }}
                                     <span class="has-text-danger">*</span>
                                 </label>
-                                <div class="select">
-                                    {{ form.location() }}
-                                </div>
-                            </div>
-                            <div class="field" id="address-field" style="display: none">
-                                <label class="label">
-                                    รายละเอียดสถานที่ส่งตัวอย่าง
-                                    <span class="has-text-danger">*</span>
-                                </label>
                                 <div class="control">
-                                    {{ service_request.sub_lab.short_address | safe }}
+                                    {{ form.location() }}
                                 </div>
                             </div>
                             <div class="field" id="appointment-date-field" style="display: none;">
@@ -214,18 +198,21 @@
                                     {{ form.appointment_date(class='input', type='text') }}
                                 </div>
                             </div>
-                            <div class="field" id="convenient-time-field" style="display: none;">
+                            <div class="field">
                                 <label class="label">
                                     รายละเอียดเวลาการส่งตัวอย่าง
                                 </label>
                                 <div class="control">
-                                    {{ service_request.sub_lab.address|safe }}
+                                    {{ service_request.sub_lab.address }}
                                 </div>
                             </div>
                             <div class="field">
                                 <label class="label">ข้อมูลติดต่อ</label>
                                 <div class="control">
-                                    {{ service_request.sub_lab.contact }}
+                                    เบอร์โทรศัพท์ : {{ service_request.sub_lab.lab.phone_number }}
+                                    {% if service_request.sub_lab.lab.email %}
+                                        อีเมล : {{ service_request.sub_lab.lab.email }}
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -247,7 +234,8 @@
 {% block scripts %}
     {{ super() }}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
-    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript"
+            src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
         function showToast(category, message) {
@@ -292,43 +280,35 @@
                 locale: {
                     format: 'YYYY-MM-DD'
                 },
-                isInvalidDate: function(date) {
+                isInvalidDate: function (date) {
                     const formatted = date.format('YYYY-MM-DD');
                     const isWeekend = date.day() === 0 || date.day() === 6;
                     const isHoliday = holidays.includes(formatted);
                     return isWeekend || isHoliday;
                 }
             });
-            function showAppointmentDate() {
-                var shipType = document.querySelector('[name="ship_type"]').value;
-                var appointmentDateField = document.getElementById("appointment-date-field");
-                var convenientTimeField = document.getElementById("convenient-time-field");
+
+            function showInput() {
+                const shipType = document.querySelector('input[name="ship_type"]:checked').value;
+                const appointmentDateField = document.getElementById("appointment-date-field");
+                const appointmentDateInput = document.getElementById('appointment_date');
+                const locationField = document.getElementById("location-field");
+                const locationInput = document.querySelector('input[name="location"]');
                 if (shipType === "ส่งด้วยตนเอง") {
                     appointmentDateField.style.display = "block";
-                    convenientTimeField.style.display = "block";
+                    appointmentDateInput.required = true;
+                    locationField.style.display = "block";
+                    locationInput.required = true;
                 } else {
                     appointmentDateField.style.display = "none";
-                    convenientTimeField.style.display = "none";
+                    locationField.style.display = "none";
                 }
             }
 
-            showAppointmentDate();
-            document.querySelector('[name="ship_type"]').addEventListener("change", showAppointmentDate);
-
-            function showAddress() {
-                var locationField = document.querySelector('[name="location"]').value;
-                 console.log("Current location value:", locationField);
-                var addressField = document.getElementById("address-field");
-
-                if (locationField !== "None") {
-                    addressField.style.display = "block";
-                } else {
-                    addressField.style.display = "none";
-                }
-            }
-
-            showAddress();
-            document.querySelector('[name="location"]').addEventListener("change", showAddress);
+            showInput();
+            document.querySelectorAll('input[name="ship_type"]').forEach(s => {
+                s.addEventListener("change", showInput);
+            });
         })
     </script>
 {% endblock %}
