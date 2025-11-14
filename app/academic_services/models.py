@@ -861,13 +861,6 @@ class ServiceSample(db.Model):
     received_at = db.Column('received_at', db.DateTime(timezone=True))
     receiver_id = db.Column('receiver_id', db.ForeignKey('staff_account.id'))
     received_by = db.relationship(StaffAccount, backref=db.backref('receive_sample'), foreign_keys=[receiver_id])
-    expected_at = db.Column('expected_at', db.DateTime(timezone=True), info={'label': 'วันที่คาดว่าจะได้รับผล'})
-    started_at = db.Column('started_at', db.DateTime(timezone=True))
-    starter_id = db.Column('starter_id', db.ForeignKey('staff_account.id'))
-    started_by = db.relationship(StaffAccount, backref=db.backref('start_test'), foreign_keys=[starter_id])
-    finished_at = db.Column('finished_at', db.DateTime(timezone=True))
-    finish_id = db.Column('finish_id', db.ForeignKey('staff_account.id'))
-    finished_by = db.relationship(StaffAccount, backref=db.backref('finish_test'), foreign_keys=[finish_id])
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('samples'))
 
