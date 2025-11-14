@@ -200,10 +200,16 @@
                             </div>
                             <div class="field">
                                 <label class="label">
-                                    รายละเอียดเวลาการส่งตัวอย่าง
+                                    รายละเอียดสถานที่ส่งตัวอย่าง
                                 </label>
-                                <div class="control">
+                                <div class="control" id="address-field">
                                     {{ service_request.sub_lab.address }}
+                                </div>
+                                <div class="control" id="siriraj-address-field" style="display: none">
+                                    {{ service_request.sub_lab.siriraj_address }}
+                                </div>
+                                <div class="control" id="salaya-address-field" style="display: none">
+                                    {{ service_request.sub_lab.salaya_address }}
                                 </div>
                             </div>
                             <div class="field">
@@ -216,7 +222,7 @@
                                 </div>
                             </div>
                             <div class="notification has-text-danger">
-                                <label class="label is-6 has-text-danger ">หมายเหตุ</label>
+                                <label class="label is-6 has-text-danger">หมายเหตุ</label>
                                 <div class="is-size-7">
                                     1. กรุณานำส่งตัวอย่างพร้อมใบนำส่งตัวอย่าง, ใบอนุญาตนำเข้าหรือผลิต และสูตรตำรับ/สูตร 100% ของตัวอย่าง<br/>
                                     2. {{ service_request.sub_lab.note }}
@@ -301,7 +307,7 @@
                 const appointmentDateInput = document.getElementById('appointment_date');
                 const locationField = document.getElementById("location-field");
                 const locationInput = document.querySelector('input[name="location"]');
-                if (shipType === "ส่งด้วยตนเอง") {
+                if (shipType.includes("ส่งด้วยตนเอง")) {
                     appointmentDateField.style.display = "block";
                     appointmentDateInput.required = true;
                     locationField.style.display = "block";
@@ -315,6 +321,31 @@
             showInput();
             document.querySelectorAll('input[name="ship_type"]').forEach(s => {
                 s.addEventListener("change", showInput);
+            });
+
+             function showLocation() {
+                const location = document.querySelector('input[name="location"]:checked').value;
+                const addressField = document.getElementById("address-field");
+                const sirirajAddressField = document.getElementById('siriraj-address-field');
+                const salayaAddressField = document.getElementById("salaya-address-field");
+                if (location.includes("ศิริราช")) {
+                    addressField.style.display = 'none'
+                    salayaAddressField.style.display = 'none'
+                    sirirajAddressField.style.display = 'block'
+                } else if (location.includes("ศาลายา")) {
+                    addressField.style.display = 'none'
+                    sirirajAddressField.style.display = 'none'
+                    salayaAddressField.style.display = 'block'
+                } else {
+                    addressField.style.display = 'block'
+                    salayaAddressField.style.display = 'none'
+                    sirirajAddressField.style.display = 'none'
+                }
+            }
+
+            showLocation();
+            document.querySelectorAll('input[name="location"]').forEach(s => {
+                s.addEventListener("change", showLocation);
             });
         })
     </script>
