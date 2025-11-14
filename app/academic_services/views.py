@@ -2429,10 +2429,10 @@ def sample_index():
     samples = ServiceSample.query.filter(ServiceSample.request.has(customer_id=current_user.id))
     if tab == 'schedule':
         samples = samples.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
-                             ServiceSample.received_at == None)
+                                 ServiceSample.received_at == None)
     elif tab == 'delivery':
         samples = samples.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
-                             ServiceSample.received_at == None)
+                                 ServiceSample.received_at == None)
     elif tab == 'received':
         samples = samples.filter(ServiceSample.received_at != None)
     else:
@@ -2452,71 +2452,70 @@ def create_sample_appointment(sample_id):
     holidays = Holidays.query.all()
     if form.validate_on_submit():
         form.populate_obj(sample)
-        if ((form.ship_type.data == 'ส่งด้วยตนเอง' and form.location.data and form.appointment_date.data) or
-                (form.ship_type.data == 'ส่งทางไปรษณีย์' and form.location.data)):
-            db.session.add(sample)
+        if form.ship_type.data == 'ส่งทางไปรษณีย์':
+            form.appointment_date = None
+            form.location = None
+        db.session.add(sample)
+        db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
+        title_prefix = 'คุณ' if service_request.customer.customer_info.type.type == 'บุคคล' else ''
+        link = url_for("service_admin.sample_verification", sample_id=sample.id, menu=menu, _external=True,
+                       _scheme=scheme)
+        customer_name = service_request.customer.customer_name.replace(' ', '_')
+        if admins:
+            if service_request.status.status_id == 9:
+                title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งแก้ไขนัดหมายส่งตัวอย่าง)'''
+                message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.sub_lab}\n\n'''
+                message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}\n'''
+                message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
+                message += f'''ในนาม : {service_request.quotation_address.name}\n'''
+                message += f'''ได้ดำเนินการแก้ไขข้อมูลการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
+                message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
+                if sample.appointment_date:
+                    message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
+                message += f'''สถานที่นัดหมาย : {sample.location}\n'''
+                message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.short_address}\n'''
+                message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
+                message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
+                message += f'''{link}\n\n'''
+                message += f'''ผู้ประสานงาน\n'''
+                message += f'''{service_request.customer.customer_name}\n'''
+                message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n'''
+                message += f'''ระบบงานบริการวิชาการ'''
+            else:
+                title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งนัดหมายส่งตัวอย่าง)'''
+                message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.sub_lab}\n\n'''
+                message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}\n'''
+                message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
+                message += f'''ในนาม : {service_request.quotation_address.name}\n'''
+                message += f'''ได้ดำเนินการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
+                message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
+                if sample.appointment_date:
+                    message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
+                message += f'''สถานที่นัดหมาย : {sample.location}\n'''
+                message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n'''
+                message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.short_address}\n'''
+                message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
+                message += f'''{link}\n\n'''
+                message += f'''ผู้ประสานงาน\n'''
+                message += f'''{service_request.customer.customer_name}\n'''
+                message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n'''
+                message += f'''ระบบงานบริการวิชาการ'''
+            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
+        if service_request.status.status_id == 6:
+            status_id = get_status(9)
+            service_request.status_id = status_id
+            db.session.add(service_request)
             db.session.commit()
-            scheme = 'http' if current_app.debug else 'https'
-            title_prefix = 'คุณ' if service_request.customer.customer_info.type.type == 'บุคคล' else ''
-            link = url_for("service_admin.sample_verification", sample_id=sample.id, menu=menu, _external=True,
-                           _scheme=scheme)
-            customer_name = service_request.customer.customer_name.replace(' ', '_')
-            if admins:
-                if service_request.status.status_id == 9:
-                    title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งแก้ไขนัดหมายส่งตัวอย่าง)'''
-                    message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.sub_lab}\n\n'''
-                    message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}\n'''
-                    message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
-                    message += f'''ในนาม : {service_request.quotation_address.name}\n'''
-                    message += f'''ได้ดำเนินการแก้ไขข้อมูลการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
-                    message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
-                    if sample.appointment_date:
-                        message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
-                    message += f'''สถานที่นัดหมาย : {sample.location}\n'''
-                    message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.short_address}\n'''
-                    message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
-                    message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
-                    message += f'''{link}\n\n'''
-                    message += f'''ผู้ประสานงาน\n'''
-                    message += f'''{service_request.customer.customer_name}\n'''
-                    message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n'''
-                    message += f'''ระบบงานบริการวิชาการ'''
-                else:
-                    title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งนัดหมายส่งตัวอย่าง)'''
-                    message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.sub_lab}\n\n'''
-                    message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}\n'''
-                    message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
-                    message += f'''ในนาม : {service_request.quotation_address.name}\n'''
-                    message += f'''ได้ดำเนินการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
-                    message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
-                    if sample.appointment_date:
-                        message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
-                    message += f'''สถานที่นัดหมาย : {sample.location}\n'''
-                    message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n'''
-                    message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.short_address}\n'''
-                    message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
-                    message += f'''{link}\n\n'''
-                    message += f'''ผู้ประสานงาน\n'''
-                    message += f'''{service_request.customer.customer_name}\n'''
-                    message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n'''
-                    message += f'''ระบบงานบริการวิชาการ'''
-                send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
-            if service_request.status.status_id == 6:
-                status_id = get_status(9)
-                service_request.status_id = status_id
-                db.session.add(service_request)
-                db.session.commit()
-            flash('อัพเดตข้อมูลสำเร็จ', 'success')
-            return redirect(url_for('academic_services.confirm_sample_appointment_page', menu=menu,
-                                    request_id=sample.request_id))
-        else:
-            flash('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
+        flash('อัพเดตข้อมูลสำเร็จ', 'success')
+        return redirect(url_for('academic_services.confirm_sample_appointment_page', menu=menu,
+                                request_id=sample.request_id))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('academic_services/create_sample_appointment.html', form=form,
-                           sample=sample, menu=menu, sample_id=sample_id, datas=datas, service_request=service_request,
-                           holidays=holidays)
+        return render_template('academic_services/create_sample_appointment.html', form=form, menu=menu,
+                               sample=sample, sample_id=sample_id, datas=datas, service_request=service_request,
+                               holidays=holidays)
 
 
 @academic_services.route('/customer/sample-appointment/confirm/page/<int:request_id>', methods=['GET', 'POST'])
@@ -2624,7 +2623,7 @@ def get_invoices():
     elif tab == 'payment':
         query = query.filter(ServiceInvoice.is_paid == True)
     elif tab == 'overdue':
-        query = query.filter(today > ServiceInvoice.due_date , ServiceInvoice.paid_at == None)
+        query = query.filter(today > ServiceInvoice.due_date, ServiceInvoice.paid_at == None)
     else:
         query = query
     records_total = query.count()
@@ -3023,15 +3022,16 @@ def result_index():
     results = ServiceResult.query.filter(ServiceResult.request.has(customer_id=current_user.id))
     if tab == 'pending':
         results = results.filter(or_(ServiceResult.status_id == None,
-                                 ServiceResult.status.has(or_(
-                                     ServiceStatus.status_id == 10, ServiceStatus.status_id == 11)
+                                     ServiceResult.status.has(or_(
+                                         ServiceStatus.status_id == 10, ServiceStatus.status_id == 11)
+                                     )
+                                     )
                                  )
-                                 )
-                             )
     elif tab == 'edit':
         results = results.filter(ServiceResult.status.has(ServiceStatus.status_id == 14))
     elif tab == 'approve':
-        results = results.filter(ServiceResult.status.has(or_(ServiceStatus.status_id == 12, ServiceStatus.status_id == 15)))
+        results = results.filter(
+            ServiceResult.status.has(or_(ServiceStatus.status_id == 12, ServiceStatus.status_id == 15)))
     elif tab == 'confirm':
         results = results.filter(ServiceResult.status.has(ServiceStatus.status_id == 13))
     else:
