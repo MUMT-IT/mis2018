@@ -836,16 +836,8 @@ class ServiceSample(db.Model):
     __tablename__ = 'service_samples'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     appointment_date = db.Column('appointment_date', db.Date(), info={'label': 'วันนัดหมาย'})
-    ship_type = db.Column('ship_type', db.String(),
-                          info={'label': 'วิธีการส่งตัวอย่าง', 'choices': [('None', 'กรุณาเลือกการส่งตัวอย่าง'),
-                                                                           ('ส่งด้วยตนเอง', 'ส่งด้วยตนเอง'),
-                                                                           ('ส่งทางไปรษณีย์', 'ส่งทางไปรษณีย์')
-                                                                           ]})
-    location = db.Column('location', db.String(),
-                         info={'label': 'สถานที่ส่งตัวอย่าง', 'choices': [('None', 'กรุณาเลือกสถานที่'),
-                                                                          ('ศิริราช', 'ศิริราช'),
-                                                                          ('ศาลายา', 'ศาลายา')
-                                                                          ]})
+    ship_type = db.Column('ship_type', db.String(), info={'label': 'วิธีการส่งตัวอย่าง'})
+    location = db.Column('location', db.String(), info={'label': 'สถานที่ส่งตัวอย่าง'})
     tracking_number = db.Column('tracking_number', db.String(), info={'label': 'เลขพัสดุ'})
     sample_integrity = db.Column('sample_integrity', db.String())
     packaging_sealed = db.Column('packaging_sealed', db.String())
