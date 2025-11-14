@@ -2473,8 +2473,14 @@ def create_sample_appointment(sample_id):
                 message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
                 if sample.appointment_date:
                     message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
-                message += f'''สถานที่นัดหมาย : {sample.location}\n'''
-                message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.short_address}\n'''
+                if sample.location:
+                    message += f'''สถานที่นัดหมาย : {sample.location}\n'''
+                    if sample.locaiton == 'คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล วิทยาเขตศาลายา':
+                        message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.salaya_address}\n'''
+                    else:
+                        message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.siriraj_address}\n'''
+                else:
+                    message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.address}\n'''
                 message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
                 message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
                 message += f'''{link}\n\n'''
@@ -2492,9 +2498,15 @@ def create_sample_appointment(sample_id):
                 message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
                 if sample.appointment_date:
                     message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
-                message += f'''สถานที่นัดหมาย : {sample.location}\n'''
+                if sample.location:
+                    message += f'''สถานที่นัดหมาย : {sample.location}\n'''
+                    if sample.locaiton == 'คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล วิทยาเขตศาลายา':
+                        message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.salaya_address}\n'''
+                    else:
+                        message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.siriraj_address}\n'''
+                else:
+                    message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.address}\n'''
                 message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n'''
-                message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.short_address}\n'''
                 message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
                 message += f'''{link}\n\n'''
                 message += f'''ผู้ประสานงาน\n'''
