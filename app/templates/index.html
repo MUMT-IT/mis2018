@@ -295,19 +295,6 @@
                         </a>
                     </nav>
                     <nav class="panel is-info">
-                        <p class="panel-heading">Education</p>
-{#                        <a href="{{ url_for('studs.index') }}" class="panel-block">#}
-{#                        <span class="panel-icon">#}
-{#                            <i class="fas fa-user-graduate"></i>#}
-{#                        </span><span class="is-size-5">นักศึกษา</span>#}
-{#                        </a>#}
-                        <a href="{{ url_for('eduqa.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-university"></i>
-                        </span><span class="is-size-5">ระบบประกันคุณภาพการศึกษา</span>
-                        </a>
-                    </nav>
-                    <nav class="panel is-info">
                         <p class="panel-heading">Services</p>
                         <a href="{{ url_for('comhealth.landing') }}" class="panel-block">
                         <span class="panel-icon">
@@ -374,6 +361,81 @@
                             <span class="is-size-5">ระบบรับแจ้งและติดตามข้อร้องเรียนและปัญหา</span>
                         </a>
                     </nav>
+                    <nav class="panel is-info">
+                        <p class="panel-heading">Analytics</p>
+                        <a class="panel-block"
+                            href="{{ url_for('data_bp.orgs') }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-tasks"></i>
+                        </span>
+                        <span class="is-size-5">
+                            ระบบฐานข้อมูลตัวชี้วัดและกระบวนการการทำงาน
+                        </span>
+                        </a>
+                        <a href="{{ url_for('research.dashboard') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </span>
+                            <span class="is-size-5">
+                            ระบบวิเคราะห์ผลงานวิจัย
+                        </span>
+                        </a>
+{#                        <a href="{{ url_for('kpi_blueprint.main') }}" class="panel-block">#}
+{#                        <span class="panel-icon">#}
+{#                            <i class="fas fa-tachometer-alt"></i>#}
+{#                        </span>#}
+{#                            <span class="is-size-5">#}
+{#                            ระบบฐานข้อมูลตัวชี้วัดองค์กร#}
+{#                        </span>#}
+{#                        </a>#}
+                        <a href="{{ url_for('kpi_blueprint.dashboard_index') }}"
+                           class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </span>
+                            <span class="is-size-5">
+                            Dashboard รายงานข้อมูลเพื่อการตัดสินใจ
+                        </span>
+                        </a>
+                        <a href="{{ url_for('chemdb.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-flask"></i>
+                        </span>
+                            <span class="is-size-5">
+                            ระบบฐานข้อมูลสารเคมี
+                        </span>
+                        </a>
+{#                        <a href="{{ url_for('food.index') }}" class="panel-block">#}
+{#                        <span class="panel-icon">#}
+{#                            <i class="fab fa-pagelines"></i>#}
+{#                        </span>#}
+{#                            <span class="is-size-5">#}
+{#                            ฐานข้อมูลโครงการเกษตรและอาหารปลอดภัย#}
+{#                        </span>#}
+{#                        </a>#}
+                    </nav>
+                    <nav class="panel is-info">
+                        <p class="panel-heading">ระบบมหาวิทยาลัย</p>
+                        <a href="https://eoffice.mahidol.ac.th/" class="panel-block">
+                            <span class="panel-icon">
+                                <i class="fa fa-circle-notch"></i>
+                            </span>
+                            <span class="is-size-5">สารบรรณอิเล็กทรอนิกส์ (eoffice)</span>
+                        </a>
+                    </nav>
+                    <nav class="panel is-info">
+                        <p class="panel-heading">Education</p>
+{#                        <a href="{{ url_for('studs.index') }}" class="panel-block">#}
+{#                        <span class="panel-icon">#}
+{#                            <i class="fas fa-user-graduate"></i>#}
+{#                        </span><span class="is-size-5">นักศึกษา</span>#}
+{#                        </a>#}
+                        <a href="{{ url_for('eduqa.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-university"></i>
+                        </span><span class="is-size-5">ระบบประกันคุณภาพการศึกษา</span>
+                        </a>
+                    </nav>
                     <nav class="panel is-danger">
                         <p class="panel-heading">Services (กำลังพัฒนาและทดลอง)</p>
                         <a href="{{ url_for('service_admin.request_index', menu='request') }}" class="panel-block">
@@ -438,68 +500,6 @@
 {#                            </span>#}
 {#                            <span class="is-size-5">ระบบนัดหมายประชุมกรรมการพัสดุ</span>#}
 {#                        </a>#}
-                    </nav>
-                    <nav class="panel is-info">
-                        <p class="panel-heading">Analytics</p>
-                        <a class="panel-block"
-                            href="{{ url_for('data_bp.orgs') }}">
-                        <span class="panel-icon">
-                            <i class="fas fa-tasks"></i>
-                        </span>
-                        <span class="is-size-5">
-                            ระบบฐานข้อมูลตัวชี้วัดและกระบวนการการทำงาน
-                        </span>
-                        </a>
-                        <a href="{{ url_for('research.dashboard') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-tachometer-alt"></i>
-                        </span>
-                            <span class="is-size-5">
-                            ระบบวิเคราะห์ผลงานวิจัย
-                        </span>
-                        </a>
-{#                        <a href="{{ url_for('kpi_blueprint.main') }}" class="panel-block">#}
-{#                        <span class="panel-icon">#}
-{#                            <i class="fas fa-tachometer-alt"></i>#}
-{#                        </span>#}
-{#                            <span class="is-size-5">#}
-{#                            ระบบฐานข้อมูลตัวชี้วัดองค์กร#}
-{#                        </span>#}
-{#                        </a>#}
-                        <a href="{{ url_for('kpi_blueprint.dashboard_index') }}"
-                           class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-tachometer-alt"></i>
-                        </span>
-                            <span class="is-size-5">
-                            Dashboard รายงานข้อมูลเพื่อการตัดสินใจ
-                        </span>
-                        </a>
-                        <a href="{{ url_for('chemdb.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-flask"></i>
-                        </span>
-                            <span class="is-size-5">
-                            ระบบฐานข้อมูลสารเคมี
-                        </span>
-                        </a>
-{#                        <a href="{{ url_for('food.index') }}" class="panel-block">#}
-{#                        <span class="panel-icon">#}
-{#                            <i class="fab fa-pagelines"></i>#}
-{#                        </span>#}
-{#                            <span class="is-size-5">#}
-{#                            ฐานข้อมูลโครงการเกษตรและอาหารปลอดภัย#}
-{#                        </span>#}
-{#                        </a>#}
-                    </nav>
-                    <nav class="panel is-info">
-                        <p class="panel-heading">ระบบมหาวิทยาลัย</p>
-                        <a href="https://eoffice.mahidol.ac.th/" class="panel-block">
-                            <span class="panel-icon">
-                                <i class="fa fa-circle-notch"></i>
-                            </span>
-                            <span class="is-size-5">สารบรรณอิเล็กทรอนิกส์ (eoffice)</span>
-                        </a>
                     </nav>
                     <nav class="panel is-light">
                         <p class="panel-heading">Administrator</p>

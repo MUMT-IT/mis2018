@@ -44,7 +44,7 @@
                 <div class="column is-half is-offset-one-quarter">
                     <nav class="panel is-primary">
                         <p class="panel-heading" id="executive-dashboard">Dashboard สำหรับงานบริหาร</p>
-                        {% for d in dashboard %}
+                        {% for d in dashboard|sort(attribute='id') %}
                             {% if d.category == 'บริหาร' %}
                                 <a {% if executive_permission.can() %} href="{{ d.url }}" {% endif %}
                                         target="_blank" class="panel-block">
