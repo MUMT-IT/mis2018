@@ -192,6 +192,26 @@ bacteria_wash_organisms = [
 ]
 
 
+class FixedCheckboxField(CheckboxField):
+    def pre_validate(self, form):
+        # ข้ามการตรวจ choices
+        pass
+
+    def process_data(self, value):
+        # ถ้ามีค่าอะไรก็เก็บไว้ตรง ๆ ไม่แปลงเป็น True/False
+        self.data = value
+
+    def process_formdata(self, valuelist):
+        # เวลามีการ submit จาก form (ติ๊ก checkbox)
+        if valuelist:
+            # เก็บค่าจาก value ของ checkbox เช่นชื่อเชื้อ
+            self.data = valuelist[0]
+        else:
+            # ถ้าไม่ได้ติ๊ก ก็ให้เป็น None
+            self.data = None
+
+
+
 class BacteriaLiquidTestConditionForm(FlaskForm):
     liquid_organism = CheckboxField('เชื้อ', validators=[Optional()])
     liquid_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
@@ -534,6 +554,11 @@ class ServiceQuotationForm(ModelForm):
 class ServiceSampleForm(ModelForm):
     class Meta:
         model = ServiceSample
+
+    ship_type = RadioField('วิธีการส่งตัวอย่าง', choices=[(c, c) for c in ['ส่งด้วยตนเอง', 'ส่งทางไปรษณีย์']],
+                           validators=[DataRequired()])
+    location = RadioField('สถานที่ส่งตัวอย่าง', choices=[(c, c) for c in ['คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล วิทยาเขตศาลายา',
+                                                                          'คณะเทคนิคการแพทย์ โรงพยาบาลศิริราช วิทยาเขตบางกอกน้อย']])
 
 
 class ServicePaymentForm(ModelForm):
