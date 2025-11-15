@@ -32,7 +32,10 @@
                             <h5 class="title is-size-5">ข้อมูลผลิตภัณฑ์</h5>
                             <hr style="background-color: gainsboro">
                             <div class="field">
-                                <label class="label">{{ form.product_name.label }}</label>
+                                <label class="label">
+                                    {{ form.product_name.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="control">
                                     {{ form.product_name(class='input') }}
                                 </div>
@@ -41,6 +44,7 @@
                                 <label class="label">
                                     {{ form.active_substance.label }}
                                     เช่น Formaldyhyde 37% w/w, Ethyl Alcohol 50% w/w
+                                    <span class="has-text-danger">*</span>
                                 </label>
                                 <div class="control">
                                     {{ form.active_substance(class='textarea',
@@ -48,19 +52,28 @@
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.product_appearance.label }}</label>
+                                <label class="label">
+                                    {{ form.product_appearance.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="control">
                                     {{ form.product_appearance(class='input') }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.kind.label }}</label>
+                                <label class="label">
+                                    {{ form.kind.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="contol">
                                     {{ form.kind(class='input') }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.size.label }}</label>
+                                <label class="label">
+                                    {{ form.size.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="control">
                                     {{ form.size(class='input') }}
                                 </div>
@@ -68,19 +81,28 @@
                             <div class="field">
                                 <div class="field-body">
                                     <div class="field">
-                                        <label class="label">{{ form.mfg.label }}</label>
+                                        <label class="label">
+                                            {{ form.mfg.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
                                         <div class="control">
                                             {{ form.mfg(class='input') }}
                                         </div>
                                     </div>
                                     <div class="field">
-                                        <label class="label">{{ form.exp.label }}</label>
+                                        <label class="label">
+                                            {{ form.exp.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
                                         <div class="control">
                                             {{ form.exp(class='input') }}
                                         </div>
                                     </div>
                                     <div class="field">
-                                        <label class="label">{{ form.lot_no.label }}</label>
+                                        <label class="label">
+                                            {{ form.lot_no.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
                                         <div class="control">
                                             {{ form.lot_no(class='input') }}
                                         </div>
@@ -90,13 +112,19 @@
                             <div class="field">
                                 <div class="field-body">
                                     <div class="field">
-                                        <label class="label">{{ form.amount.label }}</label>
+                                        <label class="label">
+                                            {{ form.amount.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
                                         <div class="control">
                                             {{ form.amount(class='input') }}
                                         </div>
                                     </div>
                                     <div class="field">
-                                        <label class="label">{{ form.service_life.label }}</label>
+                                        <label class="label">
+                                            {{ form.service_life.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
                                         <div class="control">
                                             {{ form.service_life(class='input') }}
                                         </div>
