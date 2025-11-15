@@ -152,7 +152,10 @@
                                                                         {% if loop.first %}
                                                                             {% for _field in subfield %}
                                                                                 {% if _field.type != 'CSRFTokenField' %}
-                                                                                    <th style="border: none">{{ _field.label.text }}</th>
+                                                                                    <th style="border: none">
+                                                                                        {{ _field.label.text }}
+                                                                                        <span class="has-text-danger">*</span>
+                                                                                    </th>
                                                                                 {% endif %}
                                                                             {% endfor %}
                                                                         {% endif %}
@@ -172,21 +175,27 @@
                                                                 </table>
                                                             {% elif field.name.endswith('surface_type') %}
                                                                 <div class="field ml-4">
-                                                                    <label class="label">{{ field.label }}</label>
+                                                                    <label id="surface_type_label" class="label">{{ field.label }}</label>
                                                                     <div class="control">
                                                                         {{ field() }}
                                                                     </div>
                                                                 </div>
                                                             {% elif field.name.endswith('surface_type_other') %}
                                                                 <div class="field ml-4">
-                                                                    <label class="label">{{ field.label }}</label>
+                                                                    <label class="label">
+                                                                        {{ field.label }}
+                                                                        <span class="has-text-danger">*</span>
+                                                                    </label>
                                                                     <div class="control">
                                                                         {{ field() }}
                                                                     </div>
                                                                 </div>
                                                             {% else %}
                                                                 <div class="field">
-                                                                    <label class="label">{{ field.label }}</label>
+                                                                    <label class="label">
+                                                                        {{ field.label }}
+                                                                        <span class="has-text-danger">*</span>
+                                                                    </label>
                                                                     <div class="control">
                                                                         {{ field() }}
                                                                     </div>
@@ -463,12 +472,11 @@
             const surfaceTypeField = subform.find('input[type="radio"][name$="surface_type"]:checked').val();
             const surfaceTypeOtherInput = subform.find('input[name$="surface_type_other"]');
             const surfaceTypeOtherField = surfaceTypeOtherInput.closest('.field');
-            const surfaceTypeOtherLabel = subform.find('label[id$="surface_type_other_label"]');
 
             if (surfaceTypeField && surfaceTypeField.includes('อื่นๆ โปรดระบุ')) {
                 surfaceTypeOtherField.show();
-                surfaceTypeOtherInput.prop('required', true);
-                surfaceTypeOtherLabel.html('<label class="label">ระบุ<span class="has-text-danger ml-1">*</span></label>');
+                surfaceTypeOtherInput.prop('required', true).attr('oninvalid', "this.setCustomValidity('กรุณากรอกชนิดพท้นผิว')")
+                .attr('oninput', "this.setCustomValidity('')");
             } else {
                 surfaceTypeOtherField.hide();
                 surfaceTypeOtherInput.val('');
