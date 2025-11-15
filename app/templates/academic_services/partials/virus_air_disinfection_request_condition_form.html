@@ -59,7 +59,7 @@
         const table = subform.find('table');
         const checkboxes = table.find('tbody tr input[type="checkbox"]');
 
-        function updateRowState() {
+        function validateInput() {
             const anyChecked = checkboxes.filter(':checked').length > 0;
             const checkboxFirst = checkboxes.first();
             if (!anyChecked) {
@@ -82,15 +82,22 @@
             });
         }
 
-        updateRowState();
+        validateInput();
 
-        checkboxes.on('change', updateRowState);
+        checkboxes.on('change', validateInput);
     }
 
     function addRequiredField(subform) {
         const cleanTypeInput = subform.find('input[name$="clean_type"]');
 
-        cleanTypeInput.prop('required', true);
+        cleanTypeInput.prop('required', true)
+            .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกรูปแบบการทดสอบ')");
+
+        cleanTypeInput.on('change', function () {
+            cleanTypeInput.each(function () {
+                this.setCustomValidity('');
+            });
+        });
     }
 
     function showClenTypeOtherInput(subform) {
@@ -100,7 +107,8 @@
 
         if (cleanTypeField && cleanTypeField.includes('อื่นๆ โปรดระบุ')) {
             cleanTypeOtherField.show();
-            cleanTypeOtherInput.prop('required', true);
+            cleanTypeOtherInput.prop('required', true).attr('oninvalid', "this.setCustomValidity('กรุณากรอกรูปแบบการทดสอบ')")
+                    .attr('oninput', "this.setCustomValidity('')");
         } else {
             cleanTypeOtherField.hide();
             cleanTypeOtherInput.val('');
