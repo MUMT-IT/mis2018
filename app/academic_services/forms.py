@@ -625,18 +625,51 @@ class VirusAirborneDisinfectionConditionForm(FlaskForm):
 
 
 class VirusAirDisinfectionRequestForm(FlaskForm):
-    product_name = StringField('ชื่อผลิตภัณฑ์', validators=[DataRequired()])
-    disinfection_system = TextAreaField('ระบบการกำจัดเชื้อของผลิตภัณฑ์', validators=[DataRequired()])
-    model = StringField('รุ่น', validators=[DataRequired()])
-    serial_no = StringField('หมายเลขประจำเครื่อง', validators=[DataRequired()])
+    product_name = StringField('ชื่อผลิตภัณฑ์', validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อผลิตภัณฑ์')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
+    disinfection_system = TextAreaField('ระบบการกำจัดเชื้อของผลิตภัณฑ์', validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกระบบการกำจัดเชื้อของผลิตภัณฑ์')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
+    model = StringField('รุ่น', validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกรุ่น')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
+    serial_no = StringField('หมายเลขประจำเครื่อง', validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกหมายเลขประจำเครื่อง')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
     equipment_test_operation = TextAreaField('วิธีการใช้งานเครื่องหรืออุปกรณ์เพื่อทำการทดสอบ',
-                                             validators=[DataRequired()])
-    manufacturer = StringField('ผู้ผลิต', validators=[DataRequired()])
-    manufacturer_address = TextAreaField('ที่อยู่ผู้ผลิต', validators=[DataRequired()])
-    importer = StringField('ผู้นำเข้า', validators=[DataRequired()])
-    importer_address = TextAreaField('ที่อยู่ผู้นำเข้า', validators=[DataRequired()])
-    distributor = StringField('ผู้จัดจำหน่าย', validators=[DataRequired()])
-    distributor_address = TextAreaField('ที่อยู่ผู้จัดจำหน่าย', validators=[DataRequired()])
+                                             validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกวิธีใช้งานเครื่องหรืออุปกรณ์เพื่อทำการทดสอบ')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
+    manufacturer = StringField('ผู้ผลิต', validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อผู้ผลิต')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
+    manufacturer_address = TextAreaField('ที่อยู่ผู้ผลิต', validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้ผลิต')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
+    importer = StringField('ผู้นำเข้า', validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อผู้นำเข้า')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
+    importer_address = TextAreaField('ที่อยู่ผู้นำเข้า', validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้นำเข้า')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
+    distributor = StringField('ผู้จัดจำหน่าย', validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อผู้จัดจำหน่าย')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
+    distributor_address = TextAreaField('ที่อยู่ผู้จัดจำหน่าย', validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้จัดจำหน่าย')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
     product_type = SelectField('ประเภทการฆ่า/ทำลายเชื้อ', choices=[('', '+ เพิ่มประเภทการฆ่า/ทำลายเชื้อ'),
                                                                    ('surface', 'การฆ่าเชื้อบนพื้นผิว'),
                                                                    ('airborne', 'การลด/ทำลายเชื้อในอากาศ')],
