@@ -589,7 +589,8 @@ def get_collect_sample_during_testing():
                     <span class="has-text-danger">*</span>
                 </label>
                 <div class="control">
-                    <input name="collect_sample_during_testing_other" class="input" value="{collect_sample_during_testing_other}" required>
+                    <input name="collect_sample_during_testing_other" class="input" value="{collect_sample_during_testing_other}" required
+                    oninvalid="this.setCustomValidity('กรุณาเลือกการเก็บตัวอย่างระหว่างรอทดสอบ')" oninput="this.setCustomValidity('')">
                 </div>
             </div>
         '''
@@ -690,7 +691,8 @@ def get_product_storage():
                     <span class="has-text-danger">*</span>
                 </label>
                 <div class="control">
-                    <input name="product_storage_other" class="input" value="{product_storage_other}" required>
+                    <input name="product_storage_other" class="input" value="{product_storage_other}" required 
+                    oninvalid="this.setCustomValidity('กรุณาเลือกการเก็บรักษาผลิตภัณฑ์')" oninput="this.setCustomValidity('')">
                 </div>
             </div>
         '''
