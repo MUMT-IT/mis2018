@@ -76,7 +76,6 @@
                 textInputs.prop('disabled', !active).prop('required', active)
                     .attr('oninvalid', "this.setCustomValidity('กรุณากรอกข้อมูล')")
                     .attr('oninput', "this.setCustomValidity('')");
-                ;
 
                 if (!active) textInputs.val('');
             });
@@ -114,7 +113,7 @@
         });
 
         surfaceTypeInput.prop('required', true)
-            .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกขนิดพื้นผิว')");
+            .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกชนิดพื้นผิว')");
 
         surfaceTypeInput.on('change', function () {
             surfaceTypeInput.each(function () {

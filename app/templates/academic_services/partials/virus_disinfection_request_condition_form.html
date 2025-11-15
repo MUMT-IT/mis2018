@@ -94,7 +94,6 @@
                 textInputs.prop('disabled', !active).prop('required', active)
                     .attr('oninvalid', "this.setCustomValidity('กรุณากรอกข้อมูล')")
                     .attr('oninput', "this.setCustomValidity('')");
-                ;
 
                 if (!active) textInputs.val('');
             });
@@ -110,16 +109,36 @@
         const injectTypeInput = subform.find('input[name$="inject_type"]');
         const productPreparationInput = subform.find('input[name$="product_preparation"]');
 
-        const checkedCount = testMethodInput.filter(':checked').length;
-        testMethodInput.prop('required', checkedCount === 0);
+        injectTypeInput.prop('required', true)
+            .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกประเภทการฉีด')");
 
-        testMethodInput.on('change', function () {
-            const checkedCount = testMethodInput.filter(':checked').length;
-            testMethodInput.prop('required', checkedCount === 0);
+        injectTypeInput.on('change', function () {
+            injectTypeInput.each(function () {
+                this.setCustomValidity('');
+            });
         });
 
-        injectTypeInput.prop('required', true);
-        productPreparationInput.prop('required', true);
+        productPreparationInput.prop('required', true)
+            .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกการเตรียมผลิตภัณฑ์เพื่อการทดสอบ')");
+
+        productPreparationInput.on('change', function () {
+            productPreparationInput.each(function () {
+                this.setCustomValidity('');
+            });
+        });
+
+        function validateTestMethod() {
+            const count = testMethodInput.filter(':checked').length;
+            testMethodInput.prop('required', false);
+            testMethodInput.first()
+                .prop('required', count === 0)
+                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกวิธีทดสอบอย่างน้อย 1 รายการ')")
+                .attr('oninput', "this.setCustomValidity('')");
+        }
+
+        validateTestMethod();
+
+        testMethodInput.on('change', validateTestMethod);
     }
 
     function toggleSurfaceTypeInput(subform) {

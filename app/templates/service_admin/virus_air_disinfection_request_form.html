@@ -350,7 +350,6 @@
                     textInputs.prop('disabled', !active).prop('required', active)
                         .attr('oninvalid', "this.setCustomValidity('กรุณากรอกข้อมูล')")
                         .attr('oninput', "this.setCustomValidity('')");
-                    ;
 
                     if (!active) textInputs.val('');
                 });
