@@ -76,7 +76,7 @@
         const table = subform.find('table');
         const checkboxes = table.find('tbody tr input[type="checkbox"]');
 
-        function updateRowState() {
+        function validateInput() {
             const anyChecked = checkboxes.filter(':checked').length > 0;
             const checkboxFirst = checkboxes.first();
             if (!anyChecked) {
@@ -98,9 +98,9 @@
             });
         }
 
-        updateRowState();
+        validateInput();
 
-        checkboxes.on('change', updateRowState);
+        checkboxes.on('change', validateInput);
     }
 
     function addRequiredField(subform) {
@@ -154,6 +154,16 @@
 
         if (isASTMSelected) {
             surfaceTypeField.prop('disabled', false).attr('required', true);
+
+            surfaceTypeField.prop('required', true)
+                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกชนิดพื้นผิว')");
+
+            surfaceTypeField.on('change', function () {
+                surfaceTypeField.each(function () {
+                    this.setCustomValidity('');
+                });
+            });
+
             surfaceTypeLabel.html('<label class="label">ชนิดพื้นผิว<span class="has-text-danger ml-1">*</span></label>');
 
         } else {
