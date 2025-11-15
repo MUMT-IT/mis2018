@@ -519,20 +519,53 @@ class VirusCoatConditionForm(FlaskForm):
 
 
 class VirusDisinfectionRequestForm(FlaskForm):
-    product_name = StringField('ชื่อผลิตภัณฑ์', validators=[DataRequired()])
-    active_substance = TextAreaField('สารสำคัญที่ออกฤทธ์ และปริมาณสารสำคัญ', validators=[DataRequired()])
-    product_appearance = StringField('ลักษณะทางกายภาพของผลิตภัณฑ์', validators=[DataRequired()])
-    kind = StringField('ลักษณะบรรจุภัณฑ์', validators=[DataRequired()])
-    size = StringField('ขนาดบรรจุภัณฑ์', validators=[DataRequired()])
-    mfg = StringField('วันที่ผลิต', validators=[DataRequired()])
-    exp = StringField('วันหมดอายุ', validators=[DataRequired()])
-    lot_no = StringField('เลขที่ผลิต', validators=[DataRequired()])
-    amount = IntegerField('จำนวนที่ส่ง', validators=[DataRequired()])
-    service_life = StringField('อายุการใช้งานหลังการเปิดใช้', validators=[DataRequired()])
+    product_name = StringField('ชื่อผลิตภัณฑ์', validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อผลิตภัณฑ์')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
+    active_substance = TextAreaField('สารสำคัญที่ออกฤทธ์ และปริมาณสารสำคัญ', validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกสารสำคัญที่ออกฤทธิ์ และปริมาณสารสำคัญ')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
+    product_appearance = StringField('ลักษณะทางกายภาพของผลิตภัณฑ์', validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกลักษณะทางกายภาพของผลิตภัณฑ์')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
+    kind = StringField('ลักษณะบรรจุภัณฑ์', validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกลักษณธบรรจุภัณฑ์')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
+    size = StringField('ขนาดบรรจุภัณฑ์', validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกขนาดบรรจุภัณฑ์')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
+    mfg = StringField('วันที่ผลิต', validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือกวันที่ผลิต')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
+    exp = StringField('วันหมดอายุ', validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือกวันหมดอายุ')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
+    lot_no = StringField('เลขที่ผลิต', validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกเลขที่ผลิต')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
+    amount = IntegerField('จำนวนที่ส่ง', validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกจำนวนที่ส่ง')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
+    service_life = StringField('อายุการใช้งานหลังการเปิดใช้', validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกอายุการใช้งานหลังดารเปิดใช้')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
     product_storage = SelectField('การเก็บรักษาผลิตภัณฑ์',
                                   choices=[('', 'กรุณาเลือกการเก็บรักษาผลิตภัณฑ์'),
                                            ('เก็บรักษาที่อุณหภูมิห้อง', 'เก็บรักษาที่อุณหภูมิห้อง'),
-                                           ('อื่นๆ โปรดระบุ', 'อื่นๆ โปรดระบุ')], validators=[DataRequired()])
+                                           ('อื่นๆ โปรดระบุ', 'อื่นๆ โปรดระบุ')], validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือกการเก็บรักษาผลิตภัณฑ์')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
     product_storage_other = StringField('ระบุ')
     product_type = SelectField('ประเภทผลิตภัณฑ์', choices=[('', '+ เพิ่มประเภทผลิตภัณฑ์'),
                                                            ('liquid',
