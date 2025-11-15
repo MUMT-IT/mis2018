@@ -59,7 +59,7 @@
         const table = subform.find('table');
         const checkboxes = table.find('tbody tr input[type="checkbox"]');
 
-        function updateRowState() {
+        function validateInput() {
             const anyChecked = checkboxes.filter(':checked').length > 0;
             const checkboxFirst = checkboxes.first();
             if (!anyChecked) {
@@ -82,9 +82,9 @@
             });
         }
 
-        updateRowState();
+        validateInput();
 
-        checkboxes.on('change', updateRowState);
+        checkboxes.on('change', validateInput);
     }
 
     function addRequiredField(subform) {
@@ -95,67 +95,67 @@
         const qualitativeTestInput = subform.find('input[name$="qualitative_test"]');
         const quantitativeTestInput = subform.find('input[name$="quantitative_test"]');
 
-        const checkedCount = testMethodInput.filter(':checked').length;
-        testMethodInput.prop('required', checkedCount === 0);
+        cleanTypeInput.prop('required', true)
+            .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกรูปแบบการทดสอบ')");
 
-        testMethodInput.on('change', function () {
-            const checkedCount = testMethodInput.filter(':checked').length;
-            testMethodInput.prop('required', checkedCount === 0);
+        cleanTypeInput.on('change', function () {
+            cleanTypeInput.each(function () {
+                this.setCustomValidity('');
+            });
         });
 
-        cleanTypeInput.prop('required', true);
-        dilutionInput.prop('required', true);
-        surfaceTypeInput.prop('required', true);
+        dilutionInput.prop('required', true)
+            .attr('oninvalid', "this.setCustomValidity('กรุณาเลือการเจือจาง')");
 
-        const qualitativeTestChecked = qualitativeTestInput.is(':checked');
-        const quantitativeTestChecked = quantitativeTestInput.is(':checked');
+        dilutionInput.on('change', function () {
+            dilutionInput.each(function () {
+                this.setCustomValidity('');
+            });
+        });
 
-        if (qualitativeTestChecked || quantitativeTestChecked) {
-            if (qualitativeTestChecked) {
-                quantitativeTestInput.closest('.field').find('label .has-text-danger').remove();
-            } else {
-                qualitativeTestInput.closest('.field').find('label .has-text-danger').remove();
-            }
-            qualitativeTestInput.prop('required', false);
-            quantitativeTestInput.prop('required', false);
-        } else {
-            qualitativeTestInput.prop('required', true);
-            quantitativeTestInput.prop('required', true);
+        surfaceTypeInput.prop('required', true)
+            .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกขนิดพื้นผิว')");
+
+        surfaceTypeInput.on('change', function () {
+            surfaceTypeInput.each(function () {
+                this.setCustomValidity('');
+            });
+        });
+
+        function validateTestMethod() {
+            const count = testMethodInput.filter(':checked').length;
+            testMethodInput.prop('required', false);
+            testMethodInput.first()
+                .prop('required', count === 0)
+                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกวิธีทดสอบอย่างน้อย 1 รายการ')")
+                .attr('oninput', "this.setCustomValidity('')");
         }
 
-        qualitativeTestInput.on('change', function () {
-            const qualitativeTestChecked = qualitativeTestInput.is(':checked');
-            const quantitativeTestChecked = quantitativeTestInput.is(':checked');
-            if (qualitativeTestChecked || quantitativeTestChecked) {
-                if (qualitativeTestChecked) {
-                    quantitativeTestInput.closest('.field').find('label .has-text-danger').remove();
-                } else {
-                    qualitativeTestInput.closest('.field').find('label .has-text-danger').remove();
-                }
-                qualitativeTestInput.prop('required', false);
-                quantitativeTestInput.prop('required', false);
-            } else {
-                qualitativeTestInput.prop('required', true);
-                quantitativeTestInput.prop('required', true);
-            }
-        });
+        validateTestMethod();
 
-        quantitativeTestInput.on('change', function () {
-            const qualitativeTestChecked = qualitativeTestInput.is(':checked');
-            const quantitativeTestChecked = quantitativeTestInput.is(':checked');
-            if (qualitativeTestChecked || quantitativeTestChecked) {
-                if (qualitativeTestChecked) {
-                    quantitativeTestInput.closest('.field').find('label .has-text-danger').remove();
-                } else {
-                    qualitativeTestInput.closest('.field').find('label .has-text-danger').remove();
-                }
-                qualitativeTestInput.prop('required', false);
-                quantitativeTestInput.prop('required', false);
-            } else {
-                qualitativeTestInput.prop('required', true);
-                quantitativeTestInput.prop('required', true);
-            }
-        });
+        testMethodInput.on('change', validateTestMethod);
+
+        function validateQualitativeAndQuantitativeTest() {
+            const qualitativeChecked = qualitativeTestInput.is(':checked');
+            const quantitativeChecked = quantitativeTestInput.is(':checked');
+            const required = !(qualitativeChecked || quantitativeChecked);
+
+            qualitativeTestInput.prop('required', required)
+                .attr('oninvalid', required ? "this.setCustomValidity('กรุณาเลือกวิธีทดสอบเชิงคุณภาพ')" : "")
+                .attr('onchange', "this.setCustomValidity('')");
+
+            quantitativeTestInput.prop('required', required)
+                .attr('oninvalid', required ? "this.setCustomValidity('กรุณาเลือกวิธีทดสอบเชิงปริมาณ')" : "")
+                .attr('onchange', "this.setCustomValidity('')");
+
+            if (qualitativeChecked) quantitativeTestInput.closest('.field').find('label .has-text-danger').remove();
+            if (quantitativeChecked) qualitativeTestInput.closest('.field').find('label .has-text-danger').remove();
+        }
+
+        validateQualitativeAndQuantitativeTest();
+
+        qualitativeTestInput.on('change', validateQualitativeAndQuantitativeTest);
+        quantitativeTestInput.on('change', validateQualitativeAndQuantitativeTest);
     }
 
     function showSurfaceTypeOtherInput(subform) {
@@ -165,7 +165,9 @@
 
         if (surfaceTypeField && surfaceTypeField.includes('อื่นๆ โปรดระบุ')) {
             surfaceTypeOtherField.show();
-            surfaceTypeOtherInput.prop('required', true);
+            surfaceTypeOtherInput.prop('required', true).attr('oninvalid', "this.setCustomValidity('กรุณากรอกชนิดพื้นผิว')")
+                .attr('oninput', "this.setCustomValidity('')");
+            ;
         } else {
             surfaceTypeOtherField.hide();
             surfaceTypeOtherInput.val('');

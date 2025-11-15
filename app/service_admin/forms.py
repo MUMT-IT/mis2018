@@ -225,7 +225,7 @@ class BacteriaRequestForm(FlaskForm):
                                     "oninput": "this.setCustomValidity('')"
                                     })
     manufacturer = StringField('ผู้ผลิต', validators=[DataRequired()],
-                               render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกวันหมดอายุ')",
+                               render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกผู้ผลิต')",
                                           "oninput": "this.setCustomValidity('')"
                                           })
     manufacturer_address = TextAreaField('ที่อยู่ผู้ผลิต', validators=[DataRequired()],
