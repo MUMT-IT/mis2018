@@ -192,32 +192,77 @@ class BacteriaInWashConditionForm(FlaskForm):
 
 
 class BacteriaRequestForm(FlaskForm):
-    sample_name = StringField('ชื่อผลิตภัณฑ์', validators=[DataRequired()])
-    active_substance = TextAreaField('สารสำคัญที่ออกฤทธ์ และปริมาณสารสำคัญ', validators=[DataRequired()])
-    product_appearance = StringField('ลักษณะทางกายภาพของผลิตภัณฑ์', validators=[DataRequired()])
-    kind = StringField('ลักษณะบรรจุภัณฑ์', validators=[DataRequired()])
-    size = StringField('ขนาดบรรจุภัณฑ์', validators=[DataRequired()])
-    mfg = StringField('วันที่ผลิต', validators=[DataRequired()])
-    exp = StringField('วันหมดอายุ', validators=[DataRequired()])
-    lot_no = StringField('เลขที่ผลิต', validators=[DataRequired()])
-    manufacturer = StringField('ผู้ผลิต', validators=[DataRequired()])
-    manufacturer_address = TextAreaField('ที่อยู่ผู้ผลิต', validators=[DataRequired()])
-    importanddistributor = StringField('ผู้นำเข้า/จัดจำหน่าย', validators=[DataRequired()])
-    importanddistributor_address = TextAreaField('ที่อยู่ผู้นำเข้า/จัดจำหน่าย', validators=[DataRequired()])
-    amount = IntegerField('จำนวนที่ส่ง', validators=[DataRequired()])
+    sample_name = StringField('ชื่อผลิตภัณฑ์', validators=[DataRequired()],
+                              render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อผลิตภัณฑ์')",
+                                         "oninput": "this.setCustomValidity('')"})
+    active_substance = TextAreaField('สารสำคัญที่ออกฤทธ์ และปริมาณสารสำคัญ', validators=[DataRequired()],
+                                     render_kw={
+                                         "oninvalid": "this.setCustomValidity('กรุณากรอกสารสำคัญที่ออกฤทธ์ และปริมาณสารสำคัญ')",
+                                         "oninput": "this.setCustomValidity('')"
+                                     })
+    product_appearance = StringField('ลักษณะทางกายภาพของผลิตภัณฑ์', validators=[DataRequired()],
+                                     render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกลักษณะทางกายภาพของผลิตภัณฑ์')",
+                                                "oninput": "this.setCustomValidity('')"
+                                                })
+    kind = StringField('ลักษณะบรรจุภัณฑ์', validators=[DataRequired()],
+                       render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกลักษณะบรรจุภัณฑ์')",
+                                  "oninput": "this.setCustomValidity('')"
+                                  })
+    size = StringField('ขนาดบรรจุภัณฑ์', validators=[DataRequired()],
+                       render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกขนาดบรรจุภัณฑ์')",
+                                  "oninput": "this.setCustomValidity('')"
+                                  })
+    mfg = StringField('วันที่ผลิต', validators=[DataRequired()],
+                      render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือกวันที่ผลิต')",
+                                 "oninput": "this.setCustomValidity('')"
+                                 })
+    exp = StringField('วันหมดอายุ', validators=[DataRequired()],
+                      render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือกวันหมดอายุ')",
+                                 "oninput": "this.setCustomValidity('')"
+                                 })
+    lot_no = StringField('เลขที่ผลิต', validators=[DataRequired()],
+                         render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกเลขที่ผลิต')",
+                                    "oninput": "this.setCustomValidity('')"
+                                    })
+    manufacturer = StringField('ผู้ผลิต', validators=[DataRequired()],
+                               render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกวันหมดอายุ')",
+                                          "oninput": "this.setCustomValidity('')"
+                                          })
+    manufacturer_address = TextAreaField('ที่อยู่ผู้ผลิต', validators=[DataRequired()],
+                                         render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้ผลิต')",
+                                                    "oninput": "this.setCustomValidity('')"
+                                                    })
+    importanddistributor = StringField('ผู้นำเข้า/จัดจำหน่าย', validators=[DataRequired()],
+                                         render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกผู้นำเข้า/จัดจำหน่าย')",
+                                                    "oninput": "this.setCustomValidity('')"
+                                                    })
+    importanddistributor_address = TextAreaField('ที่อยู่ผู้นำเข้า/จัดจำหน่าย', validators=[DataRequired()],
+                                                 render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้นำเข้า/จัดจำหน่าย')",
+                                                            "oninput": "this.setCustomValidity('')"
+                                                    })
+    amount = IntegerField('จำนวนที่ส่ง', validators=[DataRequired()],
+                                                 render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกจำนวนที่ส่ง')",
+                                                            "oninput": "this.setCustomValidity('')"
+                                                    })
     collect_sample_during_testing = SelectField('การเก็บตัวอย่างระหว่างรอทดสอบ',
                                                 choices=[('', 'กรุณาเลือกการเก็บตัวอย่างระหว่างรอทดสอบ'),
                                                          ('อุณหภูมิห้อง', 'อุณหภูมิห้อง'),
                                                          ('อื่นๆ โปรดระบุ', 'อื่นๆ โปรดระบุ')],
-                                                validators=[DataRequired()])
+                                                validators=[DataRequired()],
+                                                render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือกการเก็บตัวอย่างระหว่างรอทดสอบ')",
+                                                        "oninput": "this.setCustomValidity('')"
+                                                    })
     collect_sample_during_testing_other = StringField('ระบุ')
     product_type = SelectField('ประเภทผลิตภัณฑ์', choices=[('', '+ เพิ่มประเภทผลิตภัณฑ์'),
-                                                           ('liquid', 'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดของเหลว หรือชนิดผง ที่ละลายน้้าได้'),
-                                                           ('spray', 'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดฉีดพ่นธรรมดา หรือ ฉีดพ่นอัดก๊าซ'),
+                                                           ('liquid',
+                                                            'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดของเหลว หรือชนิดผง ที่ละลายน้้าได้'),
+                                                           ('spray',
+                                                            'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดฉีดพ่นธรรมดา หรือ ฉีดพ่นอัดก๊าซ'),
                                                            ('sheet', 'ผลิตภัณฑ์ฆ่าเชื้อชนิดแผ่น'),
-                                                           ('after_wash', 'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ตกค้างหลังซัก (After Wash Claim)'),
-                                                           ('in_wash', 'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (In Wash Claim)')
-                                                           ])
+                                                           ('after_wash',
+                                                            'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ตกค้างหลังซัก (After Wash Claim)'),
+                                                           ('in_wash',
+                                                            'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (In Wash Claim)')])
     liquid_condition_field = FormField(BacteriaLiquidConditionForm,
                                        'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดของเหลว หรือชนิดผง ที่ละลายน้้าได้')
     spray_condition_field = FormField(BacteriaSprayConditionForm,
