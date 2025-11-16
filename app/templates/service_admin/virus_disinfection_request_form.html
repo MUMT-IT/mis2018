@@ -353,6 +353,28 @@
         });
     </script>
     <script>
+        function validateProductType() {
+            const product_type = document.getElementById('product_type');
+            const subforms = document.querySelector('.subform-card');
+            if (subforms == null) {
+                product_type.required = true;
+                product_type.oninvalid = function () {
+                    this.setCustomValidity('กรุณาเลือกประเภทผลิตภัณฑ์');
+                };
+                product_type.oninput = function () {
+                    this.setCustomValidity('');
+                };
+            } else {
+                product_type.required = false;
+                product_type.oninvalid = null;
+                product_type.oninput = null;
+            }
+        }
+
+        validateProductType();
+        document.addEventListener('change', validateProductType);
+    </script>
+    <script>
         document.addEventListener('click', function (e) {
             const productType = document.getElementById('product_type');
             if (e.target.classList.contains('remove-subform')) {
