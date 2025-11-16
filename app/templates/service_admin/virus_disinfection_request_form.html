@@ -476,11 +476,17 @@
 
             function validateTestMethod() {
                 const count = testMethodInput.filter(':checked').length;
-                testMethodInput.prop('required', false);
-                testMethodInput.first()
-                    .prop('required', count === 0)
-                    .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกวิธีทดสอบอย่างน้อย 1 รายการ')")
-                    .attr('oninput', "this.setCustomValidity('')");
+                if (count == 0) {
+                    testMethodInput.prop('required', true);
+                    testMethodInput.each(function () {
+                        this.setCustomValidity('กรุณาเลือกวิธีทดสอบอย่างน้อย 1 รายการ');
+                    });
+                } else {
+                    testMethodInput.prop('required', false);
+                    testMethodInput.each(function () {
+                        this.setCustomValidity('');
+                    });
+                }
             }
 
             validateTestMethod();
