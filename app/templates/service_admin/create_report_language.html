@@ -34,7 +34,7 @@
                                             <input id="{{ r.category }}" type="checkbox" name="check_report_language"
                                                    value="{{ r.id }}"
                                                    {% if r.id in req_report_language_id or
-                                                        (sub_lab != 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส' and r.type == 'ใบรายงานผล') %}
+                                                        (sub_lab != 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส' and r.type == 'ใบรายงานผลแบบอิเล็กทรอนิกส์ไฟล์') %}
                                                         checked
                                                    {% endif %}
                                             >
@@ -61,7 +61,7 @@
                                                 <input id="{{ r.category }}" type="checkbox" name="check_report_language"
                                                        value="{{ r.id }}"
                                                        {% if r.id in req_report_language_id or
-                                                            (sub_lab == 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส' and r.type == 'ใบรายงานผล') %}
+                                                            (sub_lab == 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส' and r.type == 'ใบรายงานผลแบบอิเล็กทรอนิกส์ไฟล์') %}
                                                             checked
                                                        {% endif %}
                                                 >
