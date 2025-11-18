@@ -1253,7 +1253,7 @@ def request_index():
         'wait_report': {
             'id': [12, 15],
             'name': 'รอยืนยันใบรายงานผล',
-            'icon': '<i class="fas fa-clipboard-check"></i>'
+            'icon': '<i class="fas fa-file-alt"></i>'
         },
         'wait_payment': {
             'id': [13, 16, 17, 18, 19, 20, 21],

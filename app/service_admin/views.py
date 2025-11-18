@@ -268,7 +268,7 @@ def request_index():
             'id': [2, 3, 4, 5],
             'name': 'รอออก/ยืนยันใบเสนอราคา',
             'color': 'is-info',
-            'icon': '<i class="fas fa-file-signature"></i>'
+            'icon': '<i class="fas fa-file-invoice"></i>'
         },
         'received_sample': {
             'id': [6, 8, 9],
@@ -286,7 +286,7 @@ def request_index():
             'id': [11, 12, 14, 15],
             'name': 'รอออกใบรายงานผล',
             'color': 'is-info',
-            'icon': '<i class="fas fa-file-invoice"></i>'
+            'icon': '<i class="fas fa-file-alt"></i>'
         },
         'create_invoice': {
             'id': [13, 16, 17, 18, 19],
