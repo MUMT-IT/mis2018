@@ -676,7 +676,7 @@ class ServiceQuotation(db.Model):
     name = db.Column('name', db.String())
     address = db.Column('address', db.Text())
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
-    # remark = db.Column('remark', db.Text())
+    remark = db.Column('remark', db.String())
     cancel_reason = db.Column('cancel_reason', db.Text())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
