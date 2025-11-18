@@ -13,14 +13,14 @@
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                     <div class="field">
-                        <label class="label">หมายเหตุ</label>
+                        <label class="label">เหตุผล</label>
                         <div class="control">
                             {{ form.cancel_reason(class='textarea') }}
                         </div>
                     </div>
                     <div class="field ">
                         <div class="buttons is-centered">
-                            <a id="cancelModal" class="button">Cancel</a>
+                            <a id="cancelModal" class="button">ย้อนกลับ</a>
                             <input type="submit" id="submit-form" class="button is-success" value="บันทึก">
                         </div>
                     </div>
