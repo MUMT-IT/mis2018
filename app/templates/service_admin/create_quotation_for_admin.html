@@ -7,6 +7,9 @@
             opacity: 1 !important;
             transition: none !important;
         }
+        #toast-container.toast-top-full-width > .toast {
+            width: 100% !important;
+        }
     </style>
 {% endblock %}
 {% block page_content %}
@@ -270,35 +273,35 @@
                                     </table>
                                 </div>
                             </div>
-{#                            <div class="field">#}
-{#                                <div class="mb-4 is-flex is-align-items-center">#}
-{#                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่สำหรับจัดส่งเอกสาร</p>#}
-{#                                </div>#}
-{#                                <div class="mb-4 is-flex is-align-items-center">#}
-{#                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ถึง</p>#}
-{#                                    <div style="margin-left: 1.75rem;">#}
-{#                                        {{ quotation.request.receive_name }}#}
-{#                                    </div>#}
-{#                                </div>#}
-{#                                <div class="mb-4 is-flex is-align-items-center">#}
-{#                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>#}
-{#                                    <div style="margin-left: 1.75rem;">#}
-{#                                        {{ quotation.request.receive_address }}#}
-{#                                    </div>#}
-{#                                </div>#}
-{#                                <div class="mb-4 is-flex is-align-items-center">#}
-{#                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">เบอร์โทรศัพท์</p>#}
-{#                                    <div style="margin-left: 1.75rem;">#}
-{#                                        {{ quotation.request.receive_phone_number }}#}
-{#                                    </div>#}
-{#                                </div>#}
-{#                                <div class="mb-4 is-flex is-align-items-center">#}
-{#                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">อีเมล</p>#}
-{#                                    <div style="margin-left: 1.75rem;">#}
-{#                                        {{ quotation.request.customer.contact_email }}#}
-{#                                    </div>#}
-{#                                </div>#}
-{#                            </div>#}
+                            {#                            <div class="field">#}
+                            {#                                <div class="mb-4 is-flex is-align-items-center">#}
+                            {#                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่สำหรับจัดส่งเอกสาร</p>#}
+                            {#                                </div>#}
+                            {#                                <div class="mb-4 is-flex is-align-items-center">#}
+                            {#                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ถึง</p>#}
+                            {#                                    <div style="margin-left: 1.75rem;">#}
+                            {#                                        {{ quotation.request.receive_name }}#}
+                            {#                                    </div>#}
+                            {#                                </div>#}
+                            {#                                <div class="mb-4 is-flex is-align-items-center">#}
+                            {#                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>#}
+                            {#                                    <div style="margin-left: 1.75rem;">#}
+                            {#                                        {{ quotation.request.receive_address }}#}
+                            {#                                    </div>#}
+                            {#                                </div>#}
+                            {#                                <div class="mb-4 is-flex is-align-items-center">#}
+                            {#                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">เบอร์โทรศัพท์</p>#}
+                            {#                                    <div style="margin-left: 1.75rem;">#}
+                            {#                                        {{ quotation.request.receive_phone_number }}#}
+                            {#                                    </div>#}
+                            {#                                </div>#}
+                            {#                                <div class="mb-4 is-flex is-align-items-center">#}
+                            {#                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">อีเมล</p>#}
+                            {#                                    <div style="margin-left: 1.75rem;">#}
+                            {#                                        {{ quotation.request.customer.contact_email }}#}
+                            {#                                    </div>#}
+                            {#                                </div>#}
+                            {#                            </div>#}
                             <div class="buttons is-centered">
                                 <div id="quotation_item"></div>
                                 <a class="button is-info"
@@ -359,6 +362,19 @@
     </script>
     <script>
         function showToast(message) {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
             toastr.success(message);
         }
 
