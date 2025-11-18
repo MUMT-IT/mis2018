@@ -828,9 +828,11 @@ def create_bacteria_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
+            status_id = get_status(1)
             request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.lab.code)
             service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data))
+                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
+                                             status_id=status_id)
             request_no.count += 1
         db.session.add(service_request)
         db.session.commit()
@@ -929,9 +931,11 @@ def create_virus_disinfection_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
+            status_id = get_status(1)
             request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.lab.code)
             service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data))
+                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
+                                             status_id=status_id)
             request_no.count += 1
         db.session.add(service_request)
         db.session.commit()
@@ -1021,9 +1025,11 @@ def create_virus_air_disinfection_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
+            status_id = get_status(1)
             request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.lab.code)
             service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data))
+                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
+                                             status_id=status_id)
             request_no.count += 1
         db.session.add(service_request)
         db.session.commit()
@@ -2212,7 +2218,7 @@ def reject_quotation(quotation_id):
         status_id = get_status(7)
         quotation.canceller_id = current_user.id
         quotation.cancelled_at = arrow.now('Asia/Bangkok').datetime
-        quotation.request.status = status_id
+        quotation.request.status_id = status_id
         db.session.add(quotation)
         db.session.commit()
         flash('ยกเลิกใบเสนอราคาสำเร็จ', 'success')
@@ -2226,7 +2232,7 @@ def reject_quotation(quotation_id):
             message += f'''ลูกค้า : {quotation.customer_name}\n'''
             message += f'''ในนาม : {quotation.name}\n'''
             message += f'''อ้างอิงจากใบคำขอรับบริการเลขที่ : {quotation.request.request_no}\n'''
-            message += f'''เหตุผลที่ยกเลิก : {quotation.note or ''}'''
+            message += f'''เหตุผลที่ยกเลิก : {quotation.cancel_reason or ''}'''
             message += f'''ได้รับการปฏิเสธจากลูกค้า\n'''
             message += f'''กรุณาตรวจสอบและดำเนินขั้นตอนที่เหมาะสมต่อไป\n\n'''
             message += f'''ผู้ประสานงาน\n'''
