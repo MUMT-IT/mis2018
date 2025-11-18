@@ -300,6 +300,15 @@ class ServiceSubLab(db.Model):
         return self.code
 
 
+class ServiceReason(db.Model):
+    __tablename__ = 'service_reasons'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    reason = db.Column('reason', db.String())
+
+    def __str__(self):
+        return self.reason
+
+
 class ServiceStatus(db.Model):
     __tablename__ = 'service_statuses'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -443,7 +452,7 @@ class ServiceRequest(db.Model):
                     icon = '<i class="fas fa-file-signature"></i>'
                 id = quotation.id
                 if quotation.cancel_reason:
-                    reason = quotation.reason
+                    reason = quotation.cancel_reason
         else:
             status = 'ยังไม่ดำเนินการการขอ/ออกใบเสนอราคา'
             color = 'is-danger'
@@ -474,7 +483,7 @@ class ServiceRequest(db.Model):
                     icon = '<i class="fas fa-file-signature"></i>'
                 id = quotation.id
                 if quotation.cancel_reason:
-                    reason = quotation.reason
+                    reason = quotation.cancel_reason
         else:
             status = 'ยังไม่ดำเนินการขอใบเสนอราคา'
             color = 'is-danger'
