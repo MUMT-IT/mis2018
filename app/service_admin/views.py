@@ -259,6 +259,11 @@ def request_index():
         sub_labs.append(a.sub_lab.code)
 
     status_groups = {
+        'all': {
+            'id': list(range(2, 23)),
+            'name': 'รายการทั้งหมด',
+            'icon': '<i class="fas fa-list-ul"></i>'
+        },
         'create_quotation': {
             'id': [2, 3, 4, 5],
             'name': 'รอออก/ยืนยันใบเสนอราคา',
@@ -300,11 +305,6 @@ def request_index():
             'name': 'ชำระเงินสำเร็จ',
             'color': 'is-light',
             'icon': '<i class="fas fa-check"></i>'
-        },
-        'all': {
-            'id': list(range(2, 23)),
-            'name': 'รายการทั้งหมด',
-            'icon': '<i class="fas fa-list-ul"></i>'
         }
     }
 

@@ -1225,6 +1225,11 @@ def create_customer_detail(request_id):
 def request_index():
     menu = request.args.get('menu')
     status_groups = {
+        'all': {
+            'id': list(range(1, 24)),
+            'name': 'รายการทั้งหมด',
+            'icon': '<i class="fas fa-list-ul"></i>'
+        },
         'send_request': {
             'id': [1, 2],
             'name': 'รอส่งคำขอรับบริการ',
@@ -1259,11 +1264,6 @@ def request_index():
             'id': [22],
             'name': 'ใบรายงานผลฉบับจริง',
             'icon': '<i class="fas fa-download"></i>'
-        },
-        'all': {
-            'id': list(range(1, 24)),
-            'name': 'รายการทั้งหมด',
-            'icon': '<i class="fas fa-list-ul"></i>'
         }
     }
 
