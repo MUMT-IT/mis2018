@@ -426,12 +426,17 @@
             const checkboxes = table.find('tbody tr input[type="checkbox"]');
 
             function validateInput() {
-                const anyChecked = checkboxes.filter(':checked').length > 0;
-                const checkboxFirst = checkboxes.first();
-                if (!anyChecked) {
-                    checkboxFirst.prop('required', true)
-                        .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกเชื้ออย่างน้อย 1 รายการ')")
-                        .attr('oninput', "this.setCustomValidity('')");
+                const count = checkboxes.filter(':checked').length;
+                if (count == 0) {
+                    checkboxes.prop('required', true)
+                    checkboxes.each(function () {
+                        this.setCustomValidity('กรุณาเลือกเชื้ออย่างน้อย 1 รายการ');
+                    });
+                } else {
+                    checkboxes.prop('required', false);
+                    checkboxes.each(function () {
+                        this.setCustomValidity('');
+                    });
                 }
 
                 table.find('tbody tr').each(function () {
