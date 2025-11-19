@@ -58,6 +58,30 @@ class ServiceNumberID(db.Model):
         return u'{}/{}{}-{:02}'.format(self.code, self.lab[0:2].upper(), str(self.buddhist_year)[-2:], self.count + 1)
 
 
+class ServiceSequenceResultItemID(db.Model):
+    __tablename__ = 'service_sequence_result_item_ids'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    code = db.Column('code', db.String(), nullable=False)
+    result = db.Column('result', db.String(), nullable=False)
+    count = db.Column('count', db.Integer, default=0)
+
+    def next(self):
+        return u'{}'.format(self.count + 1)
+
+    @classmethod
+    def get_number(cls, code, db, result):
+        number = cls.query.filter_by(code=code, result=result).first()
+        if not number:
+            number = cls(code=code, result=result, count=0)
+            db.session.add(number)
+            db.session.commit()
+        return number
+
+    @property
+    def number(self):
+        return u'{}'.format(self.count + 1)
+
+
 class ServiceSequenceQuotationID(db.Model):
     __tablename__ = 'service_sequence_quotation_ids'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
