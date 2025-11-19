@@ -808,7 +808,7 @@ def create_report_language(request_id):
     menu = request.args.get('menu')
     code = request.args.get('code')
     service_request = ServiceRequest.query.get(request_id)
-    report_languages = ServiceReportLanguage.query.all()
+    report_languages = ServiceReportLanguage.query.filter_by(sub_lab_id=service_request.sub_lab_id)
     req_report_language_id = [rl.report_language_id for rl in service_request.report_languages]
     req_report_language = [rl.report_language.language for rl in sorted(service_request.report_languages,
                                                                         key=lambda rl: rl.report_language.no)]
