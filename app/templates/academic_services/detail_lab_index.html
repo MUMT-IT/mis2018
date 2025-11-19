@@ -69,7 +69,8 @@
                                     </div>
                                     <div class="content">
                                         {% if current_user.verify_datetime %}
-                                            <a href="{{ url_for('academic_services.create_request', code=sub_lab.code) }}"
+                                            <a href="{{ url_for('academic_services.create_request', code=sub_lab.code,
+                                                menu='request') }}"
                                                class="button is-success is-rounded"
                                             >
                                                 เริ่มกรอกฟอร์ม
