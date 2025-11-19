@@ -322,6 +322,8 @@ class ServiceReportLanguage(db.Model):
     category = db.Column('category', db.String())
     item = db.Column('item', db.String())
     price = db.Column('price', db.Numeric())
+    sub_lab_id = db.Column('sub_lab_id', db.ForeignKey('service_sub_labs.id'))
+    sub_lab = db.relationship(ServiceSubLab, backref=db.backref('report_languages', cascade='all, delete-orphan'))
 
     def __str__(self):
         return self.item
