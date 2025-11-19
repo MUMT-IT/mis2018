@@ -83,6 +83,7 @@
                     <th>ใบแจ้งหนี้</th>
                     <th>รายงานผลการทดสอบ</th>
                     <th>รายละเอียด</th>
+                    <th></th>
                     </thead>
                     <tbody>
                     </tbody>
@@ -143,7 +144,7 @@
                         render: function (data, type, row) {
                             var admin = '{{ admin }}';
                             var supervisor = '{{ supervisor }}';
-                            if (admin == 'True' && row.status_id == 2) {
+                            if (admin == 'True' && row.status_id == 2 && row.is_completed) {
                                 var url = '/service_admin/quotation/generate?request_id=' + row.id + '&tab=draft' + '&menu=quotation';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -231,7 +232,7 @@
                     },
                     {
                         data: 'invoice_status_for_admin',
-                        render: function (data, type, row) {
+                        render: function (data) {
                             if (data.id !== null) {
                                 var url = '/service_admin/invoice/view/' + data.id + '?menu=invoice';
                                 return '<div class="field has-addons">' +
@@ -259,16 +260,39 @@
                     },
                     {
                         data: 'id',
-                        render: function (data) {
-                            var url = '/service_admin/request/view/' + data + '?menu=' + '{{ menu }}';
-                            return '<div class="field has-addons">' +
-                                '<div class="control">' +
-                                '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
-                                '<span class="icon"><i class="fas fa-eye"></i></span>' +
-                                '<span>รายละเอียด</span>' +
-                                '</a>' +
-                                '</div>' +
-                                '</div>'
+                        render: function (data, type, row) {
+                            if (row.is_completed) {
+                                var url = '/service_admin/request/view/' + data + '?menu=' + '{{ menu }}';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>';
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if (!row.is_completed) {
+                                var url = '/service_admin/portal/request?code=' + row.code + '&menu=' +
+                                    '{{ menu }}' + '&request_id=' + data;
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-rounded is-warning" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>แก้ไข</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>';
+                            } else {
+                                return ''
+                            }
                         }
                     }
                 ]
