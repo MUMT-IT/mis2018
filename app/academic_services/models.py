@@ -424,6 +424,7 @@ class ServiceRequest(db.Model):
             'created_at': self.created_at,
             'sender': self.customer.customer_info.cus_name if self.customer else None,
             'status_id': self.status.status_id if self.status else None,
+            'is_completed': self.is_completed if self.is_completed else None,
             'admin_status': self.status.admin_status if self.status else None,
             'admin_status_color': self.status.admin_status_color if self.status else None,
             'customer_status': self.status.customer_status if self.status else None,
