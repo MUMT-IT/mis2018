@@ -302,11 +302,17 @@
             });
 
             function showInput() {
-                const shipType = document.querySelector('input[name="ship_type"]:checked').value;
+                const shipTypeCheck = document.querySelector('input[name="ship_type"]:checked');
                 const appointmentDateField = document.getElementById("appointment-date-field");
                 const appointmentDateInput = document.getElementById('appointment_date');
                 const locationField = document.getElementById("location-field");
                 const locationInput = document.querySelector('input[name="location"]');
+                if (!shipTypeCheck) {
+                    return
+                }
+
+                const shipType = shipTypeCheck.value;
+
                 if (shipType.includes("ส่งด้วยตนเอง")) {
                     appointmentDateField.style.display = "block";
                     appointmentDateInput.required = true;
@@ -319,15 +325,22 @@
             }
 
             showInput();
+
             document.querySelectorAll('input[name="ship_type"]').forEach(s => {
                 s.addEventListener("change", showInput);
             });
 
              function showLocation() {
-                const location = document.querySelector('input[name="location"]:checked').value;
+                const locationCheck = document.querySelector('input[name="location"]:checked');
                 const addressField = document.getElementById("address-field");
                 const sirirajAddressField = document.getElementById('siriraj-address-field');
                 const salayaAddressField = document.getElementById("salaya-address-field");
+
+                if (!locationCheck) {
+                    return
+                }
+
+                const location = locationCheck.value;
                 if (location.includes("ศิริราช")) {
                     addressField.style.display = 'none'
                     salayaAddressField.style.display = 'none'
