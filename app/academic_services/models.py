@@ -372,7 +372,6 @@ class ServiceRequest(db.Model):
     customer = db.relationship(ServiceCustomerAccount, backref=db.backref("requests"))
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
     admin = db.relationship(StaffAccount, backref=db.backref('requests'))
-    product = db.Column('product', db.String())
     lab = db.Column('lab', db.String())
     sub_lab_id = db.Column('sub_lab_id', db.ForeignKey('service_sub_labs.id'))
     sub_lab = db.relationship(ServiceSubLab, backref=db.backref("requests"))
