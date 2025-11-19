@@ -342,6 +342,8 @@ class ServiceReportLanguage(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     no = db.Column('no', db.Integer())
     type = db.Column('type', db.String())
+    thai_language = db.Column('thai_language', db.String())
+    eng_language = db.Column('eng_language', db.String())
     language = db.Column('language', db.String())
     category = db.Column('category', db.String())
     item = db.Column('item', db.String())
@@ -420,6 +422,7 @@ class ServiceRequest(db.Model):
 
         return {
             'id': self.id,
+            'code': self.sub_lab.code if self.sub_lab else None,
             'request_no': self.request_no,
             'created_at': self.created_at,
             'sender': self.customer.customer_info.cus_name if self.customer else None,
