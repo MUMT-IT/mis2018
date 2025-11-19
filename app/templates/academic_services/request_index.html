@@ -10,6 +10,10 @@
             transition: none !important;
         }
 
+        #toast-container.toast-top-full-width > .toast {
+            width: 100% !important;
+        }
+
         .status-horizontal {
             display: flex;
             flex-wrap: wrap;
@@ -352,6 +356,19 @@
     </script>
     <script>
         function showToast() {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
             toastr.success('ส่งคำขอเรียบร้อยแล้ว กรุณารอเจ้าหน้าที่ดำเนินการ');
         }
 
