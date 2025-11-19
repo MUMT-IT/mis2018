@@ -3498,10 +3498,12 @@ def create_draft_result(result_id=None):
                                             creator_id=current_user.id)
                 db.session.add(result_list)
                 if service_request.report_languages:
+                    sequence_no = ServiceSequenceResultItemID.get_number('RS', db, result='result_' + str(result_list.id))
                     for rl in service_request.report_languages:
-                        result_item = ServiceResultItem(report_language=rl.report_language.item, result=result_list,
-                                                        released_at=arrow.now('Asia/Bangkok').datetime,
+                        result_item = ServiceResultItem(sequence=sequence_no.number, report_language=rl.report_language.item,
+                                                        result=result_list, released_at=arrow.now('Asia/Bangkok').datetime,
                                                         creator_id=current_user.id)
+                        sequence_no.count += 1
                         db.session.add(result_item)
                         db.session.commit()
                 result = ServiceResult.query.get(result_list.id)
@@ -3610,25 +3612,7 @@ def create_final_result(result_id=None):
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    if not result_id:
-        result = ServiceResult.query.filter_by(request_id=request_id).first()
-        if not result:
-            if request.method == 'GET':
-                result_list = ServiceResult(request_id=request_id, released_at=arrow.now('Asia/Bangkok').datetime,
-                                            creator_id=current_user.id)
-                db.session.add(result_list)
-                if service_request.report_languages:
-                    for rl in service_request.report_languages:
-                        result_item = ServiceResultItem(report_language=rl.report_language.item, result=result_list,
-                                                        released_at=arrow.now('Asia/Bangkok').datetime,
-                                                        creator_id=current_user.id)
-                        db.session.add(result_item)
-                        db.session.commit()
-                result = ServiceResult.query.get(result_list.id)
-            else:
-                result = ServiceResult.query.filter_by(request_id=request_id).first()
-    else:
-        result = ServiceResult.query.get(result_id)
+    result = ServiceResult.query.get(result_id)
     if request.method == 'POST':
         for item in result.result_items:
             file = request.files.get(f'file_{item.id}')
