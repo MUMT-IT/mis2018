@@ -1,6 +1,11 @@
 {% extends "academic_services/service_base.html" %}
 {% block head %}
     {{ super() }}
+{#    <style>#}
+{#        .locked-checkbox {#}
+{#            accent-color: #808080;#}
+{#        }#}
+{#    </style>#}
 {% endblock %}
 {% block page_content %}
     {% include "academic_services/customer_nav.html" %}
@@ -21,62 +26,34 @@
                             <div class="field">
                                 <label class="label">ใบรายงานผล</label>
                             </div>
-                            <div class="field">
-                                <div class="control">
-                                    <label class="label">1. ภาษาไทย</label>
+                            {% for language, reports in report_languages|sort(attribute='group_id')|groupby('group_id') %}
+                                <div class="field">
+                                    <div class="control">
+                                        <label class="label">{{ loop.index }}. {{ reports[0].thai_language }}</label>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="field ml-4" id="thai-options">
-                                <div class="control">
-                                    {% for r in report_languages|sort(attribute='no') %}
-                                        {% if r.language == 'ไทย' %}
-                                            <label {% if r.category == 'copy' %}class="checkbox mb-2 ml-4" {% else %} class="checkbox mb-2" {% endif %}>
+                                <div class="field ml-4" id="{{ reports[0].eng_language }}-options">
+                                    <div class="control">
+                                        {% for r in reports|sort(attribute='no') %}
+                                            <label {% if r.category == 'copy' %}class="checkbox mb-2 ml-4"
+                                                   {% else %}class="checkbox mb-2"{% endif %}>
                                                 <input id="{{ r.category }}" type="checkbox"
                                                        name="check_report_language"
                                                        value="{{ r.id }}"
-                                                        {% if r.id in req_report_language_id or
-                                                        (sub_lab != 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส' and r.type == 'ใบรายงานผลแบบอิเล็กทรอนิกส์ไฟล์') %}
+                                                        {% if r.id in req_report_language_id %}
                                                        checked
                                                         {% endif %}
                                                 >
-                                                {{ r.type }}
+                                                {{ r.item }}
                                                 {% if r.price > 0 %}
                                                     ราคา {{ "{:,.2f}".format(r.price) }} บาท
                                                 {% endif %}
                                             </label>
                                             <br/>
-                                        {% endif %}
-                                    {% endfor %}
+                                        {% endfor %}
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="field">
-                                <div class="control">
-                                    <label class="label">2. ภาษาอังกฤษ</label>
-                                </div>
-                            </div>
-                            <div class="field ml-4" id="eng-options">
-                                <div class="control">
-                                    {% for r in report_languages|sort(attribute='no') %}
-                                        {% if r.language == 'อังกฤษ' %}
-                                            <label {% if r.category == 'copy' %}class="checkbox mb-2 ml-4" {% else %} class="checkbox mb-2" {% endif %}>
-                                                <input id="{{ r.category }}" type="checkbox"
-                                                       name="check_report_language"
-                                                       value="{{ r.id }}"
-                                                        {% if r.id in req_report_language_id or
-                                                        (sub_lab == 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส' and r.type == 'ใบรายงานผลแบบอิเล็กทรอนิกส์ไฟล์') %}
-                                                       checked
-                                                        {% endif %}
-                                                >
-                                                {{ r.type }}
-                                                {% if r.price > 0 %}
-                                                    ราคา {{ "{:,.2f}".format(r.price) }} บาท
-                                                {% endif %}
-                                            </label>
-                                            <br/>
-                                        {% endif %}
-                                    {% endfor %}
-                                </div>
-                            </div>
+                            {% endfor %}
                             <div class="field">
                                 <div class="buttons is-centered">
                                     <button class="button is-success" type="submit" value="submit">
@@ -119,6 +96,28 @@
         updateDisableEngCopy();
         document.querySelectorAll('#eng-options input[id^="original"]').forEach(function (checkbox) {
             checkbox.addEventListener("change", updateDisableEngCopy);
+        });
+    </script>
+    <script>
+        function lockCheckbox(checkbox) {
+            checkbox.checked = true;
+            {#checkbox.classList.add('locked-checkbox');#}
+            checkbox.style.opacity = 0.5;
+            checkbox.addEventListener('click', function (e) {
+                e.preventDefault();
+                this.checked = true;
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const thaiElectronic = document.querySelector('#thai-options input[id^="electronic"]');
+            const engElectronic = document.querySelector('#eng-options input[id^="electronic"]');
+
+            if (thaiElectronic) {
+                lockCheckbox(thaiElectronic);
+            } else if (engElectronic) {
+                lockCheckbox(engElectronic);
+            }
         });
     </script>
 {% endblock %}
