@@ -1358,6 +1358,7 @@ class ServiceResult(db.Model):
 class ServiceResultItem(db.Model):
     __tablename__ = 'service_result_items'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    sequence = db.Column('sequence', db.String())
     result_id = db.Column('result_id', db.ForeignKey('service_results.id'))
     result = db.relationship(ServiceResult, backref=db.backref('result_items'))
     report_language = db.Column('report_language', db.String())
