@@ -388,6 +388,7 @@ class ServiceRequest(db.Model):
     quotation_address_id = db.Column('quotation_address_id', db.ForeignKey('service_customer_addresses.id'))
     quotation_address = db.relationship(ServiceCustomerAddress, backref=db.backref("quotation_address_for_requests"),
                                         foreign_keys=[quotation_address_id])
+    is_completed = db.Column('is_completed', db.Boolean())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     status_id = db.Column('status_id', db.ForeignKey('service_statuses.id'))
