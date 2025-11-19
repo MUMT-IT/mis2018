@@ -300,15 +300,6 @@ class ServiceSubLab(db.Model):
         return self.code
 
 
-class ServiceReason(db.Model):
-    __tablename__ = 'service_reasons'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    reason = db.Column('reason', db.String())
-
-    def __str__(self):
-        return self.reason
-
-
 class ServiceStatus(db.Model):
     __tablename__ = 'service_statuses'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
