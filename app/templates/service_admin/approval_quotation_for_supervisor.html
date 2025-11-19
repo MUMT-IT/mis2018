@@ -7,6 +7,9 @@
             opacity: 1 !important;
             transition: none !important;
         }
+        #toast-container.toast-top-full-width > .toast {
+            width: 100% !important;
+        }
         .is-full-height {
             height: 100%;
         }
@@ -244,6 +247,19 @@
     <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
         function showToast(category, message) {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
             if (category === 'success') {
                 toastr.success(message);
             } else if (category === 'danger') {
