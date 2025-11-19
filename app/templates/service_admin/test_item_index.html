@@ -159,7 +159,7 @@
                         data: 'id',
                         render: function (data, type, row) {
                             if (row.status_id == 13) {
-                                invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '?menu=invoice';
+                                invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '?menu=invoice&tab=all';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-info is-rounded" ' + 'href=' + invoice_url + '>' +
