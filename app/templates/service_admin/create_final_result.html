@@ -20,7 +20,7 @@
                                 {{ result.request.request_no }}
                             </div>
                         </div>
-                        {% for item in result.result_items %}
+                        {% for item in result.result_items|sort(attribute='sequence') %}
                             <label class="label">{{ item.report_language }}</label>
                             <div class="file" style="margin-bottom: .5em">
                                 <label class="file-label">
