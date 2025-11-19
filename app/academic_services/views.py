@@ -1211,6 +1211,7 @@ def create_customer_detail(request_id):
                 db.session.commit()
         status_id = get_status(1)
         service_request.status_id = status_id
+        service_request.is_completed = True
         db.session.add(service_request)
         db.session.commit()
         return redirect(url_for('academic_services.view_request', request_id=request_id, menu=menu))

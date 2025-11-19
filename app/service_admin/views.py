@@ -935,6 +935,7 @@ def create_customer_detail(request_id):
         status_id = get_status(2)
         service_request.status_id = status_id
         service_request.admin_id = current_user.id
+        service_request.is_completed = True
         db.session.commit()
         return redirect(url_for('service_admin.view_request', request_id=request_id, menu=menu))
     return render_template('service_admin/create_customer_detail.html', form=form, customer=customer,
