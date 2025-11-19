@@ -507,6 +507,7 @@ def get_requests():
 
 @service_admin.route('/portal/request')
 def create_request():
+    menu = request.args.get('menu')
     code = request.args.get('code')
     request_id = request.args.get('request_id')
     customer_id = request.args.get('customer_id')
@@ -514,12 +515,13 @@ def create_request():
                      'disinfection': 'service_admin.create_virus_disinfection_request',
                      'air_disinfection': 'service_admin.create_virus_air_disinfection_request'
                      }
-    return redirect(url_for(request_paths[code], code=code, request_id=request_id, customer_id=customer_id))
+    return redirect(url_for(request_paths[code], code=code, menu=menu, request_id=request_id, customer_id=customer_id))
 
 
 @service_admin.route('/request/bacteria/add', methods=['GET', 'POST'])
 @service_admin.route('/request/bacteria/edit/<int:request_id>', methods=['GET', 'POST'])
 def create_bacteria_request(request_id=None):
+    menu = request.args.get('menu')
     code = request.args.get('code')
     customer_id = request.args.get('customer_id')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
@@ -558,13 +560,13 @@ def create_bacteria_request(request_id=None):
         db.session.add(service_request)
         db.session.commit()
         return redirect(
-            url_for('service_admin.create_report_language', request_id=service_request.id, menu='request',
+            url_for('service_admin.create_report_language', request_id=service_request.id, menu=menu,
                     code=code))
     else:
         for er in form.errors:
             flash(er, 'danger')
     return render_template('service_admin/bacteria_request_form.html', code=code, sub_lab=sub_lab,
-                           form=form, request_id=request_id)
+                           menu=menu, form=form, request_id=request_id)
 
 
 @service_admin.route("/request/collect_sample_during_testing")
@@ -630,6 +632,7 @@ def get_bacteria_condition_form():
 @service_admin.route('/request/virus_disinfection/add', methods=['GET', 'POST'])
 @service_admin.route('/request/virus_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
 def create_virus_disinfection_request(request_id=None):
+    menu = request.args.get('menu')
     code = request.args.get('code')
     customer_id = request.args.get('customer_id')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
@@ -661,14 +664,13 @@ def create_virus_disinfection_request(request_id=None):
             request_no.count += 1
         db.session.add(service_request)
         db.session.commit()
-        return redirect(
-            url_for('service_admin.create_report_language', request_id=service_request.id, menu='request',
+        return redirect(url_for('service_admin.create_report_language', request_id=service_request.id, menu=menu,
                     code=code))
     else:
         for er in form.errors:
             flash(er, 'danger')
     return render_template('service_admin/virus_disinfection_request_form.html', code=code, sub_lab=sub_lab,
-                           form=form, request_id=request_id)
+                           form=form, menu=menu, request_id=request_id)
 
 
 @service_admin.route("/request/product_storage")
@@ -728,6 +730,7 @@ def get_virus_disinfection_condition_form():
 @service_admin.route('/request/virus_air_disinfection/add', methods=['GET', 'POST'])
 @service_admin.route('/request/virus_air_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
 def create_virus_air_disinfection_request(request_id=None):
+    menu = request.args.get('menu')
     code = request.args.get('code')
     customer_id = request.args.get('customer_id')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
@@ -756,14 +759,13 @@ def create_virus_air_disinfection_request(request_id=None):
             request_no.count += 1
         db.session.add(service_request)
         db.session.commit()
-        return redirect(
-            url_for('service_admin.create_report_language', request_id=service_request.id, menu='request',
+        return redirect(url_for('service_admin.create_report_language', request_id=service_request.id, menu=menu,
                     code=code))
     else:
         for er in form.errors:
             flash(er, 'danger')
     return render_template('service_admin/virus_air_disinfection_request_form.html', code=code, sub_lab=sub_lab,
-                           form=form, request_id=request_id)
+                           form=form, request_id=request_id, menu=menu)
 
 
 @service_admin.route('/request/virus_air_disinfection/condition')
@@ -932,9 +934,6 @@ def create_customer_detail(request_id):
                                                      subdistrict_id=quotation_address.subdistrict_id)
                 db.session.add(address)
                 db.session.commit()
-        status_id = get_status(2)
-        service_request.status_id = status_id
-        service_request.admin_id = current_user.id
         service_request.is_completed = True
         db.session.commit()
         return redirect(url_for('service_admin.view_request', request_id=request_id, menu=menu))

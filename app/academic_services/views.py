@@ -788,18 +788,20 @@ def submit_request(request_id=None):
 
 @academic_services.route('/portal/request')
 def create_request():
+    menu = request.args.get('menu')
     code = request.args.get('code')
     request_id = request.args.get('request_id')
     request_paths = {'bacteria': 'academic_services.create_bacteria_request',
                      'disinfection': 'academic_services.create_virus_disinfection_request',
                      'air_disinfection': 'academic_services.create_virus_air_disinfection_request'
                      }
-    return redirect(url_for(request_paths[code], code=code, request_id=request_id))
+    return redirect(url_for(request_paths[code], code=code, menu = menu, request_id=request_id))
 
 
 @academic_services.route('/request/bacteria/add', methods=['GET', 'POST'])
 @academic_services.route('/request/bacteria/edit/<int:request_id>', methods=['GET', 'POST'])
 def create_bacteria_request(request_id=None):
+    menu = request.args.get('menu')
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
@@ -837,13 +839,13 @@ def create_bacteria_request(request_id=None):
         db.session.add(service_request)
         db.session.commit()
         return redirect(
-            url_for('academic_services.create_report_language', request_id=service_request.id, menu='request',
+            url_for('academic_services.create_report_language', request_id=service_request.id, menu=menu,
                     code=code))
     else:
         for er in form.errors:
             flash(f'{er} {form.errors[er]}', 'danger')
     return render_template('academic_services/bacteria_request_form.html', code=code, sub_lab=sub_lab,
-                           form=form, request_id=request_id)
+                           form=form, menu=menu, request_id=request_id)
 
 
 @academic_services.route("/request/collect_sample_during_testing")
@@ -909,6 +911,7 @@ def get_bacteria_condition_form():
 @academic_services.route('/request/virus_disinfection/add', methods=['GET', 'POST'])
 @academic_services.route('/request/virus_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
 def create_virus_disinfection_request(request_id=None):
+    menu = request.args.get('menu')
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
@@ -940,13 +943,13 @@ def create_virus_disinfection_request(request_id=None):
         db.session.add(service_request)
         db.session.commit()
         return redirect(
-            url_for('academic_services.create_report_language', request_id=service_request.id, menu='request',
+            url_for('academic_services.create_report_language', request_id=service_request.id, menu=menu,
                     code=code))
     else:
         for er in form.errors:
             flash(er, 'danger')
     return render_template('academic_services/virus_disinfection_request_form.html', code=code, sub_lab=sub_lab,
-                           form=form, request_id=request_id)
+                           form=form, menu=menu, request_id=request_id)
 
 
 @academic_services.route("/request/product_storage")
@@ -984,6 +987,7 @@ def get_product_storage():
 
 @academic_services.route('/request/virus_disinfection/condition')
 def get_virus_disinfection_condition_form():
+
     product_type = request.args.get("product_type")
     if not product_type:
         return ''
@@ -1006,6 +1010,7 @@ def get_virus_disinfection_condition_form():
 @academic_services.route('/request/virus_air_disinfection/add', methods=['GET', 'POST'])
 @academic_services.route('/request/virus_air_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
 def create_virus_air_disinfection_request(request_id=None):
+    menu = request.args.get('menu')
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
@@ -1034,13 +1039,13 @@ def create_virus_air_disinfection_request(request_id=None):
         db.session.add(service_request)
         db.session.commit()
         return redirect(
-            url_for('academic_services.create_report_language', request_id=service_request.id, menu='request',
+            url_for('academic_services.create_report_language', request_id=service_request.id, menu=menu,
                     code=code))
     else:
         for er in form.errors:
             flash(er, 'danger')
     return render_template('academic_services/virus_air_disinfection_request_form.html', code=code, sub_lab=sub_lab,
-                           form=form, request_id=request_id)
+                           form=form, menu=menu, request_id=request_id)
 
 
 @academic_services.route('/request/virus_air_disinfection/condition')
