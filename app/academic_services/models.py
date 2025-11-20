@@ -674,14 +674,6 @@ class ServiceRequest(db.Model):
         return {'status': status, 'color': color, 'icon': icon}
 
 
-class ServiceRequestDataItem(db.Model):
-    __tablename__ = 'service_request_data_items'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    created_at = db.Column('created_at', db.DateTime(timezone=True))
-    request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
-    request = db.relationship(ServiceRequest, backref=db.backref('data_items'))
-    data = db.Column('data', JSONB)
-
 
 class ServiceReqReportLanguageAssoc(db.Model):
     __tablename__ = 'service_req_report_language_assocs'
