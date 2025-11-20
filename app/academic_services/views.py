@@ -35,7 +35,7 @@ from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatur
 from app.main import mail
 from flask_mail import Message
 from app.models import Holidays, Org
-from app.service_admin.forms import ServiceQuotationForm, ServiceResultForm
+from app.service_admin.forms import ServiceResultForm
 
 localtz = timezone('Asia/Bangkok')
 
