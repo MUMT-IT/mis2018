@@ -2634,8 +2634,10 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
 def export_invoice_pdf(invoice_id):
     invoice = ServiceInvoice.query.get(invoice_id)
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.sub_lab.code).first()
-    ref1 = re.sub(r'[^A-Z0-9]', '', invoice.invoice_no.upper())
-    ref2 = re.sub(r'[^A-Z0-9]', '', sub_lab.sub_lab.upper())
+    # ref1 = re.sub(r'[^A-Z0-9]', '', invoice.invoice_no.upper())
+    # ref2 = re.sub(r'[^A-Z0-9]', '', sub_lab.sub_lab.upper())
+    ref1 = 'BIO25690001'
+    ref2 = 'BIO'
     qrcode_data = generate_qrcode(amount=invoice.grand_total(), ref1=ref1, ref2=ref2, ref3=None)
     if qrcode_data:
         qr_image_base64 = qrcode_data['qrImage']
