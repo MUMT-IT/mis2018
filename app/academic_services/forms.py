@@ -683,8 +683,8 @@ class ServiceQuotationForm(ModelForm):
         model = ServiceQuotation
         exclude = ['digital_signature']
 
-    reason = RadioField('เหตุผล', choices=[(c, c) for c in ['เปลี่ยนใจ', 'ใส่ที่อยู่ผิด', 'ต้องการแก้ไขข้อมูล', 'ราคาแพงเกินไป']],
-                                      validators=[Optional()])
+    reason = RadioField('เหตุผล', choices=[(c, c) for c in ['ไม่ต้องการแล้ว', 'มีราคาที่ดีกว่า', 'จำเป็นต้องเปลี่ยนที่อยู่', 'ต้องการแก้ไขข้อมูล', 'อื่นๆ']],
+                        validators=[Optional()])
 
 
 class ServiceSampleForm(ModelForm):
