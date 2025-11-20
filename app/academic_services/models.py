@@ -340,6 +340,7 @@ class ServiceStatus(db.Model):
 class ServiceReportLanguage(db.Model):
     __tablename__ = 'service_report_languages'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    group_id = db.Column('group_id', db.Integer())
     no = db.Column('no', db.Integer())
     type = db.Column('type', db.String())
     thai_language = db.Column('thai_language', db.String())
