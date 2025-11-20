@@ -1,11 +1,11 @@
 {% extends "academic_services/service_base.html" %}
 {% block head %}
     {{ super() }}
-{#    <style>#}
-{#        .locked-checkbox {#}
-{#            accent-color: #808080;#}
-{#        }#}
-{#    </style>#}
+    <style>
+        .locked-checkbox {
+            accent-color: #808080;
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
     {% include "academic_services/customer_nav.html" %}
@@ -101,8 +101,7 @@
     <script>
         function lockCheckbox(checkbox) {
             checkbox.checked = true;
-            {#checkbox.classList.add('locked-checkbox');#}
-            checkbox.style.opacity = 0.5;
+            checkbox.classList.add('locked-checkbox');
             checkbox.addEventListener('click', function (e) {
                 e.preventDefault();
                 this.checked = true;
