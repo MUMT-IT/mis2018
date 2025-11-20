@@ -1,40 +1,67 @@
 <div class="modal is-active animate__animated" id="reject-quotation-modal">
     <div class="modal-background"></div>
-        <div class="modal-card">
-            <header class="modal-card-head">
-                <p class="modal-card-title" align="center">
-                    เหตุผลที่ปฏิเสธใบเสนอราคา
-                </p>
-                <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
-            </header>
-            <section class="modal-card-body">
-                <form hx-post="{{ url_for('academic_services.reject_quotation', quotation_id=quotation_id, menu=menu) }}"
-                      hx-indicator="#submit-form"
-                >
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title" align="center">
+                เหตุผลที่ปฏิเสธใบเสนอราคา
+            </p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form hx-post="{{ url_for('academic_services.reject_quotation', quotation_id=quotation_id, menu=menu) }}"
+                  hx-indicator="#submit-form"
+            >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
-                    <div class="field">
-                        <label class="label">เหตุผล</label>
-                        <div class="control">
-                            {{ form.cancel_reason(class='textarea') }}
-                        </div>
+                <div class="field">
+                    <label class="label">{{ form.reason.label }}</label>
+                    <div class="control">
+                        {{ form.reason() }}
                     </div>
-                    <div class="field ">
-                        <div class="buttons is-centered">
-                            <a id="cancelModal" class="button">ย้อนกลับ</a>
-                            <input type="submit" id="submit-form" class="button is-success" value="บันทึก">
-                        </div>
+                </div>
+                <div id="other-field" class="field" style="display: none">
+                    <label class="label">{{ form.other.label }}</label>
+                    <div class="control">
+                        {{ form.other(class='input') }}
                     </div>
-                </form>
-            </section>
-        </div>
+                </div>
+                <div class="field ">
+                    <div class="buttons is-centered">
+                        <a id="cancelModal" class="button">ย้อนกลับ</a>
+                        <input type="submit" id="submit-form" class="button is-success" value="บันทึก">
+                    </div>
+                </div>
+            </form>
+        </section>
+    </div>
 </div>
 <script>
-    window.document.getElementById("cancelButton").addEventListener("click", function() {
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
         htmx.addClass(htmx.find('#reject-quotation-modal'), 'animate__fadeOut')
         htmx.removeClass(htmx.find('#reject-quotation-modal'), "is-active", 500)
     })
-    window.document.getElementById("cancelModal").addEventListener("click", function() {
+    window.document.getElementById("cancelModal").addEventListener("click", function () {
         htmx.addClass(htmx.find('#reject-quotation-modal'), 'animate__fadeOut')
         htmx.removeClass(htmx.find('#reject-quotation-modal'), "is-active", 500)
+    })
+    $(document).ready(function () {
+        function showOtherInput() {
+            const reason = document.querySelector('input[name="reason"]:checked');
+            const otherField = document.getElementById("other-field");
+            const otherInput = document.getElementById('other');
+
+            if (reason && reason.value.includes("อื่นๆ")) {
+                otherField.style.display = 'block';
+                otherInput.required = true;
+            } else {
+                otherField.style.display = "none";
+                otherInput.required = false;
+            }
+        }
+
+        showOtherInput();
+
+        document.querySelectorAll('input[name="reason"]').forEach(function (radio) {
+            radio.addEventListener("change", showOtherInput);
+        });
     })
 </script>
