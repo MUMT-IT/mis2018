@@ -3485,40 +3485,6 @@ def add_meeting():
     return render_template('procurement/add_meeting.html')
 
 
-@service_admin.route('/receipt/index', methods=['GET'])
-@login_required
-def receipt_index():
-    menu = request.args.get('menu')
-    return render_template('service_admin/receipt_index.html', menu=menu)
-
-
-@service_admin.route('/api/receipt/index')
-def get_receipts():
-    query = ServiceInvoice.query.filter(ServiceInvoice.receipts != None,
-                                        or_(ServiceInvoice.creator_id == current_user.id,
-                                            ServiceInvoice.quotation.has(ServiceQuotation.request.has(
-                                                ServiceRequest.sub_lab.has(
-                                                    ServiceSubLab.admins.any(
-                                                        ServiceAdmin.admin_id == current_user.id))))))
-    records_total = query.count()
-    search = request.args.get('search[value]')
-    if search:
-        query = query.filter(ServiceInvoice.invoice_no.contains(search))
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    total_filtered = query.count()
-    query = query.offset(start).limit(length)
-    data = []
-    for item in query:
-        item_data = item.to_dict()
-        data.append(item_data)
-    return jsonify({'data': data,
-                    'recordFiltered': total_filtered,
-                    'recordTotal': records_total,
-                    'draw': request.args.get('draw', type=int)
-                    })
-
-
 @service_admin.route('/result/draft/add', methods=['GET', 'POST'])
 @service_admin.route('/result/draft/edit/<int:result_id>', methods=['GET', 'POST'])
 @login_required
@@ -3712,6 +3678,92 @@ def delete_final_result(item_id):
     return resp
 
 
+@service_admin.route('/invoice/payment/index')
+@login_required
+def invoice_payment_index():
+    menu = request.args.get('menu')
+    return render_template('academic_service_payment/invoice_payment_index.html', menu=menu)
+
+
+@service_admin.route('/api/invoice/payment/index')
+def get_invoice_payments():
+    query = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at != None)
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(ServiceInvoice.invoice_no.contains(search))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        download_file = url_for('academic_services.download_file', key=item.file,
+                                download_filename=f"{item.invoice_no}.pdf")
+        item_data['file'] = f'''<div class="field has-addons">
+                        <div class="control">
+                            <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
+                                <span>ใบแจ้งหนี้</span>
+                            </a>
+                        </div>
+                    </div>
+                '''
+        if item.payments:
+            for payment in item.payments:
+                if payment.slip:
+                    item_data['slip'] = generate_url(payment.slip)
+                else:
+                    item_data['slip'] = None
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordFiltered': total_filtered,
+                    'recordTotal': records_total,
+                    'draw': request.args.get('draw', type=int)
+                    })
+
+
+@service_admin.route('/invoice/payment/confirm/<int:invoice_id>', methods=['GET', 'POST'])
+def confirm_payment(invoice_id):
+    status_id = get_status(22)
+    invoice = ServiceInvoice.query.get(invoice_id)
+    invoice.is_paid = True
+    invoice.verify_at = arrow.now('Asia/Bangkok').datetime
+    invoice.verify_id = current_user.id
+    invoice.quotation.request.status_id = status_id
+    if not invoice.paid_at:
+        payment = ServicePayment(invoice_id=invoice_id, payment_type='เช็คเงินสด', amount_paid=invoice.grand_total(),
+                                 paid_at=arrow.now('Asia/Bangkok').datetime,
+                                 customer_id=invoice.quotation.request.customer_id,
+                                 created_at=arrow.now('Asia/Bangkok').datetime)
+        invoice.paid_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(payment)
+    db.session.add(invoice)
+    result = ServiceResult.query.filter_by(request_id=invoice.quotation.request_id).first()
+    result.status_id = status_id
+    db.session.add(result)
+    db.session.commit()
+    scheme = 'http' if current_app.debug else 'https'
+    link = url_for('academic_services.receipt_index', menu='receipt', _external=True, _scheme=scheme)
+    customer_name = result.request.customer.customer_name.replace(' ', '_')
+    contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
+    title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
+    title = f'''แจ้งยืนยันการชำระเงินของใบแจ้งหนี้ [{invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+    message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
+    message += f''' ขณะนี้ทางคณะฯ ได้รับการชำระเงินของใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว\n'''
+    message += f'''ท่านสามารถตรวจสอบรายละเอียดใบเสร็จรับเงินได้จากลิงก์ด้านล่าง\n'''
+    message += f'''{link}\n\n'''
+    message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+    message += f'''ขอแสดงความนับถือ\n'''
+    message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+    message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    send_mail([contact_email], title, message)
+    flash('ยืนยันการชำระเงินเรียบร้อยแล้ว', 'success')
+    return render_template('academic_service_payment/invoice_payment_index.html')
+
+
 @service_admin.route('/invoice/payment/cancel/<int:invoice_id>', methods=['GET', 'POST'])
 def cancel_payment(invoice_id):
     status_id = get_status(21)
@@ -3740,3 +3792,37 @@ def cancel_payment(invoice_id):
     send_mail([contact_email], title, message)
     flash('ยืนยันการชำระเงินเรียบร้อยแล้ว', 'success')
     return render_template('academic_service_payment/invoice_payment_index.html')
+
+
+@service_admin.route('/receipt/index', methods=['GET'])
+@login_required
+def receipt_index():
+    menu = request.args.get('menu')
+    return render_template('service_admin/receipt_index.html', menu=menu)
+
+
+@service_admin.route('/api/receipt/index')
+def get_receipts():
+    query = ServiceInvoice.query.filter(ServiceInvoice.receipts != None,
+                                        or_(ServiceInvoice.creator_id == current_user.id,
+                                            ServiceInvoice.quotation.has(ServiceQuotation.request.has(
+                                                ServiceRequest.sub_lab.has(
+                                                    ServiceSubLab.admins.any(
+                                                        ServiceAdmin.admin_id == current_user.id))))))
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(ServiceInvoice.invoice_no.contains(search))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordFiltered': total_filtered,
+                    'recordTotal': records_total,
+                    'draw': request.args.get('draw', type=int)
+                    })
