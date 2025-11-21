@@ -232,7 +232,12 @@ def menu():
     else:
         admin = True
         position = 'Admin'
-    return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin, position=position)
+
+    request_count = ServiceRequest.query.filter(
+        ServiceRequest.status.has(ServiceStatus.status_id != 7)
+    ).count()
+    return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin, position=position,
+                request_count=request_count)
 
 
 @service_admin.route('/customer/view')
@@ -298,7 +303,7 @@ def request_index():
 
     status_groups = {
         'all': {
-            'id': list(range(2, 23)),
+            'id': list(range(2, 22)),
             'name': 'รายการทั้งหมด',
             'icon': '<i class="fas fa-list-ul"></i>'
         },

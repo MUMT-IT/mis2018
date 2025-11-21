@@ -1232,7 +1232,7 @@ def request_index():
     menu = request.args.get('menu')
     status_groups = {
         'all': {
-            'id': list(range(1, 24)),
+            'id': list(range(1, 22)),
             'name': 'รายการทั้งหมด',
             'icon': '<i class="fas fa-list-ul"></i>'
         },
