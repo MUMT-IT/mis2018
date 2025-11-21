@@ -197,6 +197,26 @@ def index():
     return render_template('service_admin/index.html')
 
 
+@service_admin.context_processor
+def menu():
+    admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    admin = False
+    supervisor = False
+    assistant = False
+    central_admin = False
+
+    for a in admins:
+        if a.sub_lab.assistant:
+            assistant = True
+        elif a.is_supervisor:
+            supervisor = True
+        elif a.is_central_admin:
+            central_admin = True
+        else:
+            admin = True
+    return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin)
+
+
 @service_admin.route('/customer/view')
 @login_required
 def view_customer():
