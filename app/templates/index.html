@@ -377,7 +377,12 @@
                     </nav>
                     <nav class="panel is-danger">
                         <p class="panel-heading">Services (กำลังพัฒนาและทดลอง)</p>
-                        <a href="{{ url_for('service_admin.request_index', menu='request') }}" class="panel-block">
+                        <a {% if central_admin %}
+                                href="{{ url_for('service_admin.invoice_index', menu='invoice', tab='all') }}"
+                           {% else %}
+                                href="{{ url_for('service_admin.request_index', menu='request') }}"
+                           {% endif %}
+                           class="panel-block">
                             <span class="panel-icon">
                                 <i class="fa fa-exclamation-triangle has-text-warning"></i>
                             </span>
