@@ -4,57 +4,67 @@
             MENU
         </p>
         <ul class="menu-list">
-            <li>
-                <a {% if menu=="request" %} class="is-active" {% endif %} href="{{ url_for('service_admin.request_index',
-                    menu='request') }}">
-                    <span class="icon"><i class="fas fa-clipboard-list"></i></span>
-                    <span>รายการคำขอรับบริการ</span>
-                </a>
-            </li>
-            <li>
-                <a {% if menu=='quotation' %} class="is-active" {% endif %} href="{{ url_for('service_admin.quotation_index',
-                    menu='quotation', tab='all') }}">
-                    <span class="icon"><i class="fas fa-file-invoice"></i></span>
-                    <span>ใบเสนอราคา</span>
-                </a>
-            </li>
-            <li>
-                <a {% if menu=='sample' %} class="is-active" {% endif %}  href="{{ url_for('service_admin.sample_index',
-                    menu='sample', tab='all') }}">
-                    <span class="icon"><i class="fas fa-truck"></i></span>
-                    <span>นัดหมายส่งตัวอย่าง</span>
-                </a>
-            </li>
-            <li>
-                <a {% if menu=='test_item' %} class="is-active" {% endif %}  href="{{ url_for('service_admin.test_item_index',
-                    menu='test_item', tab='all') }}">
-                    <span class="icon"><i class="fas fa-vial"></i></span>
-                    <span>รายการทดสอบ</span>
-                </a>
-            </li>
-            <li>
-            <li>
-                <a {% if menu=='invoice' %} class="is-active" {% endif %} href="{{ url_for('service_admin.invoice_index',
-                    menu='invoice', tab='all') }}">
-                    <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>
-                    <span>ใบแจ้งหนี้</span>
-                </a>
-            </li>
-            <li>
-                <a {% if menu=='receipt' %} class="is-active" {% endif %} href="{{ url_for('service_admin.receipt_index',
-                    menu='receipt') }}"
-                >
-                    <span class="icon"><i class="fas fa-receipt"></i></span>
-                    <span>ใบเสร็จรับเงิน</span>
-                </a>
-            </li>
-            <li>
-                <a {% if menu=='report' %} class="is-active" {% endif %} href="{{ url_for('service_admin.result_index',
-                    menu='report', tab='all') }}">
-                    <span class="icon"><i class="fas fa-file-alt"></i></span>
-                    <span>รายงานผลการทดสอบ</span>
-                </a>
-            </li>
+            {% if central_admin %}
+                <li>
+                    <a {% if menu=='invoice' %} class="is-active" {% endif %} href="{{ url_for('service_admin.invoice_index',
+                        menu='invoice', tab='all') }}">
+                        <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                        <span>ใบแจ้งหนี้</span>
+                    </a>
+                </li>
+            {% else %}
+                <li>
+                    <a {% if menu=="request" %} class="is-active" {% endif %} href="{{ url_for('service_admin.request_index',
+                        menu='request') }}">
+                        <span class="icon"><i class="fas fa-clipboard-list"></i></span>
+                        <span>รายการคำขอรับบริการ</span>
+                    </a>
+                </li>
+                <li>
+                    <a {% if menu=='quotation' %} class="is-active" {% endif %} href="{{ url_for('service_admin.quotation_index',
+                        menu='quotation', tab='all') }}">
+                        <span class="icon"><i class="fas fa-file-invoice"></i></span>
+                        <span>ใบเสนอราคา</span>
+                    </a>
+                </li>
+                <li>
+                    <a {% if menu=='sample' %} class="is-active" {% endif %}  href="{{ url_for('service_admin.sample_index',
+                        menu='sample', tab='all') }}">
+                        <span class="icon"><i class="fas fa-truck"></i></span>
+                        <span>นัดหมายส่งตัวอย่าง</span>
+                    </a>
+                </li>
+                <li>
+                    <a {% if menu=='test_item' %} class="is-active" {% endif %}  href="{{ url_for('service_admin.test_item_index',
+                        menu='test_item', tab='all') }}">
+                        <span class="icon"><i class="fas fa-vial"></i></span>
+                        <span>รายการทดสอบ</span>
+                    </a>
+                </li>
+                <li>
+                <li>
+                    <a {% if menu=='invoice' %} class="is-active" {% endif %} href="{{ url_for('service_admin.invoice_index',
+                        menu='invoice', tab='all') }}">
+                        <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                        <span>ใบแจ้งหนี้</span>
+                    </a>
+                </li>
+                <li>
+                    <a {% if menu=='receipt' %} class="is-active" {% endif %} href="{{ url_for('service_admin.receipt_index',
+                        menu='receipt') }}"
+                    >
+                        <span class="icon"><i class="fas fa-receipt"></i></span>
+                        <span>ใบเสร็จรับเงิน</span>
+                    </a>
+                </li>
+                <li>
+                    <a {% if menu=='report' %} class="is-active" {% endif %} href="{{ url_for('service_admin.result_index',
+                        menu='report', tab='all') }}">
+                        <span class="icon"><i class="fas fa-file-alt"></i></span>
+                        <span>รายงานผลการทดสอบ</span>
+                    </a>
+                </li>
+            {% endif %}
         </ul>
     </aside>
 </div>
