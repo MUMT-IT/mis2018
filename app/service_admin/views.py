@@ -204,7 +204,6 @@ def menu():
     supervisor = False
     assistant = False
     central_admin = False
-    position = None
 
     if admins.sub_lab.assistant:
         assistant = True
@@ -2546,7 +2545,15 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
     head_remark_style = ParagraphStyle(
         'HeadRemarkStyle',
         parent=style_sheet['ThaiStyleBold'],
-        leading=17
+        fontSize=10,
+        leading=1
+    )
+
+    remark_style = ParagraphStyle(
+        'ThaiStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=8,
+        leading=13
     )
     remark_table = Table([
         [Paragraph("<font size=14>หมายเหตุ/Remark<br/></font>", style=head_remark_style)],
@@ -2554,19 +2561,19 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
             "<font size=12>1. โปรดโอนเงินเข้าบัญชีออมทรัพย์ ในนาม <u>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ธนาคารไทยพาณิชย์ จำกัด (มหาชน) "
             "สาขาศิริราช เลขที่บัญชี 016-433468-4</u> หรือ บัญชีกระแสรายวัน <u>เลขที่บัญชี 016-300-325-6</u> ชื่อบัญชี <u>มหาวิทยาลัยมหิดล</u> "
             "หรือ<u> Scan QR Code ด้านล่าง</u> หรือ <u>โปรดสั่งจ่ายเช็คในนาม มหาวิทยาลัยมหิดล</u><br/></font>",
-            style=detail_style)],
+            style=remark_style)],
         [Paragraph(
             "<font size=12>2. จัดส่งหลักฐานการชำระเงินทาง E-mail : <u>mumtfinance@gmail.com</u> หรือ แจ้งผ่านโดยการ <u>Scan QR Code</u> "
-            "ด้านล่าง<br/></font>", style=detail_style)],
+            "ด้านล่าง<br/></font>", style=remark_style)],
         [Paragraph(
             "<font size=12>3. โปรดชำระค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ <u><b>ภายใน 30 วัน</b></u> นับถัดจากวันที่ลงนามใน"
-            "หนังสือแจ้งชำระค่าบริการฉบับนี้<br/></font>", style=detail_style)],
+            "หนังสือแจ้งชำระค่าบริการฉบับนี้<br/></font>", style=remark_style)],
         [Paragraph(
             "<font size=12>4. โปรดตรวจสอบรายละเอียดข้อมูลการชำระเงิน หากพบข้อมูลไม่ถูกต้อง โปรดทำหนังสือแจ้งกลับมายัง <u><b>หน่วย"
             "การเงินและบัญชี งานคลังและพัสดุ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</b></u><br/></font>",
-            style=detail_style)],
+            style=remark_style)],
         [Paragraph("<font size=12>5. <u>หากชำระเงินแล้วจะไม่สามารถขอเงินคืนได้</u><br/></font>",
-                   style=detail_style)],
+                   style=remark_style)],
     ],
         colWidths=[500]
     )
@@ -2664,10 +2671,10 @@ def export_invoice_pdf(invoice_id):
     ref1 = 'BIO25690001'
     ref2 = 'BIO'
     qrcode_data = generate_qrcode(amount=invoice.grand_total(), ref1=ref1, ref2=ref2, ref3=None)
-    if qrcode_data:
-        qr_image_base64 = qrcode_data['qrImage']
-    else:
-        qr_image_base64 = None
+    # if qrcode_data:
+    #     qr_image_base64 = qrcode_data['qrImage']
+    # else:
+    qr_image_base64 = None
     buffer = generate_invoice_pdf(invoice, qr_image_base64=qr_image_base64)
     return send_file(buffer, download_name='Invoice.pdf', as_attachment=True)
 
