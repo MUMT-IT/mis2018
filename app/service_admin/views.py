@@ -1933,31 +1933,31 @@ def add_tracking_number(result_id):
                            result_id=result_id)
 
 
-@service_admin.route('/payment/confirm/<int:payment_id>', methods=['GET'])
-def confirm_payment(payment_id):
-    payment = ServicePayment.query.get(payment_id)
-    payment.status = 'ชำระเงินสำเร็จ'
-    payment.invoice.quotation.request.status = 'ชำระเงินสำเร็จ'
-    payment.invoice.quotation.request.is_paid = True
-    payment.verifier_id = current_user.id
-    db.session.add(payment)
-    db.session.commit()
-    flash('อัพเดตสถานะสำเร็จ', 'success')
-    return redirect(url_for('service_admin.payment_index'))
-
-
-@service_admin.route('/payment/cancel/<int:payment_id>', methods=['GET'])
-def cancel_payment(payment_id):
-    payment = ServicePayment.query.get(payment_id)
-    payment.bill = None
-    payment.url = None
-    payment.status = 'ชำระเงินไม่สำเร็จ'
-    payment.invoice.quotation.request.status = 'ชำระเงินไม่สำเร็จ'
-    payment.verifier_id = current_user.id
-    db.session.add(payment)
-    db.session.commit()
-    flash('อัพเดตสถานะสำเร็จ', 'success')
-    return redirect(url_for('service_admin.payment_index'))
+# @service_admin.route('/payment/confirm/<int:payment_id>', methods=['GET'])
+# def confirm_payment(payment_id):
+#     payment = ServicePayment.query.get(payment_id)
+#     payment.status = 'ชำระเงินสำเร็จ'
+#     payment.invoice.quotation.request.status = 'ชำระเงินสำเร็จ'
+#     payment.invoice.quotation.request.is_paid = True
+#     payment.verifier_id = current_user.id
+#     db.session.add(payment)
+#     db.session.commit()
+#     flash('อัพเดตสถานะสำเร็จ', 'success')
+#     return redirect(url_for('service_admin.payment_index'))
+#
+#
+# @service_admin.route('/payment/cancel/<int:payment_id>', methods=['GET'])
+# def cancel_payment(payment_id):
+#     payment = ServicePayment.query.get(payment_id)
+#     payment.bill = None
+#     payment.url = None
+#     payment.status = 'ชำระเงินไม่สำเร็จ'
+#     payment.invoice.quotation.request.status = 'ชำระเงินไม่สำเร็จ'
+#     payment.verifier_id = current_user.id
+#     db.session.add(payment)
+#     db.session.commit()
+#     flash('อัพเดตสถานะสำเร็จ', 'success')
+#     return redirect(url_for('service_admin.payment_index'))
 
 
 @service_admin.route('/lab/index/<int:customer_id>')
