@@ -326,7 +326,7 @@ def request_index():
 
     status_groups = {
         'all': {
-            'id': list(range(2, 22)),
+            'id': [i for i in range(2, 22) if i != 7],
             'name': 'รายการทั้งหมด',
             'icon': '<i class="fas fa-list-ul"></i>'
         },
