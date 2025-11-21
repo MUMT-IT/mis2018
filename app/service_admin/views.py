@@ -3710,3 +3710,33 @@ def delete_final_result(item_id):
     resp = make_response()
     resp.headers['HX-Refresh'] = 'true'
     return resp
+
+
+@service_admin.route('/invoice/payment/cancel/<int:invoice_id>', methods=['GET', 'POST'])
+def cancel_payment(invoice_id):
+    status_id = get_status(21)
+    invoice = ServiceInvoice.query.get(invoice_id)
+    invoice.is_paid = False
+    invoice.verify_at = None
+    invoice.verify_id = None
+    invoice.quotation.request.status_id = status_id
+    db.session.add(invoice)
+    result = ServiceResult.query.filter_by(request_id=invoice.quotation.request_id).first()
+    result.status_id = status_id
+    db.session.add(result)
+    db.session.commit()
+    customer_name = result.request.customer.customer_name.replace(' ', '_')
+    contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
+    title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
+    title = f'''แจ้งยืนยันการชำระเงินของใบแจ้งหนี้ [{invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+    message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
+    message += f''' ขณะนี้ทางคณะฯ ขอแจ้งให้ทราบว่าการดำเนินการในส่วนของใบแจ้งหนี้เลขที่ {invoice.invoice_no} ยังไม่สมบูรณ์ จึงจำเป็นต้องปรับสถานะใบ'''
+    message += f'''แจ้งหนี้เป็นรอเจ้าหน้าที่ตรวจสอบ ทั้งนี้เพื่อความถูกต้องของระบบ ทางคณะฯ ต้องขออภัยในความไม่สะดวกมา ณ ที่นี้\n\n'''
+    message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+    message += f'''ขอแสดงความนับถือ\n'''
+    message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+    message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    send_mail([contact_email], title, message)
+    flash('ยืนยันการชำระเงินเรียบร้อยแล้ว', 'success')
+    return render_template('academic_service_payment/invoice_payment_index.html')
