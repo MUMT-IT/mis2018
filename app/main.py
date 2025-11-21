@@ -175,7 +175,7 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
-    admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
     central_admin = False
 
     for a in admins:

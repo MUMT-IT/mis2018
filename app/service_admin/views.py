@@ -199,7 +199,7 @@ def index():
 
 @service_admin.context_processor
 def menu():
-    admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
     admin = False
     supervisor = False
     assistant = False
