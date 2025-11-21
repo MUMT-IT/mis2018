@@ -10,7 +10,7 @@
             {% include "messages.html" %}
             <div class="columns">
                 <div class="column is-half is-offset-one-quarter">
-                    <h1 class="title has-text-centered">อัปโหลดไฟล์ใบแจ้งหนี้</h1>
+                    <h1 class="title has-text-centered">อัปโหลดไฟล์ใบแจ้งหนี้ (คณบดีลงนาม)</h1>
                     <form method="post" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="box">
@@ -18,6 +18,30 @@
                                 <label class="label">เลขที่ใบแจ้งหนี้</label>
                                 <div class="control">
                                     {{ invoice.invoice_no }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">ชื่อ</label>
+                                <div class="control">
+                                    {{ invoice.name }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">ที่อยู่</label>
+                                <div class="control">
+                                    {{ invoice.address }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">เลขประจำตัวผู้เสียภาษี</label>
+                                <div class="control">
+                                    {{ invoice.taxpayer_identification_no }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">ราคา</label>
+                                <div class="control">
+                                    {{ "{:,.2f}".format(invoice.grand_total()) }} บาท
                                 </div>
                             </div>
                             <div class="field">
@@ -50,8 +74,6 @@
                     </form>
                 </div>
             </div>
-        </div>
-        </form>
         </div>
     </section>
 {% endblock %}
