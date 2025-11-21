@@ -214,43 +214,50 @@ def index():
 
 @service_admin.context_processor
 def menu():
-    admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
     admin = False
     supervisor = False
     assistant = False
     central_admin = False
+    request_count = None
+    quotation_count = None
+    sample_count = None
+    test_item_count = None
+    invoice_count = None
+    report_count = None
 
-    if admins.sub_lab.assistant:
-        assistant = True
-        position = 'Assistant'
-    elif admins.is_supervisor:
-        supervisor = True
-        position = 'Supervisor'
-    elif admins.is_central_admin:
-        central_admin = True
-        position = 'Central Admin'
-    else:
-        admin = True
-        position = 'Admin'
+    if current_user.is_authenticated:
+        admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
+        if admins.sub_lab.assistant:
+            assistant = True
+            position = 'Assistant'
+        elif admins.is_supervisor:
+            supervisor = True
+            position = 'Supervisor'
+        elif admins.is_central_admin:
+            central_admin = True
+            position = 'Central Admin'
+        else:
+            admin = True
+            position = 'Admin'
 
-    request_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)), ServiceRequest.status.has(
-        ServiceStatus.status_id.notin_([7, 22, 23]))).count()
-    quotation_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
-        ServiceRequest.status.has(ServiceStatus.status_id.in_([3, 4, 5]))).count()
-    sample_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
-        ServiceRequest.status.has(ServiceStatus.status_id.in_([6, 8, 9]))).count()
-    test_item_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
-        ServiceRequest.status.has(ServiceStatus.status_id.in_([10, 11, 12, 13, 14, 15]))).count()
-    invoice_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
-        ServiceRequest.status.has(ServiceStatus.status_id.in_([16, 17, 18, 19, 20, 21]))).count()
-    report_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
-        ServiceRequest.status.has(ServiceStatus.status_id.in_([11, 12, 14, 15]))).count()
+        request_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
+                    ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)), ServiceRequest.status.has(
+            ServiceStatus.status_id.notin_([7, 22, 23]))).count()
+        quotation_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
+                    ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
+            ServiceRequest.status.has(ServiceStatus.status_id.in_([3, 4, 5]))).count()
+        sample_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
+                    ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
+            ServiceRequest.status.has(ServiceStatus.status_id.in_([6, 8, 9]))).count()
+        test_item_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
+                    ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
+            ServiceRequest.status.has(ServiceStatus.status_id.in_([10, 11, 12, 13, 14, 15]))).count()
+        invoice_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
+                    ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
+            ServiceRequest.status.has(ServiceStatus.status_id.in_([16, 17, 18, 19, 20, 21]))).count()
+        report_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
+                    ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
+            ServiceRequest.status.has(ServiceStatus.status_id.in_([11, 12, 14, 15]))).count()
     return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin, position=position,
                 request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
                 test_item_count=test_item_count, invoice_count=invoice_count, report_count=report_count)
