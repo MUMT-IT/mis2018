@@ -2685,6 +2685,8 @@ def add_payment():
     invoice_id = request.args.get('invoice_id')
     invoice = ServiceInvoice.query.get(invoice_id)
     form = ServicePaymentForm()
+    if not form.amount_paid.data:
+        form.amount_paid.data = invoice.grand_total()
     if form.validate_on_submit():
         payment = ServicePayment()
         form.populate_obj(payment)
