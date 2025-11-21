@@ -270,6 +270,30 @@ def download_file(key):
     return send_file(outfile, download_name=download_filename, as_attachment=True)
 
 
+@academic_services.context_processor
+def menu():
+    request_count = None
+    quotation_count = None
+    sample_count = None
+    invoice_count = None
+    report_count = None
+
+    if current_user.is_authenticated:
+        request_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id, ServiceRequest.status.has(
+            ServiceStatus.status_id.notin_([7, 23]))).count()
+        quotation_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
+            ServiceRequest.status.has(ServiceStatus.status_id.in_([5]))).count()
+        sample_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
+            ServiceRequest.status.has(ServiceStatus.status_id.in_([6, 8, 9]))).count()
+        invoice_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
+            ServiceRequest.status.has(ServiceStatus.status_id.in_([20, 21]))).count()
+        report_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
+            ServiceRequest.status.has(ServiceStatus.status_id.in_([12, 15]))).count()
+
+    return dict(request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
+                invoice_count=invoice_count, report_count=report_count)
+
+
 @academic_services.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
