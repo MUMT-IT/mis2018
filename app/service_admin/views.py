@@ -97,6 +97,21 @@ def sort_quotation_item(items):
     return (priority, items.id)
 
 
+@service_admin.route('/aws-s3/download/<key>', methods=['GET'])
+def download_file(key):
+    download_filename = request.args.get('download_filename')
+    s3_client = boto3.client(
+        's3',
+        region_name=os.getenv('BUCKETEER_AWS_REGION'),
+        aws_access_key_id=os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+    )
+    outfile = BytesIO()
+    s3_client.download_fileobj(os.getenv('BUCKETEER_BUCKET_NAME'), key, outfile)
+    outfile.seek(0)
+    return send_file(outfile, download_name=download_filename, as_attachment=True)
+
+
 def request_data(service_request, type):
     data = service_request.data
     if service_request.sub_lab.code == 'bacteria':
@@ -1716,20 +1731,6 @@ def export_request_pdf(request_id):
     buffer = generate_request_pdf(service_request)
     return send_file(buffer, download_name='Request_form.pdf', as_attachment=True)
 
-
-@service_admin.route('/aws-s3/download/<key>', methods=['GET'])
-def download_file(key):
-    download_filename = request.args.get('download_filename')
-    s3_client = boto3.client(
-        's3',
-        region_name=os.getenv('BUCKETEER_AWS_REGION'),
-        aws_access_key_id=os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID'),
-        aws_secret_access_key=os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
-    )
-    outfile = BytesIO()
-    s3_client.download_fileobj(os.getenv('BUCKETEER_BUCKET_NAME'), key, outfile)
-    outfile.seek(0)
-    return send_file(outfile, download_name=download_filename, as_attachment=True)
 
 
 @service_admin.route('/result/index')
