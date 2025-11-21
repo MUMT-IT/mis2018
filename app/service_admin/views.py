@@ -204,17 +204,21 @@ def menu():
     supervisor = False
     assistant = False
     central_admin = False
+    position = None
 
-    for a in admins:
-        if a.sub_lab.assistant:
-            assistant = True
-        elif a.is_supervisor:
-            supervisor = True
-        elif a.is_central_admin:
-            central_admin = True
-        else:
-            admin = True
-    return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin)
+    if admins.sub_lab.assistant:
+        assistant = True
+        position = 'Assistant'
+    elif admins.is_supervisor:
+        supervisor = True
+        position = 'Supervisor'
+    elif admins.is_central_admin:
+        central_admin = True
+        position = 'Central Admin'
+    else:
+        admin = True
+        position = 'Admin'
+    return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin, position=position)
 
 
 @service_admin.route('/customer/view')
@@ -334,7 +338,7 @@ def request_index():
                                       ), or_(ServiceRequest.admin.has(id=current_user.id),
                                              ServiceRequest.sub_lab.has(
                                                  ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-                                                 )
+                                             )
                                              )
         ).count()
         status_groups[key]['count'] = query
@@ -685,7 +689,7 @@ def create_virus_disinfection_request(request_id=None):
         db.session.add(service_request)
         db.session.commit()
         return redirect(url_for('service_admin.create_report_language', request_id=service_request.id, menu=menu,
-                    code=code))
+                                code=code))
     else:
         for er in form.errors:
             flash(er, 'danger')
@@ -780,7 +784,7 @@ def create_virus_air_disinfection_request(request_id=None):
         db.session.add(service_request)
         db.session.commit()
         return redirect(url_for('service_admin.create_report_language', request_id=service_request.id, menu=menu,
-                    code=code))
+                                code=code))
     else:
         for er in form.errors:
             flash(er, 'danger')
@@ -1757,7 +1761,8 @@ def get_results():
     elif tab == 'edit':
         query = query.filter(ServiceResult.status.has(ServiceStatus.status_id == 14))
     elif tab == 'approve':
-        query = query.filter(ServiceResult.status.has(or_(ServiceStatus.status_id == 12, ServiceStatus.status_id == 15)))
+        query = query.filter(
+            ServiceResult.status.has(or_(ServiceStatus.status_id == 12, ServiceStatus.status_id == 15)))
     elif tab == 'confirm':
         query = query.filter(ServiceResult.status.has(ServiceStatus.status_id == 13))
     else:
@@ -3014,7 +3019,7 @@ def generate_quotation():
                 sequence_no.count += 1
                 db.session.add(quotation_item)
                 db.session.commit()
-        flash('ร่างใบเสนอราคาสำเร็จ กรุณาดำเนินการตรวจสอบข้อมูล','success')
+        flash('ร่างใบเสนอราคาสำเร็จ กรุณาดำเนินการตรวจสอบข้อมูล', 'success')
         return redirect(
             url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
     else:
@@ -3520,10 +3525,13 @@ def create_draft_result(result_id=None):
                                             creator_id=current_user.id)
                 db.session.add(result_list)
                 if service_request.report_languages:
-                    sequence_no = ServiceSequenceResultItemID.get_number('RS', db, result='result_' + str(result_list.id))
+                    sequence_no = ServiceSequenceResultItemID.get_number('RS', db,
+                                                                         result='result_' + str(result_list.id))
                     for rl in service_request.report_languages:
-                        result_item = ServiceResultItem(sequence=sequence_no.number, report_language=rl.report_language.item,
-                                                        result=result_list, released_at=arrow.now('Asia/Bangkok').datetime,
+                        result_item = ServiceResultItem(sequence=sequence_no.number,
+                                                        report_language=rl.report_language.item,
+                                                        result=result_list,
+                                                        released_at=arrow.now('Asia/Bangkok').datetime,
                                                         creator_id=current_user.id)
                         sequence_no.count += 1
                         db.session.add(result_item)
