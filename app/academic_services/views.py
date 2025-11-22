@@ -258,6 +258,13 @@ def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', 
 @academic_services.route('/aws-s3/download/<key>', methods=['GET'])
 def download_file(key):
     download_filename = request.args.get('download_filename')
+
+    result_item = ServiceResultItem.query.filter_by(final_file=key).first()
+    if result_item:
+        req = result_item.result.request
+        if not req.is_downloaded:
+            req.is_downloaded = True
+            db.session.commit()
     s3_client = boto3.client(
         's3',
         region_name=os.getenv('BUCKETEER_AWS_REGION'),
