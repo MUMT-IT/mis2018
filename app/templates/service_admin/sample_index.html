@@ -188,7 +188,16 @@
                                     </ul>`
                         }
                     },
-                    {data: 'location'},
+                    {
+                        data: 'location_name',
+                        render: function (data) {
+                            if (data != null) {
+                                return data;
+                            } else {
+                                return '';
+                            }
+                        }
+                    },
                     {data: 'ship_type'},
                     {
                         data: 'id',
