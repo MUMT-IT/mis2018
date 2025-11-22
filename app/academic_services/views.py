@@ -261,7 +261,7 @@ def download_file(key):
     result_item = ServiceResultItem.query.filter_by(final_file=key).first()
     if result_item:
         req = result_item.result.request
-        if not req.is_downloaded:
+        if req.is_downloaded == None:
             req.is_downloaded = True
             db.session.add(req)
             db.session.commit()
@@ -286,8 +286,8 @@ def menu():
     report_count = None
 
     if current_user.is_authenticated:
-        request_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id, ServiceRequest.status.has(
-            ServiceStatus.status_id.notin_([7, 22, 23]))).count()
+        request_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
+                            ServiceRequest.is_downloaded==None, ServiceRequest.status.has(ServiceStatus.status_id.notin_([7, 23]))).count()
         quotation_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
             ServiceRequest.status.has(ServiceStatus.status_id.in_([5]))).count()
         sample_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
@@ -1312,9 +1312,6 @@ def request_index():
         ).count()
 
         status_groups[key]['count'] = query
-    results = ServiceRequest.query.filter_by(customer_id=current_user.id).all()
-    for r in results:
-        print(r.id, r.is_downloaded)
     return render_template('academic_services/request_index.html', menu=menu, status_groups=status_groups)
 
 
@@ -1336,7 +1333,7 @@ def get_requests():
         for result in item.results:
             for i in result.result_items:
                 if i.final_file:
-                    download_file = url_for('service_admin.download_file', key=i.final_file,
+                    download_file = url_for('academic_services.download_file', key=i.final_file,
                                             download_filename=f"{i.report_language} (ฉบับจริง).pdf")
                     if item.status.status_id == 22:
                         html = f'''
@@ -1361,7 +1358,7 @@ def get_requests():
                                     </div>
                                 '''
                 elif i.draft_file:
-                    download_file = url_for('service_admin.download_file', key=i.draft_file,
+                    download_file = url_for('academic_services.download_file', key=i.draft_file,
                                             download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
                     html = f'''
                                             <div class="field has-addons">
