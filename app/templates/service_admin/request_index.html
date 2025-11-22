@@ -60,7 +60,7 @@
                                         <span class="icon is-large" style="display:block; font-size:1.6rem">
                                             {{ group.icon | safe }}
                                         </span>
-                                        {% if group.count and group.id != 22%}
+                                        {% if group.count and 22 not in group.id %}
                                             <span class="tag is-danger is-rounded is-size-7 mt-1">{{ group.count }}</span>
                                         {% endif %}
                                         <span class="is-size-7 mt-1" style="display:block;">{{ group.name }}</span>
