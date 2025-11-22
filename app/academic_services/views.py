@@ -2501,8 +2501,18 @@ def create_sample_appointment(sample_id):
     if form.validate_on_submit():
         form.populate_obj(sample)
         if form.ship_type.data == 'ส่งทางไปรษณีย์':
-            form.appointment_date = None
-            form.location = None
+            sample.appointment_date = None
+            sample.location = None
+            sample.location_name = None
+        else:
+            location = request.form.get('sample_address')
+            if location == ('salaya_address'):
+                sample.location = 'salaya'
+                sample.location_name = 'คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล วิทยาเขตศาลายา'
+            if location == ('siriraj_address'):
+                sample.location = 'siriraj'
+                sample.location_name = 'คณะเทคนิคการแพทย์ โรงพยาบาลศิริราช วิทยาเขตบางกอกน้อย'
+            sample.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').datetime
         db.session.add(sample)
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
