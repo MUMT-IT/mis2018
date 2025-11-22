@@ -8,6 +8,7 @@
             opacity: 1 !important;
             transition: none !important;
         }
+
         #toast-container.toast-top-full-width > .toast {
             width: 100% !important;
         }
@@ -184,12 +185,56 @@
                                 </div>
                             </div>
                             <div class="field" id="location-field" style="display:none;">
-                                <label class="label">
-                                    {{ form.location.label }}
-                                    <span class="has-text-danger">*</span>
-                                </label>
-                                <div class="control">
-                                    {{ form.location() }}
+                                {% set ns = namespace(checked_done=False) %}
+                                <label class="label">สถานที่ส่งตัวอย่าง</label>
+                                <input type="radio" id="salaya_address" name="sample_address" value="salaya_address"
+                                       class="is-hidden"
+                                        {% if form.location.data == "salaya" %}
+                                       checked
+                                        {% elif not ns.checked_done %}
+                                       checked
+                                            {% set ns.checked_done = True %}
+                                        {% else %}
+                                            {% set ns.checked_done = False %}
+                                        {% endif %}
+                                >
+                                <div class="card location-card" data-radio-id="salaya_address" style="cursor: pointer;
+                                    margin-bottom: .7em">
+                                    <div class="card-content">
+                                        <div class="content">
+                                            <p>
+                                                <strong>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล วิทยาเขตศาลายา</strong><br>
+                                                สถานที่ : {{ service_request.sub_lab.salaya_address }}
+                                                <br/>
+                                                เบอร์โทรศัพท์ : {{ service_request.sub_lab.lab.phone_number }}
+                                                {% if service_request.sub_lab.lab.email %}
+                                                    <br/>
+                                                    อีเมล : {{ service_request.sub_lab.lab.email }}
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="radio" id="siriraj_address" name="sample_address" value="siriraj_address"
+                                       class="is-hidden" {% if form.location.data == "siriraj" %} checked {% endif %}
+                                >
+                                <div class="card location-card" data-radio-id="siriraj_address"
+                                     style="cursor: pointer;">
+                                    <div class="card-content">
+                                        <div class="content">
+                                            <p>
+                                                <strong>คณะเทคนิคการแพทย์ โรงพยาบาลศิริราช
+                                                    วิทยาเขตบางกอกน้อย</strong><br>
+                                                สถานที่ : {{ service_request.sub_lab.siriraj_address }}
+                                                <br/>
+                                                เบอร์โทรศัพท์ : {{ service_request.sub_lab.lab.phone_number }}
+                                                {% if service_request.sub_lab.lab.email %}
+                                                    <br/>
+                                                    อีเมล : {{ service_request.sub_lab.lab.email }}
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="field" id="appointment-date-field" style="display: none;">
@@ -201,25 +246,16 @@
                                     {{ form.appointment_date(class='input', type='text') }}
                                 </div>
                             </div>
-                            <div class="field">
+                            <div class="field" id="address-field">
                                 <label class="label">
                                     รายละเอียดสถานที่ส่งตัวอย่าง
                                 </label>
-                                <div class="control" id="address-field">
-                                    {{ service_request.sub_lab.address }}
-                                </div>
-                                <div class="control" id="siriraj-address-field" style="display: none">
-                                    {{ service_request.sub_lab.siriraj_address }}
-                                </div>
-                                <div class="control" id="salaya-address-field" style="display: none">
-                                    {{ service_request.sub_lab.salaya_address }}
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">ข้อมูลติดต่อ</label>
                                 <div class="control">
+                                    สถานที่ : {{ service_request.sub_lab.address }}
+                                    <br/>
                                     เบอร์โทรศัพท์ : {{ service_request.sub_lab.lab.phone_number }}
                                     {% if service_request.sub_lab.lab.email %}
+                                        <br/>
                                         อีเมล : {{ service_request.sub_lab.lab.email }}
                                     {% endif %}
                                 </div>
@@ -227,7 +263,8 @@
                             <div class="notification has-text-danger">
                                 <label class="label is-6 has-text-danger">หมายเหตุ</label>
                                 <div class="is-size-7">
-                                    1. กรุณานำส่งตัวอย่างพร้อมใบนำส่งตัวอย่าง, ใบอนุญาตนำเข้าหรือผลิต และสูตรตำรับ/สูตร 100% ของตัวอย่าง<br/>
+                                    1. กรุณานำส่งตัวอย่างพร้อมใบนำส่งตัวอย่าง, ใบอนุญาตนำเข้าหรือผลิต และสูตรตำรับ/สูตร
+                                    100% ของตัวอย่าง<br/>
                                     2. {{ service_request.sub_lab.note }}
                                 </div>
                             </div>
@@ -321,9 +358,10 @@
                 const shipTypeCheck = document.querySelector('input[name="ship_type"]:checked');
                 const appointmentDateField = document.getElementById("appointment-date-field");
                 const appointmentDateInput = document.getElementById('appointment_date');
+                const addressField = document.getElementById('address-field');
                 const locationField = document.getElementById("location-field");
-                const locationInput = document.querySelector('input[name="location"]');
                 if (!shipTypeCheck) {
+                    addressField.style.display = 'block';
                     return
                 }
 
@@ -333,10 +371,11 @@
                     appointmentDateField.style.display = "block";
                     appointmentDateInput.required = true;
                     locationField.style.display = "block";
-                    locationInput.required = true;
+                    addressField.style.display = 'none';
                 } else {
                     appointmentDateField.style.display = "none";
                     locationField.style.display = "none";
+                    addressField.style.display = 'block';
                 }
             }
 
@@ -346,36 +385,30 @@
                 s.addEventListener("change", showInput);
             });
 
-             function showLocation() {
-                const locationCheck = document.querySelector('input[name="location"]:checked');
-                const addressField = document.getElementById("address-field");
-                const sirirajAddressField = document.getElementById('siriraj-address-field');
-                const salayaAddressField = document.getElementById("salaya-address-field");
+        })
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const cards = document.querySelectorAll(".location-card");
 
-                if (!locationCheck) {
-                    return
-                }
-
-                const location = locationCheck.value;
-                if (location.includes("ศิริราช")) {
-                    addressField.style.display = 'none'
-                    salayaAddressField.style.display = 'none'
-                    sirirajAddressField.style.display = 'block'
-                } else if (location.includes("ศาลายา")) {
-                    addressField.style.display = 'none'
-                    sirirajAddressField.style.display = 'none'
-                    salayaAddressField.style.display = 'block'
-                } else {
-                    addressField.style.display = 'block'
-                    salayaAddressField.style.display = 'none'
-                    sirirajAddressField.style.display = 'none'
-                }
+            function setupCardSelection() {
+                cards.forEach(card => {
+                    const radio = document.getElementById(card.dataset.radioId);
+                    card.style.backgroundColor = (radio && radio.checked) ? "#D6EAF8" : "transparent";
+                });
             }
 
-            showLocation();
-            document.querySelectorAll('input[name="location"]').forEach(s => {
-                s.addEventListener("change", showLocation);
+            cards.forEach(card => {
+                card.addEventListener("click", function () {
+                    const radio = document.getElementById(this.dataset.radioId);
+                    if (radio) {
+                        radio.checked = true;
+                        setupCardSelection();
+                    }
+                });
             });
-        })
+
+            setupCardSelection();
+        });
     </script>
 {% endblock %}
