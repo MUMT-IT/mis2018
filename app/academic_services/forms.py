@@ -693,10 +693,6 @@ class ServiceSampleForm(ModelForm):
 
     ship_type = RadioField('วิธีการส่งตัวอย่าง', choices=[(c, c) for c in ['ส่งด้วยตนเอง', 'ส่งทางไปรษณีย์']],
                            validators=[DataRequired()])
-    location = RadioField('สถานที่ส่งตัวอย่าง',
-                          choices=[(c, c) for c in ['คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล วิทยาเขตศาลายา',
-                                                    'คณะเทคนิคการแพทย์ โรงพยาบาลศิริราช วิทยาเขตบางกอกน้อย']],
-                          validators=[Optional()])
 
 
 class ServicePaymentForm(ModelForm):
