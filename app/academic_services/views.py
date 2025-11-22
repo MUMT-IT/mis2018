@@ -1302,7 +1302,6 @@ def request_index():
             ServiceRequest.customer_id == current_user.id,
             ServiceRequest.status.has(ServiceStatus.status_id.in_(group['id']))
         ).count()
-
         status_groups[key]['count'] = query
     return render_template('academic_services/request_index.html', menu=menu, status_groups=status_groups)
 

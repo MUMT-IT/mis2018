@@ -383,26 +383,8 @@ def request_index():
                                              )
                                              )
         ).count()
+
         status_groups[key]['count'] = query
-    quotation_request_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=2),
-                                                                          or_(ServiceRequest.admin.has(
-                                                                              id=current_user.id),
-                                                                              ServiceRequest.sub_lab.has(
-                                                                                  ServiceSubLab.admins.any(
-                                                                                      ServiceAdmin.admin_id == current_user.id))))])
-    quotation_pending_approval_count = len(
-        [r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=5),
-                                                or_(ServiceRequest.admin.has(
-                                                    id=current_user.id),
-                                                    ServiceRequest.sub_lab.has(
-                                                        ServiceSubLab.admins.any(
-                                                            ServiceAdmin.admin_id == current_user.id))))])
-    waiting_sample_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=9),
-                                                                       or_(ServiceRequest.admin.has(
-                                                                           id=current_user.id),
-                                                                           ServiceRequest.sub_lab.has(
-                                                                               ServiceSubLab.admins.any(
-                                                                                   ServiceAdmin.admin_id == current_user.id))))])
     testing_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.status.has(status_id=11),
                                                                 or_(ServiceRequest.admin.has(
                                                                     id=current_user.id),
