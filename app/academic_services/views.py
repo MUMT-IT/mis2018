@@ -258,12 +258,12 @@ def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', 
 @academic_services.route('/aws-s3/download/<key>', methods=['GET'])
 def download_file(key):
     download_filename = request.args.get('download_filename')
-
     result_item = ServiceResultItem.query.filter_by(final_file=key).first()
     if result_item:
         req = result_item.result.request
         if not req.is_downloaded:
             req.is_downloaded = True
+            db.session.add(req)
             db.session.commit()
     s3_client = boto3.client(
         's3',
@@ -287,7 +287,7 @@ def menu():
 
     if current_user.is_authenticated:
         request_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id, ServiceRequest.status.has(
-            ServiceStatus.status_id.notin_([7, 23]))).count()
+            ServiceStatus.status_id.notin_([7, 22, 23]))).count()
         quotation_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
             ServiceRequest.status.has(ServiceStatus.status_id.in_([5]))).count()
         sample_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
@@ -1263,7 +1263,7 @@ def request_index():
     menu = request.args.get('menu')
     status_groups = {
         'all': {
-            'id': [i for i in range(1, 22) if i != 7],
+            'id': list(range(1, 24)),
             'name': 'รายการทั้งหมด',
             'icon': '<i class="fas fa-list-ul"></i>'
         },
@@ -1305,11 +1305,16 @@ def request_index():
     }
 
     for key, group in status_groups.items():
+        group_ids = [i for i in group['id'] if i != 7 and i != 23]
         query = ServiceRequest.query.filter(
-            ServiceRequest.customer_id == current_user.id,
-            ServiceRequest.status.has(ServiceStatus.status_id.in_(group['id']))
+            ServiceRequest.status.has(ServiceStatus.status_id.in_(group_ids)
+                                      ), ServiceRequest.customer_id==current_user.id, ServiceRequest.is_downloaded == None
         ).count()
+
         status_groups[key]['count'] = query
+    results = ServiceRequest.query.filter_by(customer_id=current_user.id).all()
+    for r in results:
+        print(r.id, r.is_downloaded)
     return render_template('academic_services/request_index.html', menu=menu, status_groups=status_groups)
 
 
