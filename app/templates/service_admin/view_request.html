@@ -8,6 +8,7 @@
             font-weight: 400;
             color: #4a4a4a;
         }
+
         .content ul {
             margin-top: 0.25rem;
         }
@@ -274,29 +275,29 @@
                                 {% elif (10 <= service_request.status.status_id <= 12) or (14 <= service_request.status.status_id <= 15) %}
                                     <li>
                                         <a class="button is-primary is-rounded is-fullwidth mb-2"
-                                           {% if result_id %}
-                                                href="{{ url_for('service_admin.create_draft_result', result_id=result_id,
+                                                {% if result_id %}
+                                           href="{{ url_for('service_admin.create_draft_result', result_id=result_id,
                                                 request_id=service_request.id, menu='test_item') }}"
-                                           {% else %}
-                                                href="{{ url_for('service_admin.create_draft_result', request_id=service_request.id,
+                                                {% else %}
+                                           href="{{ url_for('service_admin.create_draft_result', request_id=service_request.id,
                                                 menu='test_item') }}"
-                                           {% endif %}
+                                                {% endif %}
                                         >
                                             <span class="icon"><i class="fas fa-download"></i></span>
                                             {% if service_request.status.status_id == 14 %}
                                                 <span>แก้ไขใบรายงานผล (ฉบับร่าง)</span>
                                             {% else %}
-                                                 <span>ออกใบรายงานผล (ฉบับร่าง)</span>
+                                                <span>ออกใบรายงานผล (ฉบับร่าง)</span>
                                             {% endif %}
                                         </a>
                                         <a class="button is-info is-rounded is-fullwidth mb-2"
-                                           {% if result_id %}
-                                                href="{{ url_for('service_admin.create_final_result', result_id=result_id,
+                                                {% if result_id %}
+                                           href="{{ url_for('service_admin.create_final_result', result_id=result_id,
                                                 request_id=service_request.id, menu='test_item') }}"
-                                           {% else %}
-                                               href="{{ url_for('service_admin.create_final_result', request_id=service_request.id,
+                                                {% else %}
+                                           href="{{ url_for('service_admin.create_final_result', request_id=service_request.id,
                                                menu='test_item') }}"
-                                           {% endif %}
+                                                {% endif %}
                                         >
                                             <span class="icon"><i class="fas fa-download"></i></span>
                                             <span>ออกใบรายงานผล (ฉบับจริง)</span>
@@ -316,7 +317,7 @@
                                     </li>
                                 {% endif %}
                                 <li>
-                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth mb-2"
+                                    <a class="button is-link is-outlined is-rounded is-small is-fullwidth mb-2"
                                        href="{{ url_for('service_admin.export_request_pdf', request_id=service_request.id) }}"
                                     >
                                         <span class="icon"><i class="fas fa-clipboard-list"></i></span>
@@ -326,7 +327,7 @@
                                 {% if service_request.quotations %}
                                     {% for quotation in service_request.quotations %}
                                         <li>
-                                            <a class="button is-primary is-outlined is-rounded is-small is-fullwidth mb-2"
+                                            <a class="button is-link is-outlined is-rounded is-small is-fullwidth mb-2"
                                                href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation.id) }}"
                                             >
                                                 <span class="icon"><i class="fas fa-file-invoice"></i></span>
@@ -340,10 +341,24 @@
                                                        href="{{ url_for('service_admin.download_file', key=invoice.file,
                                                         download_filename=invoice.invoice_no ~ '.pdf') }}"
                                                     >
-                                                        <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                                                        <span class="icon"><i
+                                                                class="fas fa-file-invoice-dollar"></i></span>
                                                         <span>พิมพ์ใบแจ้งหนี้</span>
                                                     </a>
                                                 </li>
+                                                {% if invoice.receipts %}
+                                                    {% for receipt in invoice.receipts %}
+                                                        <li>
+                                                            <a class="button is-link is-outlined is-rounded is-small is-fullwidth mb-2"
+                                                               href="{{ url_for('receipt_printing.export_receipt_pdf', receipt_id=receipt.id) }}"
+                                                            >
+                                                                <span class="icon"><i
+                                                                        class="fas fa-file-invoice-dollar"></i></span>
+                                                                <span>พิมพ์ใบเสร็จรับเงิน</span>
+                                                            </a>
+                                                        </li>
+                                                    {% endfor %}
+                                                {% endif %}
                                             {% endif %}
                                         {% endfor %}
                                     {% endfor %}

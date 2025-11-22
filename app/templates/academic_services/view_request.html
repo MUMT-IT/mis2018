@@ -274,7 +274,7 @@
                                     </li>
                                 {% endif %}
                                 <li>
-                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth mb-2"
+                                    <a class="button is-link is-outlined is-rounded is-small is-fullwidth mb-2"
                                        href="{{ url_for('academic_services.export_request_pdf', request_id=service_request.id) }}"
                                     >
                                         <span class="icon"><i class="fas fa-clipboard-list"></i></span>
@@ -285,7 +285,7 @@
                                     {% for quotation in service_request.quotations %}
                                         {% if quotation.approved_at %}
                                             <li>
-                                                <a class="button is-primary is-outlined is-rounded is-small is-fullwidth mb-2"
+                                                <a class="button is-link is-outlined is-rounded is-small is-fullwidth mb-2"
                                                    href="{{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation.id) }}"
                                                 >
                                                     <span class="icon"><i class="fas fa-file-invoice"></i></span>
@@ -304,6 +304,19 @@
                                                             <span>พิมพ์ใบแจ้งหนี้</span>
                                                         </a>
                                                     </li>
+                                                    {% if invoice.receipts %}
+                                                        {% for receipt in invoice.receipts %}
+                                                            <li>
+                                                                <a class="button is-link is-outlined is-rounded is-small is-fullwidth mb-2"
+                                                                  href="{{ url_for('receipt_printing.export_receipt_pdf', receipt_id=receipt.id) }}"
+                                                                >
+                                                                <span class="icon"><i
+                                                                        class="fas fa-file-invoice-dollar"></i></span>
+                                                                    <span>พิมพ์ใบเสร็จรับเงิน</span>
+                                                                </a>
+                                                            </li>
+                                                        {% endfor %}
+                                                    {% endif %}
                                                 {% endif %}
                                             {% endfor %}
                                         {% endif %}
