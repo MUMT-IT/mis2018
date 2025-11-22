@@ -326,7 +326,7 @@ def request_index():
 
     status_groups = {
         'all': {
-            'id': [i for i in range(2, 22) if i != 7],
+            'id': list(range(2, 23)),
             'name': 'รายการทั้งหมด',
             'icon': '<i class="fas fa-list-ul"></i>'
         },
@@ -375,13 +375,12 @@ def request_index():
     }
 
     for key, group in status_groups.items():
+        group_id = [i for i in group['id'] if i != 7]
         query = ServiceRequest.query.filter(
-            ServiceRequest.status.has(ServiceStatus.status_id.in_(group['id'])
-                                      ), or_(ServiceRequest.admin.has(id=current_user.id),
-                                             ServiceRequest.sub_lab.has(
-                                                 ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-                                             )
-                                             )
+            ServiceRequest.status.has(ServiceStatus.status_id.in_(group_id)
+                                      ), ServiceRequest.sub_lab.has(
+                                            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+                                      )
         ).count()
 
         status_groups[key]['count'] = query
