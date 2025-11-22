@@ -864,7 +864,8 @@ class ServiceSample(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     appointment_date = db.Column('appointment_date', db.Date(), info={'label': 'วันนัดหมาย'})
     ship_type = db.Column('ship_type', db.String(), info={'label': 'วิธีการส่งตัวอย่าง'})
-    location = db.Column('location', db.String(), info={'label': 'สถานที่ส่งตัวอย่าง'})
+    location = db.Column('location', db.String())
+    location_name = db.Column('location_name', db.String())
     tracking_number = db.Column('tracking_number', db.String(), info={'label': 'เลขพัสดุ'})
     sample_integrity = db.Column('sample_integrity', db.String())
     packaging_sealed = db.Column('packaging_sealed', db.String())
@@ -888,7 +889,7 @@ class ServiceSample(db.Model):
             'id': self.id,
             'appointment_date': self.appointment_date,
             'ship_type': self.ship_type,
-            'location': self.location,
+            'location_name': self.location_name if self.location_name else None,
             'tracking_number': self.tracking_number,
             'note': self.note if self.note else None,
             'received_at': self.received_at,
