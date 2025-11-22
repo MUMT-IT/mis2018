@@ -2532,8 +2532,8 @@ def create_sample_appointment(sample_id):
                 if sample.appointment_date:
                     message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
                 if sample.location:
-                    message += f'''สถานที่นัดหมาย : {sample.location}\n'''
-                    if sample.location == 'คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล วิทยาเขตศาลายา':
+                    message += f'''สถานที่นัดหมาย : {sample.location_name}\n'''
+                    if sample.location == 'salaya':
                         message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.salaya_address}\n'''
                     else:
                         message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.siriraj_address}\n'''
@@ -2557,8 +2557,8 @@ def create_sample_appointment(sample_id):
                 if sample.appointment_date:
                     message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
                 if sample.location:
-                    message += f'''สถานที่นัดหมาย : {sample.location}\n'''
-                    if sample.location == 'คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล วิทยาเขตศาลายา':
+                    message += f'''สถานที่นัดหมาย : {sample.location_name}\n'''
+                    if sample.location == 'salaya':
                         message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.salaya_address}\n'''
                     else:
                         message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.siriraj_address}\n'''
