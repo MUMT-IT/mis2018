@@ -2512,7 +2512,7 @@ def create_sample_appointment(sample_id):
             if location == ('siriraj_address'):
                 sample.location = 'siriraj'
                 sample.location_name = 'คณะเทคนิคการแพทย์ โรงพยาบาลศิริราช วิทยาเขตบางกอกน้อย'
-            sample.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').datetime
+            sample.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').date()
         db.session.add(sample)
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
@@ -2539,6 +2539,9 @@ def create_sample_appointment(sample_id):
                         message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.siriraj_address}\n'''
                 else:
                     message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.address}\n'''
+                message += f'''เบอร์โทรศัพท์ : { service_request.sub_lab.lab.phone_number}\n'''
+                if service_request.sub_lab.lab.email:
+                    message += f'''เบอร์โทรศัพท์ : {service_request.sub_lab.lab.email}\n'''
                 message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
                 message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
                 message += f'''{link}\n\n'''
@@ -2564,6 +2567,9 @@ def create_sample_appointment(sample_id):
                         message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.siriraj_address}\n'''
                 else:
                     message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.address}\n'''
+                message += f'''เบอร์โทรศัพท์ : {service_request.sub_lab.lab.phone_number}\n'''
+                if service_request.sub_lab.lab.email:
+                    message += f'''เบอร์โทรศัพท์ : {service_request.sub_lab.lab.email}\n'''
                 message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n'''
                 message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
                 message += f'''{link}\n\n'''
