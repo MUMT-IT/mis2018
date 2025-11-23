@@ -153,7 +153,7 @@
                         render: function (data, type, row) {
                             if (row.quotation_confirmed_at) {
                                 let confirmed_at = moment(row.quotation_confirmed_at).format('lll')
-                                return`<div class="field">
+                                return `<div class="field">
                                             <div class="control">
                                                 ยืนยัน : ${confirmed_at}<br/>
                                                 <span class="tag is-success is-rounded">
@@ -164,7 +164,7 @@
                                        </div>`;
                             } else if (row.quotation_cancelled_at) {
                                 let cancelled_at = moment(row.quotation_cancelled_at).format('lll')
-                                return`<div class="field">
+                                return `<div class="field">
                                             <div class="control">
                                                 ยกเลิก : ${cancelled_at}<br/>
                                                 <span class="tag is-danger is-rounded">
@@ -183,7 +183,7 @@
                         render: function (data, type, row) {
                             if (row.sample_received_at) {
                                 let received_at = moment(row.sample_received_at).format('lll')
-                                return`<div class="field">
+                                return `<div class="field">
                                             <div class="control">
                                                 ส่ง : ${received_at}<br/>
                                                 <span class="tag is-light is-info is-rounded">
@@ -202,7 +202,7 @@
                         render: function (data, type, row) {
                             if (row.sample_test_at) {
                                 let test_at = moment(row.sample_test_at).format('lll')
-                                return`<div class="field">
+                                return `<div class="field">
                                             <div class="control">
                                                 ทดสอบ : ${test_at}<br/>
                                                 <span class="tag is-light is-link is-rounded">
@@ -221,7 +221,7 @@
                         render: function (data, type, row) {
                             if (row.verify_at) {
                                 let date = moment(row.paid_at).format('lll')
-                                return`<div class="field">
+                                return `<div class="field">
                                             <div class="control">
                                                 ชำระ : ${date}<br/>
                                                 <span class="tag is-success is-rounded">
@@ -231,7 +231,7 @@
                                             </div>
                                        </div>`;
                             } else if (row.paid_at) {
-                                return`<div class="field">
+                                return `<div class="field">
                                             <div class="control">
                                                 <span class="tag is-light is-rounded">
                                                     <span class="icon"><i class="fas fa-hourglass-half"></i></span>
@@ -250,7 +250,7 @@
                             if (row.result_approved_at && row.result_edit_at) {
                                 let edit_at = moment(row.result_edit_at).format('lll')
                                 let approved_at = moment(row.result_approved_at).format('lll')
-                                return`<div class="field">
+                                return `<div class="field">
                                             <div class="control">
                                                 ขอแก้ไข : ${edit_at}<br/>
                                                 ยืนยัน : ${approved_at}<br/>
@@ -262,7 +262,7 @@
                                        </div>`;
                             } else if (row.result_approved_at && !row.result_edit_at) {
                                 let approved_at = moment(row.result_approved_at).format('lll')
-                                return`<div class="field">
+                                return `<div class="field">
                                             <div class="control">
                                                 ยืนยัน : ${approved_at}<br/>
                                                 <span class="tag is-light is-success is-rounded">
@@ -305,7 +305,63 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.is_completed) {
+                            var request_url = '/academic_services/request/view/' + data + '?menu=' + '{{ menu }}';
+                            if (row.status_id == 5) {
+                                var quotation_url = '/academic_services/quotation/view/' + row.quotation_id + '?menu=quotation';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>แสดงใบคำขอร้บบริการ</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-rounded is-success" ' + 'href=' + quotation_url + '>' +
+                                    '<span class="icon"><i class="fas fa-check-circle"></i></span>' +
+                                    '<span>ยืนยันใบเสนอราคา</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (row.status_id == 6 || row.status_id == 8) {
+                                var sample_url = '/academic_services/customer/sample/add/' + row.sample_id + '?menu=sample';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>แสดงใบคำขอร้บบริการ</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-rounded is-warning" ' + 'href=' + sample_url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>นัดหมายส่งตัวอย่าง</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (row.status_id == 20) {
+                                var payment_url = '/academic_services/customer/payment/add?invoice_id=' + row.invoice_id + '&menu=invoice';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>แสดงใบคำขอร้บบริการ</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-rounded is-warning" ' + 'href=' + payment_url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>อัปโหลดหลักฐานการชำระเงิน</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+
+                            } else if (row.is_completed) {
                                 var url = '/academic_services/request/view/' + data + '?menu=' + '{{ menu }}';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -315,39 +371,6 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>';
-                                if (row.status_id == 5) {
-                                    var url = '/academic_services/quotation/view/' + data.id + '?menu=quotation';
-                                    return '<div class="field has-addons">' +
-                                        '<div class="control">' +
-                                        '<a class="button is-small is-rounded is-success" ' + 'href=' + url + '>' +
-                                        '<span class="icon"><i class="fas fa-check-circle"></i></span>' +
-                                        '<span>ยืนยันใบเสนอราคา</span>' +
-                                        '</a>' +
-                                        '</div>' +
-                                        '</div>'
-                                } else if (row.status_id == 6 || row.status_id == 8) {
-                                    var url = '/academic_services/customer/sample/add/' + data.id + '?menu=sample';
-                                    return '<div class="field has-addons">' +
-                                        '<div class="control">' +
-                                        '<a class="button is-small is-rounded is-warning" ' + 'href=' + url + '>' +
-                                        '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                        '<span>นัดหมายส่งตัวอย่าง</span>' +
-                                        '</a>' +
-                                        '</div>' +
-                                        '</div>'
-                                } else if (row.status_id == 20) {
-                                    var url = '/academic_services/customer/payment/add?invoice_id=' + row.invoice_id + '&menu=invoice';
-                                    return '<div class="field has-addons">' +
-                                        '<div class="control">' +
-                                        '<a class="button is-small is-rounded is-warning" ' + 'href=' + url + '>' +
-                                        '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                        '<span>อัปโหลดหลักฐานการชำระเงิน</span>' +
-                                        '</a>' +
-                                        '</div>' +
-                                        '</div>'
-                                } else {
-                                    return ''
-                                }
                             } else {
                                 return ''
                             }
@@ -356,7 +379,7 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                             if (!row.is_completed) {
+                            if (!row.is_completed) {
                                 var url = '/academic_services/portal/request?code=' + row.code + '&menu=' +
                                     '{{ menu }}' + '&request_id=' + data;
                                 return '<div class="field has-addons">' +
@@ -367,8 +390,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>';
-                            }
-                            else if (row.status_id === 1) {
+                            } else if (row.status_id === 1) {
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-danger is-rounded" onclick="vm.warn(' + data + ')">' +
@@ -418,7 +440,8 @@
                     }
                 })
             });
-        });
+        })
+        ;
         vm = new Vue({
             el: '#app',
             methods: {

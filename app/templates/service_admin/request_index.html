@@ -343,7 +343,157 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.is_completed) {
+                            var request_url = '/service_admin/request/view/' + data + '?menu=' + '{{ menu }}';
+                            var admin = '{{ admin }}';
+                            var supervisor = '{{ supervisor }}';
+                            var assistant = '{{ assistant }}';
+                            if (admin == 'True' && row.status_id == 2 && row.is_completed) {
+                                var quotation_url = '/service_admin/quotation/generate?request_id=' + data + '&tab=draft' + '&menu=quotation';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-rounded is-info" ' + 'href=' + quotation_url + '>' +
+                                    '<span class="icon"><i class="fas fa-file-signature"></i></span>' +
+                                    '<span>ออกใบเสนอราคา</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (admin == 'True'  && row.status_id == 3) {
+                                var quotation_url = '/service_admin/admin/quotation/add/' + row.quotation_id + '?tab=draft' + '&menu=quotation';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + quotation_url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>แก้ไข</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (supervisor == 'True' && row.status_id == 4) {
+                                var quotaiton_url = '/service_admin/quotation/supervisor/approve/' + row.quotation_id + '?tab=pending_approval&menu=quotation';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + quotaiton_url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>อนุมัติราคา</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (row.status_id == 9) {
+                                var sample_url = '/service_admin/sample/verification/add/' + row.sample_id + '?menu=sample';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-warning is-rounded" ' + 'href=' + sample_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-clipboard-check"></i>' +
+                                    '</span>' +
+                                    '<span>ดำเนินการและยืนยันรับตัวอย่าง</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (row.status_id == 13) {
+                                var invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '?menu=invoice';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-outlined is-rounded is-link" ' + 'href=' + invoice_url + '>' +
+                                    '<span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>' +
+                                    '<span>รอออกใบแจ้งหนี้</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (row.status_id == 16) {
+                                var invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + invoice_url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>ร่างใบแจ้งหนี้</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (supervisor == 'True' && row.status_id == 17) {
+                                var invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + invoice_url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>รออนุมัติใบแจ้งหนี้</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (assistant == 'True' && row.status_id == 18) {
+                                var invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + invoice_url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>รออนุมัติใบแจ้งหนี้</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (row.is_completed) {
                                 var url = '/service_admin/request/view/' + data + '?menu=' + '{{ menu }}';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
