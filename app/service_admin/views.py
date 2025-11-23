@@ -2055,9 +2055,33 @@ def address_index(customer_id):
 def invoice_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
+    expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
     is_central_admin = ServiceAdmin.query.filter_by(admin_id=current_user.id, is_central_admin=True).first()
-    return render_template('service_admin/invoice_index.html', menu=menu, tab=tab,
-                           is_central_admin=is_central_admin)
+    query = ServiceInvoice.query.filter(or_(ServiceInvoice.creator_id == current_user.id,
+                                            ServiceInvoice.quotation.has(ServiceQuotation.request.has(
+                                                ServiceRequest.sub_lab.has(
+                                                    ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+                                                )))))
+    draft_count = query.filter(ServiceInvoice.sent_at == None, ServiceInvoice.head_approved_at == None,
+                             ServiceInvoice.assistant_approved_at == None, ServiceInvoice.file_attached_at == None,
+                             ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
+    pending_supervisor_count = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at == None,
+                             ServiceInvoice.assistant_approved_at == None, ServiceInvoice.file_attached_at == None,
+                             ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
+    pending_assistant_count = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at != None,
+                             ServiceInvoice.assistant_approved_at == None, ServiceInvoice.file_attached_at == None,
+                             ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
+    pending_dean_count = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at != None,
+                             ServiceInvoice.assistant_approved_at != None, ServiceInvoice.file_attached_at == None,
+                             ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
+    waiting_payment_count = query.filter(or_(ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None))
+    payment_count = query.filter(ServiceInvoice.verify_at >= expire_time).count()
+    all_count = (draft_count + pending_dean_count + pending_assistant_count + pending_supervisor_count +
+                 waiting_payment_count + payment_count)
+    return render_template('service_admin/invoice_index.html', menu=menu, tab=tab, all_count=all_count,
+                           draft_count=draft_count, pending_supervisor_count=pending_supervisor_count, pending_assistant_count=pending_assistant_count,
+                           pending_dean_count=pending_dean_count, waiting_payment_count=waiting_payment_count,
+                           payment_count=payment_count, is_central_admin=is_central_admin)
 
 
 @service_admin.route('/api/invoice/index')
