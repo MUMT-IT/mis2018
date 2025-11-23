@@ -2700,7 +2700,18 @@ def payment_index():
 def invoice_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
-    return render_template('academic_services/invoice_index.html', menu=menu, tab=tab)
+    today = arrow.now('Asia/Bangkok').date()
+    expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
+    query = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at != None, ServiceInvoice.quotation.has(
+        ServiceQuotation.request.has(customer_id=current_user.id)))
+    pending_count = query.filter(ServiceInvoice.paid_at == None, today <= ServiceInvoice.due_date).count()
+    verify_count = query.filter(ServiceInvoice.is_paid == False).count()
+    payment_count = query.filter(ServiceInvoice.verify_at >= expire_time).count()
+    overdue_count = query.filter(today > ServiceInvoice.due_date, ServiceInvoice.paid_at == None).count()
+    all_count = pending_count + verify_count + payment_count + overdue_count
+    return render_template('academic_services/invoice_index.html', menu=menu, tab=tab, all_count=all_count,
+                           pending_count=pending_count, verify_count=verify_count, payment_count=payment_count,
+                           overdue_count=overdue_count)
 
 
 @academic_services.route('/api/invoice/index')
