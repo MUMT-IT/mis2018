@@ -1160,7 +1160,20 @@ def view_sample_appointment(sample_id):
 def test_item_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
-    return render_template('service_admin/test_item_index.html', menu=menu, tab=tab)
+    query = ServiceTestItem.query.filter(ServiceTestItem.request.has(ServiceRequest.sub_lab.has(
+        ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+    )))
+    not_started_count = query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 10))).count()
+    testing_count = query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(or_(ServiceStatus.status_id == 11,
+                                                                                       ServiceStatus.status_id == 12,
+                                                                                       ServiceStatus.status_id == 15)))).count()
+    edit_report_count = query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 14))).count()
+    pending_invoice_count =  query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 13))).count()
+    invoice_count = query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id >= 16))).count()
+    all_count = not_started_count + testing_count + edit_report_count + pending_invoice_count + invoice_count
+    return render_template('service_admin/test_item_index.html', menu=menu, tab=tab, not_started_count=not_started_count,
+                           testing_count=testing_count, edit_report_count=edit_report_count, pending_invoice_count=pending_invoice_count,
+                           invoice_count=invoice_count, all_count=all_count)
 
 
 @service_admin.route('/api/test-item/index')
@@ -1181,6 +1194,8 @@ def get_test_items():
         query = query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 13)))
     elif tab == 'invoice':
         query = query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id >= 16)))
+    else:
+        query = query
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
