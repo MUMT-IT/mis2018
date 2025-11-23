@@ -74,7 +74,6 @@
                 <table id='requests' class="table is-fullwidth">
                     <thead>
                     <th>เลขใบคำร้องขอ</th>
-                    <th>วัน-เวลาทีส่ง</th>
                     <th>ผู้ส่ง</th>
                     <th>สถานะ</th>
                     <th>ใบเสนอราคา</th>
@@ -107,21 +106,16 @@
                 columns: [
                     {data: 'request_no'},
                     {
-                        data: 'created_at',
-                        render: function (data) {
-                            if (data !== '') {
-                                let d = moment(data)
-                                return d.format('lll')
-                            } else {
-                                return '-'
-                            }
-                        }
-                    },
-                    {
-                        data: 'sender',
-                        render: function (data) {
-                            if (data !== null) {
-                                return data
+                        data: null,
+                        render: function (data, type, row) {
+                            if (row.sender) {
+                                let created_at = moment(row.created_at).format('lll')
+                                return`<div class="field">
+                                            <div class="control">
+                                                ${row.sender}<br/>
+                                                ${created_at}
+                                            </div>
+                                       </div>`;
                             } else {
                                 return ''
                             }
@@ -140,121 +134,209 @@
                         }
                     },
                     {
-                        data: 'quotation_status_for_admin',
+                        data: null,
                         render: function (data, type, row) {
-                            var admin = '{{ admin }}';
-                            var supervisor = '{{ supervisor }}';
-                            if (admin == 'True' && row.status_id == 2 && row.is_completed) {
-                                var url = '/service_admin/quotation/generate?request_id=' + row.id + '&tab=draft' + '&menu=quotation';
-                                return '<div class="field has-addons">' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-rounded is-info" ' + 'href=' + url + '>' +
-                                    '<span class="icon"><i class="fas fa-file-signature"></i></span>' +
-                                    '<span>ออกใบเสนอราคา</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '</div>'
-                            } else if (admin == 'True'  && row.status_id == 3) {
-                                var url = '/service_admin/admin/quotation/add/' + data.id + '?tab=draft' + '&menu=quotation';
-                                return '<div class="field has-addons">' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
-                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                    '<span>แก้ไข</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '</div>'
-                            } else if (supervisor == 'True' && row.status_id == 4) {
-                                var url = '/service_admin/quotation/supervisor/approve/' + data.id + '?tab=pending_approval&menu=quotation';
-                                return '<div class="field has-addons">' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
-                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                    '<span>อนุมัติราคา</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '</div>'
-                            } else if (data.status == 'รอลูกค้าอนุมัติใบเสนอราคา' || data.status == 'ลูกค้าอนุมัติใบเสนอราคา') {
-                                var url = '/service_admin/quotation/view/' + data.id + '?menu=quotation';
-                                return '<div class="field has-addons">' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-outlined is-rounded is-link" ' + 'href=' + url + '>' +
-                                    '<span class="icon"><i class="fas fa-file-invoice"></i></span>' +
-                                    '<span>ใบเสนอราคา</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '</div>'
-                            } else if (data.status == 'ลูกค้าไม่อนุมัติใบเสนอราคา'){
-                                return 'เหตุผลที่ลูกค้าไม่อนุมัติ เนื่องจาก' + data.reason;
+                            if (row.quotation_confirmed_at) {
+                                let approved_at = moment(row.quotation_approved_at).format('lll')
+                                let confirmed_at = moment(row.quotation_confirmed_at).format('lll')
+                                return`<div class="field">
+                                            <div class="control">
+                                                อนุมัติ : ${approved_at}<br/>
+                                                ยืนยัน : ${confirmed_at}<br/>
+                                                <span class="tag is-success is-rounded">
+                                                    <span class="icon"><i class="fas fa-check-circle"></i></span>
+                                                    <span>ยืนยันแล้ว</span>
+                                                </span>
+                                            </div>
+                                       </div>`;
+                            } else if (row.quotation_cancelled_at) {
+                                let cancelled_at = moment(row.quotation_cancelled_at).format('lll')
+                                return`<div class="field">
+                                            <div class="control">
+                                                ยกเลิก : ${cancelled_at}<br/>
+                                                <span class="tag is-danger is-rounded">
+                                                    <span class="icon"><i class="fas fa-times"></i></span>
+                                                    <span>ยกเลิกแล้ว</span>
+                                                </span>
+                                            </div>
+                                       </div>`;
+                            } else if (row.quotation_approved_at) {
+                                let approved_at = moment(row.quotation_approved_at).format('lll')
+                                return`<div class="field">
+                                            <div class="control">
+                                                อนุมัติ : ${approved_at}<br/>
+                                                <span class="tag is-light is-rounded">
+                                                    <span class="icon"><i class="fas fa-hourglass-half"></i></span>
+                                                    <span>รอลูกค้ายืนยัน</span>
+                                                </span>
+                                            </div>
+                                       </div>`;
+                            } else if (row.quotation_sent_at) {
+                                let sent_at = moment(row.quotation_sent_at).format('lll')
+                                return `<div class="field">
+                                            <div class="control">
+                                                ส่ง : ${sent_at}<br/>
+                                                <span class="tag is-warning is-rounded">
+                                                    <span class="icon"><i class="fas fa-hourglass-half"></i></span>
+                                                    <span>รอหัวหน้าอนุมัติ</span>
+                                                </span>
+                                            </div>
+                                       </div>`;
                             } else {
-                                return ''
+                                return '';
                             }
                         }
                     },
                     {
-                        data: 'sample_appointment_status_for_admin',
+                        data: null,
                         render: function (data, type, row) {
-                            if (data.id !== null && data.status != 'รอรับตัวอย่าง') {
-                                return `<span class="tag ${data.color}">
-                                            <span class="icon">${data.icon}</span>
-                                            <span>${data.status}</span>
-                                        </span>`;
-                            } else if (data.status == 'รอรับตัวอย่าง') {
-                                var sample_url = '/service_admin/sample/verification/add/' + data.id + '?menu=sample';
-                                return '<div class="field has-addons">' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-warning is-rounded" ' + 'href=' + sample_url + '>' +
-                                    '<span class="icon">' +
-                                    '<i class="fas fa-clipboard-check"></i>' +
-                                    '</span>' +
-                                    '<span>ดำเนินการและยืนยันรับตัวอย่าง</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '</div>'
-                            }
-                                else {
-                                return ''
+                            if (row.sample_received_at) {
+                                let received_at = moment(row.sample_received_at).format('lll')
+                                return`<div class="field">
+                                            <div class="control">
+                                                รับ : ${received_at}<br/>
+                                                <span class="tag is-light is-info is-rounded">
+                                                    <span class="icon"><i class="fas fa-check-circle"></i></span>
+                                                    <span>รับตัวอย่างแล้ว</span>
+                                                </span>
+                                            </div>
+                                       </div>`;
+                            } else {
+                                return '';
                             }
                         }
                     },
                     {
-                        data: 'test_item_status',
+                        data: null,
                         render: function (data, type, row) {
-                            if (data.status !== null) {
-                                return `<span class="tag ${data.color}">
-                                            <span class="icon">${data.icon}</span>
-                                            <span>${data.status}</span>
-                                        </span>`;
+                            if (row.sample_test_at) {
+                                let test_at = moment(row.sample_test_at).format('lll')
+                                return`<div class="field">
+                                            <div class="control">
+                                                ทดสอบ : ${test_at}<br/>
+                                                <span class="tag is-light is-link is-rounded">
+                                                    <span class="icon"><i class="fas fa-check-circle"></i></span>
+                                                    <span>ทดสอบตัวอย่างแล้ว</span>
+                                                </span>
+                                            </div>
+                                       </div>`;
                             } else {
-                                return ''
+                                return '';
                             }
                         }
                     },
                     {
-                        data: 'invoice_status_for_admin',
-                        render: function (data) {
-                            if (data.id !== null) {
-                                var url = '/service_admin/invoice/view/' + data.id + '?menu=invoice';
-                                return '<div class="field has-addons">' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-outlined is-rounded is-link" ' + 'href=' + url + '>' +
-                                    '<span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>' +
-                                    '<span>ใบแจ้งหนี้</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '</div>'
+                        data: null,
+                        render: function (data, type, row) {
+                            if (row.is_paid) {
+                                let paid_at = moment(row.paid_at).format('lll')
+                                return`<div class="field">
+                                            <div class="control">
+                                                ชำระ : ${paid_at}<br/>
+                                                <span class="tag is-success is-rounded">
+                                                    <span class="icon"><i class="fas fa-check-circle"></i></span>
+                                                    <span>ชำระเงินแล้ว</span>
+                                                </span>
+                                            </div>
+                                       </div>`;
+                            } else if (row.paid_at) {
+                                return`<div class="field">
+                                            <div class="control">
+                                                <span class="tag is-light is-rounded">
+                                                    <span class="icon"><i class="fas fa-hourglass-half"></i></span>
+                                                    <span>รอฝ่ายการเงินตรวจสอบ</span>
+                                                </span>
+                                            </div>
+                                       </div>`;
+                            } else if (row.invoice_file_attached_at) {
+                                let file_attached_at = moment(row.invoice_file_attached_at).format('lll')
+                                return`<div class="field">
+                                            <div class="control">
+                                                ส่ง : ${file_attached_at}<br/>
+                                                <span class="tag is-light is-rounded">
+                                                    <span class="icon"><i class="fas fa-hourglass-half"></i></span>
+                                                    <span>รอลูกค้าชำระเงิน</span>
+                                                </span>
+                                            </div>
+                                       </div>`;
+                            } else if (row.invoice_assistant_approved_at) {
+                                let assistant_approved_at = moment(row.nvoice_assistant_approved_at).format('lll')
+                                return `<div class="field">
+                                            <div class="control">
+                                                ผู้ช่วยคณบดีอนุมัติ : ${assistant_approved_at}<br/>
+                                                <span class="tag is-warning is-rounded">
+                                                    <span class="icon"><i class="fas fa-hourglass-half"></i></span>
+                                                    <span>รอคณบดีลงนาม</span>
+                                                </span>
+                                            </div>
+                                       </div>`;
+                            } else if (row.invoice_head_approved_at) {
+                                let head_approved_at = moment(row.nvoice_head_approved_at).format('lll')
+                                return `<div class="field">
+                                            <div class="control">
+                                                หัวหน้าอนุมัติ : ${head_approved_at}<br/>
+                                                <span class="tag is-warning is-rounded">
+                                                    <span class="icon"><i class="fas fa-hourglass-half"></i></span>
+                                                    <span>รอผู้ช่วยคณบดีอนุมัติ</span>
+                                                </span>
+                                            </div>
+                                       </div>`;
+                            } else if (row.invoice_sent_at) {
+                                let sent_at = moment(row.nvoice_sent_at).format('lll')
+                                return `<div class="field">
+                                            <div class="control">
+                                                ส่ง : ${sent_at}<br/>
+                                                <span class="tag is-warning is-rounded">
+                                                    <span class="icon"><i class="fas fa-hourglass-half"></i></span>
+                                                    <span>รอหัวหน้าอนุมัติ</span>
+                                                </span>
+                                            </div>
+                                       </div>`;
                             } else {
-                                return ''
+                                return '';
                             }
                         }
                     },
                     {
-                        data: 'files',
+                        data: null,
                         render: function (data, type, row) {
-                            if (data !== null) {
-                                 return data
+                            if (row.result_approved_at && row.result_edit_at) {
+                                let edit_at = moment(row.result_edit_at).format('lll')
+                                let approved_at = moment(row.result_approved_at).format('lll')
+                                return`<div class="field">
+                                            <div class="control">
+                                                ขอแก้ไข : ${edit_at}<br/>
+                                                ยืนยัน : ${approved_at}<br/>
+                                                <span class="tag is-light is-success is-rounded">
+                                                    <span class="icon"><i class="fas fa-check-circle"></i></span>
+                                                    <span>ยืนยันผลแล้ว</span>
+                                                </span>
+                                            </div>
+                                       </div>`;
+                            } else if (row.result_approved_at && !row.result_edit_at) {
+                                let approved_at = moment(row.result_approved_at).format('lll')
+                                return`<div class="field">
+                                            <div class="control">
+                                                ยืนยัน : ${approved_at}<br/>
+                                                <span class="tag is-light is-info is-rounded">
+                                                    <span class="icon"><i class="fas fa-check-circle"></i></span>
+                                                    <span>ยืนยันผลแล้ว</span>
+                                                </span>
+                                            </div>
+                                       </div>`;
+                            } else if (!row.result_approved_at && row.result_edit_at) {
+                                let edit_at = moment(row.result_edit_at).format('lll')
+                                return `<div class="field">
+                                            <div class="control">
+                                                ขอแก้ไข : ${edit_at}<br/>
+                                                <span class="tag is-light is-warning is-rounded">
+                                                    <span class="icon"><i class="fas fa-hourglass-half"></i></span>
+                                                    <span>รอดำเนินการแก้ไข</span>
+                                                </span>
+                                            </div>
+                                       </div>`;
                             } else {
-                                return ''
+                                return '';
                             }
                         }
                     },
