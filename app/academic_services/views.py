@@ -1945,7 +1945,15 @@ def request_quotation(request_id):
 def quotation_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
-    return render_template('academic_services/quotation_index.html', menu=menu, tab=tab)
+    expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
+    query = ServiceQuotation.query.filter(ServiceQuotation.request.has(customer_id=current_user.id),
+                                          ServiceQuotation.approved_at != None)
+    pending_count = query.filter(ServiceQuotation.confirmed_at == None, ServiceQuotation.cancelled_at == None).count()
+    confirm_count = query.filter(ServiceQuotation.confirmed_at >= expire_time).count()
+    cancel_count = query.filter(ServiceQuotation.cancelled_at >= expire_time).count()
+    all_count = pending_count + confirm_count + cancel_count
+    return render_template('academic_services/quotation_index.html', menu=menu, tab=tab, all_count=all_count,
+                           pending_count=pending_count, cancel_count=cancel_count, confirm_count=confirm_count)
 
 
 @academic_services.route('/api/quotation/index')
@@ -2474,6 +2482,7 @@ def submit_same_address(address_id):
 def sample_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
+    expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
     samples = ServiceSample.query.filter(ServiceSample.request.has(customer_id=current_user.id))
     if tab == 'schedule':
         samples = samples.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
@@ -2485,7 +2494,15 @@ def sample_index():
         samples = samples.filter(ServiceSample.received_at != None)
     else:
         samples = samples
-    return render_template('academic_services/sample_index.html', samples=samples, menu=menu, tab=tab)
+    schedule_count = samples.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
+                                 ServiceSample.received_at == None).count()
+    delivery_count = samples.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
+                                 ServiceSample.received_at == None).count()
+    received_count = samples.filter(ServiceSample.received_at >= expire_time).count()
+    all_count = schedule_count + delivery_count + received_count
+    return render_template('academic_services/sample_index.html', samples=samples, menu=menu, tab=tab,
+                           schedule_count=schedule_count, delivery_count=delivery_count, received_count=received_count,
+                           all_count=all_count)
 
 
 @academic_services.route('/customer/sample/add/<int:sample_id>', methods=['GET', 'POST'])
