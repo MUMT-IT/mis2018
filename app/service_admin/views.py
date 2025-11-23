@@ -241,22 +241,22 @@ def menu():
             position = 'Admin'
 
         request_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-                    ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)), ServiceRequest.status.has(
+            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)), ServiceRequest.status.has(
             ServiceStatus.status_id.notin_([7, 22, 23]))).count()
         quotation_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-                    ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
+            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
             ServiceRequest.status.has(ServiceStatus.status_id.in_([3, 4, 5]))).count()
         sample_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-                    ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
+            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
             ServiceRequest.status.has(ServiceStatus.status_id.in_([6, 8, 9]))).count()
         test_item_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-                    ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
+            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
             ServiceRequest.status.has(ServiceStatus.status_id.in_([10, 11, 12, 13, 14, 15]))).count()
         invoice_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-                    ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
+            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
             ServiceRequest.status.has(ServiceStatus.status_id.in_([16, 17, 18, 19, 20, 21]))).count()
         report_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-                    ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
+            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
             ServiceRequest.status.has(ServiceStatus.status_id.in_([11, 12, 14, 15]))).count()
     return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin, position=position,
                 request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
@@ -379,8 +379,8 @@ def request_index():
         query = ServiceRequest.query.filter(
             ServiceRequest.status.has(ServiceStatus.status_id.in_(group_ids)
                                       ), ServiceRequest.sub_lab.has(
-                                            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-                                      )
+                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+            )
         ).count()
 
         status_groups[key]['count'] = query
@@ -1057,9 +1057,9 @@ def sample_index():
         ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
     )))
     schedule_count = query.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
-                             ServiceSample.received_at == None).count()
+                                  ServiceSample.received_at == None).count()
     delivery_count = query.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
-                             ServiceSample.received_at == None).count()
+                                  ServiceSample.received_at == None).count()
     received_count = query.filter(ServiceSample.received_at >= expire_time).count()
     all_count = schedule_count + delivery_count + received_count
     return render_template('service_admin/sample_index.html', menu=menu, tab=tab, schedule_count=schedule_count,
@@ -1163,16 +1163,23 @@ def test_item_index():
     query = ServiceTestItem.query.filter(ServiceTestItem.request.has(ServiceRequest.sub_lab.has(
         ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
     )))
-    not_started_count = query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 10))).count()
-    testing_count = query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(or_(ServiceStatus.status_id == 11,
-                                                                                       ServiceStatus.status_id == 12,
-                                                                                       ServiceStatus.status_id == 15)))).count()
-    edit_report_count = query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 14))).count()
-    pending_invoice_count =  query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 13))).count()
-    invoice_count = query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id >= 16))).count()
+    not_started_count = query.filter(
+        ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 10))).count()
+    testing_count = query.filter(
+        ServiceTestItem.request.has(ServiceRequest.status.has(or_(ServiceStatus.status_id == 11,
+                                                                  ServiceStatus.status_id == 12,
+                                                                  ServiceStatus.status_id == 15)))).count()
+    edit_report_count = query.filter(
+        ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 14))).count()
+    pending_invoice_count = query.filter(
+        ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 13))).count()
+    invoice_count = query.filter(
+        ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id >= 16))).count()
     all_count = not_started_count + testing_count + edit_report_count + pending_invoice_count + invoice_count
-    return render_template('service_admin/test_item_index.html', menu=menu, tab=tab, not_started_count=not_started_count,
-                           testing_count=testing_count, edit_report_count=edit_report_count, pending_invoice_count=pending_invoice_count,
+    return render_template('service_admin/test_item_index.html', menu=menu, tab=tab,
+                           not_started_count=not_started_count,
+                           testing_count=testing_count, edit_report_count=edit_report_count,
+                           pending_invoice_count=pending_invoice_count,
                            invoice_count=invoice_count, all_count=all_count)
 
 
@@ -1758,13 +1765,31 @@ def export_request_pdf(request_id):
     return send_file(buffer, download_name='Request_form.pdf', as_attachment=True)
 
 
-
 @service_admin.route('/result/index')
 @login_required
 def result_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
-    return render_template('service_admin/result_index.html', menu=menu, tab=tab)
+    query = ServiceResult.query.filter(or_(ServiceResult.creator_id == current_user.id,
+                                           ServiceResult.request.has(ServiceRequest.sub_lab.has(
+                                               ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+                                           )
+                                           )
+                                           )
+                                       )
+    pending_count = query.filter(or_(ServiceResult.status_id == None,
+                                 ServiceResult.status.has(or_(
+                                     ServiceStatus.status_id == 10, ServiceStatus.status_id == 11)
+                                 )
+                                 )
+                             ).count()
+    edit_count = query.filter(ServiceResult.status.has(ServiceStatus.status_id == 14)).count()
+    approve_count = query.filter(
+            ServiceResult.status.has(or_(ServiceStatus.status_id == 12, ServiceStatus.status_id == 15))).count()
+    confirm_count = query.filter(ServiceResult.status.has(ServiceStatus.status_id == 13)).count()
+    all_count = pending_count + edit_count + approve_count + confirm_count
+    return render_template('service_admin/result_index.html', menu=menu, tab=tab, pending_count=pending_count,
+                           edit_count=edit_count, approve_count=approve_count, confirm_count=confirm_count, all_count=all_count)
 
 
 @service_admin.route('/api/result/index')
@@ -2063,23 +2088,27 @@ def invoice_index():
                                                     ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
                                                 )))))
     draft_count = query.filter(ServiceInvoice.sent_at == None, ServiceInvoice.head_approved_at == None,
-                             ServiceInvoice.assistant_approved_at == None, ServiceInvoice.file_attached_at == None,
-                             ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
+                               ServiceInvoice.assistant_approved_at == None, ServiceInvoice.file_attached_at == None,
+                               ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
     pending_supervisor_count = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at == None,
-                             ServiceInvoice.assistant_approved_at == None, ServiceInvoice.file_attached_at == None,
-                             ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
+                                            ServiceInvoice.assistant_approved_at == None,
+                                            ServiceInvoice.file_attached_at == None,
+                                            ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
     pending_assistant_count = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at != None,
-                             ServiceInvoice.assistant_approved_at == None, ServiceInvoice.file_attached_at == None,
-                             ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
+                                           ServiceInvoice.assistant_approved_at == None,
+                                           ServiceInvoice.file_attached_at == None,
+                                           ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
     pending_dean_count = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at != None,
-                             ServiceInvoice.assistant_approved_at != None, ServiceInvoice.file_attached_at == None,
-                             ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
-    waiting_payment_count = query.filter(or_(ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None))
+                                      ServiceInvoice.assistant_approved_at != None,
+                                      ServiceInvoice.file_attached_at == None,
+                                      ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
+    waiting_payment_count = query.filter(or_(ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None)).count()
     payment_count = query.filter(ServiceInvoice.verify_at >= expire_time).count()
     all_count = (draft_count + pending_dean_count + pending_assistant_count + pending_supervisor_count +
                  waiting_payment_count + payment_count)
     return render_template('service_admin/invoice_index.html', menu=menu, tab=tab, all_count=all_count,
-                           draft_count=draft_count, pending_supervisor_count=pending_supervisor_count, pending_assistant_count=pending_assistant_count,
+                           draft_count=draft_count, pending_supervisor_count=pending_supervisor_count,
+                           pending_assistant_count=pending_assistant_count,
                            pending_dean_count=pending_dean_count, waiting_payment_count=waiting_payment_count,
                            payment_count=payment_count, is_central_admin=is_central_admin)
 
@@ -2828,25 +2857,30 @@ def quotation_index():
                 ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
             ))))
     draft_count = query.filter(ServiceQuotation.sent_at == None, ServiceQuotation.approved_at == None,
-                             ServiceQuotation.confirmed_at == None,
-                             ServiceQuotation.cancelled_at == None).count()
-    pending_approval_for_supervisor_count = query.filter(ServiceQuotation.sent_at != None, ServiceQuotation.approved_at == None,
-                             ServiceQuotation.confirmed_at == None,
-                             ServiceQuotation.cancelled_at == None).count()
-    pending_confirm_for_customer_count = query.filter(ServiceQuotation.sent_at != None, ServiceQuotation.approved_at != None,
-                             ServiceQuotation.confirmed_at == None,
-                             ServiceQuotation.cancelled_at == None).count()
+                               ServiceQuotation.confirmed_at == None,
+                               ServiceQuotation.cancelled_at == None).count()
+    pending_approval_for_supervisor_count = query.filter(ServiceQuotation.sent_at != None,
+                                                         ServiceQuotation.approved_at == None,
+                                                         ServiceQuotation.confirmed_at == None,
+                                                         ServiceQuotation.cancelled_at == None).count()
+    pending_confirm_for_customer_count = query.filter(ServiceQuotation.sent_at != None,
+                                                      ServiceQuotation.approved_at != None,
+                                                      ServiceQuotation.confirmed_at == None,
+                                                      ServiceQuotation.cancelled_at == None).count()
     confirm_count = query.filter(ServiceQuotation.sent_at != None, ServiceQuotation.approved_at != None,
-                             ServiceQuotation.confirmed_at >= expire_time,
-                             ServiceQuotation.cancelled_at == None).count()
+                                 ServiceQuotation.confirmed_at >= expire_time,
+                                 ServiceQuotation.cancelled_at == None).count()
     cancel_count = query.filter(ServiceQuotation.sent_at != None, ServiceQuotation.approved_at != None,
-                             ServiceQuotation.confirmed_at == None,
-                             ServiceQuotation.cancelled_at >= expire_time).count()
-    all_count = (draft_count + pending_approval_for_supervisor_count + pending_confirm_for_customer_count + confirm_count +
-            cancel_count)
+                                ServiceQuotation.confirmed_at == None,
+                                ServiceQuotation.cancelled_at >= expire_time).count()
+    all_count = (
+                draft_count + pending_approval_for_supervisor_count + pending_confirm_for_customer_count + confirm_count +
+                cancel_count)
     return render_template('service_admin/quotation_index.html', tab=tab, menu=menu, is_admin=is_admin,
-                           is_supervisor=is_supervisor, draft_count=draft_count, pending_confirm_for_customer_count=pending_confirm_for_customer_count,
-                           pending_approval_for_supervisor_count=pending_confirm_for_customer_count, confirm_count=confirm_count,
+                           is_supervisor=is_supervisor, draft_count=draft_count,
+                           pending_confirm_for_customer_count=pending_confirm_for_customer_count,
+                           pending_approval_for_supervisor_count=pending_confirm_for_customer_count,
+                           confirm_count=confirm_count,
                            cancel_count=cancel_count, all_count=all_count)
 
 
