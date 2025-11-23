@@ -16,36 +16,54 @@
                             <a href="{{ url_for('service_admin.test_item_index', tab='not_started', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-ban"></i></span>
                                 <span>ยังไม่ดำเนินการทดสอบ</span>
+                                {% if not_started_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ not_started_count }}</span>
+                                {% endif %}
                             </a>
                         </li>
                         <li {% if tab == 'testing' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('service_admin.test_item_index', tab='testing', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-vial"></i></span>
                                 <span>กำลังทดสอบตัวอย่าง</span>
+                                {% if testing_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ testing_count }}</span>
+                                {% endif %}
                             </a>
                         </li>
                         <li {% if tab == 'edit_report' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('service_admin.test_item_index', tab='edit_report', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-pencil-alt"></i></span>
                                 <span>ขอแก้ไขใบรายงานผล</span>
+                                {% if edit_report_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ edit_report_count }}</span>
+                                {% endif %}
                             </a>
                         </li>
                         <li {% if tab == 'pending_invoice' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('service_admin.test_item_index', tab='pending_invoice', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
                                 <span>รอออกใบแจ้งหนี้</span>
+                                {% if pending_invoice_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ pending_invoice_count }}</span>
+                                {% endif %}
                             </a>
                         </li>
                         <li {% if tab == 'invoice' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('service_admin.test_item_index', tab='invoice', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
                                 <span>ออกใบแจ้งหนี้แล้ว</span>
+                                {% if invoice_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ invoice_count }}</span>
+                                {% endif %}
                             </a>
                         </li>
                         <li {% if tab == 'all' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('service_admin.test_item_index', tab='all', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
                                 <span>ทั้งหมด</span>
+                                {% if all_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ all_count }}</span>
+                                {% endif %}
                             </a>
                         </li>
                     </ul>
