@@ -2768,11 +2768,36 @@ def add_payment():
 def quotation_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
+    expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
     is_admin = any(a for a in admin if not a.is_supervisor)
     is_supervisor = any(a.is_supervisor for a in admin)
-    return render_template('service_admin/quotation_index.html', tab=tab, menu=menu,
-                           is_supervisor=is_supervisor, is_admin=is_admin)
+    query = ServiceQuotation.query.filter(
+        or_(ServiceQuotation.creator_id == current_user.id,
+            ServiceQuotation.request.has(ServiceRequest.sub_lab.has(
+                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+            ))))
+    draft_count = query.filter(ServiceQuotation.sent_at == None, ServiceQuotation.approved_at == None,
+                             ServiceQuotation.confirmed_at == None,
+                             ServiceQuotation.cancelled_at == None).count()
+    pending_approval_for_supervisor_count = query.filter(ServiceQuotation.sent_at != None, ServiceQuotation.approved_at == None,
+                             ServiceQuotation.confirmed_at == None,
+                             ServiceQuotation.cancelled_at == None).count()
+    pending_confirm_for_customer_count = query.filter(ServiceQuotation.sent_at != None, ServiceQuotation.approved_at != None,
+                             ServiceQuotation.confirmed_at == None,
+                             ServiceQuotation.cancelled_at == None).count()
+    confirm_count = query.filter(ServiceQuotation.sent_at != None, ServiceQuotation.approved_at != None,
+                             ServiceQuotation.confirmed_at >= expire_time,
+                             ServiceQuotation.cancelled_at == None).count()
+    cancel_count = query.filter(ServiceQuotation.sent_at != None, ServiceQuotation.approved_at != None,
+                             ServiceQuotation.confirmed_at == None,
+                             ServiceQuotation.cancelled_at >= expire_time).count()
+    all_count = (draft_count + pending_approval_for_supervisor_count + pending_confirm_for_customer_count + confirm_count +
+            cancel_count)
+    return render_template('service_admin/quotation_index.html', tab=tab, menu=menu, is_admin=is_admin,
+                           is_supervisor=is_supervisor, draft_count=draft_count, pending_confirm_for_customer_count=pending_confirm_for_customer_count,
+                           pending_approval_for_supervisor_count=pending_confirm_for_customer_count, confirm_count=confirm_count,
+                           cancel_count=cancel_count, all_count=all_count)
 
 
 @service_admin.route('/api/quotation/index')
