@@ -29,6 +29,9 @@
                                 <a href="{{ url_for('service_admin.quotation_index', tab='pending_approval', menu='quotation') }}">
                                     <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
                                     <span>รายการรอการอนุมัติ</span>
+                                    {% if pending_approval_for_supervisor_count > 0 %}
+                                        <span class="tag is-danger is-rounded is-size-7 mt-1">{{ pending_approval_for_supervisor_count }}</span>
+                                    {% endif %}
                                 </a>
                             </li>
                         {% else %}
@@ -36,6 +39,9 @@
                                 <a href="{{ url_for('service_admin.quotation_index', tab='draft', menu='quotation') }}">
                                     <span class="icon is-small"><i class="fas fa-file-pen"></i></span>
                                     <span>แบบร่างใบเสนอราคา</span>
+                                    {% if draft_count > 0 %}
+                                        <span class="tag is-danger is-rounded is-size-7 mt-1">{{ draft_count }}</span>
+                                    {% endif %}
                                 </a>
                             </li>
                             <li {% if tab == 'pending_supervisor_approval' %}class="is-active"{% endif %}>
@@ -43,6 +49,9 @@
                                     menu='quotation') }}">
                                     <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
                                     <span>รอการตรวจสอบจากหัวหน้า</span>
+                                    {% if pending_approval_for_supervisor_count > 0 %}
+                                        <span class="tag is-danger is-rounded is-size-7 mt-1">{{ pending_approval_for_supervisor_count }}</span>
+                                    {% endif %}
                                 </a>
                             </li>
                         {% endif %}
@@ -51,24 +60,36 @@
                                 menu='quotation') }}">
                                 <span class="icon is-small"><i class="fas fa-clock"></i></span>
                                 <span>รอลูกค้ายืนยัน</span>
+                                {% if pending_confirm_for_customer_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 mt-1">{{ pending_confirm_for_customer_count }}</span>
+                                {% endif %}
                             </a>
                         </li>
                         <li {% if tab == 'confirmed' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('service_admin.quotation_index', tab='confirmed', menu='quotation') }}">
                                 <span class="icon is-small"><i class="fas fa-check"></i></span>
                                 <span>ยืนยันแล้ว</span>
+                                {% if confirm_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 mt-1">{{ confirm_count }}</span>
+                                {% endif %}
                             </a>
                         </li>
                         <li {% if tab == 'reject' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('service_admin.quotation_index', tab='reject', menu='quotation') }}">
                                 <span class="icon is-small"><i class="fas fa-times"></i></span>
                                 <span>ใบเสนอราคาถูกปฏิเสธ</span>
+                                {% if cancel_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 mt-1">{{ cancel_count }}</span>
+                                {% endif %}
                             </a>
                         </li>
                         <li {% if tab == 'all' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('service_admin.quotation_index', tab='all', menu='quotation') }}">
                                 <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
                                 <span>ทั้งหมด</span>
+                                {% if all_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 mt-1">{{ all_count }}</span>
+                                {% endif %}
                             </a>
                         </li>
                     </ul>
