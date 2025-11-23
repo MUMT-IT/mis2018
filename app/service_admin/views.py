@@ -1052,7 +1052,18 @@ def submit_same_address(address_id):
 def sample_index():
     menu = request.args.get('menu')
     tab = request.args.get('tab')
-    return render_template('service_admin/sample_index.html', menu=menu, tab=tab)
+    expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
+    query = ServiceSample.query.filter(ServiceSample.request.has(ServiceRequest.sub_lab.has(
+        ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+    )))
+    schedule_count = query.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
+                             ServiceSample.received_at == None).count()
+    delivery_count = query.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
+                             ServiceSample.received_at == None).count()
+    received_count = query.filter(ServiceSample.received_at >= expire_time).count()
+    all_count = schedule_count + delivery_count + received_count
+    return render_template('service_admin/sample_index.html', menu=menu, tab=tab, schedule_count=schedule_count,
+                           delivery_count=delivery_count, received_count=received_count, all_count=all_count)
 
 
 @service_admin.route('/api/sample/index')
