@@ -2880,7 +2880,7 @@ def quotation_index():
     return render_template('service_admin/quotation_index.html', tab=tab, menu=menu, is_admin=is_admin,
                            is_supervisor=is_supervisor, draft_count=draft_count,
                            pending_confirm_for_customer_count=pending_confirm_for_customer_count,
-                           pending_approval_for_supervisor_count=pending_confirm_for_customer_count,
+                           pending_approval_for_supervisor_count=pending_approval_for_supervisor_count,
                            confirm_count=confirm_count,
                            cancel_count=cancel_count, all_count=all_count)
 
