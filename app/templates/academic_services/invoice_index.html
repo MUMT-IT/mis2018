@@ -30,30 +30,45 @@
                             <a href="{{ url_for('academic_services.invoice_index', tab='pending', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
                                 <span>รอชำระเงิน</span>
+                                {% if pending_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ pending_count }}</span>
+                                {% endif %}
                             </a>
                         </li>
                         <li {% if tab == 'verify' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('academic_services.invoice_index', tab='verify', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-clipboard"></i></span>
                                 <span>รอเจ้าหน้าที่ตรวจสอบ</span>
+                                {% if verify_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ verify_count }}</span>
+                                {% endif %}
                             </a>
                         </li>
                         <li {% if tab == 'payment' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('academic_services.invoice_index', tab='payment', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-check"></i></span>
                                 <span>ชำระเงินแล้ว</span>
+                                {% if payment_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ payment_count }}</span>
+                                {% endif %}
                             </a>
                         </li>
                         <li {% if tab == 'overdue' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('academic_services.invoice_index', tab='overdue', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-circle-exclamation"></i></span>
                                 <span>ค้างชำระ</span>
+                                {% if overdue_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ overdue_count }}</span>
+                                {% endif %}
                             </a>
                         </li>
                         <li {% if tab == 'all' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('academic_services.invoice_index', tab='all', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
                                 <span>ทั้งหมด</span>
+                                {% if all_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ all_count }}</span>
+                                {% endif %}
                             </a>
                         </li>
                     </ul>
