@@ -55,7 +55,7 @@ class ServiceNumberID(db.Model):
 
     @property
     def number(self):
-        return u'{}{:06}'.format(self.lab.upper(), str(self.buddhist_year)[-2:], self.count + 1)
+        return u'{}{}{:04}'.format(self.lab.upper(), str(self.buddhist_year)[-2:], self.count + 1)
 
 
 class ServiceSequenceResultItemID(db.Model):
