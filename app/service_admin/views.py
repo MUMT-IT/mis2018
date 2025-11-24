@@ -3104,7 +3104,7 @@ def generate_quotation():
                         if p_key in quote_prices:
                             prices = quote_prices[p_key]
                             quote_details[p_key] = {"value": values, "price": prices, "quantity": quantities}
-        quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.lab.ref)
+        quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
                                      name=service_request.quotation_name,
                                      address=service_request.quotation_issue_address,
