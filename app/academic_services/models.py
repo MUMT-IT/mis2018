@@ -542,7 +542,8 @@ class ServiceQuotation(db.Model):
             'creator': self.creator.fullname if self.creator else None,
             'request_no': self.request.request_no if self.request else None,
             'request_id': self.request_id if self.request_id else None,
-            'cancel_reason': self.cancel_reason if self.cancel_reason else None
+            'reason': self.reason if self.reason else None,
+            'other': self.other if self.other else None
         }
 
     @property
