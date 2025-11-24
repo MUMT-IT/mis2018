@@ -55,7 +55,7 @@ class ServiceNumberID(db.Model):
 
     @property
     def number(self):
-        return u'{}{}{:04}'.format(self.lab.upper(), str(self.buddhist_year)[-2:], self.count + 1)
+        return u'{}{}{:06}'.format(self.lab.upper(), str(self.buddhist_year)[-2:], self.count + 1)
 
 
 class ServiceSequenceResultItemID(db.Model):
@@ -1069,9 +1069,9 @@ class ServiceResult(db.Model):
     approver = db.relationship(ServiceCustomerAccount, backref=db.backref('approver_results'),
                                foreign_keys=[approver_id])
     result_edit_at = db.Column('result_edit_at', db.DateTime(timezone=True))
-    edit_requester_id = db.Column('edit_requester_id', db.ForeignKey('service_customer_accounts.id'))
-    edit_requester = db.relationship(ServiceCustomerAccount, backref=db.backref('edit_requester_results'),
-                                     foreign_keys=[edit_requester_id])
+    # edit_requester_id = db.Column('edit_requester_id', db.ForeignKey('service_customer_accounts.id'))
+    # edit_requester = db.relationship(ServiceCustomerAccount, backref=db.backref('edit_requester_results'),
+    #                                  foreign_keys=[edit_requester_id])
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('results', cascade="all, delete-orphan"))
     is_sent_email = db.Column('is_sent_email', db.Boolean())
@@ -1175,6 +1175,12 @@ class ServiceResultItem(db.Model):
     draft_file = db.Column('draft_file', db.String())
     final_file = db.Column('final_file', db.String())
     status = db.Column('status', db.String())
+    # req_edit_at = db.Column('req_edit_at', db.DateTime(timezone=True))
+    # edit_requester_id = db.Column('edit_requester_id', db.ForeignKey('service_customer_accounts.id'))
+    # edit_requester = db.relationship(ServiceCustomerAccount, backref=db.backref('edit_requester_results'),
+    #                                  foreign_keys=[edit_requester_id])
+    # note = db.Column('note', db.Text())
+    # is_edited = db.Column('is_edited', db.Boolean())
     released_at = db.Column('released_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
