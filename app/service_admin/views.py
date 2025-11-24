@@ -590,7 +590,7 @@ def create_bacteria_request(request_id=None):
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
             status_id = get_status(2)
-            request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.ref)
+            request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
                                              request_no=request_no.number, data=format_data(form.data))
@@ -695,7 +695,7 @@ def create_virus_disinfection_request(request_id=None):
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
             status_id = get_status(2)
-            request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.ref)
+            request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
                                              request_no=request_no.number, data=format_data(form.data))
@@ -790,7 +790,7 @@ def create_virus_air_disinfection_request(request_id=None):
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
             status_id = get_status(2)
-            request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.ref)
+            request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
                                              request_no=request_no.number, data=format_data(form.data))
@@ -2176,9 +2176,8 @@ def create_invoice(quotation_id):
     menu = request.args.get('menu')
     quotation = ServiceQuotation.query.get(quotation_id)
     if not quotation.invoices:
-        invoice_no = ServiceNumberID.get_number('IV', db,
-                                                lab=quotation.request.sub_lab.lab.code if quotation.request.sub_lab.lab.code == 'protein' \
-                                                    else quotation.request.sub_lab.code)
+        invoice_no = ServiceNumberID.get_number('Invoice', db,
+                                                lab=quotation.request.sub_lab.lab.ref)
         invoice = ServiceInvoice(invoice_no=invoice_no.number, quotation_id=quotation_id, name=quotation.name,
                                  address=quotation.address,
                                  taxpayer_identification_no=quotation.taxpayer_identification_no,
@@ -3105,7 +3104,7 @@ def generate_quotation():
                         if p_key in quote_prices:
                             prices = quote_prices[p_key]
                             quote_details[p_key] = {"value": values, "price": prices, "quantity": quantities}
-        quotation_no = ServiceNumberID.get_number('QT', db, lab=service_request.sub_lab.lab.ref)
+        quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.lab.ref)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
                                      name=service_request.quotation_name,
                                      address=service_request.quotation_issue_address,

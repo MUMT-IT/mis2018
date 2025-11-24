@@ -862,7 +862,7 @@ def create_bacteria_request(request_id=None):
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
             status_id = get_status(1)
-            request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.ref)
+            request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
                                              sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
                                              status_id=status_id)
@@ -966,7 +966,7 @@ def create_virus_disinfection_request(request_id=None):
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
             status_id = get_status(1)
-            request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.ref)
+            request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
                                              sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
                                              status_id=status_id)
@@ -1062,7 +1062,7 @@ def create_virus_air_disinfection_request(request_id=None):
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
             status_id = get_status(1)
-            request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.ref)
+            request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
                                              sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
                                              status_id=status_id)
