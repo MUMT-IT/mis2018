@@ -287,7 +287,7 @@ def menu():
 
     if current_user.is_authenticated:
         request_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
-                            ServiceRequest.is_downloaded==None, ServiceRequest.status.has(ServiceStatus.status_id.notin_([7, 23]))).count()
+                            ServiceRequest.is_downloaded==None, ServiceRequest.status.has(ServiceStatus.status_id.in_([1, 2]))).count()
         quotation_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
             ServiceRequest.status.has(ServiceStatus.status_id.in_([5]))).count()
         sample_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,

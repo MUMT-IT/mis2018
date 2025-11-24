@@ -242,7 +242,7 @@ def menu():
 
         request_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
             ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)), ServiceRequest.status.has(
-            ServiceStatus.status_id.notin_([7, 22, 23]))).count()
+            ServiceStatus.status_id.in_([2]))).count()
         quotation_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
             ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
             ServiceRequest.status.has(ServiceStatus.status_id.in_([3, 4, 5]))).count()
