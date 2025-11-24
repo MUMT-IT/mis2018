@@ -3127,6 +3127,7 @@ def result_index():
     menu = request.args.get('menu')
     expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
     results = ServiceResult.query.filter(ServiceResult.request.has(customer_id=current_user.id))
+
     if tab == 'pending':
         results = results.filter(or_(ServiceResult.status_id == None,
                                      ServiceResult.status.has(or_(
@@ -3143,14 +3144,20 @@ def result_index():
         results = results.filter(ServiceResult.status.has(ServiceStatus.status_id == 13))
     else:
         results = results
-    edit_count = results = results.filter(ServiceResult.status.has(ServiceStatus.status_id == 14)).count()
+    pending_count = results.filter(or_(ServiceResult.status_id == None,
+                                     ServiceResult.status.has(or_(
+                                         ServiceStatus.status_id == 10, ServiceStatus.status_id == 11)
+                                     )
+                                     )
+                                 ).count()
+    edit_count = results.filter(ServiceResult.status.has(ServiceStatus.status_id == 14)).count()
     approve_count = results.filter(ServiceResult.status.has(or_(ServiceStatus.status_id == 12,
                                                                 ServiceStatus.status_id == 15))).count()
     confirm_count = results.filter(ServiceResult.approved_at >= expire_time).count()
-    all_count = edit_count + confirm_count + approve_count
+    all_count = edit_count + confirm_count + approve_count + pending_count
     return render_template('academic_services/result_index.html', results=results, menu=menu, tab=tab,
                            edit_count=edit_count, approve_count=approve_count, confirm_count=confirm_count,
-                           all_count=all_count)
+                           all_count=all_count, pending_count=pending_count)
 
 
 @academic_services.route('/customer/result/confirm/<int:result_id>', methods=['GET', 'POST'])
