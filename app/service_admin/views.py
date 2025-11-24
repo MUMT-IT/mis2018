@@ -1770,6 +1770,7 @@ def export_request_pdf(request_id):
 def result_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
+    expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
     query = ServiceResult.query.filter(or_(ServiceResult.creator_id == current_user.id,
                                            ServiceResult.request.has(ServiceRequest.sub_lab.has(
                                                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
@@ -1786,7 +1787,7 @@ def result_index():
     edit_count = query.filter(ServiceResult.status.has(ServiceStatus.status_id == 14)).count()
     approve_count = query.filter(
             ServiceResult.status.has(or_(ServiceStatus.status_id == 12, ServiceStatus.status_id == 15))).count()
-    confirm_count = query.filter(ServiceResult.status.has(ServiceStatus.status_id == 13)).count()
+    confirm_count = query.filter(ServiceResult.approved_at >= expire_time).count()
     all_count = pending_count + edit_count + approve_count + confirm_count
     return render_template('service_admin/result_index.html', menu=menu, tab=tab, pending_count=pending_count,
                            edit_count=edit_count, approve_count=approve_count, confirm_count=confirm_count, all_count=all_count)

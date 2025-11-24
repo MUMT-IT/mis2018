@@ -3125,6 +3125,7 @@ def get_receipts():
 def result_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
+    expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
     results = ServiceResult.query.filter(ServiceResult.request.has(customer_id=current_user.id))
     if tab == 'pending':
         results = results.filter(or_(ServiceResult.status_id == None,
@@ -3142,7 +3143,14 @@ def result_index():
         results = results.filter(ServiceResult.status.has(ServiceStatus.status_id == 13))
     else:
         results = results
-    return render_template('academic_services/result_index.html', results=results, menu=menu, tab=tab)
+    edit_count = results = results.filter(ServiceResult.status.has(ServiceStatus.status_id == 14)).count()
+    approve_count = results.filter(ServiceResult.status.has(or_(ServiceStatus.status_id == 12,
+                                                                ServiceStatus.status_id == 15))).count()
+    confirm_count = results.filter(ServiceResult.approved_at >= expire_time).count()
+    all_count = edit_count + confirm_count + approve_count
+    return render_template('academic_services/result_index.html', results=results, menu=menu, tab=tab,
+                           edit_count=edit_count, approve_count=approve_count, confirm_count=confirm_count,
+                           all_count=all_count)
 
 
 @academic_services.route('/customer/result/confirm/<int:result_id>', methods=['GET', 'POST'])
