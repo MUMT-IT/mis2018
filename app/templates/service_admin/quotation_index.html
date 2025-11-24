@@ -209,12 +209,14 @@
                         }
                     },
                     {
-                        data: 'cancel_reason',
-                        render: function (data) {
-                            if (data !== null) {
-                                return data
+                        data: null,
+                        render: function (data, type, row) {
+                            if (row.reason && row.other) {
+                                return row.reason + ' : ' + row.other;
+                            } else if (row.reason && !row.other) {
+                                return row.reason;
                             } else {
-                                return ''
+                                return '';
                             }
                         }
                     },
