@@ -120,7 +120,17 @@
                         render: function (data, type, row) {
                             var menu = '{{ menu }}'
                             var url = '/academic_services/quotation/view/' + data + '?menu=' + menu;
-                            return '<div class="field has-addons">' +
+                            if (row.status_id == 5) {
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-success is-rounded" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-check-circle"></i></span>' +
+                                    '<span>ยืนยันใบเสนอราคา</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else {
+                                return '<div class="field has-addons">' +
                                         '<div class="control">' +
                                             '<a class="button is-small is-info is-light is-rounded" ' + 'href=' + url + '>' +
                                                 '<span class="icon"><i class="fas fa-eye"></i></span>' +
@@ -128,6 +138,7 @@
                                             '</a>' +
                                         '</div>' +
                                     '</div>'
+                            }
                         }
                     }
                 ]
