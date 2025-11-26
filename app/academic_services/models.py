@@ -1132,6 +1132,9 @@ class ServiceResultItem(db.Model):
     draft_file = db.Column('draft_file', db.String())
     final_file = db.Column('final_file', db.String())
     status = db.Column('status', db.String())
+    sent_at =  db.Column('sent_at', db.DateTime(timezone=True))
+    sender_id = db.Column('sender_id', db.ForeignKey('staff_account.id'))
+    sender = db.relationship(StaffAccount, backref=db.backref('sender_results'), foreign_keys=[sender_id])
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     approver_id = db.Column('approver_id', db.ForeignKey('service_customer_accounts.id'))
     approver = db.relationship(ServiceCustomerAccount, backref=db.backref('approver_results'),
@@ -1145,7 +1148,23 @@ class ServiceResultItem(db.Model):
     released_at = db.Column('released_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
-    creator = db.relationship(StaffAccount, backref=db.backref('result_items'))
+    creator = db.relationship(StaffAccount, backref=db.backref('result_items'), foreign_keys=[creator_id])
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'request_no': self.result.request.request_no if self.request else None,
+            'tracking_number': self.result.tracking_number if self.result.tracking_number else None,
+            'status_id': self.result.status.status_id if self.status else None,
+            'admin_status': self.admin_status if self.admin_status else None,
+            'customer_status': self.customer_status if self.customer_status else None,
+            'released_at': self.released_at if self.released_at else None,
+            'report_language': self.report_language if self.report_language else None,
+            'note': self.note  if self.note else None,
+            'is_edited': self.is_edited if self.is_edited else None,
+            'creator': self.creator.fullname if self.creator else None,
+            'request_id': self.result.request_id if self.request_id else None
+        }
 
     @property
     def to_link(self):
