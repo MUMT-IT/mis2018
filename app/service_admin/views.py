@@ -1765,29 +1765,129 @@ def export_request_pdf(request_id):
     return send_file(buffer, download_name='Request_form.pdf', as_attachment=True)
 
 
+# @service_admin.route('/result/index')
+# @login_required
+# def result_index():
+#     tab = request.args.get('tab')
+#     menu = request.args.get('menu')
+#     expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
+#     query = ServiceResult.query.filter(or_(ServiceResult.creator_id == current_user.id,
+#                                            ServiceResult.request.has(ServiceRequest.sub_lab.has(
+#                                                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+#                                            )
+#                                            )
+#                                            )
+#                                        )
+#     pending_count = query.filter(or_(ServiceResult.status_id == None,
+#                                      ServiceResult.status.has(or_(
+#                                          ServiceStatus.status_id == 10, ServiceStatus.status_id == 11)
+#                                      )
+#                                      )
+#                                  ).count()
+#     edit_count = query.filter(ServiceResult.status.has(ServiceStatus.status_id == 14)).count()
+#     approve_count = query.filter(
+#         ServiceResult.status.has(or_(ServiceStatus.status_id == 12, ServiceStatus.status_id == 15))).count()
+#     confirm_count = query.filter(ServiceResult.result_items.any(ServiceResultItem.approved_at >= expire_time)).count()
+#     all_count = pending_count + edit_count + approve_count + confirm_count
+#     return render_template('service_admin/result_index.html', menu=menu, tab=tab, pending_count=pending_count,
+#                            edit_count=edit_count, approve_count=approve_count, all_count=all_count,
+#                            confirm_count=confirm_count)
+
+
+# @service_admin.route('/api/result/index')
+# def get_results():
+#     tab = request.args.get('tab')
+#     query = ServiceResult.query.filter(or_(ServiceResult.creator_id == current_user.id,
+#                                            ServiceResult.request.has(ServiceRequest.sub_lab.has(
+#                                                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+#                                            )
+#                                            )
+#                                            )
+#                                        )
+#     if tab == 'pending':
+#         query = query.filter(or_(ServiceResult.status_id == None,
+#                                  ServiceResult.status.has(or_(
+#                                      ServiceStatus.status_id == 10, ServiceStatus.status_id == 11)
+#                                  )
+#                                  )
+#                              )
+#     elif tab == 'edit':
+#         query = query.filter(ServiceResult.status.has(ServiceStatus.status_id == 14))
+#     elif tab == 'approve':
+#         query = query.filter(
+#             ServiceResult.status.has(or_(ServiceStatus.status_id == 12, ServiceStatus.status_id == 15)))
+#     elif tab == 'confirm':
+#         query = query.filter(ServiceResult.status.has(ServiceStatus.status_id == 13))
+#     else:
+#         query = query
+#     records_total = query.count()
+#     search = request.args.get('search[value]')
+#     if search:
+#         query = query.filter(ServiceResult.request.has(ServiceRequest.request_no).contains(search))
+#     start = request.args.get('start', type=int)
+#     length = request.args.get('length', type=int)
+#     total_filtered = query.count()
+#     query = query.offset(start).limit(length)
+#     data = []
+#     for item in query:
+#         item_data = item.to_dict()
+#         html_blocks = []
+#         for i in item.result_items:
+#             if i.final_file:
+#                 download_file = url_for('service_admin.download_file', key=i.final_file,
+#                                         download_filename=f"{i.report_language} (ฉบับจริง).pdf")
+#                 html = f'''
+#                     <div class="field has-addons">
+#                         <div class="control">
+#                             <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+#                                 <span>{i.report_language} (ฉบับจริง)</span>
+#                                 <span class="icon is-small"><i class="fas fa-download"></i></span>
+#                             </a>
+#                         </div>
+#                     </div>
+#                 '''
+#             elif i.draft_file:
+#                 download_file = url_for('service_admin.download_file', key=i.draft_file,
+#                                         download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
+#                 html = f'''
+#                                     <div class="field has-addons">
+#                                         <div class="control">
+#                                             <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+#                                                 <span>{i.report_language} (ฉบับร่าง)</span>
+#                                                 <span class="icon is-small"><i class="fas fa-download"></i></span>
+#                                             </a>
+#                                         </div>
+#                                     </div>
+#                                 '''
+#             else:
+#                 html = ''
+#             html_blocks.append(html)
+#         item_data['files'] = ''.join(
+#             html_blocks) if html_blocks else '<span class="has-text-grey-light is-italic">ไม่มีไฟล์</span>'
+#         data.append(item_data)
+#     return jsonify({'data': data,
+#                     'recordFiltered': total_filtered,
+#                     'recordTotal': records_total,
+#                     'draw': request.args.get('draw', type=int)
+#                     })
+
 @service_admin.route('/result/index')
 @login_required
 def result_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
-    query = ServiceResult.query.filter(or_(ServiceResult.creator_id == current_user.id,
-                                           ServiceResult.request.has(ServiceRequest.sub_lab.has(
-                                               ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-                                           )
-                                           )
-                                           )
-                                       )
-    pending_count = query.filter(or_(ServiceResult.status_id == None,
-                                     ServiceResult.status.has(or_(
-                                         ServiceStatus.status_id == 10, ServiceStatus.status_id == 11)
-                                     )
-                                     )
-                                 ).count()
-    edit_count = query.filter(ServiceResult.status.has(ServiceStatus.status_id == 14)).count()
-    approve_count = query.filter(
-        ServiceResult.status.has(or_(ServiceStatus.status_id == 12, ServiceStatus.status_id == 15))).count()
-    confirm_count = query.filter(ServiceResult.result_items.any(ServiceResultItem.approved_at >= expire_time)).count()
+    query = ServiceResultItem.query.filter(
+        ServiceResultItem.result.has(ServiceResult.request.has(ServiceRequest.sub_lab.has(
+            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+        )
+        )
+        )
+    )
+    pending_count = query.filter(ServiceResultItem.sent_at == None).count()
+    edit_count = query.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == None).count()
+    approve_count = query.filter(ServiceResultItem.sent_at != None, ServiceResultItem.approved_at == None).count()
+    confirm_count = query.filter(ServiceResultItem.approved_at >= expire_time).count()
     all_count = pending_count + edit_count + approve_count + confirm_count
     return render_template('service_admin/result_index.html', menu=menu, tab=tab, pending_count=pending_count,
                            edit_count=edit_count, approve_count=approve_count, all_count=all_count,
@@ -1797,27 +1897,21 @@ def result_index():
 @service_admin.route('/api/result/index')
 def get_results():
     tab = request.args.get('tab')
-    query = ServiceResult.query.filter(or_(ServiceResult.creator_id == current_user.id,
-                                           ServiceResult.request.has(ServiceRequest.sub_lab.has(
-                                               ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-                                           )
-                                           )
-                                           )
-                                       )
+    query = ServiceResultItem.query.filter(
+        ServiceResultItem.result.has(ServiceResult.request.has(ServiceRequest.sub_lab.has(
+            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+        )
+        )
+        )
+    )
     if tab == 'pending':
-        query = query.filter(or_(ServiceResult.status_id == None,
-                                 ServiceResult.status.has(or_(
-                                     ServiceStatus.status_id == 10, ServiceStatus.status_id == 11)
-                                 )
-                                 )
-                             )
+        query = query.filter(ServiceResultItem.sent_at == None)
     elif tab == 'edit':
-        query = query.filter(ServiceResult.status.has(ServiceStatus.status_id == 14))
+        query = query.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == None)
     elif tab == 'approve':
-        query = query.filter(
-            ServiceResult.status.has(or_(ServiceStatus.status_id == 12, ServiceStatus.status_id == 15)))
+        query = query.filter(ServiceResultItem.sent_at != None, ServiceResultItem.approved_at == None)
     elif tab == 'confirm':
-        query = query.filter(ServiceResult.status.has(ServiceStatus.status_id == 13))
+        query = query.filter(ServiceResultItem.approved_at != None)
     else:
         query = query
     records_total = query.count()
@@ -1832,36 +1926,35 @@ def get_results():
     for item in query:
         item_data = item.to_dict()
         html_blocks = []
-        for i in item.result_items:
-            if i.final_file:
-                download_file = url_for('service_admin.download_file', key=i.final_file,
-                                        download_filename=f"{i.report_language} (ฉบับจริง).pdf")
-                html = f'''
+        if item.final_file:
+            download_file = url_for('service_admin.download_file', key=item.final_file,
+                                    download_filename=f"{item.report_language} (ฉบับจริง).pdf")
+            html = f'''
                     <div class="field has-addons">
                         <div class="control">
                             <a class="button is-small is-light is-link is-rounded" href="{download_file}">
-                                <span>{i.report_language} (ฉบับจริง)</span>
+                                <span>{item.report_language} (ฉบับจริง)</span>
                                 <span class="icon is-small"><i class="fas fa-download"></i></span>
                             </a>
                         </div>
                     </div>
                 '''
-            elif i.draft_file:
-                download_file = url_for('service_admin.download_file', key=i.draft_file,
-                                        download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
-                html = f'''
+        elif item.draft_file:
+            download_file = url_for('service_admin.download_file', key=item.draft_file,
+                                    download_filename=f"{item.report_language} (ฉบับร่าง).pdf")
+            html = f'''
                                     <div class="field has-addons">
                                         <div class="control">
                                             <a class="button is-small is-light is-link is-rounded" href="{download_file}">
-                                                <span>{i.report_language} (ฉบับร่าง)</span>
+                                                <span>{item.report_language} (ฉบับร่าง)</span>
                                                 <span class="icon is-small"><i class="fas fa-download"></i></span>
                                             </a>
                                         </div>
                                     </div>
                                 '''
-            else:
-                html = ''
-            html_blocks.append(html)
+        else:
+            html = ''
+        html_blocks.append(html)
         item_data['files'] = ''.join(
             html_blocks) if html_blocks else '<span class="has-text-grey-light is-italic">ไม่มีไฟล์</span>'
         data.append(item_data)
@@ -3638,6 +3731,7 @@ def create_draft_result(result_id=None):
                     ContentType=mime_type
                 )
                 item.draft_file = file_name
+                item.sent_at = arrow.now('Asia/Bangkok').datetime
                 if result_id:
                     item.modified_at = arrow.now('Asia/Bangkok').datetime
                     item.result.modified_at = arrow.now('Asia/Bangkok').datetime
@@ -3645,11 +3739,6 @@ def create_draft_result(result_id=None):
                 db.session.commit()
         uploaded_all = all(item.draft_file for item in result.result_items)
         if uploaded_all:
-            # if result.request.status.status_id == 14:
-            #     for item in result.result_items:
-            #         item.is_edited = True
-            #         db.session.add(item)
-            #         db.session.commit()
             status_id = get_status(12)
             result.status_id = status_id
             service_request.status_id = status_id
@@ -3666,23 +3755,6 @@ def create_draft_result(result_id=None):
                 message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
                 message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง'''
                 message += f'''{result_url}'''
-                message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-                message += f'''ขอแสดงความนับถือ\n'''
-                message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
-                message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-                send_mail([contact_email], title, message)
-            elif result.result_edit_at and not result.approved_at:
-                result_url = url_for('academic_services.result_index', menu='report', _external=True, _scheme=scheme)
-                customer_name = result.request.customer.customer_name.replace(' ', '_')
-                contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
-                title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
-                title = f'''แจ้งแก้ไขรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-                message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-                message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
-                message += f''' ขณะนี้ได้แก้ไขทำรายงานผลการทดสอบฉบับร่างเรียบร้อยแล้ว'''
-                message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
-                message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง\n'''
-                message += f'''{result_url}\n\n'''
                 message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
                 message += f'''ขอแสดงความนับถือ\n'''
                 message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
