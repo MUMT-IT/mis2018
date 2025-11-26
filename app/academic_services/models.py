@@ -1176,9 +1176,9 @@ class ServiceResultItem(db.Model):
     final_file = db.Column('final_file', db.String())
     status = db.Column('status', db.String())
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
-    # approver_id = db.Column('approver_id', db.ForeignKey('service_customer_accounts.id'))
-    # approver = db.relationship(ServiceCustomerAccount, backref=db.backref('approver_results'),
-    #                            foreign_keys=[approver_id])
+    approver_id = db.Column('approver_id', db.ForeignKey('service_customer_accounts.id'))
+    approver = db.relationship(ServiceCustomerAccount, backref=db.backref('approver_results'),
+                               foreign_keys=[approver_id])
     req_edit_at = db.Column('req_edit_at', db.DateTime(timezone=True))
     edit_requester_id = db.Column('edit_requester_id', db.ForeignKey('service_customer_accounts.id'))
     edit_requester = db.relationship(ServiceCustomerAccount, backref=db.backref('edit_requester_results'),
