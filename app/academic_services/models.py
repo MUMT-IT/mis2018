@@ -1087,14 +1087,14 @@ class ServiceResult(db.Model):
             'request_no': self.request.request_no if self.request else None,
             'tracking_number': self.tracking_number,
             'status_id': self.status.status_id if self.status else None,
-            'admin_status': self.admin_status if self.status else None,
-            'customer_status': self.customer_status if self.status else None,
-            'released_at': self.released_at,
+            'admin_status': [item.admin_status for item in self.result_items] if self.result_items else None,
+            'customer_status': [item.customer_status for item in self.result_items] if self.result_items else None,
+            'released_at': ', '.join(str(item.released_at) for item in self.result_items) if self.result_items else None,
             'report_language': [item.report_language for item in self.result_items] if self.result_items else None,
+            'note': [item.note for item in self.result_items if item.note] if self.result_items else None,
+            'is_edited': [item.is_edited for item in self.result_items if item.is_edited] if self.result_items else None,
             'creator': self.creator.fullname if self.creator else None,
-            'request_id': self.request_id if self.request_id else None,
-            'note': self.note if self.note else None,
-            'status_note': self.status_note if self.status_note else None
+            'request_id': self.request_id if self.request_id else None
         }
 
     @property
@@ -1119,49 +1119,6 @@ class ServiceResult(db.Model):
             else:
                 quotation_id = None
         return quotation_id
-
-    @property
-    def admin_status(self):
-        uploaded_all = all(item.draft_file for item in self.result_items)
-        if self.approved_at:
-            status = 'ยืนยันใบรายงานผลแล้ว'
-            color = 'is-success'
-        elif self.edit_requester_id and not self.approved_at and not self.status_note:
-            status = 'ขอแก้ไขใบรายงานผล'
-            color = 'is-info'
-        elif uploaded_all:
-            status = 'รอยืนยันใบรายงานผล'
-            color = 'is-warning'
-        elif not uploaded_all and self.result_items:
-            status = 'แนบผลบางส่วนแล้ว รอแนบผลที่เหลือ'
-            color = 'is-primary'
-        else:
-            status = 'ยังไม่ดำเนินการทดสอบ'
-            color = 'is-danger'
-        return {'status': status, 'color': color}
-
-    @property
-    def customer_status(self):
-        uploaded_all = all(item.draft_file for item in self.result_items)
-        if self.request.status.status_id == 22:
-            status = 'รายงานพร้อมดาวโหลด'
-            color = 'is-success'
-        elif self.approved_at:
-            status = 'ยืนยันใบรายงานผลแล้ว'
-            color = 'is-primary'
-        elif self.edit_requester_id and not self.approved_at and not self.status_note:
-            status = 'ส่งคำขอแก้ไขใบรายงานผลแล้ว'
-            color = 'is-info'
-        elif uploaded_all:
-            status = 'รอยืนยันใบรายงานผล'
-            color = 'is-warning'
-        elif not uploaded_all and self.result_items:
-            status = 'กำลังทดสอบตัวอย่าง'
-            color = 'is-light'
-        else:
-            status = 'ยังไม่ดำเนินการทดสอบ'
-            color = 'is-danger'
-        return {'status': status, 'color': color}
 
 
 class ServiceResultItem(db.Model):
@@ -1206,6 +1163,49 @@ class ServiceResultItem(db.Model):
                 print(f"Error generating presigned URL: {e}")
                 return None
         return None
+
+    @property
+    def admin_status(self):
+        uploaded_all = all(item.draft_file for item in self.result.result_items)
+        if self.approved_at:
+            status = 'ยืนยันใบรายงานผลแล้ว'
+            color = 'is-success'
+        elif self.edit_requester_id and not self.approved_at and not self.is_edited:
+            status = 'ขอแก้ไขใบรายงานผล'
+            color = 'is-info'
+        elif uploaded_all:
+            status = 'รอยืนยันใบรายงานผล'
+            color = 'is-warning'
+        elif self.result.request.status.status_id == 11:
+            status = 'แนบผลบางส่วนแล้ว รอแนบผลที่เหลือ'
+            color = 'is-primary'
+        else:
+            status = 'ยังไม่ดำเนินการทดสอบ'
+            color = 'is-danger'
+        return {'status': status, 'color': color}
+
+    @property
+    def customer_status(self):
+        uploaded_all = all(item.draft_file for item in self.result.result_items)
+        if self.result.request.status.status_id == 22:
+            status = 'รายงานพร้อมดาวโหลด'
+            color = 'is-success'
+        elif self.approved_at:
+            status = 'ยืนยันใบรายงานผลแล้ว'
+            color = 'is-primary'
+        elif self.edit_requester_id and not self.approved_at and not self.is_edited:
+            status = 'ส่งคำขอแก้ไขใบรายงานผลแล้ว'
+            color = 'is-info'
+        elif uploaded_all:
+            status = 'รอยืนยันใบรายงานผล'
+            color = 'is-warning'
+        elif self.result.request.status.status_id == 11:
+            status = 'กำลังทดสอบตัวอย่าง'
+            color = 'is-light'
+        else:
+            status = 'ยังไม่ดำเนินการทดสอบ'
+            color = 'is-danger'
+        return {'status': status, 'color': color}
 
 
 class ServiceOrder(db.Model):
