@@ -3310,10 +3310,9 @@ def confirm_result_item(result_item_id):
     db.session.add(result_item)
     db.session.commit()
     scheme = 'http' if current_app.debug else 'https'
-    quotation_id = ",".join(quotation.id for quotation in result_item.result.request.quotations if quotation.confirmed_at)
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=result_item.result.request.sub_lab.code)).all()
     title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
-    link = url_for("service_admin.create_invoice", quotation_id=quotation_id, menu='invoice',
+    link = url_for("service_admin.create_invoice", quotation_id=result_item.result.quotation_id, menu='invoice',
                    _external=True, _scheme=scheme)
     customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
     if admins:
