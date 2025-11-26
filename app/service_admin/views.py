@@ -1787,10 +1787,11 @@ def result_index():
     edit_count = query.filter(ServiceResult.status.has(ServiceStatus.status_id == 14)).count()
     approve_count = query.filter(
             ServiceResult.status.has(or_(ServiceStatus.status_id == 12, ServiceStatus.status_id == 15))).count()
-    confirm_count = query.filter(ServiceResult.approved_at >= expire_time).count()
+    confirm_count = query.filter(ServiceResult.result_items.any(ServiceResultItem.approved_at >= expire_time)).count()
     all_count = pending_count + edit_count + approve_count + confirm_count
     return render_template('service_admin/result_index.html', menu=menu, tab=tab, pending_count=pending_count,
-                           edit_count=edit_count, approve_count=approve_count, confirm_count=confirm_count, all_count=all_count)
+                           edit_count=edit_count, approve_count=approve_count, all_count=all_count,
+                           confirm_count=confirm_count)
 
 
 @service_admin.route('/api/result/index')
@@ -3644,10 +3645,11 @@ def create_draft_result(result_id=None):
                 db.session.commit()
         uploaded_all = all(item.draft_file for item in result.result_items)
         if uploaded_all:
-            if result.request.status.status_id == 14:
-                result.status_note = True
-            else:
-                result.status_note = False
+            # if result.request.status.status_id == 14:
+            #     for item in result.result_items:
+            #         item.is_edited = True
+            #         db.session.add(item)
+            #         db.session.commit()
             status_id = get_status(12)
             result.status_id = status_id
             service_request.status_id = status_id
