@@ -1,0 +1,69 @@
+{% extends "academic_services/service_base.html" %}
+{% include "academic_services/customer_nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="columns">
+            {% include 'academic_services/menu.html' %}
+            <div class="column is-9">
+                <div class="column is-12">
+                    {% include "messages.html" %}
+                    <h1 class="title has-text-centered">เพิ่มหลักฐานการชำระเงิน</h1>
+                </div>
+                <div id="edit-customer-form"></div>
+                <div class="column is-12 box">
+                    <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
+                        <div class="field">
+                            <label class="label">เลขใบคำขอรับบริการ</label>
+                            <div class="control">
+                                {{ result_item.result.request.request_no }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ result_item.report_language }}</label>
+                            <div class="control">
+                                <iframe src="{{ result_item.draft_file_url }}"
+                                        style="width: 100%; height: 600px">
+                                </iframe>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div id="result-form"></div>
+                            <div class="buttons is-centered">
+                                <a
+                                        class="button"
+                                        href="{{ url_for('academic_services.result_index', menu=menu, tab=tab) }}"
+                                >
+                                    ยกเลิก
+                                </a>
+                                <a class="button is-success"
+                                   href="{{ url_for('academic_services.confirm_result_item', result_item_id=result_item_id, menu=menu,
+                                           tab=tab) }}">
+                                    <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                    <span>ยืนยัน</span>
+                                </a>
+                                <a class="button is-warning"
+                                   hx-swap="innerHTML"
+                                   hx-target="#result-form"
+                                   hx-get="{{ url_for('academic_services.edit_result_item', result_item_id=result_item_id, menu=menu,
+                                           tab=tab) }}">
+                                    <span class="icon is-small"><i class="fas fa-pen"></i></span>
+                                    <span>ขอแก้ไข</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript"
+            src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+{% endblock %}
