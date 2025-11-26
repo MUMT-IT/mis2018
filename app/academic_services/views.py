@@ -3318,7 +3318,7 @@ def confirm_result_item(result_item_id):
     if admins:
         title = f'''[{result_item.result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result_item.result.request.quotation_address.name}) | แจ้งยืนยันใบรายงานผลการทดสอบ'''
         message = f'''เรียน เจ้าหน้าที่{result_item.result.request.sub_lab.sub_lab}\n\n'''
-        message += f'''{result_item.report_language}ของใบคำขอรับบริการเลขที่ : {result_item.result.request.request_no}\n'''
+        message += f'''{result_item.report_language}ฉบับร่างของใบคำขอรับบริการเลขที่ : {result_item.result.request.request_no}\n'''
         message += f'''ลูกค้า : {result_item.result.request.customer.customer_name}\n'''
         message += f'''ในนาม : {result_item.result.request.quotation_address.name}\n'''
         message += f'''ได้ดำเนินการยืนยันเรียบร้อยแล้ว\n'''
@@ -3331,7 +3331,7 @@ def confirm_result_item(result_item_id):
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
         msg = ('แจ้งยืนยันใบรายงานผลการทดสอบ' \
                '\n\nเรียน เจ้าหน้าที่{}'
-               '\n\n{}ของใบคำขอรับบริการเลขที่ {}' \
+               '\n\n{}ฉบับร่างของใบคำขอรับบริการเลขที่ {}' \
                '\nลูกค้า : {}' \
                '\nในนาม : {}' \
                '\nได้ดำเนินการยืนยันเรียบร้อยแล้ว' \
@@ -3383,7 +3383,7 @@ def edit_result_item(result_item_id):
         if admins:
             title = f'''[{result_item.result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result_item.result.request.quotation_address.name}) | แจ้งขอแก้ไขใบรายงานผลการทดสอบ'''
             message = f'''เรียน เจ้าหน้าที่{result.request.sub_lab.sub_lab}\n\n'''
-            message += f'''{result_item.report_language}ของใบคำขอรับบริการเลขที่ : {result.request.request_no}\n'''
+            message += f'''{result_item.report_language}ฉบับร่างของใบคำขอรับบริการเลขที่ : {result.request.request_no}\n'''
             message += f'''ลูกค้า : {result.request.customer.customer_name}\n'''
             message += f'''ในนาม : {result.request.quotation_address.name}\n'''
             message += f'''ได้ขอดำเนินการแก้ไขรายงานผลการทดสอบเนื่องจาก {result.note}\n'''
@@ -3396,7 +3396,7 @@ def edit_result_item(result_item_id):
             send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
             msg = ('แจ้งขอแก้ไขใบรายงานผลการทดสอบ' \
                    '\n\nเรียน เจ้าหน้าที่{}'
-                   '\n\n{}ของใบคำขอรับบริการเลขที่ {}' \
+                   '\n\n{}ฉบับร่างของใบคำขอรับบริการเลขที่ {}' \
                    '\nลูกค้า : {}' \
                    '\nในนาม : {}' \
                    '\nได้ขอดำเนินการแก้ไขรายงานผลการทดสอบเนื่องจาก {}' \
