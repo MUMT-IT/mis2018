@@ -701,3 +701,8 @@ class ServicePaymentForm(ModelForm):
         model = ServicePayment
 
     file_upload = FileField('File Upload')
+
+
+class ServiceResultItemForm(ModelForm):
+    class Meta:
+        model = ServiceResultItem
