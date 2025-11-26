@@ -1153,9 +1153,10 @@ class ServiceResultItem(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
-            'request_no': self.result.request.request_no if self.request else None,
+            'result_id': self.result.id if self.result else None,
+            'request_no': self.result.request.request_no if self.result else None,
             'tracking_number': self.result.tracking_number if self.result.tracking_number else None,
-            'status_id': self.result.status.status_id if self.status else None,
+            'status_id': self.result.status.status_id if self.result else None,
             'admin_status': self.admin_status if self.admin_status else None,
             'customer_status': self.customer_status if self.customer_status else None,
             'released_at': self.released_at if self.released_at else None,
@@ -1163,7 +1164,7 @@ class ServiceResultItem(db.Model):
             'note': self.note  if self.note else None,
             'is_edited': self.is_edited if self.is_edited else None,
             'creator': self.creator.fullname if self.creator else None,
-            'request_id': self.result.request_id if self.request_id else None
+            'request_id': self.result.request_id if self.result else None
         }
 
     @property
@@ -1195,7 +1196,7 @@ class ServiceResultItem(db.Model):
         elif uploaded_all:
             status = 'รอยืนยันใบรายงานผล'
             color = 'is-warning'
-        elif self.result.request.status.status_id == 11:
+        elif not uploaded_all:
             status = 'แนบผลบางส่วนแล้ว รอแนบผลที่เหลือ'
             color = 'is-primary'
         else:
@@ -1218,7 +1219,7 @@ class ServiceResultItem(db.Model):
         elif uploaded_all:
             status = 'รอยืนยันใบรายงานผล'
             color = 'is-warning'
-        elif self.result.request.status.status_id == 11:
+        elif not uploaded_all:
             status = 'กำลังทดสอบตัวอย่าง'
             color = 'is-light'
         else:
