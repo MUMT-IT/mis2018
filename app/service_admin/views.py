@@ -1779,14 +1779,14 @@ def result_index():
                                            )
                                        )
     pending_count = query.filter(or_(ServiceResult.status_id == None,
-                                 ServiceResult.status.has(or_(
-                                     ServiceStatus.status_id == 10, ServiceStatus.status_id == 11)
-                                 )
-                                 )
-                             ).count()
+                                     ServiceResult.status.has(or_(
+                                         ServiceStatus.status_id == 10, ServiceStatus.status_id == 11)
+                                     )
+                                     )
+                                 ).count()
     edit_count = query.filter(ServiceResult.status.has(ServiceStatus.status_id == 14)).count()
     approve_count = query.filter(
-            ServiceResult.status.has(or_(ServiceStatus.status_id == 12, ServiceStatus.status_id == 15))).count()
+        ServiceResult.status.has(or_(ServiceStatus.status_id == 12, ServiceStatus.status_id == 15))).count()
     confirm_count = query.filter(ServiceResult.result_items.any(ServiceResultItem.approved_at >= expire_time)).count()
     all_count = pending_count + edit_count + approve_count + confirm_count
     return render_template('service_admin/result_index.html', menu=menu, tab=tab, pending_count=pending_count,
@@ -2873,8 +2873,8 @@ def quotation_index():
                                 ServiceQuotation.confirmed_at == None,
                                 ServiceQuotation.cancelled_at >= expire_time).count()
     all_count = (
-                draft_count + pending_approval_for_supervisor_count + pending_confirm_for_customer_count + confirm_count +
-                cancel_count)
+            draft_count + pending_approval_for_supervisor_count + pending_confirm_for_customer_count + confirm_count +
+            cancel_count)
     return render_template('service_admin/quotation_index.html', tab=tab, menu=menu, is_admin=is_admin,
                            is_supervisor=is_supervisor, draft_count=draft_count,
                            pending_confirm_for_customer_count=pending_confirm_for_customer_count,
@@ -3700,6 +3700,61 @@ def create_draft_result(result_id=None):
         return redirect(url_for('service_admin.test_item_index', menu='test_item'))
     return render_template('service_admin/create_draft_result.html', result_id=result_id, menu=menu,
                            result=result)
+
+
+@service_admin.route('/result_item/draft/edit/<int:result_item_id>', methods=['GET', 'POST'])
+@login_required
+def edit_draft_result(result_item_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    result_item = ServiceResultItem.query.get(result_item_id)
+    form = ServiceResultItemForm(obj=result_item)
+    if form.validate_on_submit():
+        file = request.files.get(f'file_{result_item_id}')
+        if file and allowed_file(file.filename):
+            mime_type = file.mimetype
+            file_name = '{}.{}'.format(result_item.report_language, file.filename.split('.')[-1])
+            file_data = file.stream.read()
+            response = s3.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=file_name,
+                Body=file_data,
+                ContentType=mime_type
+            )
+            result_item.draft_file = file_name
+            result_item.is_edited = True
+            result_item.modified_at = arrow.now('Asia/Bangkok').datetime
+            db.session.add(result_item)
+            db.session.commit()
+        edited_all = all(result_item.is_edited for item in result_item.result.result_items if item.req_edit_at)
+        if edited_all:
+            status_id = get_status(12)
+            result_item.result.status_id = status_id
+            result_item.result.request.status_id = status_id
+        scheme = 'http' if current_app.debug else 'https'
+        result_url = url_for('academic_services.result_index', menu='report', _external=True, _scheme=scheme)
+        customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
+        contact_email = result_item.result.request.customer.contact_email if result_item.result.request.customer.contact_email else result_item.result.request.customer.email
+        title_prefix = 'คุณ' if result_item.result.request.customer.customer_info.type.type == 'บุคคล' else ''
+        title = f'''แจ้งแก้ไขรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ [{result_item.result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+        message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+        message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result_item.result.request.request_no}'''
+        message += f''' ขณะนี้ได้แก้ไข{result_item.report_language}ฉบับร่างเรียบร้อยแล้ว'''
+        message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
+        message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง\n'''
+        message += f'''{result_url}\n\n'''
+        message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+        message += f'''ขอแสดงความนับถือ\n'''
+        message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+        message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+        send_mail([contact_email], title, message)
+        db.session.add(result_item)
+        db.session.commit()
+        flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
+        return redirect(url_for('service_admin.result_index', menu=menu, tab=tab))
+    else:
+        return render_template('service_admin/edit_draft_result.html', result_item_id=result_item_id,
+                               menu=menu, tab=tab, result_item=result_item, result_id=result_item.result_id)
 
 
 @service_admin.route('/result/draft/delete/<int:item_id>', methods=['GET', 'POST'])
