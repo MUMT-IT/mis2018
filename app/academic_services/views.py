@@ -3303,6 +3303,7 @@ def confirm_result_item(result_item_id):
         status_id = get_status(13)
         result_item.result.status_id = status_id
         result_item.result.request.status_id = status_id
+        result_item.result.approved_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(result_item)
     db.session.commit()
     scheme = 'http' if current_app.debug else 'https'
