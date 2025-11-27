@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% include "service_admin/admin_nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="box column is-half is-offset-3">
+                    <h1 class="title has-text-centered">แก้ไขรายงานผลการทดสอบ (ฉบับร่าง)</h1>
+                    <form method="POST" enctype="multipart/form-data">
+                        <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                        <div class="field">
+                            <label class="label">เลขใบคำขอรับบริการ</label>
+                            <div class="control">
+                                {{ result_item.result.request.request_no }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">รายละเอียดการขอแก้ไข</label>
+                            <div class="control">
+                                {{ result_item.note }}
+                            </div>
+                        </div>
+                        <label class="label">{{ result_item.report_language }}</label>
+                        <div class="file" style="margin-bottom: .5em">
+                            <label class="file-label">
+                                <input class="file-input" type="file" name="file_{{ result_item.id }}"
+                                       id="file-input-{{ result_item.id }}">
+                                <span class="file-cta">
+                                        <span class="file-icon">
+                                            <i class="fas fa-upload"></i>
+                                        </span>
+                                        <span class="file-label">เลือกไฟล์…</span>
+                                    </span>
+                                <span class="file-name" id="filename-{{ result_item.id }}">กรุณาแนบไฟล์
+                                    </span>
+                            </label>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('service_admin.test_item_index', menu='test_item', tab=tab) }}"
+                                   class="button">ยกเลิก</a>
+                            </div>
+                            <div class="control">
+                                <input type="submit" value="บันทึก" class="button is-success">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $('.js-example-basic-single').select2({
+            width: '100%',
+        });
+    </script>
+    <script>
+        document.querySelectorAll('input[type="file"]').forEach(input => {
+            input.addEventListener('change', function () {
+                const span = this.closest('.file-label').querySelector('.file-name');
+                if (this.files.length > 0) {
+                    span.textContent = this.files[0].name;
+                } else {
+                    span.textContent = 'ยังไม่อัปโหลดไฟล์';
+                }
+            });
+        });
+    </script>
+{% endblock %}
