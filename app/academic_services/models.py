@@ -449,9 +449,11 @@ class ServiceRequest(db.Model):
                 if self.samples else None,
             'sample_test_at' : ', '.join(str(result.released_at) for result in self.results if result.released_at)
                 if self.results else None,
-            'result_approved_at': ', '.join(str(result.approved_at) for result in self.results if result.approved_at)
+            'result_approved_at': ', '.join(str(item.approved_at) for result in self.results if result.result_items
+                                            for item in result.result_items if item.approved_at)
                 if self.results else None,
-            'result_edit_at': ', '.join(str(result.result_edit_at) for result in self.results if result.result_edit_at)
+            'result_edit_at': ', '.join(str(item.req_edit_at) for result in self.results if result.result_items
+                                        for item in result.result_items if item.req_edit_at)
                 if self.results else None,
             'invoice_sent_at': ', '.join(str(invoice.sent_at) for quotation in self.quotations
                                                   if quotation.invoices for invoice in quotation.invoices
