@@ -1066,7 +1066,7 @@ class ServiceResult(db.Model):
     status = db.relationship(ServiceStatus, backref=db.backref('results'))
     released_at = db.Column('released_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
-    # approved_at = db.Column('approved_at', db.DateTime(timezone=True))
+    approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     # approver_id = db.Column('approver_id', db.ForeignKey('service_customer_accounts.id'))
     # approver = db.relationship(ServiceCustomerAccount, backref=db.backref('approver_results'),
     #                            foreign_keys=[approver_id])
