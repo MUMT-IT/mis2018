@@ -2294,8 +2294,7 @@ def create_invoice(quotation_id):
     menu = request.args.get('menu')
     quotation = ServiceQuotation.query.get(quotation_id)
     if not quotation.invoices:
-        invoice_no = ServiceNumberID.get_number('Invoice', db,
-                                                lab=quotation.request.sub_lab.lab.ref)
+        invoice_no = ServiceNumberID.get_number('Invoice', db, lab=quotation.request.sub_lab.ref)
         invoice = ServiceInvoice(invoice_no=invoice_no.number, quotation_id=quotation_id, name=quotation.name,
                                  address=quotation.address,
                                  taxpayer_identification_no=quotation.taxpayer_identification_no,
