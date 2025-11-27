@@ -2484,22 +2484,22 @@ def sample_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
-    samples = ServiceSample.query.filter(ServiceSample.request.has(customer_id=current_user.id))
+    query = ServiceSample.query.filter(ServiceSample.request.has(customer_id=current_user.id))
     if tab == 'schedule':
-        samples = samples.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
+        samples = query.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
                                  ServiceSample.received_at == None)
     elif tab == 'delivery':
-        samples = samples.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
+        samples = query.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
                                  ServiceSample.received_at == None)
     elif tab == 'received':
-        samples = samples.filter(ServiceSample.received_at != None)
+        samples = query.filter(ServiceSample.received_at != None)
     else:
-        samples = samples
-    schedule_count = samples.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
+        samples = query
+    schedule_count = query.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
                                  ServiceSample.received_at == None).count()
-    delivery_count = samples.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
+    delivery_count = query.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
                                  ServiceSample.received_at == None).count()
-    received_count = samples.filter(ServiceSample.received_at >= expire_time).count()
+    received_count = query.filter(ServiceSample.received_at >= expire_time).count()
     all_count = schedule_count + delivery_count + received_count
     return render_template('academic_services/sample_index.html', samples=samples, menu=menu, tab=tab,
                            schedule_count=schedule_count, delivery_count=delivery_count, received_count=received_count,
