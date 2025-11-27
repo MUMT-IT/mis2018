@@ -3362,6 +3362,7 @@ def edit_result_item(result_item_id):
     result_item = ServiceResultItem.query.get(result_item_id)
     result = ServiceResult.query.get(result_item.result_id)
     form = ServiceResultItemForm(obj=result_item)
+    edited_all = all(item.is_edited for item in result_item.result.result_items if item.req_edit_at)
     if form.validate_on_submit():
         form.populate_obj(result_item)
         status_id = get_status(14)
@@ -3369,6 +3370,8 @@ def edit_result_item(result_item_id):
         result_item.edit_requester_id = current_user.id
         result_item.req_edit_at = arrow.now('Asia/Bangkok').datetime
         result_item.result.request.status_id = status_id
+        if edited_all:
+            result_item.result.result_edit_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(result_item)
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
