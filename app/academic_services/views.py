@@ -3302,7 +3302,8 @@ def confirm_result_item(result_item_id):
     result = ServiceResult.query.get(result_item.result_id)
     result_item.approver_id = current_user.id
     result_item.approved_at = arrow.now('Asia/Bangkok').datetime
-    approved_all = all(item.draft_file for item in result.result_items)
+    db.session.add(result_item)
+    approved_all = all(item.approved_at is not None for item in result.result_items)
     if approved_all:
         status_id = get_status(13)
         result_item.result.status_id = status_id
