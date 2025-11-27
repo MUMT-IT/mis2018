@@ -117,7 +117,7 @@
                                                     </a>
                                                 </div>
                                             </div>
-                                        {% elif item.draft_file and 15 >= result.status.status_id <= 12  %}
+                                        {% elif item.draft_file and not item.approved_at and (not item.req_edit_at or item.is_edited) %}
                                             <div class="field has-addons">
                                                 <div class="control">
                                                     <a class="button is-small is-success is-rounded"
