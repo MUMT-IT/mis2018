@@ -80,9 +80,9 @@ class KPITargetForm(ModelForm):
     class Meta:
         model = KPI
         only = ['target', 'target_source', 'target_setter', 'target_account', 'target_reporter']
-    target_account = SelectField(u'ผู้รับผิดชอบหลัก')
-    target_reporter = SelectField(u'ผู้รายงานเป้าหมาย')
-    target_setter = SelectField(u'ผู้ตั้งเป้าหมาย')
+    target_account = SelectField(u'ผู้รับผิดชอบหลัก', validators=[DataRequired()])
+    target_reporter = SelectField(u'ผู้รายงานเป้าหมาย', validators=[DataRequired()])
+    target_setter = SelectField(u'ผู้ตั้งเป้าหมาย', validators=[DataRequired()])
 
 
 class KPIReportForm(ModelForm):

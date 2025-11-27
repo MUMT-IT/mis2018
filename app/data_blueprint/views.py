@@ -277,11 +277,14 @@ def kpi_form(kpi_id=None):
         else:
             flash(form.errors, 'danger')
     if section == 'general':
-        return render_template('data_blueprint/kpi_form.html', form=form, process_id=process_id)
+        return render_template('data_blueprint/kpi_form.html',
+                               form=form, process_id=process_id, kpi_id=kpi_id)
     elif section == 'target':
-        return render_template('data_blueprint/kpi_form_target.html', form=form, process_id=process_id)
+        return render_template('data_blueprint/kpi_form_target.html',
+                               form=form, process_id=process_id, kpi_id=kpi_id)
     else:
-        return render_template('data_blueprint/kpi_form_report.html', form=form, process_id=process_id)
+        return render_template('data_blueprint/kpi_form_report.html',
+                               form=form, process_id=process_id, kpi_id=kpi_id)
 
 
 @data_bp.route('/datasets/<int:dataset_id>/kpis/add', methods=['POST'])
