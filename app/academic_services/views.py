@@ -295,8 +295,8 @@ def menu():
             ServiceRequest.status.has(ServiceStatus.status_id.in_([6, 8, 9]))).count()
         invoice_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
             ServiceRequest.status.has(ServiceStatus.status_id.in_([20, 21]))).count()
-        report_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
-            ServiceRequest.status.has(ServiceStatus.status_id.in_([12, 15]))).count()
+        report_count = ServiceResultItem.query.filter(ServiceResultItem.result.has(
+        ServiceResult.request.has(customer_id=current_user.id)), ServiceResultItem.approved_at == None).count()
 
     return dict(request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
                 invoice_count=invoice_count, report_count=report_count)
@@ -3127,36 +3127,31 @@ def result_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
-    results = ServiceResult.query.filter(ServiceResult.request.has(customer_id=current_user.id))
+    result_items = ServiceResultItem.query.filter(ServiceResultItem.result.has(
+        ServiceResult.request.has(customer_id=current_user.id)))
 
     if tab == 'pending':
-        results = results.filter(or_(ServiceResult.status_id == None,
-                                     ServiceResult.status.has(or_(
-                                         ServiceStatus.status_id == 10, ServiceStatus.status_id == 11)
-                                     )
-                                     )
-                                 )
+        result_items = result_items.filter(ServiceResultItem.sent_at == None)
     elif tab == 'edit':
-        results = results.filter(ServiceResult.status.has(ServiceStatus.status_id == 14))
+        result_items = result_items.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == False)
     elif tab == 'approve':
-        results = results.filter(
-            ServiceResult.status.has(or_(ServiceStatus.status_id == 12, ServiceStatus.status_id == 15)))
+        result_items = result_items.filter(ServiceResultItem.sent_at != None, ServiceResultItem.approved_at == None,
+                             or_(ServiceResultItem.req_edit_at == None, ServiceResultItem.is_edited == True
+                                 )
+                             )
     elif tab == 'confirm':
-        results = results.filter(ServiceResult.status.has(ServiceStatus.status_id == 13))
+        result_items = result_items.filter(ServiceResultItem.approved_at != None)
     else:
-        results = results
-    pending_count = results.filter(or_(ServiceResult.status_id == None,
-                                     ServiceResult.status.has(or_(
-                                         ServiceStatus.status_id == 10, ServiceStatus.status_id == 11)
-                                     )
-                                     )
-                                 ).count()
-    edit_count = results.filter(ServiceResult.status.has(ServiceStatus.status_id == 14)).count()
-    approve_count = results.filter(ServiceResult.status.has(or_(ServiceStatus.status_id == 12,
-                                                                ServiceStatus.status_id == 15))).count()
-    confirm_count = results.filter(ServiceResult.result_items.any(ServiceResultItem.approved_at >= expire_time)).count()
+        result_items = result_items
+    pending_count = result_items.filter(ServiceResultItem.sent_at == None).count()
+    edit_count = result_items.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == False).count()
+    approve_count = result_items.filter(ServiceResultItem.sent_at != None, ServiceResultItem.approved_at == None,
+                             or_(ServiceResultItem.req_edit_at == None, ServiceResultItem.is_edited == True
+                                 )
+                             ).count()
+    confirm_count = result_items.filter(ServiceResultItem.approved_at >= expire_time).count()
     all_count = edit_count + approve_count + pending_count + confirm_count
-    return render_template('academic_services/result_index.html', results=results, menu=menu, tab=tab,
+    return render_template('academic_services/result_index.html', result_items=result_items, menu=menu, tab=tab,
                            edit_count=edit_count, approve_count=approve_count, confirm_count=confirm_count,
                            all_count=all_count, pending_count=pending_count)
 

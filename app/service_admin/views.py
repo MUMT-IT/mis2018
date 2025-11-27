@@ -1904,7 +1904,7 @@ def result_index():
     )
     pending_count = query.filter(ServiceResultItem.sent_at == None).count()
     edit_count = query.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == False).count()
-    approve_count = query.filter(ServiceResultItem.sent_at == None, ServiceResultItem.approved_at == None,
+    approve_count = query.filter(ServiceResultItem.sent_at != None, ServiceResultItem.approved_at == None,
                              or_(ServiceResultItem.req_edit_at == None, ServiceResultItem.is_edited == True
                                  )
                              ).count()
@@ -1930,7 +1930,7 @@ def get_results():
     elif tab == 'edit':
         query = query.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == False)
     elif tab == 'approve':
-        query = query.filter(ServiceResultItem.sent_at == None, ServiceResultItem.approved_at == None,
+        query = query.filter(ServiceResultItem.sent_at != None, ServiceResultItem.approved_at == None,
                              or_(ServiceResultItem.req_edit_at == None, ServiceResultItem.is_edited == True
                                  )
                              )
