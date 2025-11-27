@@ -255,9 +255,13 @@ def menu():
         invoice_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
             ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
             ServiceRequest.status.has(ServiceStatus.status_id.in_([16, 17, 18, 19, 20, 21]))).count()
-        report_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
-            ServiceRequest.status.has(ServiceStatus.status_id.in_([11, 12, 14, 15]))).count()
+        report_count = ServiceResultItem.query.filter(
+        ServiceResultItem.result.has(ServiceResult.request.has(ServiceRequest.sub_lab.has(
+            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+        )
+        )
+        ), ServiceResultItem.approved_at == None
+    ).count()
     return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin, position=position,
                 request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
                 test_item_count=test_item_count, invoice_count=invoice_count, report_count=report_count)
@@ -1220,6 +1224,7 @@ def get_test_items():
     data = []
     for item in query:
         html_blocks = []
+        edit_html_blocks = []
         item_data = item.to_dict()
         for result in item.request.results:
             for i in result.result_items:
@@ -1239,6 +1244,7 @@ def get_test_items():
                 elif i.draft_file:
                     download_file = url_for('service_admin.download_file', key=i.draft_file,
                                             download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
+                    edit_result =  url_for('service_admin.edit_draft_result', menu='report', tab='approve', result_item_id=i.id)
                     html = f'''
                                             <div class="field has-addons">
                                                 <div class="control">
@@ -1249,11 +1255,23 @@ def get_test_items():
                                                 </div>
                                             </div>
                                         '''
+                    if i.req_edit_at and not i.is_edited:
+                        edit_html = f'''<div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-warning is-rounded" href="{edit_result}">
+                                                    <span class="icon is-small"><i class="fas fa-pen"></i></span>
+                                                    <span>แก้ไขใบรายงานผล</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    '''
                 else:
                     html = ''
                 html_blocks.append(html)
+                edit_html_blocks.append(edit_html)
         item_data['files'] = ''.join(
             html_blocks) if html_blocks else '<span class="has-text-grey-light is-italic">ไม่มีไฟล์</span>'
+        item_data['edit_file'] = ''.join(edit_html_blocks) if edit_html_blocks else ''
         data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
@@ -1885,8 +1903,11 @@ def result_index():
         )
     )
     pending_count = query.filter(ServiceResultItem.sent_at == None).count()
-    edit_count = query.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == None).count()
-    approve_count = query.filter(ServiceResultItem.sent_at != None, ServiceResultItem.approved_at == None).count()
+    edit_count = query.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == False).count()
+    approve_count = query.filter(ServiceResultItem.sent_at == None, ServiceResultItem.approved_at == None,
+                             or_(ServiceResultItem.req_edit_at == None, ServiceResultItem.is_edited == True
+                                 )
+                             ).count()
     confirm_count = query.filter(ServiceResultItem.approved_at >= expire_time).count()
     all_count = pending_count + edit_count + approve_count + confirm_count
     return render_template('service_admin/result_index.html', menu=menu, tab=tab, pending_count=pending_count,
@@ -1907,9 +1928,12 @@ def get_results():
     if tab == 'pending':
         query = query.filter(ServiceResultItem.sent_at == None)
     elif tab == 'edit':
-        query = query.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == None)
+        query = query.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == False)
     elif tab == 'approve':
-        query = query.filter(ServiceResultItem.sent_at != None, ServiceResultItem.approved_at == None)
+        query = query.filter(ServiceResultItem.sent_at == None, ServiceResultItem.approved_at == None,
+                             or_(ServiceResultItem.req_edit_at == None, ServiceResultItem.is_edited == True
+                                 )
+                             )
     elif tab == 'confirm':
         query = query.filter(ServiceResultItem.approved_at != None)
     else:
@@ -1917,7 +1941,7 @@ def get_results():
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
-        query = query.filter(ServiceResult.request.has(ServiceRequest.request_no).contains(search))
+        query = query.filter(ServiceResultItem.result.has(ServiceResult.request.has(ServiceRequest.request_no)).contains(search))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
