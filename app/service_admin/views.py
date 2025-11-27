@@ -3822,7 +3822,7 @@ def edit_draft_result(result_item_id):
             result_item.modified_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(result_item)
             db.session.commit()
-        edited_all = all(result_item.is_edited for item in result_item.result.result_items if item.req_edit_at)
+        edited_all = all(item.is_edited for item in result_item.result.result_items if item.req_edit_at)
         if edited_all:
             status_id = get_status(12)
             result_item.result.status_id = status_id
