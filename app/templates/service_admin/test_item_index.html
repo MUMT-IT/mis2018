@@ -119,7 +119,7 @@
                     { data: 'customer' },
                     { data: 'files' },
                     {
-                        data: 'id',
+                        data: null,
                         render: function (data, type, row) {
                             if (row.status_id == 13 || row.status_id >= 16) {
                                  var result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
@@ -133,7 +133,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.status_id == 10 || row.status_id == 11 || row.status_id == 14) {
+                            } else if (row.status_id == 10 || row.status_id == 11) {
                                 if (row.status_id == 10) {
                                     var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report';
                                     var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=report';
@@ -168,6 +168,8 @@
                                                 รอยืนยันใบรายงานผล
                                             </span>
                                         </span>`;
+                            } else if (row.status_id == 14) {
+                                return row.edit_file;
                             } else {
                                 return ''
                             }
