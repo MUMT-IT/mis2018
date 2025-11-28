@@ -80,12 +80,19 @@
                             </label>
                         </div>
                         <br>
-                        <b-field label="รายละเอียดการเข้าร่วม ดำเนินการภายใต้">
-                            <b-select placeholder="เลือกประเภท" name="objective" id="objective" required>
+                        <b-field label="รายละเอียด">
+                            <b-select placeholder="เลือก" name="objective" id="objective"
+                                 hx-get="{{ url_for('staff.get_idp_for_seminar', seminar_id=seminar.id) }}"
+                                 hx-target="#related-idp"
+                                 hx-swap="innerHTML"
+                                 hx-trigger="change">
                                 <option value="แผนพัฒนาบุคลากรรายบุคคล (IDP)">แผนพัฒนาบุคลากรรายบุคคล (IDP)</option>
                                 <option value="พัฒนาศักยภาพตามความสนใจ">พัฒนาศักยภาพตามความสนใจ</option>
                             </b-select>
                         </b-field>
+                        <div class="field">
+                            <div id="related-idp"></div>
+                        </div>
                         <br>
                         <div class="field" v-if="status === 'wanttogo'">
                             <p class="title is-size-4">{{ form.missions.label }}</p>
@@ -244,17 +251,27 @@
                                 <div class="field is-normal">
                                     <label class="label">ผู้บังคับบัญชา (ชื่อจะปรากฎบนเอกสาร)</label>
                                 </div>
-                                <div class="field-body">
-                                    <div class="control">
-                                        <div class="field">
-                                            <div class="select">
-                                                {{ form.approver() }}
-                                            </div>
-                                        </div>
-                                    </div>
+{#                                <div class="field-body">#}
+{#                                    <div class="control">#}
+{#                                        <div class="field">#}
+{#                                            <div class="select">#}
+{#                                                {{ form.approver() }}#}
+{#                                            </div>#}
+{#                                        </div>#}
+{#                                    </div>#}
+{#                                </div>#}
+                            </div>
+                            <div>
+                                <label>ผู้อนุมัติ</label>
+                                <div class="select">
+                                {{ form.approver(**{'hx-get': url_for('staff.get_positions'),
+                                'hx-target': '#related-position', 'hx-swap': 'innerHTML', 'hx-trigger': 'change, load'}) }}
                                 </div>
                             </div>
-                        </div>
+                             <div class="field">
+                                    <div id="related-position"></div>
+                            </div>
+
                         {#<b-field label="เบอร์โทรฯ ภายใน" v-if="wantdocument === 'want'">
                                 <b-input type="text"
                                          name="contact_no"
@@ -274,6 +291,7 @@
 {#                                </div>#}
 {#                            </div>#}
 {#                        </div>#}
+                        </div>
                     </div>
                 </div>
                 <div class="columns">
@@ -289,7 +307,6 @@
                         </div>
                     </div>
                 </div>
-
             </form>
         </div>
     </section>
@@ -350,6 +367,8 @@
                     $('#other_objective').hide()
                 }
             })
+            htmx.trigger(htmx.find('#approver'), 'change')
         })
+
     </script>
 {% endblock %}
