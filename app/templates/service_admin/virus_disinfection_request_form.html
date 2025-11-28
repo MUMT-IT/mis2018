@@ -16,6 +16,11 @@
         .daterangepicker th {
             display: table-cell !important;
         }
+
+        input[readonly] {
+            background-color: #e9ecef !important;
+            cursor: not-allowed;
+        }
     </style>
 {% endblock %}
 {% block page_content %}
@@ -443,7 +448,7 @@
                     const textInputs = $(this).find('input[type="text"]');
 
                     const active = checkbox.is(':checked');
-                    textInputs.prop('disabled', !active).prop('required', active)
+                    textInputs.prop('readonly', !active).prop('required', active)
                         .attr('oninvalid', "this.setCustomValidity('กรุณากรอกข้อมูล')")
                         .attr('oninput', "this.setCustomValidity('')");
 
@@ -557,7 +562,7 @@
 
         $('.subform-card').each(function () {
             const subform = $(this);
-            {#toggleTable(subform);#}
+            toggleTable(subform);
             addRequiredField(subform);
             toggleSurfaceTypeInput(subform);
             showSurfaceTypeOtherInput(subform);
