@@ -3319,9 +3319,21 @@ def seminar_create_record(seminar_id):
                 attend.invited_document_date = form.invited_document_date.data
             attend.attend_online = True if request.form.get('is_online') else False
             if form.approver.data:
-                attend.lower_level_approver_account_id = form.approver.data.account.id
+                #attend.lower_level_approver_account_id = form.approver.data.account.id
+                leave_approver_id = request.form.get('approver')
+                leave_approver = StaffLeaveApprover.query.get(leave_approver_id)
+                attend.lower_level_approver_account_id = leave_approver.approver_account_id
                 attend.document_title = form.document_title.data
             db.session.add(attend)
+
+            document_approver = StaffSeminarDocumentApprover(
+                seminar_attend=attend,
+                position_id=request.form.get('position')
+            )
+            db.session.add(document_approver)
+            from app.PA.models import IDPItem
+            for item in request.form.getlist('idps'):
+                idp_item = IDPItem.query.get(item)
             db.session.commit()
 
             # req_title = u'ทดสอบแจ้งการขออนุมัติ' + attend.seminar.topic_type
@@ -3357,6 +3369,46 @@ def seminar_create_record(seminar_id):
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
     return render_template('staff/seminar_create_record.html', seminar=seminar, form=form)
+
+
+@staff.route('/seminar/get-idp/<int:seminar_id>', methods=['GET'])
+@login_required
+def get_idp_for_seminar(seminar_id):
+    option = request.args.get('objective')
+    if "IDP" in option:
+        seminar = StaffSeminar.query.get(seminar_id)
+        from app.PA.models import IDP, PAFunctionalCompetencyRound
+        idp = IDP.query.filter_by(staff=current_user).join(IDP.round)\
+                        .filter(PAFunctionalCompetencyRound.start <= seminar.start_datetime.date(),
+                        PAFunctionalCompetencyRound.end >= seminar.start_datetime.date()).first()
+        if not idp:
+            html_content = "<p>ไม่พบ IDP ที่ตรงกับช่วงเวลาที่ไปอบรม</p>"
+        else:
+            html_content = '''<p class="is-size-5"><strong>IDP ที่เกี่ยวข้อง</strong></p>'''
+            for item in idp.idp_item:
+                html_content += f'''
+                    <table class="table is-striped">
+                        <thead>
+                        <tr>
+                        <th></th>
+                        <th>สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</th>
+                        <th>วิธีการพัฒนา</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td><input type="checkbox" name="idps" value="{item.id}"></td>
+                            <td>{item.plan}</td>
+                            <td>{item.learning_type}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                '''
+        resp = make_response(html_content)
+        resp.headers['HX-Trigger-After-Swap'] = 'initSelect2'
+        return resp
+    else:
+        return ''
 
 
 @staff.route('/seminar/head-position', methods=['GET'])
@@ -3718,6 +3770,9 @@ def show_seminar_info_each_person(record_id):
         prefix_position = ''
     telephone = seminar_attend.staff.personal_info.telephone if seminar_attend.staff.personal_info.telephone \
         else '.......'
+    approver = seminar_attend.lower_level_approver.personal_info if seminar_attend.lower_level_approver else ''
+    document_approver = StaffSeminarDocumentApprover.query.filter_by(seminar_attend=seminar_attend).first()
+    approver_position = document_approver.position.position if document_approver else ''
 
     return render_template('staff/seminar_each_record.html', attend=attend, approval=approval,
                            proposal=proposal, is_hr=is_hr, upload_file_url=upload_file_url,
@@ -3725,7 +3780,8 @@ def show_seminar_info_each_person(record_id):
                            transaction_fee=transaction_fee, budget=budget, accommodation_cost=accommodation_cost,
                            flight_ticket_cost=flight_ticket_cost, train_ticket_cost=train_ticket_cost,
                            taxi_cost=taxi_cost, fuel_cost=fuel_cost, org_name=org_name, attend_online=attend_online,
-                           prefix_position=prefix_position, telephone=telephone)
+                           prefix_position=prefix_position, telephone=telephone,
+                           approver=approver, approver_position=approver_position)
 
 
 @staff.route('/seminar/edit-seminar/<int:seminar_id>', methods=['GET', 'POST'])
