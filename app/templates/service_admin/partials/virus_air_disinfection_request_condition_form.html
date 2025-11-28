@@ -121,7 +121,7 @@
 
     $('.subform-card').each(function () {
         const subform = $(this);
-        toggleTable(subform);
+        {#toggleTable(subform);#}
         addRequiredField(subform);
         showClenTypeOtherInput(subform);
         subform.find('input[type="radio"][name$="clean_type"]').change(function () {

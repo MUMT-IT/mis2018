@@ -545,7 +545,7 @@
 
         $('.subform-card').each(function () {
             const subform = $(this);
-            toggleTable(subform);
+            {#toggleTable(subform);#}
             addRequiredField(subform);
             showSurfaceTypeOtherInput(subform);
             subform.find('input[type="radio"][name$="surface_type"]').change(function () {
