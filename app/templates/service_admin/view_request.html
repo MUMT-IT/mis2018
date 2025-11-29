@@ -251,7 +251,7 @@
                                             {% endfor %}
                                         {% endfor %}
                                     {% else %}
-                                        รอดำเนินการทดสอบตัวอย่าง
+                                        ยังไม่ดำเนินการทดสอบตัวอย่าง
                                     {% endif %}
                                 </li>
                             </ul>
@@ -262,7 +262,7 @@
                             <ul class="menu-list">
                                 {% if service_request.status.status_id == 2 %}
                                     <li>
-                                        <a class="button is-success is-rounded is-fullwidth mb-2"
+                                        <a class="button is-info is-rounded is-fullwidth mb-2"
                                            href="{{ url_for('service_admin.generate_quotation',
                                             request_id=service_request.id, menu='quotation', tab='draft') }}"
                                         >
