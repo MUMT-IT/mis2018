@@ -839,16 +839,16 @@ class ServiceInvoice(db.Model):
             'file_attached_at': self.file_attached_at if self.file_attached_at else None,
             'assistant_approved_at': self.assistant_approved_at if self.assistant_approved_at else None,
             'payment_type': [payment.payment_type for payment in self.payments] if self.payments else None,
-            'payment_date': [payment.paid_at.isoformat() if payment.paid_at else '' for payment in self.payments]
-            if self.payments else [],
+            'payment_date': ', '.join(payment.paid_at if payment.paid_at else '' for payment in self.payments)
+                            if self.payments else None,
             'paid_at': self.paid_at if self.paid_at else None,
             'is_paid': self.is_paid if self.is_paid else None,
             'invoice_file': self.file if self.file else None,
             'receipt_id': [receipt.id for receipt in self.receipts] if self.receipts else None,
             'receipt_no': [receipt.number for receipt in self.receipts] if self.receipts else None,
             'issuer': [receipt.issuer.fullname for receipt in self.receipts] if self.receipts else None,
-            'receipt_at': [receipt.created_datetime.isoformat() for receipt in
-                           self.receipts] if self.receipts else None,
+            'receipt_at': ', '.join(str(receipt.created_datetime) for receipt in
+                           self.receipts) if self.receipts else None,
         }
 
     # @property
