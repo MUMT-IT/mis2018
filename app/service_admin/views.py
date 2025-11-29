@@ -18,7 +18,7 @@ from sqlalchemy.orm import make_transient
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from app.auth.views import line_bot_api
-from app.academic_services.forms import create_request_form, ServicePaymentForm
+from app.academic_services.forms import *
 from app.e_sign_api import e_sign
 from app.models import Org
 from app.scb_payment_service.views import generate_qrcode
@@ -256,12 +256,12 @@ def menu():
             ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
             ServiceRequest.status.has(ServiceStatus.status_id.in_([16, 17, 18, 19, 20, 21]))).count()
         report_count = ServiceResultItem.query.filter(
-        ServiceResultItem.result.has(ServiceResult.request.has(ServiceRequest.sub_lab.has(
-            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-        )
-        )
-        ), ServiceResultItem.approved_at == None
-    ).count()
+            ServiceResultItem.result.has(ServiceResult.request.has(ServiceRequest.sub_lab.has(
+                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+            )
+            )
+            ), ServiceResultItem.approved_at == None
+        ).count()
     return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin, position=position,
                 request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
                 test_item_count=test_item_count, invoice_count=invoice_count, report_count=report_count)
@@ -1244,7 +1244,8 @@ def get_test_items():
                 elif i.draft_file:
                     download_file = url_for('service_admin.download_file', key=i.draft_file,
                                             download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
-                    edit_result =  url_for('service_admin.edit_draft_result', menu='report', tab='approve', result_item_id=i.id)
+                    edit_result = url_for('service_admin.edit_draft_result', menu='report', tab='approve',
+                                          result_item_id=i.id)
                     html = f'''
                                             <div class="field has-addons">
                                                 <div class="control">
@@ -1905,9 +1906,9 @@ def result_index():
     pending_count = query.filter(ServiceResultItem.sent_at == None).count()
     edit_count = query.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == False).count()
     approve_count = query.filter(ServiceResultItem.sent_at != None, ServiceResultItem.approved_at == None,
-                             or_(ServiceResultItem.req_edit_at == None, ServiceResultItem.is_edited == True
-                                 )
-                             ).count()
+                                 or_(ServiceResultItem.req_edit_at == None, ServiceResultItem.is_edited == True
+                                     )
+                                 ).count()
     confirm_count = query.filter(ServiceResultItem.approved_at >= expire_time).count()
     all_count = pending_count + edit_count + approve_count + confirm_count
     return render_template('service_admin/result_index.html', menu=menu, tab=tab, pending_count=pending_count,
@@ -1941,7 +1942,8 @@ def get_results():
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
-        query = query.filter(ServiceResultItem.result.has(ServiceResult.request.has(ServiceRequest.request_no)).contains(search))
+        query = query.filter(
+            ServiceResultItem.result.has(ServiceResult.request.has(ServiceRequest.request_no)).contains(search))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
@@ -3165,7 +3167,7 @@ def generate_quotation():
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential(json_keyfile)
         wksp = gc.open_by_key(sheet_price_id)
-        sheet_price = wksp.worksheet('test')
+        sheet_price = wksp.worksheet(service_request.sub_lab.code)
         df_price = pandas.DataFrame(sheet_price.get_all_records())
         quote_column_names = {}
         quote_details = {}
@@ -3185,40 +3187,77 @@ def generate_quotation():
                 quote_prices[key] = row['government_price']
             else:
                 quote_prices[key] = row['other_price']
-        if service_request.sub_lab.code == 'bacteria':
-            form = BacteriaRequestForm(data=data)
-        elif service_request.sub_lab.code == 'disinfection':
-            form = VirusDisinfectionRequestForm(data=data)
+
+        if service_request.sub_lab.code == 'air_disinfection':
+            test_methods = []
+            surface_fields = data.get('surface_condition_field', {}).get('surface_disinfection_organism_fields', [])
+            airborne_fields = data.get('airborne_disinfection_organism', {}).get('airborne_disinfection_organism_fields', [])
+
+            if surface_fields:
+                for f in surface_fields:
+                    organisms = f.get('surface_disinfection_organism', '')
+                    period_tests = f.get('surface_disinfection_period_test', '')
+                    for organism in organisms:
+                        if organism and period_tests:
+                            test_methods.append((organism, period_tests))
+                    for _, row in df_price.iterrows():
+                        organism_rows = row['surface_disinfection_organism']
+                        period_test_rows = row['surface_disinfection_period_test']
+                        if (organism_rows, period_test_rows) in test_methods:
+                            p_key = ''.join(sorted(f"{organism_rows}{period_test_rows}".replace(' ', '')))
+                            values = f"<i>{organism_rows}</i> {period_test_rows}"
+                            price = quote_prices.get(p_key, 0)
+                            quote_details[p_key] = {"value": values, "price": price, "quantity": 1}
+            else:
+                for f in airborne_fields:
+                    organisms = f.get('airborne_disinfection_organism', '')
+                    period_tests = f.get('airborne_disinfection_period_test', '')
+                    for organism in organisms:
+                        if organism and period_tests:
+                            test_methods.append((organism, period_tests))
+                    for _, row in df_price.iterrows():
+                        organism_rows = row['airborne_disinfection_organism']
+                        period_test_rows = row['airborne_disinfection_period_test']
+                        if (organism_rows, period_test_rows) in test_methods:
+                            p_key = ''.join(sorted(f"{organism_rows}{period_test_rows}".replace(' ', '')))
+                            values = f"<i>{organism_rows}</i> {period_test_rows}"
+                            price = quote_prices.get(p_key, 0)
+                            quote_details[p_key] = {"value": values, "price": price, "quantity": 1}
         else:
-            form = VirusAirDisinfectionRequestForm(data=data)
-        for field in form:
-            if field.label.text not in quote_column_names:
-                continue
-            keys = []
-            keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
-            for r in range(1, len(quote_column_names[field.label.text]) + 1):
-                for key in itertools.combinations(keys, r):
-                    sorted_key_ = sorted(''.join([k[1] for k in key]))
-                    p_key = ''.join(sorted_key_).replace(' ', '')
-                    values = ', '.join(
-                        [f"<i>{k[1]}</i>" if "organism" in k[0] and k[1] != "None" else k[1] for k in key]
-                    )
-                    count_value.update(values.split(', '))
-                    quantities = (
-                        ', '.join(str(count_value[v]) for v in values.split(', '))
-                        if ((service_request.sub_lab.code not in ['bacteria', 'virology']))
-                        else 1
-                    )
-                    if service_request.sub_lab.code == 'endotoxin':
-                        for k in key:
-                            if not k[1]:
-                                break
-                            for price in quote_prices.values():
-                                quote_details[p_key] = {"value": values, "price": price, "quantity": quantities}
-                    else:
-                        if p_key in quote_prices:
-                            prices = quote_prices[p_key]
-                            quote_details[p_key] = {"value": values, "price": prices, "quantity": quantities}
+            if service_request.sub_lab.code == 'bacteria':
+                form = BacteriaRequestForm(data=data)
+            elif service_request.sub_lab.code == 'disinfection':
+                form = VirusDisinfectionRequestForm(data=data)
+            else:
+                form = VirusAirDisinfectionRequestForm(data=data)
+            for field in form:
+                if field.label.text not in quote_column_names:
+                    continue
+                keys = []
+                keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
+                for r in range(1, len(quote_column_names[field.label.text]) + 1):
+                    for key in itertools.combinations(keys, r):
+                        sorted_key_ = sorted(''.join([k[1] for k in key]))
+                        p_key = ''.join(sorted_key_).replace(' ', '')
+                        values = ', '.join(
+                            [f"<i>{k[1]}</i>" if "organism" in k[0] and k[1] != "None" else k[1] for k in key]
+                        )
+                        count_value.update(values.split(', '))
+                        quantities = (
+                            ', '.join(str(count_value[v]) for v in values.split(', '))
+                            if ((service_request.sub_lab.code not in ['bacteria', 'disinfection', 'air_disinfection']))
+                            else 1
+                        )
+                        if service_request.sub_lab.code == 'endotoxin':
+                            for k in key:
+                                if not k[1]:
+                                    break
+                                for price in quote_prices.values():
+                                    quote_details[p_key] = {"value": values, "price": price, "quantity": quantities}
+                        else:
+                            if p_key in quote_prices:
+                                prices = quote_prices[p_key]
+                                quote_details[p_key] = {"value": values, "price": prices, "quantity": quantities}
         quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
                                      name=service_request.quotation_name,
