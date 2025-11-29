@@ -302,6 +302,43 @@ def menu():
                 invoice_count=invoice_count, report_count=report_count)
 
 
+@academic_services.route('index')
+def index():
+    today = arrow.now().date()
+    thirty_days = arrow.now().shift(days=+30).date()
+    request_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
+                                                ServiceRequest.status.has(ServiceStatus.status_id == 1)
+                                                ).count()
+    quotation_count = ServiceQuotation.query.filter(ServiceQuotation.request.has(customer_id=current_user.id),
+                                                    ServiceQuotation.approved_at != None,
+                                                    ServiceQuotation.confirmed_at == None).count()
+    sample_count = ServiceSample.query.filter(ServiceSample.request.has(customer_id=current_user.id),
+                                              ServiceSample.received_at == None).count()
+    test_item_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
+                                                ServiceRequest.status.has(or_(ServiceStatus.status_id == 10,
+                                                                              ServiceStatus.status_id == 11))
+                                                ).count()
+    report_count = ServiceResultItem.query.filter(ServiceResultItem.result.has(
+                    ServiceResult.request.has(customer_id=current_user.id)),
+                    ServiceResultItem.approved_at == None).count()
+    invoice_count = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at != None, ServiceInvoice.paid_at == None,
+                                                ServiceInvoice.quotation.has(
+                                                    ServiceQuotation.request.has(customer_id=current_user.id))).count()
+    service_requests = (ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id)
+                         .order_by(ServiceRequest.created_at.desc()).limit(5))
+    samples = ServiceSample.query.filter(ServiceSample.request.has(customer_id=current_user.id),
+                                              ServiceSample.received_at == None ,
+                                        or_(ServiceSample.appointment_date) <= thirty_days,
+                                        ServiceSample.ship_type == 'ส่งทางไปรษณีย์')
+    invoices = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at != None, ServiceInvoice.paid_at == None,
+                                                ServiceInvoice.due_date < today, ServiceInvoice.quotation.has(
+                                                    ServiceQuotation.request.has(customer_id=current_user.id)))
+    return render_template('academic_services/index.html', request_count=request_count, quotation_count=quotation_count,
+                           sample_count=sample_count, test_item_count=test_item_count, report_count=report_count,
+                           invoice_count=invoice_count, service_reqeusts=service_requests, samples=samples,
+                           invoices=invoices)
+
+
 @academic_services.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -857,6 +894,10 @@ def create_bacteria_request(request_id=None):
     for n, org in enumerate(bacteria_wash_organisms):
         in_wash_entry = form.in_wash_condition_field.in_wash_organism_fields[n]
         in_wash_entry.in_wash_organism.choices = [(org, org)]
+    if request.method == 'POST':
+        for n, org in enumerate(bacteria_liquid_organisms):
+            liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
+            print('label', liquid_entry.liquid_organism.label, 'choice', liquid_entry.liquid_organism.choices, 'data', liquid_entry.liquid_organism.data)
     if form.validate_on_submit():
         if request_id:
             service_request.data = format_data(form.data)
