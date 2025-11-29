@@ -130,7 +130,7 @@
                         render: function (data) {
                             if (data !== '') {
                                 let d = moment(data)
-                                return d.format('lll')
+                                return d.format('DD/MM/YYYY HH:mm')
                             } else {
                                 return '-'
                             }
@@ -152,25 +152,17 @@
                         data: null,
                         render: function (data, type, row) {
                             if (row.quotation_confirmed_at) {
-                                let confirmed_at = moment(row.quotation_confirmed_at).format('lll')
+                                let confirmed_at = moment(row.quotation_confirmed_at).format('DD/MM/YYYY HH:mm')
                                 return `<div class="field">
                                             <div class="control">
                                                 ยืนยัน : ${confirmed_at}<br/>
-                                                <span class="tag is-success is-rounded">
-                                                    <span class="icon"><i class="fas fa-check-circle"></i></span>
-                                                    <span>ยืนยันแล้ว</span>
-                                                </span>
                                             </div>
                                        </div>`;
                             } else if (row.quotation_cancelled_at) {
-                                let cancelled_at = moment(row.quotation_cancelled_at).format('lll')
+                                let cancelled_at = moment(row.quotation_cancelled_at).format('DD/MM/YYYY HH:mm')
                                 return `<div class="field">
                                             <div class="control">
                                                 ยกเลิก : ${cancelled_at}<br/>
-                                                <span class="tag is-danger is-rounded">
-                                                    <span class="icon"><i class="fas fa-times"></i></span>
-                                                    <span>ยกเลิกแล้ว</span>
-                                                </span>
                                             </div>
                                        </div>`;
                             } else {
@@ -182,14 +174,10 @@
                         data: null,
                         render: function (data, type, row) {
                             if (row.sample_received_at) {
-                                let received_at = moment(row.sample_received_at).format('lll')
+                                let received_at = moment(row.sample_received_at).format('DD/MM/YYYY HH:mm')
                                 return `<div class="field">
                                             <div class="control">
                                                 ส่ง : ${received_at}<br/>
-                                                <span class="tag is-light is-info is-rounded">
-                                                    <span class="icon"><i class="fas fa-check-circle"></i></span>
-                                                    <span>ส่งตัวอย่างแล้ว</span>
-                                                </span>
                                             </div>
                                        </div>`;
                             } else {
@@ -201,14 +189,10 @@
                         data: null,
                         render: function (data, type, row) {
                             if (row.sample_test_at) {
-                                let test_at = moment(row.sample_test_at).format('lll')
+                                let test_at = moment(row.sample_test_at).format('DD/MM/YYYY HH:mm')
                                 return `<div class="field">
                                             <div class="control">
                                                 ทดสอบ : ${test_at}<br/>
-                                                <span class="tag is-light is-link is-rounded">
-                                                    <span class="icon"><i class="fas fa-check-circle"></i></span>
-                                                    <span>ทดสอบตัวอย่างแล้ว</span>
-                                                </span>
                                             </div>
                                        </div>`;
                             } else {
@@ -220,23 +204,10 @@
                         data: null,
                         render: function (data, type, row) {
                             if (row.verify_at) {
-                                let date = moment(row.paid_at).format('lll')
+                                let date = moment(row.paid_at).format('DD/MM/YYYY HH:mm')
                                 return `<div class="field">
                                             <div class="control">
                                                 ชำระ : ${date}<br/>
-                                                <span class="tag is-success is-rounded">
-                                                    <span class="icon"><i class="fas fa-check-circle"></i></span>
-                                                    <span>ชำระเงินแล้ว</span>
-                                                </span>
-                                            </div>
-                                       </div>`;
-                            } else if (row.paid_at) {
-                                return `<div class="field">
-                                            <div class="control">
-                                                <span class="tag is-light is-rounded">
-                                                    <span class="icon"><i class="fas fa-hourglass-half"></i></span>
-                                                    <span>รอเจ้าหน้าที่ตรวจสอบ</span>
-                                                </span>
                                             </div>
                                        </div>`;
                             } else {
@@ -248,38 +219,26 @@
                         data: null,
                         render: function (data, type, row) {
                             if (row.result_approved_at && row.result_edit_at) {
-                                let edit_at = moment(row.result_edit_at).format('lll')
-                                let approved_at = moment(row.result_approved_at).format('lll')
+                                let edit_at = moment(row.result_edit_at).format('DD/MM/YYYY HH:mm')
+                                let approved_at = moment(row.result_approved_at).format('DD/MM/YYYY HH:mm')
                                 return `<div class="field">
                                             <div class="control">
                                                 ขอแก้ไข : ${edit_at}<br/>
                                                 ยืนยัน : ${approved_at}<br/>
-                                                <span class="tag is-light is-success is-rounded">
-                                                    <span class="icon"><i class="fas fa-check-circle"></i></span>
-                                                    <span>ยืนยันผลแล้ว</span>
-                                                </span>
                                             </div>
                                        </div>`;
                             } else if (row.result_approved_at && !row.result_edit_at) {
-                                let approved_at = moment(row.result_approved_at).format('lll')
+                                let approved_at = moment(row.result_approved_at).format('DD/MM/YYYY HH:mm')
                                 return `<div class="field">
                                             <div class="control">
                                                 ยืนยัน : ${approved_at}<br/>
-                                                <span class="tag is-light is-success is-rounded">
-                                                    <span class="icon"><i class="fas fa-check-circle"></i></span>
-                                                    <span>ยืนยันผลแล้ว</span>
-                                                </span>
                                             </div>
                                        </div>`;
                             } else if (!row.result_approved_at && row.result_edit_at) {
-                                let edit_at = moment(row.result_edit_at).format('lll')
+                                let edit_at = moment(row.result_edit_at).format('DD/MM/YYYY HH:mm')
                                 return `<div class="field">
                                             <div class="control">
                                                 ขอแก้ไข : ${edit_at}<br/>
-                                                <span class="tag is-light is-rounded">
-                                                    <span class="icon"><i class="fas fa-hourglass-half"></i></span>
-                                                    <span>รอดำเนินการแก้ไข</span>
-                                                </span>
                                             </div>
                                        </div>`;
                             } else {
