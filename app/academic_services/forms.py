@@ -403,7 +403,7 @@ class BacteriaRequestForm(FlaskForm):
     after_wash_condition_field = FormField(BacteriaAfterWashConditionForm,
                                            'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ตกค้างหลังซัก (After Wash Claim)')
     in_wash_condition_field = FormField(BacteriaInWashConditionForm,
-                                        'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (After Wash Claim)')
+                                        'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (In Wash Claim)')
 
 
 virus_liquid_organisms = [
