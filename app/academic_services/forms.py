@@ -289,13 +289,13 @@ class BacteriaAfterWashConditionForm(FlaskForm):
     product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ตกค้างหลังซัก (After Wash Claim)',
                                render_kw={'class': 'input is-danger'})
-    after_wash_qualitative_test = RadioField('วิธีทดสอบเชิงคุณภาพ', choices=[('AOAC 962.04', 'AOAC 962.04'),
-                                                                             ('JIS L 1902', 'JIS L 1902'),
-                                                                             ('AATCC 147-2004', 'AATCC 147-2004')],
+    after_wash_qualitative_test = RadioField('วิธีทดสอบเชิงคุณภาพ', choices=[('วิธีทดสอบเชิงคุณภาพ AOAC 962.04', 'AOAC 962.04'),
+                                                                             ('วิธีทดสอบเชิงคุณภาพ JIS L 1902', 'JIS L 1902'),
+                                                                             ('วิธีทดสอบเชิงคุณภาพ AATCC 147-2004', 'AATCC 147-2004')],
                                              validators=[Optional()])
-    after_wash_quantitative_test = RadioField('วิธีทดสอบเชิงปริมาณ', choices=[('JIS L 1902', 'JIS L 1902'),
-                                                                              ('ISO 20743', 'ISO 20743'),
-                                                                              ('AATCC 100-2004', 'AATCC 100-2004')],
+    after_wash_quantitative_test = RadioField('วิธีทดสอบเชิงปริมาณ', choices=[('วิธีทดสอบเชิงปริมาณ JIS L 1902', 'JIS L 1902'),
+                                                                              ('วิธีทดสอบเชิงปริมาณ ISO 20743', 'ISO 20743'),
+                                                                              ('วิธีทดสอบเชิงปริมาณ AATCC 100-2004', 'AATCC 100-2004')],
                                               validators=[Optional()])
     after_wash_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง'), ('ไม่เจือจาง', 'ไม่เจือจาง')],
                                      validators=[Optional()])
@@ -315,7 +315,7 @@ class BacteriaInWashConditionForm(FlaskForm):
     product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (In Wash Claim)',
                                render_kw={'class': 'input is-danger'})
-    in_wash_test_method = RadioField('วิธีทดสอบ', choices=[('ASTM E 2274-09', 'ASTM E 2274-09')],
+    in_wash_test_method = RadioField('วิธีทดสอบเชิงปริมาณ', choices=[('วิธีทดสอบเชิงปริมาณ ASTM E 2274-09', 'ASTM E 2274-09')],
                                      validators=[Optional()])
     in_wash_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง'), ('ไม่เจือจาง', 'ไม่เจือจาง')],
                                   validators=[Optional()])
