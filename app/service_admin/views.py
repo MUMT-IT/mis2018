@@ -2228,7 +2228,10 @@ def invoice_index():
                                       ServiceInvoice.assistant_approved_at != None,
                                       ServiceInvoice.file_attached_at == None,
                                       ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
-    waiting_payment_count = query.filter(or_(ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None)).count()
+    waiting_payment_count = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at != None,
+                                      ServiceInvoice.assistant_approved_at != None,
+                                      ServiceInvoice.file_attached_at != None,
+                                      or_(ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None)).count()
     payment_count = query.filter(ServiceInvoice.verify_at >= expire_time).count()
     all_count = (draft_count + pending_dean_count + pending_assistant_count + pending_supervisor_count +
                  waiting_payment_count + payment_count)
@@ -2242,7 +2245,6 @@ def invoice_index():
 @service_admin.route('/api/invoice/index')
 def get_invoices():
     tab = request.args.get('tab')
-    today = arrow.now('Asia/Bangkok').date()
     query = ServiceInvoice.query.filter(or_(ServiceInvoice.creator_id == current_user.id,
                                             ServiceInvoice.quotation.has(ServiceQuotation.request.has(
                                                 ServiceRequest.sub_lab.has(
@@ -2265,7 +2267,10 @@ def get_invoices():
                              ServiceInvoice.assistant_approved_at != None, ServiceInvoice.file_attached_at == None,
                              ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None)
     elif tab == 'waiting_payment':
-        query = query.filter(or_(ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None))
+        query = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at != None,
+                             ServiceInvoice.assistant_approved_at != None,
+                             ServiceInvoice.file_attached_at != None,
+                             or_(ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None))
     elif tab == 'payment':
         query = query.filter(ServiceInvoice.is_paid != None)
     else:
@@ -2333,13 +2338,14 @@ def create_invoice(quotation_id):
 
 @service_admin.route('/invoice/approve/<int:invoice_id>', methods=['GET', 'POST'])
 def approve_invoice(invoice_id):
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     admin = request.args.get('admin')
     invoice = ServiceInvoice.query.get(invoice_id)
     scheme = 'http' if current_app.debug else 'https'
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=invoice.quotation.request.sub_lab.code)).all()
     invoice_url = url_for("service_admin.view_invoice", invoice_id=invoice.id, menu=menu, _external=True,
-                          _scheme=scheme)
+                          tab=tab, _scheme=scheme)
     customer_name = invoice.customer_name.replace(' ', '_')
     title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
     if admin == 'assistant':
@@ -2499,11 +2505,12 @@ def approve_invoice(invoice_id):
     db.session.add(invoice)
     db.session.commit()
     flash('อนุมัติใบแจ้งหนี้สำเร็จ', 'success')
-    return render_template('service_admin/invoice_index.html', menu=menu)
+    return redirect(url_for('service_admin.invoice_index', menu=menu, tab=tab))
 
 
 @service_admin.route('/invoice/file/add/<int:invoice_id>', methods=['GET', 'POST'])
 def upload_invoice_file(invoice_id):
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     invoice = ServiceInvoice.query.get(invoice_id)
     form = ServiceInvoiceForm(obj=invoice)
@@ -2534,8 +2541,7 @@ def upload_invoice_file(invoice_id):
             org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
             staff = StaffAccount.get_account_by_email(org.head)
             invoice_url = url_for("academic_services.view_invoice", invoice_id=invoice.id, menu='invoice',
-                                  _external=True,
-                                  _scheme=scheme)
+                                  tab='pending', _external=True, _scheme=scheme)
             msg = (f'แจ้งออกใบแจ้งหนี้เลขที่ {invoice.invoice_no}\n\n'
                    f'เรียน ฝ่ายการเงิน\n\n'
                    f'หน่วยงาน{invoice.quotation.request.sub_lab.sub_lab} ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว\n'
@@ -2563,29 +2569,30 @@ def upload_invoice_file(invoice_id):
                 except LineBotApiError:
                     pass
             flash('บันทึกข้อมูลสำเร็จ', 'success')
-            return redirect(url_for('service_admin.invoice_index', menu=menu))
+            return redirect(url_for('service_admin.invoice_index', menu=menu, tab='waiting_payment'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('service_admin/upload_invoice_file.html', form=form, invoice_id=invoice_id,
-                           menu=menu, invoice=invoice)
+                           menu=menu, invoice=invoice, tab=tab)
 
 
 @service_admin.route('/invoice/view/<int:invoice_id>', methods=['GET'])
 @login_required
 def view_invoice(invoice_id):
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     invoice = ServiceInvoice.query.get(invoice_id)
     admin_lab = ServiceAdmin.query.filter(ServiceAdmin.admin_id == current_user.id,
                                           ServiceAdmin.sub_lab.has(
                                               ServiceSubLab.code == invoice.quotation.request.sub_lab.code))
     admin = any(a for a in admin_lab if not a.is_supervisor)
-    supervisor = any(a for a in admin_lab)
+    supervisor = any(a for a in admin_lab if a.is_supervisor)
     assistant = invoice.quotation.request.sub_lab.assistant if invoice.quotation.request.sub_lab.assistant_id == current_user.id else None
     dean = invoice.quotation.request.sub_lab.signer if invoice.quotation.request.sub_lab.signer_id == current_user.id else None
-    central_admin = any(a.is_central_admin for a in admin_lab)
+    central_admin = any(a for a in admin_lab if a.is_central_admin)
     return render_template('service_admin/view_invoice.html', invoice=invoice, admin=admin, menu=menu,
-                           supervisor=supervisor, assistant=assistant, dean=dean, central_admin=central_admin)
+                           supervisor=supervisor, assistant=assistant, dean=dean, central_admin=central_admin, tab=tab)
 
 
 def generate_invoice_pdf(invoice, qr_image_base64=None):
@@ -2883,6 +2890,7 @@ def export_invoice_pdf(invoice_id):
 
 @service_admin.route('/payment/add', methods=['GET', 'POST'])
 def add_payment():
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     invoice_id = request.args.get('invoice_id')
     invoice = ServiceInvoice.query.get(invoice_id)
@@ -2957,11 +2965,12 @@ def add_payment():
                 except LineBotApiError:
                     pass
         flash('อัพเดตสลิปสำเร็จ', 'success')
-        return redirect(url_for('service_admin.invoice_index', menu=menu))
+        return redirect(url_for('service_admin.invoice_index', menu=menu, tab=tab))
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-        return render_template('service_admin/add_payment.html', menu=menu, form=form, invoice=invoice)
+        return render_template('service_admin/add_payment.html', menu=menu, form=form, invoice=invoice,
+                               tab=tab)
 
 
 @service_admin.route('/quotation/index')

@@ -2815,6 +2815,7 @@ def get_invoices():
 
 @academic_services.route('/customer/payment/add', methods=['GET', 'POST'])
 def add_payment():
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     invoice_id = request.args.get('invoice_id')
     invoice = ServiceInvoice.query.get(invoice_id)
@@ -2885,11 +2886,11 @@ def add_payment():
                 except LineBotApiError:
                     pass
         flash('อัพเดตสลิปสำเร็จ', 'success')
-        return redirect(url_for('academic_services.invoice_index', menu=menu))
+        return redirect(url_for('academic_services.invoice_index', menu=menu, tab='verify'))
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-    return render_template('academic_services/add_payment.html', menu=menu, form=form, invoice=invoice)
+    return render_template('academic_services/add_payment.html', menu=menu, form=form, invoice=invoice, tab=tab)
 
 
 @academic_services.route('/invoice/view/<int:invoice_id>')
