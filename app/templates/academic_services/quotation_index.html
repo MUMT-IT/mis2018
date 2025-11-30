@@ -118,8 +118,9 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
+                            var tab = '{{ tab }}'
                             var menu = '{{ menu }}'
-                            var url = '/academic_services/quotation/view/' + data + '?menu=' + menu;
+                            var url = '/academic_services/quotation/view/' + data + '?menu=' + menu + '&tab=' + tab;
                             if (row.status_id == 5) {
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
