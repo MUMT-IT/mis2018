@@ -1108,6 +1108,7 @@ def get_samples():
 @service_admin.route('/sample/verification/add/<int:sample_id>', methods=['GET', 'POST'])
 @login_required
 def sample_verification(sample_id):
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
     form = ServiceSampleForm(obj=sample)
@@ -1143,20 +1144,21 @@ def sample_verification(sample_id):
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
             send_mail([contact_email], title, message)
             flash('ผลการตรวจสอบตัวอย่างได้รับการบันทึกเรียบร้อยแล้ว', 'success')
-            return redirect(url_for('service_admin.sample_index', menu=menu))
+            return redirect(url_for('service_admin.sample_index', menu=menu, tab='received'))
     else:
         return render_template('service_admin/sample_verify_page.html', request_no=sample.request.request_no,
-                               menu=menu)
-    return render_template('service_admin/sample_verification_form.html', form=form, menu=menu,
+                               menu=menu, tab='received')
+    return render_template('service_admin/sample_verification_form.html', form=form, menu=menu, tab=tab,
                            request_no=sample.request.request_no)
 
 
 @service_admin.route('/sample/appointment/view/<int:sample_id>')
 @login_required
 def view_sample_appointment(sample_id):
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
-    return render_template('service_admin/view_sample_appointment.html', sample=sample, menu=menu)
+    return render_template('service_admin/view_sample_appointment.html', sample=sample, menu=menu, tab=tab)
 
 
 @service_admin.route('/test-item/index')
@@ -3406,7 +3408,7 @@ def approval_quotation_for_supervisor(quotation_id):
                     db.session.commit()
                     contact_email = quotation.request.customer.contact_email if quotation.request.customer.contact_email else quotation.request.customer.email
                     quotation_link = url_for("academic_services.view_quotation", quotation_id=quotation_id, menu=menu,
-                                             _external=True, _scheme=scheme)
+                                             tab='pending', _external=True, _scheme=scheme)
                     total_items = len(quotation.quotation_items)
                     title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
                     title = f'''โปรดยืนยันใบเสนอราคา [{quotation.quotation_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
