@@ -121,8 +121,9 @@
                     {
                         data: null,
                         render: function (data, type, row) {
+                            var tab = '{{ tab }}';
                             if (row.status_id == 13 || row.status_id >= 16) {
-                                 var result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
+                                 var result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report&tab=all';
                                   return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-info is-rounded" ' + 'href=' + result_url + '>' +
@@ -135,11 +136,11 @@
                                     '</div>'
                             } else if (row.status_id == 10 || row.status_id == 11) {
                                 if (row.status_id == 10) {
-                                    var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report';
-                                    var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=report';
+                                    var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report&tab=' + tab;
+                                    var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=report&tab=' + tab;
                                 } else {
-                                    var draft_result_url = '/service_admin/result/draft/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
-                                    var final_result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
+                                    var draft_result_url = '/service_admin/result/draft/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report&tab=' + tab;
+                                    var final_result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report&tab=' + tab;
                                 }
                                  return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -179,7 +180,7 @@
                         data: 'id',
                         render: function (data, type, row) {
                             if (row.status_id == 13) {
-                                invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '?menu=invoice&tab=all';
+                                invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '?menu=invoice&tab=draft';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-info is-rounded" ' + 'href=' + invoice_url + '>' +
@@ -191,7 +192,7 @@
                                     '</div>' +
                                     '</div>'
                             } else if (row.status_id >= 16) {
-                               invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice';
+                               invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice&tab=all';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-primary is-rounded" ' + 'href=' + invoice_url + '>' +
