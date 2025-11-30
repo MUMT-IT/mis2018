@@ -1230,6 +1230,7 @@ def get_test_items():
         item_data = item.to_dict()
         for result in item.request.results:
             for i in result.result_items:
+                edit_html = ''
                 if i.final_file:
                     download_file = url_for('service_admin.download_file', key=i.final_file,
                                             download_filename=f"{i.report_language} (ฉบับจริง).pdf")
@@ -1271,7 +1272,8 @@ def get_test_items():
                 else:
                     html = ''
                 html_blocks.append(html)
-                edit_html_blocks.append(edit_html)
+                if edit_html:
+                    edit_html_blocks.append(edit_html)
         item_data['files'] = ''.join(
             html_blocks) if html_blocks else '<span class="has-text-grey-light is-italic">ไม่มีไฟล์</span>'
         item_data['edit_file'] = ''.join(edit_html_blocks) if edit_html_blocks else ''
@@ -2092,6 +2094,7 @@ def delete_result_file(item_id):
 
 @service_admin.route('/result/tracking_number/add/<int:result_id>', methods=['GET', 'POST'])
 def add_tracking_number(result_id):
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     result = ServiceResult.query.get(result_id)
     form = ServiceResultForm(obj=result)
@@ -2100,12 +2103,12 @@ def add_tracking_number(result_id):
         db.session.add(result)
         db.session.commit()
         flash('อัพเดตข้อมูลสำเร็จ', 'success')
-        return redirect(url_for('service_admin.result_index', menu=menu))
+        return redirect(url_for('service_admin.result_index', menu=menu, tab=tab))
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
     return render_template('service_admin/add_tracking_number_for_result.html', form=form, menu=menu,
-                           result_id=result_id)
+                           tab=tab, result_id=result_id)
 
 
 # @service_admin.route('/payment/confirm/<int:payment_id>', methods=['GET'])
@@ -3753,6 +3756,7 @@ def add_meeting():
 @service_admin.route('/result/draft/edit/<int:result_id>', methods=['GET', 'POST'])
 @login_required
 def create_draft_result(result_id=None):
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
@@ -3808,7 +3812,7 @@ def create_draft_result(result_id=None):
             service_request.status_id = status_id
             scheme = 'http' if current_app.debug else 'https'
             if not result.is_sent_email:
-                result_url = url_for('academic_services.result_index', menu='report', _external=True, _scheme=scheme)
+                result_url = url_for('academic_services.result_index', menu='report', tab='approve', _external=True, _scheme=scheme)
                 customer_name = result.request.customer.customer_name.replace(' ', '_')
                 contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
                 title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
@@ -3833,9 +3837,9 @@ def create_draft_result(result_id=None):
         db.session.add(service_request)
         db.session.commit()
         flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
-        return redirect(url_for('service_admin.test_item_index', menu='test_item'))
+        return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='testing'))
     return render_template('service_admin/create_draft_result.html', result_id=result_id, menu=menu,
-                           result=result)
+                           result=result, tab=tab)
 
 
 @service_admin.route('/result_item/draft/edit/<int:result_item_id>', methods=['GET', 'POST'])
@@ -3868,7 +3872,7 @@ def edit_draft_result(result_item_id):
             result_item.result.status_id = status_id
             result_item.result.request.status_id = status_id
         scheme = 'http' if current_app.debug else 'https'
-        result_url = url_for('academic_services.result_index', menu='report', _external=True, _scheme=scheme)
+        result_url = url_for('academic_services.result_index', menu='report', tab='approve', _external=True, _scheme=scheme)
         customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
         contact_email = result_item.result.request.customer.contact_email if result_item.result.request.customer.contact_email else result_item.result.request.customer.email
         title_prefix = 'คุณ' if result_item.result.request.customer.customer_info.type.type == 'บุคคล' else ''
@@ -3913,10 +3917,34 @@ def delete_draft_result(item_id):
 @service_admin.route('/result/final/edit/<int:result_id>', methods=['GET', 'POST'])
 @login_required
 def create_final_result(result_id=None):
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    result = ServiceResult.query.get(result_id)
+    if not result_id:
+        result = ServiceResult.query.filter_by(request_id=request_id).first()
+        if not result:
+            if request.method == 'GET':
+                result_list = ServiceResult(request_id=request_id, released_at=arrow.now('Asia/Bangkok').datetime,
+                                            creator_id=current_user.id)
+                db.session.add(result_list)
+                if service_request.report_languages:
+                    sequence_no = ServiceSequenceResultItemID.get_number('RS', db,
+                                                                         result='result_' + str(result_list.id))
+                    for rl in service_request.report_languages:
+                        result_item = ServiceResultItem(sequence=sequence_no.number,
+                                                        report_language=rl.report_language.item,
+                                                        result=result_list,
+                                                        released_at=arrow.now('Asia/Bangkok').datetime,
+                                                        creator_id=current_user.id)
+                        sequence_no.count += 1
+                        db.session.add(result_item)
+                        db.session.commit()
+                result = ServiceResult.query.get(result_list.id)
+            else:
+                result = ServiceResult.query.filter_by(request_id=request_id).first()
+    else:
+        result = ServiceResult.query.get(result_id)
     if request.method == 'POST':
         for item in result.result_items:
             file = request.files.get(f'file_{item.id}')
@@ -3939,7 +3967,7 @@ def create_final_result(result_id=None):
         uploaded_all = all(item.final_file for item in result.result_items)
         if uploaded_all:
             scheme = 'http' if current_app.debug else 'https'
-            result_url = url_for('academic_services.result_index', menu='report', _external=True, _scheme=scheme)
+            result_url = url_for('academic_services.result_index', menu='report', tab='all', _external=True, _scheme=scheme)
             customer_name = result.request.customer.customer_name.replace(' ', '_')
             contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
             title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
@@ -3958,9 +3986,9 @@ def create_final_result(result_id=None):
         db.session.add(service_request)
         db.session.commit()
         flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
-        return redirect(url_for('service_admin.test_item_index', menu='test_item'))
+        return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='all'))
     return render_template('service_admin/create_final_result.html', result_id=result_id, menu=menu,
-                           result=result)
+                           tab=tab, result=result)
 
 
 @service_admin.route('/result/final/delete/<int:item_id>', methods=['GET', 'POST'])

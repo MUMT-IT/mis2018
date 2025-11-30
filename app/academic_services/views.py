@@ -3197,8 +3197,8 @@ def result_index():
                              ).count()
     confirm_count = query.filter(ServiceResultItem.approved_at >= expire_time).count()
     all_count = edit_count + approve_count + pending_count + confirm_count
-    return render_template('academic_services/result_index.html', result_items=result_items, menu=menu, tab=tab,
-                           edit_count=edit_count, approve_count=approve_count, confirm_count=confirm_count,
+    return render_template('academic_services/result_index.html', result_items=result_items, menu=menu,
+                           tab=tab, edit_count=edit_count, approve_count=approve_count, confirm_count=confirm_count,
                            all_count=all_count, pending_count=pending_count)
 
 
@@ -3345,6 +3345,7 @@ def confirm_result_item(result_item_id):
     result_item.approved_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(result_item)
     approved_all = all(item.approved_at is not None for item in result.result_items)
+    tab = 'confirm' if approved_all else 'approve'
     if approved_all:
         status_id = get_status(13)
         result_item.result.status_id = status_id
@@ -3356,7 +3357,7 @@ def confirm_result_item(result_item_id):
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=result_item.result.request.sub_lab.code)).all()
     title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
     link = url_for("service_admin.create_invoice", quotation_id=result_item.result.quotation_id, menu='invoice',
-                   _external=True, _scheme=scheme)
+                   tab='draft', _external=True, _scheme=scheme)
     customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
     if admins:
         title = f'''[{result_item.result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result_item.result.request.quotation_address.name}) | แจ้งยืนยันใบรายงานผลการทดสอบ'''
@@ -3398,7 +3399,7 @@ def confirm_result_item(result_item_id):
                     except LineBotApiError:
                         pass
     flash('ยืนยันใบรายงานผลเรียบร้อยแล้ว', 'success')
-    return redirect(url_for('academic_services.result_index', menu=menu))
+    return redirect(url_for('academic_services.result_index', menu=menu, tab=tab))
 
 
 @academic_services.route('/customer/result_item/edit/<int:result_item_id>', methods=['GET', 'POST'])
@@ -3406,6 +3407,12 @@ def edit_result_item(result_item_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     result_item = ServiceResultItem.query.get(result_item_id)
+    result_item.is_edited = False
+    result_item.edit_requester_id = None
+    result_item.req_edit_at = None
+    result_item.note = None
+    db.session.add(result_item)
+    db.session.commit()
     result = ServiceResult.query.get(result_item.result_id)
     form = ServiceResultItemForm(obj=result_item)
     edited_all = all(item.is_edited for item in result_item.result.result_items if item.req_edit_at)
