@@ -336,7 +336,7 @@
                                     '</div>' +
                                     '</div>'
                             } else if (row.status_id == 9) {
-                                var sample_url = '/service_admin/sample/verification/add/' + row.sample_id + '?menu=sample';
+                                var sample_url = '/service_admin/sample/verification/add/' + row.sample_id + '?menu=sample&tab=delivery';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
@@ -356,7 +356,7 @@
                                     '</div>' +
                                     '</div>'
                             } else if (row.status_id == 13) {
-                                var invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '?menu=invoice';
+                                var invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '?menu=invoice&tab=draft';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
@@ -374,7 +374,7 @@
                                     '</div>' +
                                     '</div>'
                             } else if (row.status_id == 16) {
-                                var invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice';
+                                var invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice&tab=draft';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
@@ -392,7 +392,7 @@
                                     '</div>' +
                                     '</div>'
                             } else if (supervisor == 'True' && row.status_id == 17) {
-                                var invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice';
+                                var invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice&tab=pending_supervisor';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
@@ -410,7 +410,7 @@
                                     '</div>' +
                                     '</div>'
                             } else if (assistant == 'True' && row.status_id == 18) {
-                                var invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice';
+                                var invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice&tab=pending_assistant';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
