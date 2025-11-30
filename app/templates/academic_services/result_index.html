@@ -115,9 +115,23 @@
                                         <div class="field has-addons">
                                             <div class="control">
                                                 <a class="button is-small is-success is-rounded"
-                                                   href="{{ url_for('academic_services.view_result_item', result_item_id=item.id, menu=menu, tab=tab) }}">
+                                                   href="{{ url_for('academic_services.view_result_item', result_item_id=item.id,
+                                                   menu=menu, tab=tab) }}">
                                                     <span class="icon is-small"><i class="fas fa-check"></i></span>
                                                     <span>ยืนยัน{{ item.report_language +  ' ' +'(ฉบับร่าง)' or 'ไม่ระบุภาษา' }}</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    {% elif item.draft_file and (item.result.request.status.status_id != 10
+                                        or item.result.request.status.status_id != 11) %}
+                                        <div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-link is-light is-rounded"
+                                                   href="{{ url_for('academic_services.download_file', key=item.draft_file,
+                                                   download_filename=item.report_language + ' ' + '(ฉบับร่าง)' + '.pdf') }}"
+                                                >
+                                                    <span>{{ item.report_language + ' ' + '(ฉบับร่าง)' or 'ไม่ระบุภาษา' }}</span>
+                                                    <span class="icon is-small"><i class="fas fa-download"></i></span>
                                                 </a>
                                             </div>
                                         </div>
