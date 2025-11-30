@@ -355,6 +355,50 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
+                            } else if (row.status_id == 10 || row.status_id == 11) {
+                                if (row.status_id == 1) {
+                                    var draft_result_url = '/service_admin/result/draft/add?request_id=' + data + '&menu=report&tab=pending' ;
+                                } else {
+                                    var draft_result_url = '/service_admin/result/draft/edit/' + row.result_id + '?request_id=' + data + '&menu=report&tab=pending';
+                                }
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + draft_result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-alt"></i>' +
+                                    '</span>' +
+                                    '<span>อัปโหลดใบรายงานผล (ฉบับร่าง)</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (row.status_id == 14) {
+                                var result_url = '/service_admin/result/index?menu=report&tab=edit';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-warning is-rounded" ' + 'href=' + result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-pen"></i>' +
+                                    '</span>' +
+                                    '<span>แก้ไขใบรายงานผล</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
                             } else if (row.status_id == 13) {
                                 var invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '?menu=invoice&tab=draft';
                                 return '<div class="field has-addons">' +
