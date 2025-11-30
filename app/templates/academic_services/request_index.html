@@ -302,6 +302,24 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
+                            } else if (row.status_id == 12) {
+                                var result_url = '/academic_services/customer/result/index?menu=report&tab=approve';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>แสดงใบคำขอร้บบริการ</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-rounded is-success" ' + 'href=' + result_url + '>' +
+                                    '<span class="icon"><i class="fas fa-check"></i></span>' +
+                                    '<span>ยืนยันใบรายงานผล</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
                             } else if (row.status_id == 20) {
                                 var payment_url = '/academic_services/customer/payment/add?invoice_id=' + row.invoice_id + '&menu=invoice&tab=pending';
                                 return '<div class="field has-addons">' +
