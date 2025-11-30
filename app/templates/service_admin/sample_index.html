@@ -238,9 +238,11 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
+                            var menu = '{{ menu }}';
+                            var tab = '{{ tab }}';
+                            var view_url = '/service_admin/sample/appointment/view/' + data + '?menu=' + menu + '&tab=' + tab;
                             if ((row.appointment_date || row.tracking_number) && row.received_at == null) {
-                                var add_url = '/service_admin/sample/verification/add/' + data + '?menu=' + '{{ menu }}';
-                                var view_url = '/service_admin/sample/appointment/view/' + data + '?menu=' + '{{ menu }}'
+                                var add_url = '/service_admin/sample/verification/add/' + data + '?menu=' + menu + '&tab=' + tab;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-warning is-rounded" ' + 'href=' + add_url + '>' +
@@ -261,7 +263,6 @@
                                     '</div>'
                             } else if (row.received_at) {
                                 var request_url = '/service_admin/request/view/' + row.request_id + '?menu=request';
-                                var view_url = '/service_admin/sample/appointment/view/' + data + '?menu=' + '{{ menu }}'
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-primary is-rounded" ' + 'href=' + request_url + '>' +
@@ -281,7 +282,6 @@
                                     '</div>' +
                                     '</div>'
                             } else {
-                                var view_url = '/service_admin/sample/appointment/view/' + data + '?menu=' + '{{ menu }}'
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-info is-rounded" ' + 'href=' + view_url + '>' +
