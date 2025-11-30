@@ -13,7 +13,7 @@
                     ใบคำขอรับบริการเลขที่ {{ request_no }} ได้ผ่านการตรวจสอบและรับตัวอย่างเรียบร้อยแล้ว กรุณาดำเนินการในขั้นตอนถัดไป
                 </div>
                 <div class="buttons is-centered mt-5">
-                    <a href='{{ url_for('service_admin.sample_index', menu=menu) }}'
+                    <a href='{{ url_for('service_admin.sample_index', menu=menu, tab=tab) }}'
                        class="button is-link is-light"
                     >
                         กลับหน้าหลัก
