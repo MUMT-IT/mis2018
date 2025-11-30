@@ -152,8 +152,10 @@
                         {
                             data: 'id',
                             render: function (data, type, row) {
+                                var menu = '{{ menu }}';
+                                var tab = '{{ tab }}';
                                 if (row.file_attached_at == null && row.assistant_approved_at) {
-                                     var upload_url = '/service_admin/invoice/file/add/' + data + '?menu=' + '{{ menu }}';
+                                     var upload_url = '/service_admin/invoice/file/add/' + data + '?menu=' + menu + '&tab=' + tab;
                                         return '<div class="field has-addons">' +
                                             '<div class="control">' +
                                             '<a class="button is-small is-light is-warning is-rounded" ' + 'href=' + upload_url + '>' +
@@ -186,7 +188,7 @@
                     {
                         data : 'payment_date',
                         render: function(data) {
-                            if (data !== '') {
+                            if (data !== null) {
                                 let d = moment(data)
                                 return d.format('ll')
                             } else {
@@ -208,7 +210,9 @@
                                         </div>
                                     </div>`;
                             } else if (row.file_attached_at != null && row.paid_at == null) {
-                                add_payment_url = '/service_admin/payment/add?invoice_id=' + data +'&menu=invoice';
+                                var menu = '{{ menu }}';
+                                var tab = '{{ tab }}';
+                                var add_payment_url = '/service_admin/payment/add?invoice_id=' + data +'&menu=' + menu + '&tab=' + tab;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-info is-rounded" ' + 'href=' + add_payment_url + '>' +
@@ -240,8 +244,10 @@
                     {data: 'creator'},
                     {
                         data: 'id',
-                        render: function (data, type, row) {
-                            var view_url = '/service_admin/invoice/view/' + data + '?menu=' + '{{ menu }}';
+                        render: function (data) {
+                            var menu = '{{ menu }}';
+                            var tab = '{{ tab }}';
+                            var view_url = '/service_admin/invoice/view/' + data + '?menu=' + menu + '&tab=' + tab;
                             return '<div class="field has-addons">' +
                                 '<div class="control">' +
                                 '<a class="button is-small is-light is-info is-rounded" ' + 'href=' + view_url + '>' +

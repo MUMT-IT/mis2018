@@ -208,7 +208,9 @@
                                         </div>
                                     </div>`;
                             } else if (row.file_attached_at != null && row.paid_at == null) {
-                                add_payment_url = '/academic_services/customer/payment/add?invoice_id=' + data +'&menu=invoice';
+                                var tab = '{{ tab }}';
+                                var menu = '{{ menu }}';
+                                var add_payment_url = '/academic_services/customer/payment/add?invoice_id=' + data +'&menu=' + menu + '&tab=' + tab;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-info is-rounded" ' + 'href=' + add_payment_url + '>' +
