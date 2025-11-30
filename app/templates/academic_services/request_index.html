@@ -264,9 +264,10 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            var request_url = '/academic_services/request/view/' + data + '?menu=' + '{{ menu }}';
+                            var menu = '{{ menu }}';
+                            var request_url = '/academic_services/request/view/' + data + '?menu=' + menu;
                             if (row.status_id == 5) {
-                                var quotation_url = '/academic_services/quotation/view/' + row.quotation_id + '?menu=quotation';
+                                var quotation_url = '/academic_services/quotation/view/' + row.quotation_id + '?menu=quotation&tab=pending';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
@@ -284,7 +285,7 @@
                                     '</div>' +
                                     '</div>'
                             } else if (row.status_id == 6 || row.status_id == 8) {
-                                var sample_url = '/academic_services/customer/sample/add/' + row.sample_id + '?menu=sample';
+                                var sample_url = '/academic_services/customer/sample/add/' + row.sample_id + '?menu=sample&tab=schedule';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
@@ -302,7 +303,7 @@
                                     '</div>' +
                                     '</div>'
                             } else if (row.status_id == 20) {
-                                var payment_url = '/academic_services/customer/payment/add?invoice_id=' + row.invoice_id + '&menu=invoice';
+                                var payment_url = '/academic_services/customer/payment/add?invoice_id=' + row.invoice_id + '&menu=invoice&tab=pending';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
@@ -319,7 +320,6 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-
                             } else if (row.is_completed) {
                                 var url = '/academic_services/request/view/' + data + '?menu=' + '{{ menu }}';
                                 return '<div class="field has-addons">' +
