@@ -247,7 +247,8 @@
                                 {% if invoice.quotation.request.status.status_id == 16 and admin %}
                                     <li>
                                         <a class="button is-success is-rounded is-full-height mb-2"
-                                           href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id, admin='admin', menu=menu) }}"
+                                           href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
+                                           admin='admin', menu=menu, tab='pending_supervisor') }}"
                                         >
                                             <span class="icon">
                                                 <i class="fas fa-check"></i>
@@ -261,10 +262,10 @@
                                         <a class="button is-success is-rounded is-full-height mb-2"
                                                 {% if supervisor %}
                                                    href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
-                                                   admin='supervisor', menu=menu) }}"
+                                                   admin='supervisor', menu=menu, tab='pending_assistant') }}"
                                                 {% elif assistant %}
                                                    href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
-                                                   admin='assistant', menu=menu) }}"
+                                                   admin='assistant', menu=menu, tab='pending_dean') }}"
                                                 {% endif %}
                                         >
                                             <span class="icon">
@@ -278,7 +279,7 @@
                                         <div id="mhesi_number"></div>
                                         <a class="button is-warning is-rounded is-full-height mb-2"
                                            href="{{ url_for('service_admin.upload_invoice_file', invoice_id=invoice.id,
-                                           menu=menu) }}"
+                                           menu=menu, tab=tab) }}"
                                         >
                                             <span class="icon">
                                                 <i class="fas fa-pen"></i>
