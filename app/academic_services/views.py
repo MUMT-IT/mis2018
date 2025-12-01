@@ -2865,7 +2865,7 @@ def add_payment():
             org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
             staff = StaffAccount.get_account_by_email(org.head)
             title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
-            link = url_for("academic_service_payment.invoice_payment_index", _external=True, _scheme=scheme)
+            link = url_for("service_admin.invoice_payment_index", _external=True, _scheme=scheme)
             customer_name = invoice.customer_name.replace(' ', '_')
             title = f'''[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอัปเดตการชำระเงิน'''
             message = f'''เรียน เจ้าหน้าที่การเงิน\n\n'''

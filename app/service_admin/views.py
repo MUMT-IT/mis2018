@@ -2931,7 +2931,7 @@ def add_payment():
             org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
             staff = StaffAccount.get_account_by_email(org.head)
             title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
-            link = url_for("academic_service_payment.invoice_payment_index", _external=True, _scheme=scheme)
+            link = url_for("service_admin.invoice_payment_index", _external=True, _scheme=scheme)
             customer_name = invoice.customer_name.replace(' ', '_')
             title = f'''[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอัปเดตการชำระเงิน'''
             message = f'''เรียน เจ้าหน้าที่การเงิน\n\n'''
@@ -4019,7 +4019,7 @@ def delete_final_result(item_id):
 @login_required
 def invoice_payment_index():
     menu = request.args.get('menu')
-    return render_template('academic_service_payment/invoice_payment_index.html', menu=menu)
+    return render_template('service_admin/invoice_payment_index.html', menu=menu)
 
 
 @service_admin.route('/api/invoice/payment/index')
@@ -4098,7 +4098,7 @@ def confirm_payment(invoice_id):
     message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
     send_mail([contact_email], title, message)
     flash('ยืนยันการชำระเงินเรียบร้อยแล้ว', 'success')
-    return render_template('academic_service_payment/invoice_payment_index.html')
+    return render_template('service_admin/invoice_payment_index.html')
 
 
 @service_admin.route('/invoice/payment/cancel/<int:invoice_id>', methods=['GET', 'POST'])
