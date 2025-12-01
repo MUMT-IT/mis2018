@@ -2230,9 +2230,9 @@ def invoice_index():
                                       ServiceInvoice.file_attached_at == None,
                                       ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
     waiting_payment_count = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at != None,
-                                      ServiceInvoice.assistant_approved_at != None,
-                                      ServiceInvoice.file_attached_at != None,
-                                      or_(ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None)).count()
+                                         ServiceInvoice.assistant_approved_at != None,
+                                         ServiceInvoice.file_attached_at != None,
+                                         or_(ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None)).count()
     payment_count = query.filter(ServiceInvoice.verify_at >= expire_time).count()
     all_count = (draft_count + pending_dean_count + pending_assistant_count + pending_supervisor_count +
                  waiting_payment_count + payment_count)
@@ -3209,7 +3209,8 @@ def generate_quotation():
         if service_request.sub_lab.code == 'air_disinfection':
             test_methods = []
             surface_fields = data.get('surface_condition_field', {}).get('surface_disinfection_organism_fields', [])
-            airborne_fields = data.get('airborne_disinfection_organism', {}).get('airborne_disinfection_organism_fields', [])
+            airborne_fields = data.get('airborne_disinfection_organism', {}).get(
+                'airborne_disinfection_organism_fields', [])
 
             if surface_fields:
                 for f in surface_fields:
@@ -3825,7 +3826,8 @@ def create_draft_result(result_id=None):
             service_request.status_id = status_id
             scheme = 'http' if current_app.debug else 'https'
             if not result.is_sent_email:
-                result_url = url_for('academic_services.result_index', menu='report', tab='approve', _external=True, _scheme=scheme)
+                result_url = url_for('academic_services.result_index', menu='report', tab='approve', _external=True,
+                                     _scheme=scheme)
                 customer_name = result.request.customer.customer_name.replace(' ', '_')
                 contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
                 title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
@@ -3853,6 +3855,42 @@ def create_draft_result(result_id=None):
         return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='testing'))
     return render_template('service_admin/create_draft_result.html', result_id=result_id, menu=menu,
                            result=result, tab=tab)
+
+
+@service_admin.route('/result/send/<int:result_id>', methods=['GET', 'POST'])
+@login_required
+def send_draft_result(result_id=None):
+    request_id = request.args.get('request_id')
+    service_request = ServiceRequest.query.get(request_id)
+    result = ServiceResult.query.get(result_id)
+    status_id = get_status(12)
+    result.status_id = status_id
+    service_request.status_id = status_id
+    scheme = 'http' if current_app.debug else 'https'
+    if not result.is_sent_email:
+        result_url = url_for('academic_services.result_index', menu='report', tab='approve', _external=True,
+                             _scheme=scheme)
+        customer_name = result.request.customer.customer_name.replace(' ', '_')
+        contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
+        title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
+        title = f'''แจ้งออกรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+        message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+        message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
+        message += f''' ขณะนี้ได้จัดทำรายงานผลการทดสอบฉบับร่างเรียบร้อยแล้ว'''
+        message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
+        message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง'''
+        message += f'''{result_url}'''
+        message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+        message += f'''ขอแสดงความนับถือ\n'''
+        message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+        message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+        send_mail([contact_email], title, message)
+        result.is_sent_email = True
+        db.session.add(result)
+        db.session.add(service_request)
+        db.session.commit()
+        flash("ส่งแจ้งเตือนอีเมลให้กับลูกค้าเรียบร้อยแล้ว", "success")
+    return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='testing'))
 
 
 @service_admin.route('/result_item/draft/edit/<int:result_item_id>', methods=['GET', 'POST'])
@@ -3885,7 +3923,8 @@ def edit_draft_result(result_item_id):
             result_item.result.status_id = status_id
             result_item.result.request.status_id = status_id
         scheme = 'http' if current_app.debug else 'https'
-        result_url = url_for('academic_services.result_index', menu='report', tab='approve', _external=True, _scheme=scheme)
+        result_url = url_for('academic_services.result_index', menu='report', tab='approve', _external=True,
+                             _scheme=scheme)
         customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
         contact_email = result_item.result.request.customer.contact_email if result_item.result.request.customer.contact_email else result_item.result.request.customer.email
         title_prefix = 'คุณ' if result_item.result.request.customer.customer_info.type.type == 'บุคคล' else ''
@@ -3980,7 +4019,8 @@ def create_final_result(result_id=None):
         uploaded_all = all(item.final_file for item in result.result_items)
         if uploaded_all:
             scheme = 'http' if current_app.debug else 'https'
-            result_url = url_for('academic_services.result_index', menu='report', tab='all', _external=True, _scheme=scheme)
+            result_url = url_for('academic_services.result_index', menu='report', tab='all', _external=True,
+                                 _scheme=scheme)
             customer_name = result.request.customer.customer_name.replace(' ', '_')
             contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
             title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
