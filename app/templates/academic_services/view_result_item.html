@@ -4,6 +4,16 @@
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
     <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <style>
+        .toast {
+            opacity: 1 !important;
+            transition: none !important;
+        }
+        #toast-container.toast-top-full-width > .toast {
+            width: 100% !important;
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
     <section class="section">
@@ -38,22 +48,24 @@
                                         class="button"
                                         href="{{ url_for('academic_services.result_index', menu=menu, tab=tab) }}"
                                 >
-                                    ยกเลิก
+                                    ย้อนกลับ
                                 </a>
-                                <a class="button is-success"
-                                   href="{{ url_for('academic_services.confirm_result_item', result_item_id=result_item_id, menu=menu,
-                                           tab=tab) }}">
-                                    <span class="icon is-small"><i class="fas fa-check"></i></span>
-                                    <span>ยืนยัน</span>
-                                </a>
-                                <a class="button is-warning"
-                                   hx-swap="innerHTML"
-                                   hx-target="#result-form"
-                                   hx-get="{{ url_for('academic_services.edit_result_item', result_item_id=result_item_id, menu=menu,
-                                           tab=tab) }}">
-                                    <span class="icon is-small"><i class="fas fa-pen"></i></span>
-                                    <span>ขอแก้ไข</span>
-                                </a>
+{#                                {% if result_item.result.request.status.status_id == 12 %}#}
+                                    <a class="button is-success"
+                                       href="{{ url_for('academic_services.confirm_result_item', result_item_id=result_item_id, menu=menu,
+                                               tab=tab) }}">
+                                        <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                        <span>ยืนยัน</span>
+                                    </a>
+                                    <a class="button is-warning"
+                                       hx-swap="innerHTML"
+                                       hx-target="#result-form"
+                                       hx-get="{{ url_for('academic_services.edit_result_item', result_item_id=result_item_id, menu=menu,
+                                               tab=tab) }}">
+                                        <span class="icon is-small"><i class="fas fa-pen"></i></span>
+                                        <span>ขอแก้ไข</span>
+                                    </a>
+{#                                {% endif %}#}
                             </div>
                         </div>
                     </div>
@@ -64,6 +76,42 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript"
-            src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+    <script>
+        function showToast(category, message) {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
+            if (category === 'success') {
+                toastr.success(message);
+            } else if (category === 'danger') {
+                toastr.error(message);
+            } else if (category === 'warning') {
+                toastr.warning(message);
+            } else {
+                toastr.info(message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        showToast('{{ category }}', {{ message|tojson }});
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
 {% endblock %}
