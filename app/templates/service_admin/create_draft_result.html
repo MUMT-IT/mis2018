@@ -60,6 +60,12 @@
                             <div class="control">
                                 <input type="submit" value="บันทึก" class="button is-success">
                             </div>
+                            <div class="control">
+                                <a class="button is-info" href="{{ url_for('service_admin.send_draft_result', menu='test_item',
+                                        tab='testing', request_id=result.request_id) }}">
+                                    ส่งให้ลูกค้า
+                                </a>
+                            </div>
                         </div>
                     </form>
                 </div>
