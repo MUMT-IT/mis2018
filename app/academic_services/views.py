@@ -2896,11 +2896,11 @@ def add_payment():
 @academic_services.route('/invoice/view/<int:invoice_id>')
 @login_required
 def view_invoice(invoice_id):
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     invoice = ServiceInvoice.query.get(invoice_id)
-    sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
     return render_template('academic_services/view_invoice.html', invoice_id=invoice_id, menu=menu,
-                           sub_lab=sub_lab, invoice=invoice)
+                           tab=tab, invoice=invoice)
 
 
 def generate_invoice_pdf(invoice, sign=False, cancel=False):
