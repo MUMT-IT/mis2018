@@ -142,6 +142,10 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
                         report='',
                         pa=pa
                     )
+                    if item.strategy_activity_id:
+                        new_item.strategy_activity_id = item.strategy_activity_id
+                    if item.process_id:
+                        new_item.process_id = item.process_id
                     db.session.add(new_item)
 
                     for old_kpi_item in item.kpi_items:
