@@ -4,6 +4,16 @@
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <style>
+        .toast {
+            opacity: 1 !important;
+            transition: none !important;
+        }
+        #toast-container.toast-top-full-width > .toast {
+            width: 100% !important;
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
     <section class="section">
@@ -26,25 +36,37 @@
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">วันที่ชำระเงิน</label>
+                                <label class="label">
+                                    วันที่ชำระเงิน
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="control">
                                     {{ form.paid_at(class="input") }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">วิธีการชำระเงิน</label>
+                                <label class="label">
+                                    วิธีการชำระเงิน
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="select">
                                     {{ form.payment_type() }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">จำนวนเงิน</label>
+                                <label class="label">
+                                    จำนวนเงิน
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="control">
                                     {{ form.amount_paid(class="input") }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">หลักฐานการชำระเงิน</label>
+                                <label class="label">
+                                       หลักฐานการชำระเงิน
+                                       <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="file">
                                     <label class="file-label">
                                         {{ form.file_upload(class="file-input") }}
@@ -81,6 +103,43 @@
 {% block scripts %}
     {{ super() }}
     <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+    <script>
+        function showToast(category, message) {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
+            if (category === 'success') {
+                toastr.success(message);
+            } else if (category === 'danger') {
+                toastr.error(message);
+            } else if (category === 'warning') {
+                toastr.warning(message);
+            } else {
+                toastr.info(message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        showToast('{{ category }}', {{ message|tojson }});
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
     <script>
         $(document).ready(function () {
             moment.locale('th');
