@@ -92,13 +92,13 @@
                     <thead>
                     <th>เลขใบคำร้องขอ</th>
                     <th>วัน-เวลาทีส่ง</th>
-                    <th>สถานะ</th>
                     <th>ใบเสนอราคา</th>
                     <th>นัดหมายส่งตัวอย่าง</th>
                     <th>การทดสอบ</th>
                     <th>ใบแจ้งหนี้</th>
                     <th>รายงานผลการทดสอบ</th>
                     <th>หมายเหตุ</th>
+                    <th>สถานะ</th>
                     <th>รายละเอียด</th>
                     <th></th>
                     </thead>
@@ -133,18 +133,6 @@
                                 return d.format('DD/MM/YYYY HH:mm')
                             } else {
                                 return '-'
-                            }
-                        }
-                    },
-                    {
-                        data: 'id',
-                        render: function (data, type, row) {
-                            var color = row.customer_status_color
-                            var status = row.customer_status
-                            if (data !== null) {
-                                return `<span class="tag ${color}">${status}</span>`;
-                            } else {
-                                return `<span class="tag is-info">ร่างใบคำขอรับบริการ</span>`;
                             }
                         }
                     },
@@ -258,6 +246,18 @@
                                         </a>`;
                             } else {
                                 return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            var color = row.customer_status_color
+                            var status = row.customer_status
+                            if (data !== null) {
+                                return `<span class="tag ${color}">${status}</span>`;
+                            } else {
+                                return `<span class="tag is-info">ร่างใบคำขอรับบริการ</span>`;
                             }
                         }
                     },

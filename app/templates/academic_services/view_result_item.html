@@ -22,7 +22,7 @@
             <div class="column is-9">
                 <div class="column is-12">
                     {% include "messages.html" %}
-                    <h1 class="title has-text-centered">เพิ่มหลักฐานการชำระเงิน</h1>
+                    <h1 class="title has-text-centered">รายละเอียดใบรายงานผล (ฉบับร่าง)</h1>
                 </div>
                 <div id="edit-customer-form"></div>
                 <div class="column is-12 box">
@@ -50,7 +50,8 @@
                                 >
                                     ย้อนกลับ
                                 </a>
-{#                                {% if result_item.result.request.status.status_id == 12 %}#}
+                                {% if result_item.draft_file and not result_item.approved_at and (not result_item.req_edit_at
+                                        or result_item.is_edited) %}
                                     <a class="button is-success"
                                        href="{{ url_for('academic_services.confirm_result_item', result_item_id=result_item_id, menu=menu,
                                                tab=tab) }}">
@@ -65,7 +66,7 @@
                                         <span class="icon is-small"><i class="fas fa-pen"></i></span>
                                         <span>ขอแก้ไข</span>
                                     </a>
-{#                                {% endif %}#}
+                                {% endif %}
                             </div>
                         </div>
                     </div>

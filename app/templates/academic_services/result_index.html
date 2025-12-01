@@ -79,9 +79,9 @@
                     <th>เลขใบคำขอรับบริการ</th>
                     <th>หมายเลขติดตามพัสดุ</th>
                     <th>วัน-เวลาที่ออกผล</th>
+                    <th>รายละเอียดการแก้ไข</th>
                     <th>สถานะ</th>
                     <th>ผลการทดสอบ</th>
-                    <th>รายละเอียดการแก้ไข</th>
                     </thead>
                     <tbody>
                         {% for item in result_items|sort(attribute='released_at', reverse=True) %}
@@ -89,6 +89,12 @@
                                 <td>{{ item.result.request.request_no }}</td>
                                 <td>{{ item.result.tracking_number or '' }}</td>
                                 <td>{{ item.released_at|localdatetime or '' }}</td>
+                                <td>
+                                    {{ item.note or '' }}
+                                    {% if item.is_edited %}
+                                        <span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     <span class="tag {{ item.customer_status.color }}">
                                         {{ item.customer_status.status }}
@@ -137,12 +143,6 @@
                                         </div>
                                     {% else %}
                                         {{ '' }}
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {{ item.note or '' }}
-                                    {% if item.is_edited %}
-                                        <span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>
                                     {% endif %}
                                 </td>
                             </tr>
