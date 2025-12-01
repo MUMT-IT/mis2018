@@ -239,7 +239,23 @@
                             }
                         }
                     },
-                    { data: 'file' }
+                    {#{ data: 'file' },#}
+                    {
+                        data: 'id',
+                        render: function (data) {
+                            var menu = '{{ menu }}';
+                            var tab = '{{ tab }}';
+                            var view_url = '/academic_services/invoice/view/' + data + '?menu=' + menu + '&tab=' + tab;
+                            return '<div class="field has-addons">' +
+                                '<div class="control">' +
+                                '<a class="button is-small is-light is-info is-rounded" ' + 'href=' + view_url + '>' +
+                                '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                '<span>รายละเอียด</span>' +
+                                '</a>' +
+                                '</div>' +
+                                '</div>'
+                        }
+                    }
                 ]
             });
         });
