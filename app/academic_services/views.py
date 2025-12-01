@@ -2749,8 +2749,15 @@ def invoice_index():
     menu = request.args.get('menu')
     today = arrow.now('Asia/Bangkok').date()
     expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
-    query = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at != None, ServiceInvoice.quotation.has(
-        ServiceQuotation.request.has(customer_id=current_user.id)))
+    query = (
+        ServiceInvoice.query
+        .join(ServiceInvoice.quotation)
+        .join(ServiceQuotation.request)
+        .filter(
+            ServiceInvoice.file_attached_at.isnot(None),
+            ServiceRequest.customer_id == current_user.id
+        )
+    )
     pending_count = query.filter(ServiceInvoice.paid_at == None, today <= ServiceInvoice.due_date).count()
     verify_count = query.filter(ServiceInvoice.is_paid == False).count()
     payment_count = query.filter(ServiceInvoice.verify_at >= expire_time).count()
@@ -2765,8 +2772,15 @@ def invoice_index():
 def get_invoices():
     tab = request.args.get('tab')
     today = arrow.now('Asia/Bangkok').date()
-    query = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at != None, ServiceInvoice.quotation.has(
-        ServiceQuotation.request.has(customer_id=current_user.id)))
+    query = (
+        ServiceInvoice.query
+        .join(ServiceInvoice.quotation)
+        .join(ServiceQuotation.request)
+        .filter(
+            ServiceInvoice.file_attached_at.isnot(None),
+            ServiceRequest.customer_id == current_user.id
+        )
+    )
     if tab == 'pending':
         query = query.filter(ServiceInvoice.paid_at == None, today <= ServiceInvoice.due_date)
     elif tab == 'verify':
