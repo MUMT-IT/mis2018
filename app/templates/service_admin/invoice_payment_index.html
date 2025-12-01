@@ -27,6 +27,8 @@
                     <thead>
                     <th>เลขใบแจ้งหนี้</th>
                     <th>วัน-เวลาที่ออก</th>
+                    <th>ออกในนาม</th>
+                    <th>ผู้ประสานงาน</th>
                     <th>วันครบกำหนด</th>
                     <th>ยอดรวม</th>
                     <th>วิธีการชำระเงิน</th>
@@ -104,7 +106,7 @@
             $.fn.dataTable.moment('lll');
             $('#invoices').DataTable({
                 ajax: {
-                    url: {{ url_for('academic_service_payment.get_invoice_payments')|tojson|safe}},
+                    url: {{ url_for('service_admin.get_invoice_payments')|tojson|safe}},
                 },
                 order: [[1, 'desc']],
                 scrollX: true,
@@ -122,6 +124,8 @@
                             }
                         }
                     },
+                    {data: 'name'},
+                    {data: 'customer_name'},
                     {
                         data: 'due_date',
                         render: function (data) {
@@ -250,7 +254,7 @@
                         confirmText: 'ยืนยัน',
                         cancelText: 'ยกเลิก',
                         onConfirm: () => {
-                            const url = `/academic_service_payment/invoice/payment/confirm/${invoice_id}`;
+                            const url = `/service_admin/invoice/payment/confirm/${invoice_id}`;
                             window.location.href = url;
                         },
                         type: 'is-success'
