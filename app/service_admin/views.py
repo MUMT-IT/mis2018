@@ -226,14 +226,15 @@ def menu():
     report_count = None
 
     if current_user.is_authenticated:
+        sub_lab = ServiceSubLab.query.filter_by(assistant_id=current_user.id).first()
         admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
-        if admins.sub_lab.assistant:
+        if sub_lab and sub_lab.assistant and not admins:
             assistant = True
             position = 'Assistant'
-        elif admins.is_supervisor:
+        elif admins and admins.is_supervisor:
             supervisor = True
             position = 'Supervisor'
-        elif admins.is_central_admin:
+        elif admins and admins.is_central_admin:
             central_admin = True
             position = 'Central Admin'
         else:
