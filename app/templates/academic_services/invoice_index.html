@@ -186,7 +186,7 @@
                     {
                         data : 'payment_date',
                         render: function(data) {
-                            if (data !== '') {
+                            if (data !== null) {
                                 let d = moment(data)
                                 return d.format('ll')
                             } else {
