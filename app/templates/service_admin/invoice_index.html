@@ -94,8 +94,8 @@
                     <th>วิธีการชำระเงิน</th>
                     <th>วันที่ชำระเงิน</th>
                     <th>หลักฐานการชำระเงิน</th>
-                    <th>สถานะ</th>
                     <th>ผู้ออก</th>
+                    <th>สถานะ</th>
                     <th></th>
                     </thead>
                     <tbody>
@@ -228,6 +228,7 @@
                             }
                         }
                     },
+                    {data: 'creator'},
                     {
                         data: 'id',
                         render: function (data, type, row) {
@@ -241,7 +242,6 @@
                             }
                         }
                     },
-                    {data: 'creator'},
                     {
                         data: 'id',
                         render: function (data) {

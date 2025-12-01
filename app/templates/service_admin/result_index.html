@@ -65,10 +65,10 @@
                     <th>เลขใบคำร้องขอ</th>
                     <th>หมายเลขติดตามพัสดุ</th>
                     <th>วัน-เวลาที่ออกผล</th>
-                    <th>สถานะ</th>
                     <th>ผลการทดสอบ</th>
                     <th>รายละเอียดการแก้ไข</th>
                     <th>ผู้ออก</th>
+                    <th>สถานะ</th>
                     <th></th>
                     </thead>
                     <tbody>
@@ -130,16 +130,6 @@
                             }
                         }
                     },
-                    {
-                        data: 'admin_status',
-                        render: function (data) {
-                            if (data !== null) {
-                                return `<span class="tag ${data.color}">${data.status}</span>`;
-                            } else {
-                                return `<span class="tag is-info">ยังไม่ออกผลการทดสอบ</span>`;
-                            }
-                        }
-                    },
                     {data: 'files'},
                     {
                         data: 'note',
@@ -155,7 +145,17 @@
                             }
                         }
                     },
-                    {data: 'creator'},
+                    {data: 'creator' },
+                    {
+                        data: 'admin_status',
+                        render: function (data) {
+                            if (data !== null) {
+                                return `<span class="tag ${data.color}">${data.status}</span>`;
+                            } else {
+                                return `<span class="tag is-info">ยังไม่ออกผลการทดสอบ</span>`;
+                            }
+                        }
+                    },
                     {
                         data: 'id',
                         render: function (data, type, row) {
