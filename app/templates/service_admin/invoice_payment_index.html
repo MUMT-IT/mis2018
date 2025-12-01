@@ -222,8 +222,8 @@
                     },
                     {
                         data: 'id',
-                        render: function (data) {
-                            if (data !== '') {
+                        render: function (data, type, row) {
+                            if (row.is_paid != null) {
                                 return `<div class="field has-addons">
                                             <div class="control">
                                                 <a class="button is-small is-rounded is-danger"
