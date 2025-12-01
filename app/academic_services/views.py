@@ -2759,7 +2759,7 @@ def invoice_index():
         )
     )
     pending_count = query.filter(ServiceInvoice.paid_at == None, today <= ServiceInvoice.due_date).count()
-    verify_count = query.filter(ServiceInvoice.is_paid == False).count()
+    verify_count = query.filter(ServiceInvoice.paid_at != None, ServiceInvoice.is_paid == False).count()
     payment_count = query.filter(ServiceInvoice.verify_at >= expire_time).count()
     overdue_count = query.filter(today > ServiceInvoice.due_date, ServiceInvoice.paid_at == None).count()
     all_count = pending_count + verify_count + payment_count + overdue_count
@@ -2784,7 +2784,7 @@ def get_invoices():
     if tab == 'pending':
         query = query.filter(ServiceInvoice.paid_at == None, today <= ServiceInvoice.due_date)
     elif tab == 'verify':
-        query = query.filter(ServiceInvoice.is_paid == False)
+        query = query.filter(ServiceInvoice.paid_at != None, ServiceInvoice.is_paid == False)
     elif tab == 'payment':
         query = query.filter(ServiceInvoice.is_paid == True)
     elif tab == 'overdue':
