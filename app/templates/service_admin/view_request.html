@@ -216,12 +216,12 @@
                                 </li>
                             </ul>
                             <hr>
-                            <p class="menu-label">
-                                ใบรายงานผล
-                            </p>
-                            <ul class="menu-list">
-                                <li>
-                                    {% if service_request.results %}
+                            {% if service_request.results %}
+                                <p class="menu-label">
+                                    ใบรายงานผล
+                                </p>
+                                <ul class="menu-list">
+                                    <li>
                                         {% for result in service_request.results %}
                                             {% for item in result.result_items %}
                                                 {% if item.final_file %}
@@ -246,16 +246,14 @@
                                                                 class="fas fa-download"></i></span>
                                                     </a>
                                                 {% else %}
-                                                    {{ '' }}
+                                                    กำลังดำเนินการทดสอบ
                                                 {% endif %}
                                             {% endfor %}
                                         {% endfor %}
-                                    {% else %}
-                                        ยังไม่ดำเนินการทดสอบตัวอย่าง
-                                    {% endif %}
-                                </li>
-                            </ul>
+                                    </li>
+                                </ul>
                             <hr>
+                            {% endif %}
                             <p class="menu-label">
                                 การดำเนินการ
                             </p>
@@ -272,23 +270,19 @@
                                             <span>ออกใบเสนอราคา</span>
                                         </a>
                                     </li>
-                                {% elif (10 <= service_request.status.status_id <= 12) or (14 <= service_request.status.status_id <= 15) %}
+                                {% elif (service_request.status.status_id == 10 or service_request.status.status_id >= 11) %}
                                     <li>
                                         <a class="button is-primary is-rounded is-fullwidth mb-2"
-                                                {% if result_id %}
-                                           href="{{ url_for('service_admin.create_draft_result', result_id=result_id,
-                                                request_id=service_request.id, menu='test_item') }}"
-                                                {% else %}
-                                           href="{{ url_for('service_admin.create_draft_result', request_id=service_request.id,
-                                                menu='test_item') }}"
+                                           {% if result_id %}
+                                                href="{{ url_for('service_admin.create_draft_result', result_id=result_id,
+                                                request_id=service_request.id, menu='test_item', tab='testing') }}"
+                                           {% else %}
+                                                href="{{ url_for('service_admin.create_draft_result', request_id=service_request.id,
+                                                menu='test_item', tab='testing') }}"
                                                 {% endif %}
                                         >
                                             <span class="icon"><i class="fas fa-download"></i></span>
-                                            {% if service_request.status.status_id == 14 %}
-                                                <span>แก้ไขใบรายงานผล (ฉบับร่าง)</span>
-                                            {% else %}
-                                                <span>ออกใบรายงานผล (ฉบับร่าง)</span>
-                                            {% endif %}
+                                            <span>ออกใบรายงานผล (ฉบับร่าง)</span>
                                         </a>
                                         <a class="button is-info is-rounded is-fullwidth mb-2"
                                                 {% if result_id %}
@@ -303,13 +297,23 @@
                                             <span>ออกใบรายงานผล (ฉบับจริง)</span>
                                         </a>
                                     </li>
+                                {% elif (service_request.status.status_id == 14) %}
+                                    <li>
+                                        <a class="button is-warning is-rounded is-fullwidth mb-2"
+                                           href="{{ url_for('service_admin.test_item_index', menu='test_item',
+                                           tab='edit_report') }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-pen"></i></span>
+                                            <span>แก้ไขใบรายงานผล (ฉบับร่าง)</span>
+                                        </a>
+                                    </li>
                                 {% endif %}
                                 {% if (service_request.status.status_id == 13 or service_request.status.status_id >= 16)
                                         and result_id %}
                                     <li>
                                         <a class="button is-info is-rounded is-fullwidth mb-2"
                                            href="{{ url_for('service_admin.create_final_result', result_id=result_id,
-                                               request_id=service_request.id, menu='test_item') }}"
+                                               request_id=service_request.id, menu='test_item', tab='all') }}"
                                         >
                                             <span class="icon"><i class="fas fa-download"></i></span>
                                             <span>ออกใบรายงานผล (ฉบับจริง)</span>
