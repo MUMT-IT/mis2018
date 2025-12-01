@@ -877,7 +877,7 @@ class ServiceInvoice(db.Model):
         elif self.file_attached_at:
             status = 'ส่งใบแจ้งหนี้แล้ว รอการชำระเงิน'
         elif self.assistant_approved_at:
-            status = 'รอคณบดีอนุมัติและออกเลข อว.'
+            status = 'รออัปโหลดใบแจ้งหนี้ฉบับสมบูรณ์'
         elif self.head_approved_at:
             status = 'รอผู้ช่วยคณบดีอนุมัติใบแจ้งหนี้'
         elif self.sent_at:
