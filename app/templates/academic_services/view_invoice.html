@@ -132,6 +132,17 @@
                                 การดำเนินการ
                             </p>
                             <ul class="menu-list">
+                                {% if not invoice.paid_at %}
+                                    <li>
+                                        <a class="button is-info is-rounded is-fullwidth mb-2"
+                                           href="{{ url_for('academic_services.add_payment', invoice_id=invoice_id, menu=menu,
+                                                    tab=tab) }}"
+                                        >
+                                                <span class="icon"><i class="fas fa-plus"></i></span>
+                                                <span>อัปโหลดหลักฐานการชำระเงิน</span>
+                                        </a>
+                                    </li>
+                                {% endif %}
                                 <li>
                                     <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
                                        href="{{ url_for('academic_services.download_file', key=invoice.file,
@@ -151,7 +162,8 @@
         <div class="columns">
             <div class="column is-two-thirds is-offset-2 has-text-centered">
                 <div class="buttons is-centered">
-                    <a class="button is-light" href="{{ url_for('academic_services.invoice_index', menu=menu, tab=tab) }}">
+                    <a class="button is-light"
+                       href="{{ url_for('academic_services.invoice_index', menu=menu, tab=tab) }}">
                             <span class="icon">
                                 <i class="fas fa-chevron-left"></i>
                             </span>
