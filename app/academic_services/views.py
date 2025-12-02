@@ -295,9 +295,8 @@ def menu():
             ServiceRequest.status.has(ServiceStatus.status_id.in_([6, 8, 9]))).count()
         invoice_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
             ServiceRequest.status.has(ServiceStatus.status_id.in_([20, 21]))).count()
-        report_count = (ServiceResultItem.query.join(ServiceResult.request).join(ServiceRequest.sub_lab).join(ServiceSubLab.admins)
-                        .filter(ServiceAdmin.admin_id == current_user.id, ServiceResult.approved_at == None)
-            ).count()
+        report_count = ServiceResult.query.join(ServiceResult.request).filter(ServiceRequest.customer_id == current_user.id,
+                                                                               ServiceResult.approved_at == None).count()
     return dict(request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
                 invoice_count=invoice_count, report_count=report_count)
 
