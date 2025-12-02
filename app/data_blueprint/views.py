@@ -99,12 +99,19 @@ def process_org_form(org_id, process_id=None):
 
 @data_bp.route('/')
 def index():
+    process_category = request.args.get('process_category')
+    if process_category:
+        if process_category == 'core_services':
+            processes = CoreService.query.all()
+        else:
+            processes = Process.query.filter_by(category=process_category, parent_id=None).all()
+        return render_template('data_blueprint/modals/all_processes.html', processes=processes)
     data = Data.query.all()
-    core_services = CoreService.query.all()
-    back_office_processes = Process.query.filter_by(category='back_office', parent_id=None).all()
-    crm_processes = Process.query.filter_by(category='crm', parent_id=None).all()
-    performance_processes = Process.query.filter_by(category='performance', parent_id=None).all()
-    regulation_processes = Process.query.filter_by(category='regulation', parent_id=None).all()
+    core_services = CoreService.query.limit(5).all()
+    back_office_processes = Process.query.filter_by(category='back_office', parent_id=None).limit(5).all()
+    crm_processes = Process.query.filter_by(category='crm', parent_id=None).limit(5).all()
+    performance_processes = Process.query.filter_by(category='performance', parent_id=None).limit(5).all()
+    regulation_processes = Process.query.filter_by(category='regulation', parent_id=None).limit(5).all()
     return render_template('data_blueprint/index.html',
                            core_services=core_services,
                            data=data,
