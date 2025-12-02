@@ -1088,9 +1088,6 @@ class ServiceResult(db.Model):
             'admin_status': self.admin_status if self.admin_status else None,
             'customer_status': self.customer_status if self.customer_status else None,
             'released_at': self.released_at if self.released_at else None,
-            'report_language': [item.report_language for item in self.result_items] if self.result_items else None,
-            'note': [item.note for item in self.result_items if item.note] if self.result_items else None,
-            'is_edited': [item.is_edited for item in self.result_items if item.is_edited] if self.result_items else None,
             'creator': self.creator.fullname if self.creator else None,
             'request_id': self.request_id if self.request_id else None
         }
