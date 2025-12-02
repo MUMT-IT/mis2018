@@ -3229,7 +3229,7 @@ def view_result_item(result_id, result_item_id):
         flash('ไม่พบรายการผล', 'danger')
         return redirect(url_for('academic_services.result_index', menu=menu, tab=tab))
     return render_template('academic_services/view_result_item.html', result=result, result_item=result_item,
-                           menu=menu, tab=tab, generate_url=generate_url)
+                           menu=menu, tab=tab, generate_url=generate_url, result_item_id=result_item_id)
 
 
 @academic_services.route('/customer/result/confirm/<int:result_id>', methods=['GET', 'POST'])
@@ -3366,58 +3366,60 @@ def confirm_result_item(result_item_id):
     db.session.add(result_item)
     approved_all = all(item.approved_at is not None for item in result.result_items)
     tab = 'confirm' if approved_all else 'approve'
+    db.session.add(result_item)
+    db.session.commit()
     if approved_all:
         status_id = get_status(13)
         result_item.result.status_id = status_id
         result_item.result.request.status_id = status_id
         result_item.result.approved_at = arrow.now('Asia/Bangkok').datetime
-    db.session.add(result_item)
-    db.session.commit()
-    scheme = 'http' if current_app.debug else 'https'
-    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=result_item.result.request.sub_lab.code)).all()
-    title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
-    link = url_for("service_admin.create_invoice", quotation_id=result_item.result.quotation_id, menu='invoice',
-                   tab='draft', _external=True, _scheme=scheme)
-    customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
-    if admins:
-        title = f'''[{result_item.result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result_item.result.request.quotation_address.name}) | แจ้งยืนยันใบรายงานผลการทดสอบ'''
-        message = f'''เรียน เจ้าหน้าที่{result_item.result.request.sub_lab.sub_lab}\n\n'''
-        message += f'''{result_item.report_language}ฉบับร่างของใบคำขอรับบริการเลขที่ : {result_item.result.request.request_no}\n'''
-        message += f'''ลูกค้า : {result_item.result.request.customer.customer_name}\n'''
-        message += f'''ในนาม : {result_item.result.request.quotation_address.name}\n'''
-        message += f'''ได้ดำเนินการยืนยันเรียบร้อยแล้ว\n'''
-        message += f'''กรุณาดำเนินการออกใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'''
-        message += f'''{link}\n\n'''
-        message += f'''ผู้ประสานงาน\n'''
-        message += f'''{result_item.result.request.customer.customer_name}\n'''
-        message += f'''เบอร์โทร {result_item.result.request.customer.contact_phone_number}\n\n'''
-        message += f'''ระบบงานบริการวิชาการ'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
-        msg = ('แจ้งยืนยันใบรายงานผลการทดสอบ' \
-               '\n\nเรียน เจ้าหน้าที่{}'
-               '\n\n{}ฉบับร่างของใบคำขอรับบริการเลขที่ {}' \
-               '\nลูกค้า : {}' \
-               '\nในนาม : {}' \
-               '\nได้ดำเนินการยืนยันเรียบร้อยแล้ว' \
-               '\nกรุณาดำเนินการออกใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง' \
-               '\n{}' \
-               '\n\nผู้ประสานงาน' \
-               '\n{}' \
-               '\nเบอร์โทร {}' \
-               '\n\nระบบงานบริการวิชาการ'.format(result_item.result.request.sub_lab.sub_lab, result_item.report_language,
-                                                 result_item.result.request.request_no,
-                                                 result_item.result.request.customer.customer_name,
-                                                 result_item.result.request.quotation_address.name, link,
-                                                 result_item.result.request.customer.customer_name,
-                                                 result_item.result.request.customer.contact_phone_number)
-               )
-        if not current_app.debug:
-            for a in admins:
-                if not a.is_central_admin:
-                    try:
-                        line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                    except LineBotApiError:
-                        pass
+        db.session.add(result_item)
+        db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
+        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=result_item.result.request.sub_lab.code)).all()
+        title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
+        link = url_for("service_admin.create_invoice", quotation_id=result_item.result.quotation_id, menu='invoice',
+                       tab='draft', _external=True, _scheme=scheme)
+        customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
+        if admins:
+            title = f'''[{result_item.result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result_item.result.request.quotation_address.name}) | แจ้งยืนยันใบรายงานผลการทดสอบ'''
+            message = f'''เรียน เจ้าหน้าที่{result_item.result.request.sub_lab.sub_lab}\n\n'''
+            message += f'''ใบรายงานผลฉบับร่างของใบคำขอรับบริการเลขที่ : {result_item.result.request.request_no}\n'''
+            message += f'''ลูกค้า : {result_item.result.request.customer.customer_name}\n'''
+            message += f'''ในนาม : {result_item.result.request.quotation_address.name}\n'''
+            message += f'''ได้ดำเนินการยืนยันเรียบร้อยแล้ว\n'''
+            message += f'''กรุณาดำเนินการออกใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'''
+            message += f'''{link}\n\n'''
+            message += f'''ผู้ประสานงาน\n'''
+            message += f'''{result_item.result.request.customer.customer_name}\n'''
+            message += f'''เบอร์โทร {result_item.result.request.customer.contact_phone_number}\n\n'''
+            message += f'''ระบบงานบริการวิชาการ'''
+            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
+            msg = ('แจ้งยืนยันใบรายงานผลการทดสอบ' \
+                   '\n\nเรียน เจ้าหน้าที่{}'
+                   '\n\nใบรายงานผลฉบับร่างของใบคำขอรับบริการเลขที่ {}' \
+                   '\nลูกค้า : {}' \
+                   '\nในนาม : {}' \
+                   '\nได้ดำเนินการยืนยันเรียบร้อยแล้ว' \
+                   '\nกรุณาดำเนินการออกใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง' \
+                   '\n{}' \
+                   '\n\nผู้ประสานงาน' \
+                   '\n{}' \
+                   '\nเบอร์โทร {}' \
+                   '\n\nระบบงานบริการวิชาการ'.format(result_item.result.request.sub_lab.sub_lab,
+                                                     result_item.result.request.request_no,
+                                                     result_item.result.request.customer.customer_name,
+                                                     result_item.result.request.quotation_address.name, link,
+                                                     result_item.result.request.customer.customer_name,
+                                                     result_item.result.request.customer.contact_phone_number)
+                   )
+            if not current_app.debug:
+                for a in admins:
+                    if not a.is_central_admin:
+                        try:
+                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                        except LineBotApiError:
+                            pass
     flash('ยืนยันใบรายงานผลเรียบร้อยแล้ว', 'success')
     return redirect(url_for('academic_services.result_index', menu=menu, tab=tab))
 
