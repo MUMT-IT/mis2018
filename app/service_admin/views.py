@@ -3842,6 +3842,8 @@ def send_draft_result(result_id=None):
     status_id = get_status(12)
     result.status_id = status_id
     service_request.status_id = status_id
+    result.sent_at = arrow.now('Asia/Bangkok').datetime
+    result.sender_id = current_user.id
     scheme = 'http' if current_app.debug else 'https'
     for item in result.result_items:
         file = request.files.get(f'file_{item.id}')
@@ -3918,6 +3920,7 @@ def edit_draft_result(result_item_id):
             status_id = get_status(12)
             result_item.result.status_id = status_id
             result_item.result.request.status_id = status_id
+            result_item.is_edited = True
         scheme = 'http' if current_app.debug else 'https'
         result_url = url_for('academic_services.result_index', menu='report', tab='approve', _external=True,
                              _scheme=scheme)
