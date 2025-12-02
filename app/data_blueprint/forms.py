@@ -91,14 +91,14 @@ class KPIReportForm(ModelForm):
         only = ['account', 'reporter', 'consult', 'informed', 'reportlink',
                 'pfm_account', 'pfm_responsible', 'pfm_consult', 'pfm_informed']
 
-    account = SelectField(u'ผู้รับผิดชอบ')
-    pfm_account = SelectField(u'ผู้รับดูแลประสิทธิภาพตัวชี้วัด')
-    pfm_responsible = SelectField(u'ผู้รับผิดชอบประสิทธิภาพตัวชี้วัด')
-    pfm_consult = SelectField(u'ที่ปรึกษาประสิทธิภาพตัวชี้วัด')
-    pfm_informed = SelectField(u'ผู้รับรายงานเรื่องประสิทธิภาพตัวชี้วัด')
-    reporter = SelectField(u'ผู้รายงาน')
-    consult = SelectField(u'ที่ปรึกษา')
-    informed = SelectField(u'ผู้รับรายงานหลัก')
+    account = SelectField(u'ผู้รับผิดชอบ', validators=[DataRequired()])
+    pfm_account = SelectField(u'ผู้รับดูแลประสิทธิภาพตัวชี้วัด', validators=[DataRequired()])
+    pfm_responsible = SelectField(u'ผู้รับผิดชอบประสิทธิภาพตัวชี้วัด', validators=[DataRequired()])
+    pfm_consult = SelectField(u'ที่ปรึกษาประสิทธิภาพตัวชี้วัด', validators=[DataRequired()])
+    pfm_informed = SelectField(u'ผู้รับรายงานเรื่องประสิทธิภาพตัวชี้วัด', validators=[DataRequired()])
+    reporter = SelectField(u'ผู้รายงาน', validators=[DataRequired()])
+    consult = SelectField(u'ที่ปรึกษา', validators=[DataRequired()])
+    informed = SelectField(u'ผู้รับรายงานหลัก', validators=[DataRequired()])
 
 
 class QuerySelectEmailField(QuerySelectField):
