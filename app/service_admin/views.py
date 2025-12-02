@@ -1943,9 +1943,11 @@ def get_results():
     for item in query:
         html_blocks = []
         edit_html_blocks = []
+        note_html_blocks = []
         item_data = item.to_dict()
         for i in item.result_items:
             edit_html = ''
+            note_html = ''
             if i.final_file:
                 download_file = url_for('service_admin.download_file', key=i.final_file,
                                         download_filename=f"{i.report_language} (ฉบับจริง).pdf")
@@ -1984,14 +1986,24 @@ def get_results():
                                             </div>
                                         </div>
                                     '''
+                    note_html = f'''{i.report_language} : {i.note}<br/>'''
+                elif i.req_edit_at and i.is_edited:
+                    note_html = f'''{i.report_language} : {i.note}
+                                    <br/>
+                                    <span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>
+                                    <br/>
+                                '''
             else:
                 html = ''
             html_blocks.append(html)
             if edit_html:
                 edit_html_blocks.append(edit_html)
+            if note_html:
+                note_html_blocks.append(note_html)
         item_data['files'] = ''.join(
             html_blocks) if html_blocks else '<span class="has-text-grey-light is-italic">ไม่มีไฟล์</span>'
         item_data['edit_file'] = ''.join(edit_html_blocks) if edit_html_blocks else ''
+        item_data['note'] = ''.join(note_html_blocks) if note_html_blocks else ''
         data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
@@ -3919,15 +3931,15 @@ def edit_draft_result(result_item_id):
             result_item.modified_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(result_item)
             db.session.commit()
-        edited_all = all(item.is_edited for item in result_item.result.result_items if item.req_edit_at)
+        edited_all = all(item.is_edited is not None for item in result_item.result.result_items if item.req_edit_at)
         if edited_all:
             status_id = get_status(12)
             result_item.result.status_id = status_id
             result_item.result.request.status_id = status_id
-            result_item.is_edited = True
+            result_item.result.is_edited = True
         scheme = 'http' if current_app.debug else 'https'
-        result_url = url_for('academic_services.result_index', menu='report', tab='approve', _external=True,
-                             _scheme=scheme)
+        result_url = url_for('academic_services.view_result_item', result_id=result_item.result_id,
+                             result_item_id=result_item_id, menu='report', tab='approve', _external=True, _scheme=scheme)
         customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
         contact_email = result_item.result.request.customer.contact_email if result_item.result.request.customer.contact_email else result_item.result.request.customer.email
         title_prefix = 'คุณ' if result_item.result.request.customer.customer_info.type.type == 'บุคคล' else ''
