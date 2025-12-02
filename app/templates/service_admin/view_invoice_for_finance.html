@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block page_content %}
+    {% include "procurement/nav_for_main.html" %}
+    <section class="section" id="app">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-6">
+                    <h1 class="title has-text-centered">หลักฐานการชำระเงิน</h1>
+                    <div class="box">
+                        {% if invoice.payments %}
+                            {% for payment in invoice.payments %}
+                                <iframe src="{{ slip_url }}" style="width: 100%; height: 1000px"></iframe>
+                            {% endfor %}
+                        {% else %}
+                            <span class="has-text-grey-light is-italic">ยังไม่แนบหลักฐานการชำระเงิน</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="column is-half">
+                    <h1 class="title has-text-centered">รายละเอียดการชำระเงิน</h1>
+                    <div class="box">
+                        <p class="subtitle is-5 mb-1 has-text-weight-semibold">ข้อมูลใบแจ้งหนี้</p>
+                        <hr>
+                        <div class="ml-4">
+                            <div class="mb-4 is-flex is-align-items-center">
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">เลขที่ใบแจ้งหนี้</p>
+                                <div style="margin-left: 1.75rem;">
+                                    {{ invoice.invoice_no }}
+                                </div>
+                            </div>
+                            <div class="mb-4 is-flex is-align-items-center">
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่ออกใบแจ้งหนี้</p>
+                                <div style="margin-left: 1.75rem;">
+                                    {{ invoice.file_attached_at|localdate }}
+                                </div>
+                            </div>
+                            <div class="mb-4 is-flex is-align-items-center">
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">ชื่อ/ชื่อบริษัท</p>
+                                <div style="margin-left: 1.75rem;">
+                                    {{ invoice.name }}
+                                </div>
+                            </div>
+                            <div class="mb-4 is-flex is-align-items-center">
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่ครบกำหนดชำระ</p>
+                                <div style="margin-left: 1.75rem;">
+                                    {{ invoice.due_date|localdate }}
+                                </div>
+                            </div>
+                            <div class="mb-4 is-flex is-align-items-center">
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">สถานะ</p>
+                                <div style="margin-left: 1.75rem;">
+                                    {% if invoice.is_paid %}
+                                        <span class="tag is-success">ชำระแล้ว</span>
+                                    {% elif invoice.paid_at %}
+                                        <span class="tag is-warning">รอตรวจสอบ</span>
+                                    {% elif is_overdue %}
+                                        <span class="tag is-danger">เกินกำหนด</span>
+                                    {% else %}
+                                        <span class="tag is-info">รอชำระเงิน</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="control">
+                                    <table class="table is-fullwidth mt-4">
+                                        <thead>
+                                        <tr>
+                                            <th class="has-text-centered">ลำดับ</th>
+                                            <th class="has-text-centered">รายการ</th>
+                                            <th class="has-text-centered">จำนวน</th>
+                                            <th class="has-text-centered">ราคา</th>
+                                            <th class="has-text-centered">จำนวนเงิน</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for item in invoice.invoice_items|sort(attribute='sequence') %}
+                                            <tr>
+                                                <td class="has-text-centered">{{ item.sequence }}</td>
+                                                <td>{{ item.item|safe }}</td>
+                                                <td class="has-text-centered">{{ item.quantity }}</td>
+                                                <td class="has-text-right">
+                                                    {{ "{:,.2f}".format(item.unit_price) }}
+                                                </td>
+                                                <td class="has-text-right">
+                                                    {{ "{:,.2f}".format(item.total_price) }}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                    <hr>
+                                    <div class="has-text-right">
+                                        <p><strong>รวมเป็นเงิน : </strong>
+                                            {{ "{:,.2f}".format(invoice.subtotal()) }}
+                                        </p>
+                                        <p>
+                                            <strong>ส่วนลด : </strong>
+                                            {{ "{:,.2f}".format(invoice.discount()) }}
+                                        </p>
+                                        <p><strong>รวมเป็นเงินทั้งสิ้น
+                                            : </strong>{{ "{:,.2f}".format(invoice.grand_total()) }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="subtitle is-5 mb-1 has-text-weight-semibold">ข้อมูลการชำระเงิน</p>
+                        <hr>
+                        <div class="ml-4">
+                            {% if invoice.payments %}
+                                {% for payment in invoice.payments %}
+                                    <div class="mb-4 is-flex is-align-items-center">
+                                        <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่ชำระ</p>
+                                        <div style="margin-left: 1.75rem;">
+                                            {{ payment.paid_at|localdatetime }}
+                                        </div>
+                                    </div>
+                                    <div class="mb-4 is-flex is-align-items-center">
+                                        <p class="subtitle is-6 mb-1 has-text-weight-semibold">วิธีการชำระเงิน</p>
+                                        <div style="margin-left: 1.75rem;">
+                                            {{ payment.payment_type }}
+                                        </div>
+                                    </div>
+                                    <div class="mb-4 is-flex is-align-items-center">
+                                        <p class="subtitle is-6 mb-1 has-text-weight-semibold">จำนวนเงินที่ชำระ</p>
+                                        <div style="margin-left: 1.75rem;">
+                                            {{ "{:,.2f}".format(payment.amount_paid) }} บาท
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <span class="has-text-grey-light is-italic">ยังไม่ดำเนินการชำระเงิน</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="buttons is-centered">
+                        <a class="button" href="{{ url_for('service_admin.invoice_payment_index') }}">
+                            <span class="icon"><i class="fas fa-angle-left"></i></span>
+                            <span>ย้อนกลับ</span>
+                        </a>
+                        {% if not invoice.is_paid %}
+                            <a class="button is-success" onclick="vm.warn({{ invoice.id }})">
+                                <span class="icon"><i class="fas fa-check"></i></span>
+                                <span>อนุมัติ</span>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+    <script>
+        vm = new Vue({
+            el: '#app',
+            methods: {
+                warn: function (quotation_item_id) {
+                    var menu = '{{ menu }}';
+                    this.$buefy.dialog.confirm({
+                        message: 'ท่านต้องการลบรายการนี้หรือไม่?',
+                        onConfirm: () => {
+                            const url = `/service_admin/quotation/item/delete/${quotation_item_id}?menu=${menu}`;
+                            window.location.href = url;
+                        },
+                        type: 'is-danger'
+                    });
+                }
+            }
+        })
+    </script>
+    <script>
+        function showToast(message) {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
+            toastr.success(message);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        showToast({{ message|tojson }}, 7000);
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
+    <script>
+        vm = new Vue({
+            el: '#app',
+            methods: {
+                warn: function (invoice_id) {
+                    this.$buefy.dialog.confirm({
+                        message: 'ต้องการยืนยันการชำระเงินของรายการนี้หรือไม่',
+                        confirmText: 'ยืนยัน',
+                        cancelText: 'ยกเลิก',
+                        onConfirm: () => {
+                            const url = `/service_admin/invoice/payment/confirm/${invoice_id}`;
+                            window.location.href = url;
+                        },
+                        type: 'is-success'
+                    });
+                },
+            }
+        })
+    </script>
+{% endblock %}
