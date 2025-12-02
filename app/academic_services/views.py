@@ -3191,31 +3191,30 @@ def result_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
-    query = ServiceResultItem.query.filter(ServiceResultItem.result.has(
-        ServiceResult.request.has(customer_id=current_user.id)))
+    query = ServiceResult.query.join(ServiceResult.request).filter(ServiceRequest.customer_id == current_user.id)
 
     if tab == 'pending':
-        result_items = query.filter(ServiceResultItem.sent_at == None)
+        results = query.filter(ServiceResult.sent_at == None)
     elif tab == 'edit':
-        result_items = query.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == False)
+        results = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False)
     elif tab == 'approve':
-        result_items = query.filter(ServiceResultItem.sent_at != None, ServiceResultItem.approved_at == None,
-                             or_(ServiceResultItem.req_edit_at == None, ServiceResultItem.is_edited == True
+        results = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
+                             or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
                                  )
                              )
     elif tab == 'confirm':
-        result_items = query.filter(ServiceResultItem.approved_at != None)
+        results = query.filter(ServiceResult.approved_at != None)
     else:
-        result_items = query
-    pending_count = query.filter(ServiceResultItem.sent_at == None).count()
-    edit_count = query.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == False).count()
-    approve_count = query.filter(ServiceResultItem.sent_at != None, ServiceResultItem.approved_at == None,
-                             or_(ServiceResultItem.req_edit_at == None, ServiceResultItem.is_edited == True
+        results = query
+    pending_count = query.filter(ServiceResult.sent_at == None).count()
+    edit_count = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False).count()
+    approve_count = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
+                             or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
                                  )
                              ).count()
-    confirm_count = query.filter(ServiceResultItem.approved_at >= expire_time).count()
+    confirm_count = query.filter(ServiceResult.approved_at >= expire_time).count()
     all_count = edit_count + approve_count + pending_count + confirm_count
-    return render_template('academic_services/result_index.html', result_items=result_items, menu=menu,
+    return render_template('academic_services/result_index.html', results=results, menu=menu,
                            tab=tab, edit_count=edit_count, approve_count=approve_count, confirm_count=confirm_count,
                            all_count=all_count, pending_count=pending_count)
 
@@ -3433,7 +3432,6 @@ def edit_result_item(result_item_id):
     db.session.commit()
     result = ServiceResult.query.get(result_item.result_id)
     form = ServiceResultItemForm(obj=result_item)
-    edited_all = all(item.is_edited for item in result_item.result.result_items if item.req_edit_at)
     if form.validate_on_submit():
         form.populate_obj(result_item)
         status_id = get_status(14)
@@ -3441,8 +3439,7 @@ def edit_result_item(result_item_id):
         result_item.edit_requester_id = current_user.id
         result_item.req_edit_at = arrow.now('Asia/Bangkok').datetime
         result_item.result.request.status_id = status_id
-        if edited_all:
-            result_item.result.result_edit_at = arrow.now('Asia/Bangkok').datetime
+        result_item.result.result_edit_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(result_item)
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
