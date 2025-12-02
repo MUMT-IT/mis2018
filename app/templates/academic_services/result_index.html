@@ -9,118 +9,149 @@
             opacity: 1 !important;
             transition: none !important;
         }
+
+        #toast-container.toast-top-full-width > .toast {
+            width: 100% !important;
+        }
     </style>
 {% endblock %}
 {% block page_content %}
-{% include"academic_services/customer_nav.html" %}
-<section class="section">
-    {% include 'messages.html' %}
-    <div class="columns is-centered">
-        {% include 'academic_services/menu.html' %}
-        <div class="column is-9">
-            <div class="column is-11">
-                <h1 class="title has-text-centered">รายงานผลการทดสอบ</h1>
-            </div>
-            <table id='requests' class="table is-fullwidth">
-                <thead>
-                <th>เลขใบคำขอรับบริการ</th>
-                <th>หมายเลขติดตามพัสดุ</th>
-                <th>วัน-เวลาที่ออกผล</th>
-                <th>รายการ</th>
-                <th>สถานะ</th>
-                <th>ผลการทดสอบ</th>
-                <th>รายละเอียดการแก้ไข</th>
-                <th></th>
-                </thead>
-                <tbody>
-                {% for result in results|sort(attribute='created_at', reverse = True) %}
-                <tr>
-                    <td>{{ result.request.request_no }}</td>
-                    <td>{{ result.tracking_number or '' }}</td>
-                    <td>{{ result.released_at|localdatetime or '' }}</td>
-                    <td>
-                        {% set product = result.request.product | replace('{', '') | replace('}', '') | replace('"', '') %}
-                        {% set product_list = product.split(',') %}
-                        {{ product_list | selectattr('strip') | reject('eq', '') | join(', ') }}
-                    </td>
-                    <td>
-                        <span class="tag {{ result.customer_status.color }}">
-                            {{ result.customer_status.status }}
-                        </span>
-                    </td>
-                    <td>
-                        {% for item in result.result_items %}
-                            {% if item.final_file %}
-                                <div class="field has-addons">
-                                    <div class="control">
-                                        <a {% if result.status.status_id == 22 %}
-                                                class="button is-small is-link is-light is-rounded"
-                                                href="{{ url_for('academic_services.download_file', key=item.final_file,
-                                                download_filename=item.report_language + ' ' + '(ฉบับจริง)' + '.pdf') }}"
-                                           {% else %}
-                                                class="button is-small is-link is-light is-rounded Warn"
-                                           {% endif %}
-                                        >
-                                            <span>{{ item.report_language + ' ' + '(ฉบับจริง)' or 'ไม่ระบุภาษา' }}</span>
-                                            <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                        </a>
-                                    </div>
-                                </div>
-                            {% elif item.draft_file %}
-                                <div class="field has-addons">
-                                    <div class="control">
-                                        <a class="button is-small is-link is-light is-rounded"
-                                           href="{{ url_for('academic_services.download_file', key=item.draft_file,
-                                                       download_filename=item.report_language +  ' ' +'(ฉบับร่าง)' + '.pdf') }}">
-                                            <span>{{ item.report_language +  ' ' +'(ฉบับร่าง)' or 'ไม่ระบุภาษา' }}</span>
-                                            <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                        </a>
-                                    </div>
-                                </div>
-                            {% else %}
-                                {{ '' }}
-                            {% endif %}
+    {% include"academic_services/customer_nav.html" %}
+    <section class="section">
+        {% include 'messages.html' %}
+        <div class="columns is-centered">
+            {% include 'academic_services/menu.html' %}
+            <div class="column is-9">
+                <div class="column is-11">
+                    <h1 class="title has-text-centered">รายงานผลการทดสอบ</h1>
+                </div>
+                <div class="tabs">
+                    <ul>
+                        <li {% if tab == 'pending' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.result_index', tab='pending', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-clock"></i></span>
+                                <span>รอออกผล</span>
+                                {% if pending_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ pending_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'edit' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.result_index', tab='edit', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-pencil-alt"></i></span>
+                                <span>ขอแก้ไขผล</span>
+                                {% if edit_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ edit_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'approve' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.result_index', tab='approve', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
+                                <span>รอยืนยันผล</span>
+                                {% if approve_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ approve_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'confirm' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.result_index', tab='confirm', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                <span>ยืนยันผลแล้ว</span>
+                                {% if confirm_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ confirm_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.result_index', tab='all', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ทั้งหมด</span>
+                                {% if all_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ all_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <table id='results' class="table is-fullwidth">
+                    <thead>
+                    <th>เลขใบคำขอรับบริการ</th>
+                    <th>หมายเลขติดตามพัสดุ</th>
+                    <th>วัน-เวลาที่ออกผล</th>
+                    <th>สถานะ</th>
+                    <th>ผลการทดสอบ</th>
+                    <th>รายละเอียดการแก้ไข</th>
+                    </thead>
+                    <tbody>
+                        {% for item in result_items|sort(attribute='released_at', reverse=True) %}
+                            <tr>
+                                <td>{{ item.result.request.request_no }}</td>
+                                <td>{{ item.result.tracking_number or '' }}</td>
+                                <td>{{ item.released_at|localdatetime or '' }}</td>
+                                <td>
+                                    <span class="tag {{ item.customer_status.color }}">
+                                        {{ item.customer_status.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if item.final_file %}
+                                        <div class="field has-addons">
+                                            <div class="control">
+                                                <a {% if item.result.status.status_id == 22 %}
+                                                    class="button is-small is-link is-light is-rounded"
+                                                    href="{{ url_for('academic_services.download_file', key=item.final_file,
+                                                        download_filename=item.report_language + ' ' + '(ฉบับจริง)' + '.pdf') }}"
+                                                {% else %}
+                                                    class="button is-small is-link is-light is-rounded Warn"
+                                                {% endif %}
+                                                >
+                                                    <span>{{ item.report_language + ' ' + '(ฉบับจริง)' or 'ไม่ระบุภาษา' }}</span>
+                                                    <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    {% elif item.draft_file and not item.approved_at and (not item.req_edit_at or item.is_edited) %}
+                                        <div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-success is-rounded"
+                                                   href="{{ url_for('academic_services.view_result_item', result_item_id=item.id,
+                                                   menu=menu, tab=tab) }}">
+                                                    <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                                    <span>ยืนยัน{{ item.report_language +  ' ' +'(ฉบับร่าง)' or 'ไม่ระบุภาษา' }}</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    {% elif item.draft_file and (item.result.request.status.status_id != 10
+                                        or item.result.request.status.status_id != 11) %}
+                                        <div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-link is-light is-rounded"
+                                                   href="{{ url_for('academic_services.download_file', key=item.draft_file,
+                                                   download_filename=item.report_language + ' ' + '(ฉบับร่าง)' + '.pdf') }}"
+                                                >
+                                                    <span>{{ item.report_language + ' ' + '(ฉบับร่าง)' or 'ไม่ระบุภาษา' }}</span>
+                                                    <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        {{ '' }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ item.note or '' }}
+                                    {% if item.is_edited %}
+                                        <span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
                         {% endfor %}
-                    </td>
-                    <td>
-                        {{ result.note or '' }}
-                        {% if result.status_note %}
-                            <span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if result.request.status.status_id == 12 %}
-                            <div id="result-form"></div>
-                            <div class="field has-addons">
-                                <div class="control">
-                                    <a class="button is-small is-success is-rounded"
-                                       href="{{ url_for('academic_services.confirm_result', result_id=result.id,
-                                                       menu=menu) }}">
-                                        <span class="icon is-small"><i class="fas fa-check"></i></span>
-                                        <span>ยืนยัน</span>
-                                    </a>
-                                </div>
-                                <div class="control">
-                                    <a class="button is-small is-warning is-rounded"
-                                       hx-swap="innerHTML"
-                                       hx-target="#result-form"
-                                       hx-get="{{ url_for('academic_services.edit_result', result_id=result.id, menu=menu) }}">
-                                        <span class="icon is-small"><i class="fas fa-pen"></i></span>
-                                        <span>ขอแก้ไข</span>
-                                    </a>
-                                </div>
-                            </div>
-                        {% else %}
-                            {{ '' }}
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
-</section>
+    </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
@@ -128,6 +159,19 @@
     <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
         function showToast(category, message) {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
             if (category === 'success') {
                 toastr.success(message);
             } else if (category === 'danger') {
@@ -151,7 +195,7 @@
     </script>
     <script>
         $(document).ready(function () {
-            $('#requests').DataTable({
+            $('#results').DataTable({
                 scrollX: true,
             });
             $('.Warn').click(() => {

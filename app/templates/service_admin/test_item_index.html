@@ -10,6 +10,64 @@
                 <div class="column is-11">
                     <h1 class="title has-text-centered">รายการทดสอบ</h1>
                 </div>
+                <div class="tabs">
+                    <ul>
+                        <li {% if tab == 'not_started' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.test_item_index', tab='not_started', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-ban"></i></span>
+                                <span>ยังไม่ดำเนินการทดสอบ</span>
+                                {% if not_started_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ not_started_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'testing' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.test_item_index', tab='testing', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-vial"></i></span>
+                                <span>กำลังทดสอบตัวอย่าง</span>
+                                {% if testing_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ testing_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'edit_report' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.test_item_index', tab='edit_report', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-pencil-alt"></i></span>
+                                <span>ขอแก้ไขใบรายงานผล</span>
+                                {% if edit_report_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ edit_report_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'pending_invoice' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.test_item_index', tab='pending_invoice', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
+                                <span>รอออกใบแจ้งหนี้</span>
+                                {% if pending_invoice_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ pending_invoice_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'invoice' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.test_item_index', tab='invoice', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
+                                <span>ออกใบแจ้งหนี้แล้ว</span>
+                                {% if invoice_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ invoice_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.test_item_index', tab='all', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ทั้งหมด</span>
+                                {% if all_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ all_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                    </ul>
+                </div>
                 <table id='samples' class="table is-fullwidth">
                     <thead>
                         <th>เลขใบคำขอรับบริการ</th>
@@ -33,7 +91,7 @@
             $.fn.dataTable.moment('lll');
             $('#samples').DataTable({
                 ajax: {
-                    url: {{ url_for('service_admin.get_test_items')|tojson|safe}},
+                    url: {{ url_for('service_admin.get_test_items', tab=tab)|tojson|safe}},
                 },
                 order: [[1, 'desc']],
                 columns: [
@@ -61,10 +119,11 @@
                     { data: 'customer' },
                     { data: 'files' },
                     {
-                        data: 'id',
+                        data: null,
                         render: function (data, type, row) {
+                            var tab = '{{ tab }}';
                             if (row.status_id == 13 || row.status_id >= 16) {
-                                 var result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
+                                 var result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report&tab=all';
                                   return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-info is-rounded" ' + 'href=' + result_url + '>' +
@@ -75,13 +134,13 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if ((10 <= row.status_id <= 12) || (14 <= row.status_id <= 15)) {
+                            } else if (row.status_id == 10 || row.status_id == 11) {
                                 if (row.status_id == 10) {
-                                    var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report';
-                                    var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=report';
+                                    var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report&tab=' + tab;
+                                    var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=report&tab=' + tab;
                                 } else {
-                                    var draft_result_url = '/service_admin/result/draft/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
-                                    var final_result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
+                                    var draft_result_url = '/service_admin/result/draft/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report&tab=' + tab;
+                                    var final_result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report&tab=' + tab;
                                 }
                                  return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -101,6 +160,17 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
+                            } else if (row.status_id == 12 || row.status_id == 15) {
+                                return `<span class="tag is-warning is-rounded">
+                                            <span class="icon">
+                                                <i class="fas fa-hourglass-half"></i>
+                                            </span>
+                                            <span>
+                                                รอยืนยันใบรายงานผล
+                                            </span>
+                                        </span>`;
+                            } else if (row.status_id == 14) {
+                                return row.edit_file;
                             } else {
                                 return ''
                             }
@@ -110,7 +180,7 @@
                         data: 'id',
                         render: function (data, type, row) {
                             if (row.status_id == 13) {
-                                invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '?menu=invoice';
+                                invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '?menu=invoice&tab=draft';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-info is-rounded" ' + 'href=' + invoice_url + '>' +
@@ -121,8 +191,8 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.status_id >= 14 && row.status_id <= 20 || row.status_id == 23) {
-                               invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice';
+                            } else if (row.status_id >= 16) {
+                               invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice&tab=all';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-primary is-rounded" ' + 'href=' + invoice_url + '>' +

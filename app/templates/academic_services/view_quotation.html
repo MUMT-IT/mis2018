@@ -94,33 +94,33 @@
                             </p>
                             <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ "{:,.2f}".format(quotation.grand_total()) }}</p>
                         </div>
-                        <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่สำหรับจัดส่งเอกสาร</p>
-                        </div>
-                        <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ถึง</p>
-                            <div style="margin-left: 1.75rem;">
-                                {{ quotation.request.receive_name }}
-                            </div>
-                        </div>
-                        <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>
-                            <div style="margin-left: 1.75rem;">
-                                {{ quotation.request.receive_address }}
-                            </div>
-                        </div>
-                        <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เบอร์โทรศัพท์</p>
-                            <div style="margin-left: 1.75rem;">
-                                {{ quotation.request.receive_phone_number }}
-                            </div>
-                        </div>
-                        <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">อีเมล</p>
-                            <div style="margin-left: 1.75rem;">
-                                {{ quotation.request.customer.contact_email }}
-                            </div>
-                        </div>
+{#                        <div class="mb-4 is-flex is-align-items-center">#}
+{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่สำหรับจัดส่งเอกสาร</p>#}
+{#                        </div>#}
+{#                        <div class="mb-4 is-flex is-align-items-center">#}
+{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ถึง</p>#}
+{#                            <div style="margin-left: 1.75rem;">#}
+{#                                {{ quotation.request.receive_name }}#}
+{#                            </div>#}
+{#                        </div>#}
+{#                        <div class="mb-4 is-flex is-align-items-center">#}
+{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>#}
+{#                            <div style="margin-left: 1.75rem;">#}
+{#                                {{ quotation.request.receive_address }}#}
+{#                            </div>#}
+{#                        </div>#}
+{#                        <div class="mb-4 is-flex is-align-items-center">#}
+{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เบอร์โทรศัพท์</p>#}
+{#                            <div style="margin-left: 1.75rem;">#}
+{#                                {{ quotation.request.receive_phone_number }}#}
+{#                            </div>#}
+{#                        </div>#}
+{#                        <div class="mb-4 is-flex is-align-items-center">#}
+{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">อีเมล</p>#}
+{#                            <div style="margin-left: 1.75rem;">#}
+{#                                {{ quotation.request.customer.contact_email }}#}
+{#                            </div>#}
+{#                        </div>#}
                     </div>
                 </div>
                 <div class="column is-one-quarter ">
@@ -132,18 +132,6 @@
                             <ul class="menu-list">
                                 <li>
                                     {{ quotation.request.sub_lab.sub_lab }}
-                                </li>
-                            </ul>
-                            <hr>
-                            <p class="menu-label">
-                                วันที่อนุมัติ
-                            </p>
-                            <ul class="menu-list">
-                                <li>
-                                     <span class="icon">
-                                         <i class="fas fa-clock"></i>
-                                     </span>
-                                    {{ quotation.approved_at.strftime('%d/%m/%Y') }}
                                 </li>
                             </ul>
                             <hr>
@@ -180,7 +168,7 @@
                                            hx-swap="innerHTML"
                                            hx-target="#reject-quotation"
                                            hx-get="{{ url_for('academic_services.reject_quotation', quotation_id=quotation_id,
-                                               menu='sample') }}"
+                                               menu=menu, tab=tab) }}"
                                         >
                                                 <span class="icon">
                                                     <i class="fas fa-times"></i>
@@ -215,7 +203,7 @@
     <div class="columns">
         <div class="column is-two-thirds is-offset-2 has-text-centered">
             <div class="buttons is-centered">
-                <a class="button is-light" href="{{ url_for('academic_services.quotation_index', menu=menu) }}">
+                <a class="button is-light" href="{{ url_for('academic_services.quotation_index', menu=menu, tab=tab) }}">
                     <span class="icon">
                         <i class="fas fa-chevron-left"></i>
                     </span>

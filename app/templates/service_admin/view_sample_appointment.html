@@ -74,18 +74,48 @@
                                 </p>
                             {% elif sample.appointment_date %}
                                 <p>
-                                    <label class="label">วัน-เวลาที่นัดหมายส่งตังอย่าง</label>
+                                    <label class="label">วันที่นัดหมายส่งตังอย่าง</label>
                                     {{ sample.appointment_date.strftime('%d/%m/%Y') }}
                                 </p>
                             {% endif %}
                             <p>
-                                <label class="label">สถานที่ส่งตัวอย่าง</label>
-                                {{ sample.location or 'ไม่ระบุ' }}
-                            </p>
-                            <p>
                                 <label class="label">วิธีการส่งตัวอย่าง</label>
                                 {{ sample.ship_type or 'ไม่ระบุ' }}
                             </p>
+                            {% if sample.location %}
+                                <p>
+                                    <label class="label">สถานที่ส่งตัวอย่าง</label>
+                                    {{ sample.location_name or 'ไม่ระบุ' }}
+                                </p>
+                                {% if sample.location == 'salaya' %}
+                                    <p>
+                                        <label class="label">รายละเอียดสถานที่</label>
+                                        {{ sample.request.sub_lab.salaya_address or 'ไม่ระบุ' }}
+                                        เบอร์โทรศัพท์ {{ sample.request.sub_lab.lab.phone_number }}
+                                        {% if sample.request.sub_lab.lab.email %}
+                                            อีเมล {{ sample.request.sub_lab.lab.email }}
+                                        {% endif %}
+                                    </p>
+                                {% else %}
+                                    <p>
+                                        <label class="label">รายละเอียดสถานที่</label>
+                                        {{ sample.request.sub_lab.salaya_address or 'ไม่ระบุ' }}
+                                        เบอร์โทรศัพท์ {{ sample.request.sub_lab.lab.phone_number }}
+                                        {% if sample.request.sub_lab.lab.email %}
+                                            อีเมล {{ sample.request.sub_lab.lab.email }}
+                                        {% endif %}
+                                    </p>
+                                {% endif %}
+                            {% else %}
+                                <p>
+                                    <label class="label">รายละเอียดสถานที่</label>
+                                    {{ sample.request.sub_lab.salaya_address or 'ไม่ระบุ' }}
+                                    เบอร์โทรศัพท์ {{ sample.request.sub_lab.lab.phone_number }}
+                                    {% if sample.request.sub_lab.lab.email %}
+                                        อีเมล {{ sample.request.sub_lab.lab.email }}
+                                    {% endif %}
+                                </p>
+                            {% endif %}
                             <p>
                                 <label class="label">สถานะ</label>
                                 {% if sample.received_at %}
@@ -240,7 +270,7 @@
                 <div class="column">
                     <div class="buttons is-centered">
                         <a class="button is-light"
-                           href="{{ url_for('service_admin.sample_index', menu=menu) }}">
+                           href="{{ url_for('service_admin.sample_index', menu=menu, tab=tab) }}">
                             <span class="icon">
                                 <i class="fas fa-chevron-left"></i>
                             </span>

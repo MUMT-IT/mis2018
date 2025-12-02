@@ -7,6 +7,13 @@
             opacity: 1 !important;
             transition: none !important;
         }
+        #toast-container.toast-top-full-width > .toast {
+            width: 100% !important;
+        }
+
+        .content ul {
+            margin-top: 0.15em;
+        }
     </style>
 {% endblock %}
 {% block page_content %}
@@ -14,7 +21,7 @@
     <section class="section" id="app">
         <div class="container">
             <div class="columns is-centered">
-                <div class="column is-two-fifths">
+                <div class="column is-5">
                     <h1 class="title has-text-centered">ข้อมูลคำขอรับบริการ</h1>
                     <div class="box">
                         <div class="mb-4">
@@ -27,88 +34,128 @@
                         </div>
                         <hr>
                         <div class="mb-4">
-                            <div class="columns">
-                                <div class="column" style="border-right: 1px solid #ddd;">
-                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                        <span class="icon"><i class="fas fa-receipt"></i></span>
-                                        ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
-                                    </p>
-                                    <div style="margin-left: 1.75rem;">
-                                        <p>ออกในนาม : {{ quotation.name }}</p>
-                                        <p>ที่อยู่ : {{ quotation.address }}</p>
-                                        <p>เลขประจำตัวผู้เสียภาษีอากร : {{ quotation.taxpayer_identification_no }}</p>
-                                        <p>เบอร์โทรศัพท์ : {{ quotation.request.quotation_address.phone_number }}</p>
-                                        <p>อีเมล : {{ quotation.request.customer.contact_email }}</p>
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-id-badge"></i></span>
+                                ข้อมูลผู้ส่งตรวจ
+                            </p>
+                            <div class="field ml-5">
+                                <div class="mb-4 mt-3">
+                                    <div class="columns">
+                                        <div class="column" style="border-right: 1px solid #ddd;">
+                                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                                <span class="icon"><i class="fas fa-receipt"></i></span>
+                                                ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
+                                            </p>
+                                            <div style="margin-left: 1.75rem;">
+                                                <p>ออกในนาม : {{ quotation.name }}</p>
+                                                <p>ที่อยู่ : {{ quotation.address }}</p>
+                                                <p>เลขประจำตัวผู้เสียภาษีอากร
+                                                    : {{ quotation.taxpayer_identification_no }}</p>
+                                                <p>เบอร์โทรศัพท์
+                                                    : {{ quotation.request.quotation_address.phone_number }}</p>
+                                                <p>อีเมล : {{ quotation.request.customer.contact_email }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="column">
+                                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                                <span class="icon"><i class="fas fa-map-marker-alt"></i></span>
+                                                ข้อมูลที่อยู่จัดส่งเอกสาร
+                                            </p>
+                                            <div style="margin-left: 1.75rem;">
+                                                <p>ถึง : {{ quotation.request.document_address.name }}</p>
+                                                <p>ที่อยู่ : {{ quotation.request.document_address.address }}
+                                                    {{ 'แขวง' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'ตำบล' }}{{ quotation.request.document_address.subdistrict }}
+                                                    {{ 'เขต' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'อำเภอ' }}{{ quotation.request.document_address.district }}
+                                                    จังหวัด{{ quotation.request.document_address.province }} {{ quotation.request.document_address.zipcode }}
+                                                </p>
+                                                <p>เบอร์โทรศัพท์
+                                                    : {{ quotation.request.document_address.phone_number }}</p>
+                                                <p>อีเมล : {{ quotation.request.customer.contact_email }}</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="column">
+                                <hr>
+                                <div class="mb-4">
                                     <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                        <span class="icon"><i class="fas fa-map-marker-alt"></i></span>
-                                        ข้อมูลที่อยู่จัดส่งเอกสาร
+                                        <span class="icon"><i class="fas fa-user"></i></span> ข้อมูลผู้ประสานงาน
                                     </p>
                                     <div style="margin-left: 1.75rem;">
-                                        <p>ถึง : {{ quotation.request.document_address.name }}</p>
-                                        <p>ที่อยู่ : {{ quotation.request.document_address.address }}
-                                            {{ 'แขวง' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'ตำบล' }}{{ quotation.request.document_address.subdistrict }}
-                                            {{ 'เขต' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'อำเภอ' }}{{ quotation.request.document_address.district }}
-                                            จังหวัด{{ quotation.request.document_address.province }} {{ quotation.request.document_address.zipcode }}
+                                        {% for cus_contact in quotation.request.customer.customer_info.customer_contacts %}
+                                            <p>ชื่อ-นามสกุล : {{ cus_contact.contact_name }}</p>
+                                            <p>เลขประจำตัวผู้เสียภาษี
+                                                : {{ quotation.request.customer.customer_info.taxpayer_identification_no }}</p>
+                                            <p>เบอร์โทรศัพท์ : {{ cus_contact.phone_number }}</p>
+                                            <p>อีเมล : {{ cus_contact.email }}</p>
+                                            {% if cus_contact.remark %}
+                                                <p>หมายเหตุ : {{ cus_contact.remark }}</p>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="content mb-4">
+                            {% set ns = namespace(index=1) %}
+                            {% for item in datas %}
+                                {% if item.type == 'header' %}
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                        <span class="icon"><i class="fas fa-clipboard-list"></i></span>
+                                        {{ item.data }}
+                                    </p>
+                                {% endif %}
+                                <div style="margin-left: 1.75rem;">
+                                    {% if item.type == 'content_header' %}
+                                        <p class="subtitle is-6 mt-2 has-text-weight-semibold">
+                                            {{ ns.index }}. {{ item.data }}
                                         </p>
-                                        <p>เบอร์โทรศัพท์ : {{ quotation.request.document_address.phone_number }}</p>
-                                        <p>อีเมล : {{ quotation.request.customer.contact_email }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="mb-4">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                <span class="icon"><i class="fas fa-user"></i></span> ข้อมูลผู้ประสานงาน
-                            </p>
-                            <div style="margin-left: 1.75rem;">
-                                {% for cus_contact in quotation.request.customer.customer_info.customer_contacts %}
-                                    <p>ชื่อ-นามสกุล : {{ cus_contact.contact_name }}</p>
-                                    <p>เลขประจำตัวผู้เสียภาษี
-                                        : {{ quotation.request.customer.customer_info.taxpayer_identification_no }}</p>
-                                    <p>เบอร์โทรศัพท์ : {{ cus_contact.phone_number }}</p>
-                                    <p>อีเมล : {{ cus_contact.email }}</p>
-                                    {% if cus_contact.remark %}
-                                        <p>หมายเหตุ : {{ cus_contact.remark }}</p>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="mb-4">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                <span class="icon"><i class="fas fa-clipboard-list"></i></span> ข้อมูลผลิตภัณฑ์
-                            </p>
-                            <div class="content" style="margin-left: 1.75rem;">
-                                <ul class="ml-4">
-                                    {% for data in datas.value %}
-                                        <li>{{ data }}</li>
-                                    {% endfor %}
-                                </ul>
-                                {% if datas.table_rows %}
-                                    <table class="table is-bordered is-striped is-fullwidth mt-4">
-                                        <thead>
-                                        <tr>
-                                            {% for key in datas.table_keys %}
-                                                <th>{{ key }}</th>
-                                            {% endfor %}
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        {% for row in datas.table_rows %}
+                                        {% set ns.index = ns.index + 1 %}
+                                    {% elif item.type == 'text' %}
+                                        {% if ',' in item.data %}
+                                            <ul style="margin-bottom:0">
+                                                <li>
+                                                    {{ item.data.split(':', 1)[0] }} :
+                                                </li>
+                                            </ul>
+                                            <div style="margin-left: 1.75rem;">
+                                                {% set i = item.data.split(':', 1)[1] %}
+                                                {% for val in i.split(',') %}
+                                                    {% if val.strip() %}
+                                                        - {{ val.strip() }}<br/>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        {% else %}
+                                            <ul>
+                                                <li>{{ item.data }}</li>
+                                            </ul>
+                                        {% endif %}
+                                    {% elif item.type == 'table' %}
+                                        <table class="table is-bordered is-striped is-fullwidth mt-2">
+                                            <thead>
                                             <tr>
-                                                {% for key in datas.table_keys %}
-                                                    <td>{{ row.get(key, '-') }}</td>
+                                                {% for col in item.data[0].keys() %}
+                                                    <th>{{ col }}</th>
                                                 {% endfor %}
                                             </tr>
-                                        {% endfor %}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                            {% for row in item.data %}
+                                                <tr>
+                                                    {% for val in row.values() %}
+                                                        <td>{{ val|safe }}</td>
+                                                    {% endfor %}
+                                                </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    {% endif %}
+                                </div>
+                                {% if loop.nextitem and loop.nextitem.type == 'header' %}
+                                    <hr>
                                 {% endif %}
-                            </div>
+                            {% endfor %}
                         </div>
                         <hr>
                         <div class="mb-4">
@@ -138,12 +185,6 @@
                                 <p class="subtitle is-6 mb-1 has-text-weight-semibold">เลขที่</p>
                                 <div style="margin-left: 1.75rem;">
                                     {{ quotation.quotation_no }}
-                                </div>
-                            </div>
-                            <div class="mb-4 is-flex is-align-items-center">
-                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่ร่าง</p>
-                                <div style="margin-left: 1.75rem;">
-                                    {{ quotation.created_at.strftime('%d/%m/%Y') }}
                                 </div>
                             </div>
                             <div class="mb-4 is-flex is-align-items-center">
@@ -236,35 +277,35 @@
                                     </table>
                                 </div>
                             </div>
-                            <div class="field">
-                                <div class="mb-4 is-flex is-align-items-center">
-                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่สำหรับจัดส่งเอกสาร</p>
-                                </div>
-                                <div class="mb-4 is-flex is-align-items-center">
-                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ถึง</p>
-                                    <div style="margin-left: 1.75rem;">
-                                        {{ quotation.request.receive_name }}
-                                    </div>
-                                </div>
-                                <div class="mb-4 is-flex is-align-items-center">
-                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>
-                                    <div style="margin-left: 1.75rem;">
-                                        {{ quotation.request.receive_address }}
-                                    </div>
-                                </div>
-                                <div class="mb-4 is-flex is-align-items-center">
-                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">เบอร์โทรศัพท์</p>
-                                    <div style="margin-left: 1.75rem;">
-                                        {{ quotation.request.receive_phone_number }}
-                                    </div>
-                                </div>
-                                <div class="mb-4 is-flex is-align-items-center">
-                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">อีเมล</p>
-                                    <div style="margin-left: 1.75rem;">
-                                        {{ quotation.request.customer.contact_email }}
-                                    </div>
-                                </div>
-                            </div>
+                            {#                            <div class="field">#}
+                            {#                                <div class="mb-4 is-flex is-align-items-center">#}
+                            {#                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่สำหรับจัดส่งเอกสาร</p>#}
+                            {#                                </div>#}
+                            {#                                <div class="mb-4 is-flex is-align-items-center">#}
+                            {#                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ถึง</p>#}
+                            {#                                    <div style="margin-left: 1.75rem;">#}
+                            {#                                        {{ quotation.request.receive_name }}#}
+                            {#                                    </div>#}
+                            {#                                </div>#}
+                            {#                                <div class="mb-4 is-flex is-align-items-center">#}
+                            {#                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>#}
+                            {#                                    <div style="margin-left: 1.75rem;">#}
+                            {#                                        {{ quotation.request.receive_address }}#}
+                            {#                                    </div>#}
+                            {#                                </div>#}
+                            {#                                <div class="mb-4 is-flex is-align-items-center">#}
+                            {#                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">เบอร์โทรศัพท์</p>#}
+                            {#                                    <div style="margin-left: 1.75rem;">#}
+                            {#                                        {{ quotation.request.receive_phone_number }}#}
+                            {#                                    </div>#}
+                            {#                                </div>#}
+                            {#                                <div class="mb-4 is-flex is-align-items-center">#}
+                            {#                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">อีเมล</p>#}
+                            {#                                    <div style="margin-left: 1.75rem;">#}
+                            {#                                        {{ quotation.request.customer.contact_email }}#}
+                            {#                                    </div>#}
+                            {#                                </div>#}
+                            {#                            </div>#}
                             <div class="buttons is-centered">
                                 <div id="quotation_item"></div>
                                 <a class="button is-info"
@@ -325,6 +366,19 @@
     </script>
     <script>
         function showToast(message) {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
             toastr.success(message);
         }
 

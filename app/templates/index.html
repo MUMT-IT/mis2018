@@ -295,19 +295,6 @@
                         </a>
                     </nav>
                     <nav class="panel is-info">
-                        <p class="panel-heading">Education</p>
-{#                        <a href="{{ url_for('studs.index') }}" class="panel-block">#}
-{#                        <span class="panel-icon">#}
-{#                            <i class="fas fa-user-graduate"></i>#}
-{#                        </span><span class="is-size-5">นักศึกษา</span>#}
-{#                        </a>#}
-                        <a href="{{ url_for('eduqa.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-university"></i>
-                        </span><span class="is-size-5">ระบบประกันคุณภาพการศึกษา</span>
-                        </a>
-                    </nav>
-                    <nav class="panel is-info">
                         <p class="panel-heading">Services</p>
                         <a href="{{ url_for('comhealth.landing') }}" class="panel-block">
                         <span class="panel-icon">
@@ -374,71 +361,6 @@
                             <span class="is-size-5">ระบบรับแจ้งและติดตามข้อร้องเรียนและปัญหา</span>
                         </a>
                     </nav>
-                    <nav class="panel is-danger">
-                        <p class="panel-heading">Services (กำลังพัฒนาและทดลอง)</p>
-                        <a href="{{ url_for('service_admin.request_index', menu='request') }}" class="panel-block">
-                            <span class="panel-icon">
-                                <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                            </span>
-                            <span class="is-size-5">ระบบงานบริการวิชาการ</span>
-                        </a>
-                        <a href="{{ url_for('meeting_planner.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                        </span>
-                            <span class="is-size-5">
-                            ระบบนัดหมายการประชุม
-                        </span>
-                        </a>
-                        <a href="{{ url_for('instruments.index_of_instruments') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                        </span>
-                            <span class="is-size-5">ระบบจองเครื่องมือวิจัย</span>
-                        </a>
-                        <a href="{{ url_for('alumni.landing') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                        </span>
-                            <span class="is-size-5">ระบบการจัดการข้อมูลศิษย์เก่า</span>
-                        </a>
-                        <a href="" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                        </span>
-                            <span class="is-size-5">ระบบยืม-คืนโสตทัศนูปกรณ์</span>
-                        </a>
-                        <a href="{{ url_for('data_bp.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                        </span>
-                            <span class="is-size-5">Enterprise Blueprint</span>
-                        </a>
-                        <a href="{{ url_for('ot.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                        </span>
-                            <span class="is-size-5">ระบบจัดการข้อมูล OT</span>
-                        </a>
-                        <a href="{{ url_for('pdpa.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                        </span>
-                            <span class="is-size-5">ระบบจัดการข้อมูลส่วนบุคคล</span>
-                        </a>
-                        <a href="{{ url_for('software_request.index') }}" class="panel-block">
-                            <span class="panel-icon">
-                                <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                            </span>
-                            <span class="is-size-5">ระบบขอรับบริการพัฒนา Software</span>
-                        </a>
-{#                        <a href="{{ url_for('service_admin.add_meeting') }}"  class="panel-block">#}
-{#                            <span class="panel-icon">#}
-{#                                <i class="fa fa-exclamation-triangle has-text-warning"></i>#}
-{#                            </span>#}
-{#                            <span class="is-size-5">ระบบนัดหมายประชุมกรรมการพัสดุ</span>#}
-{#                        </a>#}
-                    </nav>
                     <nav class="panel is-info">
                         <p class="panel-heading">Analytics</p>
                         <a class="panel-block"
@@ -500,6 +422,89 @@
                             </span>
                             <span class="is-size-5">สารบรรณอิเล็กทรอนิกส์ (eoffice)</span>
                         </a>
+                    </nav>
+                    <nav class="panel is-info">
+                        <p class="panel-heading">Education</p>
+{#                        <a href="{{ url_for('studs.index') }}" class="panel-block">#}
+{#                        <span class="panel-icon">#}
+{#                            <i class="fas fa-user-graduate"></i>#}
+{#                        </span><span class="is-size-5">นักศึกษา</span>#}
+{#                        </a>#}
+                        <a href="{{ url_for('eduqa.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-university"></i>
+                        </span><span class="is-size-5">ระบบประกันคุณภาพการศึกษา</span>
+                        </a>
+                    </nav>
+                    <nav class="panel is-danger">
+                        <p class="panel-heading">Services (กำลังพัฒนาและทดลอง)</p>
+                        <a {% if central_admin %}
+                                href="{{ url_for('service_admin.invoice_index', menu='invoice', tab='all') }}"
+                           {% else %}
+                                href="{{ url_for('service_admin.request_index', menu='request') }}"
+                           {% endif %}
+                           class="panel-block">
+                            <span class="panel-icon">
+                                <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                            </span>
+                            <span class="is-size-5">ระบบงานบริการวิชาการ</span>
+                        </a>
+                        <a href="{{ url_for('meeting_planner.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                            <span class="is-size-5">
+                            ระบบนัดหมายการประชุม
+                        </span>
+                        </a>
+                        <a href="{{ url_for('instruments.index_of_instruments') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                            <span class="is-size-5">ระบบจองเครื่องมือวิจัย</span>
+                        </a>
+                        <a href="{{ url_for('alumni.landing') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                            <span class="is-size-5">ระบบการจัดการข้อมูลศิษย์เก่า</span>
+                        </a>
+                        <a href="" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                            <span class="is-size-5">ระบบยืม-คืนโสตทัศนูปกรณ์</span>
+                        </a>
+                        <a href="{{ url_for('data_bp.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                            <span class="is-size-5">Enterprise Blueprint</span>
+                        </a>
+                        <a href="{{ url_for('ot.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                            <span class="is-size-5">ระบบจัดการข้อมูล OT</span>
+                        </a>
+                        <a href="{{ url_for('pdpa.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                            <span class="is-size-5">ระบบจัดการข้อมูลส่วนบุคคล</span>
+                        </a>
+                        <a href="{{ url_for('software_request.index') }}" class="panel-block">
+                            <span class="panel-icon">
+                                <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                            </span>
+                            <span class="is-size-5">ระบบขอรับบริการพัฒนา Software</span>
+                        </a>
+{#                        <a href="{{ url_for('service_admin.add_meeting') }}"  class="panel-block">#}
+{#                            <span class="panel-icon">#}
+{#                                <i class="fa fa-exclamation-triangle has-text-warning"></i>#}
+{#                            </span>#}
+{#                            <span class="is-size-5">ระบบนัดหมายประชุมกรรมการพัสดุ</span>#}
+{#                        </a>#}
                     </nav>
                     <nav class="panel is-light">
                         <p class="panel-heading">Administrator</p>

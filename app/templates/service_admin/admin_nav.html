@@ -1,11 +1,7 @@
 <nav class="navbar is-info">
     <div class="container">
         <div class="navbar-brand">
-            <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                <span></span>
-                <span></span>
-                <span></span>
-            </span>
+            <p class="navbar-item">{{ position }}</p>
         </div>
         <div id="navbarMenuHeroA" class="navbar-menu">
             <div class="navbar-end">
@@ -53,14 +49,14 @@
                                     รายชื่อลูกค้า
                                 </span>
                             </a>
-                         </div>
+                        </div>
                     </div>
                 {% else %}
                     <a class="navbar-item" href="{{ url_for('auth.account') }}">
                         <span class="icon">
                            <i class="fas fa-user"></i>
                        </span>
-                       <span>
+                        <span>
                            {{ current_user.personal_info.fullname }}
                        </span>
                     </a>
@@ -98,7 +94,7 @@
                                     รายชื่อลูกค้า
                                 </span>
                             </a>
-                         </div>
+                        </div>
                     </div>
                     <a class="navbar-item" href="{{ url_for('auth.logout') }}">
                         <span class="icon">

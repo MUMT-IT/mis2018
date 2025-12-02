@@ -9,6 +9,9 @@
             opacity: 1 !important;
             transition: none !important;
         }
+        #toast-container.toast-top-full-width > .toast {
+            width: 100% !important;
+        }
         .table-container {
             overflow-x: auto;
         }
@@ -23,6 +26,46 @@
                 <div class="column is-11">
                     <h1 class="title has-text-centered">นัดหมายส่งตัวอย่าง</h1>
                 </div>
+                <div class="tabs">
+                    <ul>
+                        <li {% if tab == 'schedule' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.sample_index', tab='schedule', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-calendar"></i></span>
+                                <span>ยังไม่ได้นัดหมาย</span>
+                                {% if schedule_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ schedule_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'delivery' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.sample_index', tab='delivery', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-shipping-fast"></i></span>
+                                <span>รอส่งตัวอย่าง</span>
+                                {% if delivery_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ delivery_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'received' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.sample_index', tab='received', menu=menu) }}">
+                                <span class="icon is-small"><i class="fa fa-check"></i></span>
+                                <span>ส่งตัวอย่างแล้ว</span>
+                                {% if received_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ received_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.sample_index', tab='all', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ทั้งหมด</span>
+                                {% if received_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ received_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                    </ul>
+                </div>
                 <div class="table-container">
                     <table id='samples' class="table is-fullwidth is-striped">
                         <thead>
@@ -30,7 +73,6 @@
                         <th>หมายเลขติดตามพัสดุ</th>
                         <th>วัน-เวลาที่นัดหมาย</th>
                         <th>วัน-เวลาที่รับ</th>
-                        <th>รายการ</th>
                         <th>สถานะ</th>
                         <th>สถานที่</th>
                         <th>การส่งตัวอย่าง</th>
@@ -84,11 +126,6 @@
                                 </td>
                                 <td>{{ sample.received_at|localdatetime or '' }}</td>
                                 <td>
-                                    {% set product = sample.request.product | replace('{', '') | replace('}', '') | replace('"', '') %}
-                                    {% set product_list = product.split(',') %}
-                                    {{ product_list | selectattr('strip') | reject('eq', '') | join(', ') }}
-                                </td>
-                                <td>
                                     <ul class="steps">
                                         <li class="steps-segment {% if not sample.appointment_date and not sample.tracking_number %} is-active {% endif %}">
                                                 <span class="steps-marker">
@@ -122,7 +159,7 @@
                                         </li>
                                     </ul>
                                 </td>
-                                <td>{{ sample.location or '' }}</td>
+                                <td>{{ sample.location_name or '' }}</td>
                                 <td>{{ sample.ship_type or '' }}</td>
                                 <td>
                                     {% if sample.received_at %}
@@ -170,7 +207,7 @@
                                                     class="button is-small is-info is-outlined is-rounded"
                                                 {% endif %}
                                                     href="{{ url_for('academic_services.create_sample_appointment',
-                                                               sample_id=sample.id, menu=menu) }}">
+                                                               sample_id=sample.id, menu=menu, tab=tab) }}">
                                                     {% if sample.location %}
                                                         <span class="icon"><i class="fas fa-pen"></i></span>
                                                         <span>แก้ไขการนัดหมาย</span>
@@ -235,6 +272,19 @@
     </script>
     <script>
         function showToast(category, message) {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
             if (category === 'success') {
                 toastr.success(message);
             } else if (category === 'danger') {

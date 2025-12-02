@@ -7,6 +7,9 @@
             opacity: 1 !important;
             transition: none !important;
         }
+        #toast-container.toast-top-full-width > .toast {
+            width: 100% !important;
+        }
         .is-full-height {
             height: 100%;
         }
@@ -32,7 +35,7 @@
                             </div>
                         </div>
                         <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่ร่าง</p>
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่สร้าง</p>
                             <div style="margin-left: 1.75rem;">
                                 {{ quotation.created_at.strftime('%d/%m/%Y') }}
                             </div>
@@ -102,33 +105,33 @@
                             </p>
                             <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ "{:,.2f}".format(quotation.grand_total()) }}</p>
                         </div>
-                        <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่สำหรับจัดส่งเอกสาร</p>
-                        </div>
-                        <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ถึง</p>
-                            <div style="margin-left: 1.75rem;">
-                                {{ quotation.request.receive_name }}
-                            </div>
-                        </div>
-                        <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>
-                            <div style="margin-left: 1.75rem;">
-                                {{ quotation.request.receive_address }}
-                            </div>
-                        </div>
-                        <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เบอร์โทรศัพท์</p>
-                            <div style="margin-left: 1.75rem;">
-                                {{ quotation.request.receive_phone_number }}
-                            </div>
-                        </div>
-                        <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">อีเมล</p>
-                            <div style="margin-left: 1.75rem;">
-                                {{ quotation.request.customer.contact_email }}
-                            </div>
-                        </div>
+{#                        <div class="mb-4 is-flex is-align-items-center">#}
+{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่สำหรับจัดส่งเอกสาร</p>#}
+{#                        </div>#}
+{#                        <div class="mb-4 is-flex is-align-items-center">#}
+{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ถึง</p>#}
+{#                            <div style="margin-left: 1.75rem;">#}
+{#                                {{ quotation.request.receive_name }}#}
+{#                            </div>#}
+{#                        </div>#}
+{#                        <div class="mb-4 is-flex is-align-items-center">#}
+{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>#}
+{#                            <div style="margin-left: 1.75rem;">#}
+{#                                {{ quotation.request.receive_address }}#}
+{#                            </div>#}
+{#                        </div>#}
+{#                        <div class="mb-4 is-flex is-align-items-center">#}
+{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เบอร์โทรศัพท์</p>#}
+{#                            <div style="margin-left: 1.75rem;">#}
+{#                                {{ quotation.request.receive_phone_number }}#}
+{#                            </div>#}
+{#                        </div>#}
+{#                        <div class="mb-4 is-flex is-align-items-center">#}
+{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">อีเมล</p>#}
+{#                            <div style="margin-left: 1.75rem;">#}
+{#                                {{ quotation.request.customer.contact_email }}#}
+{#                            </div>#}
+{#                        </div>#}
                     </div>
                 </div>
                 <div class="column is-one-quarter">
@@ -244,6 +247,19 @@
     <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
         function showToast(category, message) {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
             if (category === 'success') {
                 toastr.success(message);
             } else if (category === 'danger') {

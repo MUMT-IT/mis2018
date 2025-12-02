@@ -173,7 +173,14 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
-    return render_template('index.html',
+    central_admin = False
+    if current_user.is_authenticated:
+        admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
+        if admins and admins.is_central_admin:
+            central_admin = True
+        else:
+            central_admin = False
+    return render_template('index.html', central_admin=central_admin,
                            now=datetime.now(tz=timezone('Asia/Bangkok')))
 
 
@@ -429,9 +436,11 @@ app.register_blueprint(vehicle_blueprint, url_prefix='/vehicle')
 from app.vehicle_scheduler.models import *
 
 from app.user_eval import user_eval
+
 app.register_blueprint(user_eval)
 
 from app.user_eval.models import *
+
 admin.add_views(ModelView(EvaluationRecord, db.session, category='UserEvaluation'))
 
 
@@ -517,7 +526,6 @@ class ProductCodeAdminModel(ModelView):
 
 
 admin.add_views(ProductCodeAdminModel(models.ProductCode, db.session, category='Finance'))
-
 
 from app.lisedu import lisedu as lis_blueprint
 

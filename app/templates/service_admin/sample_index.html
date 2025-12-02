@@ -9,6 +9,9 @@
             opacity: 1 !important;
             transition: none !important;
         }
+        #toast-container.toast-top-full-width > .toast {
+            width: 100% !important;
+        }
     </style>
 {% endblock %}
 {% block page_content %}
@@ -20,6 +23,46 @@
                 <div class="column is-11">
                     <h1 class="title has-text-centered">นัดหมายส่งตัวอย่าง</h1>
                 </div>
+                <div class="tabs">
+                    <ul>
+                        <li {% if tab == 'schedule' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.sample_index', tab='schedule', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-calendar"></i></span>
+                                <span>รอการนัดหมายส่งตัวอย่าง</span>
+                                {% if schedule_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ schedule_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'delivery' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.sample_index', tab='delivery', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-shipping-fast"></i></span>
+                                <span>รอรับตัวอย่าง</span>
+                                {% if delivery_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ delivery_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'received' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.sample_index', tab='received', menu=menu) }}">
+                                <span class="icon is-small"><i class="fa fa-check"></i></span>
+                                <span>ได้รับตัวอย่างแล้ว</span>
+                                {% if received_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ received_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.sample_index', tab='all', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ทั้งหมด</span>
+                                {% if all_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ all_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                    </ul>
+                </div>
                 <div class="table-container">
                     <table id='samples' class="table is-fullwidth">
                         <thead>
@@ -27,7 +70,6 @@
                         <th>หมายเลขติดตามพัสดุ</th>
                         <th>วัน-เวลาที่นัดหมาย</th>
                         <th>วัน-เวลาที่รับ</th>
-                        <th>รายการ</th>
                         <th>สถานะ</th>
                         <th>สถานที่</th>
                         <th>การส่งตัวอย่าง</th>
@@ -51,6 +93,19 @@
     <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
         function showToast(message) {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
             toastr.success(message);
         }
 
@@ -69,7 +124,7 @@
             $.fn.dataTable.moment('lll');
             $('#samples').DataTable({
                 ajax: {
-                    url: {{ url_for('service_admin.get_samples')|tojson|safe}},
+                    url: {{ url_for('service_admin.get_samples', tab=tab)|tojson|safe}},
                 },
                 order: [[2, 'desc']],
                 columns: [
@@ -106,7 +161,6 @@
                             }
                         }
                     },
-                    {data: 'product'},
                     {
                         data: 'id',
                         render: function (data, type, row) {
@@ -146,7 +200,16 @@
                                     </ul>`
                         }
                     },
-                    {data: 'location'},
+                    {
+                        data: 'location_name',
+                        render: function (data) {
+                            if (data != null) {
+                                return data;
+                            } else {
+                                return '';
+                            }
+                        }
+                    },
                     {data: 'ship_type'},
                     {
                         data: 'id',
@@ -155,8 +218,7 @@
                             var status = row.sample_condition_status
                             if (row.sample_condition_status !== null) {
                                 return `<span class="tag ${color}">${status}</span>`;
-                            }
-                            else {
+                            } else {
                                 return `<span class="tag is-danger">ยังไม่ได้รับตัวอย่าง</span>`;
                             }
                         }
@@ -166,8 +228,7 @@
                         render: function (data) {
                             if (data !== null) {
                                 return `<span class="tag ${data.color}">${data.status}</span>`;
-                            }
-                            else {
+                            } else {
                                 return `<span class="tag is-danger">ยังไม่ได้ส่งเอกสาร</span>`;
                             }
                         }
@@ -177,9 +238,11 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
+                            var menu = '{{ menu }}';
+                            var tab = '{{ tab }}';
+                            var view_url = '/service_admin/sample/appointment/view/' + data + '?menu=' + menu + '&tab=' + tab;
                             if ((row.appointment_date || row.tracking_number) && row.received_at == null) {
-                                var add_url = '/service_admin/sample/verification/add/' + data + '?menu=' + '{{ menu }}';
-                                var view_url = '/service_admin/sample/appointment/view/' + data + '?menu=' + '{{ menu }}'
+                                var add_url = '/service_admin/sample/verification/add/' + data + '?menu=' + menu + '&tab=' + tab;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-warning is-rounded" ' + 'href=' + add_url + '>' +
@@ -198,9 +261,8 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.received_at){
-                                var request_url = '/service_admin/request/view/' + row.request_id+ '?menu=request';
-                                var view_url = '/service_admin/sample/appointment/view/' + data + '?menu=' + '{{ menu }}'
+                            } else if (row.received_at) {
+                                var request_url = '/service_admin/request/view/' + row.request_id + '?menu=request';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-primary is-rounded" ' + 'href=' + request_url + '>' +
@@ -220,7 +282,6 @@
                                     '</div>' +
                                     '</div>'
                             } else {
-                                var view_url = '/service_admin/sample/appointment/view/' + data + '?menu=' + '{{ menu }}'
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-info is-rounded" ' + 'href=' + view_url + '>' +

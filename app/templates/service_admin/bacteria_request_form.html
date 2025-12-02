@@ -1,0 +1,568 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <style>
+        table {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        th, td {
+            padding: 5px;
+        }
+
+        .daterangepicker td,
+        .daterangepicker th {
+            display: table-cell !important;
+        }
+
+        input[readonly] {
+            background-color: #e9ecef !important;
+            cursor: not-allowed;
+        }
+    </style>
+{% endblock %}
+{% block page_content %}
+    {% include "service_admin/admin_nav.html" %}
+    {% include 'messages.html' %}
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-12">
+                    <h1 class="title is-3 has-text-centered has-text-grey-dark">ฟอร์ม{{ sub_lab.sub_lab }}</h1>
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="box">
+                            <h5 class="title is-size-5">ข้อมูลผลิตภัณฑ์</h5>
+                            <hr style="background-color: gainsboro">
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.sample_name.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.sample_name(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.active_substance.label }}
+                                    เช่น Formaldyhyde 37% w/w, Ethyl Alcohol 50% w/w
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.active_substance(class='textarea',
+                                        placeholder='เช่น Formaldyhyde 37% w/w, Ethyl Alcohol 50% w/w') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.product_appearance.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.product_appearance(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.kind.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="contol">
+                                    {{ form.kind(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.size.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.size(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.mfg.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.mfg(class='input') }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.exp.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.exp(class='input') }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.lot_no.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.lot_no(class='input') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.manufacturer.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.manufacturer(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.manufacturer_address.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.manufacturer_address(class='textarea') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.importanddistributor.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.importanddistributor(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.importanddistributor_address.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.importanddistributor_address(class='textarea') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.amount.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.amount(class='input') }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.collect_sample_during_testing.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="select is-fullwidth">
+                                            {{ form.collect_sample_during_testing(
+                                                **{'hx-get': url_for("service_admin.get_collect_sample_during_testing",
+                                                    request_id=request_id),
+                                                    'hx-target': '#collect-samples-other-container',
+                                                    'hx-swap': 'innerHTML',
+                                                    'hx-trigger': 'change, load'
+                                                    }) }}
+                                        </div>
+                                    </div>
+                                    <div id="collect-samples-other-container" style='width:55%'>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="box">
+                            <h5 class="title is-size-5">รายการทดสอบ</h5>
+                            <hr style="background-color: gainsboro">
+                            {% if request_id %}
+                                <div class="field">
+                                    <label class="label">
+                                        {{ form.label }}
+                                    </label>
+                                </div>
+                                {% for subform in form %}
+                                    {% if subform.type == 'FormField' %}
+                                        {% set ns = namespace(has_value=false) %}
+                                        {% for sb in subform %}
+                                            {% if sb.type != 'HiddenField' and sb.type != 'FieldList' and sb.data %}
+                                                {% set ns.has_value = true %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if ns.has_value %}
+                                            <div class="card subform-card mb-4" id="{{ subform.name }}">
+                                                <header class="card-header">
+                                                    <p class="card-header-title">{{ subform.label }}</p>
+                                                </header>
+                                                <div class="card-content">
+                                                    {% for field in subform %}
+                                                        {% if field.type != 'HiddenField' and field.type != 'CSRFTokenField' %}
+                                                            {% if field.type == 'FieldList' %}
+                                                                <table class="table is-fullwidth ">
+                                                                    <thead>
+                                                                    {% for subfield in field %}
+                                                                        {% if loop.first %}
+                                                                            {% for _field in subfield %}
+                                                                                {% if _field.type != 'CSRFTokenField' %}
+                                                                                    <th style="border: none">{{ _field.label.text }}</th>
+                                                                                {% endif %}
+                                                                            {% endfor %}
+                                                                        {% endif %}
+                                                                    {% endfor %}
+                                                                    </thead>
+                                                                    <tbody>
+                                                                    {% for subfield in field %}
+                                                                        <tr>
+                                                                            {% for _field in subfield %}
+                                                                                {% if _field.type != 'CSRFTokenField' %}
+                                                                                    <td style="border: none">{{ _field() }}</td>
+                                                                                {% endif %}
+                                                                            {% endfor %}
+                                                                        </tr>
+                                                                    {% endfor %}
+                                                                    </tbody>
+                                                                </table>
+                                                            {% else %}
+                                                                <div class="field">
+                                                                    <label class="label">{{ field.label }}</label>
+                                                                    <div class="control">
+                                                                        {{ field() }}
+                                                                    </div>
+                                                                </div>
+                                                            {% endif %}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                    <button id="{{ subform.name }}" type="button"
+                                                            class="button is-danger is-rounded is-small remove-subform"
+                                                            data-request-id="{{ request_id or '' }}"
+                                                            hx-post="{{ url_for('service_admin.remove_condition_form', request_id=request_id) }}"
+                                                            hx-vals='{"field": "{{ subform.name }}"}'
+                                                            hx-target=".subform-card"
+                                                            hx-swap="innerHTML"
+                                                    >
+                                                        ลบ
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                            <div class="field">
+                                <div id="condition-fields"></div>
+                            </div>
+                            <div class="field">
+                                <div class="select">
+                                    {{ form.product_type(
+                                        **{'hx-get': url_for("service_admin.get_bacteria_condition_form", code=code),
+                                        'hx-target': '#condition-fields',
+                                         'hx-swap': 'beforeend',
+                                         'hx-trigger': 'change, load'}) }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-justify-content-center">
+                            <div class="control">
+                                <input type="submit" value="บันทึกและดำเนินการต่อ" class="button is-success">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript"
+            src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            moment.locale('th');
+            $('input[name="mfg"]').daterangepicker({
+                singleDatePicker: true,
+                autoUpdateInput: true,
+                locale:
+                    {
+                        format: 'YYYY-MM-DD',
+                        cancelLabel: 'Clear'
+                    }
+            });
+            $('input[name="mfg"]').on('apply.daterangepicker', function (ev, picker) {
+                $(this).val(picker.startDate.format('YYYY-MM-DD'));
+            });
+            $('input[name="mfg"]').on('cancel.daterangepicker', function () {
+                $(this).val('');
+            });
+            $('input[name="exp"]').daterangepicker({
+                singleDatePicker: true,
+                autoUpdateInput: true,
+                locale:
+                    {
+                        format: 'YYYY-MM-DD',
+                        cancelLabel: 'Clear'
+                    }
+            });
+            $('input[name="exp"]').on('apply.daterangepicker', function (ev, picker) {
+                $(this).val(picker.startDate.format('YYYY-MM-DD'));
+            });
+            $('input[name="exp"]').on('cancel.daterangepicker', function () {
+                $(this).val('');
+            });
+        })
+    </script>
+    <script>
+        function removeProductTypeOptions() {
+            const productType = document.getElementById('product_type');
+            const subforms = document.querySelectorAll('.subform-card');
+            for (let i = productType.options.length - 1; i >= 0; i--) {
+                const option = productType.options[i];
+                if (option.value === '') continue;
+                subforms.forEach(subform => {
+                    const subformId = subform.id.split(/[\s_]+/)[0];
+                    if (option.value === subformId) {
+                        option.remove();
+                    }
+                });
+            }
+            productType.selectedIndex = 0;
+        }
+
+        document.addEventListener('DOMContentLoaded', removeProductTypeOptions);
+
+        document.body.addEventListener('htmx:afterSwap', function (evt) {
+            if (evt.target.id === 'condition-fields') {
+                removeProductTypeOptions();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const productType = document.getElementById('product_type');
+            const subforms = document.querySelectorAll('.subform-card');
+            for (let i = productType.options.length - 1; i >= 0; i--) {
+                const option = productType.options[i];
+                if (option.value === '') continue;
+                subforms.forEach(subform => {
+                    const subformId = subform.id.split(/[\s_]+/)[0];
+                    if (option.value === subformId) {
+                        option.remove();
+                    }
+                });
+            }
+            productType.selectedIndex = 0;
+        });
+    </script>
+    <script>
+        document.addEventListener('click', function (e) {
+            const productType = document.getElementById('product_type');
+            if (e.target.classList.contains('remove-subform')) {
+                const card = e.target.closest('.subform-card');
+                const requestId = e.target.dataset.requestId;
+                const text = card.querySelector('label').textContent.trim();
+                if (!requestId) {
+                    card.remove();
+                    e.preventDefault();
+                }
+                const subformId = e.target.id.split(/[\s_]+/)[0];
+
+                let hasOptions = false;
+                for (let i = 0; i < productType.options.length; i++) {
+                    if (productType.options[i].value === subformId) {
+                        hasOptions = true;
+                        break;
+                    }
+                }
+
+                if (!hasOptions) {
+                    const option = document.createElement('option');
+                    option.value = subformId;
+                    option.text = text;
+                    productType.appendChild(option);
+                }
+            }
+            productType.selectedIndex = 0;
+        });
+    </script>
+    <script>
+        document.addEventListener('click', function (e) {
+            if (e.target.classList.contains('remove-subform')) {
+                const card = e.target.closest('.subform-card');
+                const requestId = e.target.dataset.requestId;
+
+                if (!requestId) {
+                    card.remove();
+                    e.preventDefault();
+                }
+            }
+        });
+    </script>
+    <script>
+        function validateProductType() {
+            const product_type = document.getElementById('product_type');
+            const subforms = document.querySelector('.subform-card');
+            if (subforms == null) {
+                product_type.required = true;
+                product_type.oninvalid = function () {
+                    this.setCustomValidity('กรุณาเลือกประเภทผลิตภัณฑ์');
+                };
+                product_type.oninput = function () {
+                    this.setCustomValidity('');
+                };
+            } else {
+                product_type.required = false;
+                product_type.oninvalid = null;
+                product_type.oninput = null;
+            }
+        }
+
+        validateProductType();
+        document.addEventListener('change', validateProductType);
+    </script>
+    <script>
+        function toggleTable(subform) {
+            const table = subform.find('table');
+            const checkboxes = table.find('tbody tr input[type="checkbox"]');
+
+            function validateInput() {
+                const count = checkboxes.filter(':checked').length;
+                if (count == 0) {
+                    checkboxes.prop('required', true)
+                    checkboxes.each(function () {
+                        this.setCustomValidity('กรุณาเลือกเชื้ออย่างน้อย 1 รายการ');
+                    });
+                } else {
+                    checkboxes.prop('required', false);
+                    checkboxes.each(function () {
+                        this.setCustomValidity('');
+                    });
+                }
+
+                table.find('tbody tr').each(function () {
+                    const checkbox = $(this).find('input[type="checkbox"]');
+                    const textInputs = $(this).find('input[type="text"]');
+
+                    const active = checkbox.is(':checked');
+                    textInputs.prop('readonly', !active).prop('required', active)
+                        .attr('oninvalid', "this.setCustomValidity('กรุณากรอกข้อมูล')")
+                        .attr('oninput', "this.setCustomValidity('')");
+
+                    if (!active) textInputs.val('');
+                });
+            }
+
+            validateInput();
+
+            checkboxes.on('change', validateInput);
+        }
+
+        function addRequiredField(subform) {
+            const testMethodInput = subform.find('input[name$="test_method"]');
+            const cleanTypeInput = subform.find('input[name$="clean_type"]');
+            const dilutionInput = subform.find('input[name$="dilution"]');
+            const surfaceTypeInput = subform.find('input[name$="surface_type"]');
+            const qualitativeTestInput = subform.find('input[name$="qualitative_test"]');
+            const quantitativeTestInput = subform.find('input[name$="quantitative_test"]');
+
+            cleanTypeInput.prop('required', true)
+                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกรูปแบบการทดสอบ')");
+
+            cleanTypeInput.on('change', function () {
+                cleanTypeInput.each(function () {
+                    this.setCustomValidity('');
+                });
+            });
+
+            dilutionInput.prop('required', true)
+                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือการเจือจาง')");
+
+            dilutionInput.on('change', function () {
+                dilutionInput.each(function () {
+                    this.setCustomValidity('');
+                });
+            });
+
+            surfaceTypeInput.prop('required', true)
+                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกขนิดพื้นผิว')");
+
+            surfaceTypeInput.on('change', function () {
+                surfaceTypeInput.each(function () {
+                    this.setCustomValidity('');
+                });
+            });
+
+            function validateTestMethod() {
+                const count = testMethodInput.filter(':checked').length;
+                if (count == 0) {
+                    testMethodInput.prop('required', true);
+                    testMethodInput.each(function () {
+                        this.setCustomValidity('กรุณาเลือกวิธีทดสอบอย่างน้อย 1 รายการ');
+                    });
+                } else {
+                    testMethodInput.prop('required', false);
+                    testMethodInput.each(function () {
+                        this.setCustomValidity('');
+                    });
+                }
+            }
+
+            validateTestMethod();
+
+            testMethodInput.on('change', validateTestMethod);
+
+            function validateQualitativeAndQuantitativeTest() {
+                const qualitativeChecked = qualitativeTestInput.is(':checked');
+                const quantitativeChecked = quantitativeTestInput.is(':checked');
+                const required = !(qualitativeChecked || quantitativeChecked);
+
+                qualitativeTestInput.prop('required', required)
+                    .attr('oninvalid', required ? "this.setCustomValidity('กรุณาเลือกวิธีทดสอบเชิงคุณภาพ')" : "")
+                    .attr('onchange', "this.setCustomValidity('')");
+
+                quantitativeTestInput.prop('required', required)
+                    .attr('oninvalid', required ? "this.setCustomValidity('กรุณาเลือกวิธีทดสอบเชิงปริมาณ')" : "")
+                    .attr('onchange', "this.setCustomValidity('')");
+
+                if (qualitativeChecked) quantitativeTestInput.closest('.field').find('label .has-text-danger').remove();
+                if (quantitativeChecked) qualitativeTestInput.closest('.field').find('label .has-text-danger').remove();
+            }
+
+            validateQualitativeAndQuantitativeTest();
+
+            qualitativeTestInput.on('change', validateQualitativeAndQuantitativeTest);
+            quantitativeTestInput.on('change', validateQualitativeAndQuantitativeTest);
+        }
+
+        function showSurfaceTypeOtherInput(subform) {
+            const surfaceTypeField = subform.find('input[type="radio"][name$="surface_type"]:checked').val();
+            const surfaceTypeOtherInput = subform.find('input[name$="surface_type_other"]');
+            const surfaceTypeOtherField = surfaceTypeOtherInput.closest('.field');
+
+            if (surfaceTypeField && surfaceTypeField.includes('อื่นๆ โปรดระบุ')) {
+                surfaceTypeOtherField.show();
+                surfaceTypeOtherInput.prop('required', true);
+            } else {
+                surfaceTypeOtherField.hide();
+                surfaceTypeOtherInput.val('');
+            }
+        }
+
+        $('.subform-card').each(function () {
+            const subform = $(this);
+            toggleTable(subform);
+            addRequiredField(subform);
+            showSurfaceTypeOtherInput(subform);
+            subform.find('input[type="radio"][name$="surface_type"]').change(function () {
+                showSurfaceTypeOtherInput(subform);
+            });
+        });
+    </script>
+{% endblock %}
