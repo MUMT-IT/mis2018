@@ -2758,7 +2758,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         'HeadRemarkStyle',
         parent=style_sheet['ThaiStyleBold'],
         fontSize=10,
-        leading=1
+        leading=13
     )
 
     remark_style = ParagraphStyle(
@@ -4079,7 +4079,7 @@ def get_invoice_payments():
                                 download_filename=f"{item.invoice_no}.pdf")
         item_data['file'] = f'''<div class="field has-addons">
                         <div class="control">
-                            <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                            <a class="button is-small is-outlined is-link is-rounded" href="{download_file}">
                                 <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
                                 <span>ใบแจ้งหนี้</span>
                             </a>
@@ -4098,6 +4098,22 @@ def get_invoice_payments():
                     'recordTotal': records_total,
                     'draw': request.args.get('draw', type=int)
                     })
+
+
+@service_admin.route('/finance/invoice/view/<int:invoice_id>', methods=['GET'])
+def view_invoice_for_finance(invoice_id):
+    today = arrow.now('Asia/Bangkok').date()
+    invoice = ServiceInvoice.query.get(invoice_id)
+    is_overdue = False
+    if today > invoice.due_date.date() and not invoice.paid_at:
+        is_overdue = True
+    if invoice.payments:
+        for payment in invoice.payments:
+            slip_url = generate_url(payment.slip)
+    else:
+        slip_url = None
+    return render_template('service_admin/view_invoice_for_finance.html', invoice=invoice, slip_url=slip_url,
+                           is_overdue=is_overdue, invoice_id=invoice_id)
 
 
 @service_admin.route('/invoice/payment/confirm/<int:invoice_id>', methods=['GET', 'POST'])
