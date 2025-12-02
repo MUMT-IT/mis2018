@@ -295,8 +295,8 @@ def menu():
             ServiceRequest.status.has(ServiceStatus.status_id.in_([6, 8, 9]))).count()
         invoice_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
             ServiceRequest.status.has(ServiceStatus.status_id.in_([20, 21]))).count()
-        report_count = ServiceResultItem.query.filter(ServiceResultItem.result.has(
-        ServiceResult.request.has(customer_id=current_user.id)), ServiceResultItem.approved_at == None).count()
+        report_count = ServiceResult.query.join(ServiceResult.request).filter(
+            ServiceRequest.customer_id == current_user.id, ServiceResult.approved_at == None).count()
 
     return dict(request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
                 invoice_count=invoice_count, report_count=report_count)
@@ -3219,14 +3219,17 @@ def result_index():
                            all_count=all_count, pending_count=pending_count)
 
 
-@academic_services.route('/customer/result/view/<int:result_item_id>', methods=['GET', 'POST'])
-def view_result_item(result_item_id):
+@academic_services.route('/customer/result/view/<int:result_id>/<int:result_item_id>', methods=['GET', 'POST'])
+def view_result_item(result_id, result_item_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
-    result_item = ServiceResultItem.query.get(result_item_id)
-    result_item.draft_file_url = generate_url(result_item.draft_file)
-    return render_template('academic_services/view_result_item.html', result_item=result_item, result_item_id=result_item_id,
-                           menu=menu, tab=tab)
+    result = ServiceResult.query.get(result_id)
+    result_item = next((i for i in result.result_items if i.id == result_item_id), None)
+    if not result_item:
+        flash('ไม่พบรายการผล', 'danger')
+        return redirect(url_for('academic_services.result_index', menu=menu, tab=tab))
+    return render_template('academic_services/view_result_item.html', result=result, result_item=result_item,
+                           menu=menu, tab=tab, generate_url=generate_url)
 
 
 @academic_services.route('/customer/result/confirm/<int:result_id>', methods=['GET', 'POST'])
