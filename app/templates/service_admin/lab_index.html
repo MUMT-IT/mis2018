@@ -11,7 +11,7 @@
                     <p class="panel-heading">งานบริการวิชาการ</p>
                     {% for a in admin %}
                         <a class="panel-block" href="{{ url_for('service_admin.create_request', code=a.sub_lab.code,
-                            customer_id=customer_id) }}"
+                            customer_id=customer_id, menu='request') }}"
                         >
                             <span class="panel-icon">
                                 <i class="fas fa-vial"></i>

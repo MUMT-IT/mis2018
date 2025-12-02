@@ -1,37 +1,30 @@
-import os
 import re
 import uuid
-
 import qrcode
 from bahttext import bahttext
-from markupsafe import Markup
-from sqlalchemy import or_, case
-from datetime import date
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfbase.pdfmetrics import stringWidth
+from sqlalchemy import or_, update
+from datetime import date, datetime
 import arrow
 import pandas
 from io import BytesIO
 import pytz
-import requests
 from pytz import timezone
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak, \
-    Indenter
+from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, \
+    PageBreak
 from sqlalchemy.orm import make_transient
-from wtforms import FormField, FieldList
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from app.auth.views import line_bot_api
 from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
-from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
-                                         ServiceCustomerAccountForm, create_request_form, ServiceCustomerContactForm,
-                                         ServiceCustomerAddressForm, ServiceSampleForm, ServicePaymentForm,
-                                         BacteriaRequestForm)
+from app.academic_services.forms import *
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
     jsonify, send_file
@@ -42,7 +35,7 @@ from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatur
 from app.main import mail
 from flask_mail import Message
 from app.models import Holidays, Org
-from app.service_admin.forms import ServiceQuotationForm, ServiceResultForm
+from app.service_admin.forms import ServiceResultForm
 
 localtz = timezone('Asia/Bangkok')
 
@@ -68,7 +61,8 @@ def allowed_file(filename):
 
 def generate_url(file_url):
     url = s3.generate_presigned_url('get_object',
-                                    Params={'Bucket': S3_BUCKET_NAME, 'Key': file_url})
+                                    Params={'Bucket': S3_BUCKET_NAME, 'Key': file_url},
+                                    ExpiresIn=3600)
     return url
 
 
@@ -98,77 +92,139 @@ def get_status(s_id):
     return status_id
 
 
-def request_data(service_request):
-    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
-    gc = get_credential(json_keyfile)
-    wks = gc.open_by_key(sheetid)
-    sheet = wks.worksheet(service_request.sub_lab.sheet)
-    df = pandas.DataFrame(sheet.get_all_records())
-    data = service_request.data
-    form = create_request_form(df)(**data)
-    values = []
-    table_rows = []
-    set_fields = set()
-    current_row = {}
-    for fn in df.fieldGroup:
-        for field in getattr(form, fn):
-            if field.type == 'FieldList':
-                for fd in field:
-                    for f in fd:
-                        if f.data != None and f.data != '' and f.data != [] and f.label not in set_fields:
-                            set_fields.add(f.label)
-                            label = f.label.text
-                            value = ', '.join(f.data) if f.type == 'CheckboxField' else f.data
-                            if label.startswith("เชื้อ"):
-                                value = Markup(f"<i>{value}</i>")
-                                if current_row:
-                                    table_rows.append(current_row)
-                                    current_row = {}
-                                current_row["เชื้อ"] = value
-                            elif "อัตราส่วน" in label:
-                                current_row["อัตราส่วนเจือจาง"] = value
-                            elif "ระยะห่าง" in label:
-                                current_row["ระยะห่างในการฉีดพ่น"] = value
-                            elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
-                                current_row["ระยะเวลาฉีดพ่น"] = value
-                            elif "สัมผัสกับเชื้อ" in label:
-                                current_row["ระยะเวลาสัมผัสเชื้อ"] = value
-                            else:
-                                values.append(f"{label} : {value}")
-            else:
-                if field.data != None and field.data != '' and field.data != [] and field.label not in set_fields:
-                    set_fields.add(field.label)
-                    label = field.label.text
-                    value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
-                    if label.startswith("เชื้อ"):
-                        value = Markup(f"<i>{value}</i>")
-                        if current_row:
-                            table_rows.append(current_row)
-                            current_row = {}
-                        current_row["เชื้อ"] = value
-                    elif "อัตราส่วน" in label:
-                        current_row["อัตราส่วนเจือจาง"] = value
-                    elif "ระยะห่าง" in label:
-                        current_row["ระยะห่างในการฉีดพ่น"] = value
-                    elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
-                        current_row["ระยะเวลาฉีดพ่น"] = value
-                    elif "สัมผัสกับเชื้อ" in label:
-                        current_row["ระยะเวลาสัมผัสเชื้อ"] = value
-                    else:
-                        values.append(f"{label} : {value}")
-    if current_row:
-        table_rows.append(current_row)
-    table_keys = []
-    for row in table_rows:
-        for key in row:
-            if key not in table_keys:
-                table_keys.append(key)
+# def request_data(service_request):
+#     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+#     gc = get_credential(json_keyfile)
+#     wks = gc.open_by_key(sheetid)
+#     sheet = wks.worksheet(service_request.sub_lab.sheet)
+#     df = pandas.DataFrame(sheet.get_all_records())
+#     data = service_request.data
+#     form = create_request_form(df)(**data)
+#     values = []
+#     table_rows = []
+#     set_fields = set()
+#     current_row = {}
+#     for fn in df.fieldGroup:
+#         for field in getattr(form, fn):
+#             if field.type == 'FieldList':
+#                 for fd in field:
+#                     for f in fd:
+#                         if f.data != None and f.data != '' and f.data != [] and f.label not in set_fields:
+#                             set_fields.add(f.label)
+#                             label = f.label.text
+#                             value = ', '.join(f.data) if f.type == 'CheckboxField' else f.data
+#                             if label.startswith("เชื้อ"):
+#                                 value = Markup(f"<i>{value}</i>")
+#                                 if current_row:
+#                                     table_rows.append(current_row)
+#                                     current_row = {}
+#                                 current_row["เชื้อ"] = value
+#                             elif "อัตราส่วน" in label:
+#                                 current_row["อัตราส่วนเจือจาง"] = value
+#                             elif "ระยะห่าง" in label:
+#                                 current_row["ระยะห่างในการฉีดพ่น"] = value
+#                             elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
+#                                 current_row["ระยะเวลาฉีดพ่น"] = value
+#                             elif "สัมผัสกับเชื้อ" in label:
+#                                 current_row["ระยะเวลาสัมผัสเชื้อ"] = value
+#                             else:
+#                                 values.append(f"{label} : {value}")
+#             else:
+#                 if field.data != None and field.data != '' and field.data != [] and field.label not in set_fields:
+#                     set_fields.add(field.label)
+#                     label = field.label.text
+#                     value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
+#                     if label.startswith("เชื้อ"):
+#                         value = Markup(f"<i>{value}</i>")
+#                         if current_row:
+#                             table_rows.append(current_row)
+#                             current_row = {}
+#                         current_row["เชื้อ"] = value
+#                     elif "อัตราส่วน" in label:
+#                         current_row["อัตราส่วนเจือจาง"] = value
+#                     elif "ระยะห่าง" in label:
+#                         current_row["ระยะห่างในการฉีดพ่น"] = value
+#                     elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
+#                         current_row["ระยะเวลาฉีดพ่น"] = value
+#                     elif "สัมผัสกับเชื้อ" in label:
+#                         current_row["ระยะเวลาสัมผัสเชื้อ"] = value
+#                     else:
+#                         values.append(f"{label} : {value}")
+#     if current_row:
+#         table_rows.append(current_row)
+#     table_keys = []
+#     for row in table_rows:
+#         for key in row:
+#             if key not in table_keys:
+#                 table_keys.append(key)
+#
+#     return {
+#         "value": values,
+#         "table_rows": table_rows,
+#         "table_keys": table_keys
+#     }
 
-    return {
-        "value": values,
-        "table_rows": table_rows,
-        "table_keys": table_keys
-    }
+def request_data(service_request, type):
+    data = service_request.data
+    if service_request.sub_lab.code == 'bacteria':
+        form = BacteriaRequestForm(data=data)
+    elif service_request.sub_lab.code == 'disinfection':
+        form = VirusDisinfectionRequestForm(data=data)
+    elif service_request.sub_lab.code == 'air_disinfection':
+        form = VirusAirDisinfectionRequestForm(data=data)
+    else:
+        form = ''
+    values = []
+    set_fields = set()
+    product_header = False
+    test_header = False
+    for field in form:
+        if field.type == 'FormField':
+            if not test_header:
+                values.append({'type': 'header', 'data': 'รายการทดสอบ'})
+                test_header = True
+            if not any([f.data for f in field._fields.values() if f.type != 'HiddenField' and f.type != 'FieldList']):
+                continue
+            for fname, fn in field._fields.items():
+                if fn.type == 'FieldList':
+                    rows = []
+                    for entry in fn.entries:
+                        row = {}
+                        for f_name, f in entry._fields.items():
+                            if f.data and f.label not in set_fields:
+                                set_fields.add(f.label)
+                                label = f.label.text
+                                if label.startswith("เชื้อ"):
+                                    data = ', '.join(f.data) if isinstance(f.data, list) else str(f.data or '')
+                                    if type == 'form':
+                                        row[label] = f"<i>{data}</i>"
+                                    else:
+                                        row[label] = f"<font name='SarabunItalic'>{data}</font>"
+                                else:
+                                    row[label] = f.data
+                        if row:
+                            rows.append(row)
+                    if rows:
+                        values.append({'type': 'table', 'data': rows})
+                else:
+                    if fn.data and fn.label not in set_fields:
+                        set_fields.add(fn.label)
+                        label = fn.label.text
+                        value = ', '.join(fn.data) if fn.type == 'CheckboxField' else fn.data
+                        if fn.type == 'HiddenField':
+                            values.append({'type': 'content_header', 'data': f"{value}"})
+                        else:
+                            values.append({'type': 'text', 'data': f"{label} : {value}"})
+        else:
+            if not product_header:
+                values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
+                product_header = True
+            if field.data and field.label not in set_fields:
+                set_fields.add(field.label)
+                label = field.label.text
+                value = ', '.join(f.data) if field.type == 'CheckboxField' else field.data
+                values.append({'type': 'text', 'data': f"{label} : {value}"})
+    return values
 
 
 def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', depth=''):
@@ -203,6 +259,13 @@ def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', 
 @academic_services.route('/aws-s3/download/<key>', methods=['GET'])
 def download_file(key):
     download_filename = request.args.get('download_filename')
+    result_item = ServiceResultItem.query.filter_by(final_file=key).first()
+    if result_item:
+        req = result_item.result.request
+        if req.is_downloaded == None:
+            req.is_downloaded = True
+            db.session.add(req)
+            db.session.commit()
     s3_client = boto3.client(
         's3',
         region_name=os.getenv('BUCKETEER_AWS_REGION'),
@@ -213,6 +276,67 @@ def download_file(key):
     s3_client.download_fileobj(os.getenv('BUCKETEER_BUCKET_NAME'), key, outfile)
     outfile.seek(0)
     return send_file(outfile, download_name=download_filename, as_attachment=True)
+
+
+@academic_services.context_processor
+def menu():
+    request_count = None
+    quotation_count = None
+    sample_count = None
+    invoice_count = None
+    report_count = None
+
+    if current_user.is_authenticated:
+        request_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
+                            ServiceRequest.is_downloaded==None, ServiceRequest.status.has(ServiceStatus.status_id.in_([1, 2]))).count()
+        quotation_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
+            ServiceRequest.status.has(ServiceStatus.status_id.in_([5]))).count()
+        sample_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
+            ServiceRequest.status.has(ServiceStatus.status_id.in_([6, 8, 9]))).count()
+        invoice_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
+            ServiceRequest.status.has(ServiceStatus.status_id.in_([20, 21]))).count()
+        report_count = ServiceResultItem.query.filter(ServiceResultItem.result.has(
+        ServiceResult.request.has(customer_id=current_user.id)), ServiceResultItem.approved_at == None).count()
+
+    return dict(request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
+                invoice_count=invoice_count, report_count=report_count)
+
+
+# @academic_services.route('index')
+# def index():
+#     today = arrow.now().date()
+#     thirty_days = arrow.now().shift(days=+30).date()
+#     request_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
+#                                                 ServiceRequest.status.has(ServiceStatus.status_id == 1)
+#                                                 ).count()
+#     quotation_count = ServiceQuotation.query.filter(ServiceQuotation.request.has(customer_id=current_user.id),
+#                                                     ServiceQuotation.approved_at != None,
+#                                                     ServiceQuotation.confirmed_at == None).count()
+#     sample_count = ServiceSample.query.filter(ServiceSample.request.has(customer_id=current_user.id),
+#                                               ServiceSample.received_at == None).count()
+#     test_item_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
+#                                                 ServiceRequest.status.has(or_(ServiceStatus.status_id == 10,
+#                                                                               ServiceStatus.status_id == 11))
+#                                                 ).count()
+#     report_count = ServiceResultItem.query.filter(ServiceResultItem.result.has(
+#                     ServiceResult.request.has(customer_id=current_user.id)),
+#                     ServiceResultItem.approved_at == None).count()
+#     invoice_count = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at != None, ServiceInvoice.paid_at == None,
+#                                                 ServiceInvoice.quotation.has(
+#                                                     ServiceQuotation.request.has(customer_id=current_user.id))).count()
+#     service_requests = (ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id)
+#                          .order_by(ServiceRequest.created_at.desc()).limit(5))
+#     samples = ServiceSample.query.filter(ServiceSample.request.has(customer_id=current_user.id),
+#                                               ServiceSample.received_at == None ,
+#                                         or_(ServiceSample.appointment_date) <= thirty_days,
+#                                         ServiceSample.ship_type == 'ส่งทางไปรษณีย์')
+#     invoices = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at != None, ServiceInvoice.paid_at == None,
+#                                                 ServiceInvoice.due_date < today, ServiceInvoice.quotation.has(
+#                                                     ServiceQuotation.request.has(customer_id=current_user.id)))
+#     return render_template('academic_services/index.html', request_count=request_count, quotation_count=quotation_count,
+#                            sample_count=sample_count, test_item_count=test_item_count, report_count=report_count,
+#                            invoice_count=invoice_count, service_reqeusts=service_requests, samples=samples,
+#                            invoices=invoices)
 
 
 @academic_services.route('/login', methods=['GET', 'POST'])
@@ -681,30 +805,12 @@ def create_service_request():
     return render_template('academic_services/request_form.html', code=code, sub_lab=sub_lab)
 
 
-# @academic_services.route('/request/add', methods=['GET', 'POST'])
-# def bacteria_request_form():
-#     code = request.args.get('code')
-#     sub_lab = ServiceSubLab.query.filter_by(code=code)
-#     form = BacteriaRequestForm()
-#     if form.validate_on_submit():
-#         request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.code)
-#         service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
-#                              request_no=request_no.number, product=form.sample_name.data, data=format_data(form.data))
-#         request_no.count += 1
-#         db.session.add(service_request)
-#         db.session.commit()
-#     else:
-#         flash(f'{form.errors}', 'danger')
-#     return render_template('academic_services/bacteria_request_form.html', code=code, sub_lab=sub_lab,
-#                            form=form)
-
-
 @academic_services.route('/submit-request/add', methods=['POST', 'GET'])
 @academic_services.route('/submit-request/edit/<int:request_id>', methods=['GET', 'POST'])
 def submit_request(request_id=None):
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
-        sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
+        sub_lab = ServiceSubLab.query.filter_by(code=service_request.sub_lab.code).first()
     else:
         code = request.args.get('code')
         sub_lab = ServiceSubLab.query.filter_by(code=code).first()
@@ -739,7 +845,8 @@ def submit_request(request_id=None):
         req.modified_at = arrow.now('Asia/Bangkok').datetime
         req.product = products
     else:
-        req = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
+        req = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                             sub_lab=sub_lab,
                              request_no=request_no.number, product=products, data=format_data(form.data))
         request_no.count += 1
     db.session.add(req)
@@ -748,13 +855,314 @@ def submit_request(request_id=None):
                             code=req.sub_lab.code))
 
 
+@academic_services.route('/portal/request')
+def create_request():
+    menu = request.args.get('menu')
+    code = request.args.get('code')
+    request_id = request.args.get('request_id')
+    request_paths = {'bacteria': 'academic_services.create_bacteria_request',
+                     'disinfection': 'academic_services.create_virus_disinfection_request',
+                     'air_disinfection': 'academic_services.create_virus_air_disinfection_request'
+                     }
+    return redirect(url_for(request_paths[code], code=code, menu = menu, request_id=request_id))
+
+
+@academic_services.route('/request/bacteria/add', methods=['GET', 'POST'])
+@academic_services.route('/request/bacteria/edit/<int:request_id>', methods=['GET', 'POST'])
+def create_bacteria_request(request_id=None):
+    menu = request.args.get('menu')
+    code = request.args.get('code')
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        data = service_request.data
+        form = BacteriaRequestForm(data=data)
+    else:
+        form = BacteriaRequestForm()
+    for n, org in enumerate(bacteria_liquid_organisms):
+        liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
+        liquid_entry.liquid_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_liquid_organisms):
+        spray_entry = form.spray_condition_field.spray_organism_fields[n]
+        spray_entry.spray_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_liquid_organisms):
+        sheet_entry = form.sheet_condition_field.sheet_organism_fields[n]
+        sheet_entry.sheet_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_wash_organisms):
+        after_wash_entry = form.after_wash_condition_field.after_wash_organism_fields[n]
+        after_wash_entry.after_wash_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_wash_organisms):
+        in_wash_entry = form.in_wash_condition_field.in_wash_organism_fields[n]
+        in_wash_entry.in_wash_organism.choices = [(org, org)]
+    if request.method == 'POST':
+        for n, org in enumerate(bacteria_liquid_organisms):
+            liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
+            print('label', liquid_entry.liquid_organism.label, 'choice', liquid_entry.liquid_organism.choices, 'data', liquid_entry.liquid_organism.data)
+    if form.validate_on_submit():
+        if request_id:
+            service_request.data = format_data(form.data)
+            service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+        else:
+            status_id = get_status(1)
+            request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
+            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
+                                             status_id=status_id)
+            request_no.count += 1
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(
+            url_for('academic_services.create_report_language', request_id=service_request.id, menu=menu,
+                    code=code))
+    else:
+        for er in form.errors:
+            flash(f'{er} {form.errors[er]}', 'danger')
+    return render_template('academic_services/bacteria_request_form.html', code=code, sub_lab=sub_lab,
+                           form=form, menu=menu, request_id=request_id)
+
+
+@academic_services.route("/request/collect_sample_during_testing")
+def get_collect_sample_during_testing():
+    request_id = request.args.get("request_id")
+    collect_sample_during_testing = request.args.get("collect_sample_during_testing")
+    label = 'ระบุ'
+
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        if service_request and service_request.data:
+            data = service_request.data
+            collect_sample_during_testing_other = data.get('collect_sample_during_testing_other', '')
+        else:
+            collect_sample_during_testing_other = ''
+    else:
+        collect_sample_during_testing_other = ''
+    if collect_sample_during_testing == 'อื่นๆ โปรดระบุ':
+        html = f'''
+            <div class="field">
+                <label class="label">
+                    {label}
+                    <span class="has-text-danger">*</span>
+                </label>
+                <div class="control">
+                    <input name="collect_sample_during_testing_other" class="input" value="{collect_sample_during_testing_other}" required
+                    oninvalid="this.setCustomValidity('กรุณาเลือกการเก็บตัวอย่างระหว่างรอทดสอบ')" oninput="this.setCustomValidity('')">
+                </div>
+            </div>
+        '''
+    else:
+        html = '<input type="hidden" name="collect_sample_during_testing_other" class="input" value="">'
+    resp = make_response(html)
+    return resp
+
+
+@academic_services.route('/request/bacteria/condition')
+def get_bacteria_condition_form():
+    product_type = request.args.get("product_type")
+    if not product_type:
+        return ''
+    form = BacteriaRequestForm()
+    for n, org in enumerate(bacteria_liquid_organisms):
+        liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
+        liquid_entry.liquid_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_liquid_organisms):
+        spray_entry = form.spray_condition_field.spray_organism_fields[n]
+        spray_entry.spray_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_liquid_organisms):
+        sheet_entry = form.sheet_condition_field.sheet_organism_fields[n]
+        sheet_entry.sheet_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_wash_organisms):
+        after_wash_entry = form.after_wash_condition_field.after_wash_organism_fields[n]
+        after_wash_entry.after_wash_organism.choices = [(org, org)]
+    for n, org in enumerate(bacteria_wash_organisms):
+        in_wash_entry = form.in_wash_condition_field.in_wash_organism_fields[n]
+        in_wash_entry.in_wash_organism.choices = [(org, org)]
+    field_name = f"{product_type}_condition_field"
+    fields = getattr(form, field_name)
+    return render_template('academic_services/partials/bacteria_request_condition_form.html', fields=fields)
+
+
+@academic_services.route('/request/virus_disinfection/add', methods=['GET', 'POST'])
+@academic_services.route('/request/virus_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
+def create_virus_disinfection_request(request_id=None):
+    menu = request.args.get('menu')
+    code = request.args.get('code')
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        data = service_request.data
+        form = VirusDisinfectionRequestForm(data=data)
+    else:
+        form = VirusDisinfectionRequestForm()
+    for n, org in enumerate(virus_liquid_organisms):
+        liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
+        liquid_entry.liquid_organism.choices = [(org, org)]
+    for n, org in enumerate(virus_liquid_organisms):
+        spray_entry = form.spray_condition_field.spray_organism_fields[n]
+        spray_entry.spray_organism.choices = [(org, org)]
+    for n, org in enumerate(virus_liquid_organisms):
+        coat_entry = form.coat_condition_field.coat_organism_fields[n]
+        coat_entry.coat_organism.choices = [(org, org)]
+    if form.validate_on_submit():
+        if request_id:
+            service_request.data = format_data(form.data)
+            service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+        else:
+            status_id = get_status(1)
+            request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
+            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
+                                             status_id=status_id)
+            request_no.count += 1
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(
+            url_for('academic_services.create_report_language', request_id=service_request.id, menu=menu,
+                    code=code))
+    else:
+        for er in form.errors:
+            flash(er, 'danger')
+    return render_template('academic_services/virus_disinfection_request_form.html', code=code, sub_lab=sub_lab,
+                           form=form, menu=menu, request_id=request_id)
+
+
+@academic_services.route("/request/product_storage")
+def get_product_storage():
+    request_id = request.args.get("request_id")
+    product_storage = request.args.get("product_storage")
+    label = 'ระบุ'
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        if service_request and service_request.data:
+            data = service_request.data
+            product_storage_other = data.get('product_storage_other', '')
+        else:
+            product_storage_other = ''
+    else:
+        product_storage_other = ''
+    if product_storage == 'อื่นๆ โปรดระบุ':
+        html = f'''
+            <div class="field">
+                <label class="label">
+                    {label}
+                    <span class="has-text-danger">*</span>
+                </label>
+                <div class="control">
+                    <input name="product_storage_other" class="input" value="{product_storage_other}" required 
+                    oninvalid="this.setCustomValidity('กรุณาเลือกการเก็บรักษาผลิตภัณฑ์')" oninput="this.setCustomValidity('')">
+                </div>
+            </div>
+        '''
+    else:
+        html = '<input type="hidden" name="product_storage_other" class="input" value="">'
+    resp = make_response(html)
+    return resp
+
+
+@academic_services.route('/request/virus_disinfection/condition')
+def get_virus_disinfection_condition_form():
+
+    product_type = request.args.get("product_type")
+    if not product_type:
+        return ''
+    form = VirusDisinfectionRequestForm()
+    for n, org in enumerate(virus_liquid_organisms):
+        liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
+        liquid_entry.liquid_organism.choices = [(org, org)]
+    for n, org in enumerate(virus_liquid_organisms):
+        spray_entry = form.spray_condition_field.spray_organism_fields[n]
+        spray_entry.spray_organism.choices = [(org, org)]
+    for n, org in enumerate(virus_liquid_organisms):
+        coat_entry = form.coat_condition_field.coat_organism_fields[n]
+        coat_entry.coat_organism.choices = [(org, org)]
+    field_name = f"{product_type}_condition_field"
+    fields = getattr(form, field_name)
+    return render_template('academic_services/partials/virus_disinfection_request_condition_form.html',
+                           fields=fields, product_type=product_type)
+
+
+@academic_services.route('/request/virus_air_disinfection/add', methods=['GET', 'POST'])
+@academic_services.route('/request/virus_air_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
+def create_virus_air_disinfection_request(request_id=None):
+    menu = request.args.get('menu')
+    code = request.args.get('code')
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        data = service_request.data
+        form = VirusAirDisinfectionRequestForm(data=data)
+    else:
+        form = VirusAirDisinfectionRequestForm()
+    for n, org in enumerate(virus_liquid_organisms):
+        surface_entry = form.surface_condition_field.surface_disinfection_organism_fields[n]
+        surface_entry.surface_disinfection_organism.choices = [(org, org)]
+    for n, org in enumerate(virus_airborne_organisms):
+        airborne_entry = form.airborne_condition_field.airborne_disinfection_organism_fields[n]
+        airborne_entry.airborne_disinfection_organism.choices = [(org, org)]
+    if form.validate_on_submit():
+        if request_id:
+            service_request.data = format_data(form.data)
+            service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+        else:
+            status_id = get_status(1)
+            request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
+            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
+                                             status_id=status_id)
+            request_no.count += 1
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(
+            url_for('academic_services.create_report_language', request_id=service_request.id, menu=menu,
+                    code=code))
+    else:
+        for er in form.errors:
+            flash(er, 'danger')
+    return render_template('academic_services/virus_air_disinfection_request_form.html', code=code, sub_lab=sub_lab,
+                           form=form, menu=menu, request_id=request_id)
+
+
+@academic_services.route('/request/virus_air_disinfection/condition')
+def get_virus_air_disinfection_condition_form():
+    product_type = request.args.get("product_type")
+    if not product_type:
+        return ''
+    form = VirusAirDisinfectionRequestForm()
+    for n, org in enumerate(virus_liquid_organisms):
+        surface_entry = form.surface_condition_field.surface_disinfection_organism_fields[n]
+        surface_entry.surface_disinfection_organism.choices = [(org, org)]
+    for n, org in enumerate(virus_airborne_organisms):
+        airborne_entry = form.airborne_condition_field.airborne_disinfection_organism_fields[n]
+        airborne_entry.airborne_disinfection_organism.choices = [(org, org)]
+    field_name = f"{product_type}_condition_field"
+    fields = getattr(form, field_name)
+    return render_template('academic_services/partials/virus_air_disinfection_request_condition_form.html',
+                           fields=fields)
+
+
+@academic_services.route('/request/condition/remove', methods=['GET', 'POST'])
+def remove_condition_form():
+    request_id = request.args.get('request_id')
+    service_request = ServiceRequest.query.get(request_id)
+    field = request.form.get("field")
+    data = service_request.data or {}
+    if field in data:
+        del data[field]
+        db.session.execute(
+            update(ServiceRequest)
+            .where(ServiceRequest.id == request_id)
+            .values(data=data)
+        )
+        db.session.commit()
+    return ""
+
+
 @academic_services.route('/customer/report_language/add/<int:request_id>', methods=['GET', 'POST'])
 @login_required
 def create_report_language(request_id):
     menu = request.args.get('menu')
     code = request.args.get('code')
     service_request = ServiceRequest.query.get(request_id)
-    report_languages = ServiceReportLanguage.query.all()
+    report_languages = ServiceReportLanguage.query.filter_by(sub_lab_id=service_request.sub_lab_id)
     req_report_language_id = [rl.report_language_id for rl in service_request.report_languages]
     req_report_language = [rl.report_language.language for rl in sorted(service_request.report_languages,
                                                                         key=lambda rl: rl.report_language.no)]
@@ -802,12 +1210,12 @@ def create_customer_detail(request_id):
                 service_request.quotation_address_id = int(quotation_address_id)
                 service_request.quotation_name = address.name
                 service_request.quotation_issue_address = (
-                                         f"{address.address} "
-                                         f"{subdistrict_title}{address.subdistrict} "
-                                         f"{district_title}{address.district} "
-                                         f"จังหวัด{address.province} "
-                                         f"{address.zipcode}"
-                                     )
+                    f"{address.address} "
+                    f"{subdistrict_title}{address.subdistrict} "
+                    f"{district_title}{address.district} "
+                    f"จังหวัด{address.province} "
+                    f"{address.zipcode}"
+                )
                 service_request.taxpayer_identification_no = address.taxpayer_identification_no
                 service_request.quotation_phone_number = address.phone_number
                 db.session.add(service_request)
@@ -820,12 +1228,12 @@ def create_customer_detail(request_id):
                 service_request.document_address_id = int(document_address_id)
                 service_request.receive_name = address.name
                 service_request.receive_address = (
-                                         f"{address.address} "
-                                         f"{subdistrict_title}{address.subdistrict} "
-                                         f"{district_title}{address.district} "
-                                         f"จังหวัด{address.province} "
-                                         f"{address.zipcode}"
-                                     )
+                    f"{address.address} "
+                    f"{subdistrict_title}{address.subdistrict} "
+                    f"{district_title}{address.district} "
+                    f"จังหวัด{address.province} "
+                    f"{address.zipcode}"
+                )
                 service_request.receive_phone_number = address.phone_number
                 db.session.add(service_request)
                 db.session.commit()
@@ -837,11 +1245,11 @@ def create_customer_detail(request_id):
                 service_request.document_address_id = int(quotation_address_id)
                 service_request.receive_name = quotation_address.name
                 service_request.receive_address = (
-                                         f"{quotation_address.address} "
-                                         f"{subdistrict_title}{quotation_address.subdistrict} "
-                                         f"{district_title}{quotation_address.district} "
-                                         f"จังหวัด{quotation_address.province} "
-                                         f"{quotation_address.zipcode}")
+                    f"{quotation_address.address} "
+                    f"{subdistrict_title}{quotation_address.subdistrict} "
+                    f"{district_title}{quotation_address.district} "
+                    f"จังหวัด{quotation_address.province} "
+                    f"{quotation_address.zipcode}")
                 service_request.receive_phone_number = quotation_address.phone_number
                 db.session.add(service_request)
                 remark = quotation_address.remark if quotation_address.remark else None
@@ -881,11 +1289,13 @@ def create_customer_detail(request_id):
                 db.session.commit()
         status_id = get_status(1)
         service_request.status_id = status_id
+        service_request.is_completed = True
         db.session.add(service_request)
         db.session.commit()
         return redirect(url_for('academic_services.view_request', request_id=request_id, menu=menu))
     return render_template('academic_services/create_customer_detail.html', menu=menu,
-                           customer=customer, request_id=request_id, code=code, form=form, service_request=service_request,
+                           customer=customer, request_id=request_id, code=code, form=form,
+                           service_request=service_request,
                            selected_address_id=selected_address_id)
 
 
@@ -893,28 +1303,58 @@ def create_customer_detail(request_id):
 @login_required
 def request_index():
     menu = request.args.get('menu')
-    new_request_count = len([r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
-                                                                    ServiceRequest.status.has(
-                                                                        or_(ServiceStatus.status_id == 1,
-                                                                            ServiceStatus.status_id == 2)))])
-    quotation_pending_approval_count = len(
-        [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
-                                                ServiceRequest.status.has(ServiceStatus.status_id == 5))])
-    waiting_sample_count = len(
-        [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
-                                                ServiceRequest.status.has(or_(ServiceStatus.status_id == 8,
-                                                                              ServiceStatus.status_id == 9)))])
-    testing_count = len(
-        [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
-                                                ServiceRequest.status.has(ServiceStatus.status_id == 11))])
-    unpaid_count = len(
-        [r for r in ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
-                                                ServiceRequest.status.has(ServiceStatus.status_id == 19))])
-    return render_template('academic_services/request_index.html', menu=menu,
-                           new_request_count=new_request_count,
-                           quotation_pending_approval_count=quotation_pending_approval_count,
-                           waiting_sample_count=waiting_sample_count, testing_count=testing_count,
-                           unpaid_count=unpaid_count)
+    status_groups = {
+        'all': {
+            'id': list(range(1, 24)),
+            'name': 'รายการทั้งหมด',
+            'icon': '<i class="fas fa-list-ul"></i>'
+        },
+        'send_request': {
+            'id': [1, 2],
+            'name': 'รอส่งคำขอรับบริการ',
+            'icon': '<i class="fas fa-paper-plane"></i>'
+        },
+        'confirm_quotation': {
+            'id': [3, 4, 5],
+            'name': 'รอยืนยันใบเสนอราคา',
+            'icon': '<i class="fas fa-file-invoice"></i>'
+        },
+        'send_sample': {
+            'id': [6, 8, 9],
+            'name': 'รอส่งตัวอย่าง',
+            'icon': '<i class="fas fa-truck"></i>'
+        },
+        'wait_test': {
+            'id': [10, 11, 14],
+            'name': 'รอทดสอบตัวอย่าง',
+            'icon': '<i class="fas fa-vial"></i>'
+        },
+        'wait_report': {
+            'id': [12, 15],
+            'name': 'รอยืนยันใบรายงานผล',
+            'icon': '<i class="fas fa-file-alt"></i>'
+        },
+        'wait_payment': {
+            'id': [13, 16, 17, 18, 19, 20, 21],
+            'name': 'รอชำระเงิน',
+            'icon': '<i class="fas fa-money-check-alt"></i>'
+        },
+        'download_report': {
+            'id': [22],
+            'name': 'ใบรายงานผลฉบับจริง',
+            'icon': '<i class="fas fa-download"></i>'
+        }
+    }
+
+    for key, group in status_groups.items():
+        group_ids = [i for i in group['id'] if i != 7 and i != 23]
+        query = ServiceRequest.query.filter(
+            ServiceRequest.status.has(ServiceStatus.status_id.in_(group_ids)
+                                      ), ServiceRequest.customer_id==current_user.id, ServiceRequest.is_downloaded == None
+        ).count()
+
+        status_groups[key]['count'] = query
+    return render_template('academic_services/request_index.html', menu=menu, status_groups=status_groups)
 
 
 @academic_services.route('/api/request/index')
@@ -935,7 +1375,7 @@ def get_requests():
         for result in item.results:
             for i in result.result_items:
                 if i.final_file:
-                    download_file = url_for('service_admin.download_file', key=i.final_file,
+                    download_file = url_for('academic_services.download_file', key=i.final_file,
                                             download_filename=f"{i.report_language} (ฉบับจริง).pdf")
                     if item.status.status_id == 22:
                         html = f'''
@@ -960,7 +1400,7 @@ def get_requests():
                                     </div>
                                 '''
                 elif i.draft_file:
-                    download_file = url_for('service_admin.download_file', key=i.draft_file,
+                    download_file = url_for('academic_services.download_file', key=i.draft_file,
                                             download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
                     html = f'''
                                             <div class="field has-addons">
@@ -989,7 +1429,7 @@ def get_requests():
 def view_request(request_id=None):
     menu = request.args.get('menu')
     service_request = ServiceRequest.query.get(request_id)
-    datas = request_data(service_request)
+    datas = request_data(service_request, type='form')
     return render_template('academic_services/view_request.html', service_request=service_request, menu=menu,
                            datas=datas)
 
@@ -1006,87 +1446,10 @@ def generate_request_pdf(service_request):
         qr_code = Image(qr_buffer, width=80, height=80)
         qr_code.hAlign = 'LEFT'
 
-    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
-    gc = get_credential(json_keyfile)
-    wks = gc.open_by_key(sheetid)
-    sheet = wks.worksheet(service_request.sub_lab.sheet)
-    df = pandas.DataFrame(sheet.get_all_records())
-    data = service_request.data
-    form = create_request_form(df)(**data)
-    values = []
-    set_fields = set()
-    table_rows = []
-    current_row = {}
-    for fn in df.fieldGroup:
-        for field in getattr(form, fn):
-            if field.type == 'FieldList':
-                for fd in field:
-                    for f in fd:
-                        if f.data != None and f.data != '' and f.data != [] and f.label not in set_fields:
-                            set_fields.add(f.label)
-                            label = f.label.text
-                            value = ', '.join(f.data) if f.type == 'CheckboxField' else f.data
-                            # if f.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or f.label.text == 'สารสำคัญที่ออกฤทธิ์':
-                            #     items = [item.strip() for item in str(f.data).split(',')]
-                            #     values.append(f"{f.label.text}")
-                            #     for item in items:
-                            #         values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
-                            if label.startswith("เชื้อ"):
-                                germ = f"<i>{value}</i>"
-                                value = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>", germ)
-                                if current_row:
-                                    table_rows.append(current_row)
-                                    current_row = {}
-                                current_row["เชื้อ"] = value
-                            elif "อัตราส่วน" in label:
-                                current_row["อัตราส่วนเจือจาง"] = value
-                            elif "ระยะห่าง" in label:
-                                current_row["ระยะห่างในการฉีดพ่น"] = value
-                            elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
-                                current_row["ระยะเวลาฉีดพ่น"] = value
-                            elif "สัมผัสกับเชื้อ" in label:
-                                current_row["ระยะเวลาสัมผัสเชื้อ"] = value
-                            else:
-                                values.append(f"{label} : {value}")
-            else:
-                if field.data != None and field.data != '' and field.data != [] and field.label not in set_fields:
-                    set_fields.add(field.label)
-                    label = field.label.text
-                    value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
-                    # if field.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or field.label.text == 'สารสำคัญที่ออกฤทธิ์':
-                    #     items = [item.strip() for item in str(field.data).split(',')]
-                    #     values.append(f"{field.label.text}")
-                    #     for item in items:
-                    #         values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
-                    if label.startswith("เชื้อ"):
-                        germ = f"<i>{value}</i>"
-                        value = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>", germ)
-                        if current_row:
-                            table_rows.append(current_row)
-                            current_row = {}
-                        current_row["เชื้อ"] = value
-                    elif "อัตราส่วน" in label:
-                        current_row["อัตราส่วนเจือจาง"] = value
-                    elif "ระยะห่าง" in label:
-                        current_row["ระยะห่างในการฉีดพ่น"] = value
-                    elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
-                        current_row["ระยะเวลาฉีดพ่น"] = value
-                    elif "สัมผัสกับเชื้อ" in label:
-                        current_row["ระยะเวลาสัมผัสเชื้อ"] = value
-                    else:
-                        values.append(f"{label} : {value}")
-    if current_row:
-        table_rows.append(current_row)
-    table_keys = []
-    for row in table_rows:
-        for key in row:
-            if key not in table_keys:
-                table_keys.append(key)
-
-    if service_request.report_languages:
-        values.append("ใบรายงานผล : " + ", ".join([rl.report_language.item for rl in service_request.report_languages]))
+    values = request_data(service_request, type='pdf')
 
     def all_page_setup(canvas, doc):
+        global page_number
         canvas.saveState()
         canvas.setFont("Sarabun", 12)
         page_number = canvas.getPageNumber()
@@ -1094,15 +1457,16 @@ def generate_request_pdf(service_request):
         canvas.restoreState()
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer,
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
                             rightMargin=20,
                             leftMargin=20,
-                            topMargin=10,
-                            bottomMargin=10
+                            topMargin=40,
+                            bottomMargin=40
                             )
 
     data = []
-
+    first_page_limit = 700
+    current_height = 0
     header_style = ParagraphStyle(
         'HeaderStyle',
         parent=style_sheet['ThaiStyle'],
@@ -1119,17 +1483,17 @@ def generate_request_pdf(service_request):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
-    lab_address = '''<para><font size=12>
+    lab_information = '''<para><font size=13>
                         {address}
-                        </font></para>'''.format(address=service_request.sub_lab.address)
+                        </font></para>'''.format(address=service_request.sub_lab.lab_information)
 
-    lab_table = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
+    lab_table = Table([[logo, Paragraph(lab_information, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
 
     lab_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
-    staff_only = '''<para><font size=12>
+    staff_only = '''<para><font size=13>
                     สำหรับเจ้าหน้าที่ / Staff only<br/>
                     เลขที่ใบคำขอ &nbsp;  <u>&nbsp;{request_no}&nbsp;&nbsp;</u><br/>
                     วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
@@ -1149,10 +1513,10 @@ def generate_request_pdf(service_request):
         ('BOX', (1, 0), (1, 0), 0.5, colors.grey),
     ]))
 
-    content_header = Table([[Paragraph('<b>รายละเอียด / Detail</b>', style=header_style)]], colWidths=[530],
-                           rowHeights=[25])
+    customer_header = Table([[Paragraph('<b>ข้อมูลผู้ส่งตรวจ / Customer</b>', style=header_style)]], colWidths=[530],
+                            rowHeights=[25])
 
-    content_header.setStyle(TableStyle([
+    customer_header.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
@@ -1161,14 +1525,14 @@ def generate_request_pdf(service_request):
     detail_style = ParagraphStyle(
         'ThaiStyle',
         parent=style_sheet['ThaiStyle'],
-        fontSize=12,
+        fontSize=13,
         leading=18
     )
 
     center_style = ParagraphStyle(
         'CenterStyle',
         parent=style_sheet['ThaiStyle'],
-        fontSize=12,
+        fontSize=13,
         leading=25,
         alignment=TA_CENTER
     )
@@ -1232,115 +1596,248 @@ def generate_request_pdf(service_request):
         ('BOX', (1, 0), (1, 0), 0.5, colors.grey),
     ]))
 
-    data.append(KeepTogether(Spacer(7, 7)))
+    title_table = Paragraph(
+        '<para align=center><font size=18>ใบขอรับบริการ / REQUEST<br/><br/></font></para>',
+        style=style_sheet['ThaiStyle']
+    )
+
     data.append(
-        KeepTogether(Paragraph('<para align=center><font size=18>ใบขอรับบริการ / REQUEST<br/><br/></font></para>',
-                               style=style_sheet['ThaiStyle'])))
+        KeepTogether(title_table))
+    w, h = title_table.wrap(doc.width, first_page_limit)
+    current_height += h
     data.append(KeepTogether(header))
+    w, h = header.wrap(doc.width, first_page_limit)
+    current_height += h
     data.append(KeepTogether(Spacer(3, 3)))
+    current_height += 3
     data.append(KeepTogether(combined_table))
+    w, h = combined_table.wrap(doc.width, first_page_limit)
+    current_height += h
     data.append(KeepTogether(Spacer(3, 3)))
-    data.append(KeepTogether(content_header))
-    data.append(KeepTogether(Spacer(7, 7)))
+    current_height += 3
+    data.append(KeepTogether(customer_header))
+    w, h = customer_header.wrap(doc.width, first_page_limit)
+    current_height += h
+    data.append(KeepTogether(Spacer(3, 3)))
+    current_height += 3
     data.append(KeepTogether(address_table))
+    w, h = address_table.wrap(doc.width, first_page_limit)
+    current_height += h
     data.append(KeepTogether(customer_table))
+    w, h = customer_table.wrap(doc.width, first_page_limit)
+    current_height += h
 
-    details = 'ข้อมูลผลิตภัณฑ์' + "<br/>" + "<br/>".join(values)
-    first_page_limit = 410
-    remaining_text = ""
-    current_length = 0
-    lines = details.split("<br/>")
-    first_page_lines = []
+    index = 1
+    groups = []
+    current_group = None
 
-    for line in lines:
-        if current_length + detail_style.leading <= first_page_limit:
-            first_page_lines.append(line)
-            current_length += detail_style.leading
+    for item in values:
+        if item['type'] == 'header':
+            if current_group:
+                groups.append(current_group)
+            current_group = {'header': item['data'], 'contents': []}
         else:
-            remaining_text += line + "<br/>"
+            if current_group is None:
+                current_group = {'header': 'รายการทดสอบ', 'contents': []}
+            current_group['contents'].append(item)
+    if current_group:
+        groups.append(current_group)
 
-    first_page = Paragraph("<br/>".join(first_page_lines), style=detail_style)
-    first_page_paragraph = [[first_page]]
-    first_page_table = Table(first_page_paragraph, colWidths=[530])
-    first_page_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-        ('LINEBELOW', (0, 0), (-1, 0), 0, colors.white),
-        ('LINEABOVE', (0, 1), (-1, 1), 0, colors.white),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('ALIGN', (0, 0), (-1, 0), 'LEFT'),
-        ('ALIGN', (0, 1), (-1, 1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-    data.append(KeepTogether(first_page_table))
-
-    if remaining_text:
-        remaining_page = Paragraph(remaining_text, style=detail_style)
-        remaining_page_paragraph = [[remaining_page]]
-        data.append(PageBreak())
-        remaining_page_table = Table(remaining_page_paragraph, colWidths=[530])
-        remaining_page_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-            ('LINEBELOW', (0, 0), (-1, 0), 0, colors.white),
-            ('LINEABOVE', (0, 1), (-1, 1), 0, colors.white),
-            ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('ALIGN', (0, 0), (-1, 0), 'LEFT'),
-            ('ALIGN', (0, 1), (-1, 1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ]))
-
-        data.append(KeepTogether(Spacer(20, 20)))
-        data.append(KeepTogether(content_header))
-        data.append(KeepTogether(Spacer(7, 7)))
-        data.append(KeepTogether(remaining_page_table))
-
-    height = 0
-    if table_rows:
-        height = (len(table_rows) + 1) * detail_style.leading
-        header_table = [Paragraph(f"<b>{key}</b>", detail_style) for key in table_keys]
-        content_table = [header_table]
-        for row in table_rows:
-            row_data = [Paragraph(str(row.get(k, '')), detail_style) for k in table_keys]
-            content_table.append(row_data)
-
-        germ_table = Table(content_table, colWidths=[530 / len(table_keys)])
-        germ_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+    for group in groups:
+        eng_header = 'Sample Detail' if group['header'] == 'ข้อมูลผลิตภัณฑ์' else 'Test Method'
+        header_table = Table(
+            [[Paragraph(f"<b>{group['header']} / {eng_header}</b>", style=header_style)]],
+            colWidths=[530], rowHeights=[25]
+        )
+        header_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ]))
 
-        total_height = current_length + height
-        if total_height > first_page_limit and not remaining_text:
+        w, h_header = header_table.wrap(doc.width, first_page_limit)
+
+        reserve_space = 30
+        if current_height + h_header + reserve_space > first_page_limit:
             data.append(PageBreak())
-            data.append(KeepTogether(Spacer(20, 20)))
-            data.append(KeepTogether(content_header))
-            data.append(KeepTogether(Spacer(7, 7)))
-        data.append(KeepTogether(germ_table))
+            current_height = 0
+        data.append(KeepTogether(Spacer(3, 3)))
+        current_height += 3
+        data.append(KeepTogether(header_table))
+        current_height += h_header
+        data.append(KeepTogether(Spacer(3, 3)))
+        current_height += 3
+        text_section = []
+        for g in group['contents']:
+            if g['type'] == 'content_header':
+                text_section.append(f"{index}. {g['data'].strip()}")
+                index += 1
+            elif g['type'] == 'text':
+                text_content = g['data'].split("<br/>")
+                for t in text_content:
+                    text = t.strip()
+                    if not text:
+                        continue
 
-    lab_test = '''<para><font size=12>
-                    สำหรับเจ้าหน้าที่<br/>
-                    Lab No. : _________________________________________________________________________________________________________________<br/>
-                    สภาพตัวอย่าง : O ปกติ<br/>
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; O ไม่ปกติ<br/>
-                    </font></para>'''
+                    if ":" in text and "," in text:
+                        header, contents = text.split(":", 1)
+                        text_section.append(header.strip() + " " + ":")
+                        for c in contents.split(","):
+                            content = c.strip()
+                            if content:
+                                text_section.append(f"- {content}")
+                    else:
+                        text_section.append(text)
+            elif g['type'] == 'table':
+                if text_section:
+                    para = Paragraph("<br/>".join(text_section), style=detail_style)
+                    box = Table([[para]], colWidths=[530])
+                    box.setStyle(TableStyle([
+                        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ('LINEBELOW', (-1, 0), (-1, -1), 0, colors.white),
+                    ]))
+                    if current_height > first_page_limit:
+                        data.append(PageBreak())
+                        current_height = 0
+                        data.append(KeepTogether(header_table))
+                        w, h = header_table.wrap(doc.width, first_page_limit)
+                        current_height += h
+                        data.append(KeepTogether(Spacer(3, 3)))
+                        current_height += 3
+                    data.append(KeepTogether(box))
+                    w, h = box.wrap(doc.width, first_page_limit)
+                    current_height += h
+                    text_section = []
 
-    lab_test_table = Table([[Paragraph(lab_test, style=detail_style)]], colWidths=[530])
+                rows = g['data']
+                headers = list(rows[0].keys())
+                raw_widths = []
+                for h in headers:
+                    w = stringWidth(str(h), detail_style.fontName, detail_style.fontSize)
+                    if h == "เชื้อ":
+                        w += 100
+                    else:
+                        w += 20
+                    raw_widths.append(w)
+                total_width = sum(raw_widths)
+                max_total = 490
 
-    lab_test_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
+                if total_width > max_total:
+                    scale = max_total / total_width
+                    col_widths = [w * scale for w in raw_widths]
+                else:
+                    col_widths = raw_widths
+                table_data = [[Paragraph(h, detail_style) for h in headers]]
+                for row in rows:
+                    table_data.append([Paragraph(str(row.get(h, "")), detail_style) for h in headers])
+                table = Table(table_data, colWidths=col_widths)
+                table.setStyle(TableStyle([
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 4)
+                ]))
 
-    if service_request.lab == 'bacteria' or service_request.lab == 'virology':
-        lab_table_height = detail_style.leading * lab_test.count('<br/>')
-        if not remaining_text and (height + lab_table_height > first_page_limit):
+                table_box = Table([[table]], colWidths=[530])
+                table_box.setStyle(TableStyle([
+                    ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('LINEABOVE', (0, 0), (-1, 0), 0, colors.white),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER')
+                ]))
+                if current_height > first_page_limit:
+                    data.append(PageBreak())
+                    current_height = 0
+                    data.append(KeepTogether(header_table))
+                    w, h = header_table.wrap(doc.width, first_page_limit)
+                    current_height += h
+                    data.append(KeepTogether(Spacer(3, 3)))
+                    current_height += 3
+                data.append(KeepTogether(table_box))
+                w, h = table.wrap(doc.width, first_page_limit)
+                current_height += h
+
+        if text_section:
+            para = Paragraph("<br/>".join(text_section), style=detail_style)
+            box = Table([[para]], colWidths=[530])
+            box.setStyle(TableStyle([
+                ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ]))
+            data.append(KeepTogether(box))
+            w, h = box.wrap(doc.width, first_page_limit)
+            current_height += h
+
+    if service_request.report_languages:
+        report_header = Table([[Paragraph('<b>ใบรายงานผล / Report</b>', style=header_style)]],
+                              colWidths=[530],
+                              rowHeights=[25])
+
+        report_header.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+
+        report = Paragraph("<br/>".join([f"- {rl.report_language.item}" for rl in service_request.report_languages]),
+                           style=detail_style)
+        report_table = Table([[report]], colWidths=[530])
+        report_table.setStyle(TableStyle([
+            ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        if current_height > first_page_limit:
             data.append(PageBreak())
-            data.append(Spacer(20, 20))
-            data.append(content_header)
-            data.append(Spacer(7, 7))
+            current_height = 0
+        else:
+            data.append(KeepTogether(Spacer(3, 3)))
+            current_height += 3
+        data.append(KeepTogether(report_header))
+        w, h = report_header.wrap(doc.width, first_page_limit)
+        current_height += h
+        data.append(KeepTogether(Spacer(3, 3)))
+        current_height += 3
+        data.append(KeepTogether(report_table))
+        w, h = report_table.wrap(doc.width, first_page_limit)
+        current_height += h
+
+    if (service_request.sub_lab.code == 'bacteria' or service_request.sub_lab.code == 'disinfection' or
+            service_request.sub_lab.code == 'air_disinfection'):
+        lab_test_header = Table([[Paragraph('<b>สำหรับเจ้าหน้าที่ / Staff Only</b>', style=header_style)]],
+                                colWidths=[530],
+                                rowHeights=[25])
+
+        lab_test_header.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+
+        lab_test = '''<para><font size=12>
+                            Lab No.<br/>
+                            __________________________________________________________________________________________________________________________<br/>
+                            สภาพตัวอย่าง <br/>
+                            O ปกติ<br/>
+                            O ไม่ปกติ<br/>
+                            </font></para>'''
+
+        lab_test_table = Table([[Paragraph(lab_test, style=detail_style)]], colWidths=[530])
+        lab_test_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+
+        if current_height > first_page_limit:
+            data.append(PageBreak())
+            current_height = 0
+        else:
+            data.append(KeepTogether(Spacer(3, 3)))
+            current_height += 3
+        data.append(KeepTogether(lab_test_header))
+        data.append(KeepTogether(Spacer(3, 3)))
         data.append(lab_test_table)
 
     if service_request.samples:
@@ -1441,7 +1938,8 @@ def request_quotation(request_id):
         message += f'''{service_request.customer.customer_name}\n'''
         message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n\n'''
         message += f'''ระบบงานบริการวิชาการ'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor or not a.is_central_admin], title, message)
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor or not a.is_central_admin],
+                  title, message)
         msg = ('แจ้งขอใบเสนอราคา' \
                '\n\nเรียน เจ้าหน้าที่{}'
                '\n\nใบคำขอบริการเลขที่ {}' \
@@ -1487,14 +1985,32 @@ def request_quotation(request_id):
 @academic_services.route('/customer/quotation/index')
 @login_required
 def quotation_index():
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
-    return render_template('academic_services/quotation_index.html', menu=menu)
+    expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
+    query = ServiceQuotation.query.filter(ServiceQuotation.request.has(customer_id=current_user.id),
+                                          ServiceQuotation.approved_at != None)
+    pending_count = query.filter(ServiceQuotation.confirmed_at == None, ServiceQuotation.cancelled_at == None).count()
+    confirm_count = query.filter(ServiceQuotation.confirmed_at >= expire_time).count()
+    cancel_count = query.filter(ServiceQuotation.cancelled_at >= expire_time).count()
+    all_count = pending_count + confirm_count + cancel_count
+    return render_template('academic_services/quotation_index.html', menu=menu, tab=tab, all_count=all_count,
+                           pending_count=pending_count, cancel_count=cancel_count, confirm_count=confirm_count)
 
 
 @academic_services.route('/api/quotation/index')
 def get_quotations():
+    tab = request.args.get('tab')
     query = ServiceQuotation.query.filter(ServiceQuotation.request.has(customer_id=current_user.id),
-                                          or_(ServiceQuotation.approved_at != None))
+                                          ServiceQuotation.approved_at != None)
+    if tab == 'pending':
+        query = query.filter(ServiceQuotation.confirmed_at == None, ServiceQuotation.cancelled_at == None)
+    elif tab == 'confirm':
+        query = query.filter(ServiceQuotation.confirmed_at != None)
+    elif tab == 'cancel':
+        query = query.filter(ServiceQuotation.cancelled_at != None)
+    else:
+        query = query
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -1517,10 +2033,11 @@ def get_quotations():
 @academic_services.route('/quotation/view/<int:quotation_id>')
 @login_required
 def view_quotation(quotation_id):
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     quotation = ServiceQuotation.query.get(quotation_id)
     return render_template('academic_services/view_quotation.html', quotation_id=quotation_id, menu=menu,
-                           quotation=quotation)
+                           quotation=quotation, tab=tab)
 
 
 def generate_quotation_pdf(quotation, sign=False):
@@ -1677,19 +2194,19 @@ def generate_quotation_pdf(quotation, sign=False):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
     ]))
 
-    document_address = '''<para><font size=12>ที่อยู่สำหรับจัดส่งเอกสาร<br/>
-                    ถึง {name}<br/>
-                    ที่อยู่ {address}<br/>
-                    เบอร์โทรศัพท์ : {phone_number}<br/>
-                    อีเมล : {email}
-                    </font></para>
-                    '''.format(name=quotation.request.receive_name,
-                               address=quotation.request.receive_address,
-                               phone_number=quotation.request.receive_phone_number,
-                               email=quotation.request.customer.contact_email
-                               )
-
-    document_address_table = Table([[Paragraph(document_address, style=style_sheet['ThaiStyle'])]], colWidths=[200])
+    # document_address = '''<para><font size=12>ที่อยู่สำหรับจัดส่งเอกสาร<br/>
+    #                 ถึง {name}<br/>
+    #                 ที่อยู่ {address}<br/>
+    #                 เบอร์โทรศัพท์ : {phone_number}<br/>
+    #                 อีเมล : {email}
+    #                 </font></para>
+    #                 '''.format(name=quotation.request.receive_name,
+    #                            address=quotation.request.receive_address,
+    #                            phone_number=quotation.request.receive_phone_number,
+    #                            email=quotation.request.customer.contact_email
+    #                            )
+    #
+    # document_address_table = Table([[Paragraph(document_address, style=style_sheet['ThaiStyle'])]], colWidths=[200])
 
     sign_style = ParagraphStyle(
         'SignStyle',
@@ -1721,8 +2238,8 @@ def generate_quotation_pdf(quotation, sign=False):
     data.append(KeepTogether(Spacer(1, 16)))
     data.append(KeepTogether(item_table))
     data.append(KeepTogether(Spacer(1, 15)))
-    data.append(KeepTogether(document_address_table))
-    data.append(KeepTogether(Spacer(1, 3)))
+    # data.append(KeepTogether(document_address_table))
+    # data.append(KeepTogether(Spacer(1, 3)))
     data.append(KeepTogether(sign_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
@@ -1790,7 +2307,7 @@ def reject_quotation(quotation_id):
         status_id = get_status(7)
         quotation.canceller_id = current_user.id
         quotation.cancelled_at = arrow.now('Asia/Bangkok').datetime
-        quotation.request.status = status_id
+        quotation.request.status_id = status_id
         db.session.add(quotation)
         db.session.commit()
         flash('ยกเลิกใบเสนอราคาสำเร็จ', 'success')
@@ -1804,7 +2321,9 @@ def reject_quotation(quotation_id):
             message += f'''ลูกค้า : {quotation.customer_name}\n'''
             message += f'''ในนาม : {quotation.name}\n'''
             message += f'''อ้างอิงจากใบคำขอรับบริการเลขที่ : {quotation.request.request_no}\n'''
-            message += f'''เหตุผลที่ยกเลิก : {quotation.note or ''}'''
+            message += f'''เหตุผลที่ปฏิเสธ : {quotation.reason or ''}'''
+            if quotation.other:
+                message += f'''รายละเอียดเพิ่มเติม : {quotation.other}'''
             message += f'''ได้รับการปฏิเสธจากลูกค้า\n'''
             message += f'''กรุณาตรวจสอบและดำเนินขั้นตอนที่เหมาะสมต่อไป\n\n'''
             message += f'''ผู้ประสานงาน\n'''
@@ -1819,7 +2338,7 @@ def reject_quotation(quotation_id):
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
     return render_template('academic_services/modal/reject_quotation_modal.html', form=form,
-                           quotation_id=quotation_id, menu=menu)
+                           quotation_id=quotation_id, menu=menu, tab='cancel')
 
 
 @academic_services.route('/customer/contact/index')
@@ -2004,105 +2523,154 @@ def submit_same_address(address_id):
 @academic_services.route('/customer/sample/index')
 @login_required
 def sample_index():
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
-    samples = ServiceSample.query.filter(ServiceSample.request.has(customer_id=current_user.id))
-    return render_template('academic_services/sample_index.html', samples=samples, menu=menu)
+    expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
+    query = ServiceSample.query.filter(ServiceSample.request.has(customer_id=current_user.id))
+    if tab == 'schedule':
+        samples = query.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
+                                 ServiceSample.received_at == None)
+    elif tab == 'delivery':
+        samples = query.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
+                                 ServiceSample.received_at == None)
+    elif tab == 'received':
+        samples = query.filter(ServiceSample.received_at != None)
+    else:
+        samples = query
+    schedule_count = query.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
+                                 ServiceSample.received_at == None).count()
+    delivery_count = query.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
+                                 ServiceSample.received_at == None).count()
+    received_count = query.filter(ServiceSample.received_at >= expire_time).count()
+    all_count = schedule_count + delivery_count + received_count
+    return render_template('academic_services/sample_index.html', samples=samples, menu=menu, tab=tab,
+                           schedule_count=schedule_count, delivery_count=delivery_count, received_count=received_count,
+                           all_count=all_count)
 
 
 @academic_services.route('/customer/sample/add/<int:sample_id>', methods=['GET', 'POST'])
 @login_required
 def create_sample_appointment(sample_id):
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
     service_request = ServiceRequest.query.get(sample.request_id)
-    datas = request_data(service_request)
+    datas = request_data(service_request, type='form')
     form = ServiceSampleForm(obj=sample)
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=sample.request.sub_lab.code)).all()
     holidays = Holidays.query.all()
     if form.validate_on_submit():
         form.populate_obj(sample)
-        if ((form.ship_type.data == 'ส่งด้วยตนเอง' and form.location.data and form.appointment_date.data) or
-                (form.ship_type.data == 'ส่งทางไปรษณีย์' and form.location.data)):
-            db.session.add(sample)
-            db.session.commit()
-            scheme = 'http' if current_app.debug else 'https'
-            title_prefix = 'คุณ' if service_request.customer.customer_info.type.type == 'บุคคล' else ''
-            link = url_for("service_admin.sample_verification", sample_id=sample.id, menu=menu, _external=True,
-                           _scheme=scheme)
-            customer_name = service_request.customer.customer_name.replace(' ', '_')
-            if admins:
-                if service_request.status.status_id == 9:
-                    title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งแก้ไขนัดหมายส่งตัวอย่าง)'''
-                    message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.sub_lab}\n\n'''
-                    message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}\n'''
-                    message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
-                    message += f'''ในนาม : {service_request.quotation_address.name}\n'''
-                    message += f'''ได้ดำเนินการแก้ไขข้อมูลการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
-                    message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
-                    if sample.appointment_date:
-                        message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
-                    message += f'''สถานที่นัดหมาย : {sample.location}\n'''
-                    message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.short_address}\n'''
-                    message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
-                    message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
-                    message += f'''{link}\n\n'''
-                    message += f'''ผู้ประสานงาน\n'''
-                    message += f'''{service_request.customer.customer_name}\n'''
-                    message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n'''
-                    message += f'''ระบบงานบริการวิชาการ'''
-                else:
-                    title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งนัดหมายส่งตัวอย่าง)'''
-                    message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.sub_lab}\n\n'''
-                    message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}\n'''
-                    message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
-                    message += f'''ในนาม : {service_request.quotation_address.name}\n'''
-                    message += f'''ได้ดำเนินการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
-                    message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
-                    if sample.appointment_date:
-                        message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
-                    message += f'''สถานที่นัดหมาย : {sample.location}\n'''
-                    message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n'''
-                    message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.short_address}\n'''
-                    message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
-                    message += f'''{link}\n\n'''
-                    message += f'''ผู้ประสานงาน\n'''
-                    message += f'''{service_request.customer.customer_name}\n'''
-                    message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n'''
-                    message += f'''ระบบงานบริการวิชาการ'''
-                send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
-            if service_request.status.status_id == 6:
-                status_id = get_status(9)
-                service_request.status_id = status_id
-                db.session.add(service_request)
-                db.session.commit()
-            flash('อัพเดตข้อมูลสำเร็จ', 'success')
-            return redirect(url_for('academic_services.confirm_sample_appointment_page', menu=menu,
-                                    request_id=sample.request_id))
+        if form.ship_type.data == 'ส่งทางไปรษณีย์':
+            sample.appointment_date = None
+            sample.location = None
+            sample.location_name = None
         else:
-            flash('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
+            location = request.form.get('sample_address')
+            if location == ('salaya_address'):
+                sample.location = 'salaya'
+                sample.location_name = 'คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล วิทยาเขตศาลายา'
+            if location == ('siriraj_address'):
+                sample.location = 'siriraj'
+                sample.location_name = 'คณะเทคนิคการแพทย์ โรงพยาบาลศิริราช วิทยาเขตบางกอกน้อย'
+            sample.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').date()
+        db.session.add(sample)
+        db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
+        title_prefix = 'คุณ' if service_request.customer.customer_info.type.type == 'บุคคล' else ''
+        link = url_for("service_admin.sample_verification", sample_id=sample.id, menu=menu, tab='delivery',
+                       _external=True, _scheme=scheme)
+        customer_name = service_request.customer.customer_name.replace(' ', '_')
+        if admins:
+            if service_request.status.status_id == 9:
+                title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งแก้ไขนัดหมายส่งตัวอย่าง)'''
+                message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.sub_lab}\n\n'''
+                message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}\n'''
+                message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
+                message += f'''ในนาม : {service_request.quotation_address.name}\n'''
+                message += f'''ได้ดำเนินการแก้ไขข้อมูลการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
+                message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
+                if sample.appointment_date:
+                    message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
+                if sample.location:
+                    message += f'''สถานที่นัดหมาย : {sample.location_name}\n'''
+                    if sample.location == 'salaya':
+                        message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.salaya_address}\n'''
+                    else:
+                        message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.siriraj_address}\n'''
+                else:
+                    message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.address}\n'''
+                message += f'''เบอร์โทรศัพท์ : { service_request.sub_lab.lab.phone_number}\n'''
+                if service_request.sub_lab.lab.email:
+                    message += f'''เบอร์โทรศัพท์ : {service_request.sub_lab.lab.email}\n'''
+                message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
+                message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
+                message += f'''{link}\n\n'''
+                message += f'''ผู้ประสานงาน\n'''
+                message += f'''{service_request.customer.customer_name}\n'''
+                message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n'''
+                message += f'''ระบบงานบริการวิชาการ'''
+            else:
+                title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งนัดหมายส่งตัวอย่าง)'''
+                message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.sub_lab}\n\n'''
+                message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}\n'''
+                message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
+                message += f'''ในนาม : {service_request.quotation_address.name}\n'''
+                message += f'''ได้ดำเนินการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
+                message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
+                if sample.appointment_date:
+                    message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
+                if sample.location:
+                    message += f'''สถานที่นัดหมาย : {sample.location_name}\n'''
+                    if sample.location == 'salaya':
+                        message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.salaya_address}\n'''
+                    else:
+                        message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.siriraj_address}\n'''
+                else:
+                    message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.address}\n'''
+                message += f'''เบอร์โทรศัพท์ : {service_request.sub_lab.lab.phone_number}\n'''
+                if service_request.sub_lab.lab.email:
+                    message += f'''เบอร์โทรศัพท์ : {service_request.sub_lab.lab.email}\n'''
+                message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n'''
+                message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
+                message += f'''{link}\n\n'''
+                message += f'''ผู้ประสานงาน\n'''
+                message += f'''{service_request.customer.customer_name}\n'''
+                message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n'''
+                message += f'''ระบบงานบริการวิชาการ'''
+            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
+        if service_request.status.status_id == 6:
+            status_id = get_status(9)
+            service_request.status_id = status_id
+            db.session.add(service_request)
+            db.session.commit()
+        flash('อัพเดตข้อมูลสำเร็จ', 'success')
+        return redirect(url_for('academic_services.confirm_sample_appointment_page', menu=menu, tab='delivery',
+                                request_id=sample.request_id))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('academic_services/create_sample_appointment.html', form=form,
-                           sample=sample, menu=menu, sample_id=sample_id, datas=datas, service_request=service_request,
-                           holidays=holidays)
+        return render_template('academic_services/create_sample_appointment.html', form=form, menu=menu,
+                               tab=tab, sample=sample, sample_id=sample_id, datas=datas, service_request=service_request,
+                               holidays=holidays)
 
 
 @academic_services.route('/customer/sample-appointment/confirm/page/<int:request_id>', methods=['GET', 'POST'])
 def confirm_sample_appointment_page(request_id):
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     return render_template('academic_services/confirm_sample_appointment_page.html', request_id=request_id,
-                           menu=menu)
+                           menu=menu, tab=tab)
 
 
 @academic_services.route('/customer/sample/tracking_number/add/<int:sample_id>', methods=['GET', 'POST'])
 def add_tracking_number(sample_id):
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
     form = ServiceSampleForm(obj=sample)
     if form.validate_on_submit():
         form.populate_obj(sample)
-        sample.request.status = 'รอรับตัวอย่าง'
         db.session.add(sample)
         db.session.commit()
         flash('อัพเดตข้อมูลสำเร็จ', 'success')
@@ -2110,15 +2678,17 @@ def add_tracking_number(sample_id):
         resp.headers['HX-Refresh'] = 'true'
         return resp
     return render_template('academic_services/modal/add_tracking_number_modal.html', form=form, menu=menu,
-                           sample_id=sample_id)
+                           tab=tab, sample_id=sample_id)
 
 
 @academic_services.route('/customer/sample/appointment/view/<int:sample_id>')
 @login_required
 def view_sample_appointment(sample_id):
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
-    return render_template('academic_services/view_sample_appointment.html', sample=sample, menu=menu)
+    return render_template('academic_services/view_sample_appointment.html', sample=sample, menu=menu,
+                           tab=tab)
 
 
 @academic_services.route('/customer/sample/test/view/<int:sample_id>')
@@ -2175,14 +2745,38 @@ def payment_index():
 @academic_services.route('/customer/invoice/index')
 @login_required
 def invoice_index():
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
-    return render_template('academic_services/invoice_index.html', menu=menu)
+    today = arrow.now('Asia/Bangkok').date()
+    expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
+    query = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at != None, ServiceInvoice.quotation.has(
+        ServiceQuotation.request.has(customer_id=current_user.id)))
+    pending_count = query.filter(ServiceInvoice.paid_at == None, today <= ServiceInvoice.due_date).count()
+    verify_count = query.filter(ServiceInvoice.is_paid == False).count()
+    payment_count = query.filter(ServiceInvoice.verify_at >= expire_time).count()
+    overdue_count = query.filter(today > ServiceInvoice.due_date, ServiceInvoice.paid_at == None).count()
+    all_count = pending_count + verify_count + payment_count + overdue_count
+    return render_template('academic_services/invoice_index.html', menu=menu, tab=tab, all_count=all_count,
+                           pending_count=pending_count, verify_count=verify_count, payment_count=payment_count,
+                           overdue_count=overdue_count)
 
 
 @academic_services.route('/api/invoice/index')
 def get_invoices():
+    tab = request.args.get('tab')
+    today = arrow.now('Asia/Bangkok').date()
     query = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at != None, ServiceInvoice.quotation.has(
-                ServiceQuotation.request.has(customer_id=current_user.id)))
+        ServiceQuotation.request.has(customer_id=current_user.id)))
+    if tab == 'pending':
+        query = query.filter(ServiceInvoice.paid_at == None, today <= ServiceInvoice.due_date)
+    elif tab == 'verify':
+        query = query.filter(ServiceInvoice.is_paid == False)
+    elif tab == 'payment':
+        query = query.filter(ServiceInvoice.is_paid == True)
+    elif tab == 'overdue':
+        query = query.filter(today > ServiceInvoice.due_date, ServiceInvoice.paid_at == None)
+    else:
+        query = query
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -2221,10 +2815,13 @@ def get_invoices():
 
 @academic_services.route('/customer/payment/add', methods=['GET', 'POST'])
 def add_payment():
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     invoice_id = request.args.get('invoice_id')
     invoice = ServiceInvoice.query.get(invoice_id)
     form = ServicePaymentForm()
+    if not form.amount_paid.data:
+        form.amount_paid.data = invoice.grand_total()
     if form.validate_on_submit():
         payment = ServicePayment()
         form.populate_obj(payment)
@@ -2289,21 +2886,21 @@ def add_payment():
                 except LineBotApiError:
                     pass
         flash('อัพเดตสลิปสำเร็จ', 'success')
-        return redirect(url_for('academic_services.invoice_index', menu=menu))
+        return redirect(url_for('academic_services.invoice_index', menu=menu, tab='verify'))
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-    return render_template('academic_services/add_payment.html', menu=menu, form=form, invoice=invoice)
+    return render_template('academic_services/add_payment.html', menu=menu, form=form, invoice=invoice, tab=tab)
 
 
 @academic_services.route('/invoice/view/<int:invoice_id>')
 @login_required
 def view_invoice(invoice_id):
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     invoice = ServiceInvoice.query.get(invoice_id)
-    sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
     return render_template('academic_services/view_invoice.html', invoice_id=invoice_id, menu=menu,
-                           sub_lab=sub_lab, invoice=invoice)
+                           tab=tab, invoice=invoice)
 
 
 def generate_invoice_pdf(invoice, sign=False, cancel=False):
@@ -2335,9 +2932,9 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
                                </font></para>
                                '''
 
-    lab_address = '''<para><font size=12>
-                            {address}
-                            </font></para>'''.format(address=lab.address if lab else sub_lab.address)
+    # lab_address = '''<para><font size=12>
+    #                         {address}
+    #                         </font></para>'''.format(address=lab.address if lab else sub_lab.address)
 
     invoice_no = '''<br/><br/><font size=10>
                         เลขที่/No. {invoice_no}<br/>
@@ -2498,8 +3095,9 @@ def export_invoice_pdf(invoice_id):
 @academic_services.route('/customer/request/cancel/<int:request_id>', methods=['GET'])
 def cancel_request(request_id):
     menu = request.args.get('menu')
+    status_id = get_status(23)
     service_request = ServiceRequest.query.get(request_id)
-    service_request.status = 'ยกเลิกใบคำขอรับบริการ'
+    service_request.status_id = status_id
     db.session.add(service_request)
     db.session.commit()
     flash('ยกเลิกคำขอรับบริการสำเร็จ', 'success')
@@ -2510,12 +3108,11 @@ def cancel_request(request_id):
 def edit_request_form():
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     print('Authorizing with Google..')
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    sheet = wks.worksheet(sub_lab.sheet)
+    sheet = wks.worksheet(service_request.sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     data = service_request.data
     form = create_request_form(df)(**data)
@@ -2551,7 +3148,7 @@ def receipt_index():
 @academic_services.route('/api/receipt/index')
 def get_receipts():
     query = ServiceInvoice.query.filter(ServiceInvoice.receipts != None, ServiceInvoice.quotation.has(
-                ServiceQuotation.request.has(customer_id=current_user.id)))
+        ServiceQuotation.request.has(customer_id=current_user.id)))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -2574,9 +3171,46 @@ def get_receipts():
 @academic_services.route('/customer/result/index')
 @login_required
 def result_index():
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
-    results = ServiceResult.query.filter(ServiceResult.request.has(customer_id=current_user.id))
-    return render_template('academic_services/result_index.html', results=results, menu=menu)
+    expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
+    query = ServiceResultItem.query.filter(ServiceResultItem.result.has(
+        ServiceResult.request.has(customer_id=current_user.id)))
+
+    if tab == 'pending':
+        result_items = query.filter(ServiceResultItem.sent_at == None)
+    elif tab == 'edit':
+        result_items = query.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == False)
+    elif tab == 'approve':
+        result_items = query.filter(ServiceResultItem.sent_at != None, ServiceResultItem.approved_at == None,
+                             or_(ServiceResultItem.req_edit_at == None, ServiceResultItem.is_edited == True
+                                 )
+                             )
+    elif tab == 'confirm':
+        result_items = query.filter(ServiceResultItem.approved_at != None)
+    else:
+        result_items = query
+    pending_count = query.filter(ServiceResultItem.sent_at == None).count()
+    edit_count = query.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == False).count()
+    approve_count = query.filter(ServiceResultItem.sent_at != None, ServiceResultItem.approved_at == None,
+                             or_(ServiceResultItem.req_edit_at == None, ServiceResultItem.is_edited == True
+                                 )
+                             ).count()
+    confirm_count = query.filter(ServiceResultItem.approved_at >= expire_time).count()
+    all_count = edit_count + approve_count + pending_count + confirm_count
+    return render_template('academic_services/result_index.html', result_items=result_items, menu=menu,
+                           tab=tab, edit_count=edit_count, approve_count=approve_count, confirm_count=confirm_count,
+                           all_count=all_count, pending_count=pending_count)
+
+
+@academic_services.route('/customer/result/view/<int:result_item_id>', methods=['GET', 'POST'])
+def view_result_item(result_item_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    result_item = ServiceResultItem.query.get(result_item_id)
+    result_item.draft_file_url = generate_url(result_item.draft_file)
+    return render_template('academic_services/view_result_item.html', result_item=result_item, result_item_id=result_item_id,
+                           menu=menu, tab=tab)
 
 
 @academic_services.route('/customer/result/confirm/<int:result_id>', methods=['GET', 'POST'])
@@ -2701,3 +3335,146 @@ def edit_result(result_id):
         resp.headers['HX-Refresh'] = 'true'
         return resp
     return render_template('academic_services/modal/edit_result_modal.html', form=form, result_id=result_id, menu=menu)
+
+
+@academic_services.route('/customer/result_item/confirm/<int:result_item_id>', methods=['GET', 'POST'])
+def confirm_result_item(result_item_id):
+    menu = request.args.get('menu')
+    result_item = ServiceResultItem.query.get(result_item_id)
+    result = ServiceResult.query.get(result_item.result_id)
+    result_item.approver_id = current_user.id
+    result_item.approved_at = arrow.now('Asia/Bangkok').datetime
+    db.session.add(result_item)
+    approved_all = all(item.approved_at is not None for item in result.result_items)
+    tab = 'confirm' if approved_all else 'approve'
+    if approved_all:
+        status_id = get_status(13)
+        result_item.result.status_id = status_id
+        result_item.result.request.status_id = status_id
+        result_item.result.approved_at = arrow.now('Asia/Bangkok').datetime
+    db.session.add(result_item)
+    db.session.commit()
+    scheme = 'http' if current_app.debug else 'https'
+    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=result_item.result.request.sub_lab.code)).all()
+    title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
+    link = url_for("service_admin.create_invoice", quotation_id=result_item.result.quotation_id, menu='invoice',
+                   tab='draft', _external=True, _scheme=scheme)
+    customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
+    if admins:
+        title = f'''[{result_item.result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result_item.result.request.quotation_address.name}) | แจ้งยืนยันใบรายงานผลการทดสอบ'''
+        message = f'''เรียน เจ้าหน้าที่{result_item.result.request.sub_lab.sub_lab}\n\n'''
+        message += f'''{result_item.report_language}ฉบับร่างของใบคำขอรับบริการเลขที่ : {result_item.result.request.request_no}\n'''
+        message += f'''ลูกค้า : {result_item.result.request.customer.customer_name}\n'''
+        message += f'''ในนาม : {result_item.result.request.quotation_address.name}\n'''
+        message += f'''ได้ดำเนินการยืนยันเรียบร้อยแล้ว\n'''
+        message += f'''กรุณาดำเนินการออกใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'''
+        message += f'''{link}\n\n'''
+        message += f'''ผู้ประสานงาน\n'''
+        message += f'''{result_item.result.request.customer.customer_name}\n'''
+        message += f'''เบอร์โทร {result_item.result.request.customer.contact_phone_number}\n\n'''
+        message += f'''ระบบงานบริการวิชาการ'''
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
+        msg = ('แจ้งยืนยันใบรายงานผลการทดสอบ' \
+               '\n\nเรียน เจ้าหน้าที่{}'
+               '\n\n{}ฉบับร่างของใบคำขอรับบริการเลขที่ {}' \
+               '\nลูกค้า : {}' \
+               '\nในนาม : {}' \
+               '\nได้ดำเนินการยืนยันเรียบร้อยแล้ว' \
+               '\nกรุณาดำเนินการออกใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง' \
+               '\n{}' \
+               '\n\nผู้ประสานงาน' \
+               '\n{}' \
+               '\nเบอร์โทร {}' \
+               '\n\nระบบงานบริการวิชาการ'.format(result_item.result.request.sub_lab.sub_lab, result_item.report_language,
+                                                 result_item.result.request.request_no,
+                                                 result_item.result.request.customer.customer_name,
+                                                 result_item.result.request.quotation_address.name, link,
+                                                 result_item.result.request.customer.customer_name,
+                                                 result_item.result.request.customer.contact_phone_number)
+               )
+        if not current_app.debug:
+            for a in admins:
+                if not a.is_central_admin:
+                    try:
+                        line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
+    flash('ยืนยันใบรายงานผลเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('academic_services.result_index', menu=menu, tab=tab))
+
+
+@academic_services.route('/customer/result_item/edit/<int:result_item_id>', methods=['GET', 'POST'])
+def edit_result_item(result_item_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    result_item = ServiceResultItem.query.get(result_item_id)
+    result_item.is_edited = False
+    result_item.edit_requester_id = None
+    result_item.req_edit_at = None
+    result_item.note = None
+    db.session.add(result_item)
+    db.session.commit()
+    result = ServiceResult.query.get(result_item.result_id)
+    form = ServiceResultItemForm(obj=result_item)
+    edited_all = all(item.is_edited for item in result_item.result.result_items if item.req_edit_at)
+    if form.validate_on_submit():
+        form.populate_obj(result_item)
+        status_id = get_status(14)
+        result_item.result.status_id = status_id
+        result_item.edit_requester_id = current_user.id
+        result_item.req_edit_at = arrow.now('Asia/Bangkok').datetime
+        result_item.result.request.status_id = status_id
+        if edited_all:
+            result_item.result.result_edit_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(result_item)
+        db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
+        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=result.request.sub_lab.code)).all()
+        title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
+        link = url_for("service_admin.create_draft_result", rresult_id=result.id, request_id=result.request.id,
+                       menu='test_item', _external=True, _scheme=scheme)
+        customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
+        if admins:
+            title = f'''[{result_item.result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result_item.result.request.quotation_address.name}) | แจ้งขอแก้ไขใบรายงานผลการทดสอบ'''
+            message = f'''เรียน เจ้าหน้าที่{result.request.sub_lab.sub_lab}\n\n'''
+            message += f'''{result_item.report_language}ฉบับร่างของใบคำขอรับบริการเลขที่ : {result.request.request_no}\n'''
+            message += f'''ลูกค้า : {result.request.customer.customer_name}\n'''
+            message += f'''ในนาม : {result.request.quotation_address.name}\n'''
+            message += f'''ได้ขอดำเนินการแก้ไขรายงานผลการทดสอบเนื่องจาก {result.note}\n'''
+            message += f'''กรุณาดำเนินการแก้ไขรายงานผลการทดสอบได้ที่ลิงก์ด้านล่าง\n'''
+            message += f'''{link}\n\n'''
+            message += f'''ผู้ประสานงาน\n'''
+            message += f'''{result.request.customer.customer_name}\n'''
+            message += f'''เบอร์โทร {result.request.customer.contact_phone_number}\n\n'''
+            message += f'''ระบบงานบริการวิชาการ'''
+            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
+            msg = ('แจ้งขอแก้ไขใบรายงานผลการทดสอบ' \
+                   '\n\nเรียน เจ้าหน้าที่{}'
+                   '\n\n{}ฉบับร่างของใบคำขอรับบริการเลขที่ {}' \
+                   '\nลูกค้า : {}' \
+                   '\nในนาม : {}' \
+                   '\nได้ขอดำเนินการแก้ไขรายงานผลการทดสอบเนื่องจาก {}' \
+                   '\nกรุณาดำเนินการแก้ไขรายงานผลการทดสอบได้ที่ลิงก์ด้านล่าง' \
+                   '\n{}' \
+                   '\n\nผู้ประสานงาน' \
+                   '\n{}' \
+                   '\nเบอร์โทร {}' \
+                   '\n\nระบบงานบริการวิชาการ'.format(result.request.sub_lab.sub_lab, result_item.report_language, result.request.request_no,
+                                                     result.request.customer.customer_name,
+                                                     result.request.quotation_address.name, result_item.note, link,
+                                                     result.request.customer.customer_name,
+                                                     result.request.customer.contact_phone_number)
+                   )
+            if not current_app.debug:
+                for a in admins:
+                    if not a.is_central_admin:
+                        try:
+                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                        except LineBotApiError:
+                            pass
+        flash('ส่งคำขอแก้ไขเรียบร้อยแล้ว', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('academic_services/modal/edit_result_modal.html', form=form, result_item_id=result_item_id,
+                           menu=menu, tab=tab)

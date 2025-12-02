@@ -1,0 +1,581 @@
+{% extends "academic_services/service_base.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <style>
+        table {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        th, td {
+            padding: 5px;
+        }
+
+        .daterangepicker td,
+        .daterangepicker th {
+            display: table-cell !important;
+        }
+
+        input[readonly] {
+            background-color: #e9ecef !important;
+            cursor: not-allowed;
+        }
+    </style>
+{% endblock %}
+{% block page_content %}
+    {% include "academic_services/customer_nav.html" %}
+    {% include 'messages.html' %}
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-12">
+                    <h1 class="title is-3 has-text-centered has-text-grey-dark">ฟอร์ม{{ sub_lab.sub_lab }}</h1>
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="box">
+                            <h5 class="title is-size-5">ข้อมูลผลิตภัณฑ์</h5>
+                            <hr style="background-color: gainsboro">
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.product_name.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.product_name(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.active_substance.label }}
+                                    เช่น Formaldyhyde 37% w/w, Ethyl Alcohol 50% w/w
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.active_substance(class='textarea',
+                                    placeholder='เช่น Formaldyhyde 37% w/w, Ethyl Alcohol 50% w/w') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.product_appearance.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.product_appearance(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.kind.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="contol">
+                                    {{ form.kind(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.size.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.size(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.mfg.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.mfg(class='input') }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.exp.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.exp(class='input') }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.lot_no.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.lot_no(class='input') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.amount.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.amount(class='input') }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.service_life.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.service_life(class='input') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">{{ form.product_storage.label }}</label>
+                                        <div class="select is-fullwidth">
+                                            {{ form.product_storage(
+                                                        **{'hx-get': url_for("academic_services.get_product_storage",
+                                                          request_id=request_id),
+                                                         'hx-target': '#product-storage-other-container',
+                                                         'hx-swap': 'innerHTML',
+                                                         'hx-trigger': 'change, load'}) }}
+                                        </div>
+                                    </div>
+                                    <div id="product-storage-other-container" style='width:75%'></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="box">
+                            <h5 class="title is-size-5">รายการทดสอบ</h5>
+                            <hr style="background-color: gainsboro">
+                            {% if request_id %}
+                                <div class="field">
+                                    <label class="label">
+                                        {{ form.label }}
+                                    </label>
+                                </div>
+                                {% for subform in form %}
+                                    {% if subform.type == 'FormField' %}
+                                        {% set ns = namespace(has_value=false) %}
+                                        {% for sb in subform %}
+                                            {% if sb.type != 'HiddenField' and sb.type != 'FieldList' and sb.data %}
+                                                {% set ns.has_value = true %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if ns.has_value %}
+                                            <div class="card subform-card mb-4" id="{{ subform.name }}">
+                                                <header class="card-header">
+                                                    <p class="card-header-title">{{ subform.label }}</p>
+                                                </header>
+                                                <div class="card-content">
+                                                    {% for field in subform %}
+                                                        {% if field.type != 'HiddenField' and field.type != 'CSRFTokenField' %}
+                                                            {% if field.type == 'FieldList' %}
+                                                                <table class="table is-fullwidth ">
+                                                                    <thead>
+                                                                    {% for subfield in field %}
+                                                                        {% if loop.first %}
+                                                                            {% for _field in subfield %}
+                                                                                {% if _field.type != 'CSRFTokenField' %}
+                                                                                    <th style="border: none">
+                                                                                        {{ _field.label.text }}
+                                                                                        <span class="has-text-danger">*</span>
+                                                                                    </th>
+                                                                                {% endif %}
+                                                                            {% endfor %}
+                                                                        {% endif %}
+                                                                    {% endfor %}
+                                                                    </thead>
+                                                                    <tbody>
+                                                                    {% for subfield in field %}
+                                                                        <tr>
+                                                                            {% for _field in subfield %}
+                                                                                {% if _field.type != 'CSRFTokenField' %}
+                                                                                    <td style="border: none">{{ _field() }}</td>
+                                                                                {% endif %}
+                                                                            {% endfor %}
+                                                                        </tr>
+                                                                    {% endfor %}
+                                                                    </tbody>
+                                                                </table>
+                                                            {% elif field.name.endswith('surface_type') %}
+                                                                <div class="field ml-4">
+                                                                    <label id="surface_type_label" class="label">
+                                                                        {{ field.label }}
+                                                                    </label>
+                                                                    <div class="control">
+                                                                        {{ field() }}
+                                                                    </div>
+                                                                </div>
+                                                            {% elif field.name.endswith('surface_type_other') %}
+                                                                <div class="field ml-4">
+                                                                    <label class="label">
+                                                                        {{ field.label }}
+                                                                        <span class="has-text-danger">*</span>
+                                                                    </label>
+                                                                    <div class="control">
+                                                                        {{ field() }}
+                                                                    </div>
+                                                                </div>
+                                                            {% else %}
+                                                                <div class="field">
+                                                                    <label class="label">
+                                                                        {{ field.label }}
+                                                                        <span class="has-text-danger">*</span>
+                                                                    </label>
+                                                                    <div class="control">
+                                                                        {{ field() }}
+                                                                    </div>
+                                                                </div>
+                                                            {% endif %}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                    <button id="{{ subform.name }}" type="button"
+                                                            class="button is-danger is-rounded is-small remove-subform"
+                                                            data-request-id="{{ request_id or '' }}"
+                                                            hx-post="{{ url_for('academic_services.remove_condition_form', request_id=request_id) }}"
+                                                            hx-vals='{"field": "{{ subform.name }}"}'
+                                                            hx-target=".subform-card"
+                                                            hx-swap="innerHTML"
+                                                    >
+                                                        ลบ
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                            <div class="field">
+                                <div id="condition-fields"></div>
+                            </div>
+                            <div class="field">
+                                <div class="select">
+                                    {{ form.product_type(
+                                        **{'hx-get': url_for("academic_services.get_virus_disinfection_condition_form", code=code),
+                                        'hx-target': '#condition-fields',
+                                         'hx-swap': 'beforeend',
+                                         'hx-trigger': 'change, load'}) }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-justify-content-center">
+                            <div class="control">
+                                <input type="submit" value="บันทึกและดำเนินการต่อ" class="button is-success">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript"
+            src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            moment.locale('th');
+            $('input[name="mfg"]').daterangepicker({
+                singleDatePicker: true,
+                autoUpdateInput: true,
+                locale:
+                    {
+                        format: 'YYYY-MM-DD',
+                        cancelLabel: 'Clear'
+                    }
+            });
+            $('input[name="mfg"]').on('apply.daterangepicker', function (ev, picker) {
+                $(this).val(picker.startDate.format('YYYY-MM-DD'));
+            });
+            $('input[name="mfg"]').on('cancel.daterangepicker', function () {
+                $(this).val('');
+            });
+            $('input[name="exp"]').daterangepicker({
+                singleDatePicker: true,
+                autoUpdateInput: true,
+                locale:
+                    {
+                        format: 'YYYY-MM-DD',
+                        cancelLabel: 'Clear'
+                    }
+            });
+            $('input[name="exp"]').on('apply.daterangepicker', function (ev, picker) {
+                $(this).val(picker.startDate.format('YYYY-MM-DD'));
+            });
+            $('input[name="exp"]').on('cancel.daterangepicker', function () {
+                $(this).val('');
+            });
+        })
+    </script>
+    <script>
+        function removeProductTypeOptions() {
+            const productType = document.getElementById('product_type');
+            const subforms = document.querySelectorAll('.subform-card');
+            for (let i = productType.options.length - 1; i >= 0; i--) {
+                const option = productType.options[i];
+                if (option.value === '') continue;
+                subforms.forEach(subform => {
+                    const subformId = subform.id.split(/[\s_]+/)[0];
+                    if (option.value === subformId) {
+                        option.remove();
+                    }
+                });
+            }
+            productType.selectedIndex = 0;
+        }
+
+        document.addEventListener('DOMContentLoaded', removeProductTypeOptions);
+
+        document.body.addEventListener('htmx:afterSwap', function (evt) {
+            if (evt.target.id === 'condition-fields') {
+                removeProductTypeOptions();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const productType = document.getElementById('product_type');
+            const subforms = document.querySelectorAll('.subform-card');
+            for (let i = productType.options.length - 1; i >= 0; i--) {
+                const option = productType.options[i];
+                if (option.value === '') continue;
+                subforms.forEach(subform => {
+                    const subformId = subform.id.split(/[\s_]+/)[0];
+                    if (option.value === subformId) {
+                        option.remove();
+                    }
+                });
+            }
+            productType.selectedIndex = 0;
+        });
+    </script>
+    <script>
+        function validateProductType() {
+            const product_type = document.getElementById('product_type');
+            const subforms = document.querySelector('.subform-card');
+            if (subforms == null) {
+                product_type.required = true;
+                product_type.oninvalid = function () {
+                    this.setCustomValidity('กรุณาเลือกประเภทผลิตภัณฑ์');
+                };
+                product_type.oninput = function () {
+                    this.setCustomValidity('');
+                };
+            } else {
+                product_type.required = false;
+                product_type.oninvalid = null;
+                product_type.oninput = null;
+            }
+        }
+
+        validateProductType();
+        document.addEventListener('change', validateProductType);
+    </script>
+    <script>
+        document.addEventListener('click', function (e) {
+            const productType = document.getElementById('product_type');
+            if (e.target.classList.contains('remove-subform')) {
+                const card = e.target.closest('.subform-card');
+                const requestId = e.target.dataset.requestId;
+                const text = card.querySelector('label').textContent.trim();
+                if (!requestId) {
+                    card.remove();
+                    e.preventDefault();
+                }
+                const subformId = e.target.id.split(/[\s_]+/)[0];
+
+                let hasOptions = false;
+                for (let i = 0; i < productType.options.length; i++) {
+                    if (productType.options[i].value === subformId) {
+                        hasOptions = true;
+                        break;
+                    }
+                }
+
+                if (!hasOptions) {
+                    const option = document.createElement('option');
+                    option.value = subformId;
+                    option.text = text;
+                    productType.appendChild(option);
+                }
+            }
+            productType.selectedIndex = 0;
+        });
+    </script>
+    <script>
+        document.addEventListener('click', function (e) {
+            if (e.target.classList.contains('remove-subform')) {
+                const btn = e.target;
+                const card = btn.closest('.subform-card');
+                const requestId = btn.dataset.requestId;
+
+                if (!requestId) {
+                    card.remove();
+                    e.preventDefault();
+                }
+            }
+        });
+    </script>
+    <script>
+        function toggleTable(subform) {
+            const table = subform.find('table');
+            const checkboxes = table.find('tbody tr input[type="checkbox"]');
+
+            function validateInput() {
+                const count = checkboxes.filter(':checked').length;
+                if (count == 0) {
+                    checkboxes.prop('required', true)
+                    checkboxes.each(function () {
+                        this.setCustomValidity('กรุณาเลือกเชื้ออย่างน้อย 1 รายการ');
+                    });
+                } else {
+                    checkboxes.prop('required', false);
+                    checkboxes.each(function () {
+                        this.setCustomValidity('');
+                    });
+                }
+
+                table.find('tbody tr').each(function () {
+                    const checkbox = $(this).find('input[type="checkbox"]');
+                    const textInputs = $(this).find('input[type="text"]');
+
+                    const active = checkbox.is(':checked');
+                    textInputs.prop('readonly', !active).prop('required', active)
+                        .attr('oninvalid', "this.setCustomValidity('กรุณากรอกข้อมูล')")
+                        .attr('oninput', "this.setCustomValidity('')");
+
+                    if (!active) textInputs.val('');
+                });
+            }
+
+            validateInput();
+
+            checkboxes.on('change', validateInput);
+        }
+
+        function addRequiredField(subform) {
+            const testMethodInput = subform.find('input[name$="test_method"]');
+            const injectTypeInput = subform.find('input[name$="inject_type"]');
+            const productPreparationInput = subform.find('input[name$="product_preparation"]');
+
+            injectTypeInput.prop('required', true)
+                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกประเภทการฉีด')");
+
+            injectTypeInput.on('change', function () {
+                injectTypeInput.each(function () {
+                    this.setCustomValidity('');
+                });
+            });
+
+            productPreparationInput.prop('required', true)
+                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกการเตรียมผลิตภัณฑ์เพื่อการทดสอบ')");
+
+            productPreparationInput.on('change', function () {
+                productPreparationInput.each(function () {
+                    this.setCustomValidity('');
+                });
+            });
+
+            function validateTestMethod() {
+                const count = testMethodInput.filter(':checked').length;
+                if (count == 0) {
+                    testMethodInput.prop('required', true);
+                    testMethodInput.each(function () {
+                        this.setCustomValidity('กรุณาเลือกวิธีทดสอบอย่างน้อย 1 รายการ');
+                    });
+                } else {
+                    testMethodInput.prop('required', false);
+                    testMethodInput.each(function () {
+                        this.setCustomValidity('');
+                    });
+                }
+            }
+
+            validateTestMethod();
+
+            testMethodInput.on('change', validateTestMethod);
+        }
+
+        function toggleSurfaceTypeInput(subform) {
+            const surfaceTypeLabel = subform.find('label[id$="surface_type_label"]');
+            const surfaceTypeField = subform.find('input[name$="surface_type"]');
+            const surfaceTypeOtherField = subform.find('input[name$="surface_type_other"]');
+            let isASTMSelected = false;
+
+            subform.find('input[type="checkbox"][name$="test_method"]').each(function () {
+                if (this.checked && this.value.includes('Modified ASTM E1053-20')) {
+                    isASTMSelected = true;
+                }
+            });
+
+            if (isASTMSelected) {
+                surfaceTypeField.prop('disabled', false).attr('required', true);
+
+                surfaceTypeField.prop('required', true)
+                    .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกชนิดพื้นผิว')");
+
+                surfaceTypeField.on('change', function () {
+                    surfaceTypeField.each(function () {
+                        this.setCustomValidity('');
+                    });
+                });
+
+                surfaceTypeLabel.html('<label class="label">ชนิดพื้นผิว<span class="has-text-danger ml-1">*</span></label>');
+
+            } else {
+                surfaceTypeField.each(function () {
+                    let name = $(this).attr('name');
+                    if (subform.find('input[name="' + name + '"][type="hidden"]').length === 0) {
+                        subform.append('<input type="hidden" name="' + name + '" value="">');
+                    }
+                });
+                surfaceTypeField.prop('disabled', true);
+                surfaceTypeField.prop('checked', false)
+                surfaceTypeOtherField.closest('.field').hide();
+                surfaceTypeOtherField.val('');
+                surfaceTypeLabel.html('<label class="label">ชนิดพื้นผิว</label>');
+            }
+        }
+
+        function showSurfaceTypeOtherInput(subform) {
+            const surfaceTypeField = subform.find('input[type="radio"][name$="surface_type"]:checked').val();
+            const surfaceTypeOtherInput = subform.find('input[name$="surface_type_other"]');
+            const surfaceTypeOtherField = surfaceTypeOtherInput.closest('.field');
+
+            if (surfaceTypeField && surfaceTypeField.includes('อื่นๆ โปรดระบุ')) {
+                surfaceTypeOtherField.show();
+                surfaceTypeOtherInput.prop('required', true).attr('oninvalid', "this.setCustomValidity('กรุณากรอกชนิดพท้นผิว')")
+                    .attr('oninput', "this.setCustomValidity('')");
+            } else {
+                surfaceTypeOtherField.hide();
+                surfaceTypeOtherInput.val('');
+            }
+        }
+
+        $('.subform-card').each(function () {
+            const subform = $(this);
+            toggleTable(subform);
+            addRequiredField(subform);
+            toggleSurfaceTypeInput(subform);
+            showSurfaceTypeOtherInput(subform);
+
+            subform.find('input[type="checkbox"][name$="test_method"]').change(function () {
+                toggleSurfaceTypeInput(subform);
+                showSurfaceTypeOtherInput(subform);
+            });
+
+            subform.find('input[type="radio"][name$="surface_type"]').change(function () {
+                showSurfaceTypeOtherInput(subform);
+            });
+        });
+    </script>
+{% endblock %}

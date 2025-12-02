@@ -9,6 +9,9 @@
             opacity: 1 !important;
             transition: none !important;
         }
+        #toast-container.toast-top-full-width > .toast {
+            width: 100% !important;
+        }
     </style>
 {% endblock %}
 {% block page_content %}
@@ -21,12 +24,60 @@
                 <div class="column is-11">
                     <h1 class="title has-text-centered">รายการใบแจ้งหนี้</h1>
                 </div>
+                <div class="tabs">
+                    <ul>
+                        <li {% if tab == 'pending' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.invoice_index', tab='pending', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
+                                <span>รอชำระเงิน</span>
+                                {% if pending_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ pending_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'verify' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.invoice_index', tab='verify', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-clipboard"></i></span>
+                                <span>รอเจ้าหน้าที่ตรวจสอบ</span>
+                                {% if verify_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ verify_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'payment' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.invoice_index', tab='payment', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                <span>ชำระเงินแล้ว</span>
+                                {% if payment_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ payment_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'overdue' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.invoice_index', tab='overdue', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-circle-exclamation"></i></span>
+                                <span>ค้างชำระ</span>
+                                {% if overdue_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ overdue_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.invoice_index', tab='all', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ทั้งหมด</span>
+                                {% if all_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ all_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                    </ul>
+                </div>
                 <table id='invoices' class="table is-fullwidth">
                     <thead>
                         <th>เลขใบแจ้งหนี้</th>
                         <th>วัน-เวลาที่ออก</th>
                         <th>วันครบกำหนดชำระ</th>
-                        <th>รายการ</th>
                         <th>ราคา</th>
                         <th>วิธีการชำระเงิน</th>
                         <th>วันที่ชำระเงิน</th>
@@ -62,6 +113,19 @@
     </script>
     <script>
         function showToast(category, message) {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
             if (category === 'success') {
                 toastr.success(message);
             } else if (category === 'danger') {
@@ -88,7 +152,7 @@
             $.fn.dataTable.moment('lll');
             $('#invoices').DataTable({
                 ajax: {
-                    url: {{ url_for('academic_services.get_invoices')|tojson|safe}},
+                    url: {{ url_for('academic_services.get_invoices', tab=tab)|tojson|safe}},
                 },
                 order: [[1, 'desc']],
                 scrollX: true,
@@ -117,13 +181,12 @@
                             }
                         }
                     },
-                    { data: 'product' },
                     { data: 'total_price' },
                     { data: 'payment_type'},
                     {
                         data : 'payment_date',
                         render: function(data) {
-                            if (data !== '') {
+                            if (data !== null) {
                                 let d = moment(data)
                                 return d.format('ll')
                             } else {
@@ -145,7 +208,9 @@
                                         </div>
                                     </div>`;
                             } else if (row.file_attached_at != null && row.paid_at == null) {
-                                add_payment_url = '/academic_services/customer/payment/add?invoice_id=' + data +'&menu=invoice';
+                                var tab = '{{ tab }}';
+                                var menu = '{{ menu }}';
+                                var add_payment_url = '/academic_services/customer/payment/add?invoice_id=' + data +'&menu=' + menu + '&tab=' + tab;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-info is-rounded" ' + 'href=' + add_payment_url + '>' +
@@ -174,7 +239,23 @@
                             }
                         }
                     },
-                    { data: 'file' }
+                    {#{ data: 'file' },#}
+                    {
+                        data: 'id',
+                        render: function (data) {
+                            var menu = '{{ menu }}';
+                            var tab = '{{ tab }}';
+                            var view_url = '/academic_services/invoice/view/' + data + '?menu=' + menu + '&tab=' + tab;
+                            return '<div class="field has-addons">' +
+                                '<div class="control">' +
+                                '<a class="button is-small is-light is-info is-rounded" ' + 'href=' + view_url + '>' +
+                                '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                '<span>รายละเอียด</span>' +
+                                '</a>' +
+                                '</div>' +
+                                '</div>'
+                        }
+                    }
                 ]
             });
         });

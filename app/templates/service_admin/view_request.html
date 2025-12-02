@@ -8,8 +8,9 @@
             font-weight: 400;
             color: #4a4a4a;
         }
+
         .content ul {
-            margin-top: 0.25rem;
+            margin-top: 0.15em;
         }
     </style>
 {% endblock %}
@@ -57,84 +58,122 @@
                         </div>
                         <hr>
                         <div class="mb-4">
-                            <div class="columns">
-                                <div class="column" style="border-right: 1px solid #ddd;">
-                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                        <span class="icon"><i class="fas fa-receipt"></i></span>
-                                        ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
-                                    </p>
-                                    <div style="margin-left: 1.75rem;">
-                                        <p>ออกในนาม : {{ service_request.quotation_name }}</p>
-                                        <p>ที่อยู่ : {{ service_request.quotation_issue_address }}</p>
-                                        <p>เลขประจำตัวผู้เสียภาษีอากร : {{ service_request.taxpayer_identification_no }}</p>
-                                        <p>เบอร์โทรศัพท์ : {{ service_request.quotation_phone_number }}</p>
-                                        <p>อีเมล : {{ service_request.customer.contact_email }}</p>
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-id-badge"></i></span>
+                                ข้อมูลผู้ส่งตรวจ
+                            </p>
+                            <div class="field ml-5">
+                                <div class="mb-4 mt-3">
+                                    <div class="columns">
+                                        <div class="column" style="border-right: 1px solid #ddd;">
+                                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                                <span class="icon"><i class="fas fa-receipt"></i></span>
+                                                ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
+                                            </p>
+                                            <div style="margin-left: 1.75rem;">
+                                                <p>ออกในนาม : {{ service_request.quotation_name }}</p>
+                                                <p>ที่อยู่ : {{ service_request.quotation_issue_address }}</p>
+                                                <p>เลขประจำตัวผู้เสียภาษีอากร
+                                                    : {{ service_request.taxpayer_identification_no }}</p>
+                                                <p>เบอร์โทรศัพท์ : {{ service_request.quotation_phone_number }}</p>
+                                                <p>อีเมล : {{ service_request.customer.contact_email }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="column">
+                                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                                <span class="icon"><i class="fas fa-map-marker-alt"></i></span>
+                                                ข้อมูลที่อยู่จัดส่งเอกสาร
+                                            </p>
+                                            <div style="margin-left: 1.75rem;">
+                                                <p>ถึง : {{ service_request.receive_name }}</p>
+                                                <p>ที่อยู่ : {{ service_request.receive_address }}</p>
+                                                <p>เบอร์โทรศัพท์ : {{ service_request.receive_phone_number }}</p>
+                                                <p>อีเมล : {{ service_request.customer.contact_email }}</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="column">
+                                <hr>
+                                <div class="mb-4">
                                     <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                        <span class="icon"><i class="fas fa-map-marker-alt"></i></span>
-                                        ข้อมูลที่อยู่จัดส่งเอกสาร
+                                        <span class="icon"><i class="fas fa-user"></i></span> ข้อมูลผู้ประสานงาน
                                     </p>
                                     <div style="margin-left: 1.75rem;">
-                                        <p>ถึง : {{ service_request.receive_name }}</p>
-                                        <p>ที่อยู่ : {{ service_request.receive_address }}</p>
-                                        <p>เบอร์โทรศัพท์ : {{ service_request.receive_phone_number }}</p>
-                                        <p>อีเมล : {{ service_request.customer.contact_email }}</p>
+                                        {% for cus_contact in service_request.customer.customer_info.customer_contacts %}
+                                            <p>ชื่อ-นามสกุล : {{ cus_contact.contact_name }}</p>
+                                            <p>เลขประจำตัวผู้เสียภาษี
+                                                : {{ service_request.customer.customer_info.taxpayer_identification_no }}</p>
+                                            <p>เบอร์โทรศัพท์ : {{ cus_contact.phone_number }}</p>
+                                            <p>อีเมล : {{ cus_contact.email }}</p>
+                                            {% if cus_contact.remark %}
+                                                <p>หมายเหตุ : {{ cus_contact.remark }}</p>
+                                            {% endif %}
+                                        {% endfor %}
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <hr>
-                        <div class="mb-4">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                <span class="icon"><i class="fas fa-user"></i></span> ข้อมูลผู้ประสานงาน
-                            </p>
-                            <div style="margin-left: 1.75rem;">
-                                {% for cus_contact in service_request.customer.customer_info.customer_contacts %}
-                                    <p>ชื่อ-นามสกุล : {{ cus_contact.contact_name }}</p>
-                                    <p>เลขประจำตัวผู้เสียภาษี
-                                        : {{ service_request.customer.customer_info.taxpayer_identification_no }}</p>
-                                    <p>เบอร์โทรศัพท์ : {{ cus_contact.phone_number }}</p>
-                                    <p>อีเมล : {{ cus_contact.email }}</p>
-                                    {% if cus_contact.remark %}
-                                        <p>หมายเหตุ : {{ cus_contact.remark }}</p>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="mb-4">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                <span class="icon"><i class="fas fa-clipboard-list"></i></span> ข้อมูลผลิตภัณฑ์
-                            </p>
-                            <div class="content" style="margin-left: 1.75rem;">
-                                <ul class="ml-4">
-                                    {% for data in datas.value %}
-                                        <li>{{ data }}</li>
-                                    {% endfor %}
-                                </ul>
-                                {% if datas.table_rows %}
-                                    <table class="table is-bordered is-striped is-fullwidth mt-4">
-                                        <thead>
-                                        <tr>
-                                            {% for key in datas.table_keys %}
-                                                <th>{{ key }}</th>
-                                            {% endfor %}
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        {% for row in datas.table_rows %}
+                        <div class="content mb-4">
+                            {% set ns = namespace(index=1) %}
+                            {% for item in datas %}
+                                {% if item.type == 'header' %}
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                        <span class="icon"><i class="fas fa-clipboard-list"></i></span>
+                                        {{ item.data }}
+                                    </p>
+                                {% endif %}
+                                <div style="margin-left: 1.75rem;">
+                                    {% if item.type == 'content_header' %}
+                                        <p class="subtitle is-6 mt-2 has-text-weight-semibold">
+                                            {{ ns.index }}. {{ item.data }}
+                                        </p>
+                                        {% set ns.index = ns.index + 1 %}
+                                    {% elif item.type == 'text' %}
+                                        {% if ',' in item.data %}
+                                            <ul style="margin-bottom:0">
+                                                <li>
+                                                    {{ item.data.split(':', 1)[0] }} :
+                                                </li>
+                                            </ul>
+                                            <div style="margin-left: 1.75rem;">
+                                                {% set i = item.data.split(':', 1)[1] %}
+                                                {% for val in i.split(',') %}
+                                                    {% if val.strip() %}
+                                                        - {{ val.strip() }}<br/>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        {% else %}
+                                            <ul>
+                                                <li>{{ item.data }}</li>
+                                            </ul>
+                                        {% endif %}
+                                    {% elif item.type == 'table' %}
+                                        <table class="table is-bordered is-striped is-fullwidth mt-2">
+                                            <thead>
                                             <tr>
-                                                {% for key in datas.table_keys %}
-                                                    <td>{{ row.get(key, '-') }}</td>
+                                                {% for col in item.data[0].keys() %}
+                                                    <th>{{ col }}</th>
                                                 {% endfor %}
                                             </tr>
-                                        {% endfor %}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                            {% for row in item.data %}
+                                                <tr>
+                                                    {% for val in row.values() %}
+                                                        <td>{{ val|safe }}</td>
+                                                    {% endfor %}
+                                                </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    {% endif %}
+                                </div>
+                                {% if loop.nextitem and loop.nextitem.type == 'header' %}
+                                    <hr>
                                 {% endif %}
-                            </div>
+                            {% endfor %}
                         </div>
                         <hr>
                         <div class="mb-4">
@@ -212,7 +251,7 @@
                                             {% endfor %}
                                         {% endfor %}
                                     {% else %}
-                                        รอดำเนินการทดสอบตัวอย่าง
+                                        ยังไม่ดำเนินการทดสอบตัวอย่าง
                                     {% endif %}
                                 </li>
                             </ul>
@@ -223,7 +262,7 @@
                             <ul class="menu-list">
                                 {% if service_request.status.status_id == 2 %}
                                     <li>
-                                        <a class="button is-success is-rounded is-fullwidth mb-2"
+                                        <a class="button is-info is-rounded is-fullwidth mb-2"
                                            href="{{ url_for('service_admin.generate_quotation',
                                             request_id=service_request.id, menu='quotation', tab='draft') }}"
                                         >
@@ -236,29 +275,29 @@
                                 {% elif (10 <= service_request.status.status_id <= 12) or (14 <= service_request.status.status_id <= 15) %}
                                     <li>
                                         <a class="button is-primary is-rounded is-fullwidth mb-2"
-                                           {% if result_id %}
-                                                href="{{ url_for('service_admin.create_draft_result', result_id=result_id,
+                                                {% if result_id %}
+                                           href="{{ url_for('service_admin.create_draft_result', result_id=result_id,
                                                 request_id=service_request.id, menu='test_item') }}"
-                                           {% else %}
-                                                href="{{ url_for('service_admin.create_draft_result', request_id=service_request.id,
+                                                {% else %}
+                                           href="{{ url_for('service_admin.create_draft_result', request_id=service_request.id,
                                                 menu='test_item') }}"
-                                           {% endif %}
+                                                {% endif %}
                                         >
                                             <span class="icon"><i class="fas fa-download"></i></span>
                                             {% if service_request.status.status_id == 14 %}
                                                 <span>แก้ไขใบรายงานผล (ฉบับร่าง)</span>
                                             {% else %}
-                                                 <span>ออกใบรายงานผล (ฉบับร่าง)</span>
+                                                <span>ออกใบรายงานผล (ฉบับร่าง)</span>
                                             {% endif %}
                                         </a>
                                         <a class="button is-info is-rounded is-fullwidth mb-2"
-                                           {% if result_id %}
-                                                href="{{ url_for('service_admin.create_final_result', result_id=result_id,
+                                                {% if result_id %}
+                                           href="{{ url_for('service_admin.create_final_result', result_id=result_id,
                                                 request_id=service_request.id, menu='test_item') }}"
-                                           {% else %}
-                                               href="{{ url_for('service_admin.create_final_result', request_id=service_request.id,
+                                                {% else %}
+                                           href="{{ url_for('service_admin.create_final_result', request_id=service_request.id,
                                                menu='test_item') }}"
-                                           {% endif %}
+                                                {% endif %}
                                         >
                                             <span class="icon"><i class="fas fa-download"></i></span>
                                             <span>ออกใบรายงานผล (ฉบับจริง)</span>
@@ -278,7 +317,7 @@
                                     </li>
                                 {% endif %}
                                 <li>
-                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth mb-2"
+                                    <a class="button is-link is-outlined is-rounded is-small is-fullwidth mb-2"
                                        href="{{ url_for('service_admin.export_request_pdf', request_id=service_request.id) }}"
                                     >
                                         <span class="icon"><i class="fas fa-clipboard-list"></i></span>
@@ -288,7 +327,7 @@
                                 {% if service_request.quotations %}
                                     {% for quotation in service_request.quotations %}
                                         <li>
-                                            <a class="button is-primary is-outlined is-rounded is-small is-fullwidth mb-2"
+                                            <a class="button is-link is-outlined is-rounded is-small is-fullwidth mb-2"
                                                href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation.id) }}"
                                             >
                                                 <span class="icon"><i class="fas fa-file-invoice"></i></span>
@@ -302,10 +341,24 @@
                                                        href="{{ url_for('service_admin.download_file', key=invoice.file,
                                                         download_filename=invoice.invoice_no ~ '.pdf') }}"
                                                     >
-                                                        <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                                                        <span class="icon"><i
+                                                                class="fas fa-file-invoice-dollar"></i></span>
                                                         <span>พิมพ์ใบแจ้งหนี้</span>
                                                     </a>
                                                 </li>
+                                                {% if invoice.receipts %}
+                                                    {% for receipt in invoice.receipts %}
+                                                        <li>
+                                                            <a class="button is-link is-outlined is-rounded is-small is-fullwidth mb-2"
+                                                               href="{{ url_for('receipt_printing.export_receipt_pdf', receipt_id=receipt.id) }}"
+                                                            >
+                                                                <span class="icon"><i
+                                                                        class="fas fa-file-invoice-dollar"></i></span>
+                                                                <span>พิมพ์ใบเสร็จรับเงิน</span>
+                                                            </a>
+                                                        </li>
+                                                    {% endfor %}
+                                                {% endif %}
                                             {% endif %}
                                         {% endfor %}
                                     {% endfor %}

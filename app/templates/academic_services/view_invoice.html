@@ -28,15 +28,9 @@
                             </div>
                         </div>
                         <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่</p>
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่ส่ง</p>
                             <div style="margin-left: 1.75rem;">
-                                อว. {{ invoice.mhesi_no }}
-                            </div>
-                        </div>
-                        <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่</p>
-                            <div style="margin-left: 1.75rem;">
-                                {{ invoice.mhesi_issued_at.strftime('%d/%m/%Y') }}
+                                {{ invoice.file_attached_at|localdatetime }}
                             </div>
                         </div>
                         <div class="mb-4 is-flex is-align-items-center">
@@ -110,7 +104,7 @@
                             </p>
                             <ul class="menu-list">
                                 <li>
-                                    {{ sub_lab.sub_lab }}
+                                    {{ invoice.quotation.request.sub_lab.sub_lab }}
                                 </li>
                             </ul>
                             <hr>
@@ -119,14 +113,7 @@
                             </p>
                             <ul class="menu-list">
                                 <li>
-                                    {% if invoice.mhesi_issued_at %}
-                                        <span class="icon">
-                                            <i class="fas fa-clock"></i>
-                                        </span>
-                                        {{ invoice.due_date.strftime('%d/%m/%Y') }}
-                                    {% else %}
-                                        ยังไม่ดำเนินการส่ง
-                                    {% endif %}
+                                    {{ invoice.due_date.strftime('%d/%m/%Y') }}
                                 </li>
                             </ul>
                             <hr>
@@ -145,20 +132,24 @@
                                 การดำเนินการ
                             </p>
                             <ul class="menu-list">
-                                <li>
-                                    <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
-                                       @click="printInvoice()"
-                                    >
-                                        <span class="icon"><i class="fas fa-print"></i></span>
-                                        <span>พิมพ์ใบแจ้งหนี้</span>
-                                    </a>
-                                </li>
+                                {% if not invoice.paid_at %}
+                                    <li>
+                                        <a class="button is-info is-rounded is-fullwidth mb-2"
+                                           href="{{ url_for('academic_services.add_payment', invoice_id=invoice_id, menu=menu,
+                                                    tab=tab) }}"
+                                        >
+                                                <span class="icon"><i class="fas fa-plus"></i></span>
+                                                <span>อัปโหลดหลักฐานการชำระเงิน</span>
+                                        </a>
+                                    </li>
+                                {% endif %}
                                 <li>
                                     <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
-                                       href="{{ url_for('academic_services.export_invoice_pdf', invoice_id=invoice_id) }}"
+                                       href="{{ url_for('academic_services.download_file', key=invoice.file,
+                                            download_filename=invoice.invoice_no ~ '.pdf') }}"
                                     >
                                         <span class="icon"><i class="fas fa-download"></i></span>
-                                        <span>ดาวน์โหลด PDF</span>
+                                        <span>ดาวน์โหลดใบแจ้งหนี้</span>
                                     </a>
                                 </li>
                             </ul>
@@ -171,7 +162,8 @@
         <div class="columns">
             <div class="column is-two-thirds is-offset-2 has-text-centered">
                 <div class="buttons is-centered">
-                    <a class="button is-light" href="{{ url_for('academic_services.invoice_index', menu=menu) }}">
+                    <a class="button is-light"
+                       href="{{ url_for('academic_services.invoice_index', menu=menu, tab=tab) }}">
                             <span class="icon">
                                 <i class="fas fa-chevron-left"></i>
                             </span>

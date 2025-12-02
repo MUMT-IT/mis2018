@@ -69,7 +69,8 @@
                                     </div>
                                     <div class="content">
                                         {% if current_user.verify_datetime %}
-                                            <a href="{{ url_for('academic_services.create_service_request', code=sub_lab.code) }}"
+                                            <a href="{{ url_for('academic_services.create_request', code=sub_lab.code,
+                                                menu='request') }}"
                                                class="button is-success is-rounded"
                                             >
                                                 เริ่มกรอกฟอร์ม
@@ -141,7 +142,11 @@
                 <div class="content mt-6">
                     <h2 class="title is-5" id="section-3">ติดต่อ</h2>
                     <div class="field ml-5">
-                        {{ lab.contact | safe }}
+                        - เบอร์โทรศัพท์ : {{ lab.phone_number }}
+                        {% if lab.email %}
+                            <br/>
+                            - อีเมล : {{ lab.email }}
+                        {% endif %}
                     </div>
                 </div>
             {% endfor %}

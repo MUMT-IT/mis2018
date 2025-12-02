@@ -1,0 +1,131 @@
+<div class="card subform-card mb-4" id="{{ fields.name }}">
+    <header class="card-header">
+        <p class="card-header-title">{{ fields.label }}</p>
+    </header>
+    <div class="card-content">
+        {% for field in fields %}
+            {% if field.type != 'HiddenField' and field.type != 'CSRFTokenField' %}
+                {% if field.type == 'FieldList' %}
+                    <table class="table is-fullwidth ">
+                        <thead>
+                        {% for subform in field %}
+                            {% if loop.first %}
+                                {% for _field in subform %}
+                                    {% if _field.type != 'CSRFTokenField' %}
+                                        <th style="border: none">
+                                            {{ _field.label.text }}
+                                            <span class="has-text-danger">*</span>
+                                        </th>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                        </thead>
+                        <tbody>
+                        {% for subform in field %}
+                            <tr>
+                                {% for _field in subform %}
+                                    {% if _field.type != 'CSRFTokenField' %}
+                                        <td style="border: none">{{ _field() }}</td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="field">
+                        <label class="label">
+                            {{ field.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ field() }}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+        <button id="{{ fields.name }}" type="button" class="button is-danger is-rounded is-small remove-subform"
+                hx-target=".subform-card"
+                hx-swap="innerHTML"
+        >
+            ลบ
+        </button>
+    </div>
+</div>
+<script>
+    function toggleTable(subform) {
+        const table = subform.find('table');
+        const checkboxes = table.find('tbody tr input[type="checkbox"]');
+
+        function validateInput() {
+            const count = checkboxes.filter(':checked').length;
+            if (count == 0) {
+                checkboxes.prop('required', true)
+                checkboxes.each(function () {
+                    this.setCustomValidity('กรุณาเลือกเชื้ออย่างน้อย 1 รายการ');
+                });
+            } else {
+                checkboxes.prop('required', false);
+                checkboxes.each(function () {
+                    this.setCustomValidity('');
+                });
+            }
+
+            table.find('tbody tr').each(function () {
+                const checkbox = $(this).find('input[type="checkbox"]');
+                const textInputs = $(this).find('input[type="text"]');
+
+                const active = checkbox.is(':checked');
+                textInputs.prop('readonly', !active).prop('required', active)
+                    .attr('oninvalid', "this.setCustomValidity('กรุณากรอกข้อมูล')")
+                    .attr('oninput', "this.setCustomValidity('')");
+
+                if (!active) textInputs.val('');
+            });
+        }
+
+        validateInput();
+
+        checkboxes.on('change', validateInput);
+    }
+
+    function addRequiredField(subform) {
+        const cleanTypeInput = subform.find('input[name$="clean_type"]');
+
+        cleanTypeInput.prop('required', true)
+            .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกรูปแบบการทดสอบ')");
+
+        cleanTypeInput.on('change', function () {
+            cleanTypeInput.each(function () {
+                this.setCustomValidity('');
+            });
+        });
+    }
+
+    function showClenTypeOtherInput(subform) {
+        const cleanTypeField = subform.find('input[type="radio"][name$="clean_type"]:checked').val();
+        const cleanTypeOtherInput = subform.find('input[name$="clean_type_other"]');
+        const cleanTypeOtherField = cleanTypeOtherInput.closest('.field');
+
+        if (cleanTypeField && cleanTypeField.includes('อื่นๆ โปรดระบุ')) {
+            cleanTypeOtherField.show();
+            cleanTypeOtherInput.prop('required', true).attr('oninvalid', "this.setCustomValidity('กรุณากรอกรูปแบบการทดสอบ')")
+                    .attr('oninput', "this.setCustomValidity('')");
+        } else {
+            cleanTypeOtherField.hide();
+            cleanTypeOtherInput.val('');
+        }
+    }
+
+    $('.subform-card').each(function () {
+        const subform = $(this);
+        toggleTable(subform);
+        addRequiredField(subform);
+        showClenTypeOtherInput(subform);
+        subform.find('input[type="radio"][name$="clean_type"]').change(function () {
+            showClenTypeOtherInput(subform);
+        });
+    });
+</script>

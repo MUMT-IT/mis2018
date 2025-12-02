@@ -7,6 +7,9 @@
             opacity: 1 !important;
             transition: none !important;
         }
+        #toast-container.toast-top-full-width > .toast {
+            width: 100% !important;
+        }
     </style>
 {% endblock %}
 {% include "service_admin/admin_nav.html" %}
@@ -130,7 +133,7 @@
                         </div>
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
-                                <a href="{{ url_for('service_admin.sample_index', menu=menu) }}" class="button">ย้อนกลับ</a>
+                                <a href="{{ url_for('service_admin.sample_index', menu=menu, tab=tab) }}" class="button">ย้อนกลับ</a>
                             </div>
                             <div class="control">
                                 <input type="submit" value="บันทึก" class="button is-success">
@@ -147,6 +150,19 @@
     <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
         function showToast(message) {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
             toastr.success(message);
         }
 

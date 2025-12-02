@@ -16,27 +16,39 @@
                     menu='request') }}">
                     <span class="icon"><i class="fas fa-clipboard-list"></i></span>
                     <span>รายการคำขอรับบริการ</span>
+                    {% if request_count > 0 %}
+                        <span class="tag is-danger is-rounded is-size-7 mt-1">{{ request_count }}</span>
+                    {% endif %}
                 </a>
             </li>
             <li>
                 <a {% if menu=='quotation' %} class="is-active" {% endif %} href="{{ url_for('academic_services.quotation_index',
-                    menu='quotation') }}">
+                    menu='quotation', tab='all') }}">
                     <span class="icon"><i class="fas fa-file-invoice"></i></span>
                     <span>ใบเสนอราคา</span>
+                    {% if quotation_count > 0 %}
+                        <span class="tag is-danger is-rounded is-size-7 mt-1">{{ quotation_count }}</span>
+                    {% endif %}
                 </a>
             </li>
             <li>
                 <a {% if menu=='sample' %} class="is-active" {% endif %}  href="{{ url_for('academic_services.sample_index',
-                    menu='sample') }}">
+                    menu='sample', tab='all') }}">
                     <span class="icon"><i class="fas fa-truck"></i></span>
                     <span>นัดหมายส่งตัวอย่าง</span>
+                    {% if sample_count > 0 %}
+                        <span class="tag is-danger is-rounded is-size-7 mt-1">{{ sample_count }}</span>
+                    {% endif %}
                 </a>
             </li>
             <li>
                 <a {% if menu=='invoice' %} class="is-active" {% endif %} href="{{ url_for('academic_services.invoice_index',
-                    menu='invoice') }}">
+                    menu='invoice', tab='all') }}">
                     <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>
                     <span>ใบแจ้งหนี้</span>
+                    {% if invoice_count > 0 %}
+                        <span class="tag is-danger is-rounded is-size-7 mt-1">{{ invoice_count }}</span>
+                    {% endif %}
                 </a>
             </li>
             <li>
@@ -49,9 +61,12 @@
             </li>
             <li>
                 <a {% if menu=='report' %} class="is-active" {% endif %} href="{{ url_for('academic_services.result_index',
-                    menu='report') }}">
+                    menu='report', tab='all') }}">
                     <span class="icon"><i class="fas fa-file-alt"></i></span>
                     <span>รายงานผลการทดสอบ</span>
+                    {% if report_count > 0 %}
+                        <span class="tag is-danger is-rounded is-size-7 mt-1">{{ report_count }}</span>
+                    {% endif %}
                 </a>
             </li>
         </ul>

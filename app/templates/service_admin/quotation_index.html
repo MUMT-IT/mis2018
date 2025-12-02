@@ -8,6 +8,9 @@
             opacity: 1 !important;
             transition: none !important;
         }
+        #toast-container.toast-top-full-width > .toast {
+            width: 100% !important;
+        }
     </style>
 {% endblock %}
 {% block page_content %}
@@ -15,17 +18,20 @@
     <section class="section">
         <div class="columns is-centered">
             {% include 'service_admin/menu.html' %}
-             <div class="column is-9">
+            <div class="column is-9">
                 <div class="column is-11">
                     <h1 class="title has-text-centered">รายการใบเสนอราคา</h1>
                 </div>
-                <div class="tabs is-boxed is-centered">
+                <div class="tabs">
                     <ul>
                         {% if is_supervisor %}
                             <li {% if tab == 'pending_approval' %}class="is-active"{% endif %}>
                                 <a href="{{ url_for('service_admin.quotation_index', tab='pending_approval', menu='quotation') }}">
                                     <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
-                                    <span>รายการรอการอนุมัติ</span>
+                                    <span>รออนุมัติ</span>
+                                    {% if pending_approval_for_supervisor_count > 0 %}
+                                        <span class="tag is-danger is-rounded is-size-7 ml-1">{{ pending_approval_for_supervisor_count }}</span>
+                                    {% endif %}
                                 </a>
                             </li>
                         {% else %}
@@ -33,6 +39,9 @@
                                 <a href="{{ url_for('service_admin.quotation_index', tab='draft', menu='quotation') }}">
                                     <span class="icon is-small"><i class="fas fa-file-pen"></i></span>
                                     <span>แบบร่างใบเสนอราคา</span>
+                                    {% if draft_count > 0 %}
+                                        <span class="tag is-danger is-rounded is-size-7 ml-1">{{ draft_count }}</span>
+                                    {% endif %}
                                 </a>
                             </li>
                             <li {% if tab == 'pending_supervisor_approval' %}class="is-active"{% endif %}>
@@ -40,6 +49,9 @@
                                     menu='quotation') }}">
                                     <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
                                     <span>รอการตรวจสอบจากหัวหน้า</span>
+                                    {% if pending_approval_for_supervisor_count > 0 %}
+                                        <span class="tag is-danger is-rounded is-size-7 ml-1">{{ pending_approval_for_supervisor_count }}</span>
+                                    {% endif %}
                                 </a>
                             </li>
                         {% endif %}
@@ -48,24 +60,36 @@
                                 menu='quotation') }}">
                                 <span class="icon is-small"><i class="fas fa-clock"></i></span>
                                 <span>รอลูกค้ายืนยัน</span>
+                                {% if pending_confirm_for_customer_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ pending_confirm_for_customer_count }}</span>
+                                {% endif %}
                             </a>
                         </li>
                         <li {% if tab == 'confirmed' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('service_admin.quotation_index', tab='confirmed', menu='quotation') }}">
                                 <span class="icon is-small"><i class="fas fa-check"></i></span>
                                 <span>ยืนยันแล้ว</span>
+                                {% if confirm_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ confirm_count }}</span>
+                                {% endif %}
                             </a>
                         </li>
                         <li {% if tab == 'reject' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('service_admin.quotation_index', tab='reject', menu='quotation') }}">
                                 <span class="icon is-small"><i class="fas fa-times"></i></span>
                                 <span>ใบเสนอราคาถูกปฏิเสธ</span>
+                                {% if cancel_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ cancel_count }}</span>
+                                {% endif %}
                             </a>
                         </li>
                         <li {% if tab == 'all' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('service_admin.quotation_index', tab='all', menu='quotation') }}">
                                 <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
                                 <span>ทั้งหมด</span>
+                                {% if all_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ all_count }}</span>
+                                {% endif %}
                             </a>
                         </li>
                     </ul>
@@ -73,7 +97,8 @@
                 <table id='quotations' class="table is-fullwidth">
                     <thead>
                     <th>เลขใบเสนอราคา</th>
-                    <th>วัน-เวลาทีออก</th>
+                    <th>วันที่สร้าง</th>
+                    <th>วันที่ออก</th>
                     <th>ออกในนาม</th>
                     <th>ผู้ประสานงาน</th>
                     <th>เลขใบคำขอรับบริการ</th>
@@ -95,6 +120,19 @@
     <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
         function showToast(category, message) {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
             if (category === 'success') {
                 toastr.success(message);
             } else if (category === 'danger') {
@@ -117,11 +155,12 @@
         });
     </script>
     <script>
-         function extractTextFromHTML(htmlString) {
-             const div = document.createElement('div');
-             div.innerHTML = htmlString;
-             return div.textContent.trim();
+        function extractTextFromHTML(htmlString) {
+            const div = document.createElement('div');
+            div.innerHTML = htmlString;
+            return div.textContent.trim();
         }
+
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
             $('#quotations').DataTable({
@@ -142,6 +181,17 @@
                             }
                         }
                     },
+                    {
+                        data: 'approved_at',
+                        render: function (data) {
+                            if (data !== null) {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
                     {data: 'name'},
                     {data: 'customer_name'},
                     {data: 'request_no'},
@@ -153,19 +203,20 @@
                             var status = row.admin_status
                             if (data !== null) {
                                 return `<span class="tag ${color}">${status}</span>`;
-                            }
-                            else {
+                            } else {
                                 return `<span class="tag is-info">ร่างใบเสนอราคา</span>`;
                             }
                         }
                     },
                     {
-                        data: 'cancel_reason',
-                        render: function (data) {
-                            if (data !== null) {
-                                return data
+                        data: null,
+                        render: function (data, type, row) {
+                            if (row.reason && row.other) {
+                                return row.reason + ' : ' + row.other;
+                            } else if (row.reason && !row.other) {
+                                return row.reason;
                             } else {
-                                return ''
+                                return '';
                             }
                         }
                     },
@@ -190,7 +241,7 @@
                                     '<div class="control">' +
                                     '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
                                     '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                    '<span>ตรวจสอบ</span>' +
+                                    '<span>อนุมัติราคา</span>' +
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
@@ -208,7 +259,7 @@
                                         '</div>' +
                                         '</div>'
                                 } else if (row.status_id === 4 && supervisor == 'True') {
-                                    var url = '/service_admin/quotation/supervisor/approve/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}' ;
+                                    var url = '/service_admin/quotation/supervisor/approve/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}';
                                     return '<div class="field has-addons">' +
                                         '<div class="control">' +
                                         '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +

@@ -20,7 +20,7 @@
                                 {{ result.request.request_no }}
                             </div>
                         </div>
-                        {% for item in result.result_items %}
+                        {% for item in result.result_items|sort(attribute='sequence') %}
                             <label class="label">{{ item.report_language }}</label>
                             <div class="file" style="margin-bottom: .5em">
                                 <label class="file-label">
@@ -54,7 +54,7 @@
                         {% endfor %}
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
-                                <a href="{{ url_for('service_admin.test_item_index', menu='test_item') }}"
+                                <a href="{{ url_for('service_admin.test_item_index', menu='test_item', tab='testing') }}"
                                    class="button">ยกเลิก</a>
                             </div>
                             <div class="control">

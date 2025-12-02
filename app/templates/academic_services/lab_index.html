@@ -9,6 +9,9 @@
             opacity: 1 !important;
             transition: none !important;
         }
+        #toast-container.toast-top-full-width > .toast {
+            width: 100% !important;
+        }
     </style>
 {% endblock %}
 {% block page_content %}
@@ -23,7 +26,7 @@
                     <div class="columns is-centered">
                         <div class="column is-11">
                             <div class="columns is-multiline">
-                                {% for lab in labs|sort(attribute='no')  %}
+                                {% for lab in labs|sort(attribute='no') %}
                                     <div class="column is-one-third">
                                         <div class="card" style="height: 100%;">
                                             <div class="card-image">
@@ -43,7 +46,7 @@
                                                         เรียนรู้เพิ่มเติม
                                                     </a>
                                                     {% if current_user.verify_datetime %}
-                                                        {% if lab.sub_labs|length > 1  %}
+                                                        {% if lab.sub_labs|length > 1 %}
                                                             <a href="{{ url_for('academic_services.detail_lab_index', cat='form', code=lab.code) }}"
                                                                class="button is-info is-small"
                                                             >
@@ -51,8 +54,8 @@
                                                             </a>
                                                         {% else %}
                                                             {% for sub_lab in lab.sub_labs %}
-                                                                <a href="{{ url_for('academic_services.create_service_request', code=sub_lab.code) }}"
-                                                                   class="button is-info is-small"
+                                                                <a href="{{ url_for('academic_services.create_request',
+                                                                    code=sub_lab.code) }}" class="button is-info is-small"
                                                                 >
                                                                     ส่งคำขอรับบริการ
                                                                 </a>
@@ -97,6 +100,19 @@
         })
 
         function showToast() {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
             toastr.success('บันทึกข้อมูลเรียบร้อยแล้ว กรุณาเลือกแล็บ');
         }
 
