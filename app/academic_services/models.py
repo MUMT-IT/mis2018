@@ -1066,13 +1066,16 @@ class ServiceResult(db.Model):
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     result_edit_at = db.Column('result_edit_at', db.DateTime(timezone=True))
+    sent_at = db.Column('sent_at', db.DateTime(timezone=True))
+    sender_id = db.Column('sender_id', db.ForeignKey('staff_account.id'))
+    sender = db.relationship(StaffAccount, backref=db.backref('sended_results'), foreign_keys=[sender_id])
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('results', cascade="all, delete-orphan"))
     is_sent_email = db.Column('is_sent_email', db.Boolean())
     note = db.Column('note', db.Text())
     status_note = db.Column('status_note', db.Boolean())
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
-    creator = db.relationship(StaffAccount, backref=db.backref('service_results'))
+    creator = db.relationship(StaffAccount, backref=db.backref('created_results'), foreign_keys=[creator_id])
 
     def to_dict(self):
         return {
@@ -1087,7 +1090,7 @@ class ServiceResult(db.Model):
             'report_language': [item.report_language for item in self.result_items] if self.result_items else None,
             'note': [item.note for item in self.result_items if item.note] if self.result_items else None,
             'is_edited': [item.is_edited for item in self.result_items if item.is_edited] if self.result_items else None,
-            'creator': self.creator.fullname if self.creator else None,
+            # 'creator': self.creator.fullname if self.creator else None,
             'request_id': self.request_id if self.request_id else None
         }
 
