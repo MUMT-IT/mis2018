@@ -10,6 +10,7 @@
             opacity: 1 !important;
             transition: none !important;
         }
+
         #toast-container.toast-top-full-width > .toast {
             width: 100% !important;
         }
@@ -18,7 +19,25 @@
 {% block page_content %}
     <section class="section">
         <div class="columns">
-            {% include 'academic_services/menu.html' %}
+            <div class="column is-2">
+                <aside class="menu">
+                    <p class="menu-label">
+                        {{ result_item.result.request.request_no }}
+                    </p>
+                    <ul class="menu-list">
+                        {% for item in result.result_items|sort(attribute='sequence') %}
+                            <li>
+                                <a {% if item.id == result_item_id %}class="is-active"{% endif %}
+                                   href="{{ url_for('academic_services.view_result_item', result_id=result.id,
+                                   result_item_id=item.id, menu=menu, tab=tab) }}">
+                                    <span class="icon"><i class="fas fa-file-alt"></i></span>
+                                    <span>{{ item.report_language }}</span>
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </aside>
+            </div>
             <div class="column is-9">
                 <div class="column is-12">
                     {% include "messages.html" %}
@@ -28,17 +47,9 @@
                 <div class="column is-12 box">
                     <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
                         <div class="field">
-                            <label class="label">เลขใบคำขอรับบริการ</label>
-                            <div class="control">
-                                {{ result_item.result.request.request_no }}
-                            </div>
-                        </div>
-                        <div class="field">
                             <label class="label">{{ result_item.report_language }}</label>
                             <div class="control">
-                                <iframe src="{{ result_item.draft_file_url }}"
-                                        style="width: 100%; height: 600px">
-                                </iframe>
+                                <iframe src="{{ generate_url(result_item.draft_file) }}" style="width:100%; height:600px;"></iframe>
                             </div>
                         </div>
                         <div class="field">
@@ -53,7 +64,7 @@
                                 {% if result_item.draft_file and not result_item.approved_at and (not result_item.req_edit_at
                                         or result_item.is_edited) %}
                                     <a class="button is-success"
-                                       href="{{ url_for('academic_services.confirm_result_item', result_item_id=result_item_id, menu=menu,
+                                       href="{{ url_for('academic_services.confirm_result_item', result_item_id=result_item.id, menu=menu,
                                                tab=tab) }}">
                                         <span class="icon is-small"><i class="fas fa-check"></i></span>
                                         <span>ยืนยัน</span>
@@ -61,7 +72,7 @@
                                     <a class="button is-warning"
                                        hx-swap="innerHTML"
                                        hx-target="#result-form"
-                                       hx-get="{{ url_for('academic_services.edit_result_item', result_item_id=result_item_id, menu=menu,
+                                       hx-get="{{ url_for('academic_services.edit_result_item', result_item_id=result_item.id, menu=menu,
                                                tab=tab) }}">
                                         <span class="icon is-small"><i class="fas fa-pen"></i></span>
                                         <span>ขอแก้ไข</span>
@@ -77,7 +88,8 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript"
+            src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
         function showToast(category, message) {
