@@ -18,33 +18,35 @@
 {% block page_content %}
     {% include "procurement/nav_for_main.html" %}
     <section class="section" id="app">
-        <div class="columns is-centered">
-            <div class="column is-9">
-                <div class="column is-11">
-                    <h1 class="title has-text-centered">รายการชำระเงินบริการวิชาการ</h1>
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column">
+                    <div class="column is-11">
+                        <h1 class="title has-text-centered">รายการชำระเงินบริการวิชาการ</h1>
+                    </div>
+                    <table id='invoices' class="table is-fullwidth">
+                        <thead>
+                        <th>เลขใบแจ้งหนี้</th>
+                        <th>วัน-เวลาที่ออก</th>
+                        <th>ออกในนาม</th>
+                        <th>ผู้ประสานงาน</th>
+                        <th>วันครบกำหนด</th>
+                        <th>ยอดรวม</th>
+                        <th>วิธีการชำระเงิน</th>
+                        <th>วันที่ชำระเงิน</th>
+                        <th>หลักฐานการชำระเงิน</th>
+                        <th>สถานะ</th>
+                        <th>ใบแจ้งหนี้</th>
+                        <th>รายละเอียด</th>
+                        <th>ดำเนินการ</th>
+                        <th></th>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
                 </div>
-                <table id='invoices' class="table is-fullwidth">
-                    <thead>
-                    <th>เลขใบแจ้งหนี้</th>
-                    <th>วัน-เวลาที่ออก</th>
-                    <th>ออกในนาม</th>
-                    <th>ผู้ประสานงาน</th>
-                    <th>วันครบกำหนด</th>
-                    <th>ยอดรวม</th>
-                    <th>วิธีการชำระเงิน</th>
-                    <th>วันที่ชำระเงิน</th>
-                    <th>หลักฐานการชำระเงิน</th>
-                    <th>สถานะ</th>
-                    <th>ใบแจ้งหนี้</th>
-                    <th>ดำเนินการ</th>
-                    <th></th>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
             </div>
         </div>
-        {% if admin_id %} </div> {% endif %}
     </section>
 {% endblock %}
 {% block scripts %}
@@ -142,7 +144,7 @@
                     {
                         data: 'payment_date',
                         render: function (data) {
-                            if (data !== '') {
+                            if (data !== null) {
                                 let d = moment(data)
                                 return d.format('ll')
                             } else {
@@ -186,6 +188,24 @@
                         }
                     },
                     {data: 'file'},
+                    {
+                        data: 'id',
+                        render: function (data) {
+                            var url = '/service_admin/finance/invoice/view/' + data;
+                            if (data != '') {
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
                     {
                         data: 'id',
                         render: function (data, type, row) {
