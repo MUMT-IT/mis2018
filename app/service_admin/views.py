@@ -256,13 +256,9 @@ def menu():
         invoice_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
             ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
             ServiceRequest.status.has(ServiceStatus.status_id.in_([16, 17, 18, 19, 20, 21]))).count()
-        report_count = ServiceResultItem.query.filter(
-            ServiceResultItem.result.has(ServiceResult.request.has(ServiceRequest.sub_lab.has(
-                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-            )
-            )
-            ), ServiceResultItem.approved_at == None
-        ).count()
+        report_count = (
+            ServiceResult.query.join(ServiceResult.request).join(ServiceRequest.sub_lab).join(ServiceSubLab.admins)
+            .filter(ServiceAdmin.admin_id == current_user.id, ServiceResult.approved_at == None)).count()
     return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin, position=position,
                 request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
                 test_item_count=test_item_count, invoice_count=invoice_count, report_count=report_count)
@@ -1901,20 +1897,15 @@ def result_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
-    query = ServiceResultItem.query.filter(
-        ServiceResultItem.result.has(ServiceResult.request.has(ServiceRequest.sub_lab.has(
-            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-        )
-        )
-        )
-    )
-    pending_count = query.filter(ServiceResultItem.sent_at == None).count()
-    edit_count = query.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == False).count()
-    approve_count = query.filter(ServiceResultItem.sent_at != None, ServiceResultItem.approved_at == None,
-                                 or_(ServiceResultItem.req_edit_at == None, ServiceResultItem.is_edited == True
+    query = ServiceResult.query.join(ServiceResult.request).join(ServiceRequest.sub_lab).join(
+        ServiceSubLab.admins).filter(ServiceAdmin.admin_id == current_user.id)
+    pending_count = query.filter(ServiceResult.sent_at == None).count()
+    edit_count = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False).count()
+    approve_count = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
+                                 or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
                                      )
                                  ).count()
-    confirm_count = query.filter(ServiceResultItem.approved_at >= expire_time).count()
+    confirm_count = query.filter(ServiceResult.approved_at >= expire_time).count()
     all_count = pending_count + edit_count + approve_count + confirm_count
     return render_template('service_admin/result_index.html', menu=menu, tab=tab, pending_count=pending_count,
                            edit_count=edit_count, approve_count=approve_count, all_count=all_count,
@@ -1924,70 +1915,83 @@ def result_index():
 @service_admin.route('/api/result/index')
 def get_results():
     tab = request.args.get('tab')
-    query = ServiceResultItem.query.filter(
-        ServiceResultItem.result.has(ServiceResult.request.has(ServiceRequest.sub_lab.has(
-            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-        )
-        )
-        )
-    )
+    query = (ServiceResult.query.join(ServiceResult.request).join(ServiceRequest.sub_lab).join(ServiceSubLab.admins)
+             .filter(ServiceAdmin.admin_id == current_user.id))
     if tab == 'pending':
-        query = query.filter(ServiceResultItem.sent_at == None)
+        query = query.filter(ServiceResult.sent_at == None)
     elif tab == 'edit':
-        query = query.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == False)
+        query = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False)
     elif tab == 'approve':
-        query = query.filter(ServiceResultItem.sent_at != None, ServiceResultItem.approved_at == None,
-                             or_(ServiceResultItem.req_edit_at == None, ServiceResultItem.is_edited == True
+        query = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
+                             or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
                                  )
                              )
     elif tab == 'confirm':
-        query = query.filter(ServiceResultItem.approved_at != None)
+        query = query.filter(ServiceResult.approved_at != None)
     else:
         query = query
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
         query = query.filter(
-            ServiceResultItem.result.has(ServiceResult.request.has(ServiceRequest.request_no)).contains(search))
+            ServiceResult.request.has(ServiceRequest.request_no).contains(search))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
     query = query.offset(start).limit(length)
     data = []
     for item in query:
-        item_data = item.to_dict()
         html_blocks = []
-        if item.final_file:
-            download_file = url_for('service_admin.download_file', key=item.final_file,
-                                    download_filename=f"{item.report_language} (ฉบับจริง).pdf")
-            html = f'''
-                    <div class="field has-addons">
-                        <div class="control">
-                            <a class="button is-small is-light is-link is-rounded" href="{download_file}">
-                                <span>{item.report_language} (ฉบับจริง)</span>
-                                <span class="icon is-small"><i class="fas fa-download"></i></span>
-                            </a>
-                        </div>
-                    </div>
-                '''
-        elif item.draft_file:
-            download_file = url_for('service_admin.download_file', key=item.draft_file,
-                                    download_filename=f"{item.report_language} (ฉบับร่าง).pdf")
-            html = f'''
-                                    <div class="field has-addons">
-                                        <div class="control">
-                                            <a class="button is-small is-light is-link is-rounded" href="{download_file}">
-                                                <span>{item.report_language} (ฉบับร่าง)</span>
-                                                <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                            </a>
+        edit_html_blocks = []
+        item_data = item.to_dict()
+        for i in item.result_items:
+            edit_html = ''
+            if i.final_file:
+                download_file = url_for('service_admin.download_file', key=i.final_file,
+                                        download_filename=f"{i.report_language} (ฉบับจริง).pdf")
+                html = f'''
+                            <div class="field has-addons">
+                                <div class="control">
+                                    <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                        <span>{i.report_language} (ฉบับจริง)</span>
+                                        <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                    </a>
+                                </div>
+                            </div>
+                        '''
+            elif i.draft_file:
+                download_file = url_for('service_admin.download_file', key=i.draft_file,
+                                        download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
+                edit_result = url_for('service_admin.edit_draft_result', menu='report', tab='approve',
+                                      result_item_id=i.id)
+                html = f'''
+                                            <div class="field has-addons">
+                                                <div class="control">
+                                                    <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                                        <span>{i.report_language} (ฉบับร่าง)</span>
+                                                        <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        '''
+                if i.req_edit_at and not i.is_edited:
+                    edit_html = f'''<div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-warning is-rounded" href="{edit_result}">
+                                                    <span class="icon is-small"><i class="fas fa-pen"></i></span>
+                                                    <span>แก้ไขใบรายงานผล</span>
+                                                </a>
+                                            </div>
                                         </div>
-                                    </div>
-                                '''
-        else:
-            html = ''
-        html_blocks.append(html)
+                                    '''
+            else:
+                html = ''
+            html_blocks.append(html)
+            if edit_html:
+                edit_html_blocks.append(edit_html)
         item_data['files'] = ''.join(
             html_blocks) if html_blocks else '<span class="has-text-grey-light is-italic">ไม่มีไฟล์</span>'
+        item_data['edit_file'] = ''.join(edit_html_blocks) if edit_html_blocks else ''
         data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
