@@ -92,9 +92,10 @@
                                 <td>
                                     {%  for item in result.result_items|sort(attribute='sequence') %}
                                         {% if item.req_edit_at %}
-                                            {{ item.report_language }} : {{ item.note or '' }}
+                                            {{ item.report_language }} : {{ item.note or '' }}<br/>
                                             {% if item.is_edited %}
-                                                <br/><span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>
+                                                <span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>
+                                                <br/>
                                             {% endif %}
                                         {% endif %}
                                     {% endfor %}

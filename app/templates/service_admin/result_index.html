@@ -133,13 +133,9 @@
                     {data: 'files'},
                     {
                         data: 'note',
-                        render: function (data, type, row) {
+                        render: function (data) {
                             if (data !== null) {
-                                var tag = '';
-                                if (row.is_edited) {
-                                    tag = `<span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>`;
-                                }
-                                return `${row.report_language} : ${data} <br/> ${tag} <br/> `;
+                                return data;
                             } else {
                                 return ''
                             }
