@@ -88,7 +88,7 @@
                             <tr>
                                 <td>{{ result.request.request_no }}</td>
                                 <td>{{ result.tracking_number or '' }}</td>
-                                <td>{{ released_at|localdatetime or '' }}</td>
+                                <td>{{ result.sent_at|localdatetime or '' }}</td>
                                 <td>
                                     {%  for item in result.result_items|sort(attribute='sequence') %}
                                         {% if item.req_edit_at %}
