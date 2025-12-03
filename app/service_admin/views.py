@@ -230,7 +230,7 @@ def menu():
         admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
         if sub_lab and sub_lab.assistant and not admins:
             assistant = True
-            position = 'Assistant'
+            position = 'Assistant of dean'
         elif admins and admins.is_supervisor:
             supervisor = True
             position = 'Supervisor'
@@ -241,24 +241,88 @@ def menu():
             admin = True
             position = 'Admin'
 
-        request_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)), ServiceRequest.status.has(
-            ServiceStatus.status_id.in_([2]))).count()
-        quotation_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
-            ServiceRequest.status.has(ServiceStatus.status_id.in_([3, 4, 5]))).count()
-        sample_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
-            ServiceRequest.status.has(ServiceStatus.status_id.in_([6, 8, 9]))).count()
-        test_item_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
-            ServiceRequest.status.has(ServiceStatus.status_id.in_([10, 11, 12, 13, 14, 15]))).count()
-        invoice_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
-            ServiceRequest.status.has(ServiceStatus.status_id.in_([16, 17, 18, 19, 20, 21]))).count()
-        report_count = (
-            ServiceResult.query.join(ServiceResult.request).join(ServiceRequest.sub_lab).join(ServiceSubLab.admins)
-            .filter(ServiceAdmin.admin_id == current_user.id, ServiceResult.approved_at == None)).count()
+        # request_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
+        #     ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)), ServiceRequest.status.has(
+        #     ServiceStatus.status_id.in_([2]))).count()
+        # quotation_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
+        #     ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
+        #     ServiceRequest.status.has(ServiceStatus.status_id.in_([3, 4, 5]))).count()
+        # sample_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
+        #     ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
+        #     ServiceRequest.status.has(ServiceStatus.status_id.in_([6, 8, 9]))).count()
+        # test_item_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
+        #     ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
+        #     ServiceRequest.status.has(ServiceStatus.status_id.in_([10, 11, 12, 13, 14, 15]))).count()
+        # invoice_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
+        #     ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
+        #     ServiceRequest.status.has(ServiceStatus.status_id.in_([16, 17, 18, 19, 20, 21]))).count()
+        # report_count = (
+        #     ServiceResult.query.join(ServiceResult.request).join(ServiceRequest.sub_lab).join(ServiceSubLab.admins)
+        #     .filter(ServiceAdmin.admin_id == current_user.id, ServiceResult.approved_at == None)).count()
+        request_count = (ServiceRequest.query
+                         .join(ServiceRequest.status)
+                         .join(ServiceRequest.sub_lab)
+                         .outerjoin(ServiceSubLab.admins)
+                         .filter(
+            ServiceStatus.status_id.in_([2]),
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()).count()
+        quotation_count = (ServiceRequest.query
+                           .join(ServiceRequest.status)
+                           .join(ServiceRequest.sub_lab)
+                           .outerjoin(ServiceSubLab.admins)
+                           .filter(
+            ServiceStatus.status_id.in_([3, 4, 5]),
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()).count()
+        sample_count = (ServiceRequest.query
+                           .join(ServiceRequest.status)
+                           .join(ServiceRequest.sub_lab)
+                           .outerjoin(ServiceSubLab.admins)
+                           .filter(
+            ServiceStatus.status_id.in_([6, 8, 9]),
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()).count()
+        test_item_count = (ServiceRequest.query
+                        .join(ServiceRequest.status)
+                        .join(ServiceRequest.sub_lab)
+                        .outerjoin(ServiceSubLab.admins)
+                        .filter(
+            ServiceStatus.status_id.in_([10, 11, 12, 13, 14, 15]),
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()).count()
+        invoice_count = (ServiceRequest.query
+                           .join(ServiceRequest.status)
+                           .join(ServiceRequest.sub_lab)
+                           .outerjoin(ServiceSubLab.admins)
+                           .filter(
+            ServiceStatus.status_id.in_([16, 17, 18, 19, 20, 21]),
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()).count()
+        report_count = (ServiceResult.query
+                         .join(ServiceResult.request)
+                         .outerjoin(ServiceSubLab.admins)
+                         .filter(ServiceResult.approved_at == None,
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()).count()
     return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin, position=position,
                 request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
                 test_item_count=test_item_count, invoice_count=invoice_count, report_count=report_count)
@@ -4100,7 +4164,8 @@ def edit_draft_result(result_item_id):
             db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
         result_url = url_for('academic_services.view_result_item', result_id=result_item.result_id,
-                             result_item_id=result_item_id, menu='report', tab='approve', _external=True, _scheme=scheme)
+                             result_item_id=result_item_id, menu='report', tab='approve', _external=True,
+                             _scheme=scheme)
         customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
         contact_email = result_item.result.request.customer.contact_email if result_item.result.request.customer.contact_email else result_item.result.request.customer.email
         title_prefix = 'คุณ' if result_item.result.request.customer.customer_info.type.type == 'บุคคล' else ''
