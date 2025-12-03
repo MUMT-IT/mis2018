@@ -377,11 +377,19 @@ def request_index():
 
     for key, group in status_groups.items():
         group_ids = [i for i in group['id'] if i != 7]
-        query = ServiceRequest.query.filter(
-            ServiceRequest.status.has(ServiceStatus.status_id.in_(group_ids)
-                                      ), ServiceRequest.sub_lab.has(
-                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+        query = (
+            ServiceRequest.query
+            .join(ServiceRequest.status)
+            .join(ServiceRequest.sub_lab)
+            .outerjoin(ServiceSubLab.admins)
+            .filter(
+                ServiceStatus.status_id.in_(group_ids),
+                or_(
+                    ServiceSubLab.assistant_id == current_user.id,
+                    ServiceAdmin.admin_id == current_user.id
+                )
             )
+            .distinct()
         ).count()
 
         status_groups[key]['count'] = query
