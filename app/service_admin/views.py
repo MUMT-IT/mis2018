@@ -3863,11 +3863,11 @@ def create_draft_result(result_id=None):
                     message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
                     send_mail([contact_email], title, message)
                     result.is_sent_email = True
-                    db.session.add(result)
-                    db.session.add(service_request)
-                    db.session.commit()
-                    flash("ส่งข้อมูลเรียบร้อยแล้ว", "success")
-                return redirect(url_for('service_admin.test_item_index', menu=menu, tab=tab))
+                db.session.add(result)
+                db.session.add(service_request)
+                db.session.commit()
+                flash("ส่งข้อมูลเรียบร้อยแล้ว", "success")
+                return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='testing'))
             else:
                 flash("กรุณาแนบไฟล์ให้ครบถ้วน", "danger")
         else:
