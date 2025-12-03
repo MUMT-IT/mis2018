@@ -47,17 +47,51 @@
                 <div class="column is-12 box">
                     <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
                         <div class="field">
-                            <label class="label">{{ result_item.report_language }}</label>
+                            <p class="subtitle is-5 mb-1 has-text-weight-semibold">{{ result_item.report_language }}</p>
+                        </div>
+                        {% if result_item.approved_at %}
+                            <div class="field">
+                                <label class="label">วันที่ยืนยัน</label>
+                                <div class="control">
+                                    {{ result_item.approved_at|localdatetime }}
+                                </div>
+                            </div>
+                        {% endif %}
+                        {% if result_item.req_edit_at %}
+                            <div class="field">
+                                <label class="label">วันที่ขอแก้ไข</label>
+                                <div class="control">
+                                    {{ result_item.req_edit_at|localdatetime }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">วันที่แก้ไข</label>
+                                <div class="control">
+                                    {% if result_item.edited_at %}
+                                        {{ result_item.edited_at|localdatetime }}
+                                    {% else %}
+                                        <span class="has-text-grey-light is-italic">ยังไม่ดำเนินการแก้ไข</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">รายละเอียดการขอแก้ไข</label>
+                                <div class="control">
+                                    {{ result_item.note }}
+                                </div>
+                            </div>
+                        {% endif %}
+                        <div class="field">
                             <div class="control">
-                                <iframe src="{{ generate_url(result_item.draft_file) }}" style="width:100%; height:600px;"></iframe>
+                                <iframe src="{{ generate_url(result_item.draft_file) }}"
+                                        style="width:100%; height:600px;"></iframe>
                             </div>
                         </div>
                         <div class="field">
                             <div id="result-form"></div>
                             <div class="buttons is-centered">
-                                <a
-                                        class="button"
-                                        href="{{ url_for('academic_services.result_index', menu=menu, tab=tab) }}"
+                                <a class="button"
+                                   href="{{ url_for('academic_services.result_index', menu=menu, tab=tab) }}"
                                 >
                                     ย้อนกลับ
                                 </a>
