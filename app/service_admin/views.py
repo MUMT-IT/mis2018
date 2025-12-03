@@ -2681,15 +2681,14 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
     )
 
     customer = '''<para><font size=14>
-                    ที่ อว. {mhesi_no}<br/>
+                    ที่ <br/>
                     วันที่ <br/>
                     เรื่อง ใบแจ้งหนี้ค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ<br/>
                     เรียน {customer}<br/>
                     ที่อยู่ {address}<br/>
                     เลขประจำตัวผู้เสียภาษี {taxpayer_identification_no}
                     </font></para>
-                    '''.format(mhesi_no='78.04/',
-                               customer=invoice.name,
+                    '''.format(customer=invoice.name,
                                address=invoice.address,
                                taxpayer_identification_no=invoice.taxpayer_identification_no)
 
