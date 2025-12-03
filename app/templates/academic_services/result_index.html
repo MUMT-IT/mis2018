@@ -79,71 +79,91 @@
                     <th>เลขใบคำขอรับบริการ</th>
                     <th>หมายเลขติดตามพัสดุ</th>
                     <th>วัน-เวลาที่ออกผล</th>
+                    <th>รายละเอียดการแก้ไข</th>
                     <th>สถานะ</th>
                     <th>ผลการทดสอบ</th>
-                    <th>รายละเอียดการแก้ไข</th>
                     </thead>
                     <tbody>
-                        {% for item in result_items|sort(attribute='released_at', reverse=True) %}
+                        {% for result in results|sort(attribute='released_at', reverse=True) %}
                             <tr>
-                                <td>{{ item.result.request.request_no }}</td>
-                                <td>{{ item.result.tracking_number or '' }}</td>
-                                <td>{{ item.released_at|localdatetime or '' }}</td>
+                                <td>{{ result.request.request_no }}</td>
+                                <td>{{ result.tracking_number or '' }}</td>
+                                <td>{{ released_at|localdatetime or '' }}</td>
                                 <td>
-                                    <span class="tag {{ item.customer_status.color }}">
-                                        {{ item.customer_status.status }}
+                                    {%  for item in result.result_items|sort(attribute='sequence') %}
+                                        {% if item.req_edit_at %}
+                                            {{ item.report_language }} : {{ item.note or '' }}<br/>
+                                            {% if item.is_edited %}
+                                                <span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>
+                                                <br/>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    <span class="tag {{ result.customer_status.color }}">
+                                        {{ result.customer_status.status }}
                                     </span>
                                 </td>
-                                <td>
-                                    {% if item.final_file %}
-                                        <div class="field has-addons">
-                                            <div class="control">
-                                                <a {% if item.result.status.status_id == 22 %}
-                                                    class="button is-small is-link is-light is-rounded"
-                                                    href="{{ url_for('academic_services.download_file', key=item.final_file,
-                                                        download_filename=item.report_language + ' ' + '(ฉบับจริง)' + '.pdf') }}"
-                                                {% else %}
-                                                    class="button is-small is-link is-light is-rounded Warn"
-                                                {% endif %}
-                                                >
-                                                    <span>{{ item.report_language + ' ' + '(ฉบับจริง)' or 'ไม่ระบุภาษา' }}</span>
-                                                    <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                                </a>
+                                    <td>
+                                    {% for item in result.result_items|sort(attribute='sequence') %}
+                                        {% if result.approved_at and item.final_file %}
+                                            <div class="field has-addons">
+                                                <div class="control">
+                                                    <a {% if item.result.status.status_id == 22 %}
+                                                        class="button is-small is-link is-light is-rounded"
+                                                        href="{{ url_for('academic_services.download_file', key=item.final_file,
+                                                            download_filename=item.report_language + ' ' + '(ฉบับจริง)' + '.pdf') }}"
+                                                    {% else %}
+                                                        class="button is-small is-link is-light is-rounded Warn"
+                                                    {% endif %}
+                                                    >
+                                                        <span>{{ item.report_language + ' ' + '(ฉบับจริง)' or 'ไม่ระบุภาษา' }}</span>
+                                                        <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                    </a>
+                                                </div>
                                             </div>
-                                        </div>
-                                    {% elif item.draft_file and not item.approved_at and (not item.req_edit_at or item.is_edited) %}
-                                        <div class="field has-addons">
-                                            <div class="control">
-                                                <a class="button is-small is-success is-rounded"
-                                                   href="{{ url_for('academic_services.view_result_item', result_item_id=item.id,
-                                                   menu=menu, tab=tab) }}">
-                                                    <span class="icon is-small"><i class="fas fa-check"></i></span>
-                                                    <span>ยืนยัน{{ item.report_language +  ' ' +'(ฉบับร่าง)' or 'ไม่ระบุภาษา' }}</span>
-                                                </a>
-                                            </div>
-                                        </div>
-                                    {% elif item.draft_file and (item.result.request.status.status_id != 10
-                                        or item.result.request.status.status_id != 11) %}
-                                        <div class="field has-addons">
-                                            <div class="control">
-                                                <a class="button is-small is-link is-light is-rounded"
-                                                   href="{{ url_for('academic_services.download_file', key=item.draft_file,
-                                                   download_filename=item.report_language + ' ' + '(ฉบับร่าง)' + '.pdf') }}"
-                                                >
-                                                    <span>{{ item.report_language + ' ' + '(ฉบับร่าง)' or 'ไม่ระบุภาษา' }}</span>
-                                                    <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                                </a>
-                                            </div>
-                                        </div>
-                                    {% else %}
-                                        {{ '' }}
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {{ item.note or '' }}
-                                    {% if item.is_edited %}
-                                        <span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>
-                                    {% endif %}
+                                        {% elif result.sent_at %}
+                                            {% if item.approved_at %}
+                                                <div class="field has-addons">
+                                                    <div class="control">
+                                                        <a class="button is-small is-success is-light is-rounded"
+                                                           href="{{ url_for('academic_services.download_file', key=item.draft_file,
+                                                           download_filename=item.report_language + ' ' + '(ฉบับร่าง)' + '.pdf') }}"
+                                                        >
+                                                            <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                                            <span>{{ item.report_language + ' ' + '(ฉบับร่าง)' or 'ไม่ระบุภาษา' }}</span>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            {% elif not item.approved_at and (not item.req_edit_at or item.is_edited) %}
+                                                <div class="field has-addons">
+                                                    <div class="control">
+                                                        <a class="button is-small is-info is-rounded"
+                                                           href="{{ url_for('academic_services.view_result_item', result_id=result.id,
+                                                           result_item_id=item.id, menu=menu, tab=tab) }}">
+                                                            <span class="icon is-small"><i class="fas fa-file-alt"></i></span>
+                                                            <span>ยืนยัน{{ item.report_language +  ' ' +'(ฉบับร่าง)' or 'ไม่ระบุภาษา' }}</span>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                <div class="field has-addons">
+                                                    <div class="control">
+                                                        <a class="button is-small is-outlined is-info is-rounded"
+                                                           href="{{ url_for('academic_services.download_file', key=item.draft_file,
+                                                           download_filename=item.report_language + ' ' + '(ฉบับร่าง)' + '.pdf') }}"
+                                                        >
+                                                            <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                            <span>{{ item.report_language + ' ' + '(ฉบับร่าง)' or 'ไม่ระบุภาษา' }}</span>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        {% else %}
+                                            {{ '' }}
+                                        {% endif %}
+                                    {% endfor %}
                                 </td>
                             </tr>
                         {% endfor %}

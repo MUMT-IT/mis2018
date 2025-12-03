@@ -103,9 +103,9 @@
                     <th>ผู้ประสานงาน</th>
                     <th>เลขใบคำขอรับบริการ</th>
                     <th>ราคา</th>
-                    <th>สถานะ</th>
                     <th>หมายเหตุ</th>
                     <th>ผู้ออก</th>
+                    <th>สถานะ</th>
                     <th>รายละเอียด</th>
                     </thead>
                     <tbody>
@@ -197,18 +197,6 @@
                     {data: 'request_no'},
                     {data: 'total_price'},
                     {
-                        data: 'id',
-                        render: function (data, type, row) {
-                            var color = row.admin_status_color
-                            var status = row.admin_status
-                            if (data !== null) {
-                                return `<span class="tag ${color}">${status}</span>`;
-                            } else {
-                                return `<span class="tag is-info">ร่างใบเสนอราคา</span>`;
-                            }
-                        }
-                    },
-                    {
                         data: null,
                         render: function (data, type, row) {
                             if (row.reason && row.other) {
@@ -221,6 +209,18 @@
                         }
                     },
                     {data: 'creator'},
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            var color = row.admin_status_color
+                            var status = row.admin_status
+                            if (data !== null) {
+                                return `<span class="tag ${color}">${status}</span>`;
+                            } else {
+                                return `<span class="tag is-info">ร่างใบเสนอราคา</span>`;
+                            }
+                        }
+                    },
                     {
                         data: 'id',
                         render: function (data, type, row) {
@@ -264,7 +264,7 @@
                                         '<div class="control">' +
                                         '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
                                         '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                        '<span>ตรวจสอบ</span>' +
+                                        '<span>อนุมัติราคา</span>' +
                                         '</a>' +
                                         '</div>' +
                                         '</div>'

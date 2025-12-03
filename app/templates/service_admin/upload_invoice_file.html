@@ -10,7 +10,7 @@
             {% include "messages.html" %}
             <div class="columns">
                 <div class="column is-half is-offset-one-quarter">
-                    <h1 class="title has-text-centered">อัปโหลดไฟล์ใบแจ้งหนี้ (คณบดีลงนาม)</h1>
+                    <h1 class="title has-text-centered">อัปโหลดไฟล์ใบแจ้งหนี้ฉบับสมบูรณ์</h1>
                     <form method="post" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="box">
@@ -55,7 +55,7 @@
                                             </span>
                                             <span class="file-label">เลือกไฟล์…</span>
                                         </span>
-                                        <span class="file-name" id="filename">None</span>
+                                        <span class="file-name" id="filename">กรุณาเลือกไฟล์</span>
                                     </label>
                                 </div>
                             </div>
@@ -87,7 +87,7 @@
     </script>
     <script>
         $(document).ready(() => {
-            $('#filename').text('None');
+            $('#filename').text('กรุณาเลือกไฟล์');
         })
         $('#file_upload').change(function (e) {
             let fileName = e.target.files[0].name;

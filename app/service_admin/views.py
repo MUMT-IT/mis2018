@@ -256,13 +256,9 @@ def menu():
         invoice_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
             ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
             ServiceRequest.status.has(ServiceStatus.status_id.in_([16, 17, 18, 19, 20, 21]))).count()
-        report_count = ServiceResultItem.query.filter(
-            ServiceResultItem.result.has(ServiceResult.request.has(ServiceRequest.sub_lab.has(
-                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-            )
-            )
-            ), ServiceResultItem.approved_at == None
-        ).count()
+        report_count = (
+            ServiceResult.query.join(ServiceResult.request).join(ServiceRequest.sub_lab).join(ServiceSubLab.admins)
+            .filter(ServiceAdmin.admin_id == current_user.id, ServiceResult.approved_at == None)).count()
     return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin, position=position,
                 request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
                 test_item_count=test_item_count, invoice_count=invoice_count, report_count=report_count)
@@ -1901,20 +1897,15 @@ def result_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
-    query = ServiceResultItem.query.filter(
-        ServiceResultItem.result.has(ServiceResult.request.has(ServiceRequest.sub_lab.has(
-            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-        )
-        )
-        )
-    )
-    pending_count = query.filter(ServiceResultItem.sent_at == None).count()
-    edit_count = query.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == False).count()
-    approve_count = query.filter(ServiceResultItem.sent_at != None, ServiceResultItem.approved_at == None,
-                                 or_(ServiceResultItem.req_edit_at == None, ServiceResultItem.is_edited == True
+    query = ServiceResult.query.join(ServiceResult.request).join(ServiceRequest.sub_lab).join(
+        ServiceSubLab.admins).filter(ServiceAdmin.admin_id == current_user.id)
+    pending_count = query.filter(ServiceResult.sent_at == None).count()
+    edit_count = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False).count()
+    approve_count = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
+                                 or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
                                      )
                                  ).count()
-    confirm_count = query.filter(ServiceResultItem.approved_at >= expire_time).count()
+    confirm_count = query.filter(ServiceResult.approved_at >= expire_time).count()
     all_count = pending_count + edit_count + approve_count + confirm_count
     return render_template('service_admin/result_index.html', menu=menu, tab=tab, pending_count=pending_count,
                            edit_count=edit_count, approve_count=approve_count, all_count=all_count,
@@ -1924,70 +1915,95 @@ def result_index():
 @service_admin.route('/api/result/index')
 def get_results():
     tab = request.args.get('tab')
-    query = ServiceResultItem.query.filter(
-        ServiceResultItem.result.has(ServiceResult.request.has(ServiceRequest.sub_lab.has(
-            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-        )
-        )
-        )
-    )
+    query = (ServiceResult.query.join(ServiceResult.request).join(ServiceRequest.sub_lab).join(ServiceSubLab.admins)
+             .filter(ServiceAdmin.admin_id == current_user.id))
     if tab == 'pending':
-        query = query.filter(ServiceResultItem.sent_at == None)
+        query = query.filter(ServiceResult.sent_at == None)
     elif tab == 'edit':
-        query = query.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == False)
+        query = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False)
     elif tab == 'approve':
-        query = query.filter(ServiceResultItem.sent_at != None, ServiceResultItem.approved_at == None,
-                             or_(ServiceResultItem.req_edit_at == None, ServiceResultItem.is_edited == True
+        query = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
+                             or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
                                  )
                              )
     elif tab == 'confirm':
-        query = query.filter(ServiceResultItem.approved_at != None)
+        query = query.filter(ServiceResult.approved_at != None)
     else:
         query = query
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
         query = query.filter(
-            ServiceResultItem.result.has(ServiceResult.request.has(ServiceRequest.request_no)).contains(search))
+            ServiceResult.request.has(ServiceRequest.request_no).contains(search))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
     query = query.offset(start).limit(length)
     data = []
     for item in query:
-        item_data = item.to_dict()
         html_blocks = []
-        if item.final_file:
-            download_file = url_for('service_admin.download_file', key=item.final_file,
-                                    download_filename=f"{item.report_language} (ฉบับจริง).pdf")
-            html = f'''
-                    <div class="field has-addons">
-                        <div class="control">
-                            <a class="button is-small is-light is-link is-rounded" href="{download_file}">
-                                <span>{item.report_language} (ฉบับจริง)</span>
-                                <span class="icon is-small"><i class="fas fa-download"></i></span>
-                            </a>
-                        </div>
-                    </div>
-                '''
-        elif item.draft_file:
-            download_file = url_for('service_admin.download_file', key=item.draft_file,
-                                    download_filename=f"{item.report_language} (ฉบับร่าง).pdf")
-            html = f'''
-                                    <div class="field has-addons">
-                                        <div class="control">
-                                            <a class="button is-small is-light is-link is-rounded" href="{download_file}">
-                                                <span>{item.report_language} (ฉบับร่าง)</span>
-                                                <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                            </a>
+        edit_html_blocks = []
+        note_html_blocks = []
+        item_data = item.to_dict()
+        for i in item.result_items:
+            edit_html = ''
+            note_html = ''
+            if i.final_file:
+                download_file = url_for('service_admin.download_file', key=i.final_file,
+                                        download_filename=f"{i.report_language} (ฉบับจริง).pdf")
+                html = f'''
+                            <div class="field has-addons">
+                                <div class="control">
+                                    <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                        <span>{i.report_language} (ฉบับจริง)</span>
+                                        <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                    </a>
+                                </div>
+                            </div>
+                        '''
+            elif i.draft_file:
+                download_file = url_for('service_admin.download_file', key=i.draft_file,
+                                        download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
+                edit_result = url_for('service_admin.edit_draft_result', menu='report', tab='approve',
+                                      result_item_id=i.id)
+                html = f'''
+                                            <div class="field has-addons">
+                                                <div class="control">
+                                                    <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                                        <span>{i.report_language} (ฉบับร่าง)</span>
+                                                        <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        '''
+                if i.req_edit_at and not i.is_edited:
+                    edit_html = f'''<div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-warning is-rounded" href="{edit_result}">
+                                                    <span class="icon is-small"><i class="fas fa-pen"></i></span>
+                                                    <span>แก้ไขใบรายงานผล</span>
+                                                </a>
+                                            </div>
                                         </div>
-                                    </div>
+                                    '''
+                    note_html = f'''{i.report_language} : {i.note}<br/>'''
+                elif i.req_edit_at and i.is_edited:
+                    note_html = f'''{i.report_language} : {i.note}
+                                    <br/>
+                                    <span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>
+                                    <br/>
                                 '''
-        else:
-            html = ''
-        html_blocks.append(html)
+            else:
+                html = ''
+            html_blocks.append(html)
+            if edit_html:
+                edit_html_blocks.append(edit_html)
+            if note_html:
+                note_html_blocks.append(note_html)
         item_data['files'] = ''.join(
             html_blocks) if html_blocks else '<span class="has-text-grey-light is-italic">ไม่มีไฟล์</span>'
+        item_data['edit_file'] = ''.join(edit_html_blocks) if edit_html_blocks else ''
+        item_data['note'] = ''.join(note_html_blocks) if note_html_blocks else ''
         data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
@@ -2230,9 +2246,9 @@ def invoice_index():
                                       ServiceInvoice.file_attached_at == None,
                                       ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
     waiting_payment_count = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at != None,
-                                      ServiceInvoice.assistant_approved_at != None,
-                                      ServiceInvoice.file_attached_at != None,
-                                      or_(ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None)).count()
+                                         ServiceInvoice.assistant_approved_at != None,
+                                         ServiceInvoice.file_attached_at != None,
+                                         or_(ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None)).count()
     payment_count = query.filter(ServiceInvoice.verify_at >= expire_time).count()
     all_count = (draft_count + pending_dean_count + pending_assistant_count + pending_supervisor_count +
                  waiting_payment_count + payment_count)
@@ -2758,7 +2774,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         'HeadRemarkStyle',
         parent=style_sheet['ThaiStyleBold'],
         fontSize=10,
-        leading=1
+        leading=13
     )
 
     remark_style = ParagraphStyle(
@@ -2903,70 +2919,71 @@ def add_payment():
         form.populate_obj(payment)
         status_id = get_status(21)
         file = form.file_upload.data
-        payment.invoice_id = invoice_id
-        payment.created_at = arrow.now('Asia/Bangkok').datetime
-        payment.customer_id = invoice.quotation.request.customer_id
-        payment.admin_id = current_user.id
-        payment.paid_at = arrow.get(form.paid_at.data, 'Asia/Bangkok').datetime
-        if file and allowed_file(file.filename):
-            mime_type = file.mimetype
-            file_name = '{}.{}'.format(uuid.uuid4().hex, file.filename.split('.')[-1])
-            file_data = file.stream.read()
-            response = s3.put_object(
-                Bucket=S3_BUCKET_NAME,
-                Key=file_name,
-                Body=file_data,
-                ContentType=mime_type
-            )
-            payment.slip = file_name
-            db.session.add(payment)
-            invoice.paid_at = arrow.now('Asia/Bangkok').datetime
-            invoice.quotation.request.status_id = status_id
-            db.session.add(invoice)
-            result = ServiceResult.query.filter_by(request_id=invoice.quotation.request_id).first()
-            result.status_id = status_id
-            db.session.add(result)
-            db.session.commit()
-            scheme = 'http' if current_app.debug else 'https'
-            org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
-            staff = StaffAccount.get_account_by_email(org.head)
-            title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
-            link = url_for("academic_service_payment.invoice_payment_index", _external=True, _scheme=scheme)
-            customer_name = invoice.customer_name.replace(' ', '_')
-            title = f'''[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอัปเดตการชำระเงิน'''
-            message = f'''เรียน เจ้าหน้าที่การเงิน\n\n'''
-            message += f'''ใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
-            message += f'''ลูกค้า : {invoice.customer_name}\n'''
-            message += f'''ในนาม : {invoice.name}\n'''
-            message += f'''ขอแจ้งให้ทราบว่า ได้มีการอัปเดตข้อมูลการชำระเงินเรียบร้อยแล้ว\n'''
-            message += f'''กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'''
-            message += f'''{link}\n\n'''
-            message += f'''ผู้ประสานงาน\n'''
-            message += f'''{invoice.customer_name}\n'''
-            message += f'''เบอร์โทร {invoice.contact_phone_number}\n\n'''
-            message += f'''ระบบงานบริการวิชาการ'''
-            send_mail([staff.email + '@mahidol.ac.th'], title, message)
-            msg = ('แจ้งอัปเดตการชำระเงิน' \
-                   '\n\nเรียน เจ้าหน้าที่การเงิน'
-                   '\n\nใบแจ้งหนี้เลขที่ {}' \
-                   '\nลูกค้า : {}' \
-                   '\nในนาม : {}' \
-                   '\nขอแจ้งให้ทราบว่า ได้มีการอัปเดตข้อมูลการชำระเงินเรียบร้อยแล้ว' \
-                   '\nกรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง' \
-                   '\n{}' \
-                   '\n\nผู้ประสานงาน' \
-                   '\n{}' \
-                   '\nเบอร์โทร {}' \
-                   '\n\nระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.customer_name, invoice.name, link,
-                                                     invoice.customer_name, invoice.contact_phone_number)
-                   )
-            if not current_app.debug:
-                try:
-                    line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
-                except LineBotApiError:
-                    pass
-        flash('อัพเดตสลิปสำเร็จ', 'success')
-        return redirect(url_for('service_admin.invoice_index', menu=menu, tab=tab))
+        if (file and form.paid_at.data and form.payment_type.data and form.amount_paid.data):
+            payment.invoice_id = invoice_id
+            payment.created_at = arrow.now('Asia/Bangkok').datetime
+            payment.customer_id = invoice.quotation.request.customer_id
+            payment.admin_id = current_user.id
+            payment.paid_at = arrow.get(form.paid_at.data, 'Asia/Bangkok').datetime
+            if file and allowed_file(file.filename):
+                mime_type = file.mimetype
+                file_name = '{}.{}'.format(uuid.uuid4().hex, file.filename.split('.')[-1])
+                file_data = file.stream.read()
+                response = s3.put_object(
+                    Bucket=S3_BUCKET_NAME,
+                    Key=file_name,
+                    Body=file_data,
+                    ContentType=mime_type
+                )
+                payment.slip = file_name
+                db.session.add(payment)
+                invoice.paid_at = arrow.now('Asia/Bangkok').datetime
+                invoice.quotation.request.status_id = status_id
+                db.session.add(invoice)
+                result = ServiceResult.query.filter_by(request_id=invoice.quotation.request_id).first()
+                result.status_id = status_id
+                db.session.add(result)
+                db.session.commit()
+                scheme = 'http' if current_app.debug else 'https'
+                org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
+                staff = StaffAccount.get_account_by_email(org.head)
+                title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
+                link = url_for("service_admin.view_invoice_for_finance", invoice_id=invoice_id, _external=True,
+                               _scheme=scheme)
+                customer_name = invoice.customer_name.replace(' ', '_')
+                title = f'''[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอัปเดตการชำระเงิน'''
+                message = f'''เรียน เจ้าหน้าที่การเงิน\n\n'''
+                message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'''
+                message += f'''ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'''
+                message += f'''จำนวนเงิน {invoice.grand_total():,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'''
+                message += f'''กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'''
+                message += f'''{link}\n\n'''
+                message += f'''ผู้ประสานงาน\n'''
+                message += f'''{invoice.customer_name}\n'''
+                message += f'''เบอร์โทร {invoice.contact_phone_number}\n\n'''
+                message += f'''ระบบงานบริการวิชาการ'''
+                send_mail([staff.email + '@mahidol.ac.th'], title, message)
+                msg = (f'แจ้งอัพเดตการชำระเงินใบแจ้งหนี้เลขที่ {invoice.invoice_no}\n\n'
+                       f'เรียน เจ้าหน้าที่การเงิน\n\n'
+                       f'ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'
+                       f'ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'
+                       f'จำนวนเงิน {invoice.grand_total():,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'
+                       f'กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'
+                       f'{link}\n\n'
+                       f'ผู้ประสานงาน\n'
+                       f'{invoice.customer_name}\n'
+                       f'เบอร์โทร {invoice.contact_phone_number}\n\n'
+                       f'ระบบงานบริการวิชาการ'
+                       )
+                if not current_app.debug:
+                    try:
+                        line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
+            flash('อัปโหลดหลักฐานการชำระเงินสำเร็จ', 'success')
+            return redirect(url_for('service_admin.invoice_index', menu=menu, tab=tab))
+        else:
+            flash('กรุณากรอกวันที่ชำระเงิน, วิธีการชำระเงิน, จำนวนเงิน และหลักฐานการชำระเงิน', 'danger')
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
@@ -3206,7 +3223,8 @@ def generate_quotation():
         if service_request.sub_lab.code == 'air_disinfection':
             test_methods = []
             surface_fields = data.get('surface_condition_field', {}).get('surface_disinfection_organism_fields', [])
-            airborne_fields = data.get('airborne_disinfection_organism', {}).get('airborne_disinfection_organism_fields', [])
+            airborne_fields = data.get('airborne_disinfection_organism', {}).get(
+                'airborne_disinfection_organism_fields', [])
 
             if surface_fields:
                 for f in surface_fields:
@@ -3815,34 +3833,9 @@ def create_draft_result(result_id=None):
                     item.result.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(item)
                 db.session.commit()
-        uploaded_all = all(item.draft_file for item in result.result_items)
-        if uploaded_all:
-            status_id = get_status(12)
-            result.status_id = status_id
-            service_request.status_id = status_id
-            scheme = 'http' if current_app.debug else 'https'
-            if not result.is_sent_email:
-                result_url = url_for('academic_services.result_index', menu='report', tab='approve', _external=True, _scheme=scheme)
-                customer_name = result.request.customer.customer_name.replace(' ', '_')
-                contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
-                title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
-                title = f'''แจ้งออกรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-                message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-                message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
-                message += f''' ขณะนี้ได้จัดทำรายงานผลการทดสอบฉบับร่างเรียบร้อยแล้ว'''
-                message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
-                message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง'''
-                message += f'''{result_url}'''
-                message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-                message += f'''ขอแสดงความนับถือ\n'''
-                message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
-                message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-                send_mail([contact_email], title, message)
-            result.is_sent_email = True
-        else:
-            status_id = get_status(11)
-            result.status_id = status_id
-            service_request.status_id = status_id
+        status_id = get_status(11)
+        result.status_id = status_id
+        service_request.status_id = status_id
         db.session.add(result)
         db.session.add(service_request)
         db.session.commit()
@@ -3850,6 +3843,66 @@ def create_draft_result(result_id=None):
         return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='testing'))
     return render_template('service_admin/create_draft_result.html', result_id=result_id, menu=menu,
                            result=result, tab=tab)
+
+
+@service_admin.route('/result/send/<int:result_id>', methods=['GET', 'POST'])
+@login_required
+def send_draft_result(result_id=None):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    request_id = request.args.get('request_id')
+    service_request = ServiceRequest.query.get(request_id)
+    result = ServiceResult.query.get(result_id)
+    status_id = get_status(12)
+    result.status_id = status_id
+    service_request.status_id = status_id
+    result.sent_at = arrow.now('Asia/Bangkok').datetime
+    result.sender_id = current_user.id
+    scheme = 'http' if current_app.debug else 'https'
+    for item in result.result_items:
+        file = request.files.get(f'file_{item.id}')
+        if file and allowed_file(file.filename):
+            mime_type = file.mimetype
+            file_name = '{}.{}'.format(item.report_language,
+                                       file.filename.split('.')[-1])
+            file_data = file.stream.read()
+            response = s3.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=file_name,
+                Body=file_data,
+                ContentType=mime_type
+            )
+            item.draft_file = file_name
+            item.sent_at = arrow.now('Asia/Bangkok').datetime
+            if result_id:
+                item.modified_at = arrow.now('Asia/Bangkok').datetime
+                item.result.modified_at = arrow.now('Asia/Bangkok').datetime
+            db.session.add(item)
+            db.session.commit()
+    if not result.is_sent_email:
+        result_url = url_for('academic_services.result_index', menu='report', tab='approve', _external=True,
+                             _scheme=scheme)
+        customer_name = result.request.customer.customer_name.replace(' ', '_')
+        contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
+        title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
+        title = f'''แจ้งออกรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+        message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+        message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
+        message += f''' ขณะนี้ได้จัดทำรายงานผลการทดสอบฉบับร่างเรียบร้อยแล้ว'''
+        message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
+        message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง'''
+        message += f'''{result_url}'''
+        message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+        message += f'''ขอแสดงความนับถือ\n'''
+        message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+        message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+        send_mail([contact_email], title, message)
+        result.is_sent_email = True
+        db.session.add(result)
+        db.session.add(service_request)
+        db.session.commit()
+        flash("ส่งข้อมูลเรียบร้อยแล้ว", "success")
+    return redirect(url_for('service_admin.test_item_index', menu=menu, tab=tab))
 
 
 @service_admin.route('/result_item/draft/edit/<int:result_item_id>', methods=['GET', 'POST'])
@@ -3876,13 +3929,15 @@ def edit_draft_result(result_item_id):
             result_item.modified_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(result_item)
             db.session.commit()
-        edited_all = all(item.is_edited for item in result_item.result.result_items if item.req_edit_at)
+        edited_all = all(item.is_edited is not None for item in result_item.result.result_items if item.req_edit_at)
         if edited_all:
             status_id = get_status(12)
             result_item.result.status_id = status_id
             result_item.result.request.status_id = status_id
+            result_item.result.is_edited = True
         scheme = 'http' if current_app.debug else 'https'
-        result_url = url_for('academic_services.result_index', menu='report', tab='approve', _external=True, _scheme=scheme)
+        result_url = url_for('academic_services.view_result_item', result_id=result_item.result_id,
+                             result_item_id=result_item_id, menu='report', tab='approve', _external=True, _scheme=scheme)
         customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
         contact_email = result_item.result.request.customer.contact_email if result_item.result.request.customer.contact_email else result_item.result.request.customer.email
         title_prefix = 'คุณ' if result_item.result.request.customer.customer_info.type.type == 'บุคคล' else ''
@@ -3977,7 +4032,8 @@ def create_final_result(result_id=None):
         uploaded_all = all(item.final_file for item in result.result_items)
         if uploaded_all:
             scheme = 'http' if current_app.debug else 'https'
-            result_url = url_for('academic_services.result_index', menu='report', tab='all', _external=True, _scheme=scheme)
+            result_url = url_for('academic_services.result_index', menu='report', tab='all', _external=True,
+                                 _scheme=scheme)
             customer_name = result.request.customer.customer_name.replace(' ', '_')
             contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
             title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
@@ -4019,7 +4075,7 @@ def delete_final_result(item_id):
 @login_required
 def invoice_payment_index():
     menu = request.args.get('menu')
-    return render_template('academic_service_payment/invoice_payment_index.html', menu=menu)
+    return render_template('service_admin/invoice_payment_index.html', menu=menu)
 
 
 @service_admin.route('/api/invoice/payment/index')
@@ -4040,7 +4096,7 @@ def get_invoice_payments():
                                 download_filename=f"{item.invoice_no}.pdf")
         item_data['file'] = f'''<div class="field has-addons">
                         <div class="control">
-                            <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                            <a class="button is-small is-outlined is-link is-rounded" href="{download_file}">
                                 <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
                                 <span>ใบแจ้งหนี้</span>
                             </a>
@@ -4059,6 +4115,22 @@ def get_invoice_payments():
                     'recordTotal': records_total,
                     'draw': request.args.get('draw', type=int)
                     })
+
+
+@service_admin.route('/finance/invoice/view/<int:invoice_id>', methods=['GET'])
+def view_invoice_for_finance(invoice_id):
+    today = arrow.now('Asia/Bangkok').date()
+    invoice = ServiceInvoice.query.get(invoice_id)
+    is_overdue = False
+    if today > invoice.due_date.date() and not invoice.paid_at:
+        is_overdue = True
+    if invoice.payments:
+        for payment in invoice.payments:
+            slip_url = generate_url(payment.slip)
+    else:
+        slip_url = None
+    return render_template('service_admin/view_invoice_for_finance.html', invoice=invoice, slip_url=slip_url,
+                           is_overdue=is_overdue, invoice_id=invoice_id)
 
 
 @service_admin.route('/invoice/payment/confirm/<int:invoice_id>', methods=['GET', 'POST'])
@@ -4098,7 +4170,7 @@ def confirm_payment(invoice_id):
     message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
     send_mail([contact_email], title, message)
     flash('ยืนยันการชำระเงินเรียบร้อยแล้ว', 'success')
-    return render_template('academic_service_payment/invoice_payment_index.html')
+    return render_template('service_admin/invoice_payment_index.html')
 
 
 @service_admin.route('/invoice/payment/cancel/<int:invoice_id>', methods=['GET', 'POST'])

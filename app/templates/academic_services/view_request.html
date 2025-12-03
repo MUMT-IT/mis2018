@@ -40,7 +40,13 @@
         <div class="container">
             <div class="columns is-flex is-align-items-stretch">
                 <div class="column">
-                    <h3 class="title is-size-3 has-text-centered">ใบคำขอรับบริการ</h3>
+                    <h3 class="title is-size-3 has-text-centered">
+                        {% if service_request.status.status_id == 1 %}
+                            หน้าสรุปรายละเอียดคำขอรับบริการ
+                        {% else %}
+                            ใบคำขอรับบริการ
+                        {% endif %}
+                    </h3>
                 </div>
                 <div class="column is-one-third"></div>
             </div>
@@ -206,12 +212,12 @@
                                 </li>
                             </ul>
                             <hr>
-                            <p class="menu-label">
-                                ใบรายงานผล
-                            </p>
-                            <ul class="menu-list">
-                                <li>
-                                    {% if service_request.results %}
+                            {% if service_request.results %}
+                                <p class="menu-label">
+                                    ใบรายงานผล
+                                </p>
+                                <ul class="menu-list">
+                                    <li>
                                         {% for result in service_request.results %}
                                             {% for item in result.result_items %}
                                                 {% if item.final_file %}
@@ -236,16 +242,14 @@
                                                                 class="fas fa-download"></i></span>
                                                     </a>
                                                 {% else %}
-                                                    {{ '' }}
+                                                    กำลังดำเนินการทดสอบ
                                                 {% endif %}
                                             {% endfor %}
                                         {% endfor %}
-                                    {% else %}
-                                        ยังไม่ดำเนินการทดสอบตัวอย่าง
-                                    {% endif %}
-                                </li>
-                            </ul>
-                            <hr>
+                                    </li>
+                                </ul>
+                                <hr>
+                            {% endif %}
                             <p class="menu-label">
                                 การดำเนินการ
                             </p>
