@@ -391,24 +391,35 @@ def request_index():
 
 @service_admin.route('/api/request/index')
 def get_requests():
-    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
-    sub_labs = []
-    for a in admin:
-        sub_labs.append(a.sub_lab.code)
-    query = ServiceRequest.query.filter(
-        ServiceRequest.status.has(
-            and_(
-                ServiceStatus.status_id != 1,
-                ServiceStatus.status_id != 23
-            )
-        ),
-        or_(
-            ServiceRequest.admin.has(id=current_user.id),
-            ServiceRequest.sub_lab.has(
-                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+    # query = ServiceRequest.query.filter(
+    #     ServiceRequest.status.has(
+    #         and_(
+    #             ServiceStatus.status_id != 1,
+    #             ServiceStatus.status_id != 23
+    #         )
+    #     ),
+    #     or_(
+    #         ServiceRequest.admin.has(id=current_user.id),
+    #         ServiceRequest.sub_lab.has(
+    #             ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+    #         )
+    #     )
+    # )
+    query = (
+        ServiceRequest.query
+        .join(ServiceRequest.status)
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            ServiceStatus.status_id.notin_([1, 23]),
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
             )
         )
+        .distinct()
     )
+
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -1054,9 +1065,18 @@ def sample_index():
     menu = request.args.get('menu')
     tab = request.args.get('tab')
     expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
-    query = ServiceSample.query.filter(ServiceSample.request.has(ServiceRequest.sub_lab.has(
-        ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-    )))
+    query = (
+        ServiceSample.query
+        .join(ServiceSample.request)
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()
+    )
     schedule_count = query.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
                                   ServiceSample.received_at == None).count()
     delivery_count = query.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
@@ -1070,9 +1090,21 @@ def sample_index():
 @service_admin.route('/api/sample/index')
 def get_samples():
     tab = request.args.get('tab')
-    query = ServiceSample.query.filter(ServiceSample.request.has(ServiceRequest.sub_lab.has(
-        ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-    )))
+    # query = ServiceSample.query.filter(ServiceSample.request.has(ServiceRequest.sub_lab.has(
+    #     ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+    # )))
+    query = (
+        ServiceSample.query
+        .join(ServiceSample.request)
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()
+    )
     if tab == 'schedule':
         query = query.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
                              ServiceSample.received_at == None)
@@ -1163,9 +1195,18 @@ def view_sample_appointment(sample_id):
 def test_item_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
-    query = ServiceTestItem.query.filter(ServiceTestItem.request.has(ServiceRequest.sub_lab.has(
-        ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-    )))
+    query = (
+        ServiceTestItem.query
+        .join(ServiceTestItem.request)
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()
+    )
     not_started_count = query.filter(
         ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 10))).count()
     testing_count = query.filter(
@@ -1189,9 +1230,21 @@ def test_item_index():
 @service_admin.route('/api/test-item/index')
 def get_test_items():
     tab = request.args.get('tab')
-    query = ServiceTestItem.query.filter(ServiceTestItem.request.has(ServiceRequest.sub_lab.has(
-        ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-    )))
+    # query = ServiceTestItem.query.filter(ServiceTestItem.request.has(ServiceRequest.sub_lab.has(
+    #     ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+    # )))
+    query = (
+        ServiceTestItem.query
+        .join(ServiceTestItem.request)
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()
+    )
     if tab == 'not_started':
         query = query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 10)))
     elif tab == 'testing':
@@ -1897,8 +1950,19 @@ def result_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
-    query = ServiceResult.query.join(ServiceResult.request).join(ServiceRequest.sub_lab).join(
-        ServiceSubLab.admins).filter(ServiceAdmin.admin_id == current_user.id)
+    query = (
+        ServiceResult.query
+        .join(ServiceResult.request)
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        )
+        .distinct()
+    )
     pending_count = query.filter(ServiceResult.sent_at == None).count()
     edit_count = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False).count()
     approve_count = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
@@ -1915,8 +1979,22 @@ def result_index():
 @service_admin.route('/api/result/index')
 def get_results():
     tab = request.args.get('tab')
-    query = (ServiceResult.query.join(ServiceResult.request).join(ServiceRequest.sub_lab).join(ServiceSubLab.admins)
-             .filter(ServiceAdmin.admin_id == current_user.id))
+    # query = ServiceResult.query.join(ServiceResult.request).join(ServiceRequest.sub_lab).join(
+    #     ServiceSubLab.admins).filter(ServiceAdmin.admin_id == current_user.id)
+    query = (
+        ServiceResult.query
+        .join(ServiceResult.request)
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        )
+        .distinct()
+    )
+
     if tab == 'pending':
         query = query.filter(ServiceResult.sent_at == None)
     elif tab == 'edit':
@@ -2225,11 +2303,19 @@ def invoice_index():
     menu = request.args.get('menu')
     expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
     is_central_admin = ServiceAdmin.query.filter_by(admin_id=current_user.id, is_central_admin=True).first()
-    query = ServiceInvoice.query.filter(or_(ServiceInvoice.creator_id == current_user.id,
-                                            ServiceInvoice.quotation.has(ServiceQuotation.request.has(
-                                                ServiceRequest.sub_lab.has(
-                                                    ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-                                                )))))
+    query = (
+        ServiceInvoice.query
+        .join(ServiceInvoice.quotation)
+        .join(ServiceQuotation.request)
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()
+    )
     draft_count = query.filter(ServiceInvoice.sent_at == None, ServiceInvoice.head_approved_at == None,
                                ServiceInvoice.assistant_approved_at == None, ServiceInvoice.file_attached_at == None,
                                ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
@@ -2262,11 +2348,24 @@ def invoice_index():
 @service_admin.route('/api/invoice/index')
 def get_invoices():
     tab = request.args.get('tab')
-    query = ServiceInvoice.query.filter(or_(ServiceInvoice.creator_id == current_user.id,
-                                            ServiceInvoice.quotation.has(ServiceQuotation.request.has(
-                                                ServiceRequest.sub_lab.has(
-                                                    ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-                                                )))))
+    # query = ServiceInvoice.query.filter(or_(ServiceInvoice.creator_id == current_user.id,
+    #                                         ServiceInvoice.quotation.has(ServiceQuotation.request.has(
+    #                                             ServiceRequest.sub_lab.has(
+    #                                                 ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+    #                                             )))))
+    query = (
+        ServiceInvoice.query
+        .join(ServiceInvoice.quotation)
+        .join(ServiceQuotation.request)
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()
+    )
     if tab == 'draft':
         query = query.filter(ServiceInvoice.sent_at == None, ServiceInvoice.head_approved_at == None,
                              ServiceInvoice.assistant_approved_at == None, ServiceInvoice.file_attached_at == None,
@@ -2999,13 +3098,17 @@ def quotation_index():
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
     is_admin = any(a for a in admin if not a.is_supervisor)
     is_supervisor = any(a.is_supervisor for a in admin)
-    # query = ServiceQuotation.query.filter(
-    #         ServiceQuotation.request.has(ServiceRequest.sub_lab.has(
-    #             ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-    #         )))
-    query = (ServiceQuotation.query.join(ServiceQuotation.request)
-             .join(ServiceRequest.sub_lab).join(ServiceSubLab.admins).filter(or_(ServiceAdmin.admin_id == current_user.id,
-                                                                                 ServiceSubLab.assistant_id == current_user.id)))
+    query = (
+        ServiceQuotation.query
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()
+    )
     draft_count = query.filter(ServiceQuotation.sent_at == None, ServiceQuotation.approved_at == None,
                                ServiceQuotation.confirmed_at == None,
                                ServiceQuotation.cancelled_at == None).count()
@@ -3037,10 +3140,21 @@ def quotation_index():
 @service_admin.route('/api/quotation/index')
 def get_quotations():
     tab = request.args.get('tab')
-    query = (ServiceQuotation.query.join(ServiceQuotation.request)
-             .join(ServiceRequest.sub_lab).join(ServiceSubLab.admins).filter(
-        or_(ServiceAdmin.admin_id == current_user.id,
-            ServiceSubLab.assistant_id == current_user.id)))
+    # query = ServiceQuotation.query.filter(
+    #         ServiceQuotation.request.has(ServiceRequest.sub_lab.has(
+    #             ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+    #         )))
+    query = (
+        ServiceQuotation.query
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+            )
+        ).distinct()
+    )
     if tab == 'draft':
         query = query.filter(ServiceQuotation.sent_at == None, ServiceQuotation.approved_at == None,
                              ServiceQuotation.confirmed_at == None,
@@ -4235,12 +4349,26 @@ def receipt_index():
 
 @service_admin.route('/api/receipt/index')
 def get_receipts():
-    query = ServiceInvoice.query.filter(ServiceInvoice.receipts != None,
-                                        or_(ServiceInvoice.creator_id == current_user.id,
-                                            ServiceInvoice.quotation.has(ServiceQuotation.request.has(
-                                                ServiceRequest.sub_lab.has(
-                                                    ServiceSubLab.admins.any(
-                                                        ServiceAdmin.admin_id == current_user.id))))))
+    # query = ServiceInvoice.query.filter(ServiceInvoice.receipts != None,
+    #                                     or_(ServiceInvoice.creator_id == current_user.id,
+    #                                         ServiceInvoice.quotation.has(ServiceQuotation.request.has(
+    #                                             ServiceRequest.sub_lab.has(
+    #                                                 ServiceSubLab.admins.any(
+    #                                                     ServiceAdmin.admin_id == current_user.id))))))
+    query = (
+        ServiceInvoice.query
+        .join(ServiceInvoice.quotation)
+        .join(ServiceQuotation.request)
+        .join(ServiceRequest.sub_lab)
+        .join(ServiceInvoice.receipts)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()
+    )
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
