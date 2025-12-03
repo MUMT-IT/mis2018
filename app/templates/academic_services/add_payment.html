@@ -2,8 +2,18 @@
 {% include "academic_services/customer_nav.html" %}
 {% block head %}
     {{ super() }}
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
     <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <style>
+        .toast {
+            opacity: 1 !important;
+            transition: none !important;
+        }
+        #toast-container.toast-top-full-width > .toast {
+            width: 100% !important;
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
     <section class="section">
@@ -11,14 +21,13 @@
             {% include 'academic_services/menu.html' %}
             <div class="column is-9">
                 <div class="column is-12">
-                    {% include "messages.html" %}
                     <h1 class="title has-text-centered">เพิ่มหลักฐานการชำระเงิน</h1>
                 </div>
                 <div id="edit-customer-form"></div>
                 <div class="column is-12 box">
                     <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
                         <form method="post" enctype="multipart/form-data">
-                        {{ form.hidden_tag() }}
+                            {{ form.hidden_tag() }}
                             <div class="field">
                                 <label class="label">เลขใบแจ้งหนี้</label>
                                 <div class="control">
@@ -26,25 +35,37 @@
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">วันที่ชำระเงิน</label>
+                                <label class="label">
+                                    วันที่ชำระเงิน
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="control">
                                     {{ form.paid_at(class="input") }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">วิธีการชำระเงิน</label>
+                                <label class="label">
+                                    วิธีการชำระเงิน
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="select">
                                     {{ form.payment_type() }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">จำนวนเงิน</label>
+                                <label class="label">
+                                    จำนวนเงิน
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="control">
                                     {{ form.amount_paid(class="input") }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">หลักฐานการชำระเงิน</label>
+                                <label class="label">
+                                    หลักฐานการชำระเงิน
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="file">
                                     <label class="file-label">
                                         {{ form.file_upload(class="file-input") }}
@@ -56,15 +77,15 @@
                                                 เลือกไฟล์…
                                             </span>
                                         </span>
-                                        <span class="file-name" id="filename"></span>
+                                        <span class="file-name" id="filename">กรุณาเลือกไฟล์</span>
                                     </label>
                                 </div>
                             </div>
                             <div class="field ">
                                 <div class="buttons is-centered">
                                     <a
-                                       class="button"
-                                       href="{{ url_for('academic_services.invoice_index', menu=menu, tab=tab) }}"
+                                            class="button"
+                                            href="{{ url_for('academic_services.invoice_index', menu=menu, tab=tab) }}"
                                     >
                                         ยกเลิก
                                     </a>
@@ -80,7 +101,45 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript"
+            src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+    <script>
+        function showToast(category, message) {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
+            if (category === 'success') {
+                toastr.success(message);
+            } else if (category === 'danger') {
+                toastr.error(message);
+            } else if (category === 'warning') {
+                toastr.warning(message);
+            } else {
+                toastr.info(message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        showToast('{{ category }}', {{ message|tojson }});
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
     <script>
         $(document).ready(function () {
             moment.locale('th');
@@ -99,12 +158,42 @@
         });
     </script>
     <script>
-          $(document).ready(()=>{
-              $('#filename').text('None');
-          })
-          $('#file_upload').change(function(e) {
-              let fileName = e.target.files[0].name;
-              $('#filename').text(fileName);
-          });
+        $(document).ready(() => {
+            $('#filename').text('กรุณาเลือกไฟล์');
+        })
+        $('#file_upload').change(function (e) {
+            let fileName = e.target.files[0].name;
+            $('#filename').text(fileName);
+        });
     </script>
+{#    <script>#}
+{#    window.onload = () => {#}
+{#        const amountPaid = document.getElementById('amount_paid');#}
+{##}
+{#        if (amountPaid.value) {#}
+{#            let num = parseFloat(input.value).toFixed(2);#}
+{#            let parts = num.split('.');#}
+{#            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');#}
+{#            amountPaid.value = parts.join('.');#}
+{#            console.log('f',  parts.join('.'))#}
+{#        }#}
+{##}
+{#        amountPaid.addEventListener('blur', function () {#}
+{#            if (!this.value) return;#}
+{#            let clean = this.value.replace(/,/g, '');#}
+{#            if (!isNaN(clean)) {#}
+{#                let num = parseFloat(clean).toFixed(2);#}
+{#                let parts = num.split('.');#}
+{#                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');#}
+{#                this.value = parts.join('.');#}
+{#            }#}
+{#        });#}
+{##}
+{#        amountPaid.addEventListener('keydown', function (e) {#}
+{#            const allowed = ["Backspace", "Tab", "ArrowLeft", "ArrowRight", "Delete", ".", ","];#}
+{#            if (allowed.includes(e.key)) return;#}
+{#            if (!/\d/.test(e.key)) e.preventDefault();#}
+{#        });#}
+{#    };#}
+{#</script>#}
 {% endblock %}

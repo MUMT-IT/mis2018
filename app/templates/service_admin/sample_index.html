@@ -70,13 +70,13 @@
                         <th>หมายเลขติดตามพัสดุ</th>
                         <th>วัน-เวลาที่นัดหมาย</th>
                         <th>วัน-เวลาที่รับ</th>
-                        <th>สถานะ</th>
                         <th>สถานที่</th>
                         <th>การส่งตัวอย่าง</th>
                         <th>สภาพตัวอย่าง</th>
                         <th>เอกสาร</th>
                         <th>หมายเหตุ</th>
                         <th>ผู้รับ</th>
+                        <th>สถานะ</th>
                         <th></th>
                         </thead>
                         <tbody>
@@ -162,6 +162,41 @@
                         }
                     },
                     {
+                        data: 'location_name',
+                        render: function (data) {
+                            if (data != null) {
+                                return data;
+                            } else {
+                                return '';
+                            }
+                        }
+                    },
+                    {data: 'ship_type'},
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            var color = row.sample_condition_status_color
+                            var status = row.sample_condition_status
+                            if (row.sample_condition_status !== null) {
+                                return `<span class="tag ${color}">${status}</span>`;
+                            } else {
+                                return `<span class="tag is-danger">ยังไม่ได้รับตัวอย่าง</span>`;
+                            }
+                        }
+                    },
+                    {
+                        data: 'file',
+                        render: function (data) {
+                            if (data !== null) {
+                                return `<span class="tag ${data.color}">${data.status}</span>`;
+                            } else {
+                                return `<span class="tag is-danger">ยังไม่ได้ส่งเอกสาร</span>`;
+                            }
+                        }
+                    },
+                    {data: 'note'},
+                    {data: 'received_by'},
+                    {
                         data: 'id',
                         render: function (data, type, row) {
                             const hasAppointmentOrTracking = row.appointment_date || row.tracking_number;
@@ -200,41 +235,6 @@
                                     </ul>`
                         }
                     },
-                    {
-                        data: 'location_name',
-                        render: function (data) {
-                            if (data != null) {
-                                return data;
-                            } else {
-                                return '';
-                            }
-                        }
-                    },
-                    {data: 'ship_type'},
-                    {
-                        data: 'id',
-                        render: function (data, type, row) {
-                            var color = row.sample_condition_status_color
-                            var status = row.sample_condition_status
-                            if (row.sample_condition_status !== null) {
-                                return `<span class="tag ${color}">${status}</span>`;
-                            } else {
-                                return `<span class="tag is-danger">ยังไม่ได้รับตัวอย่าง</span>`;
-                            }
-                        }
-                    },
-                    {
-                        data: 'file',
-                        render: function (data) {
-                            if (data !== null) {
-                                return `<span class="tag ${data.color}">${data.status}</span>`;
-                            } else {
-                                return `<span class="tag is-danger">ยังไม่ได้ส่งเอกสาร</span>`;
-                            }
-                        }
-                    },
-                    {data: 'note'},
-                    {data: 'received_by'},
                     {
                         data: 'id',
                         render: function (data, type, row) {

@@ -287,17 +287,21 @@ def menu():
     report_count = None
 
     if current_user.is_authenticated:
-        request_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
-                            ServiceRequest.is_downloaded==None, ServiceRequest.status.has(ServiceStatus.status_id.in_([1, 2]))).count()
-        quotation_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
-            ServiceRequest.status.has(ServiceStatus.status_id.in_([5]))).count()
-        sample_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
-            ServiceRequest.status.has(ServiceStatus.status_id.in_([6, 8, 9]))).count()
-        invoice_count = ServiceRequest.query.filter(ServiceRequest.customer_id==current_user.id,
-            ServiceRequest.status.has(ServiceStatus.status_id.in_([20, 21]))).count()
-        report_count = ServiceResultItem.query.filter(ServiceResultItem.result.has(
-        ServiceResult.request.has(customer_id=current_user.id)), ServiceResultItem.approved_at == None).count()
-
+        request_count = ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
+                                                    ServiceRequest.is_downloaded == None, ServiceRequest.status.has(
+                ServiceStatus.status_id.in_([1, 2]))).count()
+        quotation_count = ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
+                                                      ServiceRequest.status.has(
+                                                          ServiceStatus.status_id.in_([5]))).count()
+        sample_count = ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
+                                                   ServiceRequest.status.has(
+                                                       ServiceStatus.status_id.in_([6, 8, 9]))).count()
+        invoice_count = ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
+                                                    ServiceRequest.status.has(
+                                                        ServiceStatus.status_id.in_([20, 21]))).count()
+        report_count = ServiceResult.query.join(ServiceResult.request).filter(
+            ServiceRequest.customer_id == current_user.id,
+            ServiceResult.approved_at == None).count()
     return dict(request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
                 invoice_count=invoice_count, report_count=report_count)
 
@@ -864,7 +868,7 @@ def create_request():
                      'disinfection': 'academic_services.create_virus_disinfection_request',
                      'air_disinfection': 'academic_services.create_virus_air_disinfection_request'
                      }
-    return redirect(url_for(request_paths[code], code=code, menu = menu, request_id=request_id))
+    return redirect(url_for(request_paths[code], code=code, menu=menu, request_id=request_id))
 
 
 @academic_services.route('/request/bacteria/add', methods=['GET', 'POST'])
@@ -897,7 +901,8 @@ def create_bacteria_request(request_id=None):
     if request.method == 'POST':
         for n, org in enumerate(bacteria_liquid_organisms):
             liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
-            print('label', liquid_entry.liquid_organism.label, 'choice', liquid_entry.liquid_organism.choices, 'data', liquid_entry.liquid_organism.data)
+            print('label', liquid_entry.liquid_organism.label, 'choice', liquid_entry.liquid_organism.choices, 'data',
+                  liquid_entry.liquid_organism.data)
     if form.validate_on_submit():
         if request_id:
             service_request.data = format_data(form.data)
@@ -1060,7 +1065,6 @@ def get_product_storage():
 
 @academic_services.route('/request/virus_disinfection/condition')
 def get_virus_disinfection_condition_form():
-
     product_type = request.args.get("product_type")
     if not product_type:
         return ''
@@ -1350,7 +1354,8 @@ def request_index():
         group_ids = [i for i in group['id'] if i != 7 and i != 23]
         query = ServiceRequest.query.filter(
             ServiceRequest.status.has(ServiceStatus.status_id.in_(group_ids)
-                                      ), ServiceRequest.customer_id==current_user.id, ServiceRequest.is_downloaded == None
+                                      ), ServiceRequest.customer_id == current_user.id,
+                                         ServiceRequest.is_downloaded == None
         ).count()
 
         status_groups[key]['count'] = query
@@ -2529,18 +2534,18 @@ def sample_index():
     query = ServiceSample.query.filter(ServiceSample.request.has(customer_id=current_user.id))
     if tab == 'schedule':
         samples = query.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
-                                 ServiceSample.received_at == None)
+                               ServiceSample.received_at == None)
     elif tab == 'delivery':
         samples = query.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
-                                 ServiceSample.received_at == None)
+                               ServiceSample.received_at == None)
     elif tab == 'received':
         samples = query.filter(ServiceSample.received_at != None)
     else:
         samples = query
     schedule_count = query.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
-                                 ServiceSample.received_at == None).count()
+                                  ServiceSample.received_at == None).count()
     delivery_count = query.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
-                                 ServiceSample.received_at == None).count()
+                                  ServiceSample.received_at == None).count()
     received_count = query.filter(ServiceSample.received_at >= expire_time).count()
     all_count = schedule_count + delivery_count + received_count
     return render_template('academic_services/sample_index.html', samples=samples, menu=menu, tab=tab,
@@ -2600,7 +2605,7 @@ def create_sample_appointment(sample_id):
                         message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.siriraj_address}\n'''
                 else:
                     message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.address}\n'''
-                message += f'''เบอร์โทรศัพท์ : { service_request.sub_lab.lab.phone_number}\n'''
+                message += f'''เบอร์โทรศัพท์ : {service_request.sub_lab.lab.phone_number}\n'''
                 if service_request.sub_lab.lab.email:
                     message += f'''เบอร์โทรศัพท์ : {service_request.sub_lab.lab.email}\n'''
                 message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
@@ -2651,7 +2656,8 @@ def create_sample_appointment(sample_id):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
         return render_template('academic_services/create_sample_appointment.html', form=form, menu=menu,
-                               tab=tab, sample=sample, sample_id=sample_id, datas=datas, service_request=service_request,
+                               tab=tab, sample=sample, sample_id=sample_id, datas=datas,
+                               service_request=service_request,
                                holidays=holidays)
 
 
@@ -2749,10 +2755,17 @@ def invoice_index():
     menu = request.args.get('menu')
     today = arrow.now('Asia/Bangkok').date()
     expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
-    query = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at != None, ServiceInvoice.quotation.has(
-        ServiceQuotation.request.has(customer_id=current_user.id)))
+    query = (
+        ServiceInvoice.query
+        .join(ServiceInvoice.quotation)
+        .join(ServiceQuotation.request)
+        .filter(
+            ServiceInvoice.file_attached_at.isnot(None),
+            ServiceRequest.customer_id == current_user.id
+        )
+    )
     pending_count = query.filter(ServiceInvoice.paid_at == None, today <= ServiceInvoice.due_date).count()
-    verify_count = query.filter(ServiceInvoice.is_paid == False).count()
+    verify_count = query.filter(ServiceInvoice.paid_at != None, ServiceInvoice.is_paid == False).count()
     payment_count = query.filter(ServiceInvoice.verify_at >= expire_time).count()
     overdue_count = query.filter(today > ServiceInvoice.due_date, ServiceInvoice.paid_at == None).count()
     all_count = pending_count + verify_count + payment_count + overdue_count
@@ -2765,12 +2778,19 @@ def invoice_index():
 def get_invoices():
     tab = request.args.get('tab')
     today = arrow.now('Asia/Bangkok').date()
-    query = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at != None, ServiceInvoice.quotation.has(
-        ServiceQuotation.request.has(customer_id=current_user.id)))
+    query = (
+        ServiceInvoice.query
+        .join(ServiceInvoice.quotation)
+        .join(ServiceQuotation.request)
+        .filter(
+            ServiceInvoice.file_attached_at.isnot(None),
+            ServiceRequest.customer_id == current_user.id
+        )
+    )
     if tab == 'pending':
         query = query.filter(ServiceInvoice.paid_at == None, today <= ServiceInvoice.due_date)
     elif tab == 'verify':
-        query = query.filter(ServiceInvoice.is_paid == False)
+        query = query.filter(ServiceInvoice.paid_at != None, ServiceInvoice.is_paid == False)
     elif tab == 'payment':
         query = query.filter(ServiceInvoice.is_paid == True)
     elif tab == 'overdue':
@@ -2827,66 +2847,67 @@ def add_payment():
         form.populate_obj(payment)
         status_id = get_status(21)
         file = form.file_upload.data
-        payment.invoice_id = invoice_id
-        payment.created_at = arrow.now('Asia/Bangkok').datetime
-        payment.customer_id = current_user.id
-        payment.paid_at = arrow.get(form.paid_at.data, 'Asia/Bangkok').datetime
-        if file and allowed_file(file.filename):
-            mime_type = file.mimetype
-            file_name = '{}.{}'.format(uuid.uuid4().hex, file.filename.split('.')[-1])
-            file_data = file.stream.read()
-            response = s3.put_object(
-                Bucket=S3_BUCKET_NAME,
-                Key=file_name,
-                Body=file_data,
-                ContentType=mime_type
-            )
-            payment.slip = file_name
-            db.session.add(payment)
-            invoice.paid_at = arrow.now('Asia/Bangkok').datetime
-            invoice.quotation.request.status_id = status_id
-            db.session.add(invoice)
-            db.session.commit()
-            scheme = 'http' if current_app.debug else 'https'
-            org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
-            staff = StaffAccount.get_account_by_email(org.head)
-            title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
-            link = url_for("academic_service_payment.invoice_payment_index", _external=True, _scheme=scheme)
-            customer_name = invoice.customer_name.replace(' ', '_')
-            title = f'''[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอัปเดตการชำระเงิน'''
-            message = f'''เรียน เจ้าหน้าที่การเงิน\n\n'''
-            message += f'''ใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
-            message += f'''ลูกค้า : {invoice.customer_name}\n'''
-            message += f'''ในนาม : {invoice.name}\n'''
-            message += f'''ขอแจ้งให้ทราบว่า ได้มีการอัปเดตข้อมูลการชำระเงินเรียบร้อยแล้ว\n'''
-            message += f'''กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'''
-            message += f'''{link}\n\n'''
-            message += f'''ผู้ประสานงาน\n'''
-            message += f'''{invoice.customer_name}\n'''
-            message += f'''เบอร์โทร {invoice.contact_phone_number}\n\n'''
-            message += f'''ระบบงานบริการวิชาการ'''
-            send_mail([staff.email + '@mahidol.ac.th'], title, message)
-            msg = ('แจ้งอัปเดตการชำระเงิน' \
-                   '\n\nเรียน เจ้าหน้าที่การเงิน'
-                   '\n\nใบแจ้งหนี้เลขที่ {}' \
-                   '\nลูกค้า : {}' \
-                   '\nในนาม : {}' \
-                   '\nขอแจ้งให้ทราบว่า ได้มีการอัปเดตข้อมูลการชำระเงินเรียบร้อยแล้ว' \
-                   '\nกรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง' \
-                   '\n{}' \
-                   '\n\nผู้ประสานงาน' \
-                   '\n{}' \
-                   '\nเบอร์โทร {}' \
-                   '\n\nระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.customer_name, invoice.name, link,
-                                                     invoice.customer_name, invoice.contact_phone_number)
-                   )
-            if not current_app.debug:
-                try:
-                    line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
-                except LineBotApiError:
-                    pass
-        flash('อัพเดตสลิปสำเร็จ', 'success')
-        return redirect(url_for('academic_services.invoice_index', menu=menu, tab='verify'))
+        if (file and form.paid_at.data and form.payment_type.data and form.amount_paid.data):
+            payment.invoice_id = invoice_id
+            payment.created_at = arrow.now('Asia/Bangkok').datetime
+            payment.customer_id = current_user.id
+            payment.paid_at = arrow.get(form.paid_at.data, 'Asia/Bangkok').datetime
+            if file and allowed_file(file.filename):
+                mime_type = file.mimetype
+                file_name = '{}.{}'.format(uuid.uuid4().hex, file.filename.split('.')[-1])
+                file_data = file.stream.read()
+                response = s3.put_object(
+                    Bucket=S3_BUCKET_NAME,
+                    Key=file_name,
+                    Body=file_data,
+                    ContentType=mime_type
+                )
+                payment.slip = file_name
+                db.session.add(payment)
+                invoice.paid_at = arrow.now('Asia/Bangkok').datetime
+                invoice.quotation.request.status_id = status_id
+                db.session.add(invoice)
+                db.session.commit()
+                scheme = 'http' if current_app.debug else 'https'
+                org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
+                staff = StaffAccount.get_account_by_email(org.head)
+                title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
+                link = url_for("service_admin.view_invoice_for_finance", invoice_id=invoice_id, _external=True,
+                               _scheme=scheme)
+                customer_name = invoice.customer_name.replace(' ', '_')
+                title = f'''[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอัปเดตการชำระเงิน'''
+                message = f'''เรียน เจ้าหน้าที่การเงิน\n\n'''
+                message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'''
+                message += f'''ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'''
+                message += f'''จำนวนเงิน {invoice.grand_total():,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'''
+                message += f'''กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'''
+                message += f'''{link}\n\n'''
+                message += f'''ผู้ประสานงาน\n'''
+                message += f'''{invoice.customer_name}\n'''
+                message += f'''เบอร์โทร {invoice.contact_phone_number}\n\n'''
+                message += f'''ระบบงานบริการวิชาการ'''
+                send_mail([staff.email + '@mahidol.ac.th'], title, message)
+                msg = (f'แจ้งอัพเดตการชำระเงินใบแจ้งหนี้เลขที่ {invoice.invoice_no}\n\n'
+                       f'เรียน เจ้าหน้าที่การเงิน\n\n'
+                       f'ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'
+                       f'ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'
+                       f'จำนวนเงิน {invoice.grand_total():,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'
+                       f'กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'
+                       f'{link}\n\n'
+                       f'ผู้ประสานงาน\n'
+                       f'{invoice.customer_name}\n'
+                       f'เบอร์โทร {invoice.contact_phone_number}\n\n'
+                       f'ระบบงานบริการวิชาการ'
+                       )
+                if not current_app.debug:
+                    try:
+                        line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
+            flash('อัปโหลดหลักฐานการชำระเงินสำเร็จ', 'success')
+            return redirect(url_for('academic_services.invoice_index', menu=menu, tab='verify'))
+        else:
+            flash('กรุณากรอกวันที่ชำระเงิน, วิธีการชำระเงิน, จำนวนเงิน และหลักฐานการชำระเงิน', 'danger')
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
@@ -3174,43 +3195,45 @@ def result_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
-    query = ServiceResultItem.query.filter(ServiceResultItem.result.has(
-        ServiceResult.request.has(customer_id=current_user.id)))
+    query = ServiceResult.query.join(ServiceResult.request).filter(ServiceRequest.customer_id == current_user.id)
 
     if tab == 'pending':
-        result_items = query.filter(ServiceResultItem.sent_at == None)
+        results = query.filter(ServiceResult.sent_at == None)
     elif tab == 'edit':
-        result_items = query.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == False)
+        results = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False)
     elif tab == 'approve':
-        result_items = query.filter(ServiceResultItem.sent_at != None, ServiceResultItem.approved_at == None,
-                             or_(ServiceResultItem.req_edit_at == None, ServiceResultItem.is_edited == True
-                                 )
-                             )
+        results = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
+                               or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
+                                   )
+                               )
     elif tab == 'confirm':
-        result_items = query.filter(ServiceResultItem.approved_at != None)
+        results = query.filter(ServiceResult.approved_at != None)
     else:
-        result_items = query
-    pending_count = query.filter(ServiceResultItem.sent_at == None).count()
-    edit_count = query.filter(ServiceResultItem.req_edit_at != None, ServiceResultItem.is_edited == False).count()
-    approve_count = query.filter(ServiceResultItem.sent_at != None, ServiceResultItem.approved_at == None,
-                             or_(ServiceResultItem.req_edit_at == None, ServiceResultItem.is_edited == True
-                                 )
-                             ).count()
-    confirm_count = query.filter(ServiceResultItem.approved_at >= expire_time).count()
+        results = query
+    pending_count = query.filter(ServiceResult.sent_at == None).count()
+    edit_count = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False).count()
+    approve_count = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
+                                 or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
+                                     )
+                                 ).count()
+    confirm_count = query.filter(ServiceResult.approved_at >= expire_time).count()
     all_count = edit_count + approve_count + pending_count + confirm_count
-    return render_template('academic_services/result_index.html', result_items=result_items, menu=menu,
+    return render_template('academic_services/result_index.html', results=results, menu=menu,
                            tab=tab, edit_count=edit_count, approve_count=approve_count, confirm_count=confirm_count,
                            all_count=all_count, pending_count=pending_count)
 
 
-@academic_services.route('/customer/result/view/<int:result_item_id>', methods=['GET', 'POST'])
-def view_result_item(result_item_id):
+@academic_services.route('/customer/result/view/<int:result_id>/<int:result_item_id>', methods=['GET', 'POST'])
+def view_result_item(result_id, result_item_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
-    result_item = ServiceResultItem.query.get(result_item_id)
-    result_item.draft_file_url = generate_url(result_item.draft_file)
-    return render_template('academic_services/view_result_item.html', result_item=result_item, result_item_id=result_item_id,
-                           menu=menu, tab=tab)
+    result = ServiceResult.query.get(result_id)
+    result_item = next((i for i in result.result_items if i.id == result_item_id), None)
+    if not result_item:
+        flash('ไม่พบรายการผล', 'danger')
+        return redirect(url_for('academic_services.result_index', menu=menu, tab=tab))
+    return render_template('academic_services/view_result_item.html', result=result, result_item=result_item,
+                           menu=menu, tab=tab, generate_url=generate_url, result_item_id=result_item_id)
 
 
 @academic_services.route('/customer/result/confirm/<int:result_id>', methods=['GET', 'POST'])
@@ -3347,58 +3370,60 @@ def confirm_result_item(result_item_id):
     db.session.add(result_item)
     approved_all = all(item.approved_at is not None for item in result.result_items)
     tab = 'confirm' if approved_all else 'approve'
+    db.session.add(result_item)
+    db.session.commit()
     if approved_all:
         status_id = get_status(13)
         result_item.result.status_id = status_id
         result_item.result.request.status_id = status_id
         result_item.result.approved_at = arrow.now('Asia/Bangkok').datetime
-    db.session.add(result_item)
-    db.session.commit()
-    scheme = 'http' if current_app.debug else 'https'
-    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=result_item.result.request.sub_lab.code)).all()
-    title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
-    link = url_for("service_admin.create_invoice", quotation_id=result_item.result.quotation_id, menu='invoice',
-                   tab='draft', _external=True, _scheme=scheme)
-    customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
-    if admins:
-        title = f'''[{result_item.result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result_item.result.request.quotation_address.name}) | แจ้งยืนยันใบรายงานผลการทดสอบ'''
-        message = f'''เรียน เจ้าหน้าที่{result_item.result.request.sub_lab.sub_lab}\n\n'''
-        message += f'''{result_item.report_language}ฉบับร่างของใบคำขอรับบริการเลขที่ : {result_item.result.request.request_no}\n'''
-        message += f'''ลูกค้า : {result_item.result.request.customer.customer_name}\n'''
-        message += f'''ในนาม : {result_item.result.request.quotation_address.name}\n'''
-        message += f'''ได้ดำเนินการยืนยันเรียบร้อยแล้ว\n'''
-        message += f'''กรุณาดำเนินการออกใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'''
-        message += f'''{link}\n\n'''
-        message += f'''ผู้ประสานงาน\n'''
-        message += f'''{result_item.result.request.customer.customer_name}\n'''
-        message += f'''เบอร์โทร {result_item.result.request.customer.contact_phone_number}\n\n'''
-        message += f'''ระบบงานบริการวิชาการ'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
-        msg = ('แจ้งยืนยันใบรายงานผลการทดสอบ' \
-               '\n\nเรียน เจ้าหน้าที่{}'
-               '\n\n{}ฉบับร่างของใบคำขอรับบริการเลขที่ {}' \
-               '\nลูกค้า : {}' \
-               '\nในนาม : {}' \
-               '\nได้ดำเนินการยืนยันเรียบร้อยแล้ว' \
-               '\nกรุณาดำเนินการออกใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง' \
-               '\n{}' \
-               '\n\nผู้ประสานงาน' \
-               '\n{}' \
-               '\nเบอร์โทร {}' \
-               '\n\nระบบงานบริการวิชาการ'.format(result_item.result.request.sub_lab.sub_lab, result_item.report_language,
-                                                 result_item.result.request.request_no,
-                                                 result_item.result.request.customer.customer_name,
-                                                 result_item.result.request.quotation_address.name, link,
-                                                 result_item.result.request.customer.customer_name,
-                                                 result_item.result.request.customer.contact_phone_number)
-               )
-        if not current_app.debug:
-            for a in admins:
-                if not a.is_central_admin:
-                    try:
-                        line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                    except LineBotApiError:
-                        pass
+        db.session.add(result_item)
+        db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
+        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=result_item.result.request.sub_lab.code)).all()
+        title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
+        link = url_for("service_admin.create_invoice", quotation_id=result_item.result.quotation_id, menu='invoice',
+                       tab='draft', _external=True, _scheme=scheme)
+        customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
+        if admins:
+            title = f'''[{result_item.result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result_item.result.request.quotation_address.name}) | แจ้งยืนยันใบรายงานผลการทดสอบ'''
+            message = f'''เรียน เจ้าหน้าที่{result_item.result.request.sub_lab.sub_lab}\n\n'''
+            message += f'''ใบรายงานผลฉบับร่างของใบคำขอรับบริการเลขที่ : {result_item.result.request.request_no}\n'''
+            message += f'''ลูกค้า : {result_item.result.request.customer.customer_name}\n'''
+            message += f'''ในนาม : {result_item.result.request.quotation_address.name}\n'''
+            message += f'''ได้ดำเนินการยืนยันเรียบร้อยแล้ว\n'''
+            message += f'''กรุณาดำเนินการออกใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'''
+            message += f'''{link}\n\n'''
+            message += f'''ผู้ประสานงาน\n'''
+            message += f'''{result_item.result.request.customer.customer_name}\n'''
+            message += f'''เบอร์โทร {result_item.result.request.customer.contact_phone_number}\n\n'''
+            message += f'''ระบบงานบริการวิชาการ'''
+            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
+            msg = ('แจ้งยืนยันใบรายงานผลการทดสอบ' \
+                   '\n\nเรียน เจ้าหน้าที่{}'
+                   '\n\nใบรายงานผลฉบับร่างของใบคำขอรับบริการเลขที่ {}' \
+                   '\nลูกค้า : {}' \
+                   '\nในนาม : {}' \
+                   '\nได้ดำเนินการยืนยันเรียบร้อยแล้ว' \
+                   '\nกรุณาดำเนินการออกใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง' \
+                   '\n{}' \
+                   '\n\nผู้ประสานงาน' \
+                   '\n{}' \
+                   '\nเบอร์โทร {}' \
+                   '\n\nระบบงานบริการวิชาการ'.format(result_item.result.request.sub_lab.sub_lab,
+                                                     result_item.result.request.request_no,
+                                                     result_item.result.request.customer.customer_name,
+                                                     result_item.result.request.quotation_address.name, link,
+                                                     result_item.result.request.customer.customer_name,
+                                                     result_item.result.request.customer.contact_phone_number)
+                   )
+            if not current_app.debug:
+                for a in admins:
+                    if not a.is_central_admin:
+                        try:
+                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                        except LineBotApiError:
+                            pass
     flash('ยืนยันใบรายงานผลเรียบร้อยแล้ว', 'success')
     return redirect(url_for('academic_services.result_index', menu=menu, tab=tab))
 
@@ -3416,7 +3441,6 @@ def edit_result_item(result_item_id):
     db.session.commit()
     result = ServiceResult.query.get(result_item.result_id)
     form = ServiceResultItemForm(obj=result_item)
-    edited_all = all(item.is_edited for item in result_item.result.result_items if item.req_edit_at)
     if form.validate_on_submit():
         form.populate_obj(result_item)
         status_id = get_status(14)
@@ -3424,8 +3448,7 @@ def edit_result_item(result_item_id):
         result_item.edit_requester_id = current_user.id
         result_item.req_edit_at = arrow.now('Asia/Bangkok').datetime
         result_item.result.request.status_id = status_id
-        if edited_all:
-            result_item.result.result_edit_at = arrow.now('Asia/Bangkok').datetime
+        result_item.result.result_edit_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(result_item)
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
@@ -3459,7 +3482,8 @@ def edit_result_item(result_item_id):
                    '\n\nผู้ประสานงาน' \
                    '\n{}' \
                    '\nเบอร์โทร {}' \
-                   '\n\nระบบงานบริการวิชาการ'.format(result.request.sub_lab.sub_lab, result_item.report_language, result.request.request_no,
+                   '\n\nระบบงานบริการวิชาการ'.format(result.request.sub_lab.sub_lab, result_item.report_language,
+                                                     result.request.request_no,
                                                      result.request.customer.customer_name,
                                                      result.request.quotation_address.name, result_item.note, link,
                                                      result.request.customer.customer_name,

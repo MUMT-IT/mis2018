@@ -92,13 +92,13 @@
                     <thead>
                     <th>เลขใบคำร้องขอ</th>
                     <th>วัน-เวลาทีส่ง</th>
-                    <th>สถานะ</th>
                     <th>ใบเสนอราคา</th>
                     <th>นัดหมายส่งตัวอย่าง</th>
                     <th>การทดสอบ</th>
                     <th>ใบแจ้งหนี้</th>
                     <th>รายงานผลการทดสอบ</th>
                     <th>หมายเหตุ</th>
+                    <th>สถานะ</th>
                     <th>รายละเอียด</th>
                     <th></th>
                     </thead>
@@ -137,32 +137,13 @@
                         }
                     },
                     {
-                        data: 'id',
-                        render: function (data, type, row) {
-                            var color = row.customer_status_color
-                            var status = row.customer_status
-                            if (data !== null) {
-                                return `<span class="tag ${color}">${status}</span>`;
-                            } else {
-                                return `<span class="tag is-info">ร่างใบคำขอรับบริการ</span>`;
-                            }
-                        }
-                    },
-                    {
                         data: null,
                         render: function (data, type, row) {
                             if (row.quotation_confirmed_at) {
                                 let confirmed_at = moment(row.quotation_confirmed_at).format('DD/MM/YYYY HH:mm')
                                 return `<div class="field">
                                             <div class="control">
-                                                ยืนยัน : ${confirmed_at}<br/>
-                                            </div>
-                                       </div>`;
-                            } else if (row.quotation_cancelled_at) {
-                                let cancelled_at = moment(row.quotation_cancelled_at).format('DD/MM/YYYY HH:mm')
-                                return `<div class="field">
-                                            <div class="control">
-                                                ยกเลิก : ${cancelled_at}<br/>
+                                                ${confirmed_at}<br/>
                                             </div>
                                        </div>`;
                             } else {
@@ -177,7 +158,7 @@
                                 let received_at = moment(row.sample_received_at).format('DD/MM/YYYY HH:mm')
                                 return `<div class="field">
                                             <div class="control">
-                                                ส่ง : ${received_at}<br/>
+                                                ${received_at}<br/>
                                             </div>
                                        </div>`;
                             } else {
@@ -192,7 +173,7 @@
                                 let test_at = moment(row.sample_test_at).format('DD/MM/YYYY HH:mm')
                                 return `<div class="field">
                                             <div class="control">
-                                                ทดสอบ : ${test_at}<br/>
+                                                ${test_at}<br/>
                                             </div>
                                        </div>`;
                             } else {
@@ -207,7 +188,7 @@
                                 let date = moment(row.paid_at).format('DD/MM/YYYY HH:mm')
                                 return `<div class="field">
                                             <div class="control">
-                                                ชำระ : ${date}<br/>
+                                                ${date}<br/>
                                             </div>
                                        </div>`;
                             } else {
@@ -218,27 +199,11 @@
                     {
                         data: null,
                         render: function (data, type, row) {
-                            if (row.result_approved_at && row.result_edit_at) {
-                                let edit_at = moment(row.result_edit_at).format('DD/MM/YYYY HH:mm')
+                            if (row.result_approved_at) {
                                 let approved_at = moment(row.result_approved_at).format('DD/MM/YYYY HH:mm')
                                 return `<div class="field">
                                             <div class="control">
-                                                ขอแก้ไข : ${edit_at}<br/>
-                                                ยืนยัน : ${approved_at}<br/>
-                                            </div>
-                                       </div>`;
-                            } else if (row.result_approved_at && !row.result_edit_at) {
-                                let approved_at = moment(row.result_approved_at).format('DD/MM/YYYY HH:mm')
-                                return `<div class="field">
-                                            <div class="control">
-                                                ยืนยัน : ${approved_at}<br/>
-                                            </div>
-                                       </div>`;
-                            } else if (!row.result_approved_at && row.result_edit_at) {
-                                let edit_at = moment(row.result_edit_at).format('DD/MM/YYYY HH:mm')
-                                return `<div class="field">
-                                            <div class="control">
-                                                ขอแก้ไข : ${edit_at}<br/>
+                                                ${approved_at}<br/>
                                             </div>
                                        </div>`;
                             } else {
@@ -258,6 +223,18 @@
                                         </a>`;
                             } else {
                                 return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            var color = row.customer_status_color
+                            var status = row.customer_status
+                            if (data !== null) {
+                                return `<span class="tag ${color}">${status}</span>`;
+                            } else {
+                                return `<span class="tag is-info">ร่างใบคำขอรับบริการ</span>`;
                             }
                         }
                     },

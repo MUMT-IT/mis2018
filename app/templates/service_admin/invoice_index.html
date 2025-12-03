@@ -46,7 +46,7 @@
                         <li {% if tab == 'pending_dean' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('service_admin.invoice_index', tab='pending_dean', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-file-signature"></i></span>
-                                <span>รอคณบดีอนุมัติและออกเลข อว.</span>
+                                <span>รออัปโหลดใบแจ้งหนี้ฉบับสมบูรณ์</span>
                                 {% if pending_dean_count > 0 %}
                                     <span class="tag is-danger is-rounded is-size-7 ml-1">{{ pending_dean_count }}</span>
                                 {% endif %}
@@ -94,8 +94,8 @@
                     <th>วิธีการชำระเงิน</th>
                     <th>วันที่ชำระเงิน</th>
                     <th>หลักฐานการชำระเงิน</th>
-                    <th>สถานะ</th>
                     <th>ผู้ออก</th>
+                    <th>สถานะ</th>
                     <th></th>
                     </thead>
                     <tbody>
@@ -228,6 +228,7 @@
                             }
                         }
                     },
+                    {data: 'creator'},
                     {
                         data: 'id',
                         render: function (data, type, row) {
@@ -241,7 +242,6 @@
                             }
                         }
                     },
-                    {data: 'creator'},
                     {
                         data: 'id',
                         render: function (data) {

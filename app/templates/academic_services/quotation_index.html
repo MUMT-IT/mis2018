@@ -55,8 +55,8 @@
                         <th>เลขใบเสนอราคา</th>
                         <th>วันที่ออก</th>
                         <th>ราคา</th>
-                        <th>สถานะ</th>
                         <th>หมายเหตุ</th>
+                        <th>สถานะ</th>
                         <th>รายละเอียด</th>
                     </thead>
                     <tbody>
@@ -91,6 +91,18 @@
                     },
                     { data: 'total_price' },
                     {
+                        data: null,
+                        render: function (data, type, row) {
+                            if (row.reason && row.other) {
+                                return row.reason + ' : ' + row.other;
+                            } else if (row.reason && !row.other) {
+                                return row.reason;
+                            } else {
+                                return '';
+                            }
+                        }
+                    },
+                    {
                         data: 'id',
                         render: function (data, type, row) {
                             var color = row.customer_status_color
@@ -100,18 +112,6 @@
                             }
                             else {
                                 return `<span class="tag is-info">อยู่ระหว่างการจัดทำใบเสนอราคา</span>`;
-                            }
-                        }
-                    },
-                    {
-                        data: null,
-                        render: function (data, type, row) {
-                            if (row.reason && row.other) {
-                                return row.reason + ' : ' + row.other;
-                            } else if (row.reason && !row.other) {
-                                return row.reason;
-                            } else {
-                                return '';
                             }
                         }
                     },
