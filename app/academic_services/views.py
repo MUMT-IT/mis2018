@@ -3200,7 +3200,7 @@ def result_index():
     if tab == 'pending':
         results = query.filter(ServiceResult.sent_at == None)
     elif tab == 'edit':
-        results = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False)
+        results = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == None)
     elif tab == 'approve':
         results = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
                                or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
@@ -3211,7 +3211,7 @@ def result_index():
     else:
         results = query
     pending_count = query.filter(ServiceResult.sent_at == None).count()
-    edit_count = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False).count()
+    edit_count = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == None).count()
     approve_count = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
                                  or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
                                      )

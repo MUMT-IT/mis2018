@@ -1900,7 +1900,7 @@ def result_index():
     query = ServiceResult.query.join(ServiceResult.request).join(ServiceRequest.sub_lab).join(
         ServiceSubLab.admins).filter(ServiceAdmin.admin_id == current_user.id)
     pending_count = query.filter(ServiceResult.sent_at == None).count()
-    edit_count = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False).count()
+    edit_count = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == None).count()
     approve_count = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
                                  or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
                                      )
@@ -1920,7 +1920,7 @@ def get_results():
     if tab == 'pending':
         query = query.filter(ServiceResult.sent_at == None)
     elif tab == 'edit':
-        query = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False)
+        query = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == None)
     elif tab == 'approve':
         query = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
                              or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
@@ -3000,11 +3000,13 @@ def quotation_index():
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
     is_admin = any(a for a in admin if not a.is_supervisor)
     is_supervisor = any(a.is_supervisor for a in admin)
-    query = ServiceQuotation.query.filter(
-        or_(ServiceQuotation.creator_id == current_user.id,
-            ServiceQuotation.request.has(ServiceRequest.sub_lab.has(
-                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-            ))))
+    # query = ServiceQuotation.query.filter(
+    #         ServiceQuotation.request.has(ServiceRequest.sub_lab.has(
+    #             ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+    #         )))
+    query = (ServiceQuotation.query.join(ServiceQuotation.request)
+             .join(ServiceRequest.sub_lab).join(ServiceSubLab.admins).filter(or_(ServiceAdmin.admin_id == current_user.id,
+                                                                                 ServiceSubLab.assistant_id == current_user.id)))
     draft_count = query.filter(ServiceQuotation.sent_at == None, ServiceQuotation.approved_at == None,
                                ServiceQuotation.confirmed_at == None,
                                ServiceQuotation.cancelled_at == None).count()
@@ -3036,11 +3038,10 @@ def quotation_index():
 @service_admin.route('/api/quotation/index')
 def get_quotations():
     tab = request.args.get('tab')
-    query = ServiceQuotation.query.filter(
-        or_(ServiceQuotation.creator_id == current_user.id,
-            ServiceQuotation.request.has(ServiceRequest.sub_lab.has(
-                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-            ))))
+    query = (ServiceQuotation.query.join(ServiceQuotation.request)
+             .join(ServiceRequest.sub_lab).join(ServiceSubLab.admins).filter(
+        or_(ServiceAdmin.admin_id == current_user.id,
+            ServiceSubLab.assistant_id == current_user.id)))
     if tab == 'draft':
         query = query.filter(ServiceQuotation.sent_at == None, ServiceQuotation.approved_at == None,
                              ServiceQuotation.confirmed_at == None,
