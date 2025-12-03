@@ -4192,22 +4192,6 @@ def confirm_payment(invoice_id):
     result.status_id = status_id
     db.session.add(result)
     db.session.commit()
-    scheme = 'http' if current_app.debug else 'https'
-    link = url_for('academic_services.receipt_index', menu='receipt', _external=True, _scheme=scheme)
-    customer_name = result.request.customer.customer_name.replace(' ', '_')
-    contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
-    title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
-    title = f'''แจ้งยืนยันการชำระเงินของใบแจ้งหนี้ [{invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-    message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-    message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
-    message += f''' ขณะนี้ทางคณะฯ ได้รับการชำระเงินของใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว\n'''
-    message += f'''ท่านสามารถตรวจสอบรายละเอียดใบเสร็จรับเงินได้จากลิงก์ด้านล่าง\n'''
-    message += f'''{link}\n\n'''
-    message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-    message += f'''ขอแสดงความนับถือ\n'''
-    message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
-    message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-    send_mail([contact_email], title, message)
     flash('ยืนยันการชำระเงินเรียบร้อยแล้ว', 'success')
     return render_template('service_admin/invoice_payment_index.html')
 
