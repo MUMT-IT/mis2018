@@ -282,10 +282,10 @@ def menu():
             )
         ).distinct()).count()
         sample_count = (ServiceRequest.query
-                           .join(ServiceRequest.status)
-                           .join(ServiceRequest.sub_lab)
-                           .outerjoin(ServiceSubLab.admins)
-                           .filter(
+                        .join(ServiceRequest.status)
+                        .join(ServiceRequest.sub_lab)
+                        .outerjoin(ServiceSubLab.admins)
+                        .filter(
             ServiceStatus.status_id.in_([6, 8, 9]),
             or_(
                 ServiceSubLab.assistant_id == current_user.id,
@@ -293,10 +293,10 @@ def menu():
             )
         ).distinct()).count()
         test_item_count = (ServiceRequest.query
-                        .join(ServiceRequest.status)
-                        .join(ServiceRequest.sub_lab)
-                        .outerjoin(ServiceSubLab.admins)
-                        .filter(
+                           .join(ServiceRequest.status)
+                           .join(ServiceRequest.sub_lab)
+                           .outerjoin(ServiceSubLab.admins)
+                           .filter(
             ServiceStatus.status_id.in_([10, 11, 12, 13, 14, 15]),
             or_(
                 ServiceSubLab.assistant_id == current_user.id,
@@ -304,25 +304,29 @@ def menu():
             )
         ).distinct()).count()
         invoice_count = (ServiceRequest.query
-                           .join(ServiceRequest.status)
-                           .join(ServiceRequest.sub_lab)
-                           .outerjoin(ServiceSubLab.admins)
-                           .filter(
+                         .join(ServiceRequest.status)
+                         .join(ServiceRequest.sub_lab)
+                         .outerjoin(ServiceSubLab.admins)
+                         .filter(
             ServiceStatus.status_id.in_([16, 17, 18, 19, 20, 21]),
             or_(
                 ServiceSubLab.assistant_id == current_user.id,
                 ServiceAdmin.admin_id == current_user.id
             )
         ).distinct()).count()
-        report_count = (ServiceResult.query
-                         .join(ServiceResult.request)
-                         .outerjoin(ServiceSubLab.admins)
-                         .filter(ServiceResult.approved_at == None,
-            or_(
-                ServiceSubLab.assistant_id == current_user.id,
-                ServiceAdmin.admin_id == current_user.id
-            )
-        ).distinct()).count()
+        report_count = (
+            ServiceResult.query
+            .join(ServiceResult.request)
+            .join(ServiceRequest.sub_lab)
+            .outerjoin(ServiceSubLab.admins)
+            .filter(ServiceResult.approved_at == None,
+                    or_(
+                        ServiceSubLab.assistant_id == current_user.id,
+                        ServiceAdmin.admin_id == current_user.id
+                    )
+                    )
+            .distinct()
+        ).count()
     return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin, position=position,
                 request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
                 test_item_count=test_item_count, invoice_count=invoice_count, report_count=report_count)
