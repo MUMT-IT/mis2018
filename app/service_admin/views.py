@@ -2948,14 +2948,14 @@ def add_payment():
                 org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
                 staff = StaffAccount.get_account_by_email(org.head)
                 title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
-                link = url_for("service_admin.invoice_payment_index", _external=True, _scheme=scheme)
+                link = url_for("service_admin.view_invoice_for_finance", invoice_id=invoice_id, _external=True,
+                               _scheme=scheme)
                 customer_name = invoice.customer_name.replace(' ', '_')
                 title = f'''[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอัปเดตการชำระเงิน'''
                 message = f'''เรียน เจ้าหน้าที่การเงิน\n\n'''
-                message += f'''ใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
-                message += f'''ลูกค้า : {invoice.customer_name}\n'''
-                message += f'''ในนาม : {invoice.name}\n'''
-                message += f'''ขอแจ้งให้ทราบว่า ได้มีการอัปเดตข้อมูลการชำระเงินเรียบร้อยแล้ว\n'''
+                message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'''
+                message += f'''ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'''
+                message += f'''จำนวนเงิน {invoice.grand_total():,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'''
                 message += f'''กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'''
                 message += f'''{link}\n\n'''
                 message += f'''ผู้ประสานงาน\n'''
@@ -2963,19 +2963,17 @@ def add_payment():
                 message += f'''เบอร์โทร {invoice.contact_phone_number}\n\n'''
                 message += f'''ระบบงานบริการวิชาการ'''
                 send_mail([staff.email + '@mahidol.ac.th'], title, message)
-                msg = ('แจ้งอัปเดตการชำระเงิน' \
-                       '\n\nเรียน เจ้าหน้าที่การเงิน'
-                       '\n\nใบแจ้งหนี้เลขที่ {}' \
-                       '\nลูกค้า : {}' \
-                       '\nในนาม : {}' \
-                       '\nขอแจ้งให้ทราบว่า ได้มีการอัปเดตข้อมูลการชำระเงินเรียบร้อยแล้ว' \
-                       '\nกรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง' \
-                       '\n{}' \
-                       '\n\nผู้ประสานงาน' \
-                       '\n{}' \
-                       '\nเบอร์โทร {}' \
-                       '\n\nระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.customer_name, invoice.name, link,
-                                                         invoice.customer_name, invoice.contact_phone_number)
+                msg = (f'แจ้งอัพเดตการชำระเงินใบแจ้งหนี้เลขที่ {invoice.invoice_no}\n\n'
+                       f'เรียน เจ้าหน้าที่การเงิน\n\n'
+                       f'ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'
+                       f'ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'
+                       f'จำนวนเงิน {invoice.grand_total():,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'
+                       f'กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'
+                       f'{link}\n\n'
+                       f'ผู้ประสานงาน\n'
+                       f'{invoice.customer_name}\n'
+                       f'เบอร์โทร {invoice.contact_phone_number}\n\n'
+                       f'ระบบงานบริการวิชาการ'
                        )
                 if not current_app.debug:
                     try:
