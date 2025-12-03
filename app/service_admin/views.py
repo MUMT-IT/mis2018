@@ -1900,7 +1900,7 @@ def result_index():
     query = ServiceResult.query.join(ServiceResult.request).join(ServiceRequest.sub_lab).join(
         ServiceSubLab.admins).filter(ServiceAdmin.admin_id == current_user.id)
     pending_count = query.filter(ServiceResult.sent_at == None).count()
-    edit_count = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == None).count()
+    edit_count = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False).count()
     approve_count = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
                                  or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
                                      )
@@ -1920,7 +1920,7 @@ def get_results():
     if tab == 'pending':
         query = query.filter(ServiceResult.sent_at == None)
     elif tab == 'edit':
-        query = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == None)
+        query = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False)
     elif tab == 'approve':
         query = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
                              or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
@@ -3839,6 +3839,7 @@ def create_draft_result(result_id=None):
         if action == 'send':
             if upload_all:
                 status_id = get_status(12)
+                result.is_edited = False
                 result.status_id = status_id
                 service_request.status_id = status_id
                 result.sent_at = arrow.now('Asia/Bangkok').datetime
@@ -3963,16 +3964,19 @@ def edit_draft_result(result_item_id):
                 ContentType=mime_type
             )
             result_item.draft_file = file_name
+            result_item.edited_at = arrow.now('Asia/Bangkok').datetime
             result_item.is_edited = True
             result_item.modified_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(result_item)
             db.session.commit()
-        edited_all = all(item.is_edited is not None for item in result_item.result.result_items if item.req_edit_at)
+        edited_all = all(item.edited_at for item in result_item.result.result_items if item.req_edit_at)
         if edited_all:
             status_id = get_status(12)
             result_item.result.status_id = status_id
             result_item.result.request.status_id = status_id
             result_item.result.is_edited = True
+            db.session.add(result_item)
+            db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
         result_url = url_for('academic_services.view_result_item', result_id=result_item.result_id,
                              result_item_id=result_item_id, menu='report', tab='approve', _external=True, _scheme=scheme)
@@ -3991,8 +3995,6 @@ def edit_draft_result(result_item_id):
         message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
         message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
         send_mail([contact_email], title, message)
-        db.session.add(result_item)
-        db.session.commit()
         flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
         return redirect(url_for('service_admin.result_index', menu=menu, tab=tab))
     else:
