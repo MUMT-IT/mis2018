@@ -1,0 +1,77 @@
+<div class="modal is-active animate__animated" id="issue-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">
+                {% if detail_id %}
+                    Add Issue
+                {% else %}
+                    Edit Issue
+                {% endif %}
+            </p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form
+                    {% if issue_id %}
+                        hx-post="{{ url_for('software_request.create_issue', issue_id=issue_id, tab=tab) }}"
+                    {% else %}
+                        hx-post="{{ url_for('software_request.create_issue', detail_id=detail_id, tab=tab) }}"
+                    {% endif %}
+                        hx-target="#issues"
+                        hx-indicator="#submit-form"
+                        hx-swap="beforeend"
+            >
+                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                <div class="field">
+                    <label class="label">
+                        {{ form.label.label }}
+                        <span class="has-text-danger">*</span>
+                    </label>
+                    <div class="control">
+                        <div class="select">
+                            {{ form.label() }}
+                        </div>
+                    </div>
+                </div>
+                {% if issue_id %}
+                <div class="field">
+                    <label class="label">
+                        {{ form.status_.label }}
+                        <span class="has-text-danger">*</span>
+                    </label>
+                    <div class="control">
+                        <div class="select">
+                            {{ form.status_() }}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="field">
+                    <label class="label">
+                        {{ form.issue.label }}
+                        <span class="has-text-danger">*</span>
+                    </label>
+                    <div class="control">
+                        {{ form.issue(class='textarea') }}
+                    </div>
+                </div>
+                <div class="field is-grouped is-grouped-centered" style="margin-top: 1em">
+                    <div class="control">
+                        <input type="submit" id="submit-form" class="button is-success" value="บันทึก">
+                    </div>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.addClass(htmx.find('#issue-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#issue-modal'), "is-active", 500)
+    })
+    window.document.addEventListener('closeModal', function () {
+        htmx.addClass(htmx.find('#issue-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#issue-modal'), "is-active", 500)
+    })
+</script>

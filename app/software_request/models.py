@@ -1,3 +1,5 @@
+from pygments.lexer import default
+
 from app.main import db
 from app.models import Process, StrategyActivity
 from app.room_scheduler.models import RoomResource
@@ -88,6 +90,10 @@ class SoftwareRequestDetail(db.Model):
     def __str__(self):
         return f'{self.title}'
 
+    @property
+    def num_open_issues(self):
+        return len([issue for issue in self.issues.all() if issue.status != 'Closed'])
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -98,6 +104,7 @@ class SoftwareRequestDetail(db.Model):
             'org': self.created_by.personal_info.org.name if self.created_by else None,
             'created_date': self.created_date,
             'status': self.status,
+            'open_issues': self.num_open_issues,
         }
 
 
@@ -127,3 +134,33 @@ class SoftwareRequestTimeline(db.Model):
 
     def __str__(self):
         return f'{self.phase}: {self.task}'
+
+
+class SoftwareIssues(db.Model):
+    __tablename__ = 'software_issues'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    software_request_detail_id = db.Column('software_request_detail_id',
+                                           db.ForeignKey('software_request_details.id'))
+    software_request_detail = db.relationship(SoftwareRequestDetail, backref=db.backref('issues', lazy='dynamic'))
+    label = db.Column('label', db.String(), nullable=False, info={
+        'label': 'ประเภท',
+        'choices': [(c,c) for c in ('Bug', 'Request', 'Enhancement')],
+    })
+    issue = db.Column('issue', db.Text(), nullable=False, info={'label': 'Issue'})
+    created_by = db.Column('created_by', db.ForeignKey('staff_account.id'))
+    creator = db.relationship(StaffAccount)
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    closed_at = db.Column('closed_at', db.DateTime(timezone=True))
+    accepted_at = db.Column('accepted_at', db.DateTime(timezone=True))
+
+    @property
+    def status(self):
+        if self.cancelled_at:
+            return 'Cancelled'
+        elif self.closed_at:
+            return 'Closed'
+        elif self.accepted_at:
+            return 'Working'
+        else:
+            return 'Draft'

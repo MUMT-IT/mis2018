@@ -9,7 +9,7 @@ from flask import render_template, redirect, flash, url_for, jsonify, request, m
 from flask_login import login_required, current_user
 from app.roles import admin_permission
 from app.software_request import software_request
-from app.software_request.forms import create_request_form, SoftwareRequestTimelineForm
+from app.software_request.forms import create_request_form, SoftwareRequestTimelineForm, SoftwareRequestIssueForm
 from app.software_request.models import *
 from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
@@ -255,6 +255,47 @@ def create_timeline(detail_id=None, timeline_id=None):
         return resp
     return render_template('software_request/modal/create_timeline_modal.html', form=form, tab=tab,
                            detail_id=detail_id, timeline_id=timeline_id)
+
+
+@software_request.route('/admin/request/issues/<int:issue_id>', methods=['GET', 'POST'])
+@software_request.route('/admin/request/details/<int:detail_id>/issues', methods=['GET', 'POST'])
+def create_issue(detail_id=None, issue_id=None):
+    form = SoftwareRequestIssueForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            if issue_id:
+                issue =  SoftwareIssues.query.get(issue_id)
+                current_status = issue.status
+            else:
+                issue = SoftwareIssues(software_request_detail_id=detail_id)
+                issue.created_at = arrow.now('Asia/Bangkok').datetime
+                issue.creator = current_user
+                current_status = ''
+            form.populate_obj(issue)
+
+            if form.status_.data != current_status:
+                if form.status_.data == 'Cancelled':
+                    issue.cancelled_at = arrow.now('Asia/Bangkok').datetime
+                elif form.status_.data == 'Closed':
+                    issue.closed_at = arrow.now('Asia/Bangkok').datetime
+                elif form.status_.data == 'Working':
+                    issue.accepted_at = arrow.now('Asia/Bangkok').datetime
+
+            db.session.add(issue)
+            db.session.commit()
+        else:
+            flash(f'{form.errors}', 'danger')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    if issue_id:
+        issue = SoftwareIssues.query.get(issue_id)
+        form = SoftwareRequestIssueForm(obj=issue)
+        form.status_.data = issue.status
+        form.populate_obj(issue)
+    return render_template('software_request/modal/create_issue_modal.html',
+                           form=form, issue_id=issue_id, detail_id=detail_id)
+
 
 
 @software_request.route('/admin/request/timeline/delete/<int:timeline_id>', methods=['GET', 'DELETE'])
