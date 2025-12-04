@@ -66,7 +66,7 @@
                     <th>หมายเลขติดตามพัสดุ</th>
                     <th>วัน-เวลาที่ออกผล</th>
                     <th>ผลการทดสอบ</th>
-                    <th>รายละเอียดการแก้ไข</th>
+                    <th>รายละเอียดการขอแก้ไข</th>
                     <th>ผู้ออก</th>
                     <th>สถานะ</th>
                     <th></th>
@@ -120,7 +120,7 @@
                         }
                     },
                     {
-                        data: 'released_at',
+                        data: 'sent_at',
                         render: function (data) {
                             if (data !== '') {
                                 let d = moment(data)
@@ -158,7 +158,7 @@
                             var menu ='{{ menu }}'
                             var tab = '{{ tab }}';
                             if (row.status_id == 13 || row.status_id >= 16) {
-                                var final_result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
+                                var final_result_url = '/service_admin/result/final/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-info is-rounded" ' + 'href=' + final_result_url + '>' +
@@ -174,8 +174,8 @@
                                     var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
                                     var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
                                 } else {
-                                    var draft_result_url = '/service_admin/result/draft/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
-                                    var final_result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
+                                    var draft_result_url = '/service_admin/result/draft/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
+                                    var final_result_url = '/service_admin/result/final/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
                                 }
                                  return '<div class="field has-addons">' +
                                     '<div class="control">' +
