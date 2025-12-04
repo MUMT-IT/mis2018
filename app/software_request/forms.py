@@ -49,3 +49,12 @@ class SoftwareRequestTimelineForm(ModelForm):
                          validators=[DataRequired()])
     admin = QuerySelectField('ผู้รับผิดชอบ', query_factory=lambda: StaffAccount.get_it_unit(), allow_blank=True,
                              blank_text='กรุณาเลือกผู้รับผิดชอบ', get_label='fullname', validators=[InputRequired(message='กรุณาเลือกผู้รับผิดชอบ')])
+
+
+class SoftwareRequestIssueForm(ModelForm):
+    class Meta:
+        model = SoftwareIssues
+        only = ['issue', 'label']
+
+    status_ = SelectField('Status',
+                          choices=[(c,c) for c in ('Draft', 'Working', 'Cancelled', 'Closed')])
