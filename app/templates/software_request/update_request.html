@@ -285,7 +285,7 @@
                                                 </tbody>
                                             </table>
                                             <div id="timeline_form"></div>
-                                            <div class="mt-4">
+                                            <div class="mt-2">
                                                 <a class="button is-link is-rounded"
                                                    hx-swap="innerHTML"
                                                    hx-target="#timeline_form"
@@ -315,6 +315,78 @@
                                 </div>
                             </div>
                         {% endif %}
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">Issues</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        <table class="table is-fullwidth" id="issues">
+                                            <thead>
+                                                <tr>
+                                                    <th>Label</th>
+                                                    <th>Detail</th>
+                                                    <th>Status</th>
+                                                    <th>Created By</th>
+                                                    <th>Created At</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                            {% for issue in detail.issues %}
+                                                <tr>
+                                                    <td>
+                                                        {% if issue.label == 'Bug' %}
+                                                        <span class="tag is-rounded is-danger">
+                                                            {{ issue.label }}
+                                                        </span>
+                                                        {% elif issue.label == 'Request' %}
+                                                        <span class="tag is-rounded is-success">
+                                                            {{ issue.label }}
+                                                        </span>
+                                                        {% elif issue.label == 'Enhancement' %}
+                                                            <span class="tag is-rounded is-primary">
+                                                            {{ issue.label }}
+                                                        </span>
+                                                        {% else %}
+                                                        <span class="tag is-rounded">
+                                                            {{ issue.label }}
+                                                        </span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ issue.issue }}</td>
+                                                    <td>
+                                                        {{ issue.status }}
+                                                        <a hx-swap="innerHTML"
+                                                           hx-target="#issue_form"
+                                                           hx-get="{{ url_for('software_request.create_issue', issue_id=issue.id) }}">
+                                                            <span class="icon">
+                                                                <i class="fas fa-pencil-alt"></i>
+                                                            </span>
+                                                        </a>
+                                                    </td>
+                                                    <td>{{ issue.creator.fullname }}</td>
+                                                    <td>{{ issue.created_at|localdatetime }}</td>
+                                                </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                        <div id="issue_form"></div>
+                                        <div class="mt-2">
+                                            <a class="button is-info is-rounded"
+                                               hx-swap="innerHTML"
+                                               hx-target="#issue_form"
+                                               hx-get="{{ url_for('software_request.create_issue', detail_id=detail.id, tab=tab) }}">
+                                                    <span class="icon">
+                                                        <i class="fas fa-plus"></i>
+                                                    </span>
+                                                <span>Issue</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         {% if detail.approver_id %}
                             <div class="field is-horizontal">
                                 <div class="field-label">
