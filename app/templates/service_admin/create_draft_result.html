@@ -2,13 +2,26 @@
 {% block head %}
     {{ super() }}
     <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <style>
+        .toast {
+            opacity: 1 !important;
+            transition: none !important;
+        }
+
+        #toast-container.toast-top-full-width > .toast {
+            width: 100% !important;
+        }
+
+        .content ul {
+            margin-top: 0.15em;
+        }
+    </style>
 {% endblock %}
 {% include "service_admin/admin_nav.html" %}
-
 {% block page_content %}
     <section class="section">
         <div class="container">
-            {% include "messages.html" %}
             <div class="columns">
                 <div class="box column is-half is-offset-3">
                     <h1 class="title has-text-centered">อัปโหลดไฟล์ผลการทดสอบ (ฉบับร่าง)</h1>
@@ -55,16 +68,15 @@
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
                                 <a href="{{ url_for('service_admin.test_item_index', menu='test_item', tab='testing') }}"
-                                   class="button">ยกเลิก</a>
-                            </div>
-                            <div class="control">
-                                <input type="submit" value="บันทึก" class="button is-success">
-                            </div>
-                            <div class="control">
-                                <a class="button is-info" href="{{ url_for('service_admin.send_draft_result', menu='test_item',
-                                        tab='testing', request_id=result.request_id) }}">
-                                    ส่งให้ลูกค้า
+                                   class="button">
+                                    ยกเลิก
                                 </a>
+                                <button type="submit" name="action" value="save" class="button is-success">
+                                    บันทึกข้อมูล
+                                </button>
+                                <button type="submit" name="action" value="send" class="button is-info">
+                                    ส่งให้ลูกค้า
+                                </button>
                             </div>
                         </div>
                     </form>
@@ -76,6 +88,43 @@
 {% block scripts %}
     {{ super() }}
     <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+    <script>
+        function showToast(category, message) {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
+            if (category === 'success') {
+                toastr.success(message);
+            } else if (category === 'danger') {
+                toastr.error(message);
+            } else if (category === 'warning') {
+                toastr.warning(message);
+            } else {
+                toastr.info(message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        showToast('{{ category }}', {{ message|tojson }});
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
     <script>
         $('.js-example-basic-single').select2({
             width: '100%',

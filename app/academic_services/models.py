@@ -1185,6 +1185,7 @@ class ServiceResultItem(db.Model):
     edit_requester = db.relationship(ServiceCustomerAccount, backref=db.backref('edit_requester_results'),
                                      foreign_keys=[edit_requester_id])
     note = db.Column('note', db.Text())
+    edited_at = db.Column('edited_at', db.DateTime(timezone=True))
     is_edited = db.Column('is_edited', db.Boolean())
     released_at = db.Column('released_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
@@ -1200,7 +1201,7 @@ class ServiceResultItem(db.Model):
             'status_id': self.result.status.status_id if self.result else None,
             'admin_status': self.admin_status if self.admin_status else None,
             'customer_status': self.customer_status if self.customer_status else None,
-            'released_at': self.released_at if self.released_at else None,
+            'sent_at': self.sent_at if self.sent_at else None,
             'report_language': self.report_language if self.report_language else None,
             'note': self.note  if self.note else None,
             'is_edited': self.is_edited if self.is_edited else None,

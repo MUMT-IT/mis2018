@@ -230,7 +230,7 @@ def menu():
         admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
         if sub_lab and sub_lab.assistant and not admins:
             assistant = True
-            position = 'Assistant'
+            position = 'Assistant of dean'
         elif admins and admins.is_supervisor:
             supervisor = True
             position = 'Supervisor'
@@ -241,24 +241,92 @@ def menu():
             admin = True
             position = 'Admin'
 
-        request_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)), ServiceRequest.status.has(
-            ServiceStatus.status_id.in_([2]))).count()
-        quotation_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
-            ServiceRequest.status.has(ServiceStatus.status_id.in_([3, 4, 5]))).count()
-        sample_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
-            ServiceRequest.status.has(ServiceStatus.status_id.in_([6, 8, 9]))).count()
-        test_item_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
-            ServiceRequest.status.has(ServiceStatus.status_id.in_([10, 11, 12, 13, 14, 15]))).count()
-        invoice_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
-            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
-            ServiceRequest.status.has(ServiceStatus.status_id.in_([16, 17, 18, 19, 20, 21]))).count()
+        # request_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
+        #     ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)), ServiceRequest.status.has(
+        #     ServiceStatus.status_id.in_([2]))).count()
+        # quotation_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
+        #     ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
+        #     ServiceRequest.status.has(ServiceStatus.status_id.in_([3, 4, 5]))).count()
+        # sample_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
+        #     ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
+        #     ServiceRequest.status.has(ServiceStatus.status_id.in_([6, 8, 9]))).count()
+        # test_item_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
+        #     ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
+        #     ServiceRequest.status.has(ServiceStatus.status_id.in_([10, 11, 12, 13, 14, 15]))).count()
+        # invoice_count = ServiceRequest.query.filter(ServiceRequest.sub_lab.has(
+        #     ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)),
+        #     ServiceRequest.status.has(ServiceStatus.status_id.in_([16, 17, 18, 19, 20, 21]))).count()
+        # report_count = (
+        #     ServiceResult.query.join(ServiceResult.request).join(ServiceRequest.sub_lab).join(ServiceSubLab.admins)
+        #     .filter(ServiceAdmin.admin_id == current_user.id, ServiceResult.approved_at == None)).count()
+        request_count = (ServiceRequest.query
+                         .join(ServiceRequest.status)
+                         .join(ServiceRequest.sub_lab)
+                         .outerjoin(ServiceSubLab.admins)
+                         .filter(
+            ServiceStatus.status_id.in_([2]),
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()).count()
+        quotation_count = (ServiceRequest.query
+                           .join(ServiceRequest.status)
+                           .join(ServiceRequest.sub_lab)
+                           .outerjoin(ServiceSubLab.admins)
+                           .filter(
+            ServiceStatus.status_id.in_([3, 4, 5]),
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()).count()
+        sample_count = (ServiceRequest.query
+                        .join(ServiceRequest.status)
+                        .join(ServiceRequest.sub_lab)
+                        .outerjoin(ServiceSubLab.admins)
+                        .filter(
+            ServiceStatus.status_id.in_([6, 8, 9]),
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()).count()
+        test_item_count = (ServiceRequest.query
+                           .join(ServiceRequest.status)
+                           .join(ServiceRequest.sub_lab)
+                           .outerjoin(ServiceSubLab.admins)
+                           .filter(
+            ServiceStatus.status_id.in_([10, 11, 12, 13, 14, 15]),
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()).count()
+        invoice_count = (ServiceRequest.query
+                         .join(ServiceRequest.status)
+                         .join(ServiceRequest.sub_lab)
+                         .outerjoin(ServiceSubLab.admins)
+                         .filter(
+            ServiceStatus.status_id.in_([16, 17, 18, 19, 20, 21]),
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()).count()
         report_count = (
-            ServiceResult.query.join(ServiceResult.request).join(ServiceRequest.sub_lab).join(ServiceSubLab.admins)
-            .filter(ServiceAdmin.admin_id == current_user.id, ServiceResult.approved_at == None)).count()
+            ServiceResult.query
+            .join(ServiceResult.request)
+            .join(ServiceRequest.sub_lab)
+            .outerjoin(ServiceSubLab.admins)
+            .filter(ServiceResult.approved_at == None,
+                    or_(
+                        ServiceSubLab.assistant_id == current_user.id,
+                        ServiceAdmin.admin_id == current_user.id
+                    )
+                    )
+            .distinct()
+        ).count()
     return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin, position=position,
                 request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
                 test_item_count=test_item_count, invoice_count=invoice_count, report_count=report_count)
@@ -377,11 +445,19 @@ def request_index():
 
     for key, group in status_groups.items():
         group_ids = [i for i in group['id'] if i != 7]
-        query = ServiceRequest.query.filter(
-            ServiceRequest.status.has(ServiceStatus.status_id.in_(group_ids)
-                                      ), ServiceRequest.sub_lab.has(
-                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+        query = (
+            ServiceRequest.query
+            .join(ServiceRequest.status)
+            .join(ServiceRequest.sub_lab)
+            .outerjoin(ServiceSubLab.admins)
+            .filter(
+                ServiceStatus.status_id.in_(group_ids),
+                or_(
+                    ServiceSubLab.assistant_id == current_user.id,
+                    ServiceAdmin.admin_id == current_user.id
+                )
             )
+            .distinct()
         ).count()
 
         status_groups[key]['count'] = query
@@ -391,24 +467,35 @@ def request_index():
 
 @service_admin.route('/api/request/index')
 def get_requests():
-    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
-    sub_labs = []
-    for a in admin:
-        sub_labs.append(a.sub_lab.code)
-    query = ServiceRequest.query.filter(
-        ServiceRequest.status.has(
-            and_(
-                ServiceStatus.status_id != 1,
-                ServiceStatus.status_id != 23
-            )
-        ),
-        or_(
-            ServiceRequest.admin.has(id=current_user.id),
-            ServiceRequest.sub_lab.has(
-                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+    # query = ServiceRequest.query.filter(
+    #     ServiceRequest.status.has(
+    #         and_(
+    #             ServiceStatus.status_id != 1,
+    #             ServiceStatus.status_id != 23
+    #         )
+    #     ),
+    #     or_(
+    #         ServiceRequest.admin.has(id=current_user.id),
+    #         ServiceRequest.sub_lab.has(
+    #             ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+    #         )
+    #     )
+    # )
+    query = (
+        ServiceRequest.query
+        .join(ServiceRequest.status)
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            ServiceStatus.status_id.notin_([1, 23]),
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
             )
         )
+        .distinct()
     )
+
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -1054,9 +1141,18 @@ def sample_index():
     menu = request.args.get('menu')
     tab = request.args.get('tab')
     expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
-    query = ServiceSample.query.filter(ServiceSample.request.has(ServiceRequest.sub_lab.has(
-        ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-    )))
+    query = (
+        ServiceSample.query
+        .join(ServiceSample.request)
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()
+    )
     schedule_count = query.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
                                   ServiceSample.received_at == None).count()
     delivery_count = query.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
@@ -1070,9 +1166,21 @@ def sample_index():
 @service_admin.route('/api/sample/index')
 def get_samples():
     tab = request.args.get('tab')
-    query = ServiceSample.query.filter(ServiceSample.request.has(ServiceRequest.sub_lab.has(
-        ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-    )))
+    # query = ServiceSample.query.filter(ServiceSample.request.has(ServiceRequest.sub_lab.has(
+    #     ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+    # )))
+    query = (
+        ServiceSample.query
+        .join(ServiceSample.request)
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()
+    )
     if tab == 'schedule':
         query = query.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
                              ServiceSample.received_at == None)
@@ -1163,9 +1271,18 @@ def view_sample_appointment(sample_id):
 def test_item_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
-    query = ServiceTestItem.query.filter(ServiceTestItem.request.has(ServiceRequest.sub_lab.has(
-        ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-    )))
+    query = (
+        ServiceTestItem.query
+        .join(ServiceTestItem.request)
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()
+    )
     not_started_count = query.filter(
         ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 10))).count()
     testing_count = query.filter(
@@ -1189,9 +1306,21 @@ def test_item_index():
 @service_admin.route('/api/test-item/index')
 def get_test_items():
     tab = request.args.get('tab')
-    query = ServiceTestItem.query.filter(ServiceTestItem.request.has(ServiceRequest.sub_lab.has(
-        ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-    )))
+    # query = ServiceTestItem.query.filter(ServiceTestItem.request.has(ServiceRequest.sub_lab.has(
+    #     ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+    # )))
+    query = (
+        ServiceTestItem.query
+        .join(ServiceTestItem.request)
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()
+    )
     if tab == 'not_started':
         query = query.filter(ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 10)))
     elif tab == 'testing':
@@ -1897,8 +2026,19 @@ def result_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
-    query = ServiceResult.query.join(ServiceResult.request).join(ServiceRequest.sub_lab).join(
-        ServiceSubLab.admins).filter(ServiceAdmin.admin_id == current_user.id)
+    query = (
+        ServiceResult.query
+        .join(ServiceResult.request)
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        )
+        .distinct()
+    )
     pending_count = query.filter(ServiceResult.sent_at == None).count()
     edit_count = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False).count()
     approve_count = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
@@ -1915,8 +2055,22 @@ def result_index():
 @service_admin.route('/api/result/index')
 def get_results():
     tab = request.args.get('tab')
-    query = (ServiceResult.query.join(ServiceResult.request).join(ServiceRequest.sub_lab).join(ServiceSubLab.admins)
-             .filter(ServiceAdmin.admin_id == current_user.id))
+    # query = ServiceResult.query.join(ServiceResult.request).join(ServiceRequest.sub_lab).join(
+    #     ServiceSubLab.admins).filter(ServiceAdmin.admin_id == current_user.id)
+    query = (
+        ServiceResult.query
+        .join(ServiceResult.request)
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        )
+        .distinct()
+    )
+
     if tab == 'pending':
         query = query.filter(ServiceResult.sent_at == None)
     elif tab == 'edit':
@@ -2225,11 +2379,19 @@ def invoice_index():
     menu = request.args.get('menu')
     expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
     is_central_admin = ServiceAdmin.query.filter_by(admin_id=current_user.id, is_central_admin=True).first()
-    query = ServiceInvoice.query.filter(or_(ServiceInvoice.creator_id == current_user.id,
-                                            ServiceInvoice.quotation.has(ServiceQuotation.request.has(
-                                                ServiceRequest.sub_lab.has(
-                                                    ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-                                                )))))
+    query = (
+        ServiceInvoice.query
+        .join(ServiceInvoice.quotation)
+        .join(ServiceQuotation.request)
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()
+    )
     draft_count = query.filter(ServiceInvoice.sent_at == None, ServiceInvoice.head_approved_at == None,
                                ServiceInvoice.assistant_approved_at == None, ServiceInvoice.file_attached_at == None,
                                ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
@@ -2262,11 +2424,24 @@ def invoice_index():
 @service_admin.route('/api/invoice/index')
 def get_invoices():
     tab = request.args.get('tab')
-    query = ServiceInvoice.query.filter(or_(ServiceInvoice.creator_id == current_user.id,
-                                            ServiceInvoice.quotation.has(ServiceQuotation.request.has(
-                                                ServiceRequest.sub_lab.has(
-                                                    ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-                                                )))))
+    # query = ServiceInvoice.query.filter(or_(ServiceInvoice.creator_id == current_user.id,
+    #                                         ServiceInvoice.quotation.has(ServiceQuotation.request.has(
+    #                                             ServiceRequest.sub_lab.has(
+    #                                                 ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+    #                                             )))))
+    query = (
+        ServiceInvoice.query
+        .join(ServiceInvoice.quotation)
+        .join(ServiceQuotation.request)
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()
+    )
     if tab == 'draft':
         query = query.filter(ServiceInvoice.sent_at == None, ServiceInvoice.head_approved_at == None,
                              ServiceInvoice.assistant_approved_at == None, ServiceInvoice.file_attached_at == None,
@@ -2681,15 +2856,14 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
     )
 
     customer = '''<para><font size=14>
-                    ที่ อว. {mhesi_no}<br/>
+                    ที่ <br/>
                     วันที่ <br/>
                     เรื่อง ใบแจ้งหนี้ค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ<br/>
                     เรียน {customer}<br/>
                     ที่อยู่ {address}<br/>
                     เลขประจำตัวผู้เสียภาษี {taxpayer_identification_no}
                     </font></para>
-                    '''.format(mhesi_no='78.04/',
-                               customer=invoice.name,
+                    '''.format(customer=invoice.name,
                                address=invoice.address,
                                taxpayer_identification_no=invoice.taxpayer_identification_no)
 
@@ -3000,11 +3174,17 @@ def quotation_index():
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
     is_admin = any(a for a in admin if not a.is_supervisor)
     is_supervisor = any(a.is_supervisor for a in admin)
-    query = ServiceQuotation.query.filter(
-        or_(ServiceQuotation.creator_id == current_user.id,
-            ServiceQuotation.request.has(ServiceRequest.sub_lab.has(
-                ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-            ))))
+    query = (
+        ServiceQuotation.query
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()
+    )
     draft_count = query.filter(ServiceQuotation.sent_at == None, ServiceQuotation.approved_at == None,
                                ServiceQuotation.confirmed_at == None,
                                ServiceQuotation.cancelled_at == None).count()
@@ -3036,11 +3216,21 @@ def quotation_index():
 @service_admin.route('/api/quotation/index')
 def get_quotations():
     tab = request.args.get('tab')
-    query = ServiceQuotation.query.filter(
-        or_(ServiceQuotation.creator_id == current_user.id,
-            ServiceQuotation.request.has(ServiceRequest.sub_lab.has(
+    # query = ServiceQuotation.query.filter(
+    #         ServiceQuotation.request.has(ServiceRequest.sub_lab.has(
+    #             ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+    #         )))
+    query = (
+        ServiceQuotation.query
+        .join(ServiceRequest.sub_lab)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
                 ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-            ))))
+            )
+        ).distinct()
+    )
     if tab == 'draft':
         query = query.filter(ServiceQuotation.sent_at == None, ServiceQuotation.approved_at == None,
                              ServiceQuotation.confirmed_at == None,
@@ -3786,6 +3976,7 @@ def add_meeting():
 def create_draft_result(result_id=None):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
+    action = request.form.get('action')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
     if not result_id:
@@ -3833,76 +4024,113 @@ def create_draft_result(result_id=None):
                     item.result.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(item)
                 db.session.commit()
-        status_id = get_status(11)
-        result.status_id = status_id
-        service_request.status_id = status_id
-        db.session.add(result)
-        db.session.add(service_request)
-        db.session.commit()
-        flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
-        return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='testing'))
+        upload_all = all(item.draft_file for item in result.result_items)
+        if action == 'send':
+            if upload_all:
+                status_id = get_status(12)
+                result.is_edited = False
+                result.status_id = status_id
+                service_request.status_id = status_id
+                result.sent_at = arrow.now('Asia/Bangkok').datetime
+                result.sender_id = current_user.id
+                scheme = 'http' if current_app.debug else 'https'
+                if not result.is_sent_email:
+                    result_url = url_for('academic_services.result_index', menu='report', tab='approve', _external=True,
+                                         _scheme=scheme)
+                    customer_name = result.request.customer.customer_name.replace(' ', '_')
+                    contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
+                    title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
+                    title = f'''แจ้งออกรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                    message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+                    message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
+                    message += f''' ขณะนี้ได้จัดทำรายงานผลการทดสอบฉบับร่างเรียบร้อยแล้ว'''
+                    message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
+                    message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง'''
+                    message += f'''{result_url}'''
+                    message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+                    message += f'''ขอแสดงความนับถือ\n'''
+                    message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+                    message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                    send_mail([contact_email], title, message)
+                    result.is_sent_email = True
+                db.session.add(result)
+                db.session.add(service_request)
+                db.session.commit()
+                flash("ส่งข้อมูลเรียบร้อยแล้ว", "success")
+                return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='testing'))
+            else:
+                flash("กรุณาแนบไฟล์ให้ครบถ้วน", "danger")
+        else:
+            status_id = get_status(11)
+            result.status_id = status_id
+            service_request.status_id = status_id
+            db.session.add(result)
+            db.session.add(service_request)
+            db.session.commit()
+            flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
+            return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='testing'))
     return render_template('service_admin/create_draft_result.html', result_id=result_id, menu=menu,
                            result=result, tab=tab)
 
 
-@service_admin.route('/result/send/<int:result_id>', methods=['GET', 'POST'])
-@login_required
-def send_draft_result(result_id=None):
-    tab = request.args.get('tab')
-    menu = request.args.get('menu')
-    request_id = request.args.get('request_id')
-    service_request = ServiceRequest.query.get(request_id)
-    result = ServiceResult.query.get(result_id)
-    status_id = get_status(12)
-    result.status_id = status_id
-    service_request.status_id = status_id
-    result.sent_at = arrow.now('Asia/Bangkok').datetime
-    result.sender_id = current_user.id
-    scheme = 'http' if current_app.debug else 'https'
-    for item in result.result_items:
-        file = request.files.get(f'file_{item.id}')
-        if file and allowed_file(file.filename):
-            mime_type = file.mimetype
-            file_name = '{}.{}'.format(item.report_language,
-                                       file.filename.split('.')[-1])
-            file_data = file.stream.read()
-            response = s3.put_object(
-                Bucket=S3_BUCKET_NAME,
-                Key=file_name,
-                Body=file_data,
-                ContentType=mime_type
-            )
-            item.draft_file = file_name
-            item.sent_at = arrow.now('Asia/Bangkok').datetime
-            if result_id:
-                item.modified_at = arrow.now('Asia/Bangkok').datetime
-                item.result.modified_at = arrow.now('Asia/Bangkok').datetime
-            db.session.add(item)
-            db.session.commit()
-    if not result.is_sent_email:
-        result_url = url_for('academic_services.result_index', menu='report', tab='approve', _external=True,
-                             _scheme=scheme)
-        customer_name = result.request.customer.customer_name.replace(' ', '_')
-        contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
-        title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
-        title = f'''แจ้งออกรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-        message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-        message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
-        message += f''' ขณะนี้ได้จัดทำรายงานผลการทดสอบฉบับร่างเรียบร้อยแล้ว'''
-        message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
-        message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง'''
-        message += f'''{result_url}'''
-        message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-        message += f'''ขอแสดงความนับถือ\n'''
-        message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
-        message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-        send_mail([contact_email], title, message)
-        result.is_sent_email = True
-        db.session.add(result)
-        db.session.add(service_request)
-        db.session.commit()
-        flash("ส่งข้อมูลเรียบร้อยแล้ว", "success")
-    return redirect(url_for('service_admin.test_item_index', menu=menu, tab=tab))
+# @service_admin.route('/result/send/<int:result_id>', methods=['GET', 'POST'])
+# @login_required
+# def send_draft_result(result_id=None):
+#     tab = request.args.get('tab')
+#     menu = request.args.get('menu')
+#     request_id = request.args.get('request_id')
+#     service_request = ServiceRequest.query.get(request_id)
+#     result = ServiceResult.query.get(result_id)
+#     status_id = get_status(12)
+#     result.status_id = status_id
+#     service_request.status_id = status_id
+#     result.sent_at = arrow.now('Asia/Bangkok').datetime
+#     result.sender_id = current_user.id
+#     scheme = 'http' if current_app.debug else 'https'
+#     for item in result.result_items:
+#         file = request.files.get(f'file_{item.id}')
+#         if file and allowed_file(file.filename):
+#             mime_type = file.mimetype
+#             file_name = '{}.{}'.format(item.report_language,
+#                                        file.filename.split('.')[-1])
+#             file_data = file.stream.read()
+#             response = s3.put_object(
+#                 Bucket=S3_BUCKET_NAME,
+#                 Key=file_name,
+#                 Body=file_data,
+#                 ContentType=mime_type
+#             )
+#             item.draft_file = file_name
+#             item.sent_at = arrow.now('Asia/Bangkok').datetime
+#             if result_id:
+#                 item.modified_at = arrow.now('Asia/Bangkok').datetime
+#                 item.result.modified_at = arrow.now('Asia/Bangkok').datetime
+#             db.session.add(item)
+#             db.session.commit()
+#     if not result.is_sent_email:
+#         result_url = url_for('academic_services.result_index', menu='report', tab='approve', _external=True,
+#                              _scheme=scheme)
+#         customer_name = result.request.customer.customer_name.replace(' ', '_')
+#         contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
+#         title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
+#         title = f'''แจ้งออกรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+#         message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+#         message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
+#         message += f''' ขณะนี้ได้จัดทำรายงานผลการทดสอบฉบับร่างเรียบร้อยแล้ว'''
+#         message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
+#         message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง'''
+#         message += f'''{result_url}'''
+#         message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+#         message += f'''ขอแสดงความนับถือ\n'''
+#         message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+#         message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+#         send_mail([contact_email], title, message)
+#         result.is_sent_email = True
+#         db.session.add(result)
+#         db.session.add(service_request)
+#         db.session.commit()
+#         flash("ส่งข้อมูลเรียบร้อยแล้ว", "success")
+#     return redirect(url_for('service_admin.test_item_index', menu=menu, tab=tab))
 
 
 @service_admin.route('/result_item/draft/edit/<int:result_item_id>', methods=['GET', 'POST'])
@@ -3925,19 +4153,23 @@ def edit_draft_result(result_item_id):
                 ContentType=mime_type
             )
             result_item.draft_file = file_name
+            result_item.edited_at = arrow.now('Asia/Bangkok').datetime
             result_item.is_edited = True
             result_item.modified_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(result_item)
             db.session.commit()
-        edited_all = all(item.is_edited is not None for item in result_item.result.result_items if item.req_edit_at)
+        edited_all = all(item.edited_at for item in result_item.result.result_items if item.req_edit_at)
         if edited_all:
             status_id = get_status(12)
             result_item.result.status_id = status_id
             result_item.result.request.status_id = status_id
             result_item.result.is_edited = True
+            db.session.add(result_item)
+            db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
         result_url = url_for('academic_services.view_result_item', result_id=result_item.result_id,
-                             result_item_id=result_item_id, menu='report', tab='approve', _external=True, _scheme=scheme)
+                             result_item_id=result_item_id, menu='report', tab='approve', _external=True,
+                             _scheme=scheme)
         customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
         contact_email = result_item.result.request.customer.contact_email if result_item.result.request.customer.contact_email else result_item.result.request.customer.email
         title_prefix = 'คุณ' if result_item.result.request.customer.customer_info.type.type == 'บุคคล' else ''
@@ -3953,8 +4185,6 @@ def edit_draft_result(result_item_id):
         message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
         message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
         send_mail([contact_email], title, message)
-        db.session.add(result_item)
-        db.session.commit()
         flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
         return redirect(url_for('service_admin.result_index', menu=menu, tab=tab))
     else:
@@ -4153,22 +4383,6 @@ def confirm_payment(invoice_id):
     result.status_id = status_id
     db.session.add(result)
     db.session.commit()
-    scheme = 'http' if current_app.debug else 'https'
-    link = url_for('academic_services.receipt_index', menu='receipt', _external=True, _scheme=scheme)
-    customer_name = result.request.customer.customer_name.replace(' ', '_')
-    contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
-    title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
-    title = f'''แจ้งยืนยันการชำระเงินของใบแจ้งหนี้ [{invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-    message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-    message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
-    message += f''' ขณะนี้ทางคณะฯ ได้รับการชำระเงินของใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว\n'''
-    message += f'''ท่านสามารถตรวจสอบรายละเอียดใบเสร็จรับเงินได้จากลิงก์ด้านล่าง\n'''
-    message += f'''{link}\n\n'''
-    message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-    message += f'''ขอแสดงความนับถือ\n'''
-    message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
-    message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-    send_mail([contact_email], title, message)
     flash('ยืนยันการชำระเงินเรียบร้อยแล้ว', 'success')
     return render_template('service_admin/invoice_payment_index.html')
 
@@ -4212,12 +4426,26 @@ def receipt_index():
 
 @service_admin.route('/api/receipt/index')
 def get_receipts():
-    query = ServiceInvoice.query.filter(ServiceInvoice.receipts != None,
-                                        or_(ServiceInvoice.creator_id == current_user.id,
-                                            ServiceInvoice.quotation.has(ServiceQuotation.request.has(
-                                                ServiceRequest.sub_lab.has(
-                                                    ServiceSubLab.admins.any(
-                                                        ServiceAdmin.admin_id == current_user.id))))))
+    # query = ServiceInvoice.query.filter(ServiceInvoice.receipts != None,
+    #                                     or_(ServiceInvoice.creator_id == current_user.id,
+    #                                         ServiceInvoice.quotation.has(ServiceQuotation.request.has(
+    #                                             ServiceRequest.sub_lab.has(
+    #                                                 ServiceSubLab.admins.any(
+    #                                                     ServiceAdmin.admin_id == current_user.id))))))
+    query = (
+        ServiceInvoice.query
+        .join(ServiceInvoice.quotation)
+        .join(ServiceQuotation.request)
+        .join(ServiceRequest.sub_lab)
+        .join(ServiceInvoice.receipts)
+        .outerjoin(ServiceSubLab.admins)
+        .filter(
+            or_(
+                ServiceSubLab.assistant_id == current_user.id,
+                ServiceAdmin.admin_id == current_user.id
+            )
+        ).distinct()
+    )
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
