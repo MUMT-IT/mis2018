@@ -394,7 +394,6 @@ def logout():
 
 
 @academic_services.route('/forget_password', methods=['GET', 'POST'])
-@login_required
 def forget_password():
     if current_user.is_authenticated:
         return redirect('academic_services.customer_account')
@@ -426,7 +425,6 @@ def forget_password():
 
 
 @academic_services.route('/reset_password', methods=['GET', 'POST'])
-@login_required
 def reset_password():
     token = request.args.get('token')
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
