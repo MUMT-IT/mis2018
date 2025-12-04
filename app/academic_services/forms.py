@@ -564,7 +564,7 @@ class VirusSurfaceDisinfectionTestConditionForm(FlaskForm):
     surface_disinfection_organism = CheckboxField('เชื้อ', validators=[Optional()])
     surface_disinfection_period_test = StringField('ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (วินาที/นาที)',
                                                     validators=[Optional()],
-                                                    render_kw={'class': 'input'})
+                                                    render_kw={'class': 'input', 'placeholder': 'เช่น  1 วินาที หรือ 1 นาที'})
 
 
 class VirusSurfaceDisinfectionConditionForm(FlaskForm):
@@ -587,7 +587,7 @@ class VirusAirborneDisinfectionTestConditionForm(FlaskForm):
     airborne_disinfection_organism = CheckboxField('เชื้อ', validators=[Optional()])
     airborne_disinfection_period_test = StringField('ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (วินาที/นาที)',
                                                      validators=[Optional()],
-                                                     render_kw={'class': 'input'})
+                                                    render_kw={'class': 'input', 'placeholder': 'เช่น  1 วินาที หรือ 1 นาที'})
 
 
 class VirusAirborneDisinfectionConditionForm(FlaskForm):
