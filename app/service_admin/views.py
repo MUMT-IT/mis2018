@@ -928,6 +928,237 @@ def remove_condition_form():
     return ""
 
 
+@service_admin.route('/request/heavy_metal/add', methods=['GET', 'POST'])
+@service_admin.route('/request/heavy_metal/edit/<int:request_id>', methods=['GET', 'POST'])
+def create_heavy_metal_request(request_id=None):
+    menu = request.args.get('menu')
+    code = request.args.get('code')
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        data = service_request.data
+        form = HeavyMetalRequestForm(data=data)
+    else:
+        form = HeavyMetalRequestForm()
+    if form.validate_on_submit():
+        if request_id:
+            service_request.data = format_data(form.data)
+            service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+        else:
+            status_id = get_status(1)
+            request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
+            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
+                                             status_id=status_id)
+            request_no.count += 1
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(
+            url_for('service_admin.create_report_language', request_id=service_request.id, menu=menu,
+                    code=code))
+    else:
+        for er in form.errors:
+            flash(f'{er} {form.errors[er]}', 'danger')
+    return render_template('service_admin/heavy_metal_request_form.html', code=code, sub_lab=sub_lab,
+                           form=form, menu=menu, request_id=request_id)
+
+
+@service_admin.route('/api/request/heavy_metal/item/add', methods=['POST'])
+def add_heavy_metal_condition_item():
+    form = HeavyMetalRequestForm()
+    form.heavy_metal_condition_field.append_entry()
+    item_form = form.heavy_metal_condition_field[-1]
+    index = len(form.heavy_metal_condition_field)
+    template = """
+        <div id="{}">
+            <p><strong>รายการที่ {}</strong></p>
+            <table class="table is-fullwidth ">
+                <thead>
+                    <th style="border: none">{}</th>
+                    <th style="border: none">{}</th>
+                    <th style="border: none">{}</th>
+                    <th style="border: none">{}</th>
+                </thead>
+                <tbody>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="control">
+                        {}
+                        <div class="mt-2 ml-4">
+                            <label class="label">{}</label>
+                            {}
+                        </div>
+                    </td>
+                </tbody>
+            </table>
+        </div>
+    """
+    resp = template.format(item_form.id,
+                           index,
+                           item_form.no.label,
+                           item_form.sample_name.label,
+                           item_form.quantity.label,
+                           item_form.parameter_test.label,
+                           item_form.no(class_='input'),
+                           item_form.sample_name(class_='input'),
+                           item_form.quantity(class_='input'),
+                           item_form.parameter_test(),
+                           item_form.parameter_test_other.label,
+                           item_form.parameter_test_other(class_='input')
+                           )
+    resp = make_response(resp)
+    return resp
+
+
+@service_admin.route('/api/request/heavy_metal/item/remove', methods=['DELETE'])
+def remove_heavy_metal_condition_item():
+    form = HeavyMetalRequestForm()
+    form.heavy_metal_condition_field.pop_entry()
+    index = len(form.heavy_metal_condition_field)
+    resp = ''
+    for item_form in form.heavy_metal_condition_field:
+        template = """
+            <div id="{}">
+                <p><strong>รายการที่ {}</strong></p>
+                <table class="table is-fullwidth ">
+                    <thead>
+                        <th style="border: none">{}</th>
+                        <th style="border: none">{}</th>
+                        <th style="border: none">{}</th>
+                        <th style="border: none">{}</th>
+                    </thead>
+                    <tbody>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">
+                            {}
+                            <div class="mt-2 ml-4">
+                                <label class="label">{}</label>
+                                    {}
+                                </div>
+                        </td>
+                    </tbody>
+                </table>
+            </div>
+        """
+        resp += template.format(item_form.id,
+                                index,
+                                item_form.no.label,
+                                item_form.sample_name.label,
+                                item_form.quantity.label,
+                                item_form.parameter_test.label,
+                                item_form.no(class_='input'),
+                                item_form.sample_name(class_='input'),
+                                item_form.quantity(class_='input'),
+                                item_form.parameter_test(),
+                                item_form.parameter_test_other.label,
+                                item_form.parameter_test_other(class_='input')
+                                )
+    resp = make_response(resp)
+    return resp
+
+
+@service_admin.route("/request/objective")
+def get_objective():
+    request_id = request.args.get("request_id")
+    objective = request.args.get("objective")
+    label = 'ระบุ'
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        if service_request and service_request.data:
+            data = service_request.data
+            objective_other = data.get('objective_other', '')
+        else:
+            objective_other = ''
+    else:
+        objective_other = ''
+    if objective == 'อื่นๆ/Other':
+        html = f'''
+            <div class="field ml-4 mb-4">
+                <label class="label">
+                    {label}
+                    <span class="has-text-danger">*</span>
+                </label>
+                <div class="control">
+                    <input name="objective_other" class="input" value="{objective_other}" required 
+                    oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')" oninput="this.setCustomValidity('')">
+                </div>
+            </div>
+        '''
+    else:
+        html = '<input type="hidden" name="objective_other" class="input" value="">'
+    resp = make_response(html)
+    return resp
+
+
+@service_admin.route("/request/standard_limitation")
+def get_standard_limitation():
+    request_id = request.args.get("request_id")
+    standard_limitation = request.args.get("standard_limitation")
+    label = 'ระบุ'
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        if service_request and service_request.data:
+            data = service_request.data
+            standard_limitation_other = data.get('standard_limitation_other', '')
+        else:
+            standard_limitation_other = ''
+    else:
+        standard_limitation_other = ''
+    if standard_limitation == 'Other':
+        html = f'''
+            <div class="field ml-4 mb-4">
+                <label class="label">
+                    {label}
+                    <span class="has-text-danger">*</span>
+                </label>
+                <div class="control">
+                    <input name="standard_limitation_other" class="input" value="{standard_limitation_other}" required 
+                    oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')" oninput="this.setCustomValidity('')">
+                </div>
+            </div>
+        '''
+    else:
+        html = '<input type="hidden" name="standard_limitation_other" class="input" value="">'
+    resp = make_response(html)
+    return resp
+
+
+@service_admin.route("/request/other_service")
+def get_other_service():
+    request_id = request.args.get("request_id")
+    other_service = request.args.get("other_service")
+    label = 'ระบุ'
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        if service_request and service_request.data:
+            data = service_request.data
+            other_service_note = data.get('other_service_note', '')
+        else:
+            other_service_note = ''
+    else:
+        other_service_note = ''
+    if other_service == 'Other':
+        html = f'''
+            <div class="field ml-4">
+                <label class="label">
+                    {label}
+                    <span class="has-text-danger">*</span>
+                </label>
+                <div class="control">
+                    <input name="other_service_note" class="input" value="{other_service_note}" required 
+                    oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')" oninput="this.setCustomValidity('')">
+                </div>
+            </div>
+        '''
+    else:
+        html = '<input type="hidden" name="other_service_note" class="input" value="">'
+    resp = make_response(html)
+    return resp
+
+
 @service_admin.route('/request/report_language/add/<int:request_id>', methods=['GET', 'POST'])
 @login_required
 def create_report_language(request_id):
