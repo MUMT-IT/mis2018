@@ -729,6 +729,60 @@ class HeavyMetalRequestForm(FlaskForm):
     heavy_metal_condition_field = FieldList(FormField(HeavyMetalConditionForm), min_entries=1)
 
 
+class FoodSafetyConditionForm(FlaskForm):
+    no = IntegerField('ลำดับ', validators=[DataRequired()],
+                                     render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกลำดับ')",
+                                                "oninput": "this.setCustomValidity('')"
+                                                })
+    sample_name = StringField('ตัวอย่าง', validators=[DataRequired()],
+                                     render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกตัวอย่าง')",
+                                                "oninput": "this.setCustomValidity('')"
+                                                })
+    quantity = StringField('ปริมาณ',  validators=[DataRequired()],
+                                     render_kw={"oninvalid": "this.setCustomValidity('กรุณาปริมาณ')",
+                                                "oninput": "this.setCustomValidity('')"
+                                                })
+    parameter_test = CheckboxField('สารทดสอบ', choices=[('Organochlorines', 'Organochlorines'),
+                                    ('Organophosphates', 'Organophosphates'),
+                                    ('Carbamates', 'Carbamates'),
+                                    ('Pyrethroids', 'Pyrethroids'),
+                                    ('อื่นๆ/Other', 'อื่นๆ/Other')], validators=[DataRequired()])
+    parameter_test_other = StringField('ระบุ')
+
+
+class FoodSafetyRequestForm(FlaskForm):
+    objective = RadioField('วัตถุประสงค์',
+                           choices=[('เพื่อทราบผล/General info.', 'เพื่อทราบผล/General info.'),
+                                    ('จำหน่ำยในประเทศ/Domestic', 'จำหน่ำยในประเทศ/Domestic'),
+                                    ('ยื่นขอ อย./Thai FDA', 'ยื่นขอ อย./Thai FDA'),
+                                    ('ส่งออก/Export', 'ส่งออก/Export'),
+                                    ('งานวิจัย/Reserch', 'งานวิจัย/Reserch'),
+                                    ('อื่นๆ/Other', 'อื่นๆ/Other')], validators=[DataRequired()])
+    objective_other = StringField('ระบุ')
+    temp_at_received = RadioField('อุณหภูมิขณะรับตัวอย่าง',
+                                  choices=[('อุณหภูมิห้อง/Room temp.', 'อุณหภูมิห้อง/Room temp.'),
+                                           ('แช่แข็ง/Frozen', 'แช่แข็ง/Frozen'),
+                                           ('แช่เย็น/Chilled', 'แช่เย็น/Chilled')],
+                                  validators=[DataRequired()])
+    standard_limitation = RadioField('ระบุค่ามาตรฐาน', choices=[('EU', 'EU'),
+                                                                ('CODEX', 'CODEX'),
+                                                                ('Japan', 'Japan'),
+                                                                ('ACFS', 'ACFS'),
+                                                                ('Other', 'Other')],
+                                     validators=[DataRequired()])
+    standard_limitation_other = StringField('ระบุ')
+    duration_of_report = RadioField('ระยะเวลาในการรายงานผล',
+                                    choices=[('ปกติ/Regular (7 วันทำการ)', 'ปกติ/Regular (7 วันทำการ)'),
+                                             ('ด่วนพิเศษ/Fast track (3 วันทำการ)',
+                                              'ด่วนพิเศษ/Fast track (3 วันทำการ คิดค่าบริการ 500 ฿)')],
+                                    validators=[DataRequired()])
+    other_service = RadioField('บริการอื่นๆ', choices=[
+        ('ค่าความไม่แน่นอน/Uncertainty', 'ค่าความไม่แน่นอน/Uncertainty (คิดค่าบริการ 200฿/สำร)'),
+        ('Other', 'Other (มีค่าบริการเพิ่มเติม)')])
+    other_service_note = StringField('ระบุ')
+    food_safety_condition_field = FieldList(FormField(FoodSafetyConditionForm), min_entries=1)
+
+
 class ServiceQuotationForm(ModelForm):
     class Meta:
         model = ServiceQuotation
