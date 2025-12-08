@@ -339,7 +339,7 @@ class BacteriaRequestForm(FlaskForm):
                                      render_kw={
                                          "oninvalid": "this.setCustomValidity('กรุณากรอกลักษณะทางกายภาพของผลิตภัณฑ์')",
                                          "oninput": "this.setCustomValidity('')"
-                                         })
+                                     })
     kind = StringField('ลักษณะบรรจุภัณฑ์', validators=[DataRequired()],
                        render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกลักษณะบรรจุภัณฑ์')",
                                   "oninput": "this.setCustomValidity('')"
@@ -372,12 +372,12 @@ class BacteriaRequestForm(FlaskForm):
                                        render_kw={
                                            "oninvalid": "this.setCustomValidity('กรุณากรอกผู้นำเข้า/จัดจำหน่าย')",
                                            "oninput": "this.setCustomValidity('')"
-                                           })
+                                       })
     importanddistributor_address = TextAreaField('ที่อยู่ผู้นำเข้า/จัดจำหน่าย', validators=[DataRequired()],
                                                  render_kw={
                                                      "oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้นำเข้า/จัดจำหน่าย')",
                                                      "oninput": "this.setCustomValidity('')"
-                                                     })
+                                                 })
     amount = IntegerField('จำนวนที่ส่ง', validators=[DataRequired()],
                           render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกจำนวนที่ส่ง')",
                                      "oninput": "this.setCustomValidity('')"
@@ -390,7 +390,7 @@ class BacteriaRequestForm(FlaskForm):
                                                 render_kw={
                                                     "oninvalid": "this.setCustomValidity('กรุณาเลือกการเก็บตัวอย่างระหว่างรอทดสอบ')",
                                                     "oninput": "this.setCustomValidity('')"
-                                                    })
+                                                })
     collect_sample_during_testing_other = StringField('ระบุ')
     product_type = SelectField('ประเภทผลิตภัณฑ์', choices=[('', '+ เพิ่มประเภทผลิตภัณฑ์'),
                                                            ('liquid',
@@ -515,12 +515,12 @@ class VirusDisinfectionRequestForm(FlaskForm):
                                      render_kw={
                                          "oninvalid": "this.setCustomValidity('กรุณากรอกสารสำคัญที่ออกฤทธิ์ และปริมาณสารสำคัญ')",
                                          "oninput": "this.setCustomValidity('')"
-                                         })
+                                     })
     product_appearance = StringField('ลักษณะทางกายภาพของผลิตภัณฑ์', validators=[DataRequired()],
                                      render_kw={
                                          "oninvalid": "this.setCustomValidity('กรุณากรอกลักษณะทางกายภาพของผลิตภัณฑ์')",
                                          "oninput": "this.setCustomValidity('')"
-                                         })
+                                     })
     kind = StringField('ลักษณะบรรจุภัณฑ์', validators=[DataRequired()],
                        render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกลักษณธบรรจุภัณฑ์')",
                                   "oninput": "this.setCustomValidity('')"
@@ -625,7 +625,7 @@ class VirusAirDisinfectionRequestForm(FlaskForm):
                                         render_kw={
                                             "oninvalid": "this.setCustomValidity('กรุณากรอกระบบการกำจัดเชื้อของผลิตภัณฑ์')",
                                             "oninput": "this.setCustomValidity('')"
-                                            })
+                                        })
     model = StringField('รุ่น', validators=[DataRequired()],
                         render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกรุ่น')",
                                    "oninput": "this.setCustomValidity('')"
@@ -639,7 +639,7 @@ class VirusAirDisinfectionRequestForm(FlaskForm):
                                              render_kw={
                                                  "oninvalid": "this.setCustomValidity('กรุณากรอกวิธีใช้งานเครื่องหรืออุปกรณ์เพื่อทำการทดสอบ')",
                                                  "oninput": "this.setCustomValidity('')"
-                                                 })
+                                             })
     manufacturer = StringField('ผู้ผลิต', validators=[DataRequired()],
                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อผู้ผลิต')",
                                           "oninput": "this.setCustomValidity('')"
@@ -664,7 +664,7 @@ class VirusAirDisinfectionRequestForm(FlaskForm):
                                         render_kw={
                                             "oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้จัดจำหน่าย')",
                                             "oninput": "this.setCustomValidity('')"
-                                            })
+                                        })
     product_type = SelectField('ประเภทการฆ่า/ทำลายเชื้อ', choices=[('', '+ เพิ่มประเภทการฆ่า/ทำลายเชื้อ'),
                                                                    ('surface', 'การฆ่าเชื้อบนพื้นผิว'),
                                                                    ('airborne', 'การลด/ทำลายเชื้อในอากาศ')],
@@ -675,24 +675,24 @@ class VirusAirDisinfectionRequestForm(FlaskForm):
 
 class HeavyMetalConditionForm(FlaskForm):
     no = IntegerField('ลำดับ', validators=[DataRequired()],
-                                     render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกลำดับ')",
-                                                "oninput": "this.setCustomValidity('')"
-                                                })
+                      render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกลำดับ')",
+                                 "oninput": "this.setCustomValidity('')"
+                                 })
     sample_name = StringField('ตัวอย่าง', validators=[DataRequired()],
-                                     render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกตัวอย่าง')",
-                                                "oninput": "this.setCustomValidity('')"
-                                                })
-    quantity = StringField('ปริมาณ',  validators=[DataRequired()],
-                                     render_kw={"oninvalid": "this.setCustomValidity('กรุณาปริมาณ')",
-                                                "oninput": "this.setCustomValidity('')"
-                                                })
+                              render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกตัวอย่าง')",
+                                         "oninput": "this.setCustomValidity('')"
+                                         })
+    quantity = StringField('ปริมาณ', validators=[DataRequired()],
+                           render_kw={"oninvalid": "this.setCustomValidity('กรุณาปริมาณ')",
+                                      "oninput": "this.setCustomValidity('')"
+                                      })
     parameter_test = CheckboxField('สารทดสอบ', choices=[('ตะกั่ว/Lead', 'ตะกั่ว/Lead'),
-                                    ('ทองแดง/Copper', 'ทองแดง/Copper'),
-                                    ('สารหนู/Arsenic', 'สารหนู/Arsenic'),
-                                    ('สังกะสี/Zinc', 'สังกะสี/Zinc'),
-                                    ('ปรอท/Mercury', 'ปรอท/Mercury'),
-                                    ('แคดเมียม/Cadmium', 'แคดเมียม/Cadmium'),
-                                    ('อื่นๆ/Other', 'อื่นๆ/Other')], validators=[DataRequired()])
+                                                        ('ทองแดง/Copper', 'ทองแดง/Copper'),
+                                                        ('สารหนู/Arsenic', 'สารหนู/Arsenic'),
+                                                        ('สังกะสี/Zinc', 'สังกะสี/Zinc'),
+                                                        ('ปรอท/Mercury', 'ปรอท/Mercury'),
+                                                        ('แคดเมียม/Cadmium', 'แคดเมียม/Cadmium'),
+                                                        ('อื่นๆ/Other', 'อื่นๆ/Other')], validators=[DataRequired()])
     parameter_test_other = StringField('ระบุ')
 
 
@@ -731,22 +731,22 @@ class HeavyMetalRequestForm(FlaskForm):
 
 class FoodSafetyConditionForm(FlaskForm):
     no = IntegerField('ลำดับ', validators=[DataRequired()],
-                                     render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกลำดับ')",
-                                                "oninput": "this.setCustomValidity('')"
-                                                })
+                      render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกลำดับ')",
+                                 "oninput": "this.setCustomValidity('')"
+                                 })
     sample_name = StringField('ตัวอย่าง', validators=[DataRequired()],
-                                     render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกตัวอย่าง')",
-                                                "oninput": "this.setCustomValidity('')"
-                                                })
-    quantity = StringField('ปริมาณ',  validators=[DataRequired()],
-                                     render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกปริมาณ')",
-                                                "oninput": "this.setCustomValidity('')"
-                                                })
+                              render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกตัวอย่าง')",
+                                         "oninput": "this.setCustomValidity('')"
+                                         })
+    quantity = StringField('ปริมาณ', validators=[DataRequired()],
+                           render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกปริมาณ')",
+                                      "oninput": "this.setCustomValidity('')"
+                                      })
     parameter_test = CheckboxField('สารทดสอบ', choices=[('Organochlorines', 'Organochlorines'),
-                                    ('Organophosphates', 'Organophosphates'),
-                                    ('Carbamates', 'Carbamates'),
-                                    ('Pyrethroids', 'Pyrethroids'),
-                                    ('อื่นๆ/Other', 'อื่นๆ/Other')], validators=[DataRequired()])
+                                                        ('Organophosphates', 'Organophosphates'),
+                                                        ('Carbamates', 'Carbamates'),
+                                                        ('Pyrethroids', 'Pyrethroids'),
+                                                        ('อื่นๆ/Other', 'อื่นๆ/Other')], validators=[DataRequired()])
     parameter_test_other = StringField('ระบุ')
 
 
@@ -787,14 +787,15 @@ class ProteinIdentificationConditionForm(FlaskForm):
     sample_name = StringField('Sample Name', validators=[DataRequired()],
                               render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                          "oninput": "this.setCustomValidity('')"
-                                        })
-    clean_up = CheckboxField('Clean Up', choices=[('Do', 'Do')], validators=[Optional()])
+                                         })
+    clean_up = CheckboxField('Clean Up Sample', choices=[('Do', 'Do')], validators=[Optional()])
     protein_identification = CheckboxField('Protein Identification by LC/MS', choices=[('In-gel digestion',
                                                                                         'In-gel digestion'),
                                                                                        ('In-solution digestion',
                                                                                         'In-solution digestion'),
-                                                                                       ('In-solution digestion (not include protein digestion)',
-                                                                                        'In-solution digestion (not include protein digestion')],
+                                                                                       (
+                                                                                           'In-solution digestion (not include protein digestion)',
+                                                                                           'In-solution digestion (not include protein digestion')],
                                            validators=[Optional()])
 
 
@@ -804,24 +805,61 @@ class ProteinIdentificationRequestForm(FlaskForm):
                                                               ('Others', 'Others')])
     sample_species_other = StringField()
     gel_slices = CheckboxField('For Gel slices', choices=[('Coomassie', 'Coomassie'),
-                                                              ('Silver', 'Sliver'),
-                                                              ('Sypro ruby', 'Sypro ruby'),
-                                                              ('Others', 'Others')])
+                                                          ('Silver', 'Sliver'),
+                                                          ('Sypro ruby', 'Sypro ruby'),
+                                                          ('Others', 'Others')])
     gel_slices_other = StringField()
     in_solution_sample = StringField('In-solution sample (buffer condition and estimated sample amount (mg/ml))',
                                      validators=[DataRequired()],
-                                     render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
-                                                "oninput": "this.setCustomValidity('')"
-                                                })
+                                     render_kw={
+                                         "oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                         "oninput": "this.setCustomValidity('')"
+                                     })
     molecular_weight = StringField('Molecular weight')
-    to = StringField('to', validators=[DataRequired()], render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
-                                                                   "oninput": "this.setCustomValidity('')"
-                                                                })
-    da = StringField('Da', validators=[DataRequired()], render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
-                                                                   "oninput": "this.setCustomValidity('')"
-                                                                })
-    comment = StringField('Comments')
+    to = StringField('to', validators=[DataRequired()],
+                     render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                "oninput": "this.setCustomValidity('')"
+                                })
+    da = StringField('Da', validators=[DataRequired()],
+                     render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                "oninput": "this.setCustomValidity('')"
+                                })
+    comment = StringField()
     protein_identification_condition_field = FieldList(FormField(ProteinIdentificationConditionForm), min_entries=1)
+
+
+class SDSPageConditionForm(FlaskForm):
+    sample_name = StringField('Sample Name', validators=[DataRequired()],
+                              render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                         "oninput": "this.setCustomValidity('')"
+                                         })
+    clean_up = CheckboxField('Clean Up Sample', choices=[('Do', 'Do')], validators=[Optional()])
+    staining = CheckboxField('Staining', choices=[('Coomassie Stain', 'Coomassie Stain'),
+                                                  ('Silver Stain', 'Silver Stain')], validators=[Optional()])
+
+
+class SDSPageRequestForm(FlaskForm):
+    sds_page = StringField('SDS Page', validators=[DataRequired()],
+                           render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                      "oninput": "this.setCustomValidity('')"
+                                      })
+    sample_species = CheckboxField('Sample species', choices=[('Human', 'Human'),
+                                                              ('Mouse', 'Mouse'),
+                                                              ('Others', 'Others')])
+    sample_species_other = StringField()
+    sample_type = CheckboxField('Sample Type', choices=[('Cell pellet', 'Cell pellet'),
+                                                        ('Protein extract', 'Protein extract'),
+                                                        ('Immunoprecipitation', 'Immunoprecipitation'),
+                                                        ('Tissue', 'Tissue'),
+                                                        ('Serum', 'Serum'),
+                                                        (' Cerebrospinal fluid', ' Cerebrospinal fluid'),
+                                                        ('Others', 'Others')])
+    sample_amount = StringField('Sample amount (mg/ml)', validators=[DataRequired()],
+                                render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                           "oninput": "this.setCustomValidity('')"
+                                           })
+    comment = StringField()
+    sds_page_condition_field = FieldList(FormField(SDSPageConditionForm), min_entries=1)
 
 
 class ServiceQuotationForm(ModelForm):
