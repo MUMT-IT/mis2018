@@ -1,0 +1,230 @@
+{% extends "academic_services/service_base.html" %}
+{% block head %}
+    {{ super() }}
+    <style>
+        table {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        th, td {
+            padding: 5px;
+        }
+    </style>
+{% endblock %}
+{% block page_content %}
+    {% include "academic_services/customer_nav.html" %}
+    {% include 'messages.html' %}
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-12">
+                    <h1 class="title is-3 has-text-centered has-text-grey-dark">ฟอร์ม{{ sub_lab.sub_lab }}</h1>
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="box">
+                            <h5 class="title is-size-5">ข้อมูลผลิตภัณฑ์</h5>
+                            <hr style="background-color: gainsboro">
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.sds_page.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.sds_page(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.sample_species.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.sample_species(
+                                        **{'hx-get': url_for("service_admin.get_sample_species_other",
+                                                request_id=request_id),
+                                            'hx-target': '#sample-species-other-container',
+                                            'hx-swap': 'innerHTML',
+                                            'hx-trigger': 'change, load',
+                                            'hx-include': '[name="sample_species"]'
+                                            })
+                                        }}
+                                </div>
+                            </div>
+                            <div id="sample-species-other-container"></div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.sample_type.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.sample_type(
+                                        **{'hx-get': url_for("service_admin.get_sample_type_other",
+                                                request_id=request_id),
+                                            'hx-target': '#sample-type-other-container',
+                                            'hx-swap': 'innerHTML',
+                                            'hx-trigger': 'change, load',
+                                            'hx-include': '[name="sample_type"]'
+                                            })
+                                        }}
+                                </div>
+                            </div>
+                            <div id="sample-type-other-container"></div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.sample_amount.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.sample_amount(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.comment.label }}</label>
+                                <div class="control">
+                                    {{ form.comment(class='input') }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="box">
+                            <h5 class="title is-size-5">รายการทดสอบ</h5>
+                            <hr style="background-color: gainsboro">
+                            <div id="condition-field" class="field">
+                                {% for item_form in form.sds_page_condition_field %}
+                                    <div id="{{ item_form.id }}">
+                                        <p class="mt-4 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
+                                        <table class="table is-fullwidth ">
+                                            <thead>
+                                            <th style="border: none">{{ item_form.sample_name.label }}</th>
+                                            <th style="border: none">{{ item_form.clean_up.label }}</th>
+                                            <th style="border: none">{{ item_form.staining.label }}</th>
+                                            </thead>
+                                            <tbody>
+                                            <td style="border: none" class="control">
+                                                {{ item_form.sample_name(class='input') }}
+                                            </td>
+                                            <td style="border: none" class="control">
+                                                {{ item_form.clean_up() }}
+                                            </td>
+                                            <td style="border: none" class="control">
+                                                {{ item_form.staining() }}
+                                            </td>
+                                            </tbody>
+                                        </table>
+                                        {% if not loop.last %}
+                                            <hr style="background-color: #F3F3F3">
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="field has-addons">
+                                <div class="control">
+                                    <a class="button is-info is-small is-light is-rounded"
+                                       hx-post="{{ url_for('service_admin.add_sds_page_condition_item') }}"
+                                       hx-target="#condition-field" hx-swap="beforeend">
+                                        <span class="icon">
+                                            <i class="fas fa-plus"></i>
+                                        </span>
+                                        <span>เพิ่ม</span>
+                                    </a>
+                                </div>
+                                <div class="control">
+                                    <a class="button is-danger is-small is-light is-rounded"
+                                       hx-delete="{{ url_for('service_admin.remove_sds_page_condition_item') }}"
+                                       hx-target="#condition-field" hx-swap="innerHTML">
+                                            <span class="icon">
+                                                <i class="far fa-trash-alt"></i>
+                                            </span>
+                                        <span class="">ลบ</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-justify-content-center">
+                            <div class="control">
+                                <input type="submit" value="บันทึกและดำเนินการต่อ" class="button is-success">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            const sampleSpecies = $('input[type="checkbox"][name="sample_species"]');
+
+            function validateSampleSpeciesInput() {
+                const checkedCount = sampleSpecies.filter(':checked').length;
+
+                if (checkedCount === 0) {
+                    sampleSpecies.prop('required', true);
+                    sampleSpecies.each(function () {
+                        this.setCustomValidity('Please select at least 1 item.');
+                    });
+                } else {
+                    sampleSpecies.prop('required', false);
+                    sampleSpecies.each(function () {
+                        this.setCustomValidity('');
+                    });
+                }
+            }
+
+            validateSampleSpeciesInput();
+            sampleSpecies.on('change', validateSampleSpeciesInput);
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            const sampleType = $('input[type="checkbox"][name="sample_type"]');
+
+            function validateSampleTypeInput() {
+                const checkedCount = sampleType.filter(':checked').length;
+
+                if (checkedCount === 0) {
+                    sampleType.prop('required', true);
+                    sampleType.each(function () {
+                        this.setCustomValidity('Please select at least 1 item.');
+                    });
+                } else {
+                    sampleType.prop('required', false);
+                    sampleType.each(function () {
+                        this.setCustomValidity('');
+                    });
+                }
+            }
+
+            validateSampleTypeInput();
+            sampleType.on('change', validateSampleTypeInput);
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            $('#condition-field div[id]').each(function () {
+                const staining = $('input[type="checkbox"][name$="staining"]');
+
+                function validateStainingInput() {
+                    const checkedCount = staining.filter(':checked').length;
+
+                    if (checkedCount === 0) {
+                        staining.prop('required', true);
+                        staining.each(function () {
+                            this.setCustomValidity('Please select at least 1 item.');
+                        });
+                    } else {
+                        staining.prop('required', false);
+                        staining.each(function () {
+                            this.setCustomValidity('');
+                        });
+                    }
+                }
+
+                validateStainingInput();
+                staining.on('change', validateStainingInput);
+            });
+        });
+    </script>
+{% endblock %}
