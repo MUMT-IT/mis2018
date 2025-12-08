@@ -126,10 +126,11 @@
                                             </td>
                                             </tbody>
                                         </table>
+                                        {% if not loop.last %}
+                                            <hr style="background-color: #F3F3F3">
+                                        {% endif %}
                                     </div>
-                                    {% if not loop.last %}
-                                        <hr style="background-color: #F3F3F3">
-                                    {% endif %}
+
                                 {% endfor %}
                             </div>
                             <div class="field has-addons">
