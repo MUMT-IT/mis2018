@@ -1,0 +1,233 @@
+{% extends "academic_services/service_base.html" %}
+{% block head %}
+    {{ super() }}
+    <style>
+        table {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        th, td {
+            padding: 5px;
+        }
+    </style>
+{% endblock %}
+{% block page_content %}
+    {% include "academic_services/customer_nav.html" %}
+    {% include 'messages.html' %}
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-12">
+                    <h1 class="title is-3 has-text-centered has-text-grey-dark">ฟอร์ม{{ sub_lab.sub_lab }}</h1>
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="box">
+                            <h5 class="title is-size-5">ข้อมูลผลิตภัณฑ์</h5>
+                            <hr style="background-color: gainsboro">
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.sample_species.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.sample_species(
+                                        **{'hx-get': url_for("academic_services.get_sample_species_other",
+                                                request_id=request_id),
+                                            'hx-target': '#sample-species-other-container',
+                                            'hx-swap': 'innerHTML',
+                                            'hx-trigger': 'change, load',
+                                            'hx-include': '[name="sample_species"]'
+                                            })
+                                        }}
+                                </div>
+                            </div>
+                            <div id="sample-species-other-container"></div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.gel_slices.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.gel_slices(
+                                        **{'hx-get': url_for("academic_services.get_gel_slices_other",
+                                                request_id=request_id),
+                                            'hx-target': '#gel-slices-other-container',
+                                            'hx-swap': 'innerHTML',
+                                            'hx-trigger': 'change, load',
+                                            'hx-include': '[name="gel_slices"]'
+                                            })
+                                        }}
+                                </div>
+                            </div>
+                            <div id="gel-slices-other-container"></div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.in_solution_sample.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.in_solution_sample(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.molecular_weight.label }} (if know)</label>
+                                <div class="control">
+                                    {{ form.molecular_weight(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">Mass range of interest</label>
+                                <div class="control is-flex is-align-items-center">
+                                    {{ form.to(class='input') }} {{ form.to.label(class='mr-4 ml-1') }} {{ form.da(class='input') }} {{ form.da.label(class='ml-1') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.comment.label }}</label>
+                                <div class="control">
+                                    {{ form.comment(class='input') }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="box">
+                            <h5 class="title is-size-5">รายการทดสอบ</h5>
+                            <hr style="background-color: gainsboro">
+                            <div id="condition-field" class="field">
+                                {% for item_form in form.protein_identification_condition_field %}
+                                    <div id="{{ item_form.id }}">
+                                        <p class="mt-4 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
+                                        <table class="table is-fullwidth ">
+                                            <thead>
+                                            <th style="border: none">{{ item_form.sample_name.label }}</th>
+                                            <th style="border: none">{{ item_form.clean_up.label }}</th>
+                                            <th style="border: none">{{ item_form.protein_identification.label }}</th>
+                                            </thead>
+                                            <tbody>
+                                            <td style="border: none" class="control">
+                                                {{ item_form.sample_name(class='input') }}
+                                            </td>
+                                            <td style="border: none" class="control">
+                                                {{ item_form.clean_up() }}
+                                            </td>
+                                            <td style="border: none" class="control">
+                                                {{ item_form.protein_identification() }}
+                                            </td>
+                                            </tbody>
+                                        </table>
+                                        {% if not loop.last %}
+                                            <hr style="background-color: #F3F3F3">
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="field has-addons">
+                                <div class="control">
+                                    <a class="button is-info is-small is-light is-rounded"
+                                       hx-post="{{ url_for('academic_services.add_protein_identification_condition_item') }}"
+                                       hx-target="#condition-field" hx-swap="beforeend">
+                                        <span class="icon">
+                                            <i class="fas fa-plus"></i>
+                                        </span>
+                                        <span>เพิ่ม</span>
+                                    </a>
+                                </div>
+                                <div class="control">
+                                    <a class="button is-danger is-small is-light is-rounded"
+                                       hx-delete="{{ url_for('academic_services.remove_protein_identification_condition_item') }}"
+                                       hx-target="#condition-field" hx-swap="innerHTML">
+                                            <span class="icon">
+                                                <i class="far fa-trash-alt"></i>
+                                            </span>
+                                        <span class="">ลบ</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-justify-content-center">
+                            <div class="control">
+                                <input type="submit" value="บันทึกและดำเนินการต่อ" class="button is-success">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            const sampleSpecies = $('input[type="checkbox"][name="sample_species"]');
+
+            function validateSampleSpeciesInput() {
+                const checkedCount = sampleSpecies.filter(':checked').length;
+
+                if (checkedCount === 0) {
+                    sampleSpecies.prop('required', true);
+                    sampleSpecies.each(function () {
+                        this.setCustomValidity('Please select at least 1 item.');
+                    });
+                } else {
+                    sampleSpecies.prop('required', false);
+                    sampleSpecies.each(function () {
+                        this.setCustomValidity('');
+                    });
+                }
+            }
+
+            validateSampleSpeciesInput();
+            sampleSpecies.on('change', validateSampleSpeciesInput);
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            const gelSlices = $('input[type="checkbox"][name="gel_slices"]');
+
+            function validateGelSlicesInput() {
+                const checkedCount = gelSlices.filter(':checked').length;
+
+                if (checkedCount === 0) {
+                    gelSlices.prop('required', true);
+                    gelSlices.each(function () {
+                        this.setCustomValidity('Please select at least 1 item.');
+                    });
+                } else {
+                    gelSlices.prop('required', false);
+                    gelSlices.each(function () {
+                        this.setCustomValidity('');
+                    });
+                }
+            }
+
+            validateGelSlicesInput();
+            gelSlices.on('change', validateGelSlicesInput);
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            $('#condition-field div[id]').each(function () {
+                const proteinIdentification = $('input[type="checkbox"][name$="protein_identification"]');
+
+                function validateProteinIdentificationInput() {
+                    const checkedCount = proteinIdentification.filter(':checked').length;
+
+                    if (checkedCount === 0) {
+                        proteinIdentification.prop('required', true);
+                        proteinIdentification.each(function () {
+                            this.setCustomValidity('Please select at least 1 item.');
+                        });
+                    } else {
+                        proteinIdentification.prop('required', false);
+                        proteinIdentification.each(function () {
+                            this.setCustomValidity('');
+                        });
+                    }
+                }
+
+                validateProteinIdentificationInput();
+                proteinIdentification.on('change', validateProteinIdentificationInput);
+            });
+        });
+    </script>
+{% endblock %}
