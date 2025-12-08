@@ -723,7 +723,7 @@ class HeavyMetalRequestForm(FlaskForm):
                                               'ด่วนพิเศษ/Fast track (3 วันทำการ คิดค่าบริการ 500 ฿)')],
                                     validators=[DataRequired()])
     other_service = RadioField('บริการอื่นๆ', choices=[
-        ('ค่าความไม่แน่นอน/Uncertainty', 'ค่าความไม่แน่นอน/Uncertainty (คิดค่าบริการ 200฿/สำร)'),
+        ('ค่าความไม่แน่นอน/Uncertainty', 'ค่าความไม่แน่นอน/Uncertainty (คิดค่าบริการ 200฿/สาร)'),
         ('Other', 'Other (มีค่าบริการเพิ่มเติม)')])
     other_service_note = StringField('ระบุ')
     heavy_metal_condition_field = FieldList(FormField(HeavyMetalConditionForm), min_entries=1)
@@ -739,7 +739,7 @@ class FoodSafetyConditionForm(FlaskForm):
                                                 "oninput": "this.setCustomValidity('')"
                                                 })
     quantity = StringField('ปริมาณ',  validators=[DataRequired()],
-                                     render_kw={"oninvalid": "this.setCustomValidity('กรุณาปริมาณ')",
+                                     render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกปริมาณ')",
                                                 "oninput": "this.setCustomValidity('')"
                                                 })
     parameter_test = CheckboxField('สารทดสอบ', choices=[('Organochlorines', 'Organochlorines'),
@@ -777,10 +777,51 @@ class FoodSafetyRequestForm(FlaskForm):
                                               'ด่วนพิเศษ/Fast track (3 วันทำการ คิดค่าบริการ 500 ฿)')],
                                     validators=[DataRequired()])
     other_service = RadioField('บริการอื่นๆ', choices=[
-        ('ค่าความไม่แน่นอน/Uncertainty', 'ค่าความไม่แน่นอน/Uncertainty (คิดค่าบริการ 200฿/สำร)'),
+        ('ค่าความไม่แน่นอน/Uncertainty', 'ค่าความไม่แน่นอน/Uncertainty (คิดค่าบริการ 200฿/สาร)'),
         ('Other', 'Other (มีค่าบริการเพิ่มเติม)')])
     other_service_note = StringField('ระบุ')
     food_safety_condition_field = FieldList(FormField(FoodSafetyConditionForm), min_entries=1)
+
+
+class ProteinIdentificationConditionForm(FlaskForm):
+    sample_name = StringField('Sample Name', validators=[DataRequired()],
+                              render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                         "oninput": "this.setCustomValidity('')"
+                                        })
+    clean_up = CheckboxField('Clean Up', choices=[('Do', 'Do')], validators=[Optional()])
+    protein_identification = CheckboxField('Protein Identification by LC/MS', choices=[('In-gel digestion',
+                                                                                        'In-gel digestion'),
+                                                                                       ('In-solution digestion',
+                                                                                        'In-solution digestion'),
+                                                                                       ('In-solution digestion (not include protein digestion)',
+                                                                                        'In-solution digestion (not include protein digestion')],
+                                           validators=[Optional()])
+
+
+class ProteinIdentificationRequestForm(FlaskForm):
+    sample_species = CheckboxField('Sample species', choices=[('Human', 'Human'),
+                                                              ('Mouse', 'Mouse'),
+                                                              ('Others', 'Others')])
+    sample_species_other = StringField()
+    gel_slices = CheckboxField('For Gel slices', choices=[('Coomassie', 'Coomassie'),
+                                                              ('Silver', 'Sliver'),
+                                                              ('Sypro ruby', 'Sypro ruby'),
+                                                              ('Others', 'Others')])
+    gel_slices_other = StringField()
+    in_solution_sample = StringField('In-solution sample (buffer condition and estimated sample amount (mg/ml))',
+                                     validators=[DataRequired()],
+                                     render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                                "oninput": "this.setCustomValidity('')"
+                                                })
+    molecular_weight = StringField('Molecular weight')
+    to = StringField('to', validators=[DataRequired()], render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                                                   "oninput": "this.setCustomValidity('')"
+                                                                })
+    da = StringField('Da', validators=[DataRequired()], render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                                                   "oninput": "this.setCustomValidity('')"
+                                                                })
+    comment = StringField('Comments')
+    protein_identification_condition_field = FieldList(FormField(ProteinIdentificationConditionForm), min_entries=1)
 
 
 class ServiceQuotationForm(ModelForm):
