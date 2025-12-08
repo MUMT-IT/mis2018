@@ -865,7 +865,8 @@ def create_request():
     request_paths = {'bacteria': 'academic_services.create_bacteria_request',
                      'disinfection': 'academic_services.create_virus_disinfection_request',
                      'air_disinfection': 'academic_services.create_virus_air_disinfection_request',
-                     'heavymetal': 'academic_services.create_heavy_metal_request'
+                     'heavymetal': 'academic_services.create_heavy_metal_request',
+                     'foodsafety': 'academic_services.create_food_safety_request',
                      }
     return redirect(url_for(request_paths[code], code=code, menu=menu, request_id=request_id))
 
@@ -1202,6 +1203,7 @@ def add_heavy_metal_condition_item():
     index = len(form.heavy_metal_condition_field)
     template = """
         <div id="{}">
+            <hr style="background-color: #F3F3F3">
             <p><strong>รายการที่ {}</strong></p>
             <table class="table is-fullwidth ">
                 <thead>
@@ -1251,6 +1253,141 @@ def remove_heavy_metal_condition_item():
     for item_form in form.heavy_metal_condition_field:
         template = """
             <div id="{}">
+                <hr style="background-color: #F3F3F3">
+                <p><strong>รายการที่ {}</strong></p>
+                <table class="table is-fullwidth ">
+                    <thead>
+                        <th style="border: none">{}</th>
+                        <th style="border: none">{}</th>
+                        <th style="border: none">{}</th>
+                        <th style="border: none">{}</th>
+                    </thead>
+                    <tbody>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">
+                            {}
+                            <div class="mt-2 ml-4">
+                                <label class="label">{}</label>
+                                    {}
+                                </div>
+                        </td>
+                    </tbody>
+                </table>
+            </div>
+        """
+        resp += template.format(item_form.id,
+                                index,
+                                item_form.no.label,
+                                item_form.sample_name.label,
+                                item_form.quantity.label,
+                                item_form.parameter_test.label,
+                                item_form.no(class_='input'),
+                                item_form.sample_name(class_='input'),
+                                item_form.quantity(class_='input'),
+                                item_form.parameter_test(),
+                                item_form.parameter_test_other.label,
+                                item_form.parameter_test_other(class_='input')
+                                )
+    resp = make_response(resp)
+    return resp
+
+
+@academic_services.route('/request/food_safety/add', methods=['GET', 'POST'])
+@academic_services.route('/request/food_safety/edit/<int:request_id>', methods=['GET', 'POST'])
+def create_food_safety_request(request_id=None):
+    menu = request.args.get('menu')
+    code = request.args.get('code')
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        data = service_request.data
+        form = FoodSafetyRequestForm(data=data)
+    else:
+        form = FoodSafetyRequestForm()
+    if form.validate_on_submit():
+        if request_id:
+            service_request.data = format_data(form.data)
+            service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+        else:
+            status_id = get_status(1)
+            request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
+            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
+                                             status_id=status_id)
+            request_no.count += 1
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(
+            url_for('academic_services.create_report_language', request_id=service_request.id, menu=menu,
+                    code=code))
+    else:
+        for er in form.errors:
+            flash(f'{er} {form.errors[er]}', 'danger')
+    return render_template('academic_services/food_safety_request_form.html', code=code, sub_lab=sub_lab,
+                           form=form, menu=menu, request_id=request_id)
+
+
+@academic_services.route('/api/request/food_safety/item/add', methods=['POST'])
+def add_food_safety_condition_item():
+    form = FoodSafetyRequestForm()
+    form.food_safety_condition_field.append_entry()
+    item_form = form.food_safety_condition_field[-1]
+    index = len(form.food_safety_condition_field)
+    template = """
+        <div id="{}">
+            <hr style="background-color: #F3F3F3">
+            <p><strong>รายการที่ {}</strong></p>
+            <table class="table is-fullwidth ">
+                <thead>
+                    <th style="border: none">{}</th>
+                    <th style="border: none">{}</th>
+                    <th style="border: none">{}</th>
+                    <th style="border: none">{}</th>
+                </thead>
+                <tbody>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="control">
+                        {}
+                        <div class="mt-2 ml-4">
+                            <label class="label">{}</label>
+                            {}
+                        </div>
+                    </td>
+                </tbody>
+            </table>
+        </div>
+    """
+    resp = template.format(item_form.id,
+                           index,
+                           item_form.no.label,
+                           item_form.sample_name.label,
+                           item_form.quantity.label,
+                           item_form.parameter_test.label,
+                           item_form.no(class_='input'),
+                           item_form.sample_name(class_='input'),
+                           item_form.quantity(class_='input'),
+                           item_form.parameter_test(),
+                           item_form.parameter_test_other.label,
+                           item_form.parameter_test_other(class_='input')
+                           )
+    resp = make_response(resp)
+    return resp
+
+
+@academic_services.route('/api/request/food_safety/item/remove', methods=['DELETE'])
+def remove_food_safety_condition_item():
+    form = FoodSafetyRequestForm()
+    form.food_safety_condition_field.pop_entry()
+    index = len(form.food_safety_condition_field)
+    resp = ''
+    for item_form in form.food_safety_condition_field:
+        template = """
+            <div id="{}">
+                <hr style="background-color: #F3F3F3">  
                 <p><strong>รายการที่ {}</strong></p>
                 <table class="table is-fullwidth ">
                     <thead>
