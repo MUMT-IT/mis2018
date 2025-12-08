@@ -868,6 +868,7 @@ def create_request():
                      'heavymetal': 'academic_services.create_heavy_metal_request',
                      'foodsafety': 'academic_services.create_food_safety_request',
                      'protein_identification': 'academic_services.create_protein_identification_request',
+                     'sds_page': 'academic_services.create_sds_page_request',
                      }
     return redirect(url_for(request_paths[code], code=code, menu=menu, request_id=request_id))
 
@@ -1511,7 +1512,7 @@ def get_other_service():
         other_service_note = ''
     if other_service == 'Other':
         html = f'''
-            <div class="field ml-4">
+            <div class="field ml-4 mb-4">
                 <label class="label">
                     {label}
                     <span class="has-text-danger">*</span>
@@ -1561,72 +1562,6 @@ def create_protein_identification_request(request_id=None):
             flash(f'{er} {form.errors[er]}', 'danger')
     return render_template('academic_services/protein_identification_request_form.html', code=code, sub_lab=sub_lab,
                            form=form, menu=menu, request_id=request_id)
-
-
-@academic_services.route("/request/sample_species_other")
-def get_sample_species_other():
-    request_id = request.args.get("request_id")
-    sample_species = request.args.getlist("sample_species")
-    label = 'Comment'
-    if request_id:
-        service_request = ServiceRequest.query.get(request_id)
-        if service_request and service_request.data:
-            data = service_request.data
-            sample_species_other = data.get('sample_species_other', '')
-        else:
-            sample_species_other = ''
-    else:
-        sample_species_other = ''
-    if "Others" in sample_species:
-        html = f'''
-            <div class="field ml-4">
-                <label class="label">
-                    {label}
-                    <span class="has-text-danger">*</span>
-                </label>
-                <div class="control">
-                    <input name="sample_species_other" class="input" value="{sample_species_other}" required 
-                    oninvalid="this.setCustomValidity('Please fill in the information.')" oninput="this.setCustomValidity('')">
-                </div>
-            </div>
-        '''
-    else:
-        html = '<input type="hidden" name="sample_species_other" class="input" value="">'
-    resp = make_response(html)
-    return resp
-
-
-@academic_services.route("/request/gel_slices_other")
-def get_gel_slices_other():
-    request_id = request.args.get("request_id")
-    gel_slices = request.args.getlist("gel_slices")
-    label = 'Comment'
-    if request_id:
-        service_request = ServiceRequest.query.get(request_id)
-        if service_request and service_request.data:
-            data = service_request.data
-            gel_slices_other = data.get('gel_slices_other', '')
-        else:
-            gel_slices_other = ''
-    else:
-        gel_slices_other = ''
-    if "Others" in gel_slices:
-        html = f'''
-            <div class="field ml-4">
-                <label class="label">
-                    {label}
-                    <span class="has-text-danger">*</span>
-                </label>
-                <div class="control">
-                    <input name="gel_slices_other" class="input" value="{gel_slices_other}" required 
-                    oninvalid="this.setCustomValidity('Please fill in the information.')" oninput="this.setCustomValidity('')">
-                </div>
-            </div>
-        '''
-    else:
-        html = '<input type="hidden" name="gel_slices_other" class="input" value="">'
-    resp = make_response(html)
-    return resp
 
 
 @academic_services.route('/api/request/protein_identification/item/add', methods=['POST'])
@@ -1701,6 +1636,215 @@ def remove_protein_identification_condition_item():
                                 item_form.protein_identification()
                                 )
     resp = make_response(resp)
+    return resp
+
+
+@academic_services.route('/request/sds_page/add', methods=['GET', 'POST'])
+@academic_services.route('/request/sds_page/edit/<int:request_id>', methods=['GET', 'POST'])
+def create_sds_page_request(request_id=None):
+    menu = request.args.get('menu')
+    code = request.args.get('code')
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        data = service_request.data
+        form = SDSPageRequestForm(data=data)
+    else:
+        form = SDSPageRequestForm()
+    if form.validate_on_submit():
+        if request_id:
+            service_request.data = format_data(form.data)
+            service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+        else:
+            status_id = get_status(1)
+            request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
+            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
+                                             status_id=status_id)
+            request_no.count += 1
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(
+            url_for('academic_services.create_report_language', request_id=service_request.id, menu=menu,
+                    code=code))
+    else:
+        for er in form.errors:
+            flash(f'{er} {form.errors[er]}', 'danger')
+    return render_template('academic_services/sds_page_request_form.html', code=code, sub_lab=sub_lab,
+                           form=form, menu=menu, request_id=request_id)
+
+
+@academic_services.route('/api/request/sds_page/item/add', methods=['POST'])
+def add_sds_page_condition_item():
+    form = SDSPageRequestForm()
+    form.sds_page_condition_field.append_entry()
+    item_form = form.sds_page_condition_field[-1]
+    index = len(form.sds_page_condition_field)
+    template = """
+        <div id="{}">
+            <hr style="background-color: #F3F3F3">
+            <p><strong>รายการที่ {}</strong></p>
+            <table class="table is-fullwidth ">
+                <thead>
+                    <th style="border: none">{}</th>
+                    <th style="border: none">{}</th>
+                    <th style="border: none">{}</th>
+                </thead>
+                <tbody>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="control">{}</td>
+                </tbody>
+            </table>
+        </div>
+    """
+    resp = template.format(item_form.id,
+                           index,
+                           item_form.sample_name.label,
+                           item_form.clean_up.label,
+                           item_form.staining.label,
+                           item_form.sample_name(class_='input'),
+                           item_form.clean_up(),
+                           item_form.staining()
+                           )
+    resp = make_response(resp)
+    return resp
+
+
+@academic_services.route('/api/request/sds_page/item/remove', methods=['DELETE'])
+def remove_sds_page_condition_item():
+    form = SDSPageRequestForm()
+    form.sds_page_condition_field.pop_entry()
+    index = len(form.sds_page_condition_field)
+    resp = ''
+    for item_form in form.sds_page_condition_field:
+        template = """
+            <div id="{}">
+                <hr style="background-color: #F3F3F3">  
+                <p><strong>รายการที่ {}</strong></p>
+                <table class="table is-fullwidth ">
+                    <thead>
+                        <th style="border: none">{}</th>
+                        <th style="border: none">{}</th>
+                        <th style="border: none">{}</th>
+                    </thead>
+                    <tbody>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                    </tbody>
+                </table>
+            </div>
+        """
+        resp += template.format(item_form.id,
+                                index,
+                                item_form.sample_name.label,
+                                item_form.clean_up.label,
+                                item_form.staining.label,
+                                item_form.sample_name(class_='input'),
+                                item_form.clean_up(),
+                                item_form.staining()
+                                )
+    resp = make_response(resp)
+    return resp
+
+
+@academic_services.route("/request/sample_species_other")
+def get_sample_species_other():
+    request_id = request.args.get("request_id")
+    sample_species = request.args.getlist("sample_species")
+    label = 'Comment'
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        if service_request and service_request.data:
+            data = service_request.data
+            sample_species_other = data.get('sample_species_other', '')
+        else:
+            sample_species_other = ''
+    else:
+        sample_species_other = ''
+    if "Others" in sample_species:
+        html = f'''
+            <div class="field ml-4 mb-4">
+                <label class="label">
+                    {label}
+                    <span class="has-text-danger">*</span>
+                </label>
+                <div class="control">
+                    <input name="sample_species_other" class="input" value="{sample_species_other}" required 
+                    oninvalid="this.setCustomValidity('Please fill in the information.')" oninput="this.setCustomValidity('')">
+                </div>
+            </div>
+        '''
+    else:
+        html = '<input type="hidden" name="sample_species_other" class="input" value="">'
+    resp = make_response(html)
+    return resp
+
+
+@academic_services.route("/request/gel_slices_other")
+def get_gel_slices_other():
+    request_id = request.args.get("request_id")
+    gel_slices = request.args.getlist("gel_slices")
+    label = 'Comment'
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        if service_request and service_request.data:
+            data = service_request.data
+            gel_slices_other = data.get('gel_slices_other', '')
+        else:
+            gel_slices_other = ''
+    else:
+        gel_slices_other = ''
+    if "Others" in gel_slices:
+        html = f'''
+            <div class="field ml-4 mb-4">
+                <label class="label">
+                    {label}
+                    <span class="has-text-danger">*</span>
+                </label>
+                <div class="control">
+                    <input name="gel_slices_other" class="input" value="{gel_slices_other}" required 
+                    oninvalid="this.setCustomValidity('Please fill in the information.')" oninput="this.setCustomValidity('')">
+                </div>
+            </div>
+        '''
+    else:
+        html = '<input type="hidden" name="gel_slices_other" class="input" value="">'
+    resp = make_response(html)
+    return resp
+
+
+@academic_services.route("/request/sample_type_other")
+def get_sample_type_other():
+    request_id = request.args.get("request_id")
+    sample_type = request.args.getlist("sample_type")
+    label = 'Comment'
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        if service_request and service_request.data:
+            data = service_request.data
+            sample_type_other = data.get('sample_type_other', '')
+        else:
+            sample_type_other = ''
+    else:
+        sample_type_other = ''
+    if "Others" in sample_type:
+        html = f'''
+                <div class="field ml-4 mb-4">
+                    <label class="label">
+                        {label}
+                        <span class="has-text-danger">*</span>
+                    </label>
+                    <div class="control">
+                        <input name="sample_type_other" class="input" value="{sample_type_other}" required 
+                        oninvalid="this.setCustomValidity('Please fill in the information.')" oninput="this.setCustomValidity('')">
+                    </div>
+                </div>
+            '''
+    else:
+        html = '<input type="hidden" name="sample_type_other" class="input" value="">'
+    resp = make_response(html)
     return resp
 
 
