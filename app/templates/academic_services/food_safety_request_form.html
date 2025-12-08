@@ -30,7 +30,7 @@
                                     {{ form.objective.label }}
                                     <span class="has-text-danger">*</span>
                                 </label>
-                                <div class="radio">
+                                <div class="control">
                                     {{ form.objective(
                                         **{'hx-get': url_for("academic_services.get_objective",
                                                 request_id=request_id),
@@ -214,32 +214,28 @@
         });
     </script>
     <script>
-        function toggleParameterTest(subform) {
-            const checkboxes = subform.find('input[type="checkbox"][name*="parameter_test"]');
-
-            function validateParameterTest() {
-                const checkedCount = checkboxes.filter(':checked').length;
-
-                if (checkedCount === 0) {
-                    checkboxes.prop('required', true);
-                    checkboxes.each(function () {
-                        this.setCustomValidity('กรุณาเลือกพารามิเตอร์อย่างน้อย 1 รายการ');
-                    });
-                } else {
-                    checkboxes.prop('required', false);
-                    checkboxes.each(function () {
-                        this.setCustomValidity('');
-                    });
-                }
-            }
-
-            validateParameterTest();
-            checkboxes.on('change', validateParameterTest);
-        }
-
         $(document).ready(function () {
             $('#condition-field div[id]').each(function () {
-                toggleParameterTest($(this));
+                const parameterTest = $('input[type="checkbox"][name$="parameter_test"]');
+
+                function validateParameterTestInput() {
+                    const checkedCount = parameterTest.filter(':checked').length;
+
+                    if (checkedCount === 0) {
+                        parameterTest.prop('required', true);
+                        parameterTest.each(function () {
+                            this.setCustomValidity('กรุณาเลือกสารทดสอบอย่างน้อย 1 รายการ');
+                        });
+                    } else {
+                        parameterTest.prop('required', false);
+                        parameterTest.each(function () {
+                            this.setCustomValidity('');
+                        });
+                    }
+                }
+
+                validateParameterTestInput();
+                parameterTest.on('change',  validateParameterTestInput);
             });
         });
     </script>
