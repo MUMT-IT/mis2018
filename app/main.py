@@ -1871,6 +1871,6 @@ if __name__ == '__main__':
     cert_file = os.path.join(os.path.dirname(__file__), '..', '..', 'cert.pem')
     key_file = os.path.join(os.path.dirname(__file__), '..', '..', 'key.pem')
     if os.path.exists(cert_file) and os.path.exists(key_file):
-        app.run(debug=True, port=5000, host="0.0.0.0", ssl_context=(cert_file, key_file))
+        app.run(debug=True, port=5005, host="0.0.0.0", ssl_context=(cert_file, key_file))
     else:
-        app.run(debug=True, port=5000, host="0.0.0.0")
+        app.run(debug=True, port=5005, host="0.0.0.0")

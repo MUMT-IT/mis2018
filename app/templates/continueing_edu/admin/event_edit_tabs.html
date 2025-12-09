@@ -109,63 +109,84 @@
         <div class="column">
           <div class="field">
             <label class="label">Poster Image</label>
+
+            {% if event.poster_image_url %}
+            <div class="box mb-3" style="background-color: #f5f5f5;">
+              <p class="is-size-7 has-text-weight-bold mb-2">Current Poster:</p>
+              <figure class="image is-3by2" style="max-width: 320px;" id="current-poster-preview">
+                {% set poster = (event.poster_presigned_url() or event.poster_image_url) %}
+                <img src="{{ poster or '' }}" alt="Current poster"
+                  style="object-fit:cover;border:1px solid #ddd;border-radius:4px;">
+              </figure>
+              <label class="checkbox mt-2">
+                <input type="checkbox" name="delete_poster" value="1" id="delete-poster-checkbox">
+                <span class="has-text-danger">Delete current poster when saving</span>
+              </label>
+            </div>
+            {% endif %}
+
             <div class="control">
               <div class="file has-name is-fullwidth">
                 <label class="file-label">
-                  <input class="file-input" type="file" name="poster_image_file" accept="image/*">
-                  <span class="file-cta"><span class="file-icon">📷</span><span class="file-label">Choose a
+                  <input class="file-input" type="file" name="poster_image_file" accept="image/*"
+                    id="poster-file-input">
+                  <span class="file-cta"><span class="file-icon">📷</span><span class="file-label">Choose new
                       file…</span></span>
-                  <span class="file-name is-size-7">Upload a new poster image</span>
+                  <span class="file-name is-size-7" id="poster-file-name">Upload a new poster image</span>
                 </label>
               </div>
             </div>
-            <p class="help">Or paste URL:</p>
-            <div class="control"><input class="input" type="url" name="poster_image_url" placeholder="https://..."
-                value="{{ event.poster_image_url or '' }}"></div>
+
+            <div class="mt-3" id="poster-preview-container" style="display:none;">
+              <p class="is-size-7 has-text-weight-bold mb-2">New Poster Preview:</p>
+              <figure class="image is-3by2" style="max-width: 320px;">
+                <img id="poster-preview" src="" alt="New poster preview"
+                  style="object-fit:cover;border:1px solid #ddd;border-radius:4px;">
+              </figure>
+            </div>
           </div>
         </div>
+
         <div class="column">
           <div class="field">
             <label class="label">Cover Image</label>
+
+            {% if event.cover_image_url %}
+            <div class="box mb-3" style="background-color: #f5f5f5;">
+              <p class="is-size-7 has-text-weight-bold mb-2">Current Cover:</p>
+              <figure class="image is-16by9" style="max-width: 480px;" id="current-cover-preview">
+                {% set cover = (event.cover_presigned_url() or event.cover_image_url) %}
+                <img src="{{ cover or '' }}" alt="Current cover"
+                  style="object-fit:cover;border:1px solid #ddd;border-radius:4px;">
+              </figure>
+              <label class="checkbox mt-2">
+                <input type="checkbox" name="delete_cover" value="1" id="delete-cover-checkbox">
+                <span class="has-text-danger">Delete current cover when saving</span>
+              </label>
+            </div>
+            {% endif %}
+
             <div class="control">
               <div class="file has-name is-fullwidth">
                 <label class="file-label">
-                  <input class="file-input" type="file" name="cover_image_file" accept="image/*">
-                  <span class="file-cta"><span class="file-icon">📷</span><span class="file-label">Choose a
+                  <input class="file-input" type="file" name="cover_image_file" accept="image/*" id="cover-file-input">
+                  <span class="file-cta"><span class="file-icon">📷</span><span class="file-label">Choose new
                       file…</span></span>
-                  <span class="file-name is-size-7">Upload a new cover image</span>
+                  <span class="file-name is-size-7" id="cover-file-name">Upload a new cover image</span>
                 </label>
               </div>
             </div>
-            <p class="help">Or paste URL:</p>
-            <div class="control"><input class="input" type="url" name="cover_image_url" placeholder="https://..."
-                value="{{ event.cover_image_url or '' }}"></div>
+
+            <div class="mt-3" id="cover-preview-container" style="display:none;">
+              <p class="is-size-7 has-text-weight-bold mb-2">New Cover Preview:</p>
+              <figure class="image is-16by9" style="max-width: 480px;">
+                <img id="cover-preview" src="" alt="New cover preview"
+                  style="object-fit:cover;border:1px solid #ddd;border-radius:4px;">
+              </figure>
+            </div>
           </div>
         </div>
       </div>
-
-      {% if event.poster_image_url or event.cover_image_url %}
-      <div class="columns">
-        <div class="column">
-          {% if event.poster_image_url %}
-          <p class="label">Poster Preview</p>
-          <figure class="image is-3by2" style="max-width: 320px;">
-            {% set poster = (event.poster_presigned_url() or event.poster_image_url) %}
-            <img src="{{ poster or '' }}" alt="Poster preview" style="object-fit:cover;border:1px solid #eee;">
-          </figure>
-          {% endif %}
-        </div>
-        <div class="column">
-          {% if event.cover_image_url %}
-          <p class="label">Cover Preview</p>
-          <figure class="image is-3by2" style="max-width: 480px;">
-            {% set cover = (event.cover_presigned_url() or event.cover_image_url) %}
-            <img src="{{ cover or '' }}" alt="Cover preview" style="object-fit:cover;border:1px solid #eee;">
-          </figure>
-          {% endif %}
-        </div>
-      </div>
-      {% endif %}
 
       <div class="columns">
         <div class="column">
@@ -605,7 +626,8 @@
             <div class="is-size-7">Issued: {{ reg.certificate_issued_date or '-' }}</div>
             <div class="buttons mt-1">
               {% if reg.certificate_url %}
-              <a class="button is-small is-success is-light" href="{{ reg.certificate_presigned_url() }}" target="_blank">View</a>
+              <a class="button is-small is-success is-light" href="{{ reg.certificate_presigned_url() }}"
+                target="_blank">View</a>
               {% endif %}
               <a class="button is-small is-link"
                 href="{{ url_for('continuing_edu_admin.certificates_registration_pdf', reg_id=reg.id, lang='en') }}"
@@ -756,6 +778,68 @@
 {% endblock %}
 {% block scripts %}
 <script>
+  // Image preview for poster and cover
+  document.addEventListener('DOMContentLoaded', function () {
+    const posterFileInput = document.getElementById('poster-file-input');
+    const posterFileName = document.getElementById('poster-file-name');
+    const posterPreview = document.getElementById('poster-preview');
+    const posterPreviewContainer = document.getElementById('poster-preview-container');
+    const deletePosterCheckbox = document.getElementById('delete-poster-checkbox');
+    const currentPosterPreview = document.getElementById('current-poster-preview');
+
+    if (posterFileInput) {
+      posterFileInput.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (file) {
+          posterFileName.textContent = file.name;
+
+          // Show preview
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            posterPreview.src = e.target.result;
+            posterPreviewContainer.style.display = 'block';
+          };
+          reader.readAsDataURL(file);
+
+          // Auto-check delete checkbox if current image exists
+          if (deletePosterCheckbox && currentPosterPreview) {
+            deletePosterCheckbox.checked = true;
+          }
+        }
+      });
+    }
+
+    // Image preview for cover
+    const coverFileInput = document.getElementById('cover-file-input');
+    const coverFileName = document.getElementById('cover-file-name');
+    const coverPreview = document.getElementById('cover-preview');
+    const coverPreviewContainer = document.getElementById('cover-preview-container');
+    const deleteCoverCheckbox = document.getElementById('delete-cover-checkbox');
+    const currentCoverPreview = document.getElementById('current-cover-preview');
+
+    if (coverFileInput) {
+      coverFileInput.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (file) {
+          coverFileName.textContent = file.name;
+
+          // Show preview
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            coverPreview.src = e.target.result;
+            coverPreviewContainer.style.display = 'block';
+          };
+          reader.readAsDataURL(file);
+
+          // Auto-check delete checkbox if current image exists
+          if (deleteCoverCheckbox && currentCoverPreview) {
+            deleteCoverCheckbox.checked = true;
+          }
+        }
+      });
+    }
+  });
+
   function initSortables() {
     if (!window.Sortable) return;
     var agendaItems = document.getElementById('agenda-items');

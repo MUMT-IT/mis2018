@@ -81,7 +81,7 @@ def main():
     initial_admins = [
         # Example:
          'vikornsak.rak',
-        # 'another.admin@mahidol.ac.th',
+        'another.admin',
     ]
     
     if not initial_admins:

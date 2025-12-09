@@ -22,7 +22,11 @@ from .models import (
     OrganizationType,
     Occupation,
     MemberAddress,
+    MemberType,
+    Gender,
+    AgeRange,
 )
+from app.comhealth.models import ComHealthOrg
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
 from werkzeug.exceptions import NotFound
@@ -118,6 +122,7 @@ def _collect_address_entries_from_form(form):
     def _safe_list(key):
         return [value.strip() for value in form.getlist(key)]
 
+    address_names = _safe_list('address_name[]')  # New field
     address_types = _safe_list('address_type[]')
     address_type_custom = _safe_list('address_type_other[]')
     address_labels = _safe_list('address_label[]')
@@ -126,10 +131,15 @@ def _collect_address_entries_from_form(form):
     city_list = _safe_list('address_city[]')
     state_list = _safe_list('address_state[]')
     postal_list = _safe_list('address_postal[]')
+    subdistrict_list = _safe_list('address_subdistrict[]')  # Thai address field
+    district_list = _safe_list('address_district[]')  # Thai address field
+    province_list = _safe_list('address_province[]')  # New field
+    zipcode_list = _safe_list('address_zipcode[]')  # New field
     country_codes = _safe_list('address_country[]')
     country_other = _safe_list('address_country_other[]')
 
     max_len = max(
+        len(address_names),
         len(address_types),
         len(address_type_custom),
         len(address_labels),
@@ -138,21 +148,48 @@ def _collect_address_entries_from_form(form):
         len(city_list),
         len(state_list),
         len(postal_list),
+        len(subdistrict_list),
+        len(district_list),
+        len(province_list),
+        len(zipcode_list),
         len(country_codes),
         len(country_other),
     ) if form else 0
 
     entries = []
     for idx in range(max_len):
+        # Use address_name as label if provided, otherwise use address_labels
+        address_name = address_names[idx] if idx < len(address_names) else ''
+        address_label = address_labels[idx] if idx < len(address_labels) else ''
+        final_label = address_name or address_label
+        
+        # Use province if provided, otherwise use state
+        province = province_list[idx] if idx < len(province_list) else ''
+        state = state_list[idx] if idx < len(state_list) else ''
+        final_state = province or state
+        
+        # Use zipcode if provided, otherwise use postal
+        zipcode = zipcode_list[idx] if idx < len(zipcode_list) else ''
+        postal = postal_list[idx] if idx < len(postal_list) else ''
+        final_postal = zipcode or postal
+        
+        # Get subdistrict and district (Thai address fields)
+        subdistrict = subdistrict_list[idx] if idx < len(subdistrict_list) else ''
+        district = district_list[idx] if idx < len(district_list) else ''
+        
         entries.append({
             'type': address_types[idx] if idx < len(address_types) else '',
             'type_other': address_type_custom[idx] if idx < len(address_type_custom) else '',
-            'label': address_labels[idx] if idx < len(address_labels) else '',
+            'label': final_label,
             'line1': line1_list[idx] if idx < len(line1_list) else '',
             'line2': line2_list[idx] if idx < len(line2_list) else '',
             'city': city_list[idx] if idx < len(city_list) else '',
-            'state': state_list[idx] if idx < len(state_list) else '',
-            'postal': postal_list[idx] if idx < len(postal_list) else '',
+            'state': final_state,
+            'province': final_state,
+            'postal': final_postal,
+            'zipcode': final_postal,
+            'subdistrict': subdistrict,
+            'district': district,
             'country_code': country_codes[idx] if idx < len(country_codes) else '',
             'country_other': country_other[idx] if idx < len(country_other) else '',
         })
@@ -193,18 +230,36 @@ def login():
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
     next_url = request.args.get('next') or request.form.get('next')
+    
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
         
-        member = Member.query.filter_by(email=username).first()
-        if member and check_password_hash(member.password_hash, password):
-            session['member_id'] = member.id
-            user = get_current_user()
-            flash(texts.get('login_success', 'เข้าสู่ระบบสำเร็จ!' if lang == 'th' else 'Login successful!'), 'success')
-            return redirect(next_url or url_for('continuing_edu.index', lang=lang, logged_in_user=user))
-        else:
-            flash(texts.get('login_error', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' if lang == 'th' else 'Invalid username or password.'), 'danger')
+        if not email or not password:
+            flash('กรุณากรอกอีเมลและรหัสผ่าน' if lang == 'th' else 'Please enter email and password', 'error')
+            return render_template('continueing_edu/login.html', texts=texts, current_lang=lang, logged_in_user=get_current_user(), next=next_url)
+        
+        # Find member by email
+        member = Member.query.filter_by(email=email).first()
+        
+        if not member:
+            flash('อีเมลหรือรหัสผ่านไม่ถูกต้อง' if lang == 'th' else 'Invalid email or password', 'error')
+            return render_template('continueing_edu/login.html', texts=texts, current_lang=lang, logged_in_user=get_current_user(), next=next_url)
+        
+        # Check password
+        if not check_password_hash(member.password_hash, password):
+            flash('อีเมลหรือรหัสผ่านไม่ถูกต้อง' if lang == 'th' else 'Invalid email or password', 'error')
+            return render_template('continueing_edu/login.html', texts=texts, current_lang=lang, logged_in_user=get_current_user(), next=next_url)
+        
+        # Login successful
+        session['member_id'] = member.id
+        user = get_current_user()
+        
+        welcome_name = member.full_name_th or member.full_name_en or member.username
+        flash(f"ยินดีต้อนรับ {welcome_name}!" if lang == 'th' else f"Welcome {welcome_name}!", 'success')
+        
+        return redirect(next_url or url_for('continuing_edu.index', lang=lang, logged_in_user=user))
+    
     return render_template('continueing_edu/login.html', texts=texts, current_lang=lang, logged_in_user=get_current_user(), next=next_url)
 
 
@@ -228,6 +283,13 @@ def logout():
     session.pop('username', None)
     flash('ออกจากระบบสำเร็จ' if lang == 'th' else 'Logged out successfully.', 'success')
     return redirect(url_for('continuing_edu.index', lang=lang))
+
+# --- Test Google Sign-up ---
+@ce_bp.route('/test-google-signup')
+def test_google_signup():
+    """Test page for Google Sign-up flow"""
+    return render_template('continueing_edu/test_google_signup.html')
+
 # --- Member Registration ---
 @ce_bp.route('/register', methods=['GET', 'POST'])
 def register():
@@ -242,6 +304,10 @@ def register():
     organization_types = OrganizationType.query.order_by(OrganizationType.name_en.asc()).all()
     occupations = Occupation.query.order_by(Occupation.name_en.asc()).all()
     organizations = Organization.query.order_by(Organization.name.asc()).limit(50).all()
+    member_types = MemberType.query.order_by(MemberType.name_en.asc()).all()
+    genders = Gender.query.order_by(Gender.id.asc()).all()
+    age_ranges = AgeRange.query.order_by(AgeRange.id.asc()).all()
+    google_client_id = os.getenv('GOOGLE_CLIENT_ID', '206836986017-1dctro1ehrqta2r91e5appn5j78spn9h.apps.googleusercontent.com')
 
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -307,7 +373,7 @@ def register():
             for message in errors:
                 flash(message, 'danger')
             return render_template(
-                'continueing_edu/register.html',
+                'continueing_edu/register_modern.html',
                 texts=texts,
                 current_lang=lang,
                 form_values=form_values,
@@ -496,8 +562,12 @@ def register():
 
         return render_template('continueing_edu/otp_verify.html', username=username, current_lang=lang, texts=texts)
 
+    # Use modern template if requested
+    use_modern = request.args.get('modern', '1') == '1'
+    template = 'continueing_edu/register_modern.html' if use_modern else 'continueing_edu/register.html'
+    
     return render_template(
-        'continueing_edu/register.html',
+        template,
         texts=texts,
         current_lang=lang,
         form_values=form_values,
@@ -506,6 +576,10 @@ def register():
         organizations=organizations,
         address_entries=address_entries,
         country_options=COUNTRY_OPTIONS,
+        member_types=member_types,
+        genders=genders,
+        age_ranges=age_ranges,
+        google_client_id=google_client_id,
     )
 
 
@@ -585,14 +659,15 @@ def forgot_password():
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
     if request.method == 'POST':
-        identifier = request.form.get('identifier', '').strip()
-        if not identifier:
-            flash('กรุณากรอกอีเมลหรือชื่อผู้ใช้' if lang == 'th' else 'Please enter your email or username.', 'danger')
+        email = request.form.get('email', '').strip().lower()
+        if not email:
+            flash('กรุณากรอกอีเมล' if lang == 'th' else 'Please enter your email.', 'danger')
             return render_template('continueing_edu/forgot_password.html', current_lang=lang, texts=texts)
         from .models import Member
-        user = Member.query.filter((Member.email == identifier) | (Member.username == identifier)).first()
-        if not user or not user.email:
-            flash('ไม่พบบัญชีที่ใช้อีเมลนี้' if lang == 'th' else 'No account found for that email/username.', 'danger')
+        user = Member.query.filter_by(email=email).first()
+        if not user:
+            # Don't reveal if email exists (security)
+            flash('หากอีเมลนี้มีในระบบ คุณจะได้รับรหัส OTP' if lang == 'th' else 'If this email exists, you will receive an OTP code.', 'success')
             return render_template('continueing_edu/forgot_password.html', current_lang=lang, texts=texts)
         # Generate OTP and set expiry (10 minutes)
         import random, time
@@ -608,8 +683,126 @@ def forgot_password():
             flash('เราได้ส่งรหัส OTP ไปยังอีเมลของคุณแล้ว' if lang == 'th' else 'We sent an OTP to your email.', 'success')
         except Exception as e:
             flash((f'ส่งอีเมลไม่สำเร็จ: {e}') if lang == 'th' else f'Failed to send email: {e}', 'danger')
-        return redirect(url_for('continuing_edu.reset_password', lang=lang, username=user.username))
+        return redirect(url_for('continuing_edu.verify_reset_otp', lang=lang, username=user.username))
     return render_template('continueing_edu/forgot_password.html', current_lang=lang, texts=texts)
+
+
+# --- Verify Reset OTP (Step 2 of 3) ---
+@ce_bp.route('/verify_reset_otp', methods=['GET', 'POST'])
+def verify_reset_otp():
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    username = request.args.get('username') or session.get('reset_username')
+    
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        otp_input = request.form.get('otp_code', '').strip()
+        
+        # Validate session OTP
+        otp_expected = session.get('reset_otp')
+        otp_user = session.get('reset_username')
+        otp_exp = session.get('reset_expires')
+        
+        import time
+        if not otp_expected or not otp_user or username != otp_user:
+            flash('เซสชัน OTP หมดอายุหรือไม่ถูกต้อง' if lang == 'th' else 'OTP session expired or invalid.', 'danger')
+            return redirect(url_for('continuing_edu.forgot_password', lang=lang))
+        
+        if otp_exp and time.time() > otp_exp:
+            flash('OTP หมดอายุแล้ว' if lang == 'th' else 'OTP has expired.', 'danger')
+            return redirect(url_for('continuing_edu.forgot_password', lang=lang))
+        
+        if otp_input != otp_expected:
+            flash('รหัส OTP ไม่ถูกต้อง' if lang == 'th' else 'Invalid OTP code.', 'danger')
+            return render_template('continueing_edu/verify_reset_otp.html', current_lang=lang, texts=texts, username=username)
+        
+        # OTP is valid - generate reset token
+        import secrets
+        reset_token = secrets.token_urlsafe(32)
+        session['reset_token'] = reset_token
+        session['reset_token_expires'] = int(time.time()) + 900  # 15 minutes
+        
+        flash('ยืนยัน OTP สำเร็จ' if lang == 'th' else 'OTP verified successfully.', 'success')
+        return redirect(url_for('continuing_edu.set_new_password', lang=lang, token=reset_token))
+    
+    return render_template('continueing_edu/verify_reset_otp.html', current_lang=lang, texts=texts, username=username)
+
+
+# --- Set New Password (Step 3 of 3) ---
+@ce_bp.route('/set_new_password', methods=['GET', 'POST'])
+def set_new_password():
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    token = request.args.get('token') or request.form.get('reset_token')
+    
+    # Verify reset token
+    expected_token = session.get('reset_token')
+    token_exp = session.get('reset_token_expires')
+    
+    import time
+    if not expected_token or token != expected_token:
+        flash('โทเคนรีเซ็ตรหัสผ่านไม่ถูกต้อง' if lang == 'th' else 'Invalid reset token.', 'danger')
+        return redirect(url_for('continuing_edu.forgot_password', lang=lang))
+    
+    if token_exp and time.time() > token_exp:
+        flash('โทเคนหมดอายุแล้ว' if lang == 'th' else 'Reset token has expired.', 'danger')
+        return redirect(url_for('continuing_edu.forgot_password', lang=lang))
+    
+    if request.method == 'POST':
+        new_pw = request.form.get('new_password', '')
+        confirm_pw = request.form.get('confirm_password', '')
+        
+        if not new_pw or new_pw != confirm_pw:
+            flash('รหัสผ่านใหม่ไม่ตรงกัน' if lang == 'th' else 'New passwords do not match.', 'danger')
+            return render_template('continueing_edu/set_new_password.html', current_lang=lang, texts=texts, reset_token=token)
+        
+        # Validate password strength
+        import re
+        if len(new_pw) < 8:
+            flash('รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร' if lang == 'th' else 'Password must be at least 8 characters.', 'danger')
+            return render_template('continueing_edu/set_new_password.html', current_lang=lang, texts=texts, reset_token=token)
+        
+        if not re.search(r'[A-Z]', new_pw):
+            flash('รหัสผ่านต้องมีตัวพิมพ์ใหญ่อย่างน้อย 1 ตัว' if lang == 'th' else 'Password must contain at least one uppercase letter.', 'danger')
+            return render_template('continueing_edu/set_new_password.html', current_lang=lang, texts=texts, reset_token=token)
+        
+        if not re.search(r'[a-z]', new_pw):
+            flash('รหัสผ่านต้องมีตัวพิมพ์เล็กอย่างน้อย 1 ตัว' if lang == 'th' else 'Password must contain at least one lowercase letter.', 'danger')
+            return render_template('continueing_edu/set_new_password.html', current_lang=lang, texts=texts, reset_token=token)
+        
+        if not re.search(r'\d', new_pw):
+            flash('รหัสผ่านต้องมีตัวเลขอย่างน้อย 1 ตัว' if lang == 'th' else 'Password must contain at least one number.', 'danger')
+            return render_template('continueing_edu/set_new_password.html', current_lang=lang, texts=texts, reset_token=token)
+        
+        if not re.search(r'[@$!%*?&]', new_pw):
+            flash('รหัสผ่านต้องมีอักขระพิเศษอย่างน้อย 1 ตัว (@$!%*?&)' if lang == 'th' else 'Password must contain at least one special character (@$!%*?&).', 'danger')
+            return render_template('continueing_edu/set_new_password.html', current_lang=lang, texts=texts, reset_token=token)
+        
+        # Update password
+        from .models import Member
+        username = session.get('reset_username')
+        user = Member.query.filter_by(username=username).first()
+        
+        if not user:
+            flash('ไม่พบบัญชี' if lang == 'th' else 'Account not found.', 'danger')
+            return redirect(url_for('continuing_edu.forgot_password', lang=lang))
+        
+        user.password_hash = generate_password_hash(new_pw)
+        db.session.add(user)
+        db.session.commit()
+        
+        # Clear all reset session data
+        session.pop('reset_otp', None)
+        session.pop('reset_username', None)
+        session.pop('reset_email', None)
+        session.pop('reset_expires', None)
+        session.pop('reset_token', None)
+        session.pop('reset_token_expires', None)
+        
+        flash('เปลี่ยนรหัสผ่านเรียบร้อยแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่' if lang == 'th' else 'Your password has been reset successfully. Please login with your new password.', 'success')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    
+    return render_template('continueing_edu/set_new_password.html', current_lang=lang, texts=texts, reset_token=token)
 
 
 # --- Reset Password (confirm OTP and set new password) ---
@@ -728,6 +921,156 @@ def google_callback():
     next_url = session.pop('oauth_next', None)
     flash(texts.get('login_success', 'Login successful!'), 'success')
     return redirect(next_url or url_for('continuing_edu.index', lang=lang))
+
+
+@ce_bp.route('/google-signup-callback', methods=['POST'])
+def google_signup_callback():
+    """Handle Google Sign-up with JWT ID token"""
+    import jwt
+    from jwt import PyJWKClient
+    
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    
+    credential = request.form.get('credential')
+    if not credential:
+        flash(texts.get('google_error', 'Google authentication failed'), 'danger')
+        return redirect(url_for('continuing_edu.register', lang=lang))
+    
+    try:
+        # Verify JWT token
+        google_client_id = os.getenv('GOOGLE_CLIENT_ID', '206836986017-1dctro1ehrqta2r91e5appn5j78spn9h.apps.googleusercontent.com')
+        jwks_url = 'https://www.googleapis.com/oauth2/v3/certs'
+        jwks_client = PyJWKClient(jwks_url)
+        signing_key = jwks_client.get_signing_key_from_jwt(credential)
+        
+        data = jwt.decode(
+            credential,
+            signing_key.key,
+            algorithms=['RS256'],
+            audience=google_client_id,
+        )
+        
+        google_sub = data.get('sub')
+        email = data.get('email')
+        name = data.get('name')
+        email_verified = data.get('email_verified', False)
+        
+        if not email_verified:
+            flash(texts.get('email_not_verified', 'กรุณายืนยันอีเมล Google ของคุณก่อน' if lang == 'th' else 'Please verify your Google email first'), 'warning')
+            return redirect(url_for('continuing_edu.register', lang=lang))
+        
+        # Check if user already exists
+        existing_user = Member.query.filter(
+            or_(Member.google_sub == google_sub, Member.email == email)
+        ).first()
+        
+        if existing_user:
+            # User exists, just log them in
+            if not existing_user.google_sub:
+                existing_user.google_sub = google_sub
+                existing_user.google_connected_at = datetime.now(timezone.utc)
+                db.session.commit()
+            
+            session['member_id'] = existing_user.id
+            flash(texts.get('login_success', 'เข้าสู่ระบบสำเร็จ' if lang == 'th' else 'Login successful!'), 'success')
+            return redirect(url_for('continuing_edu.index', lang=lang))
+        
+        # Create new user account
+        username = email.split('@')[0] if email else f'google_{google_sub[:8]}'
+        # Check if username exists, make it unique
+        base_username = username
+        counter = 1
+        while Member.query.filter_by(username=username).first():
+            username = f'{base_username}{counter}'
+            counter += 1
+        
+        pwd = secrets.token_urlsafe(16)
+        new_member = Member(
+            username=username,
+            email=email,
+            password_hash=generate_password_hash(pwd),
+            full_name_en=name,
+            google_sub=google_sub,
+            google_connected_at=datetime.now(timezone.utc),
+            is_verified=True,  # Google emails are pre-verified
+            policy_accepted=True,
+            terms_condition_accepted=True,
+        )
+        
+        db.session.add(new_member)
+        db.session.commit()
+        
+        session['member_id'] = new_member.id
+        session['needs_profile_completion'] = True
+        
+        flash(texts.get('google_signup_success', 'ลงทะเบียนสำเร็จ! กรุณากรอกข้อมูลส่วนตัวเพิ่มเติม' if lang == 'th' else 'Registration successful! Please complete your profile'), 'success')
+        return redirect(url_for('continuing_edu.complete_profile', lang=lang))
+        
+    except Exception as e:
+        flash(f'{texts.get("google_error", "Google authentication error")}: {str(e)}', 'danger')
+        return redirect(url_for('continuing_edu.register', lang=lang))
+
+
+@ce_bp.route('/complete-profile', methods=['GET', 'POST'])
+def complete_profile():
+    """Profile completion page after Google sign-up"""
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    
+    member_id = session.get('member_id')
+    if not member_id:
+        flash(texts.get('login_required', 'กรุณาเข้าสู่ระบบ' if lang == 'th' else 'Please log in'), 'warning')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    
+    member = Member.query.get(member_id)
+    if not member:
+        session.pop('member_id', None)
+        flash(texts.get('member_not_found', 'ไม่พบข้อมูลสมาชิก' if lang == 'th' else 'Member not found'), 'danger')
+        return redirect(url_for('continuing_edu.register', lang=lang))
+    
+    if request.method == 'POST':
+        # Update member profile
+        member.member_type_id = request.form.get('member_type_id') or None
+        member.gender_id = request.form.get('gender_id') or None
+        member.age_range_id = request.form.get('age_range_id') or None
+        member.full_name_th = request.form.get('full_name_th') or None
+        member.phone_no = request.form.get('phone_no') or None
+        member.organization_id = request.form.get('organization_id') or None
+        member.occupation_id = request.form.get('occupation_id') or None
+        member.country = request.form.get('country') or None
+        
+        # Handle address
+        address_line1 = request.form.get('address_line1')
+        if address_line1:
+            member.address = address_line1
+            member.province = request.form.get('address_province')
+            member.zip_code = request.form.get('address_zipcode')
+        
+        db.session.commit()
+        session.pop('needs_profile_completion', None)
+        
+        flash(texts.get('profile_updated', 'อัปเดตข้อมูลสำเร็จ' if lang == 'th' else 'Profile updated successfully'), 'success')
+        return redirect(url_for('continuing_edu.index', lang=lang))
+    
+    # GET request - show form
+    member_types = MemberType.query.order_by(MemberType.name_en.asc()).all()
+    genders = Gender.query.order_by(Gender.id.asc()).all()
+    age_ranges = AgeRange.query.order_by(AgeRange.id.asc()).all()
+    organizations = Organization.query.order_by(Organization.name.asc()).limit(50).all()
+    occupations = Occupation.query.order_by(Occupation.name_en.asc()).all()
+    
+    return render_template(
+        'continueing_edu/complete_profile.html',
+        texts=texts,
+        current_lang=lang,
+        member=member,
+        member_types=member_types,
+        genders=genders,
+        age_ranges=age_ranges,
+        organizations=organizations,
+        occupations=occupations,
+    )
 
 
 @ce_bp.route('/account/connect/google')
@@ -881,6 +1224,27 @@ def account_export_data():
     resp.headers['Content-Type'] = 'application/json; charset=utf-8'
     resp.headers['Content-Disposition'] = f'attachment; filename="my_data_{user.username}.json"'
     return resp
+
+
+@ce_bp.route('/api/organizations_by_type/<int:org_type_id>', methods=['GET'])
+def get_organizations_by_type(org_type_id):
+    """API endpoint to fetch organizations based on organization type.
+    For type_id 7 or 1: returns client organizations from comhealth_orgs
+    For other types: returns from organizations table
+    """
+    try:
+        if org_type_id in [7, 1]:
+            # Fetch from client organizations (comhealth_orgs)
+            orgs = ComHealthOrg.query.order_by(ComHealthOrg.name.asc()).all()
+            result = [{'id': org.id, 'name': org.name, 'source': 'client'} for org in orgs]
+        else:
+            # Fetch from regular organizations with matching type
+            orgs = Organization.query.filter_by(organization_type_id=org_type_id).order_by(Organization.name.asc()).all()
+            result = [{'id': org.id, 'name': org.name, 'source': 'regular'} for org in orgs]
+        
+        return jsonify({'success': True, 'organizations': result})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @ce_bp.route('/why_register')
@@ -1119,16 +1483,20 @@ def webinar_detail(webinar_id):
                            logged_in_user=user, already_registered=already_registered, approved_payment=approved_payment)
 
 
-# --- Event Registration ---
-@ce_bp.route('/event/<int:event_id>/register', methods=['GET', 'POST'])
+# --- Event Registration Confirmation Page ---
+@ce_bp.route('/event/<int:event_id>/register', methods=['GET'])
 def register_event(event_id):
+    """Show registration confirmation page before actual registration"""
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
     event = EventEntity.query.get_or_404(event_id)
     member = get_current_user()
+    
+    # Redirect to login if not authenticated
     if not member:
-        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
-        return redirect(url_for('continuing_edu.login', lang=lang))
+        flash(texts.get('login_required', 'กรุณาเข้าสู่ระบบก่อนลงทะเบียน' if lang == 'th' else 'Please login to register.'), 'warning')
+        next_url = url_for('continuing_edu.register_event', event_id=event_id, lang=lang)
+        return redirect(url_for('continuing_edu.login', lang=lang, next=next_url))
 
     # Already registered?
     existing = MemberRegistration.query.filter_by(member_id=member.id, event_entity_id=event.id).first()
@@ -1139,6 +1507,45 @@ def register_event(event_id):
     fee, price = _price_for_member(event, member)
     if not fee:
         flash(texts.get('no_fee_defined', 'No registration fee defined for your member type.'), 'danger')
+        return redirect(url_for('continuing_edu.course_detail' if event.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event.id if event.event_type=='course' else None, webinar_id=event.id if event.event_type=='webinar' else None, lang=lang))
+
+    # Check if early bird is active
+    is_early_bird = is_early_bird_active(event)
+    
+    # Show confirmation page
+    return render_template('continueing_edu/registration_confirmation.html', 
+                         event=event, 
+                         member=member, 
+                         fee=fee, 
+                         price=price,
+                         is_early_bird=is_early_bird,
+                         texts=texts, 
+                         current_lang=lang,
+                         logged_in_user=member)
+
+
+# --- Confirm Registration (POST) ---
+@ce_bp.route('/event/<int:event_id>/confirm-registration', methods=['POST'])
+def confirm_registration(event_id):
+    """Process the actual registration after confirmation"""
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    event = EventEntity.query.get_or_404(event_id)
+    member = get_current_user()
+    
+    if not member:
+        flash(texts.get('login_required', 'กรุณาเข้าสู่ระบบก่อนลงทะเบียน' if lang == 'th' else 'Please login to register.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    
+    # Check if already registered
+    existing = MemberRegistration.query.filter_by(member_id=member.id, event_entity_id=event.id).first()
+    if existing:
+        flash(texts.get('already_registered', 'คุณได้ลงทะเบียนแล้ว' if lang == 'th' else 'You are already registered for this event.'), 'info')
+        return redirect(url_for('continuing_edu.course_detail' if event.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event.id if event.event_type=='course' else None, webinar_id=event.id if event.event_type=='webinar' else None, lang=lang))
+    
+    fee, price = _price_for_member(event, member)
+    if not fee:
+        flash(texts.get('no_fee_defined', 'ไม่พบข้อมูลค่าลงทะเบียนสำหรับประเภทสมาชิกของคุณ' if lang == 'th' else 'No registration fee defined for your member type.'), 'danger')
         return redirect(url_for('continuing_edu.course_detail' if event.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event.id if event.event_type=='course' else None, webinar_id=event.id if event.event_type=='webinar' else None, lang=lang))
 
     if request.method == 'POST':

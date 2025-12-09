@@ -87,6 +87,7 @@ class EventCreateStep1Form(FlaskForm):
 @admin_required
 def create_event():
     staff = get_current_staff()
+    print(staff)
     form = EventCreateStep1Form()
     if form.validate_on_submit():
         # Create EventEntity row with minimal info
@@ -94,12 +95,17 @@ def create_event():
         db.session.add(event)
         db.session.commit()
         
-        # Automatically assign creator as editor
+        # Automatically assign creator to ALL roles for this event
         editor = EventEditor(event_entity_id=event.id, staff_id=staff.id)
-        db.session.add(editor)
+        registration_reviewer = EventRegistrationReviewer(event_entity_id=event.id, staff_id=staff.id)
+        payment_approver = EventPaymentApprover(event_entity_id=event.id, staff_id=staff.id)
+        receipt_issuer = EventReceiptIssuer(event_entity_id=event.id, staff_id=staff.id)
+        certificate_manager = EventCertificateManager(event_entity_id=event.id, staff_id=staff.id)
+        
+        db.session.add_all([editor, registration_reviewer, payment_approver, receipt_issuer, certificate_manager])
         db.session.commit()
         
-        flash('Event created successfully. You have been assigned as editor.', 'success')
+        flash('Event created successfully. You have been assigned all roles for this event.', 'success')
         # Redirect to edit page with tabs for further info
         return redirect(url_for('continuing_edu_admin.edit_event', event_id=event.id))
     return render_template('continueing_edu/admin/event_create_step1.html', form=form, logged_in_admin=staff)
@@ -1887,19 +1893,29 @@ def update_event_general(event_id):
     event.duration_th = request.form.get('duration_th')
     event.format_en = request.form.get('format_en')
     event.format_th = request.form.get('format_th')
-    # Handle image uploads or manual URLs
-    poster_url_input = request.form.get('poster_image_url')
-    cover_url_input = request.form.get('cover_image_url')
+    # Handle image uploads (file upload only)
     poster_file = request.files.get('poster_image_file')
     cover_file = request.files.get('cover_image_file')
+    delete_poster = request.form.get('delete_poster') == '1'
+    delete_cover = request.form.get('delete_cover') == '1'
 
     import time
     from werkzeug.utils import secure_filename
 
-    # Upload poster image if provided
     # Lazy import to avoid circular imports at module import time
     from app.main import allowed_file, s3, S3_BUCKET_NAME
+    
+    # Handle poster image
+    old_poster = event.poster_image_url
     if poster_file and allowed_file(poster_file.filename):
+        # Delete old poster if it exists in S3
+        if old_poster and not old_poster.startswith('http'):
+            try:
+                s3.delete_object(Bucket=S3_BUCKET_NAME, Key=old_poster)
+            except Exception as e:
+                print(f"Warning: Could not delete old poster {old_poster}: {e}")
+        
+        # Upload new poster
         filename = secure_filename(poster_file.filename)
         ext = filename.rsplit('.', 1)[-1].lower()
         key = f"continuing_edu/events/{event.id}/poster_{int(time.time())}.{ext}"
@@ -1907,11 +1923,26 @@ def update_event_general(event_id):
         content_type = poster_file.mimetype or 'application/octet-stream'
         s3.put_object(Bucket=S3_BUCKET_NAME, Key=key, Body=file_data, ContentType=content_type)
         event.poster_image_url = key
-    elif poster_url_input is not None:
-        event.poster_image_url = poster_url_input or None
+    elif delete_poster and old_poster:
+        # User checked delete without uploading new file
+        if not old_poster.startswith('http'):
+            try:
+                s3.delete_object(Bucket=S3_BUCKET_NAME, Key=old_poster)
+            except Exception as e:
+                print(f"Warning: Could not delete old poster {old_poster}: {e}")
+        event.poster_image_url = None
 
-    # Upload cover image if provided
+    # Handle cover image
+    old_cover = event.cover_image_url
     if cover_file and allowed_file(cover_file.filename):
+        # Delete old cover if it exists in S3
+        if old_cover and not old_cover.startswith('http'):
+            try:
+                s3.delete_object(Bucket=S3_BUCKET_NAME, Key=old_cover)
+            except Exception as e:
+                print(f"Warning: Could not delete old cover {old_cover}: {e}")
+        
+        # Upload new cover
         filename = secure_filename(cover_file.filename)
         ext = filename.rsplit('.', 1)[-1].lower()
         key = f"continuing_edu/events/{event.id}/cover_{int(time.time())}.{ext}"
@@ -1919,8 +1950,14 @@ def update_event_general(event_id):
         content_type = cover_file.mimetype or 'application/octet-stream'
         s3.put_object(Bucket=S3_BUCKET_NAME, Key=key, Body=file_data, ContentType=content_type)
         event.cover_image_url = key
-    elif cover_url_input is not None:
-        event.cover_image_url = cover_url_input or None
+    elif delete_cover and old_cover:
+        # User checked delete without uploading new file
+        if not old_cover.startswith('http'):
+            try:
+                s3.delete_object(Bucket=S3_BUCKET_NAME, Key=old_cover)
+            except Exception as e:
+                print(f"Warning: Could not delete old cover {old_cover}: {e}")
+        event.cover_image_url = None
     event.certificate_name_en = request.form.get('certificate_name_en')
     event.certificate_name_th = request.form.get('certificate_name_th')
     ce_val = request.form.get('continue_education_score')

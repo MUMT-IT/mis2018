@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ texts.university_name }} - {{ texts.course_detail_title }}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -233,8 +234,8 @@
                     <img src="https://placehold.co/100x40/4338CA/FFFFFF?text=LOGO" alt="[Image of University Logo]"
                         class="university-logo">
                 </a>
-                <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}"
-                    class="navbar-item title is-4 has-text-indigo-700 rounded-md">{{ texts.university_name }}</a>
+                <!-- <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}"
+                    class="navbar-item title is-4 has-text-indigo-700 rounded-md">{{ texts.university_name }}</a> -->
                 <div class="navbar-burger burger" data-target="navbarMenu">
                     <span></span>
                     <span></span>
@@ -271,18 +272,20 @@
                         {{ texts.login_page_title }}
                     </a>
                     {% endif %}
+
                     <div class="navbar-item">
                         <div class="buttons has-addons">
-                            <a class="button is-small is-rounded language-button {% if current_lang == 'en' %}is-active{% endif %}"
+                            <a class="button is-small language-button {% if current_lang == 'en' %}is-active{% endif %}"
                                 href="{{ url_for('continuing_edu.course_detail', course_id=course.id, lang='en') }}">
                                 EN
                             </a>
-                            <a class="button is-small is-rounded language-button {% if current_lang == 'th' %}is-active{% endif %}"
+                            <a class="button is-small language-button {% if current_lang == 'th' %}is-active{% endif %}"
                                 href="{{ url_for('continuing_edu.course_detail', course_id=course.id, lang='th') }}">
                                 TH
                             </a>
                         </div>
                     </div>
+
                 </div>
             </div>
         </div>
@@ -311,75 +314,145 @@
                             }}</a></li>
                     <li><a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#short-courses">{{
                             texts.our_short_courses_title }}</a></li>
-                    {% set title_local = course.title_en if current_lang=='en' else (course.title_th or course.title_en) %}
+                    {% set title_local = course.title_en if current_lang=='en' else (course.title_th or course.title_en)
+                    %}
                     <li class="is-active"><a href="#" aria-current="page">{{ title_local }}</a></li>
                 </ul>
             </nav>
             <h1 class="title is-1 has-text-centered mb-12 has-text-gray-800 rounded-md">{{ title_local }}</h1>
 
             <div class="columns is-vcentered is-desktop">
-                <div class="column is-half-desktop">
-                    <figure class="image is-3by2">
+                <div class="column is-half-desktop content">
+                    <figure class="image is-3by2 rounded-lg shadow-lg">
                         {% set cover = course.cover_presigned_url() if course.cover_image_url else None %}
                         {% set poster = course.poster_presigned_url() if course.poster_image_url else None %}
                         <img src="{{ cover or poster or course.image_url }}"
                             alt="[Image of {{ course.title or course.title_en }}]"
                             class="object-cover rounded-lg shadow-lg">
                     </figure>
+                    {% if poster %}
+                    <div class="has-text-centered mt-3">
+                        <button class="button is-info is-light" onclick="showPosterModal()">
+                            <span class="icon">
+                                <i class="fas fa-image"></i>
+                            </span>
+                            <span>{{ texts.get('view_poster', 'ดูโปสเตอร์' if current_lang == 'th' else 'View Poster')
+                                }}</span>
+                        </button>
+                    </div>
+                    {% endif %}
                 </div>
                 <div class="column is-half-desktop">
                     <div class="content">
-                        {% set long_desc = course.long_description_en if current_lang=='en' else (course.long_description_th or course.long_description_en) %}
-                        {% set short_desc = course.description_en if current_lang=='en' else (course.description_th or course.description_en) %}
+                        {% set long_desc = course.long_description_en if current_lang=='en' else
+                        (course.long_description_th or course.long_description_en) %}
+                        {% set short_desc = course.description_en if current_lang=='en' else (course.description_th or
+                        course.description_en) %}
                         {% if long_desc %}
                         <p class="is-size-5 has-text-gray-700 mb-6 rounded-md">{{ long_desc }}</p>
                         {% elif short_desc %}
                         <p class="is-size-5 has-text-gray-700 mb-6 rounded-md">{{ short_desc }}</p>
                         {% endif %}
                         <ul class="list-disc has-text-gray-700 mb-4 rounded-md">
-                            {% set duration = course.duration_en if current_lang=='en' else (course.duration_th or course.duration_en) %}
-                            {% set fmt = course.format_en if current_lang=='en' else (course.format_th or course.format_en) %}
-                            {% set cert = course.certificate_name_en if current_lang=='en' else (course.certificate_name_th or course.certificate_name_en) %}
-                            {% set loc = course.location_en if current_lang=='en' else (course.location_th or course.location_en) %}
-                            {% if duration %}<li><strong>{{ texts.duration_label }}:</strong> {{ duration }}</li>{% endif %}
+                            {% set duration = course.duration_en if current_lang=='en' else (course.duration_th or
+                            course.duration_en) %}
+                            {% set fmt = course.format_en if current_lang=='en' else (course.format_th or
+                            course.format_en) %}
+                            {% set cert = course.certificate_name_en if current_lang=='en' else
+                            (course.certificate_name_th or course.certificate_name_en) %}
+                            {% set loc = course.location_en if current_lang=='en' else (course.location_th or
+                            course.location_en) %}
+                            {% if duration %}<li><strong>{{ texts.duration_label }}:</strong> {{ duration }}</li>{%
+                            endif %}
                             {% if fmt %}<li><strong>{{ texts.format_label }}:</strong> {{ fmt }}</li>{% endif %}
-                            {% if cert %}<li><strong>{{ texts.certification_label }}:</strong> {{ cert }}</li>{% endif %}
+                            {% if cert %}<li><strong>{{ texts.certification_label }}:</strong> {{ cert }}</li>{% endif
+                            %}
                             {% if loc %}<li><strong>{{ texts.location_label }}:</strong> {{ loc }}</li>{% endif %}
                             {% if course.continue_education_score %}
-                              <li><strong>CE Score:</strong> {{ '%.2f'|format(course.continue_education_score) }}</li>
+                            <li><strong>CE Score:</strong> {{ '%.2f'|format(course.continue_education_score) }}</li>
                             {% endif %}
                         </ul>
 
                         <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.instructors_label }}</h4>
                         {% if course.speakers %}
-                          <ul class="list-disc has-text-gray-700 mb-4">
+                        <div class="instructor-grid"
+                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
                             {% for sp in course.speakers %}
-                              {% set sp_name = sp.name_en if current_lang=='en' else (sp.name_th or sp.name_en) %}
-                              {% set sp_title = sp.title_en if current_lang=='en' else (sp.title_th or sp.title_en) %}
-                              {% set sp_pos = sp.position_en if current_lang=='en' else (sp.position_th or sp.position_en) %}
-                              {% set sp_inst = sp.institution_en if current_lang=='en' else (sp.institution_th or sp.institution_en) %}
-                              <li>{{ sp_title }} {{ sp_name }}{% if sp_pos %}, {{ sp_pos }}{% endif %}{% if sp_inst %} — {{ sp_inst }}{% endif %}</li>
+                            {% set sp_name = sp.name_en if current_lang=='en' else (sp.name_th or sp.name_en) %}
+                            {% set sp_title = sp.title_en if current_lang=='en' else (sp.title_th or sp.title_en) %}
+                            {% set sp_pos = sp.position_en if current_lang=='en' else (sp.position_th or sp.position_en)
+                            %}
+                            {% set sp_inst = sp.institution_en if current_lang=='en' else (sp.institution_th or
+                            sp.institution_en) %}
+                            {% set sp_bio = sp.bio_en if current_lang=='en' else (sp.bio_th or sp.bio_en) %}
+                            <div class="instructor-card"
+                                style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+                                onclick='showInstructorModal({{ sp.id }}, "{{ sp_title|e }}", "{{ sp_name|e }}", "{{ sp_pos|e }}", "{{ sp_inst|e }}", "{{ sp.image_url|e if sp.image_url else "" }}", "{{ sp_bio|e if sp_bio else "" }}", "{{ sp.email|e }}", "{{ sp.phone|e }}")'>
+                                <div class="box has-text-centered"
+                                    style="height: 100%; padding: 1rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                                    <figure class="image is-96x96" style="margin: 0 auto 0.75rem;">
+                                        {% if sp.image_url %}
+                                        <img src="{{ sp.image_url }}" alt="{{ sp_name }}"
+                                            style="border-radius: 50%; object-fit: cover; width: 96px; height: 96px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);">
+                                        {% else %}
+                                        <div
+                                            style="width: 96px; height: 96px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);">
+                                            <span style="color: white; font-size: 2.5rem; font-weight: 600;">{{
+                                                sp_name[0] if sp_name else '?' }}</span>
+                                        </div>
+                                        {% endif %}
+                                    </figure>
+                                    <p class="has-text-weight-semibold has-text-gray-800"
+                                        style="font-size: 0.95rem; margin-bottom: 0.25rem;">
+                                        {{ sp_title }} {{ sp_name }}
+                                    </p>
+                                    {% if sp_pos %}
+                                    <p class="has-text-gray-600" style="font-size: 0.8rem; margin-bottom: 0.15rem;">{{
+                                        sp_pos }}</p>
+                                    {% endif %}
+                                    {% if sp_inst %}
+                                    <p class="has-text-gray-500" style="font-size: 0.75rem;">{{ sp_inst }}</p>
+                                    {% endif %}
+                                    <span class="icon has-text-indigo-600 mt-2">
+                                        <i class="fas fa-info-circle"></i>
+                                    </span>
+                                </div>
+                            </div>
                             {% endfor %}
-                          </ul>
+                        </div>
+
+                        <style>
+                            .instructor-card:hover {
+                                transform: translateY(-4px);
+                            }
+
+                            .instructor-card:hover .box {
+                                box-shadow: 0 8px 24px rgba(79, 70, 229, 0.15) !important;
+                            }
+
+                            .instructor-card:active {
+                                transform: translateY(-2px);
+                            }
+                        </style>
                         {% else %}
-                          <p class="has-text-grey">—</p>
+                        <p class="has-text-grey">—</p>
                         {% endif %}
 
                         <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.agenda_label }}</h4>
                         {% if course.agendas %}
-                          <ul class="list-disc has-text-gray-700 mb-4">
+                        <ul class="list-disc has-text-gray-700 mb-4">
                             {% for a in course.agendas|sort(attribute='start_time') %}
-                              <li>
+                            <li>
                                 {% if a.start_time and a.end_time %}
-                                  [{{ a.start_time.strftime('%H:%M') }}–{{ a.end_time.strftime('%H:%M') }}]
+                                [{{ a.start_time.strftime('%H:%M') }}–{{ a.end_time.strftime('%H:%M') }}]
                                 {% endif %}
                                 {% set atitle = a.title_en if current_lang=='en' else (a.title_th or a.title_en) %}
                                 {{ atitle }}
-                              </li>
+                            </li>
                             {% endfor %}
-                          </ul>
+                        </ul>
                         {% else %}
-                          <p class="has-text-grey">—</p>
+                        <p class="has-text-grey">—</p>
                         {% endif %}
 
                         {% if course.early_bird_end %}
@@ -414,48 +487,67 @@
                             {% endif %}
                         </div>
 
+                        {% from 'continueing_edu/_registration_macros.html' import registration_button,
+                        registration_status_badge %}
+
                         {% if logged_in_user %}
                         {% if already_registered %}
-                        <div class="notification is-success is-light">You are already registered for this event.</div>
-                        <button class="button is-static is-large is-rounded">Registered</button>
+                        <div class="notification is-success is-light">
+                            <p class="mb-2"><strong>{{ texts.get('status_registered', 'ลงทะเบียนแล้ว' if current_lang ==
+                                    'th' else 'You are registered') }}</strong></p>
+                            {{ registration_status_badge(course, [course.id], approved_payment, texts, current_lang) }}
+                        </div>
+
                         <div class="box mt-4">
-                            <p class="mb-2"><strong>Progress</strong></p>
-                            <p>Started: {{ (logged_in_user.registrations|selectattr('event_entity_id','equalto',
+                            <p class="mb-2"><strong>{{ texts.get('progress', 'ความคืบหน้า' if current_lang == 'th' else
+                                    'Progress') }}</strong></p>
+                            <p>{{ texts.get('started', 'เริ่มเรียน' if current_lang == 'th' else 'Started') }}: {{
+                                (logged_in_user.registrations|selectattr('event_entity_id','equalto',
                                 course.id)|map(attribute='started_at')|list|first) or '-' }}</p>
-                            <p>Completed: {{ (logged_in_user.registrations|selectattr('event_entity_id','equalto',
+                            <p>{{ texts.get('completed', 'เสร็จสิ้น' if current_lang == 'th' else 'Completed') }}: {{
+                                (logged_in_user.registrations|selectattr('event_entity_id','equalto',
                                 course.id)|map(attribute='completed_at')|list|first) or '-' }}</p>
                             <div class="buttons mt-2">
                                 {% if approved_payment %}
                                 <form method="post"
                                     action="{{ url_for('continuing_edu.start_progress', event_id=course.id, lang=current_lang) }}">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                                    <button class="button is-small" type="submit">Start</button>
+                                    <button class="button is-small is-primary" type="submit">
+                                        <span class="icon"><i class="fas fa-play"></i></span>
+                                        <span>{{ texts.get('start', 'เริ่มเรียน' if current_lang == 'th' else 'Start')
+                                            }}</span>
+                                    </button>
                                 </form>
                                 <form method="post"
                                     action="{{ url_for('continuing_edu.complete_progress', event_id=course.id, lang=current_lang) }}"
                                     class="ml-2">
                                     <input type="hidden" name="passed" value="1">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                                    <button class="button is-small is-link" type="submit">Complete & Issue
-                                        Certificate</button>
+                                    <button class="button is-small is-success" type="submit">
+                                        <span class="icon"><i class="fas fa-check"></i></span>
+                                        <span>{{ texts.get('complete_issue_cert', 'เสร็จสิ้นและออกใบประกาศนียบัตร' if
+                                            current_lang == 'th' else 'Complete & Issue Certificate') }}</span>
+                                    </button>
                                 </form>
                                 {% else %}
-                                <span class="tag is-light">Waiting for payment approval</span>
+                                <span class="tag is-warning is-medium">
+                                    <span class="icon"><i class="fas fa-clock"></i></span>
+                                    <span>{{ texts.get('waiting_payment_approval', 'รอการอนุมัติการชำระเงิน' if
+                                        current_lang == 'th' else 'Waiting for payment approval') }}</span>
+                                </span>
                                 {% endif %}
                             </div>
                         </div>
                         {% else %}
-                        <a href="{{ url_for('continuing_edu.register_event', event_id=course.id, lang=current_lang) }}"
-                            class="button is-info is-large is-rounded has-background-indigo-600 hover:has-background-indigo-700 has-text-white">{{
-                            texts.enroll_now_btn }}</a>
+                        <div class="mt-4">
+                            {{ registration_button(course, logged_in_user, already_registered, texts, current_lang) }}
+                        </div>
                         {% endif %}
                         {% else %}
-                        <p class="has-text-grey-dark is-size-6 mt-5">{{ texts.register_to_enroll }}</p>
-                        <div class="buttons mt-3">
-                            <a href="{{ url_for('continuing_edu.register', lang=current_lang) }}"
-                                class="button is-link is-small is-rounded">{{ texts.register_page_title }}</a>
-                            <a href="{{ url_for('continuing_edu.login', lang=current_lang) }}"
-                                class="button is-primary is-small is-rounded">{{ texts.login_page_title }}</a>
+                        <div class="box has-background-warning-light mt-4">
+                            <p class="mb-3"><strong>{{ texts.get('login_required_title', 'กรุณาเข้าสู่ระบบ' if
+                                    current_lang == 'th' else 'Login Required') }}</strong></p>
+                            {{ registration_button(course, logged_in_user, already_registered, texts, current_lang) }}
                         </div>
                         {% endif %}
                     </div>
@@ -470,6 +562,69 @@
             </div>
         </div>
     </section>
+
+    <!-- Poster Modal -->
+    {% if poster %}
+    <div id="poster-modal" class="modal">
+        <div class="modal-background" onclick="closePosterModal()"></div>
+        <div class="modal-content" style="max-width: 90%; width: auto;">
+            <div class="box">
+                <figure class="image">
+                    <img src="{{ poster }}" alt="Poster - {{ title_local }}" style="width: 100%; height: auto;">
+                </figure>
+            </div>
+        </div>
+        <button class="modal-close is-large" aria-label="close" onclick="closePosterModal()"></button>
+    </div>
+    {% endif %}
+
+    <!-- Instructor Profile Modal -->
+    <div id="instructor-modal" class="modal">
+        <div class="modal-background" onclick="closeInstructorModal()"></div>
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="box" style="border-radius: 16px;">
+                <div class="has-text-centered mb-4">
+                    <figure class="image is-128x128" style="margin: 0 auto 1rem auto;"
+                        id="instructor-modal-image-container">
+                        <!-- Dynamic image will be inserted here -->
+                    </figure>
+                    <h3 class="title is-4 has-text-indigo-700 mb-2" id="instructor-modal-name">Instructor Name</h3>
+                    <p class="subtitle is-6 has-text-gray-600 mb-1" id="instructor-modal-position"></p>
+                    <p class="has-text-gray-500 is-size-7" id="instructor-modal-institution"></p>
+                </div>
+
+                <div class="content" id="instructor-modal-bio-container" style="display: none;">
+                    <hr style="background-color: #e5e7eb; margin: 1.5rem 0;">
+                    <h5 class="title is-6 has-text-indigo-600 mb-2">
+                        {{ texts.get('about', 'เกี่ยวกับ' if current_lang == 'th' else 'About') }}
+                    </h5>
+                    <p class="has-text-gray-700" id="instructor-modal-bio" style="line-height: 1.6;"></p>
+                </div>
+
+                <div class="content" id="instructor-modal-contact-container" style="display: none;">
+                    <hr style="background-color: #e5e7eb; margin: 1.5rem 0;">
+                    <h5 class="title is-6 has-text-indigo-600 mb-3">
+                        {{ texts.get('contact', 'ติดต่อ' if current_lang == 'th' else 'Contact') }}
+                    </h5>
+                    <div class="is-flex is-flex-direction-column" style="gap: 0.5rem;">
+                        <div id="instructor-modal-email" class="is-flex is-align-items-center" style="gap: 0.5rem;">
+                            <span class="icon has-text-indigo-600">
+                                <i class="fas fa-envelope"></i>
+                            </span>
+                            <span class="has-text-gray-700"></span>
+                        </div>
+                        <div id="instructor-modal-phone" class="is-flex is-align-items-center" style="gap: 0.5rem;">
+                            <span class="icon has-text-indigo-600">
+                                <i class="fas fa-phone"></i>
+                            </span>
+                            <span class="has-text-gray-700"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button class="modal-close is-large" aria-label="close" onclick="closeInstructorModal()"></button>
+    </div>
 
     <footer class="footer has-background-gray-800 has-text-white py-8 mt-12 rounded-t-lg">
         <div class="container has-text-centered px-4">
@@ -487,6 +642,110 @@
     </footer>
 
     <script>
+        // Poster modal functions
+        function showPosterModal() {
+            var modal = document.getElementById('poster-modal');
+            if (modal) {
+                modal.classList.add('is-active');
+            }
+        }
+
+        function closePosterModal() {
+            var modal = document.getElementById('poster-modal');
+            if (modal) {
+                modal.classList.remove('is-active');
+            }
+        }
+
+        // Instructor modal functions
+        function showInstructorModal(id, title, name, position, institution, imageUrl, bio, email, phone) {
+            var modal = document.getElementById('instructor-modal');
+            if (!modal) return;
+
+            // Set name, position, institution
+            var nameEl = document.getElementById('instructor-modal-name');
+            var positionEl = document.getElementById('instructor-modal-position');
+            var institutionEl = document.getElementById('instructor-modal-institution');
+
+            if (nameEl) nameEl.textContent = (title ? title + ' ' : '') + (name || '');
+            if (positionEl) positionEl.textContent = position || '';
+            if (institutionEl) institutionEl.textContent = institution || '';
+
+            // Handle image
+            var imageContainer = document.getElementById('instructor-modal-image-container');
+            if (imageContainer) {
+                if (imageUrl && imageUrl !== 'None' && imageUrl !== '') {
+                    imageContainer.innerHTML = '<div style="width: 128px; height: 128px; border-radius: 50%; background: #f5f5f5; display: flex; align-items: center; justify-content: center; margin: 0 auto; overflow: hidden;"><img src="' + imageUrl + '" alt="' + name + '" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;"></div>';
+                } else {
+                    // Show placeholder with initial
+                    var initial = name ? name.charAt(0).toUpperCase() : '?';
+                    imageContainer.innerHTML = '<div style="width: 128px; height: 128px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto;"><span style="color: white; font-size: 3rem; font-weight: bold;">' + initial + '</span></div>';
+                }
+            }
+
+            // Handle bio
+            var bioContainer = document.getElementById('instructor-modal-bio-container');
+            var bioText = document.getElementById('instructor-modal-bio');
+            if (bioContainer && bioText) {
+                if (bio && bio !== 'None' && bio !== '') {
+                    bioText.textContent = bio;
+                    bioContainer.style.display = 'block';
+                } else {
+                    bioContainer.style.display = 'none';
+                }
+            }
+
+            // Handle contact
+            var contactContainer = document.getElementById('instructor-modal-contact-container');
+            var emailDiv = document.getElementById('instructor-modal-email');
+            var phoneDiv = document.getElementById('instructor-modal-phone');
+
+            var hasContact = false;
+            if (email && email !== 'None' && email !== '') {
+                if (emailDiv) {
+                    var emailSpan = emailDiv.querySelector('span');
+                    if (emailSpan) emailSpan.textContent = email;
+                    emailDiv.style.display = 'flex';
+                    hasContact = true;
+                }
+            } else {
+                if (emailDiv) emailDiv.style.display = 'none';
+            }
+
+            if (phone && phone !== 'None' && phone !== '') {
+                if (phoneDiv) {
+                    var phoneSpan = phoneDiv.querySelector('span');
+                    if (phoneSpan) phoneSpan.textContent = phone;
+                    phoneDiv.style.display = 'flex';
+                    hasContact = true;
+                }
+            } else {
+                if (phoneDiv) phoneDiv.style.display = 'none';
+            }
+
+            if (contactContainer) {
+                contactContainer.style.display = hasContact ? 'block' : 'none';
+            }
+
+            // Show modal
+            modal.classList.add('is-active');
+        }
+
+        function closeInstructorModal() {
+            var modal = document.getElementById('instructor-modal');
+            if (modal) {
+                modal.classList.remove('is-active');
+            }
+        }
+
+        // Close modals on Escape key
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closePosterModal();
+                closeInstructorModal();
+            }
+        });
+
         // Early bird countdown + price toggle
         (function () {
             function inWindow(startIso, endIso) {

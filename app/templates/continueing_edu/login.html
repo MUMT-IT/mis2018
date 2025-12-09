@@ -231,26 +231,53 @@
                     <input type="hidden" name="next" value="{{ next }}" />
                     {% endif %}
                     <div class="field mb-4">
-                        <label for="username" class="label has-text-gray-700">{{ texts.username_label }}</label>
-                        <div class="control">
-                            <input type="text" id="username" name="username" class="input rounded-md"
-                                placeholder="{{ texts.username_label }}" required>
+                        <label for="email" class="label has-text-gray-700">
+                            <span class="icon-text">
+                                <span class="icon has-text-indigo-600">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                                <span>{{ 'อีเมล' if current_lang == 'th' else 'Email' }}</span>
+                            </span>
+                        </label>
+                        <div class="control has-icons-left">
+                            <input type="email" id="email" name="email" class="input rounded-md"
+                                placeholder="{{ 'your.email@example.com' if current_lang == 'en' else 'อีเมลของคุณ' }}"
+                                required>
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-envelope"></i>
+                            </span>
                         </div>
+                        <p class="help" style="color: #9ca3af; font-size: 0.875rem; margin-top: 0.25rem;">
+                            {{ 'ใช้อีเมลที่ลงทะเบียนไว้' if current_lang == 'th' else 'Use your registered email
+                            address' }}
+                        </p>
                     </div>
                     <div class="field mb-6">
-                        <label for="password" class="label has-text-gray-700">{{ texts.password_label }}</label>
-                        <div class="control">
+                        <label for="password" class="label has-text-gray-700">
+                            <span class="icon-text">
+                                <span class="icon has-text-indigo-600">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                                <span>{{ texts.password_label }}</span>
+                            </span>
+                        </label>
+                        <div class="control has-icons-left">
                             <input type="password" id="password" name="password" class="input rounded-md"
                                 placeholder="{{ texts.password_label }}" required>
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-lock"></i>
+                            </span>
                         </div>
                     </div>
-                    <div class="field is-grouped is-grouped-centered">
-                        <div class="control">
-                            <button type="submit"
-                                class="button is-info is-rounded has-background-indigo-600 hover:has-background-indigo-700 has-text-white">
-                                {{ texts.login_btn }}
-                            </button>
-                        </div>
+                    <div class="field">
+                        <button type="submit"
+                            class="button is-info is-fullwidth is-rounded has-background-indigo-600 hover:has-background-indigo-700 has-text-white"
+                            style="font-weight: 600;">
+                            <span class="icon">
+                                <i class="fas fa-sign-in-alt"></i>
+                            </span>
+                            <span>{{ texts.login_btn }}</span>
+                        </button>
                     </div>
 
 
@@ -261,18 +288,23 @@
                 </p>
                 <p class="has-text-centered mt-2">
                     <a href="{{ url_for('continuing_edu.forgot_password', lang=current_lang) }}"
-                        class="has-text-grey">{{ 'ลืมรหัสผ่าน?' if current_lang=='th' else 'Forgot your password?'
-                        }}</a>
+                        class="has-text-grey-dark">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-key"></i>
+                            </span>
+                            <span>{{ 'ลืมรหัสผ่าน?' if current_lang=='th' else 'Forgot your password?' }}</span>
+                        </span>
+                    </a>
                 </p>
 
-                <div class="has-text-centered mt-4">
-                    <a class="button is-light"
-                        href="{{ url_for('continuing_edu.google_login', lang=current_lang, next=next) }}">
-                        <span class="icon"><img src="https://www.google.com/favicon.ico" alt="G"
-                                style="height:16px;width:16px;"></span>
-                        <span>Login with Google</span>
-                    </a>
+                <div style="display: flex; align-items: center; margin: 1.5rem 0;">
+                    <div style="flex: 1; border-bottom: 1px solid #e5e7eb;"></div>
+                    <span style="padding: 0 1rem; color: #6b7280; font-size: 0.875rem;">{{ 'หรือ' if current_lang ==
+                        'th' else 'OR' }}</span>
+                    <div style="flex: 1; border-bottom: 1px solid #e5e7eb;"></div>
                 </div>
+
                 <div class="has-text-centered mt-3">
 
 
@@ -309,9 +341,10 @@
     </footer>
 
     <div id="g_id_onload" data-client_id="206836986017-1dctro1ehrqta2r91e5appn5j78spn9h.apps.googleusercontent.com"
-        data-context="signin" data-ux_mode="popup" data-callback="handleCredentialResponse" data-auto_prompt="true">
+        data-context="signin" data-ux_mode="popup" data-callback="handleCredentialResponse" data-auto_prompt="false">
     </div>
 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script>
         function triggerOneTap() {

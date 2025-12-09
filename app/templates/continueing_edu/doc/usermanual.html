@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+          <meta charset="UTF-8" />
+          <title>การสมัครสมาชิก - User Guide | MUMT CE</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+          <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap"
+                    rel="stylesheet">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css" />
+
+          <style>
+                    :root {
+                              --primary-color: #4F46E5;
+                              --primary-light: #EEF2FF;
+                              --text-main: #1E293B;
+                              --bg-color: #F8FAFC;
+                              --sidebar-width: 280px;
+                    }
+
+                    body {
+                              font-family: 'Prompt', sans-serif;
+                              background-color: var(--bg-color);
+                              color: var(--text-main);
+                              margin: 0;
+                    }
+
+                    /* --- Layout --- */
+                    .doc-layout {
+                              display: flex;
+                              min-height: 100vh;
+                    }
+
+                    /* --- Sidebar (Desktop) --- */
+                    .doc-sidebar {
+                              width: var(--sidebar-width);
+                              background: white;
+                              border-right: 1px solid #e2e8f0;
+                              padding: 2rem 1.5rem;
+                              position: fixed;
+                              height: 100vh;
+                              overflow-y: auto;
+                              top: 0;
+                              left: 0;
+                              z-index: 10;
+                    }
+
+                    .doc-content {
+                              margin-left: var(--sidebar-width);
+                              flex: 1;
+                              padding: 3rem 4rem;
+                              max-width: 1100px;
+                    }
+
+                    /* Menu Styling */
+                    .menu-label {
+                              color: #94a3b8;
+                              font-size: 0.75rem;
+                              letter-spacing: 0.05em;
+                              margin-top: 1.5rem;
+                    }
+
+                    .menu-list a {
+                              border-radius: 8px;
+                              color: #64748b;
+                              padding: 0.75rem 1rem;
+                              font-size: 0.95rem;
+                    }
+
+                    .menu-list a:hover {
+                              background-color: #f1f5f9;
+                              color: var(--text-main);
+                    }
+
+                    .menu-list a.is-active {
+                              background-color: var(--primary-light);
+                              color: var(--primary-color);
+                              font-weight: 600;
+                    }
+
+                    .menu-list li {
+                              margin-bottom: 0.25rem;
+                    }
+
+                    /* --- Content Components --- */
+                    .breadcrumb a {
+                              color: #64748b;
+                    }
+
+                    .breadcrumb .is-active a {
+                              color: var(--text-main);
+                              font-weight: 500;
+                    }
+
+                    .doc-header {
+                              margin-bottom: 3rem;
+                              border-bottom: 1px solid #e2e8f0;
+                              padding-bottom: 2rem;
+                    }
+
+                    /* Browser Mockup for Images */
+                    .browser-mockup {
+                              background: white;
+                              border-radius: 12px;
+                              box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1);
+                              border: 1px solid #e2e8f0;
+                              overflow: hidden;
+                              margin: 1.5rem 0 3rem 0;
+                    }
+
+                    .browser-header {
+                              background: #f8fafc;
+                              padding: 0.75rem 1rem;
+                              border-bottom: 1px solid #f1f5f9;
+                              display: flex;
+                              gap: 6px;
+                    }
+
+                    .dot {
+                              width: 10px;
+                              height: 10px;
+                              border-radius: 50%;
+                    }
+
+                    .dot.red {
+                              background: #ef4444;
+                    }
+
+                    .dot.yellow {
+                              background: #f59e0b;
+                    }
+
+                    .dot.green {
+                              background: #10b981;
+                    }
+
+                    .browser-body {
+                              padding: 0;
+                              position: relative;
+                    }
+
+                    /* Placeholder for actual image */
+                    .mock-image-placeholder {
+                              height: 300px;
+                              background-color: #f1f5f9;
+                              display: flex;
+                              align-items: center;
+                              justify-content: center;
+                              color: #94a3b8;
+                              font-size: 0.9rem;
+                    }
+
+                    /* Timeline / Steps */
+                    .step-item {
+                              display: flex;
+                              gap: 2rem;
+                              margin-bottom: 3rem;
+                              position: relative;
+                    }
+
+                    .step-item:not(:last-child)::before {
+                              content: '';
+                              position: absolute;
+                              left: 24px;
+                              top: 50px;
+                              bottom: -50px;
+                              width: 2px;
+                              background: #e2e8f0;
+                              z-index: 0;
+                    }
+
+                    .step-number-badge {
+                              width: 50px;
+                              height: 50px;
+                              background: white;
+                              border: 2px solid var(--primary-color);
+                              color: var(--primary-color);
+                              border-radius: 50%;
+                              display: flex;
+                              align-items: center;
+                              justify-content: center;
+                              font-weight: 700;
+                              font-size: 1.2rem;
+                              flex-shrink: 0;
+                              z-index: 1;
+                              box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1);
+                    }
+
+                    .step-content {
+                              flex: 1;
+                    }
+
+                    /* Note Box */
+                    .note-box {
+                              background-color: #eff6ff;
+                              border-left: 4px solid var(--primary-color);
+                              padding: 1.5rem;
+                              border-radius: 0 8px 8px 0;
+                              color: #1e3a8a;
+                              margin-bottom: 2rem;
+                    }
+
+                    /* Mobile Navbar (Hidden on Desktop) */
+                    .mobile-nav {
+                              display: none;
+                              padding: 1rem;
+                              background: white;
+                              border-bottom: 1px solid #eee;
+                    }
+
+                    @media screen and (max-width: 1023px) {
+                              .doc-sidebar {
+                                        display: none;
+                              }
+
+                              /* Hide sidebar on tablet/mobile */
+                              .doc-content {
+                                        margin-left: 0;
+                                        padding: 2rem 1.5rem;
+                              }
+
+                              .mobile-nav {
+                                        display: flex;
+                                        justify-content: space-between;
+                                        align-items: center;
+                              }
+                    }
+          </style>
+</head>
+
+<body>
+
+          <div class="mobile-nav">
+                    <a href="index.html" class="has-text-primary has-text-weight-bold">
+                              <i class="fas fa-chevron-left"></i> MUMT Guide
+                    </a>
+                    <span class="tag is-light">Menu</span>
+          </div>
+
+          <div class="doc-layout">
+
+                    <aside class="doc-sidebar">
+                              <div class="mb-5 px-2">
+                                        <a href="index.html"
+                                                  class="button is-white is-fullwidth is-justify-content-start has-text-primary">
+                                                  <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                                                  <span>กลับหน้าหลัก</span>
+                                        </a>
+                              </div>
+
+                              <p class="menu-label">คู่มือสมาชิก (Members)</p>
+                              <ul class="menu-list">
+                                        <li><a href="member-registration.html" class="is-active"><i
+                                                                      class="fas fa-id-card mr-2"></i> สมัครสมาชิก &
+                                                            เข้าสู่ระบบ</a></li>
+                                        <li><a href="#"><i class="fas fa-user-pen mr-2"></i> จัดการโปรไฟล์</a></li>
+                                        <li><a href="#"><i class="fas fa-magnifying-glass mr-2"></i> ค้นหาคอร์ส</a></li>
+                                        <li><a href="#"><i class="fas fa-credit-card mr-2"></i> ลงทะเบียน & ชำระเงิน</a>
+                                        </li>
+                                        <li><a href="#"><i class="fas fa-file-pdf mr-2"></i> ใบประกาศนียบัตร</a></li>
+                              </ul>
+
+                              <p class="menu-label">คู่มือผู้ดูแล (Admins)</p>
+                              <ul class="menu-list">
+                                        <li><a href="#"><i class="fas fa-chart-pie mr-2"></i> ภาพรวม (Dashboard)</a>
+                                        </li>
+                                        <li><a href="#"><i class="fas fa-calendar-plus mr-2"></i> สร้างกิจกรรม</a></li>
+                              </ul>
+                    </aside>
+
+                    <main class="doc-content">
+
+                              <nav class="breadcrumb has-succeeds-separator is-small" aria-label="breadcrumbs">
+                                        <ul>
+                                                  <li><a href="index.html">หน้าแรก</a></li>
+                                                  <li><a href="#">คู่มือสมาชิก</a></li>
+                                                  <li class="is-active"><a href="#"
+                                                                      aria-current="page">การสมัครสมาชิก</a></li>
+                                        </ul>
+                              </nav>
+
+                              <header class="doc-header">
+                                        <div class="is-flex is-align-items-center mb-3">
+                                                  <span class="tag is-primary is-light is-rounded mr-2">
+                                                            <i class="fas fa-clock mr-1"></i> 2 นาที
+                                                  </span>
+                                                  <span class="tag is-success is-light is-rounded">
+                                                            Updated: Nov 2024
+                                                  </span>
+                                        </div>
+                                        <h1 class="title is-2 mb-3">การสมัครสมาชิกและเข้าสู่ระบบ</h1>
+                                        <p class="subtitle is-5 has-text-grey-light has-text-weight-light">
+                                                  เรียนรู้วิธีการสร้างบัญชีผู้ใช้ใหม่ หรือการใช้งานผ่าน Google Account
+                                                  (One-Tap Login) เพื่อเข้าถึงระบบอย่างรวดเร็วและปลอดภัย
+                                        </p>
+                              </header>
+
+                              <div class="content-body">
+
+                                        <div class="note-box">
+                                                  <div class="is-flex">
+                                                            <i class="fas fa-info-circle mt-1 mr-3 is-size-5"></i>
+                                                            <div>
+                                                                      <strong>ข้อแนะนำสำหรับบุคลากร:</strong>
+                                                                      หากท่านเป็นบุคลากรหรือนักศึกษาของมหาวิทยาลัย
+                                                                      แนะนำให้คลิก <strong>"Sign in with
+                                                                                Google"</strong> และเลือกอีเมลองค์กร
+                                                                      (@mahidol.ac.th)
+                                                                      เพื่อความสะดวกในการยืนยันตัวตนอัตโนมัติ
+                                                            </div>
+                                                  </div>
+                                        </div>
+
+                                        <div class="step-item">
+                                                  <div class="step-number-badge">1</div>
+                                                  <div class="step-content">
+                                                            <h3 class="title is-4">เข้าสู่หน้าลงทะเบียน</h3>
+                                                            <p class="mb-4 has-text-grey-dark">
+                                                                      คลิกที่ปุ่ม <strong>"เข้าสู่ระบบ /
+                                                                                สมัครสมาชิก"</strong>
+                                                                      ที่มุมขวาบนของหน้าเว็บไซต์หลัก ท่านจะพบกับหน้าต่าง
+                                                                      (Modal) สำหรับเลือกวิธีการเข้าใช้งาน
+                                                            </p>
+                                                            <div class="browser-mockup">
+                                                                      <div class="browser-header">
+                                                                                <div class="dot red"></div>
+                                                                                <div class="dot yellow"></div>
+                                                                                <div class="dot green"></div>
+                                                                      </div>
+                                                                      <div class="browser-body">
+                                                                                <div class="mock-image-placeholder">
+                                                                                          [Screenshot: Login Modal
+                                                                                          Popup]
+                                                                                </div>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                        </div>
+
+                                        <div class="step-item">
+                                                  <div class="step-number-badge">2</div>
+                                                  <div class="step-content">
+                                                            <h3 class="title is-4">กรอกข้อมูลส่วนตัว (กรณีสมัครด้วย
+                                                                      Email)</h3>
+                                                            <p class="mb-4 has-text-grey-dark">
+                                                                      หากเลือกสมัครด้วยอีเมลทั่วไป
+                                                                      ระบบจะให้ท่านกรอกข้อมูลพื้นฐานที่จำเป็นเพื่อใช้ในการออกใบประกาศนียบัตร:
+                                                            </p>
+                                                            <ul class="mb-4"
+                                                                      style="list-style: disc; margin-left: 1.5rem; color: #475569;">
+                                                                      <li>ชื่อ-นามสกุล (ภาษาไทยและอังกฤษ) *สำคัญมาก</li>
+                                                                      <li>หมายเลขโทรศัพท์มือถือ</li>
+                                                                      <li>กำหนดรหัสผ่าน (ต้องมีความยาวอย่างน้อย 8
+                                                                                ตัวอักษร)</li>
+                                                            </ul>
+                                                            <div class="browser-mockup">
+                                                                      <div class="browser-header">
+                                                                                <div class="dot red"></div>
+                                                                                <div class="dot yellow"></div>
+                                                                                <div class="dot green"></div>
+                                                                      </div>
+                                                                      <div class="browser-body">
+                                                                                <div class="mock-image-placeholder">
+                                                                                          [Screenshot: Registration Form
+                                                                                          Fields]
+                                                                                </div>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                        </div>
+
+                                        <div class="step-item">
+                                                  <div class="step-number-badge">3</div>
+                                                  <div class="step-content">
+                                                            <h3 class="title is-4">ยืนยันและเริ่มใช้งาน</h3>
+                                                            <p class="has-text-grey-dark">
+                                                                      เมื่อกรอกข้อมูลครบถ้วน ให้กดปุ่ม <strong>"Create
+                                                                                Account"</strong>
+                                                                      ระบบจะทำการล็อกอินและนำท่านเข้าสู่หน้า Dashboard
+                                                                      สมาชิกทันที
+                                                                      ท่านสามารถเริ่มค้นหาคอร์สและลงทะเบียนได้เลย
+                                                            </p>
+                                                  </div>
+                                        </div>
+
+                              </div>
+
+                              <hr class="my-6">
+                              <div class="level">
+                                        <div class="level-left">
+                                        </div>
+                                        <div class="level-right">
+                                                  <a href="#" class="button is-medium is-text has-text-primary">
+                                                            <span>ขั้นตอนถัดไป: การจัดการโปรไฟล์</span>
+                                                            <span class="icon ml-1"><i
+                                                                                class="fas fa-arrow-right"></i></span>
+                                                  </a>
+                                        </div>
+                              </div>
+
+                    </main>
+          </div>
+
+</body>
+
+</html>

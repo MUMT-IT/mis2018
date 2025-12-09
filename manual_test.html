@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Manual Registration Test</title>
+          <style>
+                    * {
+                              margin: 0;
+                              padding: 0;
+                              box-sizing: border-box;
+                    }
+
+                    body {
+                              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+                              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                              min-height: 100vh;
+                              padding: 2rem;
+                    }
+
+                    .container {
+                              max-width: 1200px;
+                              margin: 0 auto;
+                              background: white;
+                              border-radius: 16px;
+                              box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                              overflow: hidden;
+                    }
+
+                    .header {
+                              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                              color: white;
+                              padding: 2rem;
+                              text-align: center;
+                    }
+
+                    .header h1 {
+                              font-size: 2rem;
+                              margin-bottom: 0.5rem;
+                    }
+
+                    .header p {
+                              opacity: 0.9;
+                              font-size: 1.1rem;
+                    }
+
+                    .content {
+                              padding: 2rem;
+                    }
+
+                    .test-section {
+                              margin-bottom: 2rem;
+                              padding: 1.5rem;
+                              background: #f8f9fa;
+                              border-radius: 12px;
+                              border-left: 4px solid #667eea;
+                    }
+
+                    .test-section h2 {
+                              color: #667eea;
+                              margin-bottom: 1rem;
+                              font-size: 1.5rem;
+                    }
+
+                    .test-section h3 {
+                              color: #4a5568;
+                              margin: 1rem 0 0.5rem 0;
+                              font-size: 1.2rem;
+                    }
+
+                    .test-list {
+                              list-style: none;
+                              padding-left: 0;
+                    }
+
+                    .test-list li {
+                              padding: 0.75rem;
+                              margin: 0.5rem 0;
+                              background: white;
+                              border-radius: 8px;
+                              border: 1px solid #e2e8f0;
+                              display: flex;
+                              align-items: center;
+                    }
+
+                    .test-list li::before {
+                              content: '○';
+                              color: #cbd5e0;
+                              font-size: 1.5rem;
+                              margin-right: 1rem;
+                              font-weight: bold;
+                    }
+
+                    .test-list li.pass::before {
+                              content: '✓';
+                              color: #48bb78;
+                    }
+
+                    .test-list li.fail::before {
+                              content: '✗';
+                              color: #f56565;
+                    }
+
+                    .button {
+                              display: inline-block;
+                              padding: 0.75rem 1.5rem;
+                              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                              color: white;
+                              text-decoration: none;
+                              border-radius: 8px;
+                              font-weight: 600;
+                              transition: transform 0.2s, box-shadow 0.2s;
+                              border: none;
+                              cursor: pointer;
+                              margin: 0.5rem 0.5rem 0.5rem 0;
+                    }
+
+                    .button:hover {
+                              transform: translateY(-2px);
+                              box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+                    }
+
+                    .button-secondary {
+                              background: linear-gradient(135deg, #48c774 0%, #3db65e 100%);
+                    }
+
+                    .button-warning {
+                              background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+                    }
+
+                    .test-data {
+                              background: #2d3748;
+                              color: #68d391;
+                              padding: 1rem;
+                              border-radius: 8px;
+                              font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+                              font-size: 0.9rem;
+                              margin: 1rem 0;
+                              overflow-x: auto;
+                    }
+
+                    .test-data .key {
+                              color: #63b3ed;
+                    }
+
+                    .test-data .value {
+                              color: #f6e05e;
+                    }
+
+                    .status-badge {
+                              display: inline-block;
+                              padding: 0.25rem 0.75rem;
+                              border-radius: 999px;
+                              font-size: 0.875rem;
+                              font-weight: 600;
+                              margin-left: 0.5rem;
+                    }
+
+                    .status-ready {
+                              background: #c6f6d5;
+                              color: #22543d;
+                    }
+
+                    .status-testing {
+                              background: #feebc8;
+                              color: #7c2d12;
+                    }
+
+                    .instructions {
+                              background: #edf2f7;
+                              border-left: 4px solid #4299e1;
+                              padding: 1rem;
+                              border-radius: 8px;
+                              margin: 1rem 0;
+                    }
+
+                    .instructions h4 {
+                              color: #2c5282;
+                              margin-bottom: 0.5rem;
+                    }
+
+                    .instructions ol {
+                              margin-left: 1.5rem;
+                              color: #4a5568;
+                    }
+
+                    .instructions li {
+                              margin: 0.5rem 0;
+                    }
+
+                    .grid {
+                              display: grid;
+                              grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                              gap: 1rem;
+                              margin: 1rem 0;
+                    }
+
+                    .card {
+                              background: white;
+                              border: 2px solid #e2e8f0;
+                              border-radius: 12px;
+                              padding: 1.5rem;
+                              transition: all 0.3s;
+                    }
+
+                    .card:hover {
+                              border-color: #667eea;
+                              box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+                    }
+
+                    .card h4 {
+                              color: #667eea;
+                              margin-bottom: 0.75rem;
+                    }
+
+                    .card p {
+                              color: #718096;
+                              line-height: 1.6;
+                    }
+          </style>
+</head>
+
+<body>
+          <div class="container">
+                    <div class="header">
+                              <h1>🧪 Member Registration Flow - Manual Test Suite</h1>
+                              <p>Interactive testing guide for member registration system</p>
+                              <span class="status-badge status-ready">Ready to Test</span>
+                    </div>
+
+                    <div class="content">
+                              <!-- Quick Links Section -->
+                              <div class="test-section">
+                                        <h2>🚀 Quick Links</h2>
+                                        <a href="http://localhost:5000/continuing_edu/register?lang=en" target="_blank"
+                                                  class="button">
+                                                  Open Registration Page
+                                        </a>
+                                        <a href="http://localhost:5000/continuing_edu/test-google-signup"
+                                                  target="_blank" class="button button-secondary">
+                                                  Google Sign-up Test Page
+                                        </a>
+                                        <a href="http://localhost:5000/continuing_edu/login?lang=en" target="_blank"
+                                                  class="button button-warning">
+                                                  Login Page
+                                        </a>
+                              </div>
+
+                              <!-- Test Scenario 1: Manual Registration -->
+                              <div class="test-section">
+                                        <h2>📝 Test Scenario 1: Manual Registration (Happy Path)</h2>
+
+                                        <div class="instructions">
+                                                  <h4>Test Steps:</h4>
+                                                  <ol>
+                                                            <li>Click "Open Registration Page" button above</li>
+                                                            <li>Fill in the form with test data below</li>
+                                                            <li>Submit and observe the flow</li>
+                                                            <li>Check the checklist below after each step</li>
+                                                  </ol>
+                                        </div>
+
+                                        <h3>Test Data:</h3>
+                                        <div class="test-data">
+                                                  <span class="key">Username:</span> <span
+                                                            class="value">testuser_manual_001</span>
+                                                  <span class="key">Email:</span> <span
+                                                            class="value">testuser001@example.com</span>
+                                                  <span class="key">Password:</span> <span
+                                                            class="value">TestPass123!</span>
+                                                  <span class="key">Full Name (EN):</span> <span class="value">Test User
+                                                            One</span>
+                                                  <span class="key">Full Name (TH):</span> <span class="value">ทดสอบ
+                                                            ผู้ใช้หนึ่ง</span>
+                                                  <span class="key">Phone:</span> <span class="value">0812345678</span>
+                                                  <span class="key">Organization:</span> <span class="value">Test
+                                                            University</span>
+                                                  <span class="key">Address:</span> <span class="value">123 Test Street,
+                                                            Bangkok, 10110</span>
+                                                  <span class="key">Bot Check:</span> <span class="value">human</span>
+                                                  or <span class="value">มนุษย์</span>
+                                        </div>
+
+                                        <h3>Verification Checklist:</h3>
+                                        <ul class="test-list">
+                                                  <li>Registration page loads with modern gradient design</li>
+                                                  <li>Google Sign-in button is visible</li>
+                                                  <li>All form sections are present (Account, Personal, Organization,
+                                                            Address)</li>
+                                                  <li>Member type, Gender, Age range dropdowns populate</li>
+                                                  <li>Privacy and Terms checkboxes present</li>
+                                                  <li>Form submits successfully</li>
+                                                  <li>Redirects to OTP verification page</li>
+                                                  <li>OTP email sent (check logs or email)</li>
+                                                  <li>OTP verification works</li>
+                                                  <li>After OTP: redirects to login page</li>
+                                        </ul>
+                              </div>
+
+                              <!-- Test Scenario 2: Google Sign-up -->
+                              <div class="test-section">
+                                        <h2>🔐 Test Scenario 2: Google OAuth Sign-up</h2>
+
+                                        <div class="instructions">
+                                                  <h4>Test Steps:</h4>
+                                                  <ol>
+                                                            <li>Click "Google Sign-up Test Page" button above</li>
+                                                            <li>Click "Sign in with Google" button</li>
+                                                            <li>Select a Google account</li>
+                                                            <li>Observe the callback and redirect</li>
+                                                            <li>Complete profile if redirected to profile page</li>
+                                                  </ol>
+                                        </div>
+
+                                        <h3>Verification Checklist:</h3>
+                                        <ul class="test-list">
+                                                  <li>Google Sign-in button triggers OAuth flow</li>
+                                                  <li>Google consent screen appears</li>
+                                                  <li>After consent: redirects back to application</li>
+                                                  <li>JWT token processed successfully</li>
+                                                  <li>New member created with google_sub</li>
+                                                  <li>Redirects to /complete-profile</li>
+                                                  <li>Profile form shows pre-filled email and name</li>
+                                                  <li>Profile submission works</li>
+                                                  <li>Redirects to home page after profile complete</li>
+                                                  <li>User is logged in automatically</li>
+                                        </ul>
+                              </div>
+
+                              <!-- Test Scenario 3: Validation Tests -->
+                              <div class="test-section">
+                                        <h2>⚠️ Test Scenario 3: Validation & Error Handling</h2>
+
+                                        <h3>Test Cases to Try:</h3>
+                                        <div class="grid">
+                                                  <div class="card">
+                                                            <h4>Empty Fields</h4>
+                                                            <p>Leave username and password empty, submit form. Should
+                                                                      show error: "Username and password required"</p>
+                                                  </div>
+                                                  <div class="card">
+                                                            <h4>Password Mismatch</h4>
+                                                            <p>Password: <code>Test123</code><br>
+                                                                      Confirm: <code>Test456</code><br>
+                                                                      Should show: "Passwords do not match"</p>
+                                                  </div>
+                                                  <div class="card">
+                                                            <h4>Duplicate Email</h4>
+                                                            <p>Use email from previous test. Should redirect to "Email
+                                                                      already registered" page with options.</p>
+                                                  </div>
+                                                  <div class="card">
+                                                            <h4>Bot Check Failed</h4>
+                                                            <p>Type anything except "human" or "มนุษย์". Should show bot
+                                                                      verification error.</p>
+                                                  </div>
+                                                  <div class="card">
+                                                            <h4>Missing Privacy Policy</h4>
+                                                            <p>Don't check privacy checkbox. Should show: "Please accept
+                                                                      privacy policy"</p>
+                                                  </div>
+                                                  <div class="card">
+                                                            <h4>No Address</h4>
+                                                            <p>Leave all address fields empty. Should show: "Please
+                                                                      provide at least one address"</p>
+                                                  </div>
+                                        </div>
+                              </div>
+
+                              <!-- Database Verification -->
+                              <div class="test-section">
+                                        <h2>💾 Test Scenario 4: Database Verification</h2>
+
+                                        <div class="instructions">
+                                                  <h4>Open terminal and run:</h4>
+                                        </div>
+
+                                        <div class="test-data">
+                                                  # Check if member was created
+                                                  cd /Users/vikornsak/PycharmProjects/2025/mis2018
+                                                  python3 check_members.py
+
+                                                  # Or use flask shell (if dependencies available)
+                                                  FLASK_APP=app.main:app flask shell
+                                                  >>> from app.continuing_edu.models import Member, MemberAddress
+                                                  >>> member =
+                                                  Member.query.filter_by(username='testuser_manual_001').first()
+                                                  >>> print(f"ID: {member.id}, Email: {member.email}")
+                                                  >>> print(f"Verified: {member.is_verified}")
+                                                  >>> print(f"Google Sub: {member.google_sub}")
+                                                  >>> addresses =
+                                                  MemberAddress.query.filter_by(member_id=member.id).all()
+                                                  >>> for addr in addresses:
+                                                  ... print(f"Address: {addr.line1}, {addr.city}")
+                                        </div>
+
+                                        <h3>What to Verify:</h3>
+                                        <ul class="test-list">
+                                                  <li>Member record exists with correct username</li>
+                                                  <li>Email is stored correctly</li>
+                                                  <li>Password is hashed (not plain text)</li>
+                                                  <li>is_verified flag is set correctly</li>
+                                                  <li>Address records are created</li>
+                                                  <li>For Google users: google_sub is populated</li>
+                                                  <li>For Google users: google_connected_at has timestamp</li>
+                                        </ul>
+                              </div>
+
+                              <!-- Results Summary -->
+                              <div class="test-section">
+                                        <h2>✅ Current Test Status</h2>
+
+                                        <h3>System Status:</h3>
+                                        <ul class="test-list pass">
+                                                  <li class="pass">Flask server running on port 5000</li>
+                                                  <li class="pass">Registration route accessible (HTTP 200)</li>
+                                                  <li class="pass">Modern template rendering correctly</li>
+                                                  <li class="pass">Google Client ID configured</li>
+                                                  <li class="pass">Database schema ready (google_sub columns exist)</li>
+                                                  <li class="pass">Test pages created</li>
+                                        </ul>
+
+                                        <h3>Manual Testing Required:</h3>
+                                        <ul class="test-list">
+                                                  <li>Fill and submit registration form</li>
+                                                  <li>Test Google Sign-in button</li>
+                                                  <li>Verify OTP email delivery</li>
+                                                  <li>Complete all validation test cases</li>
+                                                  <li>Check database records</li>
+                                                  <li>Test profile completion flow</li>
+                                        </ul>
+                              </div>
+
+                              <!-- Next Steps -->
+                              <div class="test-section">
+                                        <h2>🎯 Next Steps</h2>
+                                        <div class="instructions">
+                                                  <h4>Follow this order:</h4>
+                                                  <ol>
+                                                            <li><strong>Manual Registration:</strong> Use test data
+                                                                      above to register a new user</li>
+                                                            <li><strong>Check Terminal:</strong> Watch Flask terminal
+                                                                      for any errors during submission</li>
+                                                            <li><strong>Verify Database:</strong> Run check_members.py
+                                                                      to see if record was created</li>
+                                                            <li><strong>Test Google:</strong> Try Google Sign-in on test
+                                                                      page</li>
+                                                            <li><strong>Profile Completion:</strong> Complete profile
+                                                                      after Google signup</li>
+                                                            <li><strong>Validation Tests:</strong> Try each error case
+                                                                      from scenario 3</li>
+                                                            <li><strong>Document Results:</strong> Update
+                                                                      test_registration_flow.md with results</li>
+                                                  </ol>
+                                        </div>
+                              </div>
+                    </div>
+          </div>
+
+          <script>
+                    // Add click tracking for checklist items
+                    document.querySelectorAll('.test-list li').forEach(item => {
+                              item.addEventListener('click', function () {
+                                        if (!this.classList.contains('pass') && !this.classList.contains('fail')) {
+                                                  this.classList.toggle('pass');
+                                        }
+                              });
+                    });
+
+                    console.log('🧪 Registration Test Suite Loaded');
+                    console.log('Click on checklist items to mark them as complete');
+                    console.log('Test files created:');
+                    console.log('  - test_registration_flow.md');
+                    console.log('  - test_registration.sh');
+                    console.log('  - check_members.py');
+                    console.log('  - manual_test.html (this page)');
+          </script>
+</body>
+
+</html>

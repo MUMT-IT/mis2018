@@ -1,0 +1,47 @@
+{% macro registration_button(event, logged_in_user, already_registered, texts, current_lang) %}
+{% if logged_in_user %}
+{% if already_registered %}
+<span class="tag is-success is-medium">
+          <span class="icon"><i class="fas fa-check-circle"></i></span>
+          <span>{{ texts.get('status_registered', 'ลงทะเบียนแล้ว' if current_lang == 'th' else 'Registered') }}</span>
+</span>
+{% else %}
+<a href="{{ url_for('continuing_edu.register_event', event_id=event.id, lang=current_lang) }}"
+          class="button is-primary">
+          <span class="icon"><i class="fas fa-user-plus"></i></span>
+          <span>{{ texts.get('button_register', 'ลงทะเบียน' if current_lang == 'th' else 'Register') }}</span>
+</a>
+{% endif %}
+{% else %}
+<div class="buttons has-addons">
+          <a href="{{ url_for('continuing_edu.login', lang=current_lang, next=url_for('continuing_edu.register_event', event_id=event.id, lang=current_lang)) }}"
+                    class="button is-link">
+                    <span class="icon"><i class="fas fa-sign-in-alt"></i></span>
+                    <span>{{ texts.get('button_login', 'เข้าสู่ระบบ' if current_lang == 'th' else 'Login') }}</span>
+          </a>
+          <a href="{{ url_for('continuing_edu.register', lang=current_lang) }}" class="button is-info">
+                    <span class="icon"><i class="fas fa-user-plus"></i></span>
+                    <span>{{ texts.get('button_signup', 'สมัครสมาชิก' if current_lang == 'th' else 'Sign Up') }}</span>
+          </a>
+</div>
+<p class="help">{{ texts.get('login_required_to_register', 'กรุณาเข้าสู่ระบบหรือสมัครสมาชิกเพื่อลงทะเบียน' if
+          current_lang == 'th' else 'Please login or sign up to register') }}</p>
+{% endif %}
+{% endmacro %}
+
+{% macro registration_status_badge(event, registered_ids, texts, current_lang, approved_payment=False) %}
+{% if registered_ids and event.id in registered_ids %}
+{% if approved_payment %}
+<span class="tag is-success">
+          <span class="icon"><i class="fas fa-check-double"></i></span>
+          <span>{{ texts.get('status_approved', 'อนุมัติแล้ว' if current_lang == 'th' else 'Approved') }}</span>
+</span>
+{% else %}
+<span class="tag is-warning">
+          <span class="icon"><i class="fas fa-clock"></i></span>
+          <span>{{ texts.get('status_pending_payment', 'รอชำระเงิน' if current_lang == 'th' else 'Pending Payment')
+                    }}</span>
+</span>
+{% endif %}
+{% endif %}
+{% endmacro %}

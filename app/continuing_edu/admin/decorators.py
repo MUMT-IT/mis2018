@@ -188,25 +188,95 @@ def require_event_role(*allowed_roles):
     return decorator
 
 
-def can_manage_registrations(staff_id, event_id=None):
+def can_manage_registrations(f):
     """
-    Check if staff can manage registrations.
-    If event_id is provided, check for that specific event.
-    Otherwise, check if staff has this role for any event.
+    Decorator to check if staff can manage registrations.
+    Checks if staff has registration reviewer or editor role for any event.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        staff = get_current_staff()
+        if not staff:
+            flash('Staff account not found.', 'error')
+            abort(403)
+        
+        # Get event_id from kwargs or args if available
+        event_id = kwargs.get('event_id') or kwargs.get('registration_id')
+        
+        # Check if staff has registration reviewer or editor role
+        has_permission = False
+        
+        if event_id:
+            # Check for specific event
+            has_permission = (
+                is_registration_reviewer(staff.id, event_id) or 
+                is_event_editor(staff.id, event_id)
+            )
+        else:
+            # Check if staff has role for any event
+            has_permission = (
+                EventRegistrationReviewer.query.filter_by(staff_id=staff.id).first() is not None or
+                EventEditor.query.filter_by(staff_id=staff.id).first() is not None
+            )
+        
+        if not has_permission:
+            flash('You do not have permission to manage registrations.', 'error')
+            abort(403)
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def check_can_manage_registrations(staff_id, event_id=None):
+    """
+    Helper function to check if staff can manage registrations.
+    Use this for programmatic checks (not as decorator).
     """
     if event_id:
         return is_registration_reviewer(staff_id, event_id) or is_event_editor(staff_id, event_id)
     
-    # Check if staff has registration reviewer or editor role for any event
     return (
         EventRegistrationReviewer.query.filter_by(staff_id=staff_id).first() is not None or
         EventEditor.query.filter_by(staff_id=staff_id).first() is not None
     )
 
 
-def can_manage_payments(staff_id, event_id=None):
+def can_manage_payments(f):
     """
-    Check if staff can manage payments.
+    Decorator to check if staff can manage payments.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        staff = get_current_staff()
+        if not staff:
+            flash('Staff account not found.', 'error')
+            abort(403)
+        
+        event_id = kwargs.get('event_id') or kwargs.get('payment_id')
+        
+        has_permission = False
+        if event_id:
+            has_permission = (
+                is_payment_approver(staff.id, event_id) or 
+                is_event_editor(staff.id, event_id)
+            )
+        else:
+            has_permission = (
+                EventPaymentApprover.query.filter_by(staff_id=staff.id).first() is not None or
+                EventEditor.query.filter_by(staff_id=staff.id).first() is not None
+            )
+        
+        if not has_permission:
+            flash('You do not have permission to manage payments.', 'error')
+            abort(403)
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def check_can_manage_payments(staff_id, event_id=None):
+    """
+    Helper function to check if staff can manage payments.
     """
     if event_id:
         return is_payment_approver(staff_id, event_id) or is_event_editor(staff_id, event_id)

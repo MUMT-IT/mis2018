@@ -1,0 +1,224 @@
+{% extends "continueing_edu/admin/base.html" %}
+
+{% block title %}Bulk Actions - Registrations{% endblock %}
+
+{% block head %}
+<style>
+          .action-card {
+                    background: white;
+                    padding: 2rem;
+                    border-radius: 8px;
+                    border: 1px solid #e5e7eb;
+                    margin-bottom: 2rem;
+          }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container is-fluid">
+          <div class="level mb-5">
+                    <div class="level-left">
+                              <div class="level-item">
+                                        <div>
+                                                  <h1 class="title">Bulk Actions</h1>
+                                                  <p class="subtitle is-6">Perform actions on multiple registrations at
+                                                            once</p>
+                                        </div>
+                              </div>
+                    </div>
+                    <div class="level-right">
+                              <div class="level-item">
+                                        <a href="{{ url_for('continuing_edu_admin.list_registrations') }}"
+                                                  class="button is-light">
+                                                  <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                                                  <span>Back to List</span>
+                                        </a>
+                              </div>
+                    </div>
+          </div>
+
+          <!-- Bulk Status Update -->
+          <div class="action-card">
+                    <h2 class="title is-4 mb-4">
+                              <span class="icon"><i class="fas fa-flag"></i></span>
+                              <span>Bulk Status Update</span>
+                    </h2>
+                    <p class="mb-4">Update the status of multiple registrations at once</p>
+
+                    <form method="POST" action="{{ url_for('continuing_edu_admin.bulk_update_status') }}">
+                              <div class="columns">
+                                        <div class="column is-6">
+                                                  <div class="field">
+                                                            <label class="label">Select Event (Optional)</label>
+                                                            <div class="control">
+                                                                      <div class="select is-fullwidth">
+                                                                                <select id="event-select"
+                                                                                          name="event_id">
+                                                                                          <option value="">All Events
+                                                                                          </option>
+                                                                                          {% for event in events %}
+                                                                                          <option
+                                                                                                    value="{{ event.id }}">
+                                                                                                    {{
+                                                                                                    event.title_en[:80]
+                                                                                                    }}
+                                                                                          </option>
+                                                                                          {% endfor %}
+                                                                                </select>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                        </div>
+                                        <div class="column is-6">
+                                                  <div class="field">
+                                                            <label class="label">New Status</label>
+                                                            <div class="control">
+                                                                      <div class="select is-fullwidth">
+                                                                                <select name="status_id" required>
+                                                                                          <option value="">-- Select
+                                                                                                    Status --</option>
+                                                                                          {% for status in statuses %}
+                                                                                          <option
+                                                                                                    value="{{ status.id }}">
+                                                                                                    {{ status.name_en }}
+                                                                                          </option>
+                                                                                          {% endfor %}
+                                                                                </select>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                        </div>
+                              </div>
+
+                              <div class="field">
+                                        <label class="label">Select Registrations</label>
+                                        <div class="control">
+                                                  <div id="registrations-list" class="box">
+                                                            <p class="has-text-grey has-text-centered py-5">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-arrow-up"></i></span><br>
+                                                                      Select an event above to load registrations
+                                                            </p>
+                                                  </div>
+                                        </div>
+                              </div>
+
+                              <div class="field">
+                                        <div class="control">
+                                                  <button type="submit" class="button is-primary" id="submit-btn"
+                                                            disabled>
+                                                            <span class="icon"><i class="fas fa-check"></i></span>
+                                                            <span>Update Selected Registrations</span>
+                                                  </button>
+                                        </div>
+                              </div>
+                    </form>
+          </div>
+
+          <!-- Bulk Export -->
+          <div class="action-card">
+                    <h2 class="title is-4 mb-4">
+                              <span class="icon"><i class="fas fa-download"></i></span>
+                              <span>Bulk Export</span>
+                    </h2>
+                    <p class="mb-4">Export registration data to CSV format</p>
+
+                    <form method="GET" action="{{ url_for('continuing_edu_admin.export_registrations') }}">
+                              <div class="columns">
+                                        <div class="column is-4">
+                                                  <div class="field">
+                                                            <label class="label">Event (Optional)</label>
+                                                            <div class="control">
+                                                                      <div class="select is-fullwidth">
+                                                                                <select name="event_id">
+                                                                                          <option value="">All Events
+                                                                                          </option>
+                                                                                          {% for event in events %}
+                                                                                          <option
+                                                                                                    value="{{ event.id }}">
+                                                                                                    {{
+                                                                                                    event.title_en[:80]
+                                                                                                    }}
+                                                                                          </option>
+                                                                                          {% endfor %}
+                                                                                </select>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                        </div>
+                                        <div class="column is-4">
+                                                  <div class="field">
+                                                            <label class="label">Status (Optional)</label>
+                                                            <div class="control">
+                                                                      <div class="select is-fullwidth">
+                                                                                <select name="status">
+                                                                                          <option value="">All Statuses
+                                                                                          </option>
+                                                                                          {% for status in statuses %}
+                                                                                          <option
+                                                                                                    value="{{ status.name_en.lower() }}">
+                                                                                                    {{ status.name_en }}
+                                                                                          </option>
+                                                                                          {% endfor %}
+                                                                                </select>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                        </div>
+                                        <div class="column is-4">
+                                                  <div class="field">
+                                                            <label class="label">&nbsp;</label>
+                                                            <div class="control">
+                                                                      <button type="submit"
+                                                                                class="button is-info is-fullwidth">
+                                                                                <span class="icon"><i
+                                                                                                    class="fas fa-file-csv"></i></span>
+                                                                                <span>Export to CSV</span>
+                                                                      </button>
+                                                            </div>
+                                                  </div>
+                                        </div>
+                              </div>
+                    </form>
+          </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+          document.addEventListener('DOMContentLoaded', function () {
+                    const eventSelect = document.getElementById('event-select');
+                    const registrationsList = document.getElementById('registrations-list');
+                    const submitBtn = document.getElementById('submit-btn');
+
+                    eventSelect.addEventListener('change', function () {
+                              const eventId = this.value;
+
+                              if (!eventId) {
+                                        registrationsList.innerHTML = `
+                <p class="has-text-grey has-text-centered py-5">
+                    <span class="icon"><i class="fas fa-arrow-up"></i></span><br>
+                    Select an event above to load registrations
+                </p>
+            `;
+                                        submitBtn.disabled = true;
+                                        return;
+                              }
+
+                              // Load registrations for selected event
+                              registrationsList.innerHTML = '<p class="has-text-centered py-3"><span class="icon"><i class="fas fa-spinner fa-pulse"></i></span> Loading...</p>';
+
+                              // TODO: Implement AJAX call to fetch registrations
+                              // For now, show a message
+                              setTimeout(() => {
+                                        registrationsList.innerHTML = `
+                <div class="notification is-info is-light">
+                    <p>AJAX loading will be implemented here.</p>
+                    <p class="mt-2">For now, please use the main registrations list page to filter by event.</p>
+                </div>
+            `;
+                              }, 500);
+                    });
+          });
+</script>
+{% endblock %}

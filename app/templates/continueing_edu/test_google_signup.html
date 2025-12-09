@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Test Google Sign-up Flow</title>
+          <script src="https://accounts.google.com/gsi/client" async defer></script>
+          <style>
+                    body {
+                              font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                              max-width: 1200px;
+                              margin: 0 auto;
+                              padding: 20px;
+                              background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                              min-height: 100vh;
+                    }
+
+                    .test-container {
+                              background: white;
+                              border-radius: 16px;
+                              padding: 30px;
+                              box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+                              margin-bottom: 20px;
+                    }
+
+                    h1 {
+                              color: #667eea;
+                              margin-bottom: 10px;
+                    }
+
+                    h2 {
+                              color: #764ba2;
+                              margin-top: 30px;
+                              margin-bottom: 15px;
+                    }
+
+                    .test-section {
+                              background: #f8f9fa;
+                              border-left: 4px solid #667eea;
+                              padding: 15px;
+                              margin: 15px 0;
+                              border-radius: 4px;
+                    }
+
+                    .test-link {
+                              display: inline-block;
+                              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                              color: white;
+                              padding: 12px 24px;
+                              border-radius: 8px;
+                              text-decoration: none;
+                              margin: 10px 10px 10px 0;
+                              font-weight: 600;
+                              transition: transform 0.2s;
+                    }
+
+                    .test-link:hover {
+                              transform: translateY(-2px);
+                              box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+                    }
+
+                    .status {
+                              display: inline-block;
+                              padding: 4px 12px;
+                              border-radius: 12px;
+                              font-size: 0.85rem;
+                              font-weight: 600;
+                    }
+
+                    .status.ready {
+                              background: #d4edda;
+                              color: #155724;
+                    }
+
+                    .status.pending {
+                              background: #fff3cd;
+                              color: #856404;
+                    }
+
+                    .code-block {
+                              background: #2d2d2d;
+                              color: #f8f8f2;
+                              padding: 15px;
+                              border-radius: 8px;
+                              overflow-x: auto;
+                              font-family: 'Monaco', 'Courier New', monospace;
+                              font-size: 0.9rem;
+                              margin: 10px 0;
+                    }
+
+                    .info-box {
+                              background: #e7f3ff;
+                              border: 1px solid #b3d9ff;
+                              padding: 15px;
+                              border-radius: 8px;
+                              margin: 15px 0;
+                    }
+
+                    .google-button-container {
+                              display: flex;
+                              justify-content: center;
+                              padding: 30px;
+                              background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+                              border-radius: 12px;
+                              border: 2px dashed rgba(102, 126, 234, 0.2);
+                    }
+
+                    .checklist {
+                              list-style: none;
+                              padding: 0;
+                    }
+
+                    .checklist li {
+                              padding: 8px 0;
+                              padding-left: 30px;
+                              position: relative;
+                    }
+
+                    .checklist li:before {
+                              content: "✓";
+                              position: absolute;
+                              left: 0;
+                              color: #48c774;
+                              font-weight: bold;
+                              font-size: 1.2rem;
+                    }
+
+                    .warning {
+                              background: #fff3cd;
+                              border-left: 4px solid #ffc107;
+                              padding: 15px;
+                              margin: 15px 0;
+                              border-radius: 4px;
+                    }
+
+                    table {
+                              width: 100%;
+                              border-collapse: collapse;
+                              margin: 15px 0;
+                    }
+
+                    th,
+                    td {
+                              padding: 12px;
+                              text-align: left;
+                              border-bottom: 1px solid #e0e0e0;
+                    }
+
+                    th {
+                              background: #667eea;
+                              color: white;
+                              font-weight: 600;
+                    }
+
+                    tr:hover {
+                              background: #f8f9fa;
+                    }
+          </style>
+</head>
+
+<body>
+          <div class="test-container">
+                    <h1>🧪 Google Sign-up Flow Test Page</h1>
+                    <p style="color: #666; margin-bottom: 20px;">
+                              Test page สำหรับทดสอบการลงทะเบียนด้วย Google Account
+                    </p>
+
+                    <div class="info-box">
+                              <strong>📋 Test Checklist:</strong>
+                              <ul class="checklist">
+                                        <li>Database มี google_sub และ google_connected_at columns</li>
+                                        <li>Migration ถูก apply แล้ว (c619f1bef360)</li>
+                                        <li>Google Client ID ตั้งค่าแล้ว</li>
+                                        <li>Routes พร้อมใช้งาน</li>
+                                        <li>Templates สร้างเรียบร้อย</li>
+                              </ul>
+                    </div>
+
+                    <h2>1. Test Google Sign-in Button</h2>
+                    <div class="test-section">
+                              <p><strong>Status:</strong> <span class="status ready">Ready to Test</span></p>
+                              <p>กดปุ่ม Google Sign-in ด้านล่างเพื่อทดสอบ:</p>
+
+                              <div class="google-button-container">
+                                        <div id="g_id_onload"
+                                                  data-client_id="206836986017-1dctro1ehrqta2r91e5appn5j78spn9h.apps.googleusercontent.com"
+                                                  data-context="signup" data-ux_mode="popup"
+                                                  data-callback="handleCredentialResponse" data-auto_prompt="false">
+                                        </div>
+                                        <div class="g_id_signin" data-type="standard" data-shape="rectangular"
+                                                  data-theme="outline" data-text="signup_with" data-size="large"
+                                                  data-logo_alignment="left">
+                                        </div>
+                              </div>
+                    </div>
+
+                    <h2>2. Test Routes</h2>
+                    <div class="test-section">
+                              <table>
+                                        <thead>
+                                                  <tr>
+                                                            <th>Route</th>
+                                                            <th>Method</th>
+                                                            <th>Status</th>
+                                                            <th>Action</th>
+                                                  </tr>
+                                        </thead>
+                                        <tbody>
+                                                  <tr>
+                                                            <td><code>/continuing_edu/register?modern=1</code></td>
+                                                            <td>GET</td>
+                                                            <td><span class="status ready">Ready</span></td>
+                                                            <td><a href="/continuing_edu/register?lang=en&modern=1"
+                                                                                class="test-link"
+                                                                                target="_blank">Test</a></td>
+                                                  </tr>
+                                                  <tr>
+                                                            <td><code>/continuing_edu/google-signup-callback</code></td>
+                                                            <td>POST</td>
+                                                            <td><span class="status ready">Ready</span></td>
+                                                            <td>Auto-called by Google</td>
+                                                  </tr>
+                                                  <tr>
+                                                            <td><code>/continuing_edu/complete-profile</code></td>
+                                                            <td>GET/POST</td>
+                                                            <td><span class="status ready">Ready</span></td>
+                                                            <td>Redirected after signup</td>
+                                                  </tr>
+                                        </tbody>
+                              </table>
+                    </div>
+
+                    <h2>3. Test Scenarios</h2>
+
+                    <div class="test-section">
+                              <h3>🟢 Scenario 1: New User Sign-up</h3>
+                              <ol>
+                                        <li>คลิกปุ่ม "Sign up with Google" ด้านบน</li>
+                                        <li>เลือก Google Account</li>
+                                        <li>ระบบสร้าง Member account ใหม่</li>
+                                        <li>Redirect ไปหน้า Complete Profile</li>
+                                        <li>กรอกข้อมูลเพิ่มเติม</li>
+                                        <li>เสร็จสิ้น!</li>
+                              </ol>
+                              <a href="/continuing_edu/register?lang=th&modern=1" class="test-link">เริ่มทดสอบ
+                                        (ภาษาไทย)</a>
+                              <a href="/continuing_edu/register?lang=en&modern=1" class="test-link">Start Test
+                                        (English)</a>
+                    </div>
+
+                    <div class="test-section">
+                              <h3>🟡 Scenario 2: Existing User Login</h3>
+                              <ol>
+                                        <li>ใช้ Google Account ที่เคยลงทะเบียนแล้ว</li>
+                                        <li>คลิกปุ่ม "Sign in with Google"</li>
+                                        <li>ระบบตรวจสอบว่ามี google_sub ในฐานข้อมูล</li>
+                                        <li>Login สำเร็จ และ redirect ไปหน้าแรก</li>
+                              </ol>
+                              <a href="/continuing_edu/login?lang=th" class="test-link">ทดสอบ Login</a>
+                    </div>
+
+                    <div class="test-section">
+                              <h3>🔵 Scenario 3: Link Existing Account</h3>
+                              <ol>
+                                        <li>ผู้ใช้มี account อยู่แล้ว (email ตรงกัน)</li>
+                                        <li>ใช้ Google Sign-in ครั้งแรก</li>
+                                        <li>ระบบเชื่อมโยง google_sub กับ account เดิม</li>
+                                        <li>Login สำเร็จ</li>
+                              </ol>
+                    </div>
+
+                    <h2>4. Database Check</h2>
+                    <div class="test-section">
+                              <p>หลังจากทดสอบแล้ว ตรวจสอบข้อมูลใน database:</p>
+                              <div class="code-block">
+                                        # เข้า Python shell
+                                        flask shell
+
+                                        # Query ข้อมูล
+                                        from app.continuing_edu.models import Member
+                                        from sqlalchemy import desc
+
+                                        # ดู Member ล่าสุดที่ลงทะเบียนด้วย Google
+                                        members =
+                                        Member.query.filter(Member.google_sub.isnot(None)).order_by(desc(Member.created_at)).limit(5).all()
+
+                                        for m in members:
+                                        print(f"ID: {m.id}, Username: {m.username}, Email: {m.email}")
+                                        print(f"Google Sub: {m.google_sub}")
+                                        print(f"Connected: {m.google_connected_at}")
+                                        print(f"Verified: {m.is_verified}")
+                                        print("-" * 50)
+                              </div>
+                    </div>
+
+                    <h2>5. Expected Results</h2>
+                    <div class="test-section">
+                              <h3>✅ Success Indicators:</h3>
+                              <ul>
+                                        <li>Google popup แสดงขึ้นเมื่อคลิกปุ่ม</li>
+                                        <li>เลือก account แล้วไม่มี error</li>
+                                        <li>Redirect ไปหน้า Complete Profile สำหรับผู้ใช้ใหม่</li>
+                                        <li>ข้อมูล google_sub ถูกบันทึกใน database</li>
+                                        <li>google_connected_at มีค่า timestamp</li>
+                                        <li>is_verified = True (Google email verified)</li>
+                                        <li>Login ครั้งต่อไปใช้ Google ได้ทันที</li>
+                              </ul>
+                    </div>
+
+                    <div class="warning">
+                              <strong>⚠️ Note:</strong> Google Client ID ที่ใช้เป็น development key.
+                              ถ้าจะใช้งานจริง ต้อง:
+                              <ul style="margin: 10px 0;">
+                                        <li>สร้าง Google Cloud Project ใหม่</li>
+                                        <li>Enable Google Sign-In API</li>
+                                        <li>ตั้งค่า OAuth consent screen</li>
+                                        <li>เพิ่ม authorized redirect URIs</li>
+                                        <li>อัปเดต GOOGLE_CLIENT_ID ใน .env</li>
+                              </ul>
+                    </div>
+
+                    <h2>6. Troubleshooting</h2>
+                    <div class="test-section">
+                              <h3>🔧 Common Issues:</h3>
+                              <table>
+                                        <thead>
+                                                  <tr>
+                                                            <th>Problem</th>
+                                                            <th>Solution</th>
+                                                  </tr>
+                                        </thead>
+                                        <tbody>
+                                                  <tr>
+                                                            <td>Google button ไม่แสดง</td>
+                                                            <td>Check console errors, verify Google Client ID</td>
+                                                  </tr>
+                                                  <tr>
+                                                            <td>Redirect ไม่ทำงาน</td>
+                                                            <td>ตรวจสอบ callback route ใน views.py</td>
+                                                  </tr>
+                                                  <tr>
+                                                            <td>Database error</td>
+                                                            <td>ตรวจสอบว่ารัน migration แล้ว</td>
+                                                  </tr>
+                                                  <tr>
+                                                            <td>JWT decode error</td>
+                                                            <td>Install PyJWT: pip install PyJWT</td>
+                                                  </tr>
+                                        </tbody>
+                              </table>
+                    </div>
+
+                    <h2>7. Manual Test Links</h2>
+                    <div class="test-section">
+                              <a href="/continuing_edu/register?lang=th&modern=1" class="test-link">📝 Register (Modern
+                                        - Thai)</a>
+                              <a href="/continuing_edu/register?lang=en&modern=1" class="test-link">📝 Register (Modern
+                                        - English)</a>
+                              <a href="/continuing_edu/register?lang=th" class="test-link">📝 Register (Old Version)</a>
+                              <a href="/continuing_edu/login?lang=th" class="test-link">🔐 Login</a>
+                              <a href="/continuing_edu/?lang=th" class="test-link">🏠 Home Page</a>
+                    </div>
+          </div>
+
+          <script>
+                    function handleCredentialResponse(response) {
+                              console.log('Google Credential Response:', response);
+
+                              // Create form and submit
+                              const form = document.createElement('form');
+                              form.method = 'POST';
+                              form.action = '/continuing_edu/google-signup-callback?lang=en';
+
+                              const csrfInput = document.createElement('input');
+                              csrfInput.type = 'hidden';
+                              csrfInput.name = 'csrf_token';
+                              csrfInput.value = '{{ csrf_token() }}';
+
+                              const credentialInput = document.createElement('input');
+                              credentialInput.type = 'hidden';
+                              credentialInput.name = 'credential';
+                              credentialInput.value = response.credential;
+
+                              form.appendChild(csrfInput);
+                              form.appendChild(credentialInput);
+                              document.body.appendChild(form);
+
+                              console.log('Submitting form to:', form.action);
+                              form.submit();
+                    }
+
+                    // Log when Google API is loaded
+                    window.onload = function () {
+                              console.log('Google Sign-In API loaded');
+                              console.log('Client ID: 206836986017-1dctro1ehrqta2r91e5appn5j78spn9h.apps.googleusercontent.com');
+                    };
+          </script>
+</body>
+
+</html>
