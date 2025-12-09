@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block page_content %}
+    {% include "service_admin/admin_nav.html" %}
+    {% include 'messages.html' %}
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-12">
+                    <h1 class="title is-3 has-text-centered has-text-grey-dark">ฟอร์ม{{ sub_lab.sub_lab }}</h1>
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="box">
+                            <h5 class="title is-size-5">ข้อมูลผลิตภัณฑ์</h5>
+                            <hr style="background-color: gainsboro">
+                            <div class="field">
+                                <label class="label">{{ form.processing_data.label }}</label>
+                                <div class="control">
+                                    {{ form.processing_data() }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.sample_species.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.sample_species(class='input') }}
+                                </div>
+                            </div>
+                            <div id="sample-species-other-container"></div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.buffer_condition.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.buffer_condition(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.comment.label }}</label>
+                                <div class="control">
+                                    {{ form.comment(class='input') }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="box">
+                            <h5 class="title is-size-5">รายการทดสอบ</h5>
+                            <hr style="background-color: gainsboro">
+                            <div id="condition-field" class="field">
+                                {% for item_form in form.metabolomic_condition_field %}
+                                    <div id="{{ item_form.id }}">
+                                        <p class="mt-4 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
+                                        <table class="table is-fullwidth ">
+                                            <thead>
+                                            <th style="border: none">
+                                                {{ item_form.sample_name.label }}
+                                                <span class="has-text-danger">*</span>
+                                            </th>
+                                            <th style="border: none">{{ item_form.clean_up.label }}</th>
+                                            <th style="border: none">{{ item_form.untargeted_metabolomic.label }}</th>
+                                            <th style="border: none">{{ item_form.quantitative_metabolomic.label }}</th>
+                                            </thead>
+                                            <tbody>
+                                            <td style="border: none" class="control">
+                                                {{ item_form.sample_name(class='input') }}
+                                            </td>
+                                            <td style="border: none" class="control">
+                                                {{ item_form.clean_up() }}
+                                            </td>
+                                            <td style="border: none" class="control">
+                                                {{ item_form.untargeted_metabolomic() }}
+                                            </td>
+                                            <td style="border: none" class="control">
+                                                {{ item_form.quantitative_metabolomic() }}
+                                            </td>
+                                            </tbody>
+                                        </table>
+                                        {% if not loop.last %}
+                                            <hr style="background-color: #F3F3F3">
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="field has-addons">
+                                <div class="control">
+                                    <a class="button is-info is-small is-light is-rounded"
+                                       hx-post="{{ url_for('service_amdin.add_metabolomic_condition_item') }}"
+                                       hx-target="#condition-field" hx-swap="beforeend">
+                                        <span class="icon">
+                                            <i class="fas fa-plus"></i>
+                                        </span>
+                                        <span>เพิ่ม</span>
+                                    </a>
+                                </div>
+                                <div class="control">
+                                    <a class="button is-danger is-small is-light is-rounded"
+                                       hx-delete="{{ url_for('service_amdin.remove_metabolomic_condition_item') }}"
+                                       hx-target="#condition-field" hx-swap="innerHTML">
+                                            <span class="icon">
+                                                <i class="far fa-trash-alt"></i>
+                                            </span>
+                                        <span class="">ลบ</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-justify-content-center">
+                            <div class="control">
+                                <input type="submit" value="บันทึกและดำเนินการต่อ" class="button is-success">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}

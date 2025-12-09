@@ -870,7 +870,7 @@ def create_request():
                      'protein_identification': 'academic_services.create_protein_identification_request',
                      'sds_page': 'academic_services.create_sds_page_request',
                      'quantitative': 'academic_services.create_quantitative_request',
-                     'metabolomic': 'academic_services.create_metabolomic_request',
+                     'metabolomics': 'academic_services.create_metabolomic_request',
                      }
     return redirect(url_for(request_paths[code], code=code, menu=menu, request_id=request_id))
 
@@ -1919,8 +1919,8 @@ def create_metabolomic_request(request_id=None):
                            form=form, menu=menu, request_id=request_id)
 
 
-@academic_services.route('/api/request/quantitative/item/add', methods=['POST'])
-def add_quantitative_condition_item():
+@academic_services.route('/api/request/metabolomic/item/add', methods=['POST'])
+def add_metabolomic_condition_item():
     form = MetabolomicRequestForm()
     form.metabolomic_condition_field.append_entry()
     item_form = form.metabolomic_condition_field[-1]

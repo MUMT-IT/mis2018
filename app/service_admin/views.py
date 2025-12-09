@@ -645,7 +645,7 @@ def create_request():
                      'protein_identification': 'service_admin.create_protein_identification_request',
                      'sds_page': 'service_admin.create_sds_page_request',
                      'quantitative': 'service_admin.create_quantitative_request',
-                     'metabolomic': 'service_admin.create_metabolomic_request',
+                     'metabolomics': 'service_admin.create_metabolomic_request',
                      }
     return redirect(url_for(request_paths[code], code=code, menu=menu, request_id=request_id, customer_id=customer_id))
 
@@ -1689,8 +1689,8 @@ def create_metabolomic_request(request_id=None):
                            form=form, menu=menu, request_id=request_id)
 
 
-@service_admin.route('/api/request/quantitative/item/add', methods=['POST'])
-def add_quantitative_condition_item():
+@service_admin.route('/api/request/metabolomic/item/add', methods=['POST'])
+def add_metabolomic_condition_item():
     form = MetabolomicRequestForm()
     form.metabolomic_condition_field.append_entry()
     item_form = form.metabolomic_condition_field[-1]
