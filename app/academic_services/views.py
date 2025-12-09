@@ -1251,12 +1251,12 @@ def add_heavy_metal_condition_item():
 def remove_heavy_metal_condition_item():
     form = HeavyMetalRequestForm()
     form.heavy_metal_condition_field.pop_entry()
-    index = len(form.heavy_metal_condition_field)
     resp = ''
-    for item_form in form.heavy_metal_condition_field:
+    for i, item_form in enumerate(form.quantitative_condition_field, start=1):
+        hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
         template = """
             <div id="{}">
-                <hr style="background-color: #F3F3F3">
+                {}  
                 <p><strong>รายการที่ {}</strong></p>
                 <table class="table is-fullwidth ">
                     <thead>
@@ -1281,7 +1281,8 @@ def remove_heavy_metal_condition_item():
             </div>
         """
         resp += template.format(item_form.id,
-                                index,
+                                hr,
+                                i,
                                 item_form.no.label,
                                 item_form.sample_name.label,
                                 item_form.quantity.label,
@@ -1385,12 +1386,12 @@ def add_food_safety_condition_item():
 def remove_food_safety_condition_item():
     form = FoodSafetyRequestForm()
     form.food_safety_condition_field.pop_entry()
-    index = len(form.food_safety_condition_field)
     resp = ''
-    for item_form in form.food_safety_condition_field:
+    for i, item_form in enumerate(form.quantitative_condition_field, start=1):
+        hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
         template = """
             <div id="{}">
-                <hr style="background-color: #F3F3F3">  
+                {}  
                 <p><strong>รายการที่ {}</strong></p>
                 <table class="table is-fullwidth ">
                     <thead>
@@ -1415,7 +1416,8 @@ def remove_food_safety_condition_item():
             </div>
         """
         resp += template.format(item_form.id,
-                                index,
+                                hr,
+                                i,
                                 item_form.no.label,
                                 item_form.sample_name.label,
                                 item_form.quantity.label,
@@ -1606,12 +1608,12 @@ def add_protein_identification_condition_item():
 def remove_protein_identification_condition_item():
     form = ProteinIdentificationRequestForm()
     form.protein_identification_condition_field.pop_entry()
-    index = len(form.protein_identification_condition_field)
     resp = ''
-    for item_form in form.protein_identification_condition_field:
+    for i, item_form in enumerate(form.quantitative_condition_field, start=1):
+        hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
         template = """
             <div id="{}">
-                <hr style="background-color: #F3F3F3">  
+                {}  
                 <p><strong>รายการที่ {}</strong></p>
                 <table class="table is-fullwidth ">
                     <thead>
@@ -1628,7 +1630,8 @@ def remove_protein_identification_condition_item():
             </div>
         """
         resp += template.format(item_form.id,
-                                index,
+                                hr,
+                                i,
                                 item_form.sample_name.label,
                                 item_form.clean_up.label,
                                 item_form.protein_identification.label,
@@ -1716,12 +1719,12 @@ def add_sds_page_condition_item():
 def remove_sds_page_condition_item():
     form = SDSPageRequestForm()
     form.sds_page_condition_field.pop_entry()
-    index = len(form.sds_page_condition_field)
     resp = ''
-    for item_form in form.sds_page_condition_field:
+    for i, item_form in enumerate(form.quantitative_condition_field, start=1):
+        hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
         template = """
             <div id="{}">
-                <hr style="background-color: #F3F3F3">  
+                {}   
                 <p><strong>รายการที่ {}</strong></p>
                 <table class="table is-fullwidth ">
                     <thead>
@@ -1738,7 +1741,8 @@ def remove_sds_page_condition_item():
             </div>
         """
         resp += template.format(item_form.id,
-                                index,
+                                hr,
+                                i,
                                 item_form.sample_name.label,
                                 item_form.clean_up.label,
                                 item_form.staining.label,
@@ -1835,12 +1839,12 @@ def add_quantitative_condition_item():
 def remove_quantitative_condition_item():
     form = QuantitativeRequestForm()
     form.quantitative_condition_field.pop_entry()
-    index = len(form.quantitative_condition_field)
     resp = ''
-    for item_form in form.quantitative_condition_field:
+    for i, item_form in enumerate(form.quantitative_condition_field, start=1):
+        hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
         template = """
             <div id="{}">
-                <hr style="background-color: #F3F3F3">  
+                {}
                 <p><strong>รายการที่ {}</strong></p>
                 <table class="table is-fullwidth ">
                     <thead>
@@ -1866,7 +1870,8 @@ def remove_quantitative_condition_item():
             </div>
         """
         resp += template.format(item_form.id,
-                                index,
+                                hr,
+                                i,
                                 item_form.sample_name.label,
                                 item_form.protein_concentration.label,
                                 item_form.quantitative_method.label,
