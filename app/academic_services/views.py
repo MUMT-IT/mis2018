@@ -869,6 +869,7 @@ def create_request():
                      'foodsafety': 'academic_services.create_food_safety_request',
                      'protein_identification': 'academic_services.create_protein_identification_request',
                      'sds_page': 'academic_services.create_sds_page_request',
+                     'quantitative': 'academic_services.create_quantitative_request',
                      }
     return redirect(url_for(request_paths[code], code=code, menu=menu, request_id=request_id))
 
@@ -1744,6 +1745,134 @@ def remove_sds_page_condition_item():
                                 item_form.sample_name(class_='input'),
                                 item_form.clean_up(),
                                 item_form.staining()
+                                )
+    resp = make_response(resp)
+    return resp
+
+
+@academic_services.route('/request/quantitative/add', methods=['GET', 'POST'])
+@academic_services.route('/request/quantitative/edit/<int:request_id>', methods=['GET', 'POST'])
+def create_quantitative_request(request_id=None):
+    menu = request.args.get('menu')
+    code = request.args.get('code')
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        data = service_request.data
+        form = QuantitativeRequestForm(data=data)
+    else:
+        form = QuantitativeRequestForm()
+    if form.validate_on_submit():
+        if request_id:
+            service_request.data = format_data(form.data)
+            service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+        else:
+            status_id = get_status(1)
+            request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
+            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
+                                             status_id=status_id)
+            request_no.count += 1
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(
+            url_for('academic_services.create_report_language', request_id=service_request.id, menu=menu,
+                    code=code))
+    else:
+        for er in form.errors:
+            flash(f'{er} {form.errors[er]}', 'danger')
+    return render_template('academic_services/quantitative_request_form.html', code=code, sub_lab=sub_lab,
+                           form=form, menu=menu, request_id=request_id)
+
+
+@academic_services.route('/api/request/quantitative/item/add', methods=['POST'])
+def add_quantitative_condition_item():
+    form = QuantitativeRequestForm()
+    form.quantitative_condition_field.append_entry()
+    item_form = form.quantitative_condition_field[-1]
+    index = len(form.quantitative_condition_field)
+    template = """
+        <div id="{}">
+            <hr style="background-color: #F3F3F3">
+            <p><strong>รายการที่ {}</strong></p>
+            <table class="table is-fullwidth ">
+                <thead>
+                    <th style="border: none">
+                        {}
+                        <span class="has-text-danger">*</span>
+                    </th>
+                    <th style="border: none">
+                        {}
+                        <span class="has-text-danger">*</span>
+                    </th>
+                    <th style="border: none">
+                        {}
+                        <span class="has-text-danger">*</span>
+                    </th>
+                </thead>
+                <tbody>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="control">{}</td>
+                </tbody>
+            </table>
+        </div>
+    """
+    resp = template.format(item_form.id,
+                           index,
+                           item_form.sample_name.label,
+                           item_form.protein_concentration.label,
+                           item_form.quantitative_method.label,
+                           item_form.sample_name(class_='input'),
+                           item_form.protein_concentration(class_='input'),
+                           item_form.quantitative_method()
+                           )
+    resp = make_response(resp)
+    return resp
+
+
+@academic_services.route('/api/request/quantitative/item/remove', methods=['DELETE'])
+def remove_quantitative_condition_item():
+    form = QuantitativeRequestForm()
+    form.quantitative_condition_field.pop_entry()
+    index = len(form.quantitative_condition_field)
+    resp = ''
+    for item_form in form.quantitative_condition_field:
+        template = """
+            <div id="{}">
+                <hr style="background-color: #F3F3F3">  
+                <p><strong>รายการที่ {}</strong></p>
+                <table class="table is-fullwidth ">
+                    <thead>
+                        <th style="border: none">
+                            {}
+                            <span class="has-text-danger">*</span>
+                        </th>
+                        <th style="border: none">
+                            {}
+                            <span class="has-text-danger">*</span>
+                        </th>
+                        <th style="border: none">
+                            {}
+                            <span class="has-text-danger">*</span>
+                        </th>
+                    </thead>
+                    <tbody>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                    </tbody>
+                </table>
+            </div>
+        """
+        resp += template.format(item_form.id,
+                                index,
+                                item_form.sample_name.label,
+                                item_form.protein_concentration.label,
+                                item_form.quantitative_method.label,
+                                item_form.sample_name(class_='input'),
+                                item_form.protein_concentration(class_='input'),
+                                item_form.quantitative_method()
                                 )
     resp = make_response(resp)
     return resp
