@@ -697,7 +697,7 @@ def create_bacteria_request(request_id=None):
     else:
         for er in form.errors:
             flash(er, 'danger')
-    return render_template('service_admin/bacteria_request_form.html', code=code, sub_lab=sub_lab,
+    return render_template('service_admin/forms/bacteria_request_form.html', code=code, sub_lab=sub_lab,
                            menu=menu, form=form, request_id=request_id)
 
 
@@ -801,7 +801,7 @@ def create_virus_disinfection_request(request_id=None):
     else:
         for er in form.errors:
             flash(er, 'danger')
-    return render_template('service_admin/virus_disinfection_request_form.html', code=code, sub_lab=sub_lab,
+    return render_template('service_admin/forms/virus_disinfection_request_form.html', code=code, sub_lab=sub_lab,
                            form=form, menu=menu, request_id=request_id)
 
 
@@ -896,7 +896,7 @@ def create_virus_air_disinfection_request(request_id=None):
     else:
         for er in form.errors:
             flash(er, 'danger')
-    return render_template('service_admin/virus_air_disinfection_request_form.html', code=code, sub_lab=sub_lab,
+    return render_template('service_admin/forms/virus_air_disinfection_request_form.html', code=code, sub_lab=sub_lab,
                            form=form, request_id=request_id, menu=menu)
 
 
@@ -965,7 +965,7 @@ def create_heavy_metal_request(request_id=None):
     else:
         for er in form.errors:
             flash(f'{er} {form.errors[er]}', 'danger')
-    return render_template('service_admin/heavy_metal_request_form.html', code=code, sub_lab=sub_lab,
+    return render_template('service_admin/forms/heavy_metal_request_form.html', code=code, sub_lab=sub_lab,
                            form=form, menu=menu, request_id=request_id)
 
 
@@ -1100,7 +1100,7 @@ def create_food_safety_request(request_id=None):
     else:
         for er in form.errors:
             flash(f'{er} {form.errors[er]}', 'danger')
-    return render_template('service_admin/food_safety_request_form.html', code=code, sub_lab=sub_lab,
+    return render_template('service_admin/forms/food_safety_request_form.html', code=code, sub_lab=sub_lab,
                            form=form, menu=menu, request_id=request_id)
 
 
@@ -1334,7 +1334,7 @@ def create_protein_identification_request(request_id=None):
     else:
         for er in form.errors:
             flash(f'{er} {form.errors[er]}', 'danger')
-    return render_template('service_admin/protein_identification_request_form.html', code=code, sub_lab=sub_lab,
+    return render_template('service_admin/forms/protein_identification_request_form.html', code=code, sub_lab=sub_lab,
                            form=form, menu=menu, request_id=request_id)
 
 
@@ -1445,7 +1445,7 @@ def create_sds_page_request(request_id=None):
     else:
         for er in form.errors:
             flash(f'{er} {form.errors[er]}', 'danger')
-    return render_template('service_admin/sds_page_request_form.html', code=code, sub_lab=sub_lab,
+    return render_template('service_admin/forms/sds_page_request_form.html', code=code, sub_lab=sub_lab,
                            form=form, menu=menu, request_id=request_id)
 
 
@@ -1556,7 +1556,7 @@ def create_quantitative_request(request_id=None):
     else:
         for er in form.errors:
             flash(f'{er} {form.errors[er]}', 'danger')
-    return render_template('service_admin/quantitative_request_form.html', code=code, sub_lab=sub_lab,
+    return render_template('service_admin/forms/quantitative_request_form.html', code=code, sub_lab=sub_lab,
                            form=form, menu=menu, request_id=request_id)
 
 
@@ -1685,7 +1685,7 @@ def create_metabolomic_request(request_id=None):
     else:
         for er in form.errors:
             flash(f'{er} {form.errors[er]}', 'danger')
-    return render_template('service_admin/metabolomic_request_form.html', code=code, sub_lab=sub_lab,
+    return render_template('service_admin/forms/metabolomic_request_form.html', code=code, sub_lab=sub_lab,
                            form=form, menu=menu, request_id=request_id)
 
 
