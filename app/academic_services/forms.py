@@ -889,6 +889,34 @@ class QuantitativeRequestForm(FlaskForm):
     quantitative_condition_field = FieldList(FormField(QuantitativeConditionForm), min_entries=1)
 
 
+class MetabolomicConditionForm(FlaskForm):
+    sample_name = StringField('Sample Name', validators=[DataRequired()],
+                              render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                         "oninput": "this.setCustomValidity('')"
+                                         })
+    clean_up = CheckboxField('Clean Up Sample', choices=[('Do', 'Do')], validators=[Optional()])
+    untargeted_metabolomic = CheckboxField('Untargeted Metabolomic', choices=[('Negative', 'Negative'),
+                                                                              ('Positive', 'Positive')],
+                                           validators=[Optional()])
+    quantitative_metabolomic = CheckboxField('Quantitative Metabolomic', choices=[('Negative', 'Negative'),
+                                                                                  ('Positive', 'Positive')],
+                                             validators=[Optional()])
+
+
+class MetabolomicRequestForm(FlaskForm):
+    processing_data = CheckboxField('Processing data for quantitation analysis (Extra change)', choices=[('Do', 'Do')])
+    sample_species = StringField('Sample species', validators=[DataRequired()],
+                                 render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                            "oninput": "this.setCustomValidity('')"
+                                            })
+    buffer_condition = StringField('Buffer conditions', validators=[DataRequired()],
+                                   render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                              "oninput": "this.setCustomValidity('')"
+                                              })
+    comment = StringField('Comments')
+    metabolomic_condition_field = FieldList(FormField(MetabolomicConditionForm), min_entries=1)
+
+
 class ServiceQuotationForm(ModelForm):
     class Meta:
         model = ServiceQuotation
