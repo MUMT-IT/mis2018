@@ -645,6 +645,7 @@ def create_request():
                      'protein_identification': 'service_admin.create_protein_identification_request',
                      'sds_page': 'service_admin.create_sds_page_request',
                      'quantitative': 'service_admin.create_quantitative_request',
+                     'metabolomic': 'service_admin.create_metabolomic_request',
                      }
     return redirect(url_for(request_paths[code], code=code, menu=menu, request_id=request_id, customer_id=customer_id))
 
@@ -1648,6 +1649,125 @@ def remove_quantitative_condition_item():
                                 item_form.sample_name(class_='input'),
                                 item_form.protein_concentration(class_='input'),
                                 item_form.quantitative_method()
+                                )
+    resp = make_response(resp)
+    return resp
+
+
+@service_admin.route('/request/metabolomic/add', methods=['GET', 'POST'])
+@service_admin.route('/request/metabolomic/edit/<int:request_id>', methods=['GET', 'POST'])
+def create_metabolomic_request(request_id=None):
+    menu = request.args.get('menu')
+    code = request.args.get('code')
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        data = service_request.data
+        form = MetabolomicRequestForm(data=data)
+    else:
+        form = MetabolomicRequestForm()
+    if form.validate_on_submit():
+        if request_id:
+            service_request.data = format_data(form.data)
+            service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+        else:
+            status_id = get_status(1)
+            request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
+            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
+                                             status_id=status_id)
+            request_no.count += 1
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(
+            url_for('service_admin.create_report_language', request_id=service_request.id, menu=menu,
+                    code=code))
+    else:
+        for er in form.errors:
+            flash(f'{er} {form.errors[er]}', 'danger')
+    return render_template('service_admin/metabolomic_request_form.html', code=code, sub_lab=sub_lab,
+                           form=form, menu=menu, request_id=request_id)
+
+
+@service_admin.route('/api/request/quantitative/item/add', methods=['POST'])
+def add_quantitative_condition_item():
+    form = MetabolomicRequestForm()
+    form.metabolomic_condition_field.append_entry()
+    item_form = form.metabolomic_condition_field[-1]
+    index = len(form.metabolomic_condition_field)
+    template = """
+        <div id="{}">
+            <hr style="background-color: #F3F3F3">
+            <p><strong>รายการที่ {}</strong></p>
+            <table class="table is-fullwidth ">
+                <thead>
+                    <th style="border: none">{}<span class="has-text-danger">*</span></th>
+                    <th style="border: none">{}</th>
+                    <th style="border: none">{}</th>
+                    <th style="border: none">{}</th>
+                </thead>
+                <tbody>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="control">{}</td>
+                </tbody>
+            </table>
+        </div>
+    """
+    resp = template.format(item_form.id,
+                           index,
+                           item_form.sample_name.label,
+                           item_form.clean_up.label,
+                           item_form.untargeted_metabolomic.label,
+                           item_form.quantitative_metabolomic.label,
+                           item_form.sample_name(class_='input'),
+                           item_form.clean_up(),
+                           item_form.untargeted_metabolomic(),
+                           item_form.quantitative_metabolomic()
+                           )
+    resp = make_response(resp)
+    return resp
+
+
+@service_admin.route('/api/request/metabolomic/item/remove', methods=['DELETE'])
+def remove_metabolomic_condition_item():
+    form = MetabolomicRequestForm()
+    form.metabolomic_condition_field.pop_entry()
+    resp = ''
+    for i, item_form in enumerate(form.metabolomic_condition_field, start=1):
+        hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
+        template = """
+            <div id="{}">
+                {}
+                <p><strong>รายการที่ {}</strong></p>
+                <table class="table is-fullwidth ">
+                    <thead>
+                        <th style="border: none">{}<span class="has-text-danger">*</span></th>
+                        <th style="border: none">{}</th>
+                        <th style="border: none">{}</th>
+                        <th style="border: none">{}</th>
+                    </thead>
+                    <tbody>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                    </tbody>
+                </table>
+            </div>
+        """
+        resp += template.format(item_form.id,
+                                hr,
+                                i,
+                                item_form.sample_name.label,
+                                item_form.clean_up.label,
+                                item_form.untargeted_metabolomic.label,
+                                item_form.quantitative_metabolomic.label,
+                                item_form.sample_name(class_='input'),
+                                item_form.clean_up(),
+                                item_form.untargeted_metabolomic(),
+                                item_form.quantitative_metabolomic()
                                 )
     resp = make_response(resp)
     return resp
