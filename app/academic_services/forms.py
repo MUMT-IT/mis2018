@@ -824,7 +824,7 @@ class ProteinIdentificationRequestForm(FlaskForm):
                      render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                 "oninput": "this.setCustomValidity('')"
                                 })
-    comment = StringField()
+    comment = StringField('Comments')
     protein_identification_condition_field = FieldList(FormField(ProteinIdentificationConditionForm), min_entries=1)
 
 
@@ -858,8 +858,35 @@ class SDSPageRequestForm(FlaskForm):
                                 render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                            "oninput": "this.setCustomValidity('')"
                                            })
-    comment = StringField()
+    comment = StringField('Comments')
     sds_page_condition_field = FieldList(FormField(SDSPageConditionForm), min_entries=1)
+
+
+class QuantitativeConditionForm(FlaskForm):
+    sample_name = StringField('Sample Name', validators=[DataRequired()],
+                              render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                         "oninput": "this.setCustomValidity('')"
+                                         })
+    protein_concentration = StringField('Protein concentration (μg/μl)', validators=[DataRequired()],
+                                        render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                                   "oninput": "this.setCustomValidity('')"
+                                                   })
+    quantitative_method = CheckboxField('Quantitative Method', choices=[('Label-Free', 'Label-Free'),
+                                                                        ('Targeted', 'Targeted')], validators=[Optional()])
+
+
+class QuantitativeRequestForm(FlaskForm):
+    processing_data = CheckboxField('Processing data for quantitation analysis (Extra change)', choices=[('Do', 'Do')])
+    sample_species = StringField('Sample species', validators=[DataRequired()],
+                                render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                           "oninput": "this.setCustomValidity('')"
+                                           })
+    buffer_condition = StringField('Buffer conditions', validators=[DataRequired()],
+                                render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                           "oninput": "this.setCustomValidity('')"
+                                           })
+    comment = StringField('Comments')
+    quantitative_condition_field = FieldList(FormField(QuantitativeConditionForm), min_entries=1)
 
 
 class ServiceQuotationForm(ModelForm):
