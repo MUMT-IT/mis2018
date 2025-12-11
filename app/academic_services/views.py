@@ -871,6 +871,7 @@ def create_request():
                      'sds_page': 'academic_services.create_sds_page_request',
                      'quantitative': 'academic_services.create_quantitative_request',
                      'metabolomics': 'academic_services.create_metabolomic_request',
+                     'endotoxin': 'academic_services.create_endotoxin_request',
                      }
     return redirect(url_for(request_paths[code], code=code, menu=menu, request_id=request_id))
 
@@ -1125,7 +1126,8 @@ def create_virus_air_disinfection_request(request_id=None):
     else:
         for er in form.errors:
             flash(er, 'danger')
-    return render_template('academic_services/forms/virus_air_disinfection_request_form.html', code=code, sub_lab=sub_lab,
+    return render_template('academic_services/forms/virus_air_disinfection_request_form.html', code=code,
+                           sub_lab=sub_lab,
                            form=form, menu=menu, request_id=request_id)
 
 
@@ -1564,7 +1566,8 @@ def create_protein_identification_request(request_id=None):
     else:
         for er in form.errors:
             flash(f'{er} {form.errors[er]}', 'danger')
-    return render_template('academic_services/forms/protein_identification_request_form.html', code=code, sub_lab=sub_lab,
+    return render_template('academic_services/forms/protein_identification_request_form.html', code=code,
+                           sub_lab=sub_lab,
                            form=form, menu=menu, request_id=request_id)
 
 
@@ -2099,6 +2102,146 @@ def get_sample_type_other():
     else:
         html = '<input type="hidden" name="sample_type_other" class="input" value="">'
     resp = make_response(html)
+    return resp
+
+
+@academic_services.route('/request/endotoxin/add', methods=['GET', 'POST'])
+@academic_services.route('/request/endotoxin/edit/<int:request_id>', methods=['GET', 'POST'])
+def create_endotoxin_request(request_id=None):
+    menu = request.args.get('menu')
+    code = request.args.get('code')
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        data = service_request.data
+        form = EndotoxinRequestForm(data=data)
+    else:
+        form = EndotoxinRequestForm()
+    for item_form in form.endotoxin_condition_field:
+        if not item_form.org_name.data:
+            item_form.org_name.data = current_user.customer_info.cus_name
+    if form.validate_on_submit():
+        if request_id:
+            service_request.data = format_data(form.data)
+            service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+        else:
+            status_id = get_status(1)
+            request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
+            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
+                                             status_id=status_id)
+            request_no.count += 1
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(
+            url_for('academic_services.create_report_language', request_id=service_request.id, menu=menu,
+                    code=code))
+    else:
+        for er in form.errors:
+            flash(er, 'danger')
+    return render_template('academic_services/forms/endotoxin_request_form.html', code=code, sub_lab=sub_lab,
+                           form=form, menu=menu, request_id=request_id)
+
+
+@academic_services.route('/api/request/endotoxin/item/add', methods=['POST'])
+def add_endotoxin_condition_item():
+    form = EndotoxinRequestForm()
+    form.endotoxin_condition_field.append_entry()
+    item_form = form.endotoxin_condition_field[-1]
+    index = len(form.endotoxin_condition_field)
+    item_form.org_name.data = current_user.customer_info.cus_name
+    template = """
+        <div id="{}">
+            <hr style="background-color: #F3F3F3">
+            <p><strong>รายการที่ {}</strong></p>
+            <table class="table is-fullwidth ">
+                <thead>
+                    <th style="border: none">{}<span class="has-text-danger">*</span></th>
+                    <th style="border: none">{}<span class="has-text-danger">*</span></th>
+                    <th style="border: none">{}<span class="has-text-danger">*</span></th>
+                    <th style="border: none">{}<span class="has-text-danger">*</span></th>
+                    <th style="border: none">{}<span class="has-text-danger">*</span></th>
+                    <th style="border: none">{}<span class="has-text-danger">*</span></th>
+                </thead>
+                <tbody>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="select">{}</td>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="control">{}</td>
+                </tbody>
+            </table>
+        </div>
+    """
+    resp = template.format(item_form.id,
+                           index,
+                           item_form.no.label,
+                           item_form.org_name.label,
+                           item_form.sample_name.label,
+                           item_form.sample_type.label,
+                           item_form.received_by.label,
+                           item_form.received_at.label,
+                           item_form.no(class_='input'),
+                           item_form.org_name(class_='input'),
+                           item_form.sample_name(class_='input'),
+                           item_form.sample_type(),
+                           item_form.received_by(class_='input'),
+                           item_form.received_at(class_='input')
+                           )
+    resp = make_response(resp)
+    resp.headers['HX-Trigger-After-Swap'] = 'activateDateRangePickerEvent'
+    return resp
+
+
+@academic_services.route('/api/request/endotoxin/item/remove', methods=['DELETE'])
+def remove_endotoxin_condition_item():
+    form = EndotoxinRequestForm()
+    form.endotoxin_condition_field.pop_entry()
+    resp = ''
+    for i, item_form in enumerate(form.endotoxin_condition_field, start=1):
+        hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
+        template = """
+            <div id="{}">
+                {}
+                <p><strong>รายการที่ {}</strong></p>
+                <table class="table is-fullwidth ">
+                    <thead>
+                        <th style="border: none">{}<span class="has-text-danger">*</span></th>
+                        <th style="border: none">{}<span class="has-text-danger">*</span></th>
+                        <th style="border: none">{}<span class="has-text-danger">*</span></th>
+                        <th style="border: none">{}<span class="has-text-danger">*</span></th>
+                        <th style="border: none">{}<span class="has-text-danger">*</span></th>
+                        <th style="border: none">{}<span class="has-text-danger">*</span></th>
+                    </thead>
+                    <tbody>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="select">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                    </tbody>
+                </table>
+            </div>
+        """
+        resp += template.format(item_form.id,
+                                hr,
+                                i,
+                                item_form.no.label,
+                                item_form.org_name.label,
+                                item_form.sample_name.label,
+                                item_form.sample_type.label,
+                                item_form.received_by.label,
+                                item_form.received_at.label,
+                                item_form.no(class_='input'),
+                                item_form.org_name(class_='input'),
+                                item_form.sample_name(class_='input'),
+                                item_form.sample_type(),
+                                item_form.received_by(class_='input'),
+                                item_form.received_at(class_='input')
+                                )
+    resp = make_response(resp)
     return resp
 
 
