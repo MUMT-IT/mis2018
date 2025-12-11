@@ -3247,7 +3247,7 @@ def generate_quotation_pdf(quotation, sign=False):
     ])
 
     items.append([
-        Paragraph('<font size=12>{}</font>'.format(bahttext(quotation.grand_total())),
+        Paragraph('<font size=12>{}</font>'.format(bahttext(quotation.grand_total)),
                   style=style_sheet['ThaiStyleCenter']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
@@ -3260,7 +3260,7 @@ def generate_quotation_pdf(quotation, sign=False):
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>รวมเป็นเงินทั้งสิ้น/Grand Total</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.grand_total()), style=style_sheet['ThaiStyleNumber']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.grand_total), style=style_sheet['ThaiStyleNumber']),
     ])
 
     item_table = Table(items, colWidths=[50, 250, 75, 75])
@@ -3926,7 +3926,7 @@ def add_payment():
     invoice = ServiceInvoice.query.get(invoice_id)
     form = ServicePaymentForm()
     if not form.amount_paid.data:
-        form.amount_paid.data = invoice.grand_total()
+        form.amount_paid.data = invoice.grand_total
     if form.validate_on_submit():
         payment = ServicePayment()
         form.populate_obj(payment)
@@ -3964,7 +3964,7 @@ def add_payment():
                 message = f'''เรียน เจ้าหน้าที่การเงิน\n\n'''
                 message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'''
                 message += f'''ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'''
-                message += f'''จำนวนเงิน {invoice.grand_total():,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'''
+                message += f'''จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'''
                 message += f'''กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'''
                 message += f'''{link}\n\n'''
                 message += f'''ผู้ประสานงาน\n'''
@@ -3976,7 +3976,7 @@ def add_payment():
                        f'เรียน เจ้าหน้าที่การเงิน\n\n'
                        f'ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'
                        f'ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'
-                       f'จำนวนเงิน {invoice.grand_total():,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'
+                       f'จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'
                        f'กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'
                        f'{link}\n\n'
                        f'ผู้ประสานงาน\n'
@@ -4124,7 +4124,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     ])
 
     items.append([
-        Paragraph('<font size=12>{}</font>'.format(bahttext(invoice.grand_total())),
+        Paragraph('<font size=12>{}</font>'.format(bahttext(invoice.grand_total)),
                   style=style_sheet['ThaiStyleCenter']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
@@ -4137,7 +4137,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>รวมเป็นเงินทั้งสิ้น/Grand Total</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(invoice.grand_total()), style=style_sheet['ThaiStyleNumber']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(invoice.grand_total), style=style_sheet['ThaiStyleNumber']),
     ])
 
     item_table = Table(items, colWidths=[50, 250, 75, 75])

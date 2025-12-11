@@ -3989,7 +3989,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
     ])
 
     items.append([
-        Paragraph('<font size=13>รวมเป็นเงินทั้งสิ้น/Grand Total ({})</font>'.format(bahttext(invoice.grand_total())),
+        Paragraph('<font size=13>รวมเป็นเงินทั้งสิ้น/Grand Total ({})</font>'.format(bahttext(invoice.grand_total)),
                   style=label_style),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyleBold']),
@@ -4002,7 +4002,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>รวมเป็นเงินทั้งสิ้น/Grand Total</font>', style=style_sheet['ThaiStyleBold']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(invoice.grand_total()), style=bold_style),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(invoice.grand_total), style=bold_style),
     ])
 
     item_table = Table(items, colWidths=[50, 250, 75, 75])
@@ -4154,7 +4154,7 @@ def export_invoice_pdf(invoice_id):
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.sub_lab.code).first()
     ref1 = invoice.invoice_no
     ref2 = sub_lab.ref.upper()
-    qrcode_data = generate_qrcode(amount=invoice.grand_total(), ref1=ref1, ref2=ref2, ref3=None)
+    qrcode_data = generate_qrcode(amount=invoice.grand_total, ref1=ref1, ref2=ref2, ref3=None)
     if qrcode_data:
         qr_image_base64 = qrcode_data['qrImage']
     else:
@@ -4171,7 +4171,7 @@ def add_payment():
     invoice = ServiceInvoice.query.get(invoice_id)
     form = ServicePaymentForm()
     if not form.amount_paid.data:
-        form.amount_paid.data = invoice.grand_total()
+        form.amount_paid.data = invoice.grand_total
     if form.validate_on_submit():
         payment = ServicePayment()
         form.populate_obj(payment)
@@ -4213,7 +4213,7 @@ def add_payment():
                 message = f'''เรียน เจ้าหน้าที่การเงิน\n\n'''
                 message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'''
                 message += f'''ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'''
-                message += f'''จำนวนเงิน {invoice.grand_total():,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'''
+                message += f'''จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'''
                 message += f'''กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'''
                 message += f'''{link}\n\n'''
                 message += f'''ผู้ประสานงาน\n'''
@@ -4225,7 +4225,7 @@ def add_payment():
                        f'เรียน เจ้าหน้าที่การเงิน\n\n'
                        f'ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'
                        f'ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'
-                       f'จำนวนเงิน {invoice.grand_total():,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'
+                       f'จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'
                        f'กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'
                        f'{link}\n\n'
                        f'ผู้ประสานงาน\n'
@@ -5456,7 +5456,7 @@ def confirm_payment(invoice_id):
     invoice.verify_id = current_user.id
     invoice.quotation.request.status_id = status_id
     if not invoice.paid_at:
-        payment = ServicePayment(invoice_id=invoice_id, payment_type='เช็คเงินสด', amount_paid=invoice.grand_total(),
+        payment = ServicePayment(invoice_id=invoice_id, payment_type='เช็คเงินสด', amount_paid=invoice.grand_total,
                                  paid_at=arrow.now('Asia/Bangkok').datetime,
                                  customer_id=invoice.quotation.request.customer_id,
                                  created_at=arrow.now('Asia/Bangkok').datetime)
