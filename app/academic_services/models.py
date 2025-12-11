@@ -833,7 +833,7 @@ class ServiceInvoice(db.Model):
             'admin_status_color': self.admin_status_color if self.admin_status_color else None,
             'customer_status': self.customer_status if self.customer_status else None,
             'customer_status_color': self.customer_status_color if self.customer_status_color else None,
-            'total_price': '{:,.2f}'.format(self.grand_total()),
+            'total_price': '{:,.2f}'.format(self.grand_total),
             'created_at': self.created_at,
             'due_date': self.due_date if self.due_date else None,
             'creator': self.creator.fullname if self.creator else None,
@@ -874,7 +874,7 @@ class ServiceInvoice(db.Model):
         if not payment:
             return None
         if payment.payment_type == 'QR Code Payment':
-            record = ScbPaymentRecord.filter_by(bill_payment_ref1=self.invoice_no, amount=self.grand_total()).first()
+            record = ScbPaymentRecord.query.filter_by(bill_payment_ref1=self.invoice_no, amount=self.grand_total).first()
             if record:
                 return payment
             else:
