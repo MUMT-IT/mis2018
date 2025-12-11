@@ -856,6 +856,18 @@ class StaffSeminarAttend(db.Model):
         return [o.objective for o in self.objectives]
 
 
+class SeminarYearlyBudget(db.Model):
+    __tablename__ = 'seminar_yearly_budgets'
+    id = db.Column('id', db.Integer, primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship('StaffAccount', foreign_keys=[staff_account_id],
+                            backref=db.backref('seminar_budgets', lazy='dynamic'))
+    year = db.Column('year', db.Integer, nullable=False)
+    budget = db.Column('total_budget', db.Float)
+    total_used = db.Column('total_used', db.Float)
+    remaining = db.Column('remaining', db.Float)
+
+
 class StaffSeminarDocumentApprover(db.Model):
     __tablename__ = 'staff_seminar_document_approvers'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)

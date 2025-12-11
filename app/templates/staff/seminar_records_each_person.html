@@ -120,6 +120,7 @@
                     <th>วันที่เริ่มต้น</th>
                     <th>วันที่สิ้นสุด</th>
                     <th>หน่วยงานที่จัด</th>
+                    <th>ค่าใช้จ่าย</th>
                     <th>เอกสารโครงการ</th>
                     </thead>
                     <tbody>
@@ -145,6 +146,7 @@
                         <td>
                              {% if records.organize_by %}{{ records.organize_by }}{% endif %}
                         </td>
+                        <td>{{ records.budget }}</td>
                         <td>
                             {% if records.upload_file_url %}
                             <a href="{{ records.upload_file_url }}">คลิกเพื่อดู</a>
