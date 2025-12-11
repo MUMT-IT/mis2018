@@ -57,4 +57,5 @@ class SoftwareRequestIssueForm(ModelForm):
         only = ['issue', 'label']
 
     status_ = SelectField('Status',
+                          default='Draft',
                           choices=[(c,c) for c in ('Draft', 'Working', 'Cancelled', 'Closed')])
