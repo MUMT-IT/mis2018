@@ -868,23 +868,25 @@ class QuantitativeConditionForm(FlaskForm):
                                          "oninput": "this.setCustomValidity('')"
                                          })
     protein_concentration = StringField('Protein concentration (μg/μl)', validators=[DataRequired()],
-                                        render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
-                                                   "oninput": "this.setCustomValidity('')"
-                                                   })
+                                        render_kw={
+                                            "oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                            "oninput": "this.setCustomValidity('')"
+                                        })
     quantitative_method = CheckboxField('Quantitative Method', choices=[('Label-Free', 'Label-Free'),
-                                                                        ('Targeted', 'Targeted')], validators=[Optional()])
+                                                                        ('Targeted', 'Targeted')],
+                                        validators=[Optional()])
 
 
 class QuantitativeRequestForm(FlaskForm):
     processing_data = CheckboxField('Processing data for quantitation analysis (Extra change)', choices=[('Do', 'Do')])
     sample_species = StringField('Sample species', validators=[DataRequired()],
-                                render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
-                                           "oninput": "this.setCustomValidity('')"
-                                           })
+                                 render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                            "oninput": "this.setCustomValidity('')"
+                                            })
     buffer_condition = StringField('Buffer conditions', validators=[DataRequired()],
-                                render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
-                                           "oninput": "this.setCustomValidity('')"
-                                           })
+                                   render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+                                              "oninput": "this.setCustomValidity('')"
+                                              })
     comment = StringField('Comments')
     quantitative_condition_field = FieldList(FormField(QuantitativeConditionForm), min_entries=1)
 
@@ -915,6 +917,86 @@ class MetabolomicRequestForm(FlaskForm):
                                               })
     comment = StringField('Comments')
     metabolomic_condition_field = FieldList(FormField(MetabolomicConditionForm), min_entries=1)
+
+
+# class ToxicologyConditionForm(FlaskForm):
+#     test = StringField('Test', validators=[DataRequired()], render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อตัวอย่าง')",
+#                                                                    "oninput": "this.setCustomValidity('')"
+#                                                                    })
+#
+#
+# class ToxicologyRequestForm(FlaskForm):
+#     lab = StringField('ส่งจาก Clinic/Lab/โรงพยาบาล', validators=[DataRequired()],
+#                       render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อ Clinic/Lab/โรงพยาบาล')",
+#                                  "oninput": "this.setCustomValidity('')"
+#                                  })
+#     gender = StringField('เพศ', validators=[DataRequired()], render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกเพศ')",
+#                                                                         "oninput": "this.setCustomValidity('')"
+#                                                                         })
+#     age = StringField('อายุ', validators=[DataRequired()],
+#                       render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกอายุ')",
+#                                  "oninput": "this.setCustomValidity('')"
+#                                  })
+#     hn = StringField("HN", validators=[DataRequired()], render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอก HN')",
+#                                                                    "oninput": "this.setCustomValidity('')"
+#                                                                    })
+#     note = StringField('Notes')
+#     sample_type = RadioField('Sample Type', choices=[('Cloted Blood', 'Cloted Blood'),
+#                                                          ('Serum', 'Serum'),
+#                                                          ('EDTA whole blood', 'EDTA whole blood'),
+#                                                          ('Urine', 'Urine'),
+#                                                          ('Urine 24 hrs.', 'Urine 24 hrs.'),
+#                                                          ('Other', 'Other')])
+#     volume = StringField('Total Volume (mL)')
+#     other = StringField('Other')
+#     date_of_collectiobn = StringField('Date of collection', validators=[DataRequired()],
+#                                       render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือกวันที่')",
+#                                                  "oninput": "this.setCustomValidity('')"
+#                                                  })
+#     toxicology_condition_field = FieldList(FormField(ToxicologyConditionForm))
+
+
+class EndotoxinConditionForm(FlaskForm):
+    no = IntegerField('ลำดับ', validators=[DataRequired()],
+                      render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกลำดับ')",
+                                 "oninput": "this.setCustomValidity('')"
+                                 })
+    org_name = StringField('ชื่อหน่วยงาน สำหรับรายงานผลตรวจ', validators=[DataRequired()],
+                           render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อหน่วยงาน')",
+                                      "oninput": "this.setCustomValidity('')"
+                                      })
+    sample_name = StringField('ตำแหน่งที่เก็บตัวอย่าง หรือ ชื่อตัวอย่าง', validators=[DataRequired()],
+                              render_kw={
+                                  "oninvalid": "this.setCustomValidity('กรุณากรอกตำแหน่งที่เก็บตัวอย่าง หรือ ชื่อตัวอย่าง')",
+                                  "oninput": "this.setCustomValidity('')"
+                                  })
+    sample_type = SelectField('ชนิดตัวอย่าง', choices=[('', 'กรุณาเลือกชนิดตัวอย่าง'),
+                                                       ('Water', 'Water'),
+                                                       ('Dialysis fluid', 'Dialysis fluid')],
+                              validators=[DataRequired()],
+                              render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชนิดตัวอย่าง')",
+                                         "oninput": "this.setCustomValidity('')"
+                                         })
+    received_by = StringField('ผู้เก็บตัวอย่าง', validators=[DataRequired()],
+                              render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกผู้เก็บตัวอย่าง')",
+                                         "oninput": "this.setCustomValidity('')"
+                                         })
+    received_at = StringField('วันเวลาที่เก็บตัวอย่าง', validators=[DataRequired()],
+                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกวันเวลาที่เก็บตัวอย่าง')",
+                                           "oninput": "this.setCustomValidity('')"
+                                           })
+
+
+class EndotoxinRequestForm(FlaskForm):
+    test_method = RadioField('รายการทดสอบ', choices=[('Endotoxin test (LAL kinetic turbidimetric)',
+                                                      'Endotoxin test (LAL kinetic turbidimetric)'),
+                                                     ('Sterility test (Membrane filtration)',
+                                                      'Sterility test (Membrane filtration)'),
+                                                     (
+                                                         'Sterility test (Spread plate)',
+                                                         'Sterility test (Spread plate)')])
+    note = StringField('บันทึกข้อมูลเพิ่มเติม')
+    endotoxin_condition_field = FieldList(FormField(EndotoxinConditionForm), min_entries=1)
 
 
 class ServiceQuotationForm(ModelForm):
