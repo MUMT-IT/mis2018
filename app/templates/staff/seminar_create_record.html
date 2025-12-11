@@ -80,7 +80,8 @@
                             </label>
                         </div>
                         <br>
-                        <b-field label="รายละเอียด">
+                        <span class="is-size-5"><strong>รายละเอียด</strong></span>
+                        <b-field>
                             <b-select placeholder="เลือก" name="objective" id="objective"
                                  hx-get="{{ url_for('staff.get_idp_for_seminar', seminar_id=seminar.id) }}"
                                  hx-target="#related-idp"
@@ -249,7 +250,7 @@
                         <div class="field" v-if="wantdocument === 'want'">
                             <div class="field is-horizontal">
                                 <div class="field is-normal">
-                                    <label class="label">ผู้บังคับบัญชา (ชื่อจะปรากฎบนเอกสาร)</label>
+                                    <p class="is-size-5"><strong>ผู้บังคับบัญชา (ชื่อจะปรากฎบนเอกสาร)</strong></p>
                                 </div>
 {#                                <div class="field-body">#}
 {#                                    <div class="control">#}

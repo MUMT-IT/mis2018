@@ -143,6 +143,30 @@ def calculate_leave_quota_limit(staff_id, quota_id, date_time):
             quota_limit = quota.first_year if not quota.min_employed_months else 0
     return quota_limit
 
+def get_seminar_yearly_budget(staff_account_id, start_datetime):
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(start_datetime)
+    yearly_budget = SeminarYearlyBudget.query.filter_by(staff_account_id=staff_account_id, year=START_FISCAL_DATE.year).first()
+    if yearly_budget:
+        return yearly_budget
+
+    staff_account = StaffAccount.query.get(staff_account_id)
+    total_budget = 15000 if staff_account.personal_info.academic_staff else 10000
+    total_used = 0
+    for a in StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(and_(
+             StaffSeminarAttend.start_datetime >= START_FISCAL_DATE,
+             StaffSeminarAttend.end_datetime <= END_FISCAL_DATE)).all():
+        if a.budget:
+            total_used += a.budget
+    seminar_yearly_budget = SeminarYearlyBudget(
+            staff=staff_account,
+            year=START_FISCAL_DATE.year,
+            budget=total_budget,
+            total_used=total_used,
+            remaining=total_budget - total_used
+    )
+    db.session.add(seminar_yearly_budget)
+    db.session.commit()
+    return seminar_yearly_budget
 
 @staff.route('/')
 @login_required
@@ -3404,6 +3428,8 @@ def get_idp_for_seminar(seminar_id):
                         </tbody>
                     </table>
                 '''
+            yearly_budget = get_seminar_yearly_budget(current_user.id, seminar.start_datetime)
+            html_content += f'''<p class="is-size-5">วงเงิน {yearly_budget.budget} บาท ยอดที่ใช้(รวมครั้งนี้) {yearly_budget.total_used} บาท คงเหลือ {yearly_budget.remaining} บาท</p>'''
         resp = make_response(html_content)
         resp.headers['HX-Trigger-After-Swap'] = 'initSelect2'
         return resp
@@ -3773,7 +3799,12 @@ def show_seminar_info_each_person(record_id):
     approver = seminar_attend.lower_level_approver.personal_info if seminar_attend.lower_level_approver else ''
     document_approver = StaffSeminarDocumentApprover.query.filter_by(seminar_attend=seminar_attend).first()
     approver_position = document_approver.position.position if document_approver else ''
-
+    idp_value = ''
+    if seminar_attend.objectives:
+        yearly_budget = get_seminar_yearly_budget(seminar_attend.staff_account_id, seminar_attend.start_datetime)
+        for obj in seminar_attend.objectives:
+            if "IDP" in obj.objective:
+                idp_value = f'\\nวงเงิน {yearly_budget.budget} บาท ยอดที่ใช้(รวมครั้งนี้) {yearly_budget.total_used} บาท คงเหลือ {yearly_budget.remaining} บาท'
     return render_template('staff/seminar_each_record.html', attend=attend, approval=approval,
                            proposal=proposal, is_hr=is_hr, upload_file_url=upload_file_url,
                            registration_fee=registration_fee, seminar_attend=seminar_attend,
@@ -3781,7 +3812,7 @@ def show_seminar_info_each_person(record_id):
                            flight_ticket_cost=flight_ticket_cost, train_ticket_cost=train_ticket_cost,
                            taxi_cost=taxi_cost, fuel_cost=fuel_cost, org_name=org_name, attend_online=attend_online,
                            prefix_position=prefix_position, telephone=telephone,
-                           approver=approver, approver_position=approver_position)
+                           approver=approver, approver_position=approver_position, idp_value=idp_value)
 
 
 @staff.route('/seminar/edit-seminar/<int:seminar_id>', methods=['GET', 'POST'])

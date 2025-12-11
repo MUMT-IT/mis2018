@@ -321,7 +321,8 @@
                                 'ค่าลงทะเบียน จำนวน '+"{{ registration_fee }}"+ ' บาท '+"{{ transaction_fee }}"+"{{ accommodation_cost }}"
                                 +"{{ flight_ticket_cost }}"+"{{ train_ticket_cost }}"+"{{ taxi_cost }}"+"{{ fuel_cost }}"
                                 + 'รวมทั้งสิ้น '+"{{ budget }}"+ ' บาท',
-                                'รายละเอียดการเข้าร่วม'+"{{ seminar_attend.seminar.topic_type }}"+' ดำเนินการภายใต้\n'+"{{ seminar_attend.objective_list|join(", ") }}",
+                                'รายละเอียดการเข้าร่วม'+"{{ seminar_attend.seminar.topic_type }}"+' ดำเนินการภายใต้\n'+"{{ seminar_attend.objective_list|join(", ") }}"+
+                                '{{ idp_value }}',
                                 'เป็นการเข้าร่วม'+"{{ seminar_attend.seminar.topic_type }}"
                                 +' เพื่อพัฒนาในด้าน\n'+"{{ seminar_attend.mission_list|join(", ") }}",
                                 {text: 'ความเห็นผู้บังคับบัญชา เห็นควรอนุมัติ'},
