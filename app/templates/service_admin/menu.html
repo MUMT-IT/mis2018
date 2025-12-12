@@ -15,6 +15,27 @@
                         {% endif %}
                     </a>
                 </li>
+            {% elif assistant %}
+                <li>
+                    <a {% if menu=='quotation' %} class="is-active" {% endif %} href="{{ url_for('service_admin.quotation_index',
+                        menu='quotation', tab='all') }}">
+                        <span class="icon"><i class="fas fa-file-invoice"></i></span>
+                        <span>ใบเสนอราคา</span>
+                        {% if quotation_count > 0 %}
+                            <span class="tag is-danger is-rounded is-size-7 mt-1">{{ quotation_count }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                <li>
+                    <a {% if menu=='invoice' %} class="is-active" {% endif %} href="{{ url_for('service_admin.invoice_index',
+                        menu='invoice', tab='all') }}">
+                        <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                        <span>ใบแจ้งหนี้</span>
+                        {% if invoice_count > 0 %}
+                            <span class="tag is-danger is-rounded is-size-7 mt-1">{{ invoice_count }}</span>
+                        {% endif %}
+                    </a>
+                </li>
             {% else %}
                 <li>
                     <a {% if menu=="request" %} class="is-active" {% endif %} href="{{ url_for('service_admin.request_index',
