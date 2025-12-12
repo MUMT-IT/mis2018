@@ -12,7 +12,9 @@
                     <div class="box">
                         {% if invoice.payments %}
                             {% for payment in invoice.payments %}
-                                <iframe src="{{ slip_url }}" style="width: 100%; height: 1000px"></iframe>
+                                {% if not payment.cancelled_at %}
+                                    <iframe src="{{ slip_url }}" style="width: 100%; height: 1000px"></iframe>
+                                {% endif %}
                             {% endfor %}
                         {% else %}
                             <span class="has-text-grey-light is-italic">ยังไม่แนบหลักฐานการชำระเงิน</span>
@@ -111,24 +113,26 @@
                         <div class="ml-4">
                             {% if invoice.payments %}
                                 {% for payment in invoice.payments %}
-                                    <div class="mb-4 is-flex is-align-items-center">
-                                        <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่ชำระ</p>
-                                        <div style="margin-left: 1.75rem;">
-                                            {{ payment.paid_at|localdatetime }}
+                                    {% if payment.cancelled_at == None %}
+                                        <div class="mb-4 is-flex is-align-items-center">
+                                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่ชำระ</p>
+                                            <div style="margin-left: 1.75rem;">
+                                                {{ payment.paid_at|localdatetime }}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="mb-4 is-flex is-align-items-center">
-                                        <p class="subtitle is-6 mb-1 has-text-weight-semibold">วิธีการชำระเงิน</p>
-                                        <div style="margin-left: 1.75rem;">
-                                            {{ payment.payment_type }}
+                                        <div class="mb-4 is-flex is-align-items-center">
+                                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">วิธีการชำระเงิน</p>
+                                            <div style="margin-left: 1.75rem;">
+                                                {{ payment.payment_type }}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="mb-4 is-flex is-align-items-center">
-                                        <p class="subtitle is-6 mb-1 has-text-weight-semibold">จำนวนเงินที่ชำระ</p>
-                                        <div style="margin-left: 1.75rem;">
-                                            {{ "{:,.2f}".format(payment.amount_paid) }} บาท
+                                        <div class="mb-4 is-flex is-align-items-center">
+                                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">จำนวนเงินที่ชำระ</p>
+                                            <div style="margin-left: 1.75rem;">
+                                                {{ "{:,.2f}".format(payment.amount_paid) }} บาท
+                                            </div>
                                         </div>
-                                    </div>
+                                    {% endif %}
                                 {% endfor %}
                             {% else %}
                                 <span class="has-text-grey-light is-italic">ยังไม่ดำเนินการชำระเงิน</span>
