@@ -184,11 +184,11 @@
                     { data: 'total_price' },
                     { data: 'payment_type'},
                     {
-                        data : 'payment_date',
+                        data : 'paid_at',
                         render: function(data) {
                             if (data !== null) {
                                 let d = moment(data)
-                                return d.format('ll')
+                                return d.format('lll')
                             } else {
                                 return ''
                             }
