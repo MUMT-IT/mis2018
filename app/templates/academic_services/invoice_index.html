@@ -66,9 +66,6 @@
                             <a href="{{ url_for('academic_services.invoice_index', tab='all', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
                                 <span>ทั้งหมด</span>
-                                {% if all_count > 0 %}
-                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ all_count }}</span>
-                                {% endif %}
                             </a>
                         </li>
                     </ul>
@@ -152,7 +149,7 @@
             $.fn.dataTable.moment('lll');
             $('#invoices').DataTable({
                 ajax: {
-                    url: {{ url_for('academic_services.get_invoices', tab=tab)|tojson|safe}},
+                    url: {{ url_for('academic_services.invoice_index', tab=tab, api='true')|tojson|safe}},
                 },
                 order: [[1, 'desc']],
                 scrollX: true,
