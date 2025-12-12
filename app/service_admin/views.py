@@ -3468,34 +3468,17 @@ def invoice_index():
         .join(ServiceInvoice.quotation)
         .join(ServiceQuotation.request)
         .join(ServiceRequest.sub_lab)
-        .outerjoin(ServiceSubLab.admins)
-        .filter(
-            or_(
-                ServiceSubLab.assistant_id == current_user.id,
-                ServiceAdmin.admin_id == current_user.id
-            )
-        ).distinct()
+        .join(ServiceSubLab.admins)
+        .filter(ServiceAdmin.admin_id == current_user.id)
     )
-    draft_count = query.filter(ServiceInvoice.sent_at == None, ServiceInvoice.head_approved_at == None,
-                               ServiceInvoice.assistant_approved_at == None, ServiceInvoice.file_attached_at == None,
-                               ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
-    pending_supervisor_count = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at == None,
-                                            ServiceInvoice.assistant_approved_at == None,
-                                            ServiceInvoice.file_attached_at == None,
-                                            ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
-    pending_assistant_count = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at != None,
-                                           ServiceInvoice.assistant_approved_at == None,
-                                           ServiceInvoice.file_attached_at == None,
-                                           ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
-    pending_dean_count = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at != None,
-                                      ServiceInvoice.assistant_approved_at != None,
-                                      ServiceInvoice.file_attached_at == None,
-                                      ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None).count()
-    waiting_payment_count = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at != None,
-                                         ServiceInvoice.assistant_approved_at != None,
-                                         ServiceInvoice.file_attached_at != None,
-                                         or_(ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None)).count()
-    payment_count = query.filter(ServiceInvoice.verify_at >= expire_time).count()
+    draft_count = query.filter(ServiceInvoice.sent_at == None).count()
+    pending_supervisor_count = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at == None).count()
+    pending_assistant_count = query.filter(ServiceInvoice.head_approved_at != None, ServiceInvoice.assistant_approved_at == None).count()
+    pending_dean_count = query.filter(ServiceInvoice.assistant_approved_at != None, ServiceInvoice.file_attached_at == None).count()
+    waiting_payment_count = query.join(ServicePayment).filter(or_(ServicePayment.paid_at == None,
+                                                      ServicePayment.verified_at == None),
+                                                  ServiceInvoice.file_attached_at != None).count()
+    payment_count = query.join(ServicePayment).filter(ServicePayment.verified_at >= expire_time).count()
     all_count = (draft_count + pending_dean_count + pending_assistant_count + pending_supervisor_count +
                  waiting_payment_count + payment_count)
     return render_template('service_admin/invoice_index.html', menu=menu, tab=tab, all_count=all_count,
@@ -3508,49 +3491,28 @@ def invoice_index():
 @service_admin.route('/api/invoice/index')
 def get_invoices():
     tab = request.args.get('tab')
-    # query = ServiceInvoice.query.filter(or_(ServiceInvoice.creator_id == current_user.id,
-    #                                         ServiceInvoice.quotation.has(ServiceQuotation.request.has(
-    #                                             ServiceRequest.sub_lab.has(
-    #                                                 ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
-    #                                             )))))
     query = (
         ServiceInvoice.query
         .join(ServiceInvoice.quotation)
         .join(ServiceQuotation.request)
         .join(ServiceRequest.sub_lab)
-        .outerjoin(ServiceSubLab.admins)
-        .filter(
-            or_(
-                ServiceSubLab.assistant_id == current_user.id,
-                ServiceAdmin.admin_id == current_user.id
-            )
-        ).distinct()
+        .join(ServiceSubLab.admins)
+        .filter(ServiceAdmin.admin_id == current_user.id)
     )
     if tab == 'draft':
-        query = query.filter(ServiceInvoice.sent_at == None, ServiceInvoice.head_approved_at == None,
-                             ServiceInvoice.assistant_approved_at == None, ServiceInvoice.file_attached_at == None,
-                             ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None)
+        query = query.filter(ServiceInvoice.sent_at == None)
     elif tab == 'pending_supervisor':
-        query = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at == None,
-                             ServiceInvoice.assistant_approved_at == None, ServiceInvoice.file_attached_at == None,
-                             ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None)
+        query = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at == None)
     elif tab == 'pending_assistant':
-        query = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at != None,
-                             ServiceInvoice.assistant_approved_at == None, ServiceInvoice.file_attached_at == None,
-                             ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None)
+        query = query.filter(ServiceInvoice.head_approved_at != None, ServiceInvoice.assistant_approved_at == None)
     elif tab == 'pending_dean':
-        query = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at != None,
-                             ServiceInvoice.assistant_approved_at != None, ServiceInvoice.file_attached_at == None,
-                             ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None)
+        query = query.filter(ServiceInvoice.assistant_approved_at != None, ServiceInvoice.file_attached_at == None)
     elif tab == 'waiting_payment':
-        query = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at != None,
-                             ServiceInvoice.assistant_approved_at != None,
-                             ServiceInvoice.file_attached_at != None,
-                             or_(ServiceInvoice.paid_at == None, ServiceInvoice.is_paid == None))
+        query = query.join(ServicePayment).filter(or_(ServicePayment.paid_at == None,
+                                                      ServicePayment.verified_at == None),
+                                                  ServiceInvoice.file_attached_at != None)
     elif tab == 'payment':
-        query = query.filter(ServiceInvoice.is_paid != None)
-    else:
-        query = query
+        query = query.join(ServicePayment).filter(ServicePayment.verified_at != None)
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -4195,7 +4157,7 @@ def add_payment():
                 )
                 payment.slip = file_name
                 db.session.add(payment)
-                invoice.paid_at = arrow.now('Asia/Bangkok').datetime
+                # invoice.paid_at = arrow.now('Asia/Bangkok').datetime
                 invoice.quotation.request.status_id = status_id
                 db.session.add(invoice)
                 result = ServiceResult.query.filter_by(request_id=invoice.quotation.request_id).first()

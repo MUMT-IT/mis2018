@@ -3845,14 +3845,14 @@ def invoice_index():
         .join(ServiceInvoice.quotation)
         .join(ServiceQuotation.request)
         .filter(
-            ServiceInvoice.file_attached_at.isnot(None),
+            ServiceInvoice.file_attached_at != None,
             ServiceRequest.customer_id == current_user.id
         )
     )
-    pending_count = query.filter(ServiceInvoice.paid_at == None, today <= ServiceInvoice.due_date).count()
-    verify_count = query.filter(ServiceInvoice.paid_at != None, ServiceInvoice.is_paid == False).count()
-    payment_count = query.filter(ServiceInvoice.verify_at >= expire_time).count()
-    overdue_count = query.filter(today > ServiceInvoice.due_date, ServiceInvoice.paid_at == None).count()
+    pending_count = query.join(ServicePayment).filter(ServicePayment.paid_at == None, today <= ServiceInvoice.due_date).count()
+    verify_count = query.join(ServicePayment).filter(ServicePayment.paid_at != None, ServicePayment.verified_at == None).count()
+    payment_count = query.join(ServicePayment).filter(ServicePayment.verified_at >= expire_time).count()
+    overdue_count = query.join(ServicePayment).filter(today > ServiceInvoice.due_date, ServicePayment.paid_at == None).count()
     all_count = pending_count + verify_count + payment_count + overdue_count
     return render_template('academic_services/invoice_index.html', menu=menu, tab=tab, all_count=all_count,
                            pending_count=pending_count, verify_count=verify_count, payment_count=payment_count,
@@ -3868,20 +3868,18 @@ def get_invoices():
         .join(ServiceInvoice.quotation)
         .join(ServiceQuotation.request)
         .filter(
-            ServiceInvoice.file_attached_at.isnot(None),
+            ServiceInvoice.file_attached_at != None,
             ServiceRequest.customer_id == current_user.id
         )
     )
     if tab == 'pending':
-        query = query.filter(ServiceInvoice.paid_at == None, today <= ServiceInvoice.due_date)
+        query = query.join(ServicePayment).filter(ServicePayment.paid_at == None, today <= ServiceInvoice.due_date)
     elif tab == 'verify':
-        query = query.filter(ServiceInvoice.paid_at != None, ServiceInvoice.is_paid == False)
+        query = query.join(ServicePayment).filter(ServicePayment.paid_at != None, ServicePayment.verified_at == None)
     elif tab == 'payment':
-        query = query.filter(ServiceInvoice.is_paid == True)
+        query = query.join(ServicePayment).filter(ServicePayment.verified_at != None)
     elif tab == 'overdue':
-        query = query.filter(today > ServiceInvoice.due_date, ServiceInvoice.paid_at == None)
-    else:
-        query = query
+        query = query.join(ServicePayment).filter(today > ServiceInvoice.due_date, ServicePayment.paid_at == None)
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -3949,7 +3947,7 @@ def add_payment():
                 )
                 payment.slip = file_name
                 db.session.add(payment)
-                invoice.paid_at = arrow.now('Asia/Bangkok').datetime
+                # invoice.paid_at = arrow.now('Asia/Bangkok').datetime
                 invoice.quotation.request.status_id = status_id
                 db.session.add(invoice)
                 db.session.commit()
