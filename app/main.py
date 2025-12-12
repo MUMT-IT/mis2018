@@ -176,13 +176,17 @@ def load_user(user_id):
 @app.route('/')
 def index():
     central_admin = False
+    assistant = False
     if current_user.is_authenticated:
         admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
         if admins and admins.is_central_admin:
             central_admin = True
+        elif admins and admins.is_assistant:
+            assistant = True
         else:
             central_admin = False
-    return render_template('index.html', central_admin=central_admin,
+            assistant = False
+    return render_template('index.html', central_admin=central_admin, assistant=assistant,
                            now=datetime.now(tz=timezone('Asia/Bangkok')))
 
 
