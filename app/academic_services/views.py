@@ -2424,7 +2424,7 @@ def request_index():
             'icon': '<i class="fas fa-file-alt"></i>'
         },
         'wait_payment': {
-            'id': [13, 16, 17, 18, 19, 20, 21],
+            'id': [20, 21],
             'name': 'รอชำระเงิน',
             'icon': '<i class="fas fa-money-check-alt"></i>'
         },
@@ -3849,10 +3849,14 @@ def invoice_index():
             ServiceRequest.customer_id == current_user.id
         )
     )
-    pending_count = query.join(ServicePayment).filter(ServicePayment.paid_at == None, today <= ServiceInvoice.due_date).count()
-    verify_count = query.join(ServicePayment).filter(ServicePayment.paid_at != None, ServicePayment.verified_at == None).count()
-    payment_count = query.join(ServicePayment).filter(ServicePayment.verified_at >= expire_time).count()
-    overdue_count = query.join(ServicePayment).filter(today > ServiceInvoice.due_date, ServicePayment.paid_at == None).count()
+    pending_count = query.join(ServicePayment).filter(ServicePayment.paid_at == None, today <= ServiceInvoice.due_date,
+                                                      ServicePayment.cancelled_at == None).count()
+    verify_count = query.join(ServicePayment).filter(ServicePayment.paid_at != None, ServicePayment.verified_at == None,
+                                                     ServicePayment.cancelled_at == None).count()
+    payment_count = query.join(ServicePayment).filter(ServicePayment.verified_at >= expire_time,
+                                                      ServicePayment.cancelled_at == None).count()
+    overdue_count = query.join(ServicePayment).filter(today > ServiceInvoice.due_date, ServicePayment.paid_at == None,
+                                                      ServicePayment.cancelled_at == None).count()
     all_count = pending_count + verify_count + payment_count + overdue_count
     return render_template('academic_services/invoice_index.html', menu=menu, tab=tab, all_count=all_count,
                            pending_count=pending_count, verify_count=verify_count, payment_count=payment_count,
@@ -3904,7 +3908,7 @@ def get_invoices():
                 '''
         if item.payments:
             for payment in item.payments:
-                if payment.slip:
+                if payment.slip and payment.cancelled_at == None:
                     item_data['slip'] = generate_url(payment.slip)
                 else:
                     item_data['slip'] = None
