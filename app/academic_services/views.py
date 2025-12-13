@@ -4383,33 +4383,35 @@ def get_receipts():
 def result_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
-    expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
-    query = ServiceResult.query.join(ServiceResult.request).filter(ServiceRequest.customer_id == current_user.id)
+    query = (
+        ServiceResult.query
+        .join(ServiceResult.request)
+        .filter(
+            ServiceRequest.customer_id == current_user.id
+        )
+    )
 
-    if tab == 'pending':
-        results = query.filter(ServiceResult.sent_at == None)
-    elif tab == 'edit':
-        results = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False)
-    elif tab == 'approve':
-        results = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
-                               or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
-                                   )
-                               )
-    elif tab == 'confirm':
-        results = query.filter(ServiceResult.approved_at != None)
-    else:
-        results = query
-    pending_count = query.filter(ServiceResult.sent_at == None).count()
-    edit_count = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False).count()
-    approve_count = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
+    pending_query = query.filter(ServiceResult.sent_at == None)
+    edit_query = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False)
+    approve_query = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
                                  or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
                                      )
-                                 ).count()
-    confirm_count = query.filter(ServiceResult.approved_at >= expire_time).count()
-    all_count = edit_count + approve_count + pending_count + confirm_count
+                                 )
+    confirm_query = query.filter(ServiceResult.approved_at != None)
+
+    if tab == 'pending':
+        results = pending_query
+    elif tab == 'edit':
+        results = edit_query
+    elif tab == 'approve':
+        results = approve_query
+    elif tab == 'confirm':
+        results = confirm_query
+    else:
+        results = query
     return render_template('academic_services/result_index.html', results=results, menu=menu,
-                           tab=tab, edit_count=edit_count, approve_count=approve_count, confirm_count=confirm_count,
-                           all_count=all_count, pending_count=pending_count)
+                           tab=tab, edit_count=edit_query.count(), approve_count=approve_query.count(),
+                           pending_count=pending_query.count())
 
 
 @academic_services.route('/customer/result/view/<int:result_id>/<int:result_item_id>', methods=['GET', 'POST'])
