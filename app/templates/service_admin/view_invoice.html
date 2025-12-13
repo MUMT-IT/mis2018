@@ -274,27 +274,6 @@
                                             <span>อนุมัติ</span>
                                         </a>
                                     </li>
-                                {% elif invoice.quotation.request.status.status_id == 19 and central_admin %}
-                                    <li>
-                                        <div id="mhesi_number"></div>
-                                        <a class="button is-warning is-rounded is-full-height mb-2"
-                                           href="{{ url_for('service_admin.upload_invoice_file', invoice_id=invoice.id,
-                                           menu=menu, tab=tab) }}"
-                                        >
-                                            <span class="icon">
-                                                <i class="fas fa-pen"></i>
-                                            </span>
-                                            <span>อัปโหลดไฟล์</span>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
-                                           href="{{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id) }}"
-                                        >
-                                            <span class="icon"><i class="fas fa-download"></i></span>
-                                            <span>ดาวน์โหลด PDF</span>
-                                        </a>
-                                    </li>
                                 {% elif invoice.file %}
                                     <li>
                                         <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
