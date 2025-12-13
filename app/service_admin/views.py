@@ -5431,6 +5431,7 @@ def view_invoice_for_finance(invoice_id):
     today = arrow.now('Asia/Bangkok').date()
     invoice = ServiceInvoice.query.get(invoice_id)
     is_overdue = False
+    slip_url = None
     if today > invoice.due_date.date() and not invoice.paid_at:
         is_overdue = True
     if invoice.payments:
@@ -5469,8 +5470,6 @@ def confirm_payment(invoice_id):
 def cancel_payment(invoice_id):
     status_id = get_status(20)
     payment = ServicePayment.query.filter_by(invoice_id=invoice_id, cancelled_at=None).first()
-    payment.cancelled_at = arrow.now('Asia/Bangkok').datetime
-    payment.canceller_id = current_user.id
     db.session.delete(payment)
     db.session.commit()
     scheme = 'http' if current_app.debug else 'https'
@@ -5483,10 +5482,10 @@ def cancel_payment(invoice_id):
     customer_name = invoice.quotation.request.customer.customer_name.replace(' ', '_')
     contact_email = invoice.quotation.request.customer.contact_email if invoice.quotation.request.customer.contact_email else invoice.quotation.request.customer.email
     title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
-    title = f'''แจ้งยกเลิกการชำระเงินของใบแจ้งหนี้ [{payment.invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    title = f'''แจ้งยกเลิกการชำระเงินของใบแจ้งหนี้ [{invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
     message = f'''เรียน {title_prefix}{customer_name}\n\n'''
     message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {invoice.quotation.request.request_no}'''
-    message += f''' ขณะนี้ทางคณะฯ ขอแจ้งให้ทราบว่า การชำระเงินสำหรับใบแจ้งหนี้เลขที่่ {payment.invoice.invoice_no} มีความจำเป็นต้องยกเลิกการชำระเงินเดิม '''
+    message += f''' ขณะนี้ทางคณะฯ ขอแจ้งให้ทราบว่า การชำระเงินสำหรับใบแจ้งหนี้เลขที่่ {invoice.invoice_no} มีความจำเป็นต้องยกเลิกการชำระเงินเดิม '''
     message += f'''เนื่องจากยอดชำระไม่ครบถ้วนตามที่กำหนด จึงขอความร่วมมือให้ท่านดำเนินการชำระเงินใหม่ตามจำนวนที่ระบุไว้ในใบแจ้งหนี้ เพื่อความถูกต้องของข้อมูลในระบบ \n'''
     message += f'''กรุณาดำเนินการแนบหลักฐานการชำระเงินใหม่ผ่านลิงก์ด้านล่าง\n'''
     message += f'''{upload_payment_link}\n\n'''
@@ -5497,7 +5496,7 @@ def cancel_payment(invoice_id):
     message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
     send_mail([contact_email], title, message)
     flash('ยกเลิกการชำระเงินเรียบร้อยแล้ว', 'success')
-    return render_template('academic_service_payment/invoice_payment_index.html')
+    return redirect(url_for('service_admin.invoice_payment_index'))
 
 
 @service_admin.route('/receipt/index', methods=['GET'])
