@@ -3460,7 +3460,7 @@ def address_index(customer_id):
 def invoice_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
-    expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
+    api = request.args.get('api', 'false')
     is_central_admin = ServiceAdmin.query.filter_by(admin_id=current_user.id, is_central_admin=True).first()
     query = (
         ServiceInvoice.query
@@ -3470,71 +3470,105 @@ def invoice_index():
         .join(ServiceSubLab.admins)
         .filter(ServiceAdmin.admin_id == current_user.id)
     )
-    draft_count = query.filter(ServiceInvoice.sent_at == None).count()
-    pending_supervisor_count = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at == None).count()
-    pending_assistant_count = query.filter(ServiceInvoice.head_approved_at != None, ServiceInvoice.assistant_approved_at == None).count()
-    pending_dean_count = query.filter(ServiceInvoice.assistant_approved_at != None, ServiceInvoice.file_attached_at == None).count()
-    waiting_payment_count = query.join(ServicePayment).filter(or_(ServicePayment.paid_at == None,
-                                                      ServicePayment.verified_at == None),
-                                                  ServiceInvoice.file_attached_at != None).count()
-    payment_count = query.join(ServicePayment).filter(ServicePayment.verified_at >= expire_time).count()
-    all_count = (draft_count + pending_dean_count + pending_assistant_count + pending_supervisor_count +
-                 waiting_payment_count + payment_count)
-    return render_template('service_admin/invoice_index.html', menu=menu, tab=tab, all_count=all_count,
-                           draft_count=draft_count, pending_supervisor_count=pending_supervisor_count,
-                           pending_assistant_count=pending_assistant_count,
-                           pending_dean_count=pending_dean_count, waiting_payment_count=waiting_payment_count,
-                           payment_count=payment_count, is_central_admin=is_central_admin)
+    draft_query = query.filter(ServiceInvoice.sent_at == None)
+    pending_supervisor_query = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at == None)
+    pending_assistant_query = query.filter(ServiceInvoice.head_approved_at != None, ServiceInvoice.assistant_approved_at == None)
+    pending_dean_query = query.filter(ServiceInvoice.assistant_approved_at != None, ServiceInvoice.file_attached_at == None)
+    waiting_payment_query = query.outerjoin(ServicePayment).filter(or_(ServicePayment.invoice_id==None,
+                                                                       ServicePayment.verified_at == None),
+                                                                   ServiceInvoice.file_attached_at != None)
+    payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None)
+    if api == 'true':
+        if tab == 'draft':
+            query = draft_query
+        elif tab == 'pending_supervisor':
+            query = pending_supervisor_query
+        elif tab == 'pending_assistant':
+            query = pending_assistant_query
+        elif tab == 'pending_dean':
+            query = pending_dean_query
+        elif tab == 'waiting_payment':
+            query = waiting_payment_query
+        elif tab == 'payment':
+            query = payment_query
+        records_total = query.count()
+        search = request.args.get('search[value]')
+        if search:
+            query = query.filter(ServiceInvoice.invoice_no.contains(search))
+        start = request.args.get('start', type=int)
+        length = request.args.get('length', type=int)
+        total_filtered = query.count()
+        query = query.offset(start).limit(length)
+        data = []
+        for item in query:
+            item_data = item.to_dict()
+            if item.payments:
+                for payment in item.payments:
+                    if payment.slip and payment.cancelled_at:
+                        item_data['slip'] = generate_url(payment.slip)
+                    else:
+                        item_data['slip'] = None
+            data.append(item_data)
+        return jsonify({'data': data,
+                        'recordFiltered': total_filtered,
+                        'recordTotal': records_total,
+                        'draw': request.args.get('draw', type=int)
+                        })
+    return render_template('service_admin/invoice_index.html', menu=menu, tab=tab,
+                           draft_count=draft_query.count(), pending_supervisor_count=pending_supervisor_query.count(),
+                           pending_assistant_count=pending_assistant_query.count(),
+                           pending_dean_count=pending_dean_query.count(), waiting_payment_count=waiting_payment_query.count(),
+                           payment_count=payment_query.count(), is_central_admin=is_central_admin)
 
 
-@service_admin.route('/api/invoice/index')
-def get_invoices():
-    tab = request.args.get('tab')
-    query = (
-        ServiceInvoice.query
-        .join(ServiceInvoice.quotation)
-        .join(ServiceQuotation.request)
-        .join(ServiceRequest.sub_lab)
-        .join(ServiceSubLab.admins)
-        .filter(ServiceAdmin.admin_id == current_user.id)
-    )
-    if tab == 'draft':
-        query = query.filter(ServiceInvoice.sent_at == None)
-    elif tab == 'pending_supervisor':
-        query = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at == None)
-    elif tab == 'pending_assistant':
-        query = query.filter(ServiceInvoice.head_approved_at != None, ServiceInvoice.assistant_approved_at == None)
-    elif tab == 'pending_dean':
-        query = query.filter(ServiceInvoice.assistant_approved_at != None, ServiceInvoice.file_attached_at == None)
-    elif tab == 'waiting_payment':
-        query = query.join(ServicePayment).filter(or_(ServicePayment.paid_at == None,
-                                                      ServicePayment.verified_at == None),
-                                                  ServiceInvoice.file_attached_at != None)
-    elif tab == 'payment':
-        query = query.join(ServicePayment).filter(ServicePayment.verified_at != None)
-    records_total = query.count()
-    search = request.args.get('search[value]')
-    if search:
-        query = query.filter(ServiceInvoice.invoice_no.contains(search))
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    total_filtered = query.count()
-    query = query.offset(start).limit(length)
-    data = []
-    for item in query:
-        item_data = item.to_dict()
-        if item.payments:
-            for payment in item.payments:
-                if payment.slip and payment.cancelled_at:
-                    item_data['slip'] = generate_url(payment.slip)
-                else:
-                    item_data['slip'] = None
-        data.append(item_data)
-    return jsonify({'data': data,
-                    'recordFiltered': total_filtered,
-                    'recordTotal': records_total,
-                    'draw': request.args.get('draw', type=int)
-                    })
+# @service_admin.route('/api/invoice/index')
+# def get_invoices():
+#     tab = request.args.get('tab')
+#     query = (
+#         ServiceInvoice.query
+#         .join(ServiceInvoice.quotation)
+#         .join(ServiceQuotation.request)
+#         .join(ServiceRequest.sub_lab)
+#         .join(ServiceSubLab.admins)
+#         .filter(ServiceAdmin.admin_id == current_user.id)
+#     )
+    # if tab == 'draft':
+    #     query = query.filter(ServiceInvoice.sent_at == None)
+    # elif tab == 'pending_supervisor':
+    #     query = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at == None)
+    # elif tab == 'pending_assistant':
+    #     query = query.filter(ServiceInvoice.head_approved_at != None, ServiceInvoice.assistant_approved_at == None)
+    # elif tab == 'pending_dean':
+    #     query = query.filter(ServiceInvoice.assistant_approved_at != None, ServiceInvoice.file_attached_at == None)
+    # elif tab == 'waiting_payment':
+    #     query = query.join(ServicePayment).filter(or_(ServicePayment.paid_at == None,
+    #                                                   ServicePayment.verified_at == None),
+    #                                               ServiceInvoice.file_attached_at != None)
+    # elif tab == 'payment':
+    #     query = query.join(ServicePayment).filter(ServicePayment.verified_at != None)
+    # records_total = query.count()
+    # search = request.args.get('search[value]')
+    # if search:
+    #     query = query.filter(ServiceInvoice.invoice_no.contains(search))
+    # start = request.args.get('start', type=int)
+    # length = request.args.get('length', type=int)
+    # total_filtered = query.count()
+    # query = query.offset(start).limit(length)
+    # data = []
+    # for item in query:
+    #     item_data = item.to_dict()
+    #     if item.payments:
+    #         for payment in item.payments:
+    #             if payment.slip and payment.cancelled_at:
+    #                 item_data['slip'] = generate_url(payment.slip)
+    #             else:
+    #                 item_data['slip'] = None
+    #     data.append(item_data)
+    # return jsonify({'data': data,
+    #                 'recordFiltered': total_filtered,
+    #                 'recordTotal': records_total,
+    #                 'draw': request.args.get('draw', type=int)
+    #                 })
 
 
 @service_admin.route('/invoice/add/<int:quotation_id>', methods=['GET', 'POST'])
