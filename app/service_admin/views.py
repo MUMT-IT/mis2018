@@ -3521,7 +3521,7 @@ def invoice_index():
                            payment_count=payment_query.count(), is_central_admin=is_central_admin)
 
 
-@service_admin.route('/invoice/index')
+@service_admin.route('/central_admin/invoice/index')
 @login_required
 def invoice_index_for_central_admin():
     tab = request.args.get('tab')
