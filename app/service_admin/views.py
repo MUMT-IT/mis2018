@@ -226,9 +226,8 @@ def menu():
     report_count = None
 
     if current_user.is_authenticated:
-        sub_lab = ServiceSubLab.query.filter_by(assistant_id=current_user.id).first()
         admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
-        if sub_lab and sub_lab.assistant and not admins:
+        if admins and admins.is_assistant:
             assistant = True
             position = 'Assistant of dean'
         elif admins and admins.is_supervisor:
@@ -3526,7 +3525,7 @@ def get_invoices():
         item_data = item.to_dict()
         if item.payments:
             for payment in item.payments:
-                if payment.slip and payment.cancelled_at == None:
+                if payment.slip and payment.cancelled_at:
                     item_data['slip'] = generate_url(payment.slip)
                 else:
                     item_data['slip'] = None
@@ -5413,7 +5412,7 @@ def view_invoice_for_finance(invoice_id):
 def confirm_payment(invoice_id):
     status_id = get_status(22)
     payment = ServicePayment.query.filter_by(invoice_id=invoice_id, cancelled_at=None).first()
-    if payment:
+    if not payment:
         payment = ServicePayment(invoice_id=invoice_id, payment_type='เช็คเงินสด', amount_paid=payment.invoice.grand_total,
                                  paid_at=arrow.now('Asia/Bangkok').datetime,
                                  customer_id=payment.invoice.quotation.request.customer_id,
@@ -5422,14 +5421,11 @@ def confirm_payment(invoice_id):
                                  verifier_id=current_user.id
                                  )
     else:
-        payment.invoice.quotation.request.status_id = status_id
         payment = ServicePayment.query.filter_by(invoice_id=invoice_id, cancelled_at=None).first()
         payment.verified_at = arrow.now('Asia/Bangkok').datetime
         payment.verifier_id = current_user.id
-    db.session.commit()
-    result = ServiceResult.query.filter_by(request_id=payment.invoice.quotation.request_id).first()
-    result.status_id = status_id
-    db.session.add(result)
+    payment.invoice.quotation.request.status_id = status_id
+    db.session.add(payment)
     db.session.commit()
     flash('ยืนยันการชำระเงินเรียบร้อยแล้ว', 'success')
     return render_template('service_admin/invoice_payment_index.html')
@@ -5441,21 +5437,25 @@ def cancel_payment(invoice_id):
     payment = ServicePayment.query.filter_by(invoice_id=invoice_id, cancelled_at=None).first()
     payment.cancelled_at = arrow.now('Asia/Bangkok').datetime
     payment.canceller_id = current_user.id
-    payment.invoice.quotation.request.status_id = status_id
-    db.session.add(payment)
+    db.session.delete(payment)
     db.session.commit()
-    result = ServiceResult.query.filter_by(request_id=payment.invoice.quotation.request_id).first()
-    result.status_id = status_id
-    db.session.add(result)
+    scheme = 'http' if current_app.debug else 'https'
+    invoice = ServiceInvoice.query.get(invoice_id)
+    invoice.quotation.request.status_id = status_id
+    db.session.add(invoice)
     db.session.commit()
-    customer_name = result.request.customer.customer_name.replace(' ', '_')
-    contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
-    title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
+    upload_payment_link = url_for("academic_services.add_payment", invoice_id=invoice_id, tab='pending', menu='invoice',
+                                  _external=True, _scheme=scheme)
+    customer_name = invoice.quotation.request.customer.customer_name.replace(' ', '_')
+    contact_email = invoice.quotation.request.customer.contact_email if invoice.quotation.request.customer.contact_email else invoice.quotation.request.customer.email
+    title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
     title = f'''แจ้งยกเลิกการชำระเงินของใบแจ้งหนี้ [{payment.invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
     message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-    message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
+    message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {invoice.quotation.request.request_no}'''
     message += f''' ขณะนี้ทางคณะฯ ขอแจ้งให้ทราบว่า การชำระเงินสำหรับใบแจ้งหนี้เลขที่่ {payment.invoice.invoice_no} มีความจำเป็นต้องยกเลิกการชำระเงินเดิม '''
-    message += f'''เนื่องจากยอดชำระไม่ครบถ้วนตามที่กำหนด จึงขอความร่วมมือให้ท่านดำเนินการชำระเงินใหม่ตามจำนวนที่ระบุไว้ในใบแจ้งหนี้ เพื่อความถูกต้องของข้อมูลในระบบ '''
+    message += f'''เนื่องจากยอดชำระไม่ครบถ้วนตามที่กำหนด จึงขอความร่วมมือให้ท่านดำเนินการชำระเงินใหม่ตามจำนวนที่ระบุไว้ในใบแจ้งหนี้ เพื่อความถูกต้องของข้อมูลในระบบ \n'''
+    message += f'''กรุณาดำเนินการแนบหลักฐานการชำระเงินใหม่ผ่านลิงก์ด้านล่าง\n'''
+    message += f'''{upload_payment_link}\n\n'''
     message += f'''ทางคณะฯ ต้องขออภัยในความไม่สะดวกมา ณ ที่นี้\n\n'''
     message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
     message += f'''ขอแสดงความนับถือ\n'''
