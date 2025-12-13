@@ -3521,6 +3521,59 @@ def invoice_index():
                            payment_count=payment_query.count(), is_central_admin=is_central_admin)
 
 
+@service_admin.route('/invoice/index')
+@login_required
+def invoice_index_for_central_admin():
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    api = request.args.get('api', 'false')
+    query = (
+        ServiceInvoice.query
+        .join(ServiceInvoice.quotation)
+        .join(ServiceQuotation.request)
+        .join(ServiceRequest.sub_lab)
+        .join(ServiceSubLab.admins)
+        .filter(ServiceAdmin.admin_id == current_user.id)
+    )
+    pending_dean_query = query.filter(ServiceInvoice.assistant_approved_at != None, ServiceInvoice.file_attached_at == None)
+    waiting_payment_query = query.outerjoin(ServicePayment).filter(or_(ServicePayment.invoice_id==None,
+                                                                       ServicePayment.verified_at == None),
+                                                                   ServiceInvoice.file_attached_at != None)
+    payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None)
+    if api == 'true':
+        if tab == 'pending_dean':
+            query = pending_dean_query
+        elif tab == 'waiting_payment':
+            query = waiting_payment_query
+        elif tab == 'payment':
+            query = payment_query
+        records_total = query.count()
+        search = request.args.get('search[value]')
+        if search:
+            query = query.filter(ServiceInvoice.invoice_no.contains(search))
+        start = request.args.get('start', type=int)
+        length = request.args.get('length', type=int)
+        total_filtered = query.count()
+        query = query.offset(start).limit(length)
+        data = []
+        for item in query:
+            item_data = item.to_dict()
+            if item.payments:
+                for payment in item.payments:
+                    if payment.slip and payment.cancelled_at:
+                        item_data['slip'] = generate_url(payment.slip)
+                    else:
+                        item_data['slip'] = None
+            data.append(item_data)
+        return jsonify({'data': data,
+                        'recordFiltered': total_filtered,
+                        'recordTotal': records_total,
+                        'draw': request.args.get('draw', type=int)
+                        })
+    return render_template('service_admin/invoice_index_for_central_admin.html', menu=menu, tab=tab,
+                           pending_dean_count=pending_dean_query.count(), waiting_payment_count=waiting_payment_query.count())
+
+
 # @service_admin.route('/api/invoice/index')
 # def get_invoices():
 #     tab = request.args.get('tab')
@@ -3620,6 +3673,8 @@ def approve_invoice(invoice_id):
     customer_name = invoice.customer_name.replace(' ', '_')
     title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
     if admin == 'assistant':
+        invoice_for_central_admin_url = url_for("service_admin.view_invoice_for_central_admin", invoice_id=invoice.id, menu=menu, _external=True,
+                              tab=tab, _scheme=scheme)
         status_id = get_status(19)
         invoice.quotation.request.status_id = status_id
         invoice.assistant_approved_at = arrow.now('Asia/Bangkok').datetime
@@ -3640,7 +3695,7 @@ def approve_invoice(invoice_id):
                 message += f'''กรุณาดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้ดังกล่าวเข้าสู่ระบบ e-Office เพื่อให้คณบดีลงนามและออกเลข อว. ต่อไป '''
                 message += f'''หลังจากดำเนินการแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้กลับเข้าสู่ระบบบริการวิชาการ\n'''
                 message += f'''สามารถพิมพ์ใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'''
-                message += f'''{invoice_url}\n\n'''
+                message += f'''{invoice_for_central_admin_url}\n\n'''
                 message += f'''ผู้ประสานงาน\n'''
                 message += f'''{invoice.customer_name}\n'''
                 message += f'''เบอร์โทร {invoice.contact_phone_number}\n'''
@@ -3840,7 +3895,7 @@ def upload_invoice_file(invoice_id):
                 except LineBotApiError:
                     pass
             flash('บันทึกข้อมูลสำเร็จ', 'success')
-            return redirect(url_for('service_admin.invoice_index', menu=menu, tab='waiting_payment'))
+            return redirect(url_for('service_admin.invoice_index_for_central_admin', menu=menu, tab='waiting_payment'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
@@ -3864,6 +3919,16 @@ def view_invoice(invoice_id):
     central_admin = any(a for a in admin_lab if a.is_central_admin)
     return render_template('service_admin/view_invoice.html', invoice=invoice, admin=admin, menu=menu,
                            supervisor=supervisor, assistant=assistant, dean=dean, central_admin=central_admin, tab=tab)
+
+
+@service_admin.route('/central_admin/invoice/view/<int:invoice_id>', methods=['GET'])
+@login_required
+def view_invoice_for_central_admin(invoice_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    invoice = ServiceInvoice.query.get(invoice_id)
+    return render_template('service_admin/view_invoice_for_central_admin.html', invoice=invoice,
+                           menu=menu, tab=tab)
 
 
 def generate_invoice_pdf(invoice, qr_image_base64=None):
@@ -4234,7 +4299,7 @@ def add_payment():
                     except LineBotApiError:
                         pass
             flash('อัปโหลดหลักฐานการชำระเงินสำเร็จ', 'success')
-            return redirect(url_for('service_admin.invoice_index', menu=menu, tab=tab))
+            return redirect(url_for('service_admin.invoice_index_for_central_admin', menu=menu, tab=tab))
         else:
             flash('กรุณากรอกวันที่ชำระเงิน, วิธีการชำระเงิน, จำนวนเงิน และหลักฐานการชำระเงิน', 'danger')
     else:
