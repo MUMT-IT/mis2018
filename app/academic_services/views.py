@@ -3095,47 +3095,77 @@ def request_quotation(request_id):
 def quotation_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
-    expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
-    query = ServiceQuotation.query.filter(ServiceQuotation.request.has(customer_id=current_user.id),
-                                          ServiceQuotation.approved_at != None)
-    pending_count = query.filter(ServiceQuotation.confirmed_at == None, ServiceQuotation.cancelled_at == None).count()
-    confirm_count = query.filter(ServiceQuotation.confirmed_at >= expire_time).count()
-    cancel_count = query.filter(ServiceQuotation.cancelled_at >= expire_time).count()
-    all_count = pending_count + confirm_count + cancel_count
-    return render_template('academic_services/quotation_index.html', menu=menu, tab=tab, all_count=all_count,
-                           pending_count=pending_count, cancel_count=cancel_count, confirm_count=confirm_count)
+    api = request.args.get('api', 'false')
+    query = (
+        ServiceQuotation.query
+        .join(ServiceQuotation.request)
+        .filter(
+            ServiceRequest.customer_id == current_user.id,
+            ServiceQuotation.approved_at != None
+        )
+    )
+    pending_query = query.filter(ServiceQuotation.confirmed_at == None, ServiceQuotation.cancelled_at == None)
+    confirm_query = query.filter(ServiceQuotation.confirmed_at != None)
+    cancel_query = query.filter(ServiceQuotation.cancelled_at != None)
+    if api == 'true':
+        if tab == 'pending':
+            query = pending_query
+        elif tab == 'confirm':
+            query = confirm_query
+        elif tab == 'cancel':
+            query = cancel_query
+
+        records_total = query.count()
+        search = request.args.get('search[value]')
+        if search:
+            query = query.filter(ServiceQuotation.quotation_no.contains(search))
+        start = request.args.get('start', type=int)
+        length = request.args.get('length', type=int)
+        total_filtered = query.count()
+        query = query.offset(start).limit(length)
+        data = []
+        for item in query:
+            item_data = item.to_dict()
+            data.append(item_data)
+        return jsonify({'data': data,
+                        'recordFiltered': total_filtered,
+                        'recordTotal': records_total,
+                        'draw': request.args.get('draw', type=int)
+                        })
+    return render_template('academic_services/quotation_index.html', menu=menu, tab=tab,
+                           pending_count=pending_query.count())
 
 
-@academic_services.route('/api/quotation/index')
-def get_quotations():
-    tab = request.args.get('tab')
-    query = ServiceQuotation.query.filter(ServiceQuotation.request.has(customer_id=current_user.id),
-                                          ServiceQuotation.approved_at != None)
-    if tab == 'pending':
-        query = query.filter(ServiceQuotation.confirmed_at == None, ServiceQuotation.cancelled_at == None)
-    elif tab == 'confirm':
-        query = query.filter(ServiceQuotation.confirmed_at != None)
-    elif tab == 'cancel':
-        query = query.filter(ServiceQuotation.cancelled_at != None)
-    else:
-        query = query
-    records_total = query.count()
-    search = request.args.get('search[value]')
-    if search:
-        query = query.filter(ServiceQuotation.quotation_no.contains(search))
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    total_filtered = query.count()
-    query = query.offset(start).limit(length)
-    data = []
-    for item in query:
-        item_data = item.to_dict()
-        data.append(item_data)
-    return jsonify({'data': data,
-                    'recordFiltered': total_filtered,
-                    'recordTotal': records_total,
-                    'draw': request.args.get('draw', type=int)
-                    })
+# @academic_services.route('/api/quotation/index')
+# def get_quotations():
+#     tab = request.args.get('tab')
+#     query = ServiceQuotation.query.filter(ServiceQuotation.request.has(customer_id=current_user.id),
+#                                           ServiceQuotation.approved_at != None)
+#     if tab == 'pending':
+#         query = query.filter(ServiceQuotation.confirmed_at == None, ServiceQuotation.cancelled_at == None)
+#     elif tab == 'confirm':
+#         query = query.filter(ServiceQuotation.confirmed_at != None)
+#     elif tab == 'cancel':
+#         query = query.filter(ServiceQuotation.cancelled_at != None)
+#     else:
+#         query = query
+#     records_total = query.count()
+#     search = request.args.get('search[value]')
+#     if search:
+#         query = query.filter(ServiceQuotation.quotation_no.contains(search))
+#     start = request.args.get('start', type=int)
+#     length = request.args.get('length', type=int)
+#     total_filtered = query.count()
+#     query = query.offset(start).limit(length)
+#     data = []
+#     for item in query:
+#         item_data = item.to_dict()
+#         data.append(item_data)
+#     return jsonify({'data': data,
+#                     'recordFiltered': total_filtered,
+#                     'recordTotal': records_total,
+#                     'draw': request.args.get('draw', type=int)
+#                     })
 
 
 @academic_services.route('/quotation/view/<int:quotation_id>')
