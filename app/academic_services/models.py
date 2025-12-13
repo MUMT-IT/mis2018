@@ -1116,7 +1116,7 @@ class ServiceResult(db.Model):
             'lab_no': self.lab_no,
             'request_no': self.request.request_no if self.request else None,
             'tracking_number': self.tracking_number,
-            'status_id': self.status.status_id if self.status else None,
+            'status_id': self.status.status_id if self.request else None,
             'admin_status': self.admin_status if self.admin_status else None,
             'customer_status': self.customer_status if self.customer_status else None,
             'released_at': self.released_at if self.released_at else None,
