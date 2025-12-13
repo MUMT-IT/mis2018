@@ -380,7 +380,7 @@
                         <a {% if central_admin %}
                                 href="{{ url_for('service_admin.invoice_index_for_central_admin', menu='invoice', tab='all') }}"
                            {% elif assistant %}
-                                href="{{ url_for('service_admin.quotation_index', menu='quotation_index', tab='all') }}"
+                                href="{{ url_for('service_admin.quotation_index', menu='quotation', tab='all') }}"
                            {% else %}
                                 href="{{ url_for('service_admin.request_index', menu='request') }}"
                            {% endif %}
