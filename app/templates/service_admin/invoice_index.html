@@ -85,9 +85,6 @@
                     <th>ออกในนาม</th>
                     <th>ผู้ประสานงาน</th>
                     <th>ราคา</th>
-                     {% if is_central_admin %}
-                        <th>ไฟล์ใบแจ้งหนี้</th>
-                    {% endif %}
                     <th>วิธีการชำระเงิน</th>
                     <th>วันที่ชำระเงิน</th>
                     <th>หลักฐานการชำระเงิน</th>
@@ -145,42 +142,6 @@
                     {data: 'name'},
                     {data: 'customer_name'},
                     {data: 'total_price'},
-                    {% if is_central_admin %}
-                        {
-                            data: 'id',
-                            render: function (data, type, row) {
-                                var menu = '{{ menu }}';
-                                var tab = '{{ tab }}';
-                                if (row.file_attached_at == null && row.assistant_approved_at) {
-                                     var upload_url = '/service_admin/invoice/file/add/' + data + '?menu=' + menu + '&tab=' + tab;
-                                        return '<div class="field has-addons">' +
-                                            '<div class="control">' +
-                                            '<a class="button is-small is-light is-warning is-rounded" ' + 'href=' + upload_url + '>' +
-                                            '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                            '<span>อัปโหลด</span>' +
-                                            '</a>' +
-                                            '</div>' +
-                                            '</div>'
-                                }
-                                else if (row.file_attached_at) {
-                                    dowload_url = '/service_admin/aws-s3/download/' + row.invoice_file + '?download_filename='
-                                        + row.invoice_no + '.pdf';
-                                    return `
-                                        <div class="field has-addons">
-                                           <div class="control">
-                                              <a class="button is-small is-outlined is-link is-rounded"
-                                                 href="${dowload_url}">
-                                                 <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
-                                                 <span>ใบแจ้งหนี้</span>
-                                              </a>
-                                           </div>
-                                         </div>`;
-                                } else {
-                                    return ''
-                                }
-                            }
-                        },
-                    {% endif %}
                     { data: 'payment_type'},
                     {
                         data : 'paid_at',
@@ -206,20 +167,6 @@
                                             </a>
                                         </div>
                                     </div>`;
-                            } else if (row.file_attached_at != null && row.paid_at == null) {
-                                var menu = '{{ menu }}';
-                                var tab = '{{ tab }}';
-                                var add_payment_url = '/service_admin/payment/add?invoice_id=' + data +'&menu=' + menu + '&tab=' + tab;
-                                return '<div class="field has-addons">' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + add_payment_url + '>' +
-                                    '<span class="icon">' +
-                                    '<i class="fas fa-plus"></i>' +
-                                    '</span>' +
-                                    '<span>อัปโหลดหลักฐานการชำระเงิน</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '</div>'
                             } else {
                                 return ''
                             }
