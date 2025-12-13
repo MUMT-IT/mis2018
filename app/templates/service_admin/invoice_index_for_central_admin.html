@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker Admin{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
+{% endblock %}
+{% block page_content %}
+    {% include "service_admin/admin_nav.html" %}
+    <section class="section">
+        {% include 'messages.html' %}
+        <div class="columns is-centered">
+            {% include 'service_admin/menu.html' %}
+            <div class="column is-9">
+                <div class="column is-11">
+                    <h1 class="title has-text-centered">รายการใบแจ้งหนี้</h1>
+                </div>
+                <div class="tabs">
+                    <ul>
+                        <li {% if tab == 'pending_dean' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.invoice_index_for_central_admin', tab='pending_dean', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-file-signature"></i></span>
+                                <span>รออัปโหลดใบแจ้งหนี้ฉบับสมบูรณ์</span>
+                                {% if pending_dean_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ pending_dean_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'waiting_payment' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.invoice_index_for_central_admin', tab='waiting_payment', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
+                                <span>รอชำระเงิน/รอตรวจสอบ</span>
+                                {% if waiting_payment_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ waiting_payment_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'payment' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.invoice_index_for_central_admin', tab='payment', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                <span>ชำระเงินแล้ว</span>
+                                {% if payment_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ payment_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.invoice_index_for_central_admin', tab='all', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ทั้งหมด</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <table id='results' class="table is-fullwidth">
+                    <thead>
+                    <th>เลขใบแจ้งหนี้</th>
+                    <th>วัน-เวลาที่ออก</th>
+                    <th>ออกในนาม</th>
+                    <th>ผู้ประสานงาน</th>
+                    <th>ราคา</th>
+                    <th>ไฟล์ใบแจ้งหนี้</th>
+                    <th>วิธีการชำระเงิน</th>
+                    <th>วันที่ชำระเงิน</th>
+                    <th>หลักฐานการชำระเงิน</th>
+                    <th>ผู้ออก</th>
+                    <th>สถานะ</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        function showSlipPopup(url) {
+            Swal.fire({
+                title: 'หลักฐานการชำระเงิน',
+                html: `<iframe id="slipFrame" style="width:100%;height:500px;border:none;"></iframe>`,
+                width: 800,
+                showCloseButton: true,
+                showConfirmButton: false,
+                didOpen: () => {
+                    document.getElementById('slipFrame').src = url;
+                }
+            });
+        }
+    </script>
+    <script>
+        $(document).ready(function () {
+            $.fn.dataTable.moment('lll');
+            $('#results').DataTable({
+                ajax: {
+                    url: {{ url_for('service_admin.invoice_index_for_central_admin', tab=tab, api='true')|tojson|safe}},
+                },
+                order: [[1, 'desc']],
+                scrollX: true,
+                autoWidth: false,
+                columns: [
+                    {data: 'invoice_no'},
+                    {
+                        data: 'created_at',
+                        render: function (data) {
+                            if (data !== '') {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {data: 'name'},
+                    {data: 'customer_name'},
+                    {data: 'total_price'},
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            var menu = '{{ menu }}';
+                            var tab = '{{ tab }}';
+                            if (row.file_attached_at == null && row.assistant_approved_at) {
+                                var upload_url = '/service_admin/invoice/file/add/' + data + '?menu=' + menu + '&tab=' + tab;
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-warning is-rounded" ' + 'href=' + upload_url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>อัปโหลด</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (row.file_attached_at) {
+                                dowload_url = '/service_admin/aws-s3/download/' + row.invoice_file + '?download_filename='
+                                    + row.invoice_no + '.pdf';
+                                return `
+                                        <div class="field has-addons">
+                                           <div class="control">
+                                              <a class="button is-small is-outlined is-link is-rounded"
+                                                 href="${dowload_url}">
+                                                 <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
+                                                 <span>ใบแจ้งหนี้</span>
+                                              </a>
+                                           </div>
+                                         </div>`;
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {data: 'payment_type'},
+                    {
+                        data: 'paid_at',
+                        render: function (data) {
+                            if (data !== null) {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if (row.slip) {
+                                return `
+                                    <div class="field has-addons">
+                                        <div class="control">
+                                            <a class="button is-small is-outlined is-primary is-rounded"
+                                                onclick="showSlipPopup('${row.slip}')">
+                                                <span class="icon is-small"><i class="fas fa-receipt"></i></span>
+                                                <span>หลักฐานการชำระเงิน</span>
+                                            </a>
+                                        </div>
+                                    </div>`;
+                            } else if (row.file_attached_at != null && row.paid_at == null) {
+                                var menu = '{{ menu }}';
+                                var tab = '{{ tab }}';
+                                var add_payment_url = '/service_admin/payment/add?invoice_id=' + data + '&menu=' + menu + '&tab=' + tab;
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + add_payment_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-plus"></i>' +
+                                    '</span>' +
+                                    '<span>อัปโหลดหลักฐานการชำระเงิน</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {data: 'creator'},
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            var color = row.admin_status_color
+                            var status = row.admin_status
+                            if (data !== null) {
+                                return `<span class="tag ${color}">${status}</span>`;
+                            } else {
+                                return `<span class="tag is-info">ร่างใบแจ้งหนี้</span>`;
+                            }
+                        }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data) {
+                            var menu = '{{ menu }}';
+                            var tab = '{{ tab }}';
+                            var view_url = '/service_admin/central_admin/invoice/view/' + data + '?menu=' + menu + '&tab=' + tab;
+                            return '<div class="field has-addons">' +
+                                '<div class="control">' +
+                                '<a class="button is-small is-light is-info is-rounded" ' + 'href=' + view_url + '>' +
+                                '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                '<span>รายละเอียด</span>' +
+                                '</a>' +
+                                '</div>' +
+                                '</div>'
+                        }
+                    }
+                ]
+            });
+        });
+    </script>
+{% endblock %}
