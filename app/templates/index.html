@@ -378,7 +378,9 @@
                     <nav class="panel is-danger">
                         <p class="panel-heading">Services (กำลังพัฒนาและทดลอง)</p>
                         <a {% if central_admin %}
-                                href="{{ url_for('service_admin.invoice_index', menu='invoice', tab='all') }}"
+                                href="{{ url_for('service_admin.invoice_index_for_central_admin', menu='invoice', tab='all') }}"
+                           {% elif assistant %}
+                                href="{{ url_for('service_admin.quotation_index', menu='quotation_index', tab='all') }}"
                            {% else %}
                                 href="{{ url_for('service_admin.request_index', menu='request') }}"
                            {% endif %}
