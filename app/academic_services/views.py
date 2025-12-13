@@ -4,7 +4,7 @@ import qrcode
 from bahttext import bahttext
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase.pdfmetrics import stringWidth
-from sqlalchemy import or_, update
+from sqlalchemy import or_, update, and_, exists
 from datetime import date, datetime
 import arrow
 import pandas
@@ -92,6 +92,24 @@ def get_status(s_id):
     return status_id
 
 
+def tab_of_invoice(tab, query):
+    if tab == 'pending':
+        query = query.join(ServicePayment).filter(
+            ServicePayment.paid_at == None,
+            today <= ServiceInvoice.due_date, ServicePayment.cancelled_at == None
+        )
+    elif tab == 'verify':
+        query = query.join(ServicePayment).filter(ServicePayment.paid_at != None, ServicePayment.verified_at == None,
+                                                  ServicePayment.cancelled_at == None)
+    elif tab == 'payment':
+        query = query.join(ServicePayment).filter(ServicePayment.verified_at != None,
+                                                  ServicePayment.cancelled_at == None)
+    elif tab == 'overdue':
+        query = query.join(ServicePayment).filter(today > ServiceInvoice.due_date, ServicePayment.paid_at == None,
+                                                  ServicePayment.cancelled_at == None)
+    else:
+        query = query
+    return query
 # def request_data(service_request):
 #     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
 #     gc = get_credential(json_keyfile)
@@ -3838,6 +3856,7 @@ def payment_index():
 def invoice_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
+    api = request.args.get('api', 'false')
     today = arrow.now('Asia/Bangkok').date()
     expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
     query = (
@@ -3849,18 +3868,65 @@ def invoice_index():
             ServiceRequest.customer_id == current_user.id
         )
     )
-    pending_count = query.join(ServicePayment).filter(ServicePayment.paid_at == None, today <= ServiceInvoice.due_date,
-                                                      ServicePayment.cancelled_at == None).count()
-    verify_count = query.join(ServicePayment).filter(ServicePayment.paid_at != None, ServicePayment.verified_at == None,
-                                                     ServicePayment.cancelled_at == None).count()
-    payment_count = query.join(ServicePayment).filter(ServicePayment.verified_at >= expire_time,
-                                                      ServicePayment.cancelled_at == None).count()
-    overdue_count = query.join(ServicePayment).filter(today > ServiceInvoice.due_date, ServicePayment.paid_at == None,
-                                                      ServicePayment.cancelled_at == None).count()
-    all_count = pending_count + verify_count + payment_count + overdue_count
-    return render_template('academic_services/invoice_index.html', menu=menu, tab=tab, all_count=all_count,
-                           pending_count=pending_count, verify_count=verify_count, payment_count=payment_count,
-                           overdue_count=overdue_count)
+    pending_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id==None)
+
+    for rec in pending_query:
+        print(rec)
+    print(f'pending count={pending_query.count()}')
+    verify_query = query.join(ServicePayment).filter(ServicePayment.paid_at != None, ServicePayment.verified_at == None,
+                                                     ServicePayment.cancelled_at == None)
+    payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at >= expire_time,
+                                                      ServicePayment.cancelled_at == None)
+    overdue_query = query.join(ServicePayment).filter(today > ServiceInvoice.due_date, ServicePayment.paid_at == None,
+                                                      ServicePayment.cancelled_at == None)
+    if api == 'true':
+        if tab == 'pending':
+            query = pending_query
+        elif tab == 'verify':
+            query = verify_query
+        elif tab == 'payment':
+            query = payment_query
+        elif tab == 'overdue':
+            query = overdue_query
+
+        records_total = query.count()
+        search = request.args.get('search[value]')
+        if search:
+            query = query.filter(ServiceInvoice.invoice_no.contains(search))
+        start = request.args.get('start', type=int)
+        length = request.args.get('length', type=int)
+        total_filtered = query.count()
+        query = query.offset(start).limit(length)
+        data = []
+        for item in query:
+            item_data = item.to_dict()
+            download_file = url_for('academic_services.download_file', key=item.file,
+                                    download_filename=f"{item.invoice_no}.pdf")
+            item_data['file'] = f'''<div class="field has-addons">
+                             <div class="control">
+                                 <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                     <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
+                                     <span>ใบแจ้งหนี้</span>
+                                 </a>
+                             </div>
+                         </div>
+                     '''
+            if item.payments:
+                for payment in item.payments:
+                    if payment.slip and payment.cancelled_at == None:
+                        item_data['slip'] = generate_url(payment.slip)
+                    else:
+                        item_data['slip'] = None
+            data.append(item_data)
+        return jsonify({'data': data,
+                        'recordFiltered': total_filtered,
+                        'recordTotal': records_total,
+                        'draw': request.args.get('draw', type=int)
+                        })
+
+    return render_template('academic_services/invoice_index.html', menu=menu, tab=tab,
+                           pending_count=pending_query.count(), verify_count=verify_query.count(),
+                           payment_count=payment_query.count(), overdue_count=overdue_query.count())
 
 
 @academic_services.route('/api/invoice/index')
@@ -3876,14 +3942,21 @@ def get_invoices():
             ServiceRequest.customer_id == current_user.id
         )
     )
+    pending_query = query.join(ServicePayment).filter(
+        ServicePayment.paid_at == None,
+        today <= ServiceInvoice.due_date, ServicePayment.cancelled_at == None
+    )
     if tab == 'pending':
-        query = query.join(ServicePayment).filter(ServicePayment.paid_at == None, today <= ServiceInvoice.due_date)
+        query = pending_query
     elif tab == 'verify':
-        query = query.join(ServicePayment).filter(ServicePayment.paid_at != None, ServicePayment.verified_at == None)
+        query = query.join(ServicePayment).filter(ServicePayment.paid_at != None, ServicePayment.verified_at == None,
+                                                     ServicePayment.cancelled_at == None)
     elif tab == 'payment':
-        query = query.join(ServicePayment).filter(ServicePayment.verified_at != None)
+        query = query.join(ServicePayment).filter(ServicePayment.verified_at != None,
+                                                     ServicePayment.cancelled_at == None)
     elif tab == 'overdue':
-        query = query.join(ServicePayment).filter(today > ServiceInvoice.due_date, ServicePayment.paid_at == None)
+        query = query.join(ServicePayment).filter(today > ServiceInvoice.due_date, ServicePayment.paid_at == None,
+                                                     ServicePayment.cancelled_at == None)
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
