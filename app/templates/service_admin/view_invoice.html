@@ -23,8 +23,7 @@
                 <div class="column">
                     <ul class="steps">
                         <li class="steps-segment
-                            {% if (not invoice.sent_at or invoice.sent_at) and not invoice.head_approved_at and not invoice.assistant_approved_at
-                                and not invoice.file_attached_at and not invoice.paid_at and not invoice.is_paid %}
+                            {% if (not invoice.sent_at or invoice.sent_at) and not invoice.head_approved_at %}
                                 is-active
                             {% endif %}"
                         >
@@ -38,8 +37,7 @@
                             </div>
                         </li>
                         <li class="steps-segment
-                            {% if invoice.sent_at and invoice.head_approved_at and not invoice.assistant_approved_at
-                                and not invoice.file_attached_at and not invoice.paid_at and not invoice.is_paid %}
+                            {% if invoice.head_approved_at and not invoice.assistant_approved_at %}
                                 is-active
                             {% endif %}"
                         >
@@ -53,8 +51,7 @@
                             </div>
                         </li>
                         <li class="steps-segment
-                            {% if invoice.sent_at and invoice.head_approved_at and invoice.assistant_approved_at
-                                and not invoice.file_attached_at and not invoice.paid_at and not invoice.is_paid %}
+                            {% if invoice.assistant_approved_at and not invoice.file_attached_at %}
                                 is-active
                             {% endif %}"
                         >
@@ -68,8 +65,7 @@
                             </div>
                         </li>
                         <li class="steps-segment
-                            {% if invoice.sent_at and invoice.head_approved_at and invoice.assistant_approved_at
-                                and invoice.file_attached_at and not invoice.paid_at and not invoice.is_paid %}
+                            {% if invoice.file_attached_at and (not invoice.paid_at or not invoice.is_paid) %}
                                 is-active
                             {% endif %}"
                         >
