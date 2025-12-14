@@ -2177,7 +2177,7 @@ def sample_index():
                 ServiceAdmin.admin_id == current_user.id
         )
     )
-    schedule_query = query.filter(or_(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None),
+    schedule_query = query.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
                                   ServiceSample.received_at == None)
     delivery_query = query.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
                                   ServiceSample.received_at == None)
@@ -4005,7 +4005,7 @@ def upload_invoice_file(invoice_id):
                    f'เรียน ฝ่ายการเงิน\n\n'
                    f'หน่วยงาน{invoice.quotation.request.sub_lab.sub_lab} ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว\n'
                    f'วันที่ออก : {invoice.file_attached_at.strftime("%d/%m/%Y")}\n'
-                   f'จำนวนเงิน : {invoice.grand_total():,.2f} บาท\n'
+                   f'จำนวนเงิน : {invoice.grand_total:,.2f} บาท\n'
                    f'กรุณาดำเนินการตรวจสอบและเตรียมออกใบเสร็จรับเงินเมื่อได้รับการชำระเงินจากลูกค้าตามขั้นตอนที่กำหนด\n\n'
                    f'ขอบคุณค่ะ\n'
                    f'ระบบงานบริการวิชาการ'
@@ -5327,8 +5327,8 @@ def create_draft_result(result_id=None):
             if upload_all:
                 status_id = get_status(12)
                 result.is_edited = False
-                result.status_id = status_id
-                service_request.status_id = status_id
+                # result.status_id = status_id
+                result.request.status_id = status_id
                 result.sent_at = arrow.now('Asia/Bangkok').datetime
                 result.sender_id = current_user.id
                 scheme = 'http' if current_app.debug else 'https'
@@ -5352,7 +5352,7 @@ def create_draft_result(result_id=None):
                     send_mail([contact_email], title, message)
                     result.is_sent_email = True
                 db.session.add(result)
-                db.session.add(service_request)
+                # db.session.add(service_request)
                 db.session.commit()
                 flash("ส่งข้อมูลเรียบร้อยแล้ว", "success")
                 return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='testing'))
@@ -5360,7 +5360,7 @@ def create_draft_result(result_id=None):
                 flash("กรุณาแนบไฟล์ให้ครบถ้วน", "danger")
         else:
             status_id = get_status(11)
-            result.status_id = status_id
+            # result.status_id = status_id
             service_request.status_id = status_id
             db.session.add(result)
             db.session.add(service_request)
@@ -5459,7 +5459,7 @@ def edit_draft_result(result_item_id):
         edited_all = all(item.edited_at for item in result_item.result.result_items if item.req_edit_at)
         if edited_all:
             status_id = get_status(12)
-            result_item.result.status_id = status_id
+            # result_item.result.status_id = status_id
             result_item.result.request.status_id = status_id
             result_item.result.is_edited = True
             db.session.add(result_item)
@@ -5492,11 +5492,11 @@ def edit_draft_result(result_item_id):
 
 @service_admin.route('/result/draft/delete/<int:item_id>', methods=['GET', 'POST'])
 def delete_draft_result(item_id):
-    status_id = get_status(11)
+    # status_id = get_status(11)
     item = ServiceResultItem.query.get(item_id)
     item.draft_file = None
     item.modified_at = arrow.now('Asia/Bangkok').datetime
-    item.result.status_id = status_id
+    # item.result.status_id = status_id
     item.result.modified_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(item)
     db.session.commit()
