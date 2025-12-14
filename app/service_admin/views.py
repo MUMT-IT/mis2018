@@ -3076,38 +3076,123 @@ def export_request_pdf(request_id):
 def result_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
-    expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
+    api = request.args.get('api', 'false')
     query = (
         ServiceResult.query
         .join(ServiceResult.request)
         .join(ServiceRequest.sub_lab)
-        .outerjoin(ServiceSubLab.admins)
+        .join(ServiceSubLab.admins)
         .filter(
-            or_(
-                ServiceSubLab.assistant_id == current_user.id,
                 ServiceAdmin.admin_id == current_user.id
             )
-        )
-        .distinct()
     )
-    pending_count = query.filter(ServiceResult.sent_at == None).count()
-    edit_count = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False).count()
-    approve_count = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
+    pending_query = query.filter(ServiceResult.sent_at == None)
+    edit_query = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False)
+    approve_query = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
                                  or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
                                      )
-                                 ).count()
-    confirm_count = query.filter(ServiceResult.approved_at >= expire_time).count()
-    all_count = pending_count + edit_count + approve_count + confirm_count
-    return render_template('service_admin/result_index.html', menu=menu, tab=tab, pending_count=pending_count,
-                           edit_count=edit_count, approve_count=approve_count, all_count=all_count,
-                           confirm_count=confirm_count)
+                                 )
+    confirm_query = query.filter(ServiceResult.approved_at != None)
+    if api == 'true':
+        if tab == 'pending':
+            query = pending_query
+        elif tab == 'edit':
+            query = edit_query
+        elif tab == 'approve':
+            query = approve_query
+        elif tab == 'confirm':
+            query = confirm_query
+
+        records_total = query.count()
+        search = request.args.get('search[value]')
+        if search:
+            query = query.filter(
+                ServiceResult.request.has(ServiceRequest.request_no).contains(search))
+        start = request.args.get('start', type=int)
+        length = request.args.get('length', type=int)
+        total_filtered = query.count()
+        query = query.offset(start).limit(length)
+        data = []
+        for item in query:
+            html_blocks = []
+            edit_html_blocks = []
+            note_html_blocks = []
+            item_data = item.to_dict()
+            for i in item.result_items:
+                edit_html = ''
+                note_html = ''
+                if i.final_file:
+                    download_file = url_for('service_admin.download_file', key=i.final_file,
+                                            download_filename=f"{i.report_language} (ฉบับจริง).pdf")
+                    html = f'''
+                                <div class="field has-addons">
+                                    <div class="control">
+                                        <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                            <span>{i.report_language} (ฉบับจริง)</span>
+                                            <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            '''
+                elif i.draft_file:
+                    download_file = url_for('service_admin.download_file', key=i.draft_file,
+                                            download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
+                    edit_result = url_for('service_admin.edit_draft_result', menu='report', tab='approve',
+                                          result_item_id=i.id)
+                    html = f'''
+                                                <div class="field has-addons">
+                                                    <div class="control">
+                                                        <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                                            <span>{i.report_language} (ฉบับร่าง)</span>
+                                                            <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            '''
+                else:
+                    html = ''
+
+                html_blocks.append(html)
+
+                if i.req_edit_at and not i.is_edited:
+                    edit_html = f'''<div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-warning is-rounded" href="{edit_result}">
+                                                    <span class="icon is-small"><i class="fas fa-pen"></i></span>
+                                                    <span>แก้ไขใบรายงานผล</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    '''
+                    note_html = f'''{i.report_language} : {i.note}<br/>'''
+                elif i.req_edit_at and i.is_edited:
+                    note_html = f'''{i.report_language} : {i.note}
+                                    <br/>
+                                    <span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>
+                                    <br/>
+                                '''
+                if edit_html:
+                    edit_html_blocks.append(edit_html)
+                if note_html:
+                    note_html_blocks.append(note_html)
+            item_data['files'] = ''.join(
+                html_blocks) if html_blocks else '<span class="has-text-grey-light is-italic">ไม่มีไฟล์</span>'
+            item_data['edit_file'] = ''.join(edit_html_blocks) if edit_html_blocks else ''
+            item_data['note'] = ''.join(note_html_blocks) if note_html_blocks else ''
+            data.append(item_data)
+        return jsonify({'data': data,
+                        'recordFiltered': total_filtered,
+                        'recordTotal': records_total,
+                        'draw': request.args.get('draw', type=int)
+                        })
+    return render_template('service_admin/result_index.html', menu=menu, tab=tab,
+                           pending_count=pending_query.count(),
+                           edit_count=edit_query.count(), approve_count=approve_query.count())
 
 
 @service_admin.route('/api/result/index')
 def get_results():
     tab = request.args.get('tab')
-    # query = ServiceResult.query.join(ServiceResult.request).join(ServiceRequest.sub_lab).join(
-    #     ServiceSubLab.admins).filter(ServiceAdmin.admin_id == current_user.id)
     query = (
         ServiceResult.query
         .join(ServiceResult.request)
