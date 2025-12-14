@@ -2169,27 +2169,49 @@ def submit_same_address(address_id):
 def sample_index():
     menu = request.args.get('menu')
     tab = request.args.get('tab')
-    expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
+    api = request.args.get('api', 'false')
     query = (
         ServiceSample.query
         .join(ServiceSample.request)
         .join(ServiceRequest.sub_lab)
-        .outerjoin(ServiceSubLab.admins)
+        .join(ServiceSubLab.admins)
         .filter(
-            or_(
-                ServiceSubLab.assistant_id == current_user.id,
                 ServiceAdmin.admin_id == current_user.id
-            )
-        ).distinct()
+        )
     )
-    schedule_count = query.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
-                                  ServiceSample.received_at == None).count()
-    delivery_count = query.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
-                                  ServiceSample.received_at == None).count()
-    received_count = query.filter(ServiceSample.received_at >= expire_time).count()
-    all_count = schedule_count + delivery_count + received_count
-    return render_template('service_admin/sample_index.html', menu=menu, tab=tab, schedule_count=schedule_count,
-                           delivery_count=delivery_count, received_count=received_count, all_count=all_count)
+    schedule_query = query.filter(or_(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None),
+                                  ServiceSample.received_at == None)
+    delivery_query = query.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
+                                  ServiceSample.received_at == None)
+    received_query = query.filter(ServiceSample.received_at != None)
+
+    if api == 'true':
+        if tab == 'schedule':
+            query = schedule_query
+        elif tab == 'delivery':
+            query = delivery_query
+        elif tab == 'received':
+            query = received_query
+
+        records_total = query.count()
+        search = request.args.get('search[value]')
+        if search:
+            query = query.filter(ServiceSample.location.contains(search))
+        start = request.args.get('start', type=int)
+        length = request.args.get('length', type=int)
+        total_filtered = query.count()
+        query = query.offset(start).limit(length)
+        data = []
+        for item in query:
+            item_data = item.to_dict()
+            data.append(item_data)
+        return jsonify({'data': data,
+                        'recordFiltered': total_filtered,
+                        'recordTotal': records_total,
+                        'draw': request.args.get('draw', type=int)
+                        })
+    return render_template('service_admin/sample_index.html', menu=menu, tab=tab,
+                           schedule_count=schedule_query.count(), delivery_count=delivery_query.count())
 
 
 @service_admin.route('/api/sample/index')
@@ -5543,25 +5565,16 @@ def receipt_index():
 
 @service_admin.route('/api/receipt/index')
 def get_receipts():
-    # query = ServiceInvoice.query.filter(ServiceInvoice.receipts != None,
-    #                                     or_(ServiceInvoice.creator_id == current_user.id,
-    #                                         ServiceInvoice.quotation.has(ServiceQuotation.request.has(
-    #                                             ServiceRequest.sub_lab.has(
-    #                                                 ServiceSubLab.admins.any(
-    #                                                     ServiceAdmin.admin_id == current_user.id))))))
     query = (
         ServiceInvoice.query
         .join(ServiceInvoice.quotation)
         .join(ServiceQuotation.request)
         .join(ServiceRequest.sub_lab)
         .join(ServiceInvoice.receipts)
-        .outerjoin(ServiceSubLab.admins)
+        .join(ServiceSubLab.admins)
         .filter(
-            or_(
-                ServiceSubLab.assistant_id == current_user.id,
                 ServiceAdmin.admin_id == current_user.id
-            )
-        ).distinct()
+        )
     )
     records_total = query.count()
     search = request.args.get('search[value]')
