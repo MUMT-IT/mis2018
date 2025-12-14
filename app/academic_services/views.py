@@ -4357,8 +4357,15 @@ def receipt_index():
 
 @academic_services.route('/api/receipt/index')
 def get_receipts():
-    query = ServiceInvoice.query.filter(ServiceInvoice.receipts != None, ServiceInvoice.quotation.has(
-        ServiceQuotation.request.has(customer_id=current_user.id)))
+    query = (
+        ServiceInvoice.query
+        .join(ServiceInvoice.quotation)
+        .join(ServiceQuotation.request)
+        .filter(
+            ServiceInvoice.receipts != None,
+            ServiceRequest.customer_id == current_user.id
+        )
+    )
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
