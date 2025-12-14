@@ -23,7 +23,7 @@
                 <div class="column">
                     <ul class="steps">
                         <li class="steps-segment
-                            {% if invoice.file_attached_at and not invoice.paid_at %}
+                            {% if not invoice.file_attached_at %}
                                 is-active
                             {% endif %}"
                         >
@@ -34,6 +34,20 @@
                             </span>
                             <div class="steps-content">
                                 <p>อัปโหลดใบแจ้งหนี้ฉบับสมบูรณ์</p>
+                            </div>
+                        </li>
+                        <li class="steps-segment
+                            {% if not invoice.paid_at  %}
+                                is-active
+                            {% endif %}"
+                        >
+                            <span class="steps-marker">
+                                <span class="icon">
+                                    <i class="fas fa-hand-holding-usd"></i>
+                                </span>
+                            </span>
+                            <div class="steps-content">
+                                <p>รอขำระเงิน</p>
                             </div>
                         </li>
                         <li class="steps-segment
@@ -75,12 +89,6 @@
                             <p class="subtitle is-6 mb-1 has-text-weight-semibold">เลขที่</p>
                             <div style="margin-left: 1.75rem;">
                                 {{ invoice.invoice_no }}
-                            </div>
-                        </div>
-                        <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่</p>
-                            <div style="margin-left: 1.75rem;">
-                                อว. {{ invoice.mhesi_no or '78.04/' }}
                             </div>
                         </div>
                         {% if invoice.file_attached_at %}
@@ -212,7 +220,7 @@
                                 การดำเนินการ
                             </p>
                             <ul class="menu-list">
-                                {% if invoice.quotation.request.status.status_id == 19 %}
+                                {% if invoice.assistant_approved_at and not invoice.file_attached_at %}
                                     <li>
                                         <div id="mhesi_number"></div>
                                         <a class="button is-warning is-rounded is-full-height mb-2"
@@ -233,6 +241,25 @@
                                             <span>ดาวน์โหลด PDF</span>
                                         </a>
                                     </li>
+                                {% elif invoice.file_attached_at and not invoice.paid_at %}
+                                    <li>
+                                        <a class="button is-info is-rounded is-full-height mb-2"
+                                           href="{{ url_for('service_admin.add_payment', invoice_id=invoice.id,
+                                           menu=menu, tab=tab) }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-plus"></i></span>
+                                            <span>อัปโหลดหลักฐานการชำระเงิน</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
+                                           href="{{ url_for('service_admin.download_file', key=invoice.file,
+                                            download_filename=invoice.invoice_no ~ '.pdf') }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                            <span>ดาวน์โหลดใบแจ้งหนี้</span>
+                                        </a>
+                                    </li>
                                 {% elif invoice.file %}
                                     <li>
                                         <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
@@ -241,6 +268,15 @@
                                         >
                                             <span class="icon"><i class="fas fa-download"></i></span>
                                             <span>ดาวน์โหลดใบแจ้งหนี้</span>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li>
+                                        <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
+                                           href="{{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id) }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                            <span>ดาวน์โหลด PDF</span>
                                         </a>
                                     </li>
                                 {% endif %}
