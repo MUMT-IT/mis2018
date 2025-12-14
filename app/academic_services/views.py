@@ -4361,8 +4361,8 @@ def get_receipts():
         ServiceInvoice.query
         .join(ServiceInvoice.quotation)
         .join(ServiceQuotation.request)
+        .join(ServiceInvoice.receipts)
         .filter(
-            ServiceInvoice.receipts != None,
             ServiceRequest.customer_id == current_user.id
         )
     )
