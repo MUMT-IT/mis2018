@@ -481,10 +481,12 @@ def list_to_cancel_receipt():
 @receipt_printing.route('/receipts/cancel/<int:receipt_id>', methods=['GET', 'POST'])
 def cancel_receipt(receipt_id):
     receipt = ElectronicReceiptDetail.query.get(receipt_id)
+    invoice_id = receipt.invoice_id if receipt.invoice_id else None
     form = PasswordOfSignDigitalForm()
     if request.method == 'POST':
         receipt.cancelled = True
         receipt.cancel_comment = form.cancel_comment.data
+        receipt.invoice_id = None
         try:
             sign_pdf = e_sign(BytesIO(receipt.pdf_file), form.password.data, 400, 700, 550, 750, include_image=False,
                               sig_field_name='cancel', message=f'ยกเลิก {receipt.number}')
@@ -495,6 +497,22 @@ def cancel_receipt(receipt_id):
             sign_pdf.seek(0)
             db.session.add(receipt)
             db.session.commit()
+            if invoice_id:
+                invoice = ServiceInvoice.query.get(invoice_id)
+                customer_name = invoice.quotation.request.customer.customer_name.replace(' ', '_')
+                contact_email = invoice.quotation.request.customer.contact_email if invoice.quotation.request.customer.contact_email else invoice.quotation.request.customer.email
+                title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
+                title = f'''แจ้งยกเลิกใบเสร็จรับเงินของใบแจ้งหนี้ [{invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+                message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {invoice.quotation.request.request_no}'''
+                message += f''' ขณะนี้ทางคณะฯ ขอแจ้งให้ทราบว่า ใบเสร็จรับเงินเลขที่ {receipt.number} ได้ถูกยกเลิกเรียบร้อยแล้ว เนื่องจากมีความผิดพลาดในการจัดทำเอกสาร '''
+                message += f'''ทั้งนี้ คณะฯ จะดำเนินการออกเอกสารที่ถูกต้องให้ท่านใหม่ \n'''
+                message += f'''ทางคณะฯ ต้องขออภัยในความไม่สะดวกมา ณ ที่นี้\n\n'''
+                message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+                message += f'''ขอแสดงความนับถือ\n'''
+                message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+                message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                send_mail([contact_email], title, message)
     if not receipt.cancelled:
         return render_template('receipt_printing/confirm_cancel_receipt.html', receipt=receipt,
                                callback=request.referrer, form=form)
