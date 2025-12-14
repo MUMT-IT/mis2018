@@ -74,7 +74,7 @@ def create_receipt():
             form.items.append_entry()
         for entry, invoice_item in zip(form.items.entries, invoice.invoice_items):
             entry.item.data = invoice_item.item
-            entry.price.data = invoice_item.net_price()
+            entry.price.data = f"{invoice_item.net_price():.2f}"
         payer = received_money_from
         for payment in invoice.payments:
             if payment.payment_type == 'QR Code Payment':
