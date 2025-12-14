@@ -79,7 +79,7 @@
             $.fn.dataTable.moment('lll');
             $('#results').DataTable({
                 ajax: {
-                    url: {{ url_for('service_admin.get_results', tab=tab)|tojson|safe }},
+                    url: {{ url_for('service_admin.result_index', tab=tab, api='true')|tojson|safe }},
                 },
                 order: [[2, 'desc']],
                 scrollX: true,
