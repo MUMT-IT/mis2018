@@ -286,11 +286,10 @@ def menu():
             .join(ServiceResult.request)
             .join(ServiceRequest.sub_lab)
             .join(ServiceSubLab.admins)
-            .filter(ServiceResult.approved_at == None,
-
-                        ServiceAdmin.admin_id == current_user.id
-
-                    )
+            .filter(
+                ServiceResult.approved_at == None,
+                ServiceAdmin.admin_id == current_user.id
+            )
         ).count()
     return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin, position=position,
                 request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
@@ -417,7 +416,6 @@ def request_index():
             .join(ServiceSubLab.admins)
             .filter(
                 ServiceStatus.status_id.in_(group_ids),
-
                     ServiceAdmin.admin_id == current_user.id
                 )
         ).count()

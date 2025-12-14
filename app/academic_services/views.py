@@ -110,6 +110,8 @@ def tab_of_invoice(tab, query):
     else:
         query = query
     return query
+
+
 # def request_data(service_request):
 #     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
 #     gc = get_credential(json_keyfile)
@@ -305,18 +307,36 @@ def menu():
     report_count = None
 
     if current_user.is_authenticated:
-        request_count = ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
-                                                    ServiceRequest.is_downloaded == None, ServiceRequest.status.has(
-                ServiceStatus.status_id.in_([1, 2]))).count()
-        quotation_count = ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
-                                                      ServiceRequest.status.has(
-                                                          ServiceStatus.status_id.in_([5]))).count()
-        sample_count = ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
-                                                   ServiceRequest.status.has(
-                                                       ServiceStatus.status_id.in_([6, 8, 9]))).count()
-        invoice_count = ServiceRequest.query.filter(ServiceRequest.customer_id == current_user.id,
-                                                    ServiceRequest.status.has(
-                                                        ServiceStatus.status_id.in_([20, 21]))).count()
+        request_count = (ServiceRequest.query
+        .join(ServiceRequest.status)
+        .filter(
+            ServiceStatus.status_id.in_([1, 2]),
+            ServiceRequest.customer_id == current_user.id
+        )).count()
+        quotation_count = (
+            ServiceRequest.query
+            .join(ServiceRequest.status)
+            .filter(
+                ServiceStatus.status_id.in_([5]),
+                ServiceRequest.customer_id == current_user.id
+            )
+        ).count()
+        sample_count = (
+            ServiceRequest.query
+            .join(ServiceRequest.status)
+            .filter(
+                ServiceStatus.status_id.in_([6, 8, 9]),
+                ServiceRequest.customer_id == current_user.id
+            )
+        ).count()
+        invoice_count = (
+            ServiceRequest.query
+            .join(ServiceRequest.status)
+            .filter(
+                ServiceStatus.status_id.in_([20, 21]),
+                ServiceRequest.customer_id == current_user.id
+            )
+        ).count()
         report_count = ServiceResult.query.join(ServiceResult.request).filter(
             ServiceRequest.customer_id == current_user.id,
             ServiceResult.approved_at == None).count()
@@ -2455,10 +2475,18 @@ def request_index():
 
     for key, group in status_groups.items():
         group_ids = [i for i in group['id'] if i != 7 and i != 23]
-        query = ServiceRequest.query.filter(
-            ServiceRequest.status.has(ServiceStatus.status_id.in_(group_ids)
-                                      ), ServiceRequest.customer_id == current_user.id,
-                                         ServiceRequest.is_downloaded == None
+
+        query = (
+            ServiceRequest.query
+            .join(ServiceRequest.status)
+            .filter(
+                ServiceStatus.status_id.in_(group_ids),
+                ServiceRequest.customer_id == current_user.id,
+                or_(
+                    ServiceRequest.is_downloaded == None,
+                    ServiceRequest.is_downloaded == False
+                )
+            )
         ).count()
 
         status_groups[key]['count'] = query
@@ -3901,7 +3929,7 @@ def invoice_index():
             ServiceRequest.customer_id == current_user.id
         )
     )
-    pending_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id==None)
+    pending_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None)
     verify_query = query.join(ServicePayment).filter(ServicePayment.paid_at != None, ServicePayment.verified_at == None,
                                                      ServicePayment.cancelled_at == None)
     payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at >= expire_time,
