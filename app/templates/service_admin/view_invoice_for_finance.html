@@ -13,7 +13,9 @@
                         {% if invoice.get_payment() %}
                             {% for payment in invoice.payments %}
                                 {% if not payment.cancelled_at %}
-                                    <iframe src="{{ slip_url }}" style="width: 100%; height: 1000px"></iframe>
+                                    <figure class="image is-4by3" style="width: 100%; height: 1000px">
+                                        <img src="{{ slip_url }}" alt="slip">
+                                    </figure>
                                 {% endif %}
                             {% endfor %}
                         {% else %}
