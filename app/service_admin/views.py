@@ -2317,41 +2317,120 @@ def view_sample_appointment(sample_id):
     return render_template('service_admin/view_sample_appointment.html', sample=sample, menu=menu, tab=tab)
 
 
-@service_admin.route('/test-item/index')
+@service_admin.route('/test_item/index')
 @login_required
 def test_item_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
+    api = request.args.get('api', 'false')
     query = (
         ServiceTestItem.query
         .join(ServiceTestItem.request)
         .join(ServiceRequest.sub_lab)
-        .outerjoin(ServiceSubLab.admins)
+        .join(ServiceRequest.status)
+        .join(ServiceSubLab.admins)
         .filter(
-            or_(
-                ServiceSubLab.assistant_id == current_user.id,
                 ServiceAdmin.admin_id == current_user.id
             )
-        ).distinct()
     )
-    not_started_count = query.filter(
-        ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 10))).count()
-    testing_count = query.filter(
-        ServiceTestItem.request.has(ServiceRequest.status.has(or_(ServiceStatus.status_id == 11,
-                                                                  ServiceStatus.status_id == 12,
-                                                                  ServiceStatus.status_id == 15)))).count()
-    edit_report_count = query.filter(
-        ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 14))).count()
-    pending_invoice_count = query.filter(
-        ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id == 13))).count()
-    invoice_count = query.filter(
-        ServiceTestItem.request.has(ServiceRequest.status.has(ServiceStatus.status_id >= 16))).count()
-    all_count = not_started_count + testing_count + edit_report_count + pending_invoice_count + invoice_count
+    not_started_query = query.filter(ServiceStatus.status_id == 10)
+    testing_query = query.filter(or_(ServiceStatus.status_id == 11, ServiceStatus.status_id == 12,
+                                     ServiceStatus.status_id == 15))
+    edit_report_query = query.filter(ServiceStatus.status_id == 14)
+    pending_invoice_query = query.filter(ServiceStatus.status_id == 13)
+    invoice_query = query.filter(ServiceStatus.status_id >= 16)
+
+    if api == 'true':
+        if tab == 'not_started':
+            query = not_started_query
+        elif tab == 'testing':
+            query = testing_query
+        elif tab == 'edit_report':
+            query = edit_report_query
+        elif tab == 'pending_invoice':
+            query = pending_invoice_query
+        elif tab == 'invoice':
+            query = invoice_query
+
+        records_total = query.count()
+        search = request.args.get('search[value]')
+        if search:
+            query = query.filter(
+                or_(
+                    ServiceTestItem.quotation.has(ServiceQuotation.quotation_no.contains(search)),
+                    ServiceSample.request.has(ServiceRequest.request_no.contains(search)),
+                    ServiceSample.customer.has(
+                        ServiceCustomerAccount.has(ServiceCustomerInfo.cus_name.contains(search)))
+                )
+            )
+        start = request.args.get('start', type=int)
+        length = request.args.get('length', type=int)
+        total_filtered = query.count()
+        query = query.offset(start).limit(length)
+        data = []
+        for item in query:
+            html_blocks = []
+            edit_html_blocks = []
+            item_data = item.to_dict()
+            for result in item.request.results:
+                for i in result.result_items:
+                    edit_html = ''
+                    if i.final_file:
+                        download_file = url_for('service_admin.download_file', key=i.final_file,
+                                                download_filename=f"{i.report_language} (ฉบับจริง).pdf")
+                        html = f'''
+                                <div class="field has-addons">
+                                    <div class="control">
+                                        <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                            <span>{i.report_language} (ฉบับจริง)</span>
+                                            <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            '''
+                    elif i.draft_file:
+                        download_file = url_for('service_admin.download_file', key=i.draft_file,
+                                                download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
+                        edit_result = url_for('service_admin.edit_draft_result', menu='report', tab='approve',
+                                              result_item_id=i.id)
+                        html = f'''
+                                                <div class="field has-addons">
+                                                    <div class="control">
+                                                        <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                                            <span>{i.report_language} (ฉบับร่าง)</span>
+                                                            <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            '''
+                        if i.req_edit_at and not i.is_edited:
+                            edit_html = f'''<div class="field has-addons">
+                                                <div class="control">
+                                                    <a class="button is-small is-warning is-rounded" href="{edit_result}">
+                                                        <span class="icon is-small"><i class="fas fa-pen"></i></span>
+                                                        <span>แก้ไขใบรายงานผล</span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        '''
+                    else:
+                        html = ''
+                    html_blocks.append(html)
+                    if edit_html:
+                        edit_html_blocks.append(edit_html)
+            item_data['files'] = ''.join(
+                html_blocks) if html_blocks else '<span class="has-text-grey-light is-italic">ไม่มีไฟล์</span>'
+            item_data['edit_file'] = ''.join(edit_html_blocks) if edit_html_blocks else ''
+            data.append(item_data)
+        return jsonify({'data': data,
+                        'recordFiltered': total_filtered,
+                        'recordTotal': records_total,
+                        'draw': request.args.get('draw', type=int)
+                        })
     return render_template('service_admin/test_item_index.html', menu=menu, tab=tab,
-                           not_started_count=not_started_count,
-                           testing_count=testing_count, edit_report_count=edit_report_count,
-                           pending_invoice_count=pending_invoice_count,
-                           invoice_count=invoice_count, all_count=all_count)
+                           not_started_count=not_started_query.count(),
+                           testing_count=testing_query.count(), edit_report_count=edit_report_query.count(),
+                           pending_invoice_count=pending_invoice_query.count())
 
 
 @service_admin.route('/api/test-item/index')
