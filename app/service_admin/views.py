@@ -589,6 +589,8 @@ def create_request():
                      'sds_page': 'service_admin.create_sds_page_request',
                      'quantitative': 'service_admin.create_quantitative_request',
                      'metabolomics': 'service_admin.create_metabolomic_request',
+                     'endotoxin': 'service_admin.create_endotoxin_request',
+                     'toxicolab': 'service_admin.create_toxicology_request'
                      }
     return redirect(url_for(request_paths[code], code=code, menu=menu, request_id=request_id, customer_id=customer_id))
 
@@ -882,6 +884,7 @@ def remove_condition_form():
 def create_heavy_metal_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
+    customer_id = request.args.get('customer_id')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
@@ -896,9 +899,9 @@ def create_heavy_metal_request(request_id=None):
         else:
             status_id = get_status(1)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
-            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
-                                             status_id=status_id)
+            service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
+                                             created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
+                                             request_no=request_no.number, data=format_data(form.data))
             request_no.count += 1
         db.session.add(service_request)
         db.session.commit()
@@ -966,7 +969,7 @@ def remove_heavy_metal_condition_item():
     form = HeavyMetalRequestForm()
     form.heavy_metal_condition_field.pop_entry()
     resp = ''
-    for i, item_form in enumerate(form.quantitative_condition_field, start=1):
+    for i, item_form in enumerate(form.heavy_metal_condition_field, start=1):
         hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
         template = """
             <div id="{}">
@@ -1017,6 +1020,7 @@ def remove_heavy_metal_condition_item():
 def create_food_safety_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
+    customer_id = request.args.get('customer_id')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
@@ -1031,9 +1035,9 @@ def create_food_safety_request(request_id=None):
         else:
             status_id = get_status(1)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
-            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
-                                             status_id=status_id)
+            service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
+                                             created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
+                                             request_no=request_no.number, data=format_data(form.data))
             request_no.count += 1
         db.session.add(service_request)
         db.session.commit()
@@ -1101,7 +1105,7 @@ def remove_food_safety_condition_item():
     form = FoodSafetyRequestForm()
     form.food_safety_condition_field.pop_entry()
     resp = ''
-    for i, item_form in enumerate(form.quantitative_condition_field, start=1):
+    for i, item_form in enumerate(form.food_safety_condition_field, start=1):
         hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
         template = """
             <div id="{}">
@@ -1251,6 +1255,7 @@ def get_other_service():
 def create_protein_identification_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
+    customer_id = request.args.get('customer_id')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
@@ -1265,9 +1270,9 @@ def create_protein_identification_request(request_id=None):
         else:
             status_id = get_status(1)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
-            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
-                                             status_id=status_id)
+            service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
+                                             created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
+                                             request_no=request_no.number, data=format_data(form.data))
             request_no.count += 1
         db.session.add(service_request)
         db.session.commit()
@@ -1323,7 +1328,7 @@ def remove_protein_identification_condition_item():
     form = ProteinIdentificationRequestForm()
     form.protein_identification_condition_field.pop_entry()
     resp = ''
-    for i, item_form in enumerate(form.quantitative_condition_field, start=1):
+    for i, item_form in enumerate(form.protein_identification_condition_field, start=1):
         hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
         template = """
             <div id="{}">
@@ -1362,6 +1367,7 @@ def remove_protein_identification_condition_item():
 def create_sds_page_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
+    customer_id = request.args.get('customer_id')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
@@ -1376,9 +1382,9 @@ def create_sds_page_request(request_id=None):
         else:
             status_id = get_status(1)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
-            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
-                                             status_id=status_id)
+            service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
+                                             created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
+                                             request_no=request_no.number, data=format_data(form.data))
             request_no.count += 1
         db.session.add(service_request)
         db.session.commit()
@@ -1434,7 +1440,7 @@ def remove_sds_page_condition_item():
     form = SDSPageRequestForm()
     form.sds_page_condition_field.pop_entry()
     resp = ''
-    for i, item_form in enumerate(form.quantitative_condition_field, start=1):
+    for i, item_form in enumerate(form.sds_page_condition_field, start=1):
         hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
         template = """
             <div id="{}">
@@ -1473,6 +1479,7 @@ def remove_sds_page_condition_item():
 def create_quantitative_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
+    customer_id = request.args.get('customer_id')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
@@ -1487,9 +1494,9 @@ def create_quantitative_request(request_id=None):
         else:
             status_id = get_status(1)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
-            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
-                                             status_id=status_id)
+            service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
+                                             created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
+                                             request_no=request_no.number, data=format_data(form.data))
             request_no.count += 1
         db.session.add(service_request)
         db.session.commit()
@@ -1602,6 +1609,7 @@ def remove_quantitative_condition_item():
 def create_metabolomic_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
+    customer_id = request.args.get('customer_id')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
@@ -1616,9 +1624,9 @@ def create_metabolomic_request(request_id=None):
         else:
             status_id = get_status(1)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
-            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
-                                             status_id=status_id)
+            service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
+                                             created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
+                                             request_no=request_no.number, data=format_data(form.data))
             request_no.count += 1
         db.session.add(service_request)
         db.session.commit()
@@ -1820,6 +1828,8 @@ def get_sample_type_other():
 def create_endotoxin_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
+    customer_id = request.args.get('customer_id')
+    print('c', customer_id)
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
@@ -1829,7 +1839,8 @@ def create_endotoxin_request(request_id=None):
         form = EndotoxinRequestForm()
     for item_form in form.endotoxin_condition_field:
         if not item_form.org_name.data:
-            item_form.org_name.data = current_user.customer_info.cus_name
+            customer = ServiceCustomerAccount.query.get(customer_id)
+            item_form.org_name.data = customer.customer_info.cus_name
     if form.validate_on_submit():
         if request_id:
             service_request.data = format_data(form.data)
@@ -1837,9 +1848,9 @@ def create_endotoxin_request(request_id=None):
         else:
             status_id = get_status(1)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
-            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
-                                             status_id=status_id)
+            service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
+                                             created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
+                                             request_no=request_no.number, data=format_data(form.data))
             request_no.count += 1
         db.session.add(service_request)
         db.session.commit()
@@ -1850,16 +1861,18 @@ def create_endotoxin_request(request_id=None):
         for er in form.errors:
             flash(er, 'danger')
     return render_template('service_admin/forms/endotoxin_request_form.html', code=code, sub_lab=sub_lab,
-                           form=form, menu=menu, request_id=request_id)
+                           form=form, menu=menu, request_id=request_id, customer_id=customer_id)
 
 
 @service_admin.route('/api/request/endotoxin/item/add', methods=['POST'])
 def add_endotoxin_condition_item():
+    customer_id = request.args.get('customer_id')
     form = EndotoxinRequestForm()
     form.endotoxin_condition_field.append_entry()
     item_form = form.endotoxin_condition_field[-1]
     index = len(form.endotoxin_condition_field)
-    item_form.org_name.data = current_user.customer_info.cus_name
+    customer = ServiceCustomerAccount.query.get(customer_id)
+    item_form.org_name.data = customer.customer_info.cus_name
     template = """
         <div id="{}">
             <hr style="background-color: #F3F3F3">
@@ -1960,6 +1973,7 @@ def remove_endotoxin_condition_item():
 def create_toxicology_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
+    customer_id = request.args.get('customer_id')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
@@ -1974,9 +1988,9 @@ def create_toxicology_request(request_id=None):
         else:
             status_id = get_status(1)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
-            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
-                                             status_id=status_id)
+            service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
+                                             created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
+                                             request_no=request_no.number, data=format_data(form.data))
             request_no.count += 1
         db.session.add(service_request)
         db.session.commit()
