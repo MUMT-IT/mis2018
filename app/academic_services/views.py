@@ -3234,7 +3234,12 @@ def request_quotation(request_id):
     db.session.add(service_request)
     db.session.commit()
     scheme = 'http' if current_app.debug else 'https'
-    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.sub_lab.code)).all()
+    admins = (
+        ServiceAdmin.query
+        .join(ServiceSubLab)
+        .filter(ServiceSubLab.code == service_request.sub_lab.code)
+        .all()
+    )
     title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
     link = url_for("service_admin.generate_quotation", request_id=request_id, menu='quotation',
                    _external=True, _scheme=scheme)
@@ -3614,7 +3619,12 @@ def confirm_quotation(quotation_id):
     db.session.add(sample)
     db.session.commit()
     flash('ยืนยันใบเสนอราคาสำเร็จ กรุณาดำเนินการนัดหมายส่งตัวอย่าง', 'success')
-    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.sub_lab.code)).all()
+    admins = (
+        ServiceAdmin.query
+        .join(ServiceSubLab)
+        .filter(ServiceSubLab.code == quotation.request.sub_lab.code)
+        .all()
+    )
     link = url_for('service_admin.view_quotation', menu='quotation', tab='all', quotation_id=quotation_id,
                    _external=True, _scheme=scheme)
     title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
@@ -3658,7 +3668,12 @@ def reject_quotation(quotation_id):
         db.session.add(quotation)
         db.session.commit()
         flash('ยกเลิกใบเสนอราคาสำเร็จ', 'success')
-        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.sub_lab.code)).all()
+        admins = (
+            ServiceAdmin.query
+            .join(ServiceSubLab)
+            .filter(ServiceSubLab.code == quotation.request.sub_lab.code)
+            .all()
+        )
         title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
         customer_name = quotation.customer_name.replace(' ', '_')
         if admins:
@@ -3909,7 +3924,12 @@ def create_sample_appointment(sample_id):
     service_request = ServiceRequest.query.get(sample.request_id)
     datas = request_data(service_request, type='form')
     form = ServiceSampleForm(obj=sample)
-    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=sample.request.sub_lab.code)).all()
+    admins = (
+        ServiceAdmin.query
+        .join(ServiceSubLab)
+        .filter(ServiceSubLab.code == sample.request.sub_lab.code)
+        .all()
+    )
     holidays = Holidays.query.all()
     if form.validate_on_submit():
         form.populate_obj(sample)
@@ -4053,39 +4073,39 @@ def view_test_sample(sample_id):
     return render_template('academic_services/view_test_sample.html', sample=sample, tab=tab, menu=menu)
 
 
-@academic_services.route('/customer/test-item/index')
-@login_required
-def test_item_index():
-    menu = request.args.get('menu')
-    return render_template('academic_services/test_item_index.html', menu=menu)
-
-
-@academic_services.route('/api/test-item/index')
-def get_test_items():
-    query = ServiceTestItem.query.filter(ServiceTestItem.request.has(ServiceRequest.customer_id == current_user.id))
-    records_total = query.count()
-    search = request.args.get('search[value]')
-    if search:
-        query = query.filter(
-            or_(
-                ServiceTestItem.quotation.has(ServiceQuotation.quotation_no.contains(search)),
-                ServiceSample.request.has(ServiceRequest.request_no.contains(search)),
-                ServiceSample.customer.has(ServiceCustomerAccount.has(ServiceCustomerInfo.cus_name.contains(search)))
-            )
-        )
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    total_filtered = query.count()
-    query = query.offset(start).limit(length)
-    data = []
-    for item in query:
-        item_data = item.to_dict()
-        data.append(item_data)
-    return jsonify({'data': data,
-                    'recordFiltered': total_filtered,
-                    'recordTotal': records_total,
-                    'draw': request.args.get('draw', type=int)
-                    })
+# @academic_services.route('/customer/test-item/index')
+# @login_required
+# def test_item_index():
+#     menu = request.args.get('menu')
+#     return render_template('academic_services/test_item_index.html', menu=menu)
+#
+#
+# @academic_services.route('/api/test-item/index')
+# def get_test_items():
+#     query = ServiceTestItem.query.filter(ServiceTestItem.request.has(ServiceRequest.customer_id == current_user.id))
+#     records_total = query.count()
+#     search = request.args.get('search[value]')
+#     if search:
+#         query = query.filter(
+#             or_(
+#                 ServiceTestItem.quotation.has(ServiceQuotation.quotation_no.contains(search)),
+#                 ServiceSample.request.has(ServiceRequest.request_no.contains(search)),
+#                 ServiceSample.customer.has(ServiceCustomerAccount.has(ServiceCustomerInfo.cus_name.contains(search)))
+#             )
+#         )
+#     start = request.args.get('start', type=int)
+#     length = request.args.get('length', type=int)
+#     total_filtered = query.count()
+#     query = query.offset(start).limit(length)
+#     data = []
+#     for item in query:
+#         item_data = item.to_dict()
+#         data.append(item_data)
+#     return jsonify({'data': data,
+#                     'recordFiltered': total_filtered,
+#                     'recordTotal': records_total,
+#                     'draw': request.args.get('draw', type=int)
+#                     })
 
 
 @academic_services.route('/customer/payment/index')
@@ -4264,7 +4284,6 @@ def add_payment():
                 )
                 payment.slip = file_name
                 db.session.add(payment)
-                # invoice.paid_at = arrow.now('Asia/Bangkok').datetime
                 invoice.quotation.request.status_id = status_id
                 db.session.add(invoice)
                 db.session.commit()
@@ -4657,7 +4676,12 @@ def confirm_result(result_id):
     db.session.add(result)
     db.session.commit()
     scheme = 'http' if current_app.debug else 'https'
-    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=result.request.sub_lab.code)).all()
+    admins = (
+        ServiceAdmin.query
+        .join(ServiceSubLab)
+        .filter(ServiceSubLab.code == result.request.sub_lab.code)
+        .all()
+    )
     title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
     link = url_for("service_admin.create_invoice", quotation_id=result.quotation_id, menu='invoice',
                    _external=True, _scheme=scheme)
@@ -4719,7 +4743,12 @@ def edit_result(result_id):
         db.session.add(result)
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
-        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=result.request.sub_lab.code)).all()
+        admins = (
+            ServiceAdmin.query
+            .join(ServiceSubLab)
+            .filter(ServiceSubLab.code == result.request.sub_lab.code)
+            .all()
+        )
         title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
         link = url_for("service_admin.create_draft_result", rresult_id=result.id, request_id=result.request.id,
                        menu='test_item', _external=True, _scheme=scheme)
@@ -4789,7 +4818,12 @@ def confirm_result_item(result_item_id):
         db.session.add(result_item)
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
-        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=result_item.result.request.sub_lab.code)).all()
+        admins = (
+            ServiceAdmin.query
+            .join(ServiceSubLab)
+            .filter(ServiceSubLab.code == result_item.result.request.sub_lab.code)
+            .all()
+        )
         title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
         link = url_for("service_admin.create_invoice", quotation_id=result_item.result.quotation_id, menu='invoice',
                        tab='draft', _external=True, _scheme=scheme)
@@ -4850,7 +4884,6 @@ def edit_result_item(result_item_id):
     result_item.note = None
     db.session.add(result_item)
     db.session.commit()
-    result = ServiceResult.query.get(result_item.result_id)
     form = ServiceResultItemForm(obj=result_item)
     if form.validate_on_submit():
         form.populate_obj(result_item)
@@ -4863,23 +4896,28 @@ def edit_result_item(result_item_id):
         db.session.add(result_item)
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
-        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=result.request.sub_lab.code)).all()
+        admins = (
+            ServiceAdmin.query
+            .join(ServiceSubLab)
+            .filter(ServiceSubLab.code == result_item.result.request.sub_lab.code)
+            .all()
+        )
         title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
-        link = url_for("service_admin.create_draft_result", rresult_id=result.id, request_id=result.request.id,
+        link = url_for("service_admin.create_draft_result", rresult_id=result_item.result_id, request_id=result_item.result.request.id,
                        menu='test_item', _external=True, _scheme=scheme)
         customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
         if admins:
             title = f'''[{result_item.result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result_item.result.request.quotation_address.name}) | แจ้งขอแก้ไขใบรายงานผลการทดสอบ'''
-            message = f'''เรียน เจ้าหน้าที่{result.request.sub_lab.sub_lab}\n\n'''
-            message += f'''{result_item.report_language}ฉบับร่างของใบคำขอรับบริการเลขที่ : {result.request.request_no}\n'''
-            message += f'''ลูกค้า : {result.request.customer.customer_name}\n'''
-            message += f'''ในนาม : {result.request.quotation_address.name}\n'''
-            message += f'''ได้ขอดำเนินการแก้ไขรายงานผลการทดสอบเนื่องจาก {result.note}\n'''
+            message = f'''เรียน เจ้าหน้าที่{result_item.result.request.sub_lab.sub_lab}\n\n'''
+            message += f'''{result_item.report_language}ฉบับร่างของใบคำขอรับบริการเลขที่ : {result_item.result.request.request_no}\n'''
+            message += f'''ลูกค้า : {result_item.result.request.customer.customer_name}\n'''
+            message += f'''ในนาม : {result_item.result.request.quotation_address.name}\n'''
+            message += f'''ได้ขอดำเนินการแก้ไขรายงานผลการทดสอบเนื่องจาก {result_item.result.note}\n'''
             message += f'''กรุณาดำเนินการแก้ไขรายงานผลการทดสอบได้ที่ลิงก์ด้านล่าง\n'''
             message += f'''{link}\n\n'''
             message += f'''ผู้ประสานงาน\n'''
-            message += f'''{result.request.customer.customer_name}\n'''
-            message += f'''เบอร์โทร {result.request.customer.contact_phone_number}\n\n'''
+            message += f'''{result_item.result.request.customer.customer_name}\n'''
+            message += f'''เบอร์โทร {result_item.result.request.customer.contact_phone_number}\n\n'''
             message += f'''ระบบงานบริการวิชาการ'''
             send_mail(
                 [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin or not a.is_assistant],
@@ -4895,12 +4933,12 @@ def edit_result_item(result_item_id):
                    '\n\nผู้ประสานงาน' \
                    '\n{}' \
                    '\nเบอร์โทร {}' \
-                   '\n\nระบบงานบริการวิชาการ'.format(result.request.sub_lab.sub_lab, result_item.report_language,
-                                                     result.request.request_no,
-                                                     result.request.customer.customer_name,
-                                                     result.request.quotation_address.name, result_item.note, link,
-                                                     result.request.customer.customer_name,
-                                                     result.request.customer.contact_phone_number)
+                   '\n\nระบบงานบริการวิชาการ'.format(result_item.result.request.sub_lab.sub_lab, result_item.report_language,
+                                                     result_item.result.request.request_no,
+                                                     result_item.result.request.customer.customer_name,
+                                                     result_item.result.request.quotation_address.name, result_item.note, link,
+                                                     result_item.result.request.customer.customer_name,
+                                                     result_item.result.request.customer.contact_phone_number)
                    )
             if not current_app.debug:
                 for a in admins:
