@@ -919,41 +919,67 @@ class MetabolomicRequestForm(FlaskForm):
     metabolomic_condition_field = FieldList(FormField(MetabolomicConditionForm), min_entries=1)
 
 
-# class ToxicologyConditionForm(FlaskForm):
-#     test = StringField('Test', validators=[DataRequired()], render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อตัวอย่าง')",
-#                                                                    "oninput": "this.setCustomValidity('')"
-#                                                                    })
-#
-#
-# class ToxicologyRequestForm(FlaskForm):
-#     lab = StringField('ส่งจาก Clinic/Lab/โรงพยาบาล', validators=[DataRequired()],
-#                       render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อ Clinic/Lab/โรงพยาบาล')",
-#                                  "oninput": "this.setCustomValidity('')"
-#                                  })
-#     gender = StringField('เพศ', validators=[DataRequired()], render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกเพศ')",
-#                                                                         "oninput": "this.setCustomValidity('')"
-#                                                                         })
-#     age = StringField('อายุ', validators=[DataRequired()],
-#                       render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกอายุ')",
-#                                  "oninput": "this.setCustomValidity('')"
-#                                  })
-#     hn = StringField("HN", validators=[DataRequired()], render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอก HN')",
-#                                                                    "oninput": "this.setCustomValidity('')"
-#                                                                    })
-#     note = StringField('Notes')
-#     sample_type = RadioField('Sample Type', choices=[('Cloted Blood', 'Cloted Blood'),
-#                                                          ('Serum', 'Serum'),
-#                                                          ('EDTA whole blood', 'EDTA whole blood'),
-#                                                          ('Urine', 'Urine'),
-#                                                          ('Urine 24 hrs.', 'Urine 24 hrs.'),
-#                                                          ('Other', 'Other')])
-#     volume = StringField('Total Volume (mL)')
-#     other = StringField('Other')
-#     date_of_collectiobn = StringField('Date of collection', validators=[DataRequired()],
-#                                       render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือกวันที่')",
-#                                                  "oninput": "this.setCustomValidity('')"
-#                                                  })
-#     toxicology_condition_field = FieldList(FormField(ToxicologyConditionForm))
+class ToxicologyConditionForm(FlaskForm):
+    test = StringField('Test', validators=[DataRequired()], render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อตัวอย่าง')",
+                                                                   "oninput": "this.setCustomValidity('')"
+                                                                   })
+    blood_sample_of_trace_element = CheckboxField('Blood sample of trace element', choices=[(c, c)
+                                                                                            for c in ['Aluminium in serum',
+                                                                                                      'Chromium in serum',
+                                                                                                      'Copper in serum',
+                                                                                                      'Selenium in serum',
+                                                                                                      'Zinc in serum']
+                                                                                            ])
+    blood_sample_of_heavy_metal = CheckboxField('Blood sample of heavy metal', choices=[(c, c)
+                                                                                        for c in ['Cadmium in blood',
+                                                                                                  'Lead in blood',
+                                                                                                  'Mercury in blood']
+                                                                                        ])
+    urine_sample_of_trace_element = CheckboxField('Urine sample of trace element', choices=[(c, c)
+                                                                                            for c in ['Aluminium in urine',
+                                                                                                      'Chromium in urine',
+                                                                                                      'Copper in urine',
+                                                                                                      'Manganese in urine',
+                                                                                                      'Selenium in urine',
+                                                                                                      'Zinc in urine']
+                                                                                            ])
+    urine_sample_of_heavy_metal = CheckboxField('Urine sample of heavy metal', choices=[(c, c)
+                                                                                        for c in ['Arsenic in urine',
+                                                                                                  'Cadmium in urine',
+                                                                                                  'Lead in urine',
+                                                                                                  'Mercury in urine']
+                                                                                        ])
+
+
+class ToxicologyRequestForm(FlaskForm):
+    lab = StringField('ส่งจาก Clinic/Lab/โรงพยาบาล', validators=[DataRequired()],
+                      render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อ Clinic/Lab/โรงพยาบาล')",
+                                 "oninput": "this.setCustomValidity('')"
+                                 })
+    gender = StringField('เพศ', validators=[DataRequired()], render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกเพศ')",
+                                                                        "oninput": "this.setCustomValidity('')"
+                                                                        })
+    age = StringField('อายุ', validators=[DataRequired()],
+                      render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกอายุ')",
+                                 "oninput": "this.setCustomValidity('')"
+                                 })
+    hn = StringField("HN", validators=[DataRequired()], render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอก HN')",
+                                                                   "oninput": "this.setCustomValidity('')"
+                                                                   })
+    note = StringField('Notes')
+    sample_type = RadioField('Sample Type', choices=[('Cloted Blood', 'Cloted Blood'),
+                                                         ('Serum', 'Serum'),
+                                                         ('EDTA whole blood', 'EDTA whole blood'),
+                                                         ('Urine', 'Urine'),
+                                                         ('Urine 24 hrs.', 'Urine 24 hrs.'),
+                                                         ('Other', 'Other')])
+    volume = StringField('Total Volume (mL)')
+    other = StringField('Other')
+    date_of_collectiobn = StringField('Date of collection', validators=[DataRequired()],
+                                      render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือกวันที่')",
+                                                 "oninput": "this.setCustomValidity('')"
+                                                 })
+    toxicology_condition_field = FieldList(FormField(ToxicologyConditionForm))
 
 
 class EndotoxinConditionForm(FlaskForm):
