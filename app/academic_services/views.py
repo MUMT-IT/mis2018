@@ -910,6 +910,7 @@ def create_request():
                      'quantitative': 'academic_services.create_quantitative_request',
                      'metabolomics': 'academic_services.create_metabolomic_request',
                      'endotoxin': 'academic_services.create_endotoxin_request',
+                     'toxicolab': 'academic_services.create_toxicology_request'
                      }
     return redirect(url_for(request_paths[code], code=code, menu=menu, request_id=request_id))
 
@@ -2283,6 +2284,184 @@ def remove_endotoxin_condition_item():
     return resp
 
 
+@academic_services.route('/request/toxicology/add', methods=['GET', 'POST'])
+@academic_services.route('/request/toxicology/edit/<int:request_id>', methods=['GET', 'POST'])
+def create_toxicology_request(request_id=None):
+    menu = request.args.get('menu')
+    code = request.args.get('code')
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        data = service_request.data
+        form = ToxicologyRequestForm(data=data)
+    else:
+        form = ToxicologyRequestForm()
+    if form.validate_on_submit():
+        if request_id:
+            service_request.data = format_data(form.data)
+            service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+        else:
+            status_id = get_status(1)
+            request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
+            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
+                                             status_id=status_id)
+            request_no.count += 1
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(
+            url_for('academic_services.create_report_language', request_id=service_request.id, menu=menu,
+                    code=code))
+    else:
+        for er in form.errors:
+            flash(f'{er} {form.errors[er]}', 'danger')
+    return render_template('academic_services/forms/toxicology_request_form.html', code=code,
+                           sub_lab=sub_lab, form=form, menu=menu, request_id=request_id)
+
+
+@academic_services.route('/api/request/toxicology/item/add', methods=['POST'])
+def add_toxicology_condition_item():
+    form = ToxicologyRequestForm()
+    form.toxicology_condition_field.append_entry()
+    item_form = form.toxicology_condition_field[-1]
+    index = len(form.toxicology_condition_field)
+    template = """
+        <div id="{}">
+            <hr style="background-color: #F3F3F3">
+            <p><strong>รายการที่ {}</strong></p>
+            <table class="table is-fullwidth ">
+                <thead>
+                    <th style="border: none">{}<span class="has-text-danger">*</span></th>
+                    <th style="border: none">{}</th>
+                    <th style="border: none">{}</th>
+                    <th style="border: none">{}</th>
+                    <th style="border: none">{}</th>
+                </thead>
+                <tbody>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="control">{}</td>
+                    <td style="border: none" class="control">{}</td>
+                </tbody>
+            </table>
+        </div>
+    """
+    resp = template.format(item_form.id,
+                           index,
+                           item_form.test.label,
+                           item_form.blood_sample_of_trace_element.label,
+                           item_form.blood_sample_of_heavy_metal.label,
+                           item_form.urine_sample_of_trace_element.label,
+                           item_form.urine_sample_of_heavy_metal.label,
+                           item_form.test(class_='input'),
+                           item_form.blood_sample_of_trace_element(),
+                           item_form.blood_sample_of_heavy_metal(),
+                           item_form.urine_sample_of_trace_element(),
+                           item_form.urine_sample_of_heavy_metal()
+                           )
+    resp = make_response(resp)
+    return resp
+
+
+@academic_services.route('/api/request/toxicology/item/remove', methods=['DELETE'])
+def remove_toxicology_condition_item():
+    form = ToxicologyRequestForm()
+    form.toxicology_condition_field.pop_entry()
+    resp = ''
+    for i, item_form in enumerate(form.toxicology_condition_field, start=1):
+        hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
+        template = """
+            <div id="{}">
+                {}
+                <p><strong>รายการที่ {}</strong></p>
+                <table class="table is-fullwidth ">
+                    <thead>
+                        <th style="border: none">{}<span class="has-text-danger">*</span></th>
+                        <th style="border: none">{}</th>
+                        <th style="border: none">{}</th>
+                        <th style="border: none">{}</th>
+                        <th style="border: none">{}</th>
+                    </thead>
+                    <tbody>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                    </tbody>
+                </table>
+            </div>
+        """
+        resp += template.format(item_form.id,
+                                hr,
+                                i,
+                                item_form.test.label,
+                                item_form.blood_sample_of_trace_element.label,
+                                item_form.blood_sample_of_heavy_metal.label,
+                                item_form.urine_sample_of_trace_element.label,
+                                item_form.urine_sample_of_heavy_metal.label,
+                                item_form.test(class_='input'),
+                                item_form.blood_sample_of_trace_element(),
+                                item_form.blood_sample_of_heavy_metal(),
+                                item_form.urine_sample_of_trace_element(),
+                                item_form.urine_sample_of_heavy_metal()
+                                )
+    resp = make_response(resp)
+    return resp
+
+
+@academic_services.route("/request/other")
+def get_other():
+    request_id = request.args.get("request_id")
+    sample_type = request.args.get("sample_type")
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        if service_request and service_request.data:
+            data = service_request.data
+            volume = data.get('volume', '')
+            other = data.get('other', '')
+        else:
+            volume = ''
+            other = ''
+    else:
+        volume = ''
+        other = ''
+    if sample_type == 'Urine 24 hrs.':
+        html = f'''
+            <div class="field ml-4 mb-4">
+                <label class="label">
+                    Total Volume (mL)
+                    <span class="has-text-danger">*</span>
+                </label>
+                <div class="control">
+                    <input name="volume" class="input" value="{volume}" required 
+                    oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')" oninput="this.setCustomValidity('')">
+                </div>
+            </div>
+            <input type="hidden" name="other" class="input" value="">
+        '''
+    elif sample_type == 'Other':
+        html = f'''
+            <div class="field ml-4 mb-4">
+                <label class="label">
+                    Comment
+                    <span class="has-text-danger">*</span>
+                </label>
+                <div class="control">
+                    <input name="other" class="input" value="{other}" required  
+                    oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')" oninput="this.setCustomValidity('')">
+                </div>
+            </div>
+            <input type="hidden" name="volume" class="input" value="">
+        '''
+    else:
+        html = ('<input type="hidden" name=volume" class="input" value="">'
+                '<input type="hidden" name="other" class="input" value="">')
+    resp = make_response(html)
+    return resp
+
+
 @academic_services.route('/customer/report_language/add/<int:request_id>', methods=['GET', 'POST'])
 @login_required
 def create_report_language(request_id):
@@ -3074,7 +3253,8 @@ def request_quotation(request_id):
         message += f'''{service_request.customer.customer_name}\n'''
         message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n\n'''
         message += f'''ระบบงานบริการวิชาการ'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor or not a.is_central_admin or not a.is_assistant],
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if
+                   not a.is_supervisor or not a.is_central_admin or not a.is_assistant],
                   title, message)
         msg = ('แจ้งขอใบเสนอราคา' \
                '\n\nเรียน เจ้าหน้าที่{}'
@@ -3095,7 +3275,7 @@ def request_quotation(request_id):
                )
         if not current_app.debug:
             for a in admins:
-                if not a.is_supervisor or not a.is_central_admin  or not a.is_assistant:
+                if not a.is_supervisor or not a.is_central_admin or not a.is_assistant:
                     try:
                         line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                     except LineBotApiError:
@@ -3453,7 +3633,8 @@ def confirm_quotation(quotation_id):
         message += f'''{quotation.customer_name}\n'''
         message += f'''เบอร์โทร {quotation.request.customer.contact_phone_number}\n'''
         message += f'''ระบบบริการวิชาการ'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin or not a.is_assistant], title, message)
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin or not a.is_assistant],
+                  title, message)
     return redirect(url_for('academic_services.confirm_quotation_page', menu=menu, sample_id=sample.id))
 
 
@@ -3496,7 +3677,9 @@ def reject_quotation(quotation_id):
             message += f'''{quotation.customer_name}\n'''
             message += f'''เบอร์โทร {quotation.request.customer.contact_phone_number}\n'''
             message += f'''ระบบบริการวิชาการ'''
-            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin or not a.is_assistant], title, message)
+            send_mail(
+                [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin or not a.is_assistant],
+                title, message)
         resp = make_response()
         resp.headers['HX-Redirect'] = url_for('academic_services.quotation_index', menu=menu)
         return resp
@@ -4624,7 +4807,9 @@ def confirm_result_item(result_item_id):
             message += f'''{result_item.result.request.customer.customer_name}\n'''
             message += f'''เบอร์โทร {result_item.result.request.customer.contact_phone_number}\n\n'''
             message += f'''ระบบงานบริการวิชาการ'''
-            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin or not a.is_assistant], title, message)
+            send_mail(
+                [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin or not a.is_assistant],
+                title, message)
             msg = ('แจ้งยืนยันใบรายงานผลการทดสอบ' \
                    '\n\nเรียน เจ้าหน้าที่{}'
                    '\n\nใบรายงานผลฉบับร่างของใบคำขอรับบริการเลขที่ {}' \
@@ -4696,7 +4881,9 @@ def edit_result_item(result_item_id):
             message += f'''{result.request.customer.customer_name}\n'''
             message += f'''เบอร์โทร {result.request.customer.contact_phone_number}\n\n'''
             message += f'''ระบบงานบริการวิชาการ'''
-            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin or not a.is_assistant], title, message)
+            send_mail(
+                [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin or not a.is_assistant],
+                title, message)
             msg = ('แจ้งขอแก้ไขใบรายงานผลการทดสอบ' \
                    '\n\nเรียน เจ้าหน้าที่{}'
                    '\n\n{}ฉบับร่างของใบคำขอรับบริการเลขที่ {}' \
