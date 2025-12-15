@@ -169,7 +169,7 @@
                     {
                         data: null,
                         render: function (data, type, row) {
-                            if (row.is_paid) {
+                            if (row.verified_at) {
                                 let paid_at = moment(row.paid_at).format('DD/MM/YYYY HH:mm')
                                 return`<div class="field">
                                             <div class="control">
