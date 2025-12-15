@@ -88,7 +88,7 @@
                             <div class="field has-addons">
                                 <div class="control">
                                     <a class="button is-info is-small is-light is-rounded"
-                                       hx-post="{{ url_for('service_amdin.add_metabolomic_condition_item') }}"
+                                       hx-post="{{ url_for('service_admin.add_metabolomic_condition_item') }}"
                                        hx-target="#condition-field" hx-swap="beforeend">
                                         <span class="icon">
                                             <i class="fas fa-plus"></i>
@@ -98,7 +98,7 @@
                                 </div>
                                 <div class="control">
                                     <a class="button is-danger is-small is-light is-rounded"
-                                       hx-delete="{{ url_for('service_amdin.remove_metabolomic_condition_item') }}"
+                                       hx-delete="{{ url_for('service_admin.remove_metabolomic_condition_item') }}"
                                        hx-target="#condition-field" hx-swap="innerHTML">
                                             <span class="icon">
                                                 <i class="far fa-trash-alt"></i>
