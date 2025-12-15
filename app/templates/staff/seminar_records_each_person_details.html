@@ -2,7 +2,7 @@
 {% include "staff/nav.html" %}
 {% block head %}
 {{ super() }}
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+<link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
 {% endblock %}
 {% block page_content %}
 <section class="section" id="app">
@@ -12,35 +12,22 @@
         <div class="columns">
             <div class="column has-text-centered">
             <div class="box">
-                <h4 class="title">
-                    ค้นหาประวัติจากวันที่
-                    {% if start_date %} {{ start_date }} - {{ end_date }}{% endif %}
-                </h4>
                 <div class="column">
                     <form method="post">
                         <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
-                        <div class="control">
-                            <b-field label="เลือกช่วงวันที่ต้องการค้นหา">
-                                <b-datepicker
-                                        required
-                                        name="dates"
-                                        v-model="selectedDates"
-                                        range
-                                        icon-pack="fa"
-                                        :date-formatter="formatDate"
-                                        :mobile-native="false"
-                                        placeholder="คลิกเพื่อเปิดปฏิทิน..."
-                                        icon="calendar-alt"
-                                        >
-                                </b-datepicker>
-                            </b-field>
-                        </div>
-                        <div class="column">
-                            <div class="field">
-                                <div class="control">
-                                    <input type="submit" value="search" class="button is-primary"/>
-                                </div>
-                            </div>
+                        <div class="control has-icons-left" style="display: flex; align-items: center;">
+                            <input name="dates" id="dates" class="input" value="{{ selected_dates or '' }}"
+                                   style="width: auto;">
+                            <span class="icon is-small is-left">
+                                <i class="far fa-calendar-alt"></i>
+                            </span>
+                            <button class="button is-info ml-3">ค้นหา</button>
+                            <a href="{{ request.referrer }}" class="button is-light">
+                                <span class="icon is-small is-left">
+                                    <i class="far fa-refresh"></i>
+                                </span>
+                                <span>refresh</span>
+                            </a>
                         </div>
                     </form>
                 </div>
@@ -109,13 +96,14 @@
                 </table>
             </div>
         </div>
+        <span class="has-text-grey">เนื่องจากเป็นการนำเข้าข้อมูลอบรมผ่านการปรับรูปแบบวันที่ หากข้อมูลผิดพลาด กรุณาติดต่อหน่วย it ขออภัยในความไม่สะดวก</span>
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">
-                    <a href="{{ request.referrer }}" class="button is-light">
-                    <span class="icon">
-                        <i class="fas fa-arrow-left"></i>
-                    </span>
+                    <a href="{{ url_for('staff.seminar_attends_each_person') }}" class="button is-light">
+                        <span class="icon">
+                            <i class="fas fa-arrow-left"></i>
+                        </span>
                         <span>กลับ</span>
                     </a>
                 </div>
@@ -126,27 +114,32 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript"
+            src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
-        $(document).ready(function(){
-            $('#seminarAttendTable').DataTable();
+        $(document).ready(() => {
+            var today = moment();
+            var startOfYear = moment().startOf('year');
+            var selectedDates = '{{ selected_dates or "" }}';
+            if (!selectedDates) {
+                selectedDates = startOfYear.format('DD/MM/YYYY') + ' - ' + today.format('DD/MM/YYYY');
+            }
+
+            $('#dates').daterangepicker({
+                timePicker: false,
+                showDropdowns: true,
+                linkedCalendars: false,
+                locale: {
+                    format: 'DD/MM/YYYY'
+                },
+                startDate: selectedDates.split(' - ')[0],
+                endDate: selectedDates.split(' - ')[1]
+            });
         });
-    </script>
-    <script>
-    new Vue({
-        el: '#app',
-        delimiters: ['<%', '%>'],
-        data() {
-            return {
-                selectedDates: [],
-            }
-        },
-        methods: {
-            formatDate(dates){
-                    let start = new moment(dates[0]).format("DD/MM/YYYY")
-                    let end = new moment(dates[1]).format("DD/MM/YYYY")
-                    return start + ' - ' + end
-            }
-        }
-    });
+        $(document).ready(function () {
+            $('#seminarAttendTable').DataTable({
+            })
+        });
     </script>
 {% endblock %}

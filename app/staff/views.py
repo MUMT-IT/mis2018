@@ -3858,23 +3858,24 @@ def cancel_seminar(seminar_id):
 @staff.route('/seminar/attends-each-person', methods=['GET', 'POST'])
 @login_required
 def seminar_attends_each_person():
-    seminar_records = []
-    seminar_query = StaffSeminar.query.filter(StaffSeminar.cancelled_at == None).all()
-    for seminars in seminar_query:
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    seminar_records = StaffSeminar.query.join(StaffSeminarAttend).filter(StaffSeminar.cancelled_at == None,
+                                        StaffSeminarAttend.end_datetime >= START_FISCAL_DATE - timedelta(days=90),
+                                        StaffSeminarAttend.start_datetime <= END_FISCAL_DATE + timedelta(days=90)).all()
+    # for seminars in seminar_query:
         # if seminars.upload_file_url:
         #     upload_file = drive.CreateFile({'id': seminars.upload_file_url})
         #     upload_file.FetchMetadata()
         #     seminars.upload_file_url = upload_file.get('embedLink')
         # else:
         #     seminars.upload_file_url = None
-        seminar_records.append(seminars)
+        # seminar_records.append(seminars)
     approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
 
-    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
     current_fee = 0
     for a in StaffSeminarAttend.query.filter_by(staff_account_id=current_user.id).filter(and_(
-        StaffSeminarAttend.start_datetime >= START_FISCAL_DATE,
-        StaffSeminarAttend.end_datetime <= END_FISCAL_DATE)).all():
+                  StaffSeminarAttend.end_datetime >= START_FISCAL_DATE),
+                  StaffSeminarAttend.start_datetime <= END_FISCAL_DATE).all():
         if a.budget:
             current_fee += a.budget
     return render_template('staff/seminar_records_each_person.html',
@@ -3887,8 +3888,8 @@ def seminar_attends_each_person_details(staff_account_id):
     account = StaffAccount.query.filter_by(id=staff_account_id).first()
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
     attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(and_(
-                StaffSeminarAttend.start_datetime >= START_FISCAL_DATE,
-                StaffSeminarAttend.end_datetime <= END_FISCAL_DATE)).all()
+                StaffSeminarAttend.end_datetime >= START_FISCAL_DATE),
+                StaffSeminarAttend.start_datetime <= END_FISCAL_DATE).all()
     current_fee = 0
     for a in attends:
         if a.budget:
@@ -3898,24 +3899,22 @@ def seminar_attends_each_person_details(staff_account_id):
     for attend in attends_query:
         if attend.budget:
             total_fee += attend.budget
-
+    selected_dates = None
     if request.method == 'POST':
         form = request.form
+        selected_dates = request.form.get('dates', None)
         start_dt, end_dt = form.get('dates').split(' - ')
         start_date = datetime.strptime(start_dt, '%d/%m/%Y')
         end_date = datetime.strptime(end_dt, '%d/%m/%Y')
         attends_query = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(and_(
-                                                                StaffSeminarAttend.start_datetime >= start_date,
-                                                                StaffSeminarAttend.end_datetime <= end_date))
+                                                                StaffSeminarAttend.end_datetime >= start_date,
+                                                                StaffSeminarAttend.start_datetime <= end_date))
         total_fee = 0
         for attend in attends_query:
             if attend.budget:
                 total_fee += attend.budget
-        return render_template('staff/seminar_records_each_person_details.html', attends_query=attends_query,
-                               current_fee=current_fee, total_fee=total_fee, start_date=start_date.date(),
-                               end_date=end_date.date(), account=account)
     return render_template('staff/seminar_records_each_person_details.html', attends_query=attends_query,
-                           current_fee=current_fee, total_fee=total_fee, account=account)
+                           current_fee=current_fee, total_fee=total_fee, account=account, selected_dates=selected_dates)
 
 
 @staff.route('/seminar/attends-each-person/current-attends/<int:staff_account_id>')
