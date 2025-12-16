@@ -803,12 +803,12 @@ class ProteinIdentificationRequestForm(FlaskForm):
     sample_species = CheckboxField('Sample species', choices=[('Human', 'Human'),
                                                               ('Mouse', 'Mouse'),
                                                               ('Others', 'Others')])
-    sample_species_other = StringField()
+    sample_species_other = StringField('Other')
     gel_slices = CheckboxField('For Gel slices', choices=[('Coomassie', 'Coomassie'),
                                                           ('Silver', 'Sliver'),
                                                           ('Sypro ruby', 'Sypro ruby'),
                                                           ('Others', 'Others')])
-    gel_slices_other = StringField()
+    gel_slices_other = StringField('Other')
     in_solution_sample = StringField('In-solution sample (buffer condition and estimated sample amount (mg/ml))',
                                      validators=[DataRequired()],
                                      render_kw={
@@ -846,7 +846,7 @@ class SDSPageRequestForm(FlaskForm):
     sample_species = CheckboxField('Sample species', choices=[('Human', 'Human'),
                                                               ('Mouse', 'Mouse'),
                                                               ('Others', 'Others')])
-    sample_species_other = StringField()
+    sample_species_other = StringField('Other')
     sample_type = CheckboxField('Sample Type', choices=[('Cell pellet', 'Cell pellet'),
                                                         ('Protein extract', 'Protein extract'),
                                                         ('Immunoprecipitation', 'Immunoprecipitation'),
