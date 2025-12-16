@@ -588,9 +588,9 @@ def create_request():
                      'protein_identification': 'service_admin.create_protein_identification_request',
                      'sds_page': 'service_admin.create_sds_page_request',
                      'quantitative': 'service_admin.create_quantitative_request',
-                     'metabolomics': 'service_admin.create_metabolomic_request',
+                     'metabolomic': 'service_admin.create_metabolomic_request',
                      'endotoxin': 'service_admin.create_endotoxin_request',
-                     'toxicolab': 'service_admin.create_toxicology_request'
+                     'toxicology': 'service_admin.create_toxicology_request'
                      }
     return redirect(url_for(request_paths[code], code=code, menu=menu, request_id=request_id, customer_id=customer_id))
 
