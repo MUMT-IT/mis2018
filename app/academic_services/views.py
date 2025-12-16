@@ -459,12 +459,47 @@ def protein_identification_request_data(service_request, type):
     return values
 
 
+def sds_page_request_data(service_request, type):
+    data = service_request.data
+    form = SDSPageRequestForm(data=data)
+    values = []
+    product_header = False
+    test_header = False
+    for field in form:
+        if field.type == 'FieldList':
+            if not test_header:
+                values.append({'type': 'header', 'data': 'รายการทดสอบ'})
+                test_header = True
+            rows = []
+            for fd in field:
+                row = {}
+                for f_name, f in fd._fields.items():
+                    label = f.label.text
+                    if label != 'CSRF Token':
+                        if f.type == 'CheckboxField':
+                            row[label] = ', '.join(f.data) if f.data else ''
+                        else:
+                            row[label] = f.data if f.data is not None else ''
+                rows.append(row)
+            values.append({'type': 'table', 'data': rows})
+        else:
+            if not product_header:
+                values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
+                product_header = True
+            if field.data:
+                label = field.label.text
+                value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
+                values.append({'type': 'text', 'data': f"{label} : {value}"})
+    return values
+
+
 request_data_paths = {'bacteria': bacteria_request_data,
                       'disinfection': disinfection_request_data,
                       'air_disinfection': air_disinfection_request_data,
                       'heavymetal': heavymetal_request_data,
                       'foodsafety': foodsafety_request_data,
-                      'protein_identification': protein_identification_request_data
+                      'protein_identification': protein_identification_request_data,
+                      'sds_page': sds_page_request_data
               }
 
 
