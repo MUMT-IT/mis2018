@@ -292,7 +292,7 @@
                                             <span>ออกใบเสนอราคา</span>
                                         </a>
                                     </li>
-                                {% elif (service_request.status.status_id == 10 or service_request.status.status_id >= 11) %}
+                                {% elif (service_request.status.status_id == 10 or service_request.status.status_id == 11) %}
                                     <li>
                                         <a class="button is-primary is-rounded is-fullwidth mb-2"
                                            {% if result_id %}
