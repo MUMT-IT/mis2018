@@ -3359,6 +3359,7 @@ def seminar_create_record(seminar_id):
             for item in request.form.getlist('idps'):
                 idp_item = IDPItem.query.get(item)
             db.session.commit()
+            yearly_budget = get_seminar_yearly_budget(current_user.id, seminar.start_datetime)
 
             # req_title = u'ทดสอบแจ้งการขออนุมัติ' + attend.seminar.topic_type
             # req_msg = u'{} ขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
@@ -3859,9 +3860,9 @@ def cancel_seminar(seminar_id):
 @login_required
 def seminar_attends_each_person():
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    seminar_records = StaffSeminar.query.join(StaffSeminarAttend).filter(StaffSeminar.cancelled_at == None,
-                                        StaffSeminarAttend.end_datetime >= START_FISCAL_DATE - timedelta(days=90),
-                                        StaffSeminarAttend.start_datetime <= END_FISCAL_DATE + timedelta(days=90)).all()
+    seminar_records = StaffSeminar.query.filter(StaffSeminar.cancelled_at == None,
+                                        StaffSeminar.end_datetime >= START_FISCAL_DATE - timedelta(days=90),
+                                        StaffSeminar.start_datetime <= END_FISCAL_DATE + timedelta(days=90)).all()
     # for seminars in seminar_query:
         # if seminars.upload_file_url:
         #     upload_file = drive.CreateFile({'id': seminars.upload_file_url})
