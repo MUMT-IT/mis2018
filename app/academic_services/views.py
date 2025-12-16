@@ -92,6 +92,28 @@ def get_status(s_id):
     return status_id
 
 
+@academic_services.route('/aws-s3/download/<key>', methods=['GET'])
+def download_file(key):
+    download_filename = request.args.get('download_filename')
+    result_item = ServiceResultItem.query.filter_by(final_file=key).first()
+    if result_item:
+        req = result_item.result.request
+        if req.is_downloaded == None:
+            req.is_downloaded = True
+            db.session.add(req)
+            db.session.commit()
+    s3_client = boto3.client(
+        's3',
+        region_name=os.getenv('BUCKETEER_AWS_REGION'),
+        aws_access_key_id=os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+    )
+    outfile = BytesIO()
+    s3_client.download_fileobj(os.getenv('BUCKETEER_BUCKET_NAME'), key, outfile)
+    outfile.seek(0)
+    return send_file(outfile, download_name=download_filename, as_attachment=True)
+
+
 def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', depth=''):
     field_name = field.name.split('-')[-1]
     cols.add(field_name)
@@ -119,28 +141,6 @@ def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', 
                 else:
                     keys.append((field.name, values + str(field.data)))
     return keys
-
-
-@academic_services.route('/aws-s3/download/<key>', methods=['GET'])
-def download_file(key):
-    download_filename = request.args.get('download_filename')
-    result_item = ServiceResultItem.query.filter_by(final_file=key).first()
-    if result_item:
-        req = result_item.result.request
-        if req.is_downloaded == None:
-            req.is_downloaded = True
-            db.session.add(req)
-            db.session.commit()
-    s3_client = boto3.client(
-        's3',
-        region_name=os.getenv('BUCKETEER_AWS_REGION'),
-        aws_access_key_id=os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID'),
-        aws_secret_access_key=os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
-    )
-    outfile = BytesIO()
-    s3_client.download_fileobj(os.getenv('BUCKETEER_BUCKET_NAME'), key, outfile)
-    outfile.seek(0)
-    return send_file(outfile, download_name=download_filename, as_attachment=True)
 
 
 # def request_data(service_request, type):

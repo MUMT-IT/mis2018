@@ -112,69 +112,6 @@ def download_file(key):
     return send_file(outfile, download_name=download_filename, as_attachment=True)
 
 
-def request_data(service_request, type):
-    data = service_request.data
-    if service_request.sub_lab.code == 'bacteria':
-        form = BacteriaRequestForm(data=data)
-    elif service_request.sub_lab.code == 'disinfection':
-        form = VirusDisinfectionRequestForm(data=data)
-    elif service_request.sub_lab.code == 'air_disinfection':
-        form = VirusAirDisinfectionRequestForm(data=data)
-    else:
-        form = ''
-    values = []
-    set_fields = set()
-    product_header = False
-    test_header = False
-    for field in form:
-        if field.type == 'FormField':
-            if not test_header:
-                values.append({'type': 'header', 'data': 'รายการทดสอบ'})
-                test_header = True
-            if not any([f.data for f in field._fields.values() if f.type != 'HiddenField' and f.type != 'FieldList']):
-                continue
-            for fname, fn in field._fields.items():
-                if fn.type == 'FieldList':
-                    rows = []
-                    for entry in fn.entries:
-                        row = {}
-                        for f_name, f in entry._fields.items():
-                            if f.data and f.label not in set_fields:
-                                set_fields.add(f.label)
-                                label = f.label.text
-                                if label.startswith("เชื้อ"):
-                                    data = ', '.join(f.data) if isinstance(f.data, list) else str(f.data or '')
-                                    if type == 'form':
-                                        row[label] = f"<i>{data}</i>"
-                                    else:
-                                        row[label] = f"<font name='SarabunItalic'>{data}</font>"
-                                else:
-                                    row[label] = f.data
-                        if row:
-                            rows.append(row)
-                    if rows:
-                        values.append({'type': 'table', 'data': rows})
-                else:
-                    if fn.data and fn.label not in set_fields:
-                        set_fields.add(fn.label)
-                        label = fn.label.text
-                        value = ', '.join(fn.data) if fn.type == 'CheckboxField' else fn.data
-                        if fn.type == 'HiddenField':
-                            values.append({'type': 'content_header', 'data': f"{value}"})
-                        else:
-                            values.append({'type': 'text', 'data': f"{label} : {value}"})
-        else:
-            if not product_header:
-                values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
-                product_header = True
-            if field.data and field.label not in set_fields:
-                set_fields.add(field.label)
-                label = field.label.text
-                value = ', '.join(f.data) if field.type == 'CheckboxField' else field.data
-                values.append({'type': 'text', 'data': f"{label} : {value}"})
-    return values
-
-
 def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', depth=''):
     field_name = field.name.split('-')[-1]
     cols.add(field_name)
@@ -204,6 +141,506 @@ def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', 
                 else:
                     keys.append((field.name, values + str(field.data)))
     return keys
+
+
+# def request_data(service_request, type):
+#     data = service_request.data
+#     if service_request.sub_lab.code == 'bacteria':
+#         form = BacteriaRequestForm(data=data)
+#     elif service_request.sub_lab.code == 'disinfection':
+#         form = VirusDisinfectionRequestForm(data=data)
+#     elif service_request.sub_lab.code == 'air_disinfection':
+#         form = VirusAirDisinfectionRequestForm(data=data)
+#     else:
+#         form = ''
+#     values = []
+#     set_fields = set()
+#     product_header = False
+#     test_header = False
+#     for field in form:
+#         if field.type == 'FormField':
+#             if not test_header:
+#                 values.append({'type': 'header', 'data': 'รายการทดสอบ'})
+#                 test_header = True
+#             if not any([f.data for f in field._fields.values() if f.type != 'HiddenField' and f.type != 'FieldList']):
+#                 continue
+#             for fname, fn in field._fields.items():
+#                 if fn.type == 'FieldList':
+#                     rows = []
+#                     for entry in fn.entries:
+#                         row = {}
+#                         for f_name, f in entry._fields.items():
+#                             if f.data and f.label not in set_fields:
+#                                 set_fields.add(f.label)
+#                                 label = f.label.text
+#                                 if label.startswith("เชื้อ"):
+#                                     data = ', '.join(f.data) if isinstance(f.data, list) else str(f.data or '')
+#                                     if type == 'form':
+#                                         row[label] = f"<i>{data}</i>"
+#                                     else:
+#                                         row[label] = f"<font name='SarabunItalic'>{data}</font>"
+#                                 else:
+#                                     row[label] = f.data
+#                         if row:
+#                             rows.append(row)
+#                     if rows:
+#                         values.append({'type': 'table', 'data': rows})
+#                 else:
+#                     if fn.data and fn.label not in set_fields:
+#                         set_fields.add(fn.label)
+#                         label = fn.label.text
+#                         value = ', '.join(fn.data) if fn.type == 'CheckboxField' else fn.data
+#                         if fn.type == 'HiddenField':
+#                             values.append({'type': 'content_header', 'data': f"{value}"})
+#                         else:
+#                             values.append({'type': 'text', 'data': f"{label} : {value}"})
+#         else:
+#             if not product_header:
+#                 values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
+#                 product_header = True
+#             if field.data and field.label not in set_fields:
+#                 set_fields.add(field.label)
+#                 label = field.label.text
+#                 value = ', '.join(f.data) if field.type == 'CheckboxField' else field.data
+#                 values.append({'type': 'text', 'data': f"{label} : {value}"})
+#     return values
+
+
+def bacteria_request_data(service_request, type):
+    data = service_request.data
+    form = BacteriaRequestForm(data=data)
+    values = []
+    product_header = False
+    test_header = False
+    for field in form:
+        if field.type == 'FormField':
+            if not test_header:
+                values.append({'type': 'header', 'data': 'รายการทดสอบ'})
+                test_header = True
+            if not any([f.data for f in field._fields.values() if f.type != 'HiddenField' and f.type != 'FieldList']):
+                continue
+            for fname, fn in field._fields.items():
+                if fn.type == 'FieldList':
+                    rows = []
+                    for entry in fn.entries:
+                        row = {}
+                        for f_name, f in entry._fields.items():
+                            if f.data:
+                                label = f.label.text
+                                if label.startswith("เชื้อ"):
+                                    data = ', '.join(f.data) if isinstance(f.data, list) else str(f.data or '')
+                                    if type == 'form':
+                                        row[label] = f"<i>{data}</i>"
+                                    else:
+                                        row[label] = f"<font name='SarabunItalic'>{data}</font>"
+                                else:
+                                    row[label] = f.data
+                        if row:
+                            rows.append(row)
+                    if rows:
+                        values.append({'type': 'table', 'data': rows})
+                else:
+                    if fn.data:
+                        label = fn.label.text
+                        value = ', '.join(fn.data) if fn.type == 'CheckboxField' else fn.data
+                        if fn.type == 'HiddenField':
+                            values.append({'type': 'content_header', 'data': f"{value}"})
+                        else:
+                            values.append({'type': 'text', 'data': f"{label} : {value}"})
+        else:
+            if not product_header:
+                values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
+                product_header = True
+            if field.data:
+                label = field.label.text
+                value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
+                values.append({'type': 'text', 'data': f"{label} : {value}"})
+    return values
+
+
+def disinfection_request_data(service_request, type):
+    data = service_request.data
+    form = VirusDisinfectionRequestForm(data=data)
+    values = []
+    product_header = False
+    test_header = False
+    for field in form:
+        if field.type == 'FormField':
+            if not test_header:
+                values.append({'type': 'header', 'data': 'รายการทดสอบ'})
+                test_header = True
+            if not any([f.data for f in field._fields.values() if f.type != 'HiddenField' and f.type != 'FieldList']):
+                continue
+            for fname, fn in field._fields.items():
+                if fn.type == 'FieldList':
+                    rows = []
+                    for entry in fn.entries:
+                        row = {}
+                        for f_name, f in entry._fields.items():
+                            if f.data:
+                                label = f.label.text
+                                if label.startswith("เชื้อ"):
+                                    data = ', '.join(f.data) if isinstance(f.data, list) else str(f.data or '')
+                                    if type == 'form':
+                                        row[label] = f"<i>{data}</i>"
+                                    else:
+                                        row[label] = f"<font name='SarabunItalic'>{data}</font>"
+                                else:
+                                    row[label] = f.data
+                        if row:
+                            rows.append(row)
+                    if rows:
+                        values.append({'type': 'table', 'data': rows})
+                else:
+                    if fn.data:
+                        label = fn.label.text
+                        value = ', '.join(fn.data) if fn.type == 'CheckboxField' else fn.data
+                        if fn.type == 'HiddenField':
+                            values.append({'type': 'content_header', 'data': f"{value}"})
+                        else:
+                            values.append({'type': 'text', 'data': f"{label} : {value}"})
+        else:
+            if not product_header:
+                values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
+                product_header = True
+            if field.data:
+                label = field.label.text
+                value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
+                values.append({'type': 'text', 'data': f"{label} : {value}"})
+    return values
+
+
+def air_disinfection_request_data(service_request, type):
+    data = service_request.data
+    form = VirusAirDisinfectionRequestForm(data=data)
+    values = []
+    product_header = False
+    test_header = False
+    for field in form:
+        if field.type == 'FormField':
+            if not test_header:
+                values.append({'type': 'header', 'data': 'รายการทดสอบ'})
+                test_header = True
+            if not any([f.data for f in field._fields.values() if f.type != 'HiddenField' and f.type != 'FieldList']):
+                continue
+            for fname, fn in field._fields.items():
+                if fn.type == 'FieldList':
+                    rows = []
+                    for entry in fn.entries:
+                        row = {}
+                        for f_name, f in entry._fields.items():
+                            if f.data:
+                                label = f.label.text
+                                if label.startswith("เชื้อ"):
+                                    data = ', '.join(f.data) if isinstance(f.data, list) else str(f.data or '')
+                                    if type == 'form':
+                                        row[label] = f"<i>{data}</i>"
+                                    else:
+                                        row[label] = f"<font name='SarabunItalic'>{data}</font>"
+                                else:
+                                    row[label] = f.data
+                        if row:
+                            rows.append(row)
+                    if rows:
+                        values.append({'type': 'table', 'data': rows})
+                else:
+                    if fn.data:
+                        label = fn.label.text
+                        value = ', '.join(fn.data) if fn.type == 'CheckboxField' else fn.data
+                        if fn.type == 'HiddenField':
+                            values.append({'type': 'content_header', 'data': f"{value}"})
+                        else:
+                            values.append({'type': 'text', 'data': f"{label} : {value}"})
+        else:
+            if not product_header:
+                values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
+                product_header = True
+            if field.data:
+                label = field.label.text
+                value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
+                values.append({'type': 'text', 'data': f"{label} : {value}"})
+    return values
+
+
+def heavymetal_request_data(service_request, type):
+    data = service_request.data
+    form = HeavyMetalRequestForm(data=data)
+    values = []
+    product_header = False
+    test_header = False
+    for field in form:
+        if field.type == 'FieldList':
+            if not test_header:
+                values.append({'type': 'header', 'data': 'รายการทดสอบ'})
+                test_header = True
+            rows = []
+            for fd in field:
+                row = {}
+                for f_name, f in fd._fields.items():
+                    if f.data:
+                        label = f.label.text
+                        row[label] = ', '.join(f.data) if f.type == 'CheckboxField' else f.data
+
+                rows.append(row)
+            values.append({'type': 'table', 'data': rows})
+        else:
+            if not product_header:
+                values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
+                product_header = True
+            if field.data:
+                label = field.label.text
+                value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
+                values.append({'type': 'text', 'data': f"{label} : {value}"})
+    return values
+
+
+def foodsafety_request_data(service_request, type):
+    data = service_request.data
+    form = FoodSafetyRequestForm(data=data)
+    values = []
+    product_header = False
+    test_header = False
+    for field in form:
+        if field.type == 'FieldList':
+            if not test_header:
+                values.append({'type': 'header', 'data': 'รายการทดสอบ'})
+                test_header = True
+            rows = []
+            for fd in field:
+                row = {}
+                for f_name, f in fd._fields.items():
+                    if f.data:
+                        label = f.label.text
+                        row[label] = ', '.join(f.data) if f.type == 'CheckboxField' else f.data
+                rows.append(row)
+            values.append({'type': 'table', 'data': rows})
+        else:
+            if not product_header:
+                values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
+                product_header = True
+            if field.data:
+                label = field.label.text
+                value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
+                values.append({'type': 'text', 'data': f"{label} : {value}"})
+    return values
+
+
+def protein_identification_request_data(service_request, type):
+    data = service_request.data
+    form = ProteinIdentificationRequestForm(data=data)
+    values = []
+    product_header = False
+    test_header = False
+    for field in form:
+        if field.type == 'FieldList':
+            if not test_header:
+                values.append({'type': 'header', 'data': 'รายการทดสอบ'})
+                test_header = True
+            rows = []
+            for fd in field:
+                row = {}
+                for f_name, f in fd._fields.items():
+                    label = f.label.text
+                    if label != 'CSRF Token':
+                        if f.type == 'CheckboxField':
+                            row[label] = ', '.join(f.data) if f.data else ''
+                        else:
+                            row[label] = f.data if f.data is not None else ''
+                rows.append(row)
+            values.append({'type': 'table', 'data': rows})
+        else:
+            if not product_header:
+                values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
+                product_header = True
+            if field.data:
+                label = field.label.text
+                value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
+                values.append({'type': 'text', 'data': f"{label} : {value}"})
+    return values
+
+
+def sds_page_request_data(service_request, type):
+    data = service_request.data
+    form = SDSPageRequestForm(data=data)
+    values = []
+    product_header = False
+    test_header = False
+    for field in form:
+        if field.type == 'FieldList':
+            if not test_header:
+                values.append({'type': 'header', 'data': 'รายการทดสอบ'})
+                test_header = True
+            rows = []
+            for fd in field:
+                row = {}
+                for f_name, f in fd._fields.items():
+                    label = f.label.text
+                    if label != 'CSRF Token':
+                        if f.type == 'CheckboxField':
+                            row[label] = ', '.join(f.data) if f.data else ''
+                        else:
+                            row[label] = f.data if f.data is not None else ''
+                rows.append(row)
+            values.append({'type': 'table', 'data': rows})
+        else:
+            if not product_header:
+                values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
+                product_header = True
+            if field.data:
+                label = field.label.text
+                value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
+                values.append({'type': 'text', 'data': f"{label} : {value}"})
+    return values
+
+
+def quantitative_request_data(service_request, type):
+    data = service_request.data
+    form = QuantitativeRequestForm(data=data)
+    values = []
+    product_header = False
+    test_header = False
+    for field in form:
+        if field.type == 'FieldList':
+            if not test_header:
+                values.append({'type': 'header', 'data': 'รายการทดสอบ'})
+                test_header = True
+            rows = []
+            for fd in field:
+                row = {}
+                for f_name, f in fd._fields.items():
+                    label = f.label.text
+                    if label != 'CSRF Token':
+                        if f.type == 'CheckboxField':
+                            row[label] = ', '.join(f.data) if f.data else ''
+                        else:
+                            row[label] = f.data if f.data is not None else ''
+                rows.append(row)
+            values.append({'type': 'table', 'data': rows})
+        else:
+            if not product_header:
+                values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
+                product_header = True
+            if field.data:
+                label = field.label.text
+                value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
+                values.append({'type': 'text', 'data': f"{label} : {value}"})
+    return values
+
+
+def metabolomic_request_data(service_request, type):
+    data = service_request.data
+    form = MetabolomicRequestForm(data=data)
+    values = []
+    product_header = False
+    test_header = False
+    for field in form:
+        if field.type == 'FieldList':
+            if not test_header:
+                values.append({'type': 'header', 'data': 'รายการทดสอบ'})
+                test_header = True
+            rows = []
+            for fd in field:
+                row = {}
+                for f_name, f in fd._fields.items():
+                    label = f.label.text
+                    if label != 'CSRF Token':
+                        if f.type == 'CheckboxField':
+                            row[label] = ', '.join(f.data) if f.data else ''
+                        else:
+                            row[label] = f.data if f.data is not None else ''
+                rows.append(row)
+            values.append({'type': 'table', 'data': rows})
+        else:
+            if not product_header:
+                values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
+                product_header = True
+            if field.data:
+                label = field.label.text
+                value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
+                values.append({'type': 'text', 'data': f"{label} : {value}"})
+    return values
+
+
+def endotoxin_request_data(service_request, type):
+    data = service_request.data
+    form = EndotoxinRequestForm(data=data)
+    values = []
+    product_header = False
+    test_header = False
+    for field in form:
+        if field.type == 'FieldList':
+            if not test_header:
+                values.append({'type': 'header', 'data': 'รายการทดสอบ'})
+                test_header = True
+            rows = []
+            for fd in field:
+                row = {}
+                for f_name, f in fd._fields.items():
+                    label = f.label.text
+                    if label != 'CSRF Token':
+                        if f.type == 'CheckboxField':
+                            row[label] = ', '.join(f.data) if f.data else ''
+                        else:
+                            row[label] = f.data if f.data is not None else ''
+                rows.append(row)
+            values.append({'type': 'table', 'data': rows})
+        else:
+            if not product_header:
+                values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
+                product_header = True
+            if field.data:
+                label = field.label.text
+                value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
+                values.append({'type': 'text', 'data': f"{label} : {value}"})
+    return values
+
+
+def toxicology_request_data(service_request, type):
+    data = service_request.data
+    form = ToxicologyRequestForm(data=data)
+    values = []
+    product_header = False
+    test_header = False
+    for field in form:
+        if field.type == 'FieldList':
+            if not test_header:
+                values.append({'type': 'header', 'data': 'รายการทดสอบ'})
+                test_header = True
+            rows = []
+            for fd in field:
+                row = {}
+                for f_name, f in fd._fields.items():
+                    label = f.label.text
+                    if label != 'CSRF Token':
+                        if f.type == 'CheckboxField':
+                            row[label] = ', '.join(f.data) if f.data else ''
+                        else:
+                            row[label] = f.data if f.data is not None else ''
+                rows.append(row)
+            values.append({'type': 'table', 'data': rows})
+        else:
+            if not product_header:
+                values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
+                product_header = True
+            if field.data:
+                label = field.label.text
+                value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
+                values.append({'type': 'text', 'data': f"{label} : {value}"})
+    return values
+
+
+request_data_paths = {'bacteria': bacteria_request_data,
+                      'disinfection': disinfection_request_data,
+                      'air_disinfection': air_disinfection_request_data,
+                      'heavymetal': heavymetal_request_data,
+                      'foodsafety': foodsafety_request_data,
+                      'protein_identification': protein_identification_request_data,
+                      'sds_page': sds_page_request_data,
+                      'quantitative': quantitative_request_data,
+                      'metabolomic': metabolomic_request_data,
+                      'endotoxin': endotoxin_request_data,
+                      'toxicology': toxicology_request_data
+              }
 
 
 @service_admin.route('/')
@@ -2750,6 +3187,7 @@ def view_request(request_id=None):
     menu = request.args.get('menu')
     service_request = ServiceRequest.query.get(request_id)
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab)
+    request_data = request_data_paths[service_request.sub_lab.code]
     datas = request_data(service_request, type='form')
     if service_request.results:
         for result in service_request.results:
@@ -2771,7 +3209,7 @@ def generate_request_pdf(service_request):
         qr_buffer.seek(0)
         qr_code = Image(qr_buffer, width=80, height=80)
         qr_code.hAlign = 'LEFT'
-
+    request_data = request_data_paths[service_request.sub_lab.code]
     values = request_data(service_request, type='pdf')
 
     def all_page_setup(canvas, doc):
@@ -4895,6 +5333,7 @@ def create_quotation_for_admin(quotation_id):
     tab = request.args.get('tab')
     action = request.form.get('action')
     quotation = ServiceQuotation.query.get(quotation_id)
+    request_data = request_data_paths[service_request.sub_lab.code]
     datas = request_data(quotation.request, type='form')
     quotation.quotation_items = sorted(quotation.quotation_items, key=lambda x: x.sequence)
     form = ServiceQuotationForm(obj=quotation)
