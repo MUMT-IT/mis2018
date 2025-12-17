@@ -1,108 +1,101 @@
-<!DOCTYPE html>
-<html lang="{{ current_lang }}">
+{% extends "continueing_edu/base_frontend.html" %}
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ texts.my_payments_page_title }}</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
-</head>
+{% block title %}{{ texts.my_payments_page_title }}{% endblock %}
 
-<body class="has-text-gray-800">
-  <section class="section">
-    <div class="container">
-      <h1 class="title is-3">{{ texts.my_payments_page_title }}</h1>
-      {% set TH = (current_lang == 'th') %}
-      {% if payments %}
-      <table class="table is-fullwidth is-striped">
-        <thead>
-          <tr>
-            <th>{{ texts.label_event }}</th>
-            <th>{{ texts.label_amount }}</th>
-            <th>{{ texts.label_status }}</th>
-            <th>{{ texts.label_proof }}</th>
-            <th>{{ texts.label_actions }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for p in payments %}
-          <tr>
-            {% set entity = p.event_entity %}
-            {% set event_title = entity.title_th if TH and entity and entity.title_th else (entity.title_en if entity
-            and entity.title_en else (entity.title_th if entity and entity.title_th else texts.label_none)) %}
-            <td>{{ event_title }}</td>
-            <td>{{ '%.2f'|format(p.payment_amount or 0) }} {{ texts.currency_thb }}</td>
-            <td>
-              {% set badge = p.payment_status_ref.css_badge if p.payment_status_ref and p.payment_status_ref.css_badge
-              else 'is-light' %}
-              <span class="tag {{ badge }}">{{ p.payment_status_ref.name_th if TH and p.payment_status_ref and
-                p.payment_status_ref.name_th else (p.payment_status_ref.name_en if p.payment_status_ref else
-                texts.label_none) }}</span>
-            </td>
-            <td>
-              {% if p.payment_proof_url %}
-              <button class="button is-small is-light" type="button"
-                onclick="openProofModal('{{ p.proof_presigned_url()|e }}')">{{ texts.button_view }}</button>
-              {% else %}
-              <em>{{ texts.label_none }}</em>
-              {% endif %}
-            </td>
-            <td>
-              {% set status_code = p.payment_status_ref.register_payment_status_code if p.payment_status_ref and
-              p.payment_status_ref.register_payment_status_code else (p.payment_status_ref.name_en|lower if
-              p.payment_status_ref else '') %}
-              {% set can_replace = status_code in ['pending','submitted','rejected',''] %}
-              {% if can_replace %}
-              <form method="post"
-                action="{{ url_for('continuing_edu.submit_payment_proof', payment_id=p.id, lang=current_lang) }}"
-                class="is-flex">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                <input class="input" type="url" name="payment_proof_url" placeholder="https://..."
-                  style="max-width:260px;margin-right:8px;">
-                <button class="button is-small is-link" type="submit">{{ texts.button_replace_url if p.payment_proof_url
-                  else texts.button_submit_url }}</button>
-              </form>
-              <form method="post"
-                action="{{ url_for('continuing_edu.upload_payment_proof', payment_id=p.id, lang=current_lang) }}"
-                class="is-flex mt-2" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                <input class="input" type="file" name="payment_proof_file" style="max-width:260px;margin-right:8px;">
-                <button class="button is-small" type="submit">{{ texts.button_replace_file if p.payment_proof_url else
-                  texts.button_upload_file }}</button>
-              </form>
-              {% else %}
-              <em>{{ texts.message_payments_locked }}</em>
-              {% endif %}
-              <div class="mt-2">
-                <a class="button is-small is-primary is-light"
-                  href="{{ url_for('continuing_edu.view_invoice', payment_id=p.id, lang=current_lang) }}">{{
-                  texts.button_view_invoice }}</a>
-              </div>
-              {% if payment_gateway_url %}
-              <div class="mt-2">
-                <a class="button is-small is-primary" href="{{ payment_gateway_url }}" target="_blank">{{
-                  texts.button_pay_online }}</a>
-              </div>
-              {% endif %}
-              {% if p.receipt %}
-              <div class="mt-2">
-                <a class="button is-small is-light"
-                  href="{{ url_for('continuing_edu.view_receipt', receipt_id=p.receipt.id, lang=current_lang) }}">{{
-                  texts.button_view_receipt }}</a>
-              </div>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <p>{{ texts.message_no_payments }}</p>
-      {% endif %}
-      <a class="button" href="{{ url_for('continuing_edu.index', lang=current_lang) }}">{{ texts.button_back_home }}</a>
-    </div>
-  </section>
-</body>
+{% block content %}
+<section class="section">
+  <div class="container">
+    <h1 class="title is-3">{{ texts.my_payments_page_title }}</h1>
+    {% set TH = (current_lang == 'th') %}
+    {% if payments %}
+    <table class="table is-fullwidth is-striped">
+      <thead>
+        <tr>
+          <th>{{ texts.label_event }}</th>
+          <th>{{ texts.label_amount }}</th>
+          <th>{{ texts.label_status }}</th>
+          <th>{{ texts.label_proof }}</th>
+          <th>{{ texts.label_actions }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in payments %}
+        <tr>
+          {% set entity = p.event_entity %}
+          {% set event_title = entity.title_th if TH and entity and entity.title_th else (entity.title_en if entity
+          and entity.title_en else (entity.title_th if entity and entity.title_th else texts.label_none)) %}
+          <td>{{ event_title }}</td>
+          <td>{{ '%.2f'|format(p.payment_amount or 0) }} {{ texts.currency_thb }}</td>
+          <td>
+            {% set badge = p.payment_status_ref.css_badge if p.payment_status_ref and p.payment_status_ref.css_badge
+            else 'is-light' %}
+            <span class="tag {{ badge }}">{{ p.payment_status_ref.name_th if TH and p.payment_status_ref and
+              p.payment_status_ref.name_th else (p.payment_status_ref.name_en if p.payment_status_ref else
+              texts.label_none) }}</span>
+          </td>
+          <td>
+            {% if p.payment_proof_url %}
+            <button class="button is-small is-light" type="button"
+              onclick="openProofModal('{{ p.proof_presigned_url()|e }}')">{{ texts.button_view }}</button>
+            {% else %}
+            <em>{{ texts.label_none }}</em>
+            {% endif %}
+          </td>
+          <td>
+            {% set status_code = p.payment_status_ref.register_payment_status_code if p.payment_status_ref and
+            p.payment_status_ref.register_payment_status_code else (p.payment_status_ref.name_en|lower if
+            p.payment_status_ref else '') %}
+            {% set can_replace = status_code in ['pending','submitted','rejected',''] %}
+            {% if can_replace %}
+            <form method="post"
+              action="{{ url_for('continuing_edu.submit_payment_proof', payment_id=p.id, lang=current_lang) }}"
+              class="is-flex">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <input class="input" type="url" name="payment_proof_url" placeholder="https://..."
+                style="max-width:260px;margin-right:8px;">
+              <button class="button is-small is-link" type="submit">{{ texts.button_replace_url if p.payment_proof_url
+                else texts.button_submit_url }}</button>
+            </form>
+            <form method="post"
+              action="{{ url_for('continuing_edu.upload_payment_proof', payment_id=p.id, lang=current_lang) }}"
+              class="is-flex mt-2" enctype="multipart/form-data">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <input class="input" type="file" name="payment_proof_file" style="max-width:260px;margin-right:8px;">
+              <button class="button is-small" type="submit">{{ texts.button_replace_file if p.payment_proof_url else
+                texts.button_upload_file }}</button>
+            </form>
+            {% else %}
+            <em>{{ texts.message_payments_locked }}</em>
+            {% endif %}
+            <div class="mt-2">
+              <a class="button is-small is-primary is-light"
+                href="{{ url_for('continuing_edu.view_invoice', payment_id=p.id, lang=current_lang) }}">{{
+                texts.button_view_invoice }}</a>
+            </div>
+            {% if payment_gateway_url %}
+            <div class="mt-2">
+              <a class="button is-small is-primary" href="{{ payment_gateway_url }}" target="_blank">{{
+                texts.button_pay_online }}</a>
+            </div>
+            {% endif %}
+            {% if p.receipt %}
+            <div class="mt-2">
+              <a class="button is-small is-light"
+                href="{{ url_for('continuing_edu.view_receipt', receipt_id=p.receipt.id, lang=current_lang) }}">{{
+                texts.button_view_receipt }}</a>
+            </div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>{{ texts.message_no_payments }}</p>
+    {% endif %}
+    <a class="button" href="{{ url_for('continuing_edu.index', lang=current_lang) }}">{{ texts.button_back_home }}</a>
+  </div>
+</section>
 
 <!-- Proof Modal -->
 <div id="proof-modal" class="modal">
@@ -114,7 +107,9 @@
   </div>
   <button class="modal-close is-large" aria-label="close" onclick="closeProofModal()"></button>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
   function isImageUrl(url) {
     return /\.(png|jpg|jpeg|gif|webp|svg)(\?.*)?$/i.test(url);
@@ -147,5 +142,4 @@
     container.innerHTML = '';
   }
 </script>
-
-</html>
+{% endblock %}

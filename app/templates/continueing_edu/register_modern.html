@@ -1,1715 +1,1694 @@
-<!DOCTYPE html>
-<html lang="{{ current_lang }}">
+{% extends "continueing_edu/base_frontend.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ texts.register_page_title }} - {{ texts.university_name }}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="{{ url_for('static', filename='js/thai-address-database.js') }}"></script>
-    <style>
-        /* Modern Registration Design System */
-        :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --success-gradient: linear-gradient(135deg, #48c774 0%, #3db65e 100%);
-            --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            --card-shadow-hover: 0 12px 48px rgba(0, 0, 0, 0.15);
+{% block title %}{{ texts.register_page_title }} - {{ texts.university_name }}{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="{{ url_for('static', filename='js/thai-address-database.js') }}"></script>
+<style>
+    /* Modern Registration Design System */
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --success-gradient: linear-gradient(135deg, #48c774 0%, #3db65e 100%);
+        --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        --card-shadow-hover: 0 12px 48px rgba(0, 0, 0, 0.15);
+    }
+
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+    }
+
+    /* Hero Section */
+    .register-hero {
+        background: var(--primary-gradient);
+        padding: 3rem 1.5rem;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+
+    .register-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        opacity: 0.3;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        color: white;
+    }
+
+    .hero-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .hero-subtitle {
+        font-size: 1.1rem;
+        opacity: 0.95;
+    }
+
+    /* Step Progress Indicator */
+    .steps-indicator {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 2rem 0;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .step-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .step-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        background: rgba(255, 255, 255, 0.3);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        transition: all 0.3s ease;
+    }
+
+    .step-item.is-active .step-circle {
+        background: white;
+        color: #667eea;
+        border-color: white;
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+    }
+
+    .step-item.is-completed .step-circle {
+        background: var(--success-gradient);
+        border-color: #48c774;
+    }
+
+    .step-label {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 500;
+    }
+
+    .step-connector {
+        width: 40px;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Modern Card */
+    .modern-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: var(--card-shadow);
+        padding: 2.5rem;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .modern-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--card-shadow-hover);
+    }
+
+    .card-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #667eea;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .card-title .icon {
+        font-size: 1.75rem;
+    }
+
+    /* Google Sign-in Button */
+    .google-signin-section {
+        text-align: center;
+        padding: 2rem;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        border: 2px dashed rgba(102, 126, 234, 0.2);
+    }
+
+    .google-signin-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #667eea;
+        margin-bottom: 0.5rem;
+    }
+
+    .google-signin-subtitle {
+        color: #7a7a7a;
+        margin-bottom: 1.5rem;
+    }
+
+    .divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        margin: 2rem 0;
+        color: #7a7a7a;
+        font-weight: 500;
+    }
+
+    .divider::before,
+    .divider::after {
+        content: '';
+        flex: 1;
+        border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .divider span {
+        padding: 0 1rem;
+    }
+
+    /* Modern Form Inputs */
+    .modern-input {
+        border: 2px solid #e0e7ff;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: white;
+    }
+
+    .modern-input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        outline: none;
+    }
+
+    .modern-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .field-icon {
+        color: #667eea;
+        margin-right: 0.5rem;
+    }
+
+    /* Thai Address Autocomplete Styles */
+    .thai-address-field {
+        position: relative;
+    }
+
+    .thai-address-input-wrapper {
+        position: relative;
+    }
+
+    .thai-address-suggestions {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        background: white;
+        border: 2px solid #e0e7ff;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        max-height: 250px;
+        overflow-y: auto;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        display: none;
+    }
+
+    .thai-address-suggestions.is-active {
+        display: block;
+    }
+
+    .thai-address-suggestion-item {
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .thai-address-suggestion-item:last-child {
+        border-bottom: none;
+    }
+
+    .thai-address-suggestion-item:hover,
+    .thai-address-suggestion-item.is-highlighted {
+        background: #f0f4ff;
+        color: #667eea;
+    }
+
+    .thai-address-suggestion-item .suggestion-main {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.25rem;
+    }
+
+    .thai-address-suggestion-item.is-highlighted .suggestion-main {
+        color: #667eea;
+    }
+
+    .thai-address-suggestion-item .suggestion-detail {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .thai-address-suggestion-item .suggestion-detail .fas {
+        margin: 0 0.25rem;
+        color: #9ca3af;
+    }
+
+    /* Modern Checkbox */
+    .modern-checkbox {
+        padding: 1rem;
+        background: rgba(102, 126, 234, 0.05);
+        border-radius: 8px;
+        border: 1px solid rgba(102, 126, 234, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .modern-checkbox:hover {
+        background: rgba(102, 126, 234, 0.08);
+        border-color: rgba(102, 126, 234, 0.2);
+    }
+
+    .modern-checkbox input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        margin-right: 0.75rem;
+        cursor: pointer;
+    }
+
+    /* Password Toggle */
+    .password-toggle-wrapper {
+        position: relative;
+    }
+
+    .password-toggle-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #9ca3af;
+        transition: color 0.2s ease;
+        z-index: 10;
+        padding: 8px;
+    }
+
+    .password-toggle-icon:hover {
+        color: #667eea;
+    }
+
+    .password-toggle-wrapper input {
+        padding-right: 45px;
+    }
+
+    /* Password Strength Indicator */
+    .password-strength-container {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+
+    .password-strength-bar {
+        height: 6px;
+        background: #e0e7ff;
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 0.5rem;
+    }
+
+    .password-strength-fill {
+        height: 100%;
+        width: 0%;
+        transition: all 0.3s ease;
+        border-radius: 3px;
+    }
+
+    .password-strength-fill.weak {
+        width: 25%;
+        background: linear-gradient(90deg, #f14668, #ff6b9d);
+    }
+
+    .password-strength-fill.fair {
+        width: 50%;
+        background: linear-gradient(90deg, #ffdd57, #ffa500);
+    }
+
+    .password-strength-fill.good {
+        width: 75%;
+        background: linear-gradient(90deg, #48c774, #2ecc71);
+    }
+
+    .password-strength-fill.strong {
+        width: 100%;
+        background: linear-gradient(90deg, #00d1b2, #00b89c);
+    }
+
+    .password-strength-text {
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .password-strength-text.weak {
+        color: #f14668;
+    }
+
+    .password-strength-text.fair {
+        color: #ffa500;
+    }
+
+    .password-strength-text.good {
+        color: #48c774;
+    }
+
+    .password-strength-text.strong {
+        color: #00d1b2;
+    }
+
+    /* Password Requirements */
+    .password-requirements {
+        margin-top: 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    .password-requirements ul {
+        list-style: none;
+        padding-left: 0;
+    }
+
+    .requirement-item {
+        color: #7a7a7a;
+        margin-bottom: 0.25rem;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+    }
+
+    .requirement-item.met {
+        color: #48c774;
+    }
+
+    .requirement-item.met i {
+        color: #48c774;
+    }
+
+    .requirement-item i {
+        color: #e0e7ff;
+        font-size: 0.75rem;
+        margin-right: 0.5rem;
+        min-width: 14px;
+    }
+
+    /* Modern Buttons */
+    .btn-primary {
+        background: var(--primary-gradient);
+        border: none;
+        color: white;
+        padding: 0.875rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+        background: white;
+        border: 2px solid #667eea;
+        color: #667eea;
+        padding: 0.875rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-secondary:hover {
+        background: #667eea;
+        color: white;
+    }
+
+    /* Section Grouping */
+    .form-section {
+        background: rgba(102, 126, 234, 0.03);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid rgba(102, 126, 234, 0.1);
+    }
+
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #667eea;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Address Entry Styling */
+    .address-entry {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid #e0e7ff;
+    }
+
+    .address-entry-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #e0e7ff;
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
         }
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
+        to {
+            opacity: 1;
+            transform: translateY(0);
         }
+    }
 
-        /* Hero Section */
-        .register-hero {
-            background: var(--primary-gradient);
-            padding: 3rem 1.5rem;
-            position: relative;
-            overflow: hidden;
-            margin-bottom: 2rem;
-        }
+    .animate-in {
+        animation: fadeInUp 0.6s ease-out;
+    }
 
-        .register-hero::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-            opacity: 0.3;
-        }
-
-        .hero-content {
-            position: relative;
-            z-index: 1;
-            text-align: center;
-            color: white;
-        }
-
+    /* Responsive */
+    @media (max-width: 768px) {
         .hero-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .hero-subtitle {
-            font-size: 1.1rem;
-            opacity: 0.95;
-        }
-
-        /* Step Progress Indicator */
-        .steps-indicator {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 2rem 0;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .step-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .step-circle {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            background: rgba(255, 255, 255, 0.3);
-            color: white;
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            transition: all 0.3s ease;
-        }
-
-        .step-item.is-active .step-circle {
-            background: white;
-            color: #667eea;
-            border-color: white;
-            transform: scale(1.1);
-            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
-        }
-
-        .step-item.is-completed .step-circle {
-            background: var(--success-gradient);
-            border-color: #48c774;
-        }
-
-        .step-label {
-            font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.9);
-            font-weight: 500;
-        }
-
-        .step-connector {
-            width: 40px;
-            height: 2px;
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        /* Modern Card */
-        .modern-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: var(--card-shadow);
-            padding: 2.5rem;
-            margin-bottom: 1.5rem;
-            transition: all 0.3s ease;
-        }
-
-        .modern-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--card-shadow-hover);
-        }
-
-        .card-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #667eea;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .card-title .icon {
             font-size: 1.75rem;
         }
 
-        /* Google Sign-in Button */
-        .google-signin-section {
-            text-align: center;
-            padding: 2rem;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
-            border-radius: 12px;
-            margin-bottom: 2rem;
-            border: 2px dashed rgba(102, 126, 234, 0.2);
-        }
-
-        .google-signin-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #667eea;
-            margin-bottom: 0.5rem;
-        }
-
-        .google-signin-subtitle {
-            color: #7a7a7a;
-            margin-bottom: 1.5rem;
-        }
-
-        .divider {
-            display: flex;
-            align-items: center;
-            text-align: center;
-            margin: 2rem 0;
-            color: #7a7a7a;
-            font-weight: 500;
-        }
-
-        .divider::before,
-        .divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 2px solid rgba(0, 0, 0, 0.1);
-        }
-
-        .divider span {
-            padding: 0 1rem;
-        }
-
-        /* Modern Form Inputs */
-        .modern-input {
-            border: 2px solid #e0e7ff;
-            border-radius: 8px;
-            padding: 0.75rem 1rem;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            background: white;
-        }
-
-        .modern-input:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-            outline: none;
-        }
-
-        .modern-label {
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 0.5rem;
-            display: block;
-        }
-
-        .field-icon {
-            color: #667eea;
-            margin-right: 0.5rem;
-        }
-
-        /* Thai Address Autocomplete Styles */
-        .thai-address-field {
-            position: relative;
-        }
-
-        .thai-address-input-wrapper {
-            position: relative;
-        }
-
-        .thai-address-suggestions {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            background: white;
-            border: 2px solid #e0e7ff;
-            border-top: none;
-            border-radius: 0 0 8px 8px;
-            max-height: 250px;
-            overflow-y: auto;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-            display: none;
-        }
-
-        .thai-address-suggestions.is-active {
-            display: block;
-        }
-
-        .thai-address-suggestion-item {
-            padding: 0.75rem 1rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border-bottom: 1px solid #f3f4f6;
-        }
-
-        .thai-address-suggestion-item:last-child {
-            border-bottom: none;
-        }
-
-        .thai-address-suggestion-item:hover,
-        .thai-address-suggestion-item.is-highlighted {
-            background: #f0f4ff;
-            color: #667eea;
-        }
-
-        .thai-address-suggestion-item .suggestion-main {
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 0.25rem;
-        }
-
-        .thai-address-suggestion-item.is-highlighted .suggestion-main {
-            color: #667eea;
-        }
-
-        .thai-address-suggestion-item .suggestion-detail {
-            font-size: 0.875rem;
-            color: #6b7280;
-        }
-
-        .thai-address-suggestion-item .suggestion-detail .fas {
-            margin: 0 0.25rem;
-            color: #9ca3af;
-        }
-
-        /* Modern Checkbox */
-        .modern-checkbox {
-            padding: 1rem;
-            background: rgba(102, 126, 234, 0.05);
-            border-radius: 8px;
-            border: 1px solid rgba(102, 126, 234, 0.1);
-            transition: all 0.3s ease;
-        }
-
-        .modern-checkbox:hover {
-            background: rgba(102, 126, 234, 0.08);
-            border-color: rgba(102, 126, 234, 0.2);
-        }
-
-        .modern-checkbox input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            margin-right: 0.75rem;
-            cursor: pointer;
-        }
-
-        /* Password Toggle */
-        .password-toggle-wrapper {
-            position: relative;
-        }
-
-        .password-toggle-icon {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: pointer;
-            color: #9ca3af;
-            transition: color 0.2s ease;
-            z-index: 10;
-            padding: 8px;
-        }
-
-        .password-toggle-icon:hover {
-            color: #667eea;
-        }
-
-        .password-toggle-wrapper input {
-            padding-right: 45px;
-        }
-
-        /* Password Strength Indicator */
-        .password-strength-container {
-            width: 100%;
-            margin-top: 0.5rem;
-        }
-
-        .password-strength-bar {
-            height: 6px;
-            background: #e0e7ff;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-bottom: 0.5rem;
-        }
-
-        .password-strength-fill {
-            height: 100%;
-            width: 0%;
-            transition: all 0.3s ease;
-            border-radius: 3px;
-        }
-
-        .password-strength-fill.weak {
-            width: 25%;
-            background: linear-gradient(90deg, #f14668, #ff6b9d);
-        }
-
-        .password-strength-fill.fair {
-            width: 50%;
-            background: linear-gradient(90deg, #ffdd57, #ffa500);
-        }
-
-        .password-strength-fill.good {
-            width: 75%;
-            background: linear-gradient(90deg, #48c774, #2ecc71);
-        }
-
-        .password-strength-fill.strong {
-            width: 100%;
-            background: linear-gradient(90deg, #00d1b2, #00b89c);
-        }
-
-        .password-strength-text {
-            font-size: 0.875rem;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .password-strength-text.weak {
-            color: #f14668;
-        }
-
-        .password-strength-text.fair {
-            color: #ffa500;
-        }
-
-        .password-strength-text.good {
-            color: #48c774;
-        }
-
-        .password-strength-text.strong {
-            color: #00d1b2;
-        }
-
-        /* Password Requirements */
-        .password-requirements {
-            margin-top: 0.75rem;
-            font-size: 0.875rem;
-        }
-
-        .password-requirements ul {
-            list-style: none;
-            padding-left: 0;
-        }
-
-        .requirement-item {
-            color: #7a7a7a;
-            margin-bottom: 0.25rem;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-        }
-
-        .requirement-item.met {
-            color: #48c774;
-        }
-
-        .requirement-item.met i {
-            color: #48c774;
-        }
-
-        .requirement-item i {
-            color: #e0e7ff;
-            font-size: 0.75rem;
-            margin-right: 0.5rem;
-            min-width: 14px;
-        }
-
-        /* Modern Buttons */
-        .btn-primary {
-            background: var(--primary-gradient);
-            border: none;
-            color: white;
-            padding: 0.875rem 2rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: white;
-            border: 2px solid #667eea;
-            color: #667eea;
-            padding: 0.875rem 2rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-secondary:hover {
-            background: #667eea;
-            color: white;
-        }
-
-        /* Section Grouping */
-        .form-section {
-            background: rgba(102, 126, 234, 0.03);
-            border-radius: 12px;
+        .modern-card {
             padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            border: 1px solid rgba(102, 126, 234, 0.1);
         }
 
-        .section-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #667eea;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
+        .steps-indicator {
             gap: 0.5rem;
         }
 
-        /* Address Entry Styling */
-        .address-entry {
-            background: white;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            border: 1px solid #e0e7ff;
+        .step-connector {
+            width: 20px;
         }
 
-        .address-entry-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 2px solid #e0e7ff;
+        .step-label {
+            display: none;
         }
+    }
 
-        /* Animations */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
+    /* Success indicators */
+    .field-success {
+        border-color: #48c774;
+    }
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+    .field-error {
+        border-color: #f14668;
+    }
 
-        .animate-in {
-            animation: fadeInUp 0.6s ease-out;
-        }
+    .help-text {
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+        color: #7a7a7a;
+    }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            .hero-title {
-                font-size: 1.75rem;
-            }
+    .help-text.is-danger {
+        color: #f14668;
+    }
 
-            .modern-card {
-                padding: 1.5rem;
-            }
+    .help-text.is-success {
+        color: #48c774;
+    }
+</style>
+{% endblock %}
 
-            .steps-indicator {
-                gap: 0.5rem;
-            }
+{% block content %}
+<section class="register-hero">
+    <div class="hero-content">
+        <h1 class="hero-title">{{ texts.register_page_title }}</h1>
+        <p class="hero-subtitle">
+            {{ texts.get('register_subtitle', 'สร้างบัญชีเพื่อเข้าถึงหลักสูตรและเว็บบินาร์' if
+            current_lang == 'th' else 'Create an account to access courses and webinars') }}
+        </p>
 
-            .step-connector {
-                width: 20px;
-            }
-
-            .step-label {
-                display: none;
-            }
-        }
-
-        /* Success indicators */
-        .field-success {
-            border-color: #48c774;
-        }
-
-        .field-error {
-            border-color: #f14668;
-        }
-
-        .help-text {
-            font-size: 0.875rem;
-            margin-top: 0.25rem;
-            color: #7a7a7a;
-        }
-
-        .help-text.is-danger {
-            color: #f14668;
-        }
-
-        .help-text.is-success {
-            color: #48c774;
-        }
-    </style>
-</head>
-
-<body>
-
-
-    <section class="register-hero">
-        <div class="hero-content">
-            <h1 class="hero-title">{{ texts.register_page_title }}</h1>
-            <p class="hero-subtitle">
-                {{ texts.get('register_subtitle', 'สร้างบัญชีเพื่อเข้าถึงหลักสูตรและเว็บบินาร์' if
-                current_lang == 'th' else 'Create an account to access courses and webinars') }}
-            </p>
-
-            <!-- Step Progress Indicator -->
-            <div class="steps-indicator">
-                <div class="step-item is-active">
-                    <div class="step-circle">
-                        <i class="fas fa-user-plus"></i>
-                    </div>
-                    <span class="step-label">{{ texts.get('step_account', 'สร้างบัญชี' if
-                        current_lang == 'th' else 'Create Account') }}</span>
+        <!-- Step Progress Indicator -->
+        <div class="steps-indicator">
+            <div class="step-item is-active">
+                <div class="step-circle">
+                    <i class="fas fa-user-plus"></i>
                 </div>
-                <div class="step-connector"></div>
-                <div class="step-item">
-                    <div class="step-circle">2</div>
-                    <span class="step-label">{{ texts.get('step_profile', 'ข้อมูลส่วนตัว' if
-                        current_lang == 'th' else 'Profile Info') }}</span>
-                </div>
-                <div class="step-connector"></div>
-                <div class="step-item">
-                    <div class="step-circle">3</div>
-                    <span class="step-label">{{ texts.get('step_complete', 'เสร็จสิ้น' if
-                        current_lang == 'th' else 'Complete') }}</span>
-                </div>
+                <span class="step-label">{{ texts.get('step_account', 'สร้างบัญชี' if
+                    current_lang == 'th' else 'Create Account') }}</span>
+            </div>
+            <div class="step-connector"></div>
+            <div class="step-item">
+                <div class="step-circle">2</div>
+                <span class="step-label">{{ texts.get('step_profile', 'ข้อมูลส่วนตัว' if
+                    current_lang == 'th' else 'Profile Info') }}</span>
+            </div>
+            <div class="step-connector"></div>
+            <div class="step-item">
+                <div class="step-circle">3</div>
+                <span class="step-label">{{ texts.get('step_complete', 'เสร็จสิ้น' if
+                    current_lang == 'th' else 'Complete') }}</span>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 
-    <section class="section">
-        <div class="container" style="max-width: 900px;">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            <div class="notification is-light animate-in" style="margin-bottom: 1.5rem;">
-                <button class="delete"></button>
-                {% for category, message in messages %}
-                <p class="has-text-{{ 'danger' if category == 'error' else 'success' }}">
-                    <i class="fas fa-{{ 'exclamation-circle' if category == 'error' else 'check-circle' }}"></i>
-                    {{ message }}
+<section class="section">
+    <div class="container" style="max-width: 900px;">
+        <!-- Google Sign-in Section -->
+        <div class="modern-card animate-in">
+            <div class="google-signin-section">
+                <div class="google-signin-title">
+                    <i class="fab fa-google"></i>
+                    {{ texts.get('google_signin_title', 'ลงทะเบียนด้วย Google' if
+                    current_lang == 'th' else 'Sign up with Google') }}
+                </div>
+                <p class="google-signin-subtitle">
+                    {{ texts.get('google_signin_desc',
+                    'วิธีที่เร็วและง่ายที่สุดในการสร้างบัญชี' if current_lang == 'th' else
+                    'The fastest and easiest way to create an account') }}
                 </p>
-                {% endfor %}
+                <div style="display: flex; justify-content: center;">
+                    <div id="g_id_onload" data-client_id="{{ google_client_id }}" data-context="signup"
+                        data-ux_mode="popup" data-callback="handleCredentialResponse" data-auto_prompt="false">
+                    </div>
+                    <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline"
+                        data-text="signup_with" data-size="large" data-logo_alignment="left">
+                    </div>
+                </div>
             </div>
-            {% endif %}
-            {% endwith %}
 
-            <!-- Google Sign-in Section -->
-            <div class="modern-card animate-in">
-                <div class="google-signin-section">
-                    <div class="google-signin-title">
-                        <i class="fab fa-google"></i>
-                        {{ texts.get('google_signin_title', 'ลงทะเบียนด้วย Google' if
-                        current_lang == 'th' else 'Sign up with Google') }}
-                    </div>
-                    <p class="google-signin-subtitle">
-                        {{ texts.get('google_signin_desc',
-                        'วิธีที่เร็วและง่ายที่สุดในการสร้างบัญชี' if current_lang == 'th' else
-                        'The fastest and easiest way to create an account') }}
-                    </p>
-                    <div style="display: flex; justify-content: center;">
-                        <div id="g_id_onload" data-client_id="{{ google_client_id }}" data-context="signup"
-                            data-ux_mode="popup" data-callback="handleCredentialResponse" data-auto_prompt="false">
-                        </div>
-                        <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline"
-                            data-text="signup_with" data-size="large" data-logo_alignment="left">
-                        </div>
-                    </div>
+            <div class="divider">
+                <span>{{ texts.get('or_text', 'หรือ' if current_lang == 'th' else 'OR')
+                    }}</span>
+            </div>
+
+            <!-- Manual Registration Form -->
+            <form method="POST" action="{{ url_for('continuing_edu.register', lang=current_lang) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="card-title">
+                    <i class="fas fa-user-circle"></i>
+                    {{ texts.get('account_info', 'ข้อมูลบัญชี' if current_lang == 'th'
+                    else 'Account Information') }}
                 </div>
 
-                <div class="divider">
-                    <span>{{ texts.get('or_text', 'หรือ' if current_lang == 'th' else 'OR')
-                        }}</span>
-                </div>
-
-                <!-- Manual Registration Form -->
-                <form method="POST" action="{{ url_for('continuing_edu.register', lang=current_lang) }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                    <div class="card-title">
-                        <i class="fas fa-user-circle"></i>
-                        {{ texts.get('account_info', 'ข้อมูลบัญชี' if current_lang == 'th'
-                        else 'Account Information') }}
-                    </div>
-
-                    <div class="columns">
-                        <div class="column is-6">
-                            <div class="field">
-                                <label class="modern-label">
-                                    <i class="fas fa-user field-icon"></i>
-                                    {{ texts.username_label }}*
-                                </label>
-                                <div class="control">
-                                    <input class="input modern-input" type="text" name="username" id="username-input"
-                                        value="{{ form_values.get('username', '') }}" required minlength="5"
-                                        pattern="^[a-zA-Z0-9_-]{5,}$"
-                                        placeholder="{{ texts.get('username_placeholder', 'เลือกชื่อผู้ใช้' if current_lang == 'th' else 'Choose a username') }}">
-                                </div>
-                                <p class="help-text">
-                                    {{ texts.get('username_help', 'ภาษาอังกฤษ ตัวเลข หรือ _ - อย่างน้อย 5 ตัวอักษร' if
-                                    current_lang == 'th' else 'English letters, numbers, _ or - (minimum 5 characters)')
-                                    }}
-                                </p>
-                            </div>
-                        </div>
-                        <div class="column is-6">
-                            <div class="field">
-                                <label class="modern-label">
-                                    <i class="fas fa-envelope field-icon"></i>
-                                    {{ texts.email_label }}*
-                                </label>
-                                <div class="control">
-                                    <input class="input modern-input" type="email" name="email"
-                                        value="{{ form_values.get('email', '') }}" required
-                                        placeholder="{{ texts.get('email_placeholder', 'อีเมลของคุณ' if current_lang == 'th' else 'your@email.com') }}">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="columns">
-                        <div class="column is-6">
-                            <div class="field">
-                                <label class="modern-label">
-                                    <i class="fas fa-lock field-icon"></i>
-                                    {{ texts.password_label }}*
-                                </label>
-                                <div class="control password-toggle-wrapper">
-                                    <input class="input modern-input" type="password" name="password"
-                                        id="password-input" required minlength="8"
-                                        pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
-                                        placeholder="{{ texts.get('password_placeholder', 'อย่างน้อย 8 ตัวอักษร' if current_lang == 'th' else 'At least 8 characters') }}">
-                                    <i class="fas fa-eye password-toggle-icon" id="toggle-password"
-                                        title="{{ texts.get('show_password', 'แสดงรหัสผ่าน' if current_lang == 'th' else 'Show password') }}"></i>
-                                </div>
-                                <!-- Password Strength Indicator -->
-                                <div class="password-strength-container">
-                                    <div class="password-strength-bar">
-                                        <div class="password-strength-fill" id="password-strength-fill"></div>
-                                    </div>
-                                    <p class="password-strength-text" id="password-strength-text"></p>
-                                </div>
-                                <!-- Password Requirements -->
-                                <div class="password-requirements">
-                                    <p style="font-weight: 600; color: #667eea; margin-bottom: 0.5rem;">
-                                        {{ texts.get('password_requirements', 'รหัสผ่านต้องมี:' if current_lang == 'th'
-                                        else 'Password must have:') }}
-                                    </p>
-                                    <ul>
-                                        <li id="req-length" class="requirement-item">
-                                            <i class="fas fa-circle"></i>
-                                            <span>{{ texts.get('req_length', 'อย่างน้อย 8 ตัวอักษร' if current_lang ==
-                                                'th' else 'At least 8 characters') }}</span>
-                                        </li>
-                                        <li id="req-uppercase" class="requirement-item">
-                                            <i class="fas fa-circle"></i>
-                                            <span>{{ texts.get('req_uppercase', 'ตัวพิมพ์ใหญ่อย่างน้อย 1 ตัว (A-Z)' if
-                                                current_lang == 'th' else 'At least 1 uppercase letter (A-Z)') }}</span>
-                                        </li>
-                                        <li id="req-lowercase" class="requirement-item">
-                                            <i class="fas fa-circle"></i>
-                                            <span>{{ texts.get('req_lowercase', 'ตัวพิมพ์เล็กอย่างน้อย 1 ตัว (a-z)' if
-                                                current_lang == 'th' else 'At least 1 lowercase letter (a-z)') }}</span>
-                                        </li>
-                                        <li id="req-number" class="requirement-item">
-                                            <i class="fas fa-circle"></i>
-                                            <span>{{ texts.get('req_number', 'ตัวเลขอย่างน้อย 1 ตัว (0-9)' if
-                                                current_lang == 'th' else 'At least 1 number (0-9)') }}</span>
-                                        </li>
-                                        <li id="req-special" class="requirement-item">
-                                            <i class="fas fa-circle"></i>
-                                            <span>{{ texts.get('req_special', 'อักขระพิเศษอย่างน้อย 1 ตัว (@$!%*?&)' if
-                                                current_lang == 'th' else 'At least 1 special character (@$!%*?&)')
-                                                }}</span>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="column is-6">
-                            <div class="field">
-                                <label class="modern-label">
-                                    <i class="fas fa-lock field-icon"></i>
-                                    {{ texts.confirm_password_label }}*
-                                </label>
-                                <div class="control password-toggle-wrapper">
-                                    <input class="input modern-input" type="password" name="confirm_password"
-                                        id="confirm-password-input" required
-                                        placeholder="{{ texts.get('confirm_password_placeholder', 'พิมพ์รหัสผ่านอีกครั้ง' if current_lang == 'th' else 'Re-enter password') }}">
-                                    <i class="fas fa-eye password-toggle-icon" id="toggle-confirm-password"
-                                        title="{{ texts.get('show_password', 'แสดงรหัสผ่าน' if current_lang == 'th' else 'Show password') }}"></i>
-                                </div>
-                                <p class="help-text" id="password-match-message"></p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="divider" style="margin: 2.5rem 0;">
-                        <span>{{ texts.get('profile_info', 'ข้อมูลส่วนตัว' if current_lang ==
-                            'th' else 'Personal Information') }}</span>
-                    </div>
-
-                    <!-- Personal Information Section -->
-                    <div class="form-section">
-                        <div class="section-title">
-                            <i class="fas fa-id-card"></i>
-                            {{ texts.get('basic_info', 'ข้อมูลพื้นฐาน' if current_lang
-                            == 'th' else 'Basic Information') }}
-                        </div>
-
-                        <div class="columns">
-                            <div class="column is-4">
-                                <div class="field">
-                                    <label class="modern-label">{{
-                                        texts.get('member_type',
-                                        'ประเภทสมาชิก' if current_lang
-                                        == 'th' else 'Member Type')
-                                        }}</label>
-                                    <div class="control">
-                                        <div class="select is-fullwidth">
-                                            <select name="member_type_id" class="modern-input">
-                                                <option value="">
-                                                    {{
-                                                    texts.get('select_member_type',
-                                                    '--
-                                                    เลือกประเภท
-                                                    --'
-                                                    if
-                                                    current_lang
-                                                    ==
-                                                    'th'
-                                                    else
-                                                    '--
-                                                    Select
-                                                    Type
-                                                    --')
-                                                    }}
-                                                </option>
-                                                {% for
-                                                member_type
-                                                in
-                                                member_types
-                                                %}
-                                                <option value="{{ member_type.id }}">
-                                                    {{
-                                                    member_type.name_th
-                                                    if
-                                                    current_lang
-                                                    ==
-                                                    'th'
-                                                    else
-                                                    member_type.name_en
-                                                    }}
-                                                </option>
-                                                {% endfor
-                                                %}
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="column is-4">
-
-                            </div>
-                            <div class="column is-4">
-
-                            </div>
-                        </div>
-
-                        <div class="columns">
-                            <div class="column is-6">
-                                <div class="field">
-                                    <label class="modern-label">{{
-                                        texts.get('full_name_th',
-                                        'ชื่อ-นามสกุล (ภาษาไทย)' if
-                                        current_lang == 'th' else
-                                        'Full Name (Thai)') }}*</label>
-                                    <div class="control">
-                                        <input class="input modern-input" type="text" name="full_name_th"
-                                            id="full-name-th" value="{{ form_values.get('full_name_th', '') }}"
-                                            placeholder="{{ texts.get('full_name_th_placeholder', 'นายสมชาย ใจดี' if current_lang == 'th' else 'Thai full name') }}">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="column is-6">
-                                <div class="field">
-                                    <label class="modern-label">{{
-                                        texts.get('full_name_en',
-                                        'Full Name (English)')
-                                        }}*</label>
-                                    <div class="control">
-                                        <input class="input modern-input" type="text" name="full_name_en"
-                                            id="full-name-en" value="{{ form_values.get('full_name_en', '') }}"
-                                            placeholder="{{ texts.get('full_name_en_placeholder', 'John Doe') }}">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <p class="help-text" style="margin-top: -1rem; margin-bottom: 1rem; color: #667eea;">
-                            <i class="fas fa-info-circle"></i>
-                            {{ texts.get('name_requirement', 'กรุณากรอกชื่อภาษาไทย หรือ ภาษาอังกฤษ อย่างน้อย 1 ภาษา' if
-                            current_lang == 'th' else 'Please enter name in Thai or English (at least one required)') }}
-                        </p>
-
-                        <div class="columns">
-                            <div class="column is-6">
-                                <div class="field">
-                                    <label class="modern-label">
-                                        <i class="fas fa-venus-mars field-icon"></i>
-                                        {{ texts.get('gender', 'เพศ' if current_lang == 'th' else 'Gender') }}
-                                    </label>
-                                    <div class="control">
-                                        <div class="select is-fullwidth">
-                                            <select name="gender" class="modern-input">
-                                                <option value="">{{ texts.get('select_gender', '-- เลือกเพศ --' if
-                                                    current_lang == 'th' else '-- Select Gender --') }}</option>
-                                                <option value="male" {% if form_values.get('gender')=='male'
-                                                    %}selected{% endif %}>
-                                                    {{ texts.get('male', 'ชาย' if current_lang == 'th' else 'Male') }}
-                                                </option>
-                                                <option value="female" {% if form_values.get('gender')=='female'
-                                                    %}selected{% endif %}>
-                                                    {{ texts.get('female', 'หญิง' if current_lang == 'th' else 'Female')
-                                                    }}
-                                                </option>
-                                                <option value="other" {% if form_values.get('gender')=='other'
-                                                    %}selected{% endif %}>
-                                                    {{ texts.get('other', 'อื่นๆ' if current_lang == 'th' else 'Other')
-                                                    }}
-                                                </option>
-                                                <option value="prefer_not_to_say" {% if
-                                                    form_values.get('gender')=='prefer_not_to_say' %}selected{% endif
-                                                    %}>
-                                                    {{ texts.get('prefer_not_to_say', 'ไม่ระบุ' if current_lang == 'th'
-                                                    else 'Prefer not to say') }}
-                                                </option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="column is-6">
-                                <div class="field">
-                                    <label class="modern-label">
-                                        <i class="fas fa-birthday-cake field-icon"></i>
-                                        {{ texts.get('age_range', 'ช่วงอายุ' if current_lang == 'th' else 'Age Range')
-                                        }}
-                                    </label>
-                                    <div class="control">
-                                        <div class="select is-fullwidth">
-                                            <select name="age_range" class="modern-input">
-                                                <option value="">{{ texts.get('select_age_range', '-- เลือกช่วงอายุ --'
-                                                    if current_lang == 'th' else '-- Select Age Range --') }}</option>
-                                                <option value="under_20" {% if form_values.get('age_range')=='under_20'
-                                                    %}selected{% endif %}>
-                                                    {{ texts.get('under_20', 'ต่ำกว่า 20 ปี' if current_lang == 'th'
-                                                    else 'Under 20') }}
-                                                </option>
-                                                <option value="20-29" {% if form_values.get('age_range')=='20-29'
-                                                    %}selected{% endif %}>20-29 {{ texts.get('years', 'ปี' if
-                                                    current_lang == 'th' else 'years') }}</option>
-                                                <option value="30-39" {% if form_values.get('age_range')=='30-39'
-                                                    %}selected{% endif %}>30-39 {{ texts.get('years', 'ปี' if
-                                                    current_lang == 'th' else 'years') }}</option>
-                                                <option value="40-49" {% if form_values.get('age_range')=='40-49'
-                                                    %}selected{% endif %}>40-49 {{ texts.get('years', 'ปี' if
-                                                    current_lang == 'th' else 'years') }}</option>
-                                                <option value="50-59" {% if form_values.get('age_range')=='50-59'
-                                                    %}selected{% endif %}>50-59 {{ texts.get('years', 'ปี' if
-                                                    current_lang == 'th' else 'years') }}</option>
-                                                <option value="60_and_above" {% if
-                                                    form_values.get('age_range')=='60_and_above' %}selected{% endif %}>
-                                                    {{ texts.get('60_and_above', '60 ปีขึ้นไป' if current_lang == 'th'
-                                                    else '60 and above') }}
-                                                </option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
+                <div class="columns">
+                    <div class="column is-6">
                         <div class="field">
                             <label class="modern-label">
-                                <i class="fas fa-phone field-icon"></i>
-                                {{ texts.get('phone', 'เบอร์โทรศัพท์' if
-                                current_lang == 'th' else 'Phone Number') }}
+                                <i class="fas fa-user field-icon"></i>
+                                {{ texts.username_label }}*
                             </label>
                             <div class="control">
-                                <input class="input modern-input" type="tel" name="phone_no"
-                                    value="{{ form_values.get('phone_no', '') }}"
-                                    placeholder="{{ texts.get('phone_placeholder', '0812345678') }}">
+                                <input class="input modern-input" type="text" name="username" id="username-input"
+                                    value="{{ form_values.get('username', '') }}" required minlength="5"
+                                    pattern="^[a-zA-Z0-9_-]{5,}$"
+                                    placeholder="{{ texts.get('username_placeholder', 'เลือกชื่อผู้ใช้' if current_lang == 'th' else 'Choose a username') }}">
                             </div>
+                            <p class="help-text">
+                                {{ texts.get('username_help', 'ภาษาอังกฤษ ตัวเลข หรือ _ - อย่างน้อย 5 ตัวอักษร' if
+                                current_lang == 'th' else 'English letters, numbers, _ or - (minimum 5 characters)')
+                                }}
+                            </p>
                         </div>
                     </div>
-
-                    <!-- Organization Section -->
-                    <div class="form-section">
-                        <div class="section-title">
-                            <i class="fas fa-building"></i>
-                            {{ texts.organization_label }}
-                        </div>
-
-
-
-                        <div class="columns">
-                            <div class="column is-6">
-                                <div class="field">
-                                    <label class="modern-label">{{
-                                        texts.organization_type_label
-                                        }}</label>
-                                    <div class="control">
-                                        <div class="select is-fullwidth">
-                                            <select name="organization_type_id" id="organization-type-select"
-                                                class="modern-input">
-                                                <option value="">
-                                                    {{
-                                                    '--
-                                                    '
-                                                    ~
-                                                    texts.organization_type_label
-                                                    ~
-                                                    '
-                                                    --'
-                                                    }}
-                                                </option>
-                                                {% for
-                                                org_type
-                                                in
-                                                organization_types
-                                                %}
-                                                <option value="{{ org_type.id }}">
-                                                    {{
-                                                    org_type.name_th
-                                                    if
-                                                    current_lang
-                                                    ==
-                                                    'th'
-                                                    else
-                                                    org_type.name_en
-                                                    }}
-                                                </option>
-                                                {% endfor
-                                                %}
-                                                <option value="other">
-                                                    {{
-                                                    texts.address_type_other
-                                                    }}
-                                                </option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="column is-6" id="organization-type-other-field" style="display:none;">
-                                <div class="field">
-                                    <label class="modern-label">{{
-                                        texts.organization_type_other_placeholder
-                                        }}</label>
-                                    <div class="control">
-                                        <input class="input modern-input" type="text" name="organization_type_other"
-                                            value="{{ form_values.get('organization_type_other', '') }}"
-                                            id="organization-type-other-input">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
+                    <div class="column is-6">
                         <div class="field">
-                            <label class="modern-label">{{ texts.organization_label
-                                }}*</label>
+                            <label class="modern-label">
+                                <i class="fas fa-envelope field-icon"></i>
+                                {{ texts.email_label }}*
+                            </label>
                             <div class="control">
-                                <input class="input modern-input" type="text" name="organization_name"
-                                    id="organization-name" list="organization-name-options"
-                                    value="{{ form_values.get('organization_name', '') }}"
-                                    placeholder="{{ texts.organization_placeholder }}" required>
-                                <datalist id="organization-name-options">
-                                    {% for org in organizations %}
-                                    <option value="{{ org.name }}"></option>
-                                    {% endfor %}
-                                </datalist>
-                            </div>
-                        </div>
-
-                        <div class="columns">
-                            <div class="column is-6">
-                                <div class="field">
-                                    <label class="modern-label">{{
-                                        texts.occupation_label
-                                        }}*</label>
-                                    <div class="control">
-                                        <div class="select is-fullwidth">
-                                            <select name="occupation_id" id="occupation-select" class="modern-input"
-                                                required>
-                                                <option value="">
-                                                    {{
-                                                    '--
-                                                    '
-                                                    ~
-                                                    texts.occupation_label
-                                                    ~
-                                                    '
-                                                    --'
-                                                    }}
-                                                </option>
-                                                {% for
-                                                occupation
-                                                in
-                                                occupations
-                                                %}
-                                                <option value="{{ occupation.id }}">
-                                                    {{
-                                                    occupation.name_th
-                                                    if
-                                                    current_lang
-                                                    ==
-                                                    'th'
-                                                    else
-                                                    occupation.name_en
-                                                    }}
-                                                </option>
-                                                {% endfor
-                                                %}
-                                                <option value="other">
-                                                    {{
-                                                    texts.address_type_other
-                                                    }}
-                                                </option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="column is-6" id="occupation-other-field" style="display:none;">
-                                <div class="field">
-                                    <label class="modern-label">{{
-                                        texts.occupation_other_placeholder
-                                        }}</label>
-                                    <div class="control">
-                                        <input class="input modern-input" type="text" name="occupation_other"
-                                            value="{{ form_values.get('occupation_other', '') }}"
-                                            id="occupation-other-input">
-                                    </div>
-                                </div>
+                                <input class="input modern-input" type="email" name="email"
+                                    value="{{ form_values.get('email', '') }}" required
+                                    placeholder="{{ texts.get('email_placeholder', 'อีเมลของคุณ' if current_lang == 'th' else 'your@email.com') }}">
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Address Section -->
-                    <div class="form-section">
-                        <div class="section-title">
-                            <i class="fas fa-map-marker-alt"></i>
-                            {{ texts.get('address_info', 'ที่อยู่' if current_lang ==
-                            'th' else 'Address Information') }}*
-                            <span
-                                style="font-size: 0.875rem; font-weight: normal; margin-left: 0.5rem; color: #7a7a7a;">
-                                ({{ texts.get('at_least_one', 'อย่างน้อย 1 ที่อยู่' if current_lang == 'th' else 'At
-                                least 1 address required') }})
-                            </span>
-                            <button type="button" class="button is-small is-info ml-auto" id="add-address-button">
-                                <i class="fas fa-plus"></i> {{
-                                texts.address_add_button }}
-                            </button>
+                <div class="columns">
+                    <div class="column is-6">
+                        <div class="field">
+                            <label class="modern-label">
+                                <i class="fas fa-lock field-icon"></i>
+                                {{ texts.password_label }}*
+                            </label>
+                            <div class="control password-toggle-wrapper">
+                                <input class="input modern-input" type="password" name="password" id="password-input"
+                                    required minlength="8"
+                                    pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
+                                    placeholder="{{ texts.get('password_placeholder', 'อย่างน้อย 8 ตัวอักษร' if current_lang == 'th' else 'At least 8 characters') }}">
+                                <i class="fas fa-eye password-toggle-icon" id="toggle-password"
+                                    title="{{ texts.get('show_password', 'แสดงรหัสผ่าน' if current_lang == 'th' else 'Show password') }}"></i>
+                            </div>
+                            <!-- Password Strength Indicator -->
+                            <div class="password-strength-container">
+                                <div class="password-strength-bar">
+                                    <div class="password-strength-fill" id="password-strength-fill"></div>
+                                </div>
+                                <p class="password-strength-text" id="password-strength-text"></p>
+                            </div>
+                            <!-- Password Requirements -->
+                            <div class="password-requirements">
+                                <p style="font-weight: 600; color: #667eea; margin-bottom: 0.5rem;">
+                                    {{ texts.get('password_requirements', 'รหัสผ่านต้องมี:' if current_lang == 'th'
+                                    else 'Password must have:') }}
+                                </p>
+                                <ul>
+                                    <li id="req-length" class="requirement-item">
+                                        <i class="fas fa-circle"></i>
+                                        <span>{{ texts.get('req_length', 'อย่างน้อย 8 ตัวอักษร' if current_lang ==
+                                            'th' else 'At least 8 characters') }}</span>
+                                    </li>
+                                    <li id="req-uppercase" class="requirement-item">
+                                        <i class="fas fa-circle"></i>
+                                        <span>{{ texts.get('req_uppercase', 'ตัวพิมพ์ใหญ่อย่างน้อย 1 ตัว (A-Z)' if
+                                            current_lang == 'th' else 'At least 1 uppercase letter (A-Z)') }}</span>
+                                    </li>
+                                    <li id="req-lowercase" class="requirement-item">
+                                        <i class="fas fa-circle"></i>
+                                        <span>{{ texts.get('req_lowercase', 'ตัวพิมพ์เล็กอย่างน้อย 1 ตัว (a-z)' if
+                                            current_lang == 'th' else 'At least 1 lowercase letter (a-z)') }}</span>
+                                    </li>
+                                    <li id="req-number" class="requirement-item">
+                                        <i class="fas fa-circle"></i>
+                                        <span>{{ texts.get('req_number', 'ตัวเลขอย่างน้อย 1 ตัว (0-9)' if
+                                            current_lang == 'th' else 'At least 1 number (0-9)') }}</span>
+                                    </li>
+                                    <li id="req-special" class="requirement-item">
+                                        <i class="fas fa-circle"></i>
+                                        <span>{{ texts.get('req_special', 'อักขระพิเศษอย่างน้อย 1 ตัว (@$!%*?&)' if
+                                            current_lang == 'th' else 'At least 1 special character (@$!%*?&)')
+                                            }}</span>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
+                    </div>
+                    <div class="column is-6">
+                        <div class="field">
+                            <label class="modern-label">
+                                <i class="fas fa-lock field-icon"></i>
+                                {{ texts.confirm_password_label }}*
+                            </label>
+                            <div class="control password-toggle-wrapper">
+                                <input class="input modern-input" type="password" name="confirm_password"
+                                    id="confirm-password-input" required
+                                    placeholder="{{ texts.get('confirm_password_placeholder', 'พิมพ์รหัสผ่านอีกครั้ง' if current_lang == 'th' else 'Re-enter password') }}">
+                                <i class="fas fa-eye password-toggle-icon" id="toggle-confirm-password"
+                                    title="{{ texts.get('show_password', 'แสดงรหัสผ่าน' if current_lang == 'th' else 'Show password') }}"></i>
+                            </div>
+                            <p class="help-text" id="password-match-message"></p>
+                        </div>
+                    </div>
+                </div>
 
-                        <div id="addresses-container">
-                            {% if address_entries %}
-                            {% for entry in address_entries %}
-                            <div class="address-entry" data-index="{{ loop.index }}">
-                                <div class="address-entry-header">
-                                    <strong class="address-number">{{ texts.get('address',
-                                        'ที่อยู่' if current_lang ==
-                                        'th' else 'Address') }} #{{
-                                        loop.index }}</strong>
-                                    <div>
-                                        <button type="button" class="button is-small is-warning is-light clear-address"
-                                            title="{{ texts.get('clear_address', 'เคลียร์ที่อยู่' if current_lang == 'th' else 'Clear Address') }}">
-                                            <i class="fas fa-eraser"></i>
-                                        </button>
-                                        <button type="button" class="button is-small is-danger is-light remove-address">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                <!-- Address Name Field -->
-                                <div class="field">
-                                    <label class="modern-label">
-                                        <i class="fas fa-tag field-icon"></i>
-                                        {{ texts.get('address_name_label', 'ชื่อที่อยู่' if current_lang == 'th' else
-                                        'Address Name') }}
-                                    </label>
-                                    <input class="input modern-input" type="text" name="address_name[]"
-                                        value="{{ entry.label or '' }}"
-                                        placeholder="{{ texts.get('address_name_placeholder', 'เช่น บ้าน, ที่ทำงาน' if current_lang == 'th' else 'e.g., Home, Work') }}">
-                                </div>
-                                <!-- Thai Address Autocomplete Fields -->
-                                <div class="columns">
-                                    <div class="column is-6">
-                                        <div class="field thai-address-field">
-                                            <label class="modern-label">
-                                                <i class="fas fa-map-marker-alt field-icon"></i>
-                                                {{ texts.get('subdistrict_label', 'ตำบล/แขวง' if current_lang == 'th'
-                                                else 'Subdistrict') }}
-                                            </label>
-                                            <div class="control has-icons-right thai-address-input-wrapper">
-                                                <input class="input modern-input thai-address-input" type="text"
-                                                    name="address_subdistrict[]" data-field="d"
-                                                    value="{{ entry.get('subdistrict', '') }}"
-                                                    placeholder="{{ texts.get('subdistrict_placeholder', 'พิมพ์เพื่อค้นหา' if current_lang == 'th' else 'Type to search') }}"
-                                                    autocomplete="off">
-                                                <span class="icon is-small is-right">
-                                                    <i class="fas fa-search"></i>
-                                                </span>
-                                            </div>
-                                            <div class="thai-address-suggestions"></div>
-                                        </div>
-                                    </div>
-                                    <div class="column is-6">
-                                        <div class="field thai-address-field">
-                                            <label class="modern-label">
-                                                <i class="fas fa-map field-icon"></i>
-                                                {{ texts.get('district_label', 'อำเภอ/เขต' if current_lang == 'th' else
-                                                'District') }}
-                                            </label>
-                                            <div class="control has-icons-right thai-address-input-wrapper">
-                                                <input class="input modern-input thai-address-input" type="text"
-                                                    name="address_district[]" data-field="a"
-                                                    value="{{ entry.get('district', '') }}"
-                                                    placeholder="{{ texts.get('district_placeholder', 'พิมพ์เพื่อค้นหา' if current_lang == 'th' else 'Type to search') }}"
-                                                    autocomplete="off">
-                                                <span class="icon is-small is-right">
-                                                    <i class="fas fa-search"></i>
-                                                </span>
-                                            </div>
-                                            <div class="thai-address-suggestions"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="columns">
-                                    <div class="column is-6">
-                                        <div class="field thai-address-field">
-                                            <label class="modern-label">
-                                                <i class="fas fa-globe-asia field-icon"></i>
-                                                {{ texts.get('province_label', 'จังหวัด' if current_lang == 'th' else
-                                                'Province') }}
-                                            </label>
-                                            <div class="control has-icons-right thai-address-input-wrapper">
-                                                <input class="input modern-input thai-address-input" type="text"
-                                                    name="address_province[]" data-field="p"
-                                                    value="{{ entry.get('province', entry.province if entry.province else '') }}"
-                                                    placeholder="{{ texts.get('province_placeholder', 'พิมพ์เพื่อค้นหา' if current_lang == 'th' else 'Type to search') }}"
-                                                    autocomplete="off">
-                                                <span class="icon is-small is-right">
-                                                    <i class="fas fa-search"></i>
-                                                </span>
-                                            </div>
-                                            <div class="thai-address-suggestions"></div>
-                                        </div>
-                                    </div>
-                                    <div class="column is-6">
-                                        <div class="field thai-address-field">
-                                            <label class="modern-label">
-                                                <i class="fas fa-mail-bulk field-icon"></i>
-                                                {{ texts.get('zipcode_label', 'รหัสไปรษณีย์' if current_lang == 'th'
-                                                else 'Postal Code') }}
-                                            </label>
-                                            <div class="control has-icons-right thai-address-input-wrapper">
-                                                <input class="input modern-input thai-address-input" type="text"
-                                                    name="address_zipcode[]" data-field="z"
-                                                    value="{{ entry.get('zipcode', entry.zipcode if entry.zipcode else '') }}"
-                                                    placeholder="{{ texts.get('zipcode_placeholder', 'พิมพ์เพื่อค้นหา' if current_lang == 'th' else 'Type to search') }}"
-                                                    autocomplete="off">
-                                                <span class="icon is-small is-right">
-                                                    <i class="fas fa-search"></i>
-                                                </span>
-                                            </div>
-                                            <div class="thai-address-suggestions"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Address Line 1 (optional) -->
-                                <div class="columns">
-                                    <div class="column is-12">
-                                        <div class="field">
-                                            <label class="modern-label">
-                                                <i class="fas fa-home field-icon"></i>
-                                                {{ texts.get('address_line1_label', 'ที่อยู่' if current_lang == 'th'
-                                                else 'Address Line 1') }}
-                                            </label>
-                                            <input class="input modern-input" type="text" name="address_line1[]"
-                                                value="{{ entry.get('line1', entry.line1 if entry.line1 else '') }}"
-                                                placeholder="{{ texts.get('address_line1_placeholder', 'บ้านเลขที่ ซอย ถนน' if current_lang == 'th' else 'House number, Soi, Street') }}">
-                                        </div>
+                <div class="divider" style="margin: 2.5rem 0;">
+                    <span>{{ texts.get('profile_info', 'ข้อมูลส่วนตัว' if current_lang ==
+                        'th' else 'Personal Information') }}</span>
+                </div>
+
+                <!-- Personal Information Section -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <i class="fas fa-id-card"></i>
+                        {{ texts.get('basic_info', 'ข้อมูลพื้นฐาน' if current_lang
+                        == 'th' else 'Basic Information') }}
+                    </div>
+
+                    <div class="columns">
+                        <div class="column is-4">
+                            <div class="field">
+                                <label class="modern-label">{{
+                                    texts.get('member_type',
+                                    'ประเภทสมาชิก' if current_lang
+                                    == 'th' else 'Member Type')
+                                    }}</label>
+                                <div class="control">
+                                    <div class="select is-fullwidth">
+                                        <select name="member_type_id" class="modern-input">
+                                            <option value="">
+                                                {{
+                                                texts.get('select_member_type',
+                                                '--
+                                                เลือกประเภท
+                                                --'
+                                                if
+                                                current_lang
+                                                ==
+                                                'th'
+                                                else
+                                                '--
+                                                Select
+                                                Type
+                                                --')
+                                                }}
+                                            </option>
+                                            {% for
+                                            member_type
+                                            in
+                                            member_types
+                                            %}
+                                            <option value="{{ member_type.id }}">
+                                                {{
+                                                member_type.name_th
+                                                if
+                                                current_lang
+                                                ==
+                                                'th'
+                                                else
+                                                member_type.name_en
+                                                }}
+                                            </option>
+                                            {% endfor
+                                            %}
+                                        </select>
                                     </div>
                                 </div>
                             </div>
-                            {% endfor %}
-                            {% endif %}
                         </div>
+                        <div class="column is-4">
 
-                        <!-- Thai Provinces Datalist -->
-                        <datalist id="thai-provinces-list">
-                            <option value="กรุงเทพมหานคร">กรุงเทพมหานคร (Bangkok)</option>
-                            <option value="กระบี่">กระบี่ (Krabi)</option>
-                            <option value="กาญจนบุรี">กาญจนบุรี (Kanchanaburi)</option>
-                            <option value="กาฬสินธุ์">กาฬสินธุ์ (Kalasin)</option>
-                            <option value="กำแพงเพชร">กำแพงเพชร (Kamphaeng Phet)</option>
-                            <option value="ขอนแก่น">ขอนแก่น (Khon Kaen)</option>
-                            <option value="จันทบุรี">จันทบุรี (Chanthaburi)</option>
-                            <option value="ฉะเชิงเทรา">ฉะเชิงเทรา (Chachoengsao)</option>
-                            <option value="ชลบุรี">ชลบุรี (Chonburi)</option>
-                            <option value="ชัยนาท">ชัยนาท (Chai Nat)</option>
-                            <option value="ชัยภูมิ">ชัยภูมิ (Chaiyaphum)</option>
-                            <option value="ชุมพร">ชุมพร (Chumphon)</option>
-                            <option value="เชียงราย">เชียงราย (Chiang Rai)</option>
-                            <option value="เชียงใหม่">เชียงใหม่ (Chiang Mai)</option>
-                            <option value="ตรัง">ตรัง (Trang)</option>
-                            <option value="ตราด">ตราด (Trat)</option>
-                            <option value="ตาก">ตาก (Tak)</option>
-                            <option value="นครนายก">นครนายก (Nakhon Nayok)</option>
-                            <option value="นครปฐม">นครปฐม (Nakhon Pathom)</option>
-                            <option value="นครพนม">นครพนม (Nakhon Phanom)</option>
-                            <option value="นครราชสีมา">นครราชสีมา (Nakhon Ratchasima)</option>
-                            <option value="นครศรีธรรมราช">นครศรีธรรมราช (Nakhon Si Thammarat)</option>
-                            <option value="นครสวรรค์">นครสวรรค์ (Nakhon Sawan)</option>
-                            <option value="นนทบุรี">นนทบุรี (Nonthaburi)</option>
-                            <option value="นราธิวาส">นราธิวาส (Narathiwat)</option>
-                            <option value="น่าน">น่าน (Nan)</option>
-                            <option value="บึงกาฬ">บึงกาฬ (Bueng Kan)</option>
-                            <option value="บุรีรัมย์">บุรีรัมย์ (Buriram)</option>
-                            <option value="ปทุมธานี">ปทุมธานี (Pathum Thani)</option>
-                            <option value="ประจวบคีรีขันธ์">ประจวบคีรีขันธ์ (Prachuap Khiri Khan)</option>
-                            <option value="ปราจีนบุรี">ปราจีนบุรี (Prachin Buri)</option>
-                            <option value="ปัตตานี">ปัตตานี (Pattani)</option>
-                            <option value="พระนครศรีอยุธยา">พระนครศรีอยุธยา (Phra Nakhon Si Ayutthaya)</option>
-                            <option value="พะเยา">พะเยา (Phayao)</option>
-                            <option value="พังงา">พังงา (Phang Nga)</option>
-                            <option value="พัทลุง">พัทลุง (Phatthalung)</option>
-                            <option value="พิจิตร">พิจิตร (Phichit)</option>
-                            <option value="พิษณุโลก">พิษณุโลก (Phitsanulok)</option>
-                            <option value="เพชรบุรี">เพชรบุรี (Phetchaburi)</option>
-                            <option value="เพชรบูรณ์">เพชรบูรณ์ (Phetchabun)</option>
-                            <option value="แพร่">แพร่ (Phrae)</option>
-                            <option value="ภูเก็ต">ภูเก็ต (Phuket)</option>
-                            <option value="มหาสารคาม">มหาสารคาม (Maha Sarakham)</option>
-                            <option value="มุกดาหาร">มุกดาหาร (Mukdahan)</option>
-                            <option value="แม่ฮ่องสอน">แม่ฮ่องสอน (Mae Hong Son)</option>
-                            <option value="ยโสธร">ยโสธร (Yasothon)</option>
-                            <option value="ยะลา">ยะลา (Yala)</option>
-                            <option value="ร้อยเอ็ด">ร้อยเอ็ด (Roi Et)</option>
-                            <option value="ระนอง">ระนอง (Ranong)</option>
-                            <option value="ระยอง">ระยอง (Rayong)</option>
-                            <option value="ราชบุรี">ราชบุรี (Ratchaburi)</option>
-                            <option value="ลพบุรี">ลพบุรี (Lopburi)</option>
-                            <option value="ลำปาง">ลำปาง (Lampang)</option>
-                            <option value="ลำพูน">ลำพูน (Lamphun)</option>
-                            <option value="เลย">เลย (Loei)</option>
-                            <option value="ศรีสะเกษ">ศรีสะเกษ (Sisaket)</option>
-                            <option value="สกลนคร">สกลนคร (Sakon Nakhon)</option>
-                            <option value="สงขลา">สงขลา (Songkhla)</option>
-                            <option value="สตูล">สตูล (Satun)</option>
-                            <option value="สมุทรปราการ">สมุทรปราการ (Samut Prakan)</option>
-                            <option value="สมุทรสงคราม">สมุทรสงคราม (Samut Songkhram)</option>
-                            <option value="สมุทรสาคร">สมุทรสาคร (Samut Sakhon)</option>
-                            <option value="สระแก้ว">สระแก้ว (Sa Kaeo)</option>
-                            <option value="สระบุรี">สระบุรี (Saraburi)</option>
-                            <option value="สิงห์บุรี">สิงห์บุรี (Sing Buri)</option>
-                            <option value="สุโขทัย">สุโขทัย (Sukhothai)</option>
-                            <option value="สุพรรณบุรี">สุพรรณบุรี (Suphan Buri)</option>
-                            <option value="สุราษฎร์ธานี">สุราษฎร์ธานี (Surat Thani)</option>
-                            <option value="สุรินทร์">สุรินทร์ (Surin)</option>
-                            <option value="หนองคาย">หนองคาย (Nong Khai)</option>
-                            <option value="หนองบัวลำภู">หนองบัวลำภู (Nong Bua Lam Phu)</option>
-                            <option value="อ่างทอง">อ่างทอง (Ang Thong)</option>
-                            <option value="อำนาจเจริญ">อำนาจเจริญ (Amnat Charoen)</option>
-                            <option value="อุดรธานี">อุดรธานี (Udon Thani)</option>
-                            <option value="อุตรดิตถ์">อุตรดิตถ์ (Uttaradit)</option>
-                            <option value="อุทัยธานี">อุทัยธานี (Uthai Thani)</option>
-                            <option value="อุบลราชธานี">อุบลราชธานี (Ubon Ratchathani)</option>
-                        </datalist>
+                        </div>
+                        <div class="column is-4">
+
+                        </div>
                     </div>
 
-                    <div class="divider" style="margin: 2.5rem 0;">
-                        <span>{{ texts.get('terms_section', 'เงื่อนไขและข้อตกลง' if
-                            current_lang == 'th' else 'Terms & Conditions') }}</span>
+                    <div class="columns">
+                        <div class="column is-6">
+                            <div class="field">
+                                <label class="modern-label">{{
+                                    texts.get('full_name_th',
+                                    'ชื่อ-นามสกุล (ภาษาไทย)' if
+                                    current_lang == 'th' else
+                                    'Full Name (Thai)') }}*</label>
+                                <div class="control">
+                                    <input class="input modern-input" type="text" name="full_name_th" id="full-name-th"
+                                        value="{{ form_values.get('full_name_th', '') }}"
+                                        placeholder="{{ texts.get('full_name_th_placeholder', 'นายสมชาย ใจดี' if current_lang == 'th' else 'Thai full name') }}">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="column is-6">
+                            <div class="field">
+                                <label class="modern-label">{{
+                                    texts.get('full_name_en',
+                                    'Full Name (English)')
+                                    }}*</label>
+                                <div class="control">
+                                    <input class="input modern-input" type="text" name="full_name_en" id="full-name-en"
+                                        value="{{ form_values.get('full_name_en', '') }}"
+                                        placeholder="{{ texts.get('full_name_en_placeholder', 'John Doe') }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="help-text" style="margin-top: -1rem; margin-bottom: 1rem; color: #667eea;">
+                        <i class="fas fa-info-circle"></i>
+                        {{ texts.get('name_requirement', 'กรุณากรอกชื่อภาษาไทย หรือ ภาษาอังกฤษ อย่างน้อย 1 ภาษา' if
+                        current_lang == 'th' else 'Please enter name in Thai or English (at least one required)') }}
+                    </p>
+
+                    <div class="columns">
+                        <div class="column is-6">
+                            <div class="field">
+                                <label class="modern-label">
+                                    <i class="fas fa-venus-mars field-icon"></i>
+                                    {{ texts.get('gender', 'เพศ' if current_lang == 'th' else 'Gender') }}
+                                </label>
+                                <div class="control">
+                                    <div class="select is-fullwidth">
+                                        <select name="gender" class="modern-input">
+                                            <option value="">{{ texts.get('select_gender', '-- เลือกเพศ --' if
+                                                current_lang == 'th' else '-- Select Gender --') }}</option>
+                                            <option value="male" {% if form_values.get('gender')=='male' %}selected{%
+                                                endif %}>
+                                                {{ texts.get('male', 'ชาย' if current_lang == 'th' else 'Male') }}
+                                            </option>
+                                            <option value="female" {% if form_values.get('gender')=='female'
+                                                %}selected{% endif %}>
+                                                {{ texts.get('female', 'หญิง' if current_lang == 'th' else 'Female')
+                                                }}
+                                            </option>
+                                            <option value="other" {% if form_values.get('gender')=='other' %}selected{%
+                                                endif %}>
+                                                {{ texts.get('other', 'อื่นๆ' if current_lang == 'th' else 'Other')
+                                                }}
+                                            </option>
+                                            <option value="prefer_not_to_say" {% if
+                                                form_values.get('gender')=='prefer_not_to_say' %}selected{% endif %}>
+                                                {{ texts.get('prefer_not_to_say', 'ไม่ระบุ' if current_lang == 'th'
+                                                else 'Prefer not to say') }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="column is-6">
+                            <div class="field">
+                                <label class="modern-label">
+                                    <i class="fas fa-birthday-cake field-icon"></i>
+                                    {{ texts.get('age_range', 'ช่วงอายุ' if current_lang == 'th' else 'Age Range')
+                                    }}
+                                </label>
+                                <div class="control">
+                                    <div class="select is-fullwidth">
+                                        <select name="age_range" class="modern-input">
+                                            <option value="">{{ texts.get('select_age_range', '-- เลือกช่วงอายุ --'
+                                                if current_lang == 'th' else '-- Select Age Range --') }}</option>
+                                            <option value="under_20" {% if form_values.get('age_range')=='under_20'
+                                                %}selected{% endif %}>
+                                                {{ texts.get('under_20', 'ต่ำกว่า 20 ปี' if current_lang == 'th'
+                                                else 'Under 20') }}
+                                            </option>
+                                            <option value="20-29" {% if form_values.get('age_range')=='20-29'
+                                                %}selected{% endif %}>20-29 {{ texts.get('years', 'ปี' if
+                                                current_lang == 'th' else 'years') }}</option>
+                                            <option value="30-39" {% if form_values.get('age_range')=='30-39'
+                                                %}selected{% endif %}>30-39 {{ texts.get('years', 'ปี' if
+                                                current_lang == 'th' else 'years') }}</option>
+                                            <option value="40-49" {% if form_values.get('age_range')=='40-49'
+                                                %}selected{% endif %}>40-49 {{ texts.get('years', 'ปี' if
+                                                current_lang == 'th' else 'years') }}</option>
+                                            <option value="50-59" {% if form_values.get('age_range')=='50-59'
+                                                %}selected{% endif %}>50-59 {{ texts.get('years', 'ปี' if
+                                                current_lang == 'th' else 'years') }}</option>
+                                            <option value="60_and_above" {% if
+                                                form_values.get('age_range')=='60_and_above' %}selected{% endif %}>
+                                                {{ texts.get('60_and_above', '60 ปีขึ้นไป' if current_lang == 'th'
+                                                else '60 and above') }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Terms and Conditions -->
-                    <div class="modern-checkbox mb-3">
-                        <label class="checkbox">
-                            <input type="checkbox" name="accept_privacy" required>
-                            {{ texts.i_accept }} <a href="#" target="_blank"
-                                style="color: #667eea; font-weight: 600;">{{
-                                texts.accept_policy }}</a>
-                        </label>
-                    </div>
-
-                    <div class="modern-checkbox mb-3">
-                        <label class="checkbox">
-                            <input type="checkbox" name="accept_terms" required>
-                            {{ texts.i_accept }} <a href="#" target="_blank"
-                                style="color: #667eea; font-weight: 600;">{{
-                                texts.accept_terms }}</a>
-                        </label>
-                    </div>
-
-                    <div class="modern-checkbox mb-3">
-                        <label class="checkbox">
-                            <input type="checkbox" name="accept_news">
-                            {{ texts.receive_news }}
-                        </label>
-                    </div>
-
-                    <!-- Bot Protection -->
-                    <div class="field mb-5">
+                    <div class="field">
                         <label class="modern-label">
-                            <i class="fas fa-shield-alt field-icon"></i>
-                            {{ texts.not_a_bot_label }}*
+                            <i class="fas fa-phone field-icon"></i>
+                            {{ texts.get('phone', 'เบอร์โทรศัพท์' if
+                            current_lang == 'th' else 'Phone Number') }}
                         </label>
                         <div class="control">
-                            <input class="input modern-input" type="text" name="not_bot"
-                                value="{{ form_values.get('not_bot', '') }}" required
-                                placeholder="พิมพ์คำว่า 'มนุษย์' / Type 'human'">
+                            <input class="input modern-input" type="tel" name="phone_no"
+                                value="{{ form_values.get('phone_no', '') }}"
+                                placeholder="{{ texts.get('phone_placeholder', '0812345678') }}">
                         </div>
-                        <p class="help-text">{{ texts.get('bot_help',
-                            'ป้องกันการลงทะเบียนอัตโนมัติ' if current_lang == 'th' else
-                            'Prevent automated registration') }}</p>
+                    </div>
+                </div>
+
+                <!-- Organization Section -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <i class="fas fa-building"></i>
+                        {{ texts.organization_label }}
                     </div>
 
-                    <!-- Submit Button -->
-                    <div class="field has-text-centered mt-6">
-                        <button class="btn-primary" type="submit">
-                            <i class="fas fa-user-plus"></i>
-                            <span>{{ texts.register_btn }}</span>
+
+
+                    <div class="columns">
+                        <div class="column is-6">
+                            <div class="field">
+                                <label class="modern-label">{{
+                                    texts.organization_type_label
+                                    }}</label>
+                                <div class="control">
+                                    <div class="select is-fullwidth">
+                                        <select name="organization_type_id" id="organization-type-select"
+                                            class="modern-input">
+                                            <option value="">
+                                                {{
+                                                '--
+                                                '
+                                                ~
+                                                texts.organization_type_label
+                                                ~
+                                                '
+                                                --'
+                                                }}
+                                            </option>
+                                            {% for
+                                            org_type
+                                            in
+                                            organization_types
+                                            %}
+                                            <option value="{{ org_type.id }}">
+                                                {{
+                                                org_type.name_th
+                                                if
+                                                current_lang
+                                                ==
+                                                'th'
+                                                else
+                                                org_type.name_en
+                                                }}
+                                            </option>
+                                            {% endfor
+                                            %}
+                                            <option value="other">
+                                                {{
+                                                texts.address_type_other
+                                                }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="column is-6" id="organization-type-other-field" style="display:none;">
+                            <div class="field">
+                                <label class="modern-label">{{
+                                    texts.organization_type_other_placeholder
+                                    }}</label>
+                                <div class="control">
+                                    <input class="input modern-input" type="text" name="organization_type_other"
+                                        value="{{ form_values.get('organization_type_other', '') }}"
+                                        id="organization-type-other-input">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="modern-label">{{ texts.organization_label
+                            }}*</label>
+                        <div class="control">
+                            <input class="input modern-input" type="text" name="organization_name"
+                                id="organization-name" list="organization-name-options"
+                                value="{{ form_values.get('organization_name', '') }}"
+                                placeholder="{{ texts.organization_placeholder }}" required>
+                            <datalist id="organization-name-options">
+                                {% for org in organizations %}
+                                <option value="{{ org.name }}"></option>
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                    </div>
+
+                    <div class="columns">
+                        <div class="column is-6">
+                            <div class="field">
+                                <label class="modern-label">{{
+                                    texts.occupation_label
+                                    }}*</label>
+                                <div class="control">
+                                    <div class="select is-fullwidth">
+                                        <select name="occupation_id" id="occupation-select" class="modern-input"
+                                            required>
+                                            <option value="">
+                                                {{
+                                                '--
+                                                '
+                                                ~
+                                                texts.occupation_label
+                                                ~
+                                                '
+                                                --'
+                                                }}
+                                            </option>
+                                            {% for
+                                            occupation
+                                            in
+                                            occupations
+                                            %}
+                                            <option value="{{ occupation.id }}">
+                                                {{
+                                                occupation.name_th
+                                                if
+                                                current_lang
+                                                ==
+                                                'th'
+                                                else
+                                                occupation.name_en
+                                                }}
+                                            </option>
+                                            {% endfor
+                                            %}
+                                            <option value="other">
+                                                {{
+                                                texts.address_type_other
+                                                }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="column is-6" id="occupation-other-field" style="display:none;">
+                            <div class="field">
+                                <label class="modern-label">{{
+                                    texts.occupation_other_placeholder
+                                    }}</label>
+                                <div class="control">
+                                    <input class="input modern-input" type="text" name="occupation_other"
+                                        value="{{ form_values.get('occupation_other', '') }}"
+                                        id="occupation-other-input">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Address Section -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <i class="fas fa-map-marker-alt"></i>
+                        {{ texts.get('address_info', 'ที่อยู่' if current_lang ==
+                        'th' else 'Address Information') }}*
+                        <span style="font-size: 0.875rem; font-weight: normal; margin-left: 0.5rem; color: #7a7a7a;">
+                            ({{ texts.get('at_least_one', 'อย่างน้อย 1 ที่อยู่' if current_lang == 'th' else 'At
+                            least 1 address required') }})
+                        </span>
+                        <button type="button" class="button is-small is-info ml-auto" id="add-address-button">
+                            <i class="fas fa-plus"></i> {{
+                            texts.address_add_button }}
                         </button>
                     </div>
-                </form>
 
-                <div class="has-text-centered mt-5">
-                    <p class="has-text-grey">
-                        {{ texts.get('already_have_account', 'มีบัญชีอยู่แล้ว?' if
-                        current_lang == 'th' else 'Already have an account?') }}
-                        <a href="{{ url_for('continuing_edu.login', lang=current_lang) }}"
-                            style="color: #667eea; font-weight: 600;">
-                            {{ texts.get('login_here', 'เข้าสู่ระบบที่นี่' if
-                            current_lang == 'th' else 'Login here') }}
-                        </a>
-                    </p>
+                    <div id="addresses-container">
+                        {% if address_entries %}
+                        {% for entry in address_entries %}
+                        <div class="address-entry" data-index="{{ loop.index }}">
+                            <div class="address-entry-header">
+                                <strong class="address-number">{{ texts.get('address',
+                                    'ที่อยู่' if current_lang ==
+                                    'th' else 'Address') }} #{{
+                                    loop.index }}</strong>
+                                <div>
+                                    <button type="button" class="button is-small is-warning is-light clear-address"
+                                        title="{{ texts.get('clear_address', 'เคลียร์ที่อยู่' if current_lang == 'th' else 'Clear Address') }}">
+                                        <i class="fas fa-eraser"></i>
+                                    </button>
+                                    <button type="button" class="button is-small is-danger is-light remove-address">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- Address Name Field -->
+                            <div class="field">
+                                <label class="modern-label">
+                                    <i class="fas fa-tag field-icon"></i>
+                                    {{ texts.get('address_name_label', 'ชื่อที่อยู่' if current_lang == 'th' else
+                                    'Address Name') }}
+                                </label>
+                                <input class="input modern-input" type="text" name="address_name[]"
+                                    value="{{ entry.label or '' }}"
+                                    placeholder="{{ texts.get('address_name_placeholder', 'เช่น บ้าน, ที่ทำงาน' if current_lang == 'th' else 'e.g., Home, Work') }}">
+                            </div>
+                            <!-- Thai Address Autocomplete Fields -->
+                            <div class="columns">
+                                <div class="column is-6">
+                                    <div class="field thai-address-field">
+                                        <label class="modern-label">
+                                            <i class="fas fa-map-marker-alt field-icon"></i>
+                                            {{ texts.get('subdistrict_label', 'ตำบล/แขวง' if current_lang == 'th'
+                                            else 'Subdistrict') }}
+                                        </label>
+                                        <div class="control has-icons-right thai-address-input-wrapper">
+                                            <input class="input modern-input thai-address-input" type="text"
+                                                name="address_subdistrict[]" data-field="d"
+                                                value="{{ entry.get('subdistrict', '') }}"
+                                                placeholder="{{ texts.get('subdistrict_placeholder', 'พิมพ์เพื่อค้นหา' if current_lang == 'th' else 'Type to search') }}"
+                                                autocomplete="off">
+                                            <span class="icon is-small is-right">
+                                                <i class="fas fa-search"></i>
+                                            </span>
+                                        </div>
+                                        <div class="thai-address-suggestions"></div>
+                                    </div>
+                                </div>
+                                <div class="column is-6">
+                                    <div class="field thai-address-field">
+                                        <label class="modern-label">
+                                            <i class="fas fa-map field-icon"></i>
+                                            {{ texts.get('district_label', 'อำเภอ/เขต' if current_lang == 'th' else
+                                            'District') }}
+                                        </label>
+                                        <div class="control has-icons-right thai-address-input-wrapper">
+                                            <input class="input modern-input thai-address-input" type="text"
+                                                name="address_district[]" data-field="a"
+                                                value="{{ entry.get('district', '') }}"
+                                                placeholder="{{ texts.get('district_placeholder', 'พิมพ์เพื่อค้นหา' if current_lang == 'th' else 'Type to search') }}"
+                                                autocomplete="off">
+                                            <span class="icon is-small is-right">
+                                                <i class="fas fa-search"></i>
+                                            </span>
+                                        </div>
+                                        <div class="thai-address-suggestions"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="columns">
+                                <div class="column is-6">
+                                    <div class="field thai-address-field">
+                                        <label class="modern-label">
+                                            <i class="fas fa-globe-asia field-icon"></i>
+                                            {{ texts.get('province_label', 'จังหวัด' if current_lang == 'th' else
+                                            'Province') }}
+                                        </label>
+                                        <div class="control has-icons-right thai-address-input-wrapper">
+                                            <input class="input modern-input thai-address-input" type="text"
+                                                name="address_province[]" data-field="p"
+                                                value="{{ entry.get('province', entry.province if entry.province else '') }}"
+                                                placeholder="{{ texts.get('province_placeholder', 'พิมพ์เพื่อค้นหา' if current_lang == 'th' else 'Type to search') }}"
+                                                autocomplete="off">
+                                            <span class="icon is-small is-right">
+                                                <i class="fas fa-search"></i>
+                                            </span>
+                                        </div>
+                                        <div class="thai-address-suggestions"></div>
+                                    </div>
+                                </div>
+                                <div class="column is-6">
+                                    <div class="field thai-address-field">
+                                        <label class="modern-label">
+                                            <i class="fas fa-mail-bulk field-icon"></i>
+                                            {{ texts.get('zipcode_label', 'รหัสไปรษณีย์' if current_lang == 'th'
+                                            else 'Postal Code') }}
+                                        </label>
+                                        <div class="control has-icons-right thai-address-input-wrapper">
+                                            <input class="input modern-input thai-address-input" type="text"
+                                                name="address_zipcode[]" data-field="z"
+                                                value="{{ entry.get('zipcode', entry.zipcode if entry.zipcode else '') }}"
+                                                placeholder="{{ texts.get('zipcode_placeholder', 'พิมพ์เพื่อค้นหา' if current_lang == 'th' else 'Type to search') }}"
+                                                autocomplete="off">
+                                            <span class="icon is-small is-right">
+                                                <i class="fas fa-search"></i>
+                                            </span>
+                                        </div>
+                                        <div class="thai-address-suggestions"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Address Line 1 (optional) -->
+                            <div class="columns">
+                                <div class="column is-12">
+                                    <div class="field">
+                                        <label class="modern-label">
+                                            <i class="fas fa-home field-icon"></i>
+                                            {{ texts.get('address_line1_label', 'ที่อยู่' if current_lang == 'th'
+                                            else 'Address Line 1') }}
+                                        </label>
+                                        <input class="input modern-input" type="text" name="address_line1[]"
+                                            value="{{ entry.get('line1', entry.line1 if entry.line1 else '') }}"
+                                            placeholder="{{ texts.get('address_line1_placeholder', 'บ้านเลขที่ ซอย ถนน' if current_lang == 'th' else 'House number, Soi, Street') }}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <!-- Thai Provinces Datalist -->
+                    <datalist id="thai-provinces-list">
+                        <option value="กรุงเทพมหานคร">กรุงเทพมหานคร (Bangkok)</option>
+                        <option value="กระบี่">กระบี่ (Krabi)</option>
+                        <option value="กาญจนบุรี">กาญจนบุรี (Kanchanaburi)</option>
+                        <option value="กาฬสินธุ์">กาฬสินธุ์ (Kalasin)</option>
+                        <option value="กำแพงเพชร">กำแพงเพชร (Kamphaeng Phet)</option>
+                        <option value="ขอนแก่น">ขอนแก่น (Khon Kaen)</option>
+                        <option value="จันทบุรี">จันทบุรี (Chanthaburi)</option>
+                        <option value="ฉะเชิงเทรา">ฉะเชิงเทรา (Chachoengsao)</option>
+                        <option value="ชลบุรี">ชลบุรี (Chonburi)</option>
+                        <option value="ชัยนาท">ชัยนาท (Chai Nat)</option>
+                        <option value="ชัยภูมิ">ชัยภูมิ (Chaiyaphum)</option>
+                        <option value="ชุมพร">ชุมพร (Chumphon)</option>
+                        <option value="เชียงราย">เชียงราย (Chiang Rai)</option>
+                        <option value="เชียงใหม่">เชียงใหม่ (Chiang Mai)</option>
+                        <option value="ตรัง">ตรัง (Trang)</option>
+                        <option value="ตราด">ตราด (Trat)</option>
+                        <option value="ตาก">ตาก (Tak)</option>
+                        <option value="นครนายก">นครนายก (Nakhon Nayok)</option>
+                        <option value="นครปฐม">นครปฐม (Nakhon Pathom)</option>
+                        <option value="นครพนม">นครพนม (Nakhon Phanom)</option>
+                        <option value="นครราชสีมา">นครราชสีมา (Nakhon Ratchasima)</option>
+                        <option value="นครศรีธรรมราช">นครศรีธรรมราช (Nakhon Si Thammarat)</option>
+                        <option value="นครสวรรค์">นครสวรรค์ (Nakhon Sawan)</option>
+                        <option value="นนทบุรี">นนทบุรี (Nonthaburi)</option>
+                        <option value="นราธิวาส">นราธิวาส (Narathiwat)</option>
+                        <option value="น่าน">น่าน (Nan)</option>
+                        <option value="บึงกาฬ">บึงกาฬ (Bueng Kan)</option>
+                        <option value="บุรีรัมย์">บุรีรัมย์ (Buriram)</option>
+                        <option value="ปทุมธานี">ปทุมธานี (Pathum Thani)</option>
+                        <option value="ประจวบคีรีขันธ์">ประจวบคีรีขันธ์ (Prachuap Khiri Khan)</option>
+                        <option value="ปราจีนบุรี">ปราจีนบุรี (Prachin Buri)</option>
+                        <option value="ปัตตานี">ปัตตานี (Pattani)</option>
+                        <option value="พระนครศรีอยุธยา">พระนครศรีอยุธยา (Phra Nakhon Si Ayutthaya)</option>
+                        <option value="พะเยา">พะเยา (Phayao)</option>
+                        <option value="พังงา">พังงา (Phang Nga)</option>
+                        <option value="พัทลุง">พัทลุง (Phatthalung)</option>
+                        <option value="พิจิตร">พิจิตร (Phichit)</option>
+                        <option value="พิษณุโลก">พิษณุโลก (Phitsanulok)</option>
+                        <option value="เพชรบุรี">เพชรบุรี (Phetchaburi)</option>
+                        <option value="เพชรบูรณ์">เพชรบูรณ์ (Phetchabun)</option>
+                        <option value="แพร่">แพร่ (Phrae)</option>
+                        <option value="ภูเก็ต">ภูเก็ต (Phuket)</option>
+                        <option value="มหาสารคาม">มหาสารคาม (Maha Sarakham)</option>
+                        <option value="มุกดาหาร">มุกดาหาร (Mukdahan)</option>
+                        <option value="แม่ฮ่องสอน">แม่ฮ่องสอน (Mae Hong Son)</option>
+                        <option value="ยโสธร">ยโสธร (Yasothon)</option>
+                        <option value="ยะลา">ยะลา (Yala)</option>
+                        <option value="ร้อยเอ็ด">ร้อยเอ็ด (Roi Et)</option>
+                        <option value="ระนอง">ระนอง (Ranong)</option>
+                        <option value="ระยอง">ระยอง (Rayong)</option>
+                        <option value="ราชบุรี">ราชบุรี (Ratchaburi)</option>
+                        <option value="ลพบุรี">ลพบุรี (Lopburi)</option>
+                        <option value="ลำปาง">ลำปาง (Lampang)</option>
+                        <option value="ลำพูน">ลำพูน (Lamphun)</option>
+                        <option value="เลย">เลย (Loei)</option>
+                        <option value="ศรีสะเกษ">ศรีสะเกษ (Sisaket)</option>
+                        <option value="สกลนคร">สกลนคร (Sakon Nakhon)</option>
+                        <option value="สงขลา">สงขลา (Songkhla)</option>
+                        <option value="สตูล">สตูล (Satun)</option>
+                        <option value="สมุทรปราการ">สมุทรปราการ (Samut Prakan)</option>
+                        <option value="สมุทรสงคราม">สมุทรสงคราม (Samut Songkhram)</option>
+                        <option value="สมุทรสาคร">สมุทรสาคร (Samut Sakhon)</option>
+                        <option value="สระแก้ว">สระแก้ว (Sa Kaeo)</option>
+                        <option value="สระบุรี">สระบุรี (Saraburi)</option>
+                        <option value="สิงห์บุรี">สิงห์บุรี (Sing Buri)</option>
+                        <option value="สุโขทัย">สุโขทัย (Sukhothai)</option>
+                        <option value="สุพรรณบุรี">สุพรรณบุรี (Suphan Buri)</option>
+                        <option value="สุราษฎร์ธานี">สุราษฎร์ธานี (Surat Thani)</option>
+                        <option value="สุรินทร์">สุรินทร์ (Surin)</option>
+                        <option value="หนองคาย">หนองคาย (Nong Khai)</option>
+                        <option value="หนองบัวลำภู">หนองบัวลำภู (Nong Bua Lam Phu)</option>
+                        <option value="อ่างทอง">อ่างทอง (Ang Thong)</option>
+                        <option value="อำนาจเจริญ">อำนาจเจริญ (Amnat Charoen)</option>
+                        <option value="อุดรธานี">อุดรธานี (Udon Thani)</option>
+                        <option value="อุตรดิตถ์">อุตรดิตถ์ (Uttaradit)</option>
+                        <option value="อุทัยธานี">อุทัยธานี (Uthai Thani)</option>
+                        <option value="อุบลราชธานี">อุบลราชธานี (Ubon Ratchathani)</option>
+                    </datalist>
                 </div>
+
+                <div class="divider" style="margin: 2.5rem 0;">
+                    <span>{{ texts.get('terms_section', 'เงื่อนไขและข้อตกลง' if
+                        current_lang == 'th' else 'Terms & Conditions') }}</span>
+                </div>
+
+                <!-- Terms and Conditions -->
+                <div class="modern-checkbox mb-3">
+                    <label class="checkbox">
+                        <input type="checkbox" name="accept_privacy" required>
+                        {{ texts.i_accept }} <a href="#" target="_blank" style="color: #667eea; font-weight: 600;">{{
+                            texts.accept_policy }}</a>
+                    </label>
+                </div>
+
+                <div class="modern-checkbox mb-3">
+                    <label class="checkbox">
+                        <input type="checkbox" name="accept_terms" required>
+                        {{ texts.i_accept }} <a href="#" target="_blank" style="color: #667eea; font-weight: 600;">{{
+                            texts.accept_terms }}</a>
+                    </label>
+                </div>
+
+                <div class="modern-checkbox mb-3">
+                    <label class="checkbox">
+                        <input type="checkbox" name="accept_news">
+                        {{ texts.receive_news }}
+                    </label>
+                </div>
+
+                <!-- Bot Protection -->
+                <div class="field mb-5">
+                    <label class="modern-label">
+                        <i class="fas fa-shield-alt field-icon"></i>
+                        {{ texts.not_a_bot_label }}*
+                    </label>
+                    <div class="control">
+                        <input class="input modern-input" type="text" name="not_bot"
+                            value="{{ form_values.get('not_bot', '') }}" required
+                            placeholder="พิมพ์คำว่า 'มนุษย์' / Type 'human'">
+                    </div>
+                    <p class="help-text">{{ texts.get('bot_help',
+                        'ป้องกันการลงทะเบียนอัตโนมัติ' if current_lang == 'th' else
+                        'Prevent automated registration') }}</p>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="field has-text-centered mt-6">
+                    <button class="btn-primary" type="submit">
+                        <i class="fas fa-user-plus"></i>
+                        <span>{{ texts.register_btn }}</span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="has-text-centered mt-5">
+                <p class="has-text-grey">
+                    {{ texts.get('already_have_account', 'มีบัญชีอยู่แล้ว?' if
+                    current_lang == 'th' else 'Already have an account?') }}
+                    <a href="{{ url_for('continuing_edu.login', lang=current_lang) }}"
+                        style="color: #667eea; font-weight: 600;">
+                        {{ texts.get('login_here', 'เข้าสู่ระบบที่นี่' if
+                        current_lang == 'th' else 'Login here') }}
+                    </a>
+                </p>
             </div>
         </div>
-    </section>
+    </div>
+</section>
+{% endblock %}
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Password Validation
-            const passwordInput = document.getElementById('password-input');
-            const confirmPasswordInput = document.getElementById('confirm-password-input');
-            const passwordMatchMessage = document.getElementById('password-match-message');
-            const strengthFill = document.getElementById('password-strength-fill');
-            const strengthText = document.getElementById('password-strength-text');
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Password Validation
+        const passwordInput = document.getElementById('password-input');
+        const confirmPasswordInput = document.getElementById('confirm-password-input');
+        const passwordMatchMessage = document.getElementById('password-match-message');
+        const strengthFill = document.getElementById('password-strength-fill');
+        const strengthText = document.getElementById('password-strength-text');
 
-            // Requirement elements
-            const reqLength = document.getElementById('req-length');
-            const reqUppercase = document.getElementById('req-uppercase');
-            const reqLowercase = document.getElementById('req-lowercase');
-            const reqNumber = document.getElementById('req-number');
-            const reqSpecial = document.getElementById('req-special');
+        // Requirement elements
+        const reqLength = document.getElementById('req-length');
+        const reqUppercase = document.getElementById('req-uppercase');
+        const reqLowercase = document.getElementById('req-lowercase');
+        const reqNumber = document.getElementById('req-number');
+        const reqSpecial = document.getElementById('req-special');
 
-            function checkPasswordStrength(password) {
-                let strength = 0;
-                const requirements = {
-                    length: password.length >= 8,
-                    uppercase: /[A-Z]/.test(password),
-                    lowercase: /[a-z]/.test(password),
-                    number: /\d/.test(password),
-                    special: /[@$!%*?&]/.test(password)
-                };
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            const requirements = {
+                length: password.length >= 8,
+                uppercase: /[A-Z]/.test(password),
+                lowercase: /[a-z]/.test(password),
+                number: /\d/.test(password),
+                special: /[@$!%*?&]/.test(password)
+            };
 
-                // Update requirement indicators
-                updateRequirement(reqLength, requirements.length);
-                updateRequirement(reqUppercase, requirements.uppercase);
-                updateRequirement(reqLowercase, requirements.lowercase);
-                updateRequirement(reqNumber, requirements.number);
-                updateRequirement(reqSpecial, requirements.special);
+            // Update requirement indicators
+            updateRequirement(reqLength, requirements.length);
+            updateRequirement(reqUppercase, requirements.uppercase);
+            updateRequirement(reqLowercase, requirements.lowercase);
+            updateRequirement(reqNumber, requirements.number);
+            updateRequirement(reqSpecial, requirements.special);
 
-                // Calculate strength score
-                Object.values(requirements).forEach(met => {
-                    if (met) strength++;
-                });
+            // Calculate strength score
+            Object.values(requirements).forEach(met => {
+                if (met) strength++;
+            });
 
-                // Update strength indicator
-                const strengthLevels = {
-                    0: { class: '', text: '' },
-                    1: {
-                        class: 'weak',
-                        text: '{{ texts.get("password_weak", "อ่อนแอ" if current_lang == "th" else "Weak") }}'
-                    },
-                    2: {
-                        class: 'weak',
-                        text: '{{ texts.get("password_weak", "อ่อนแอ" if current_lang == "th" else "Weak") }}'
-                    },
-                    3: {
-                        class: 'fair',
-                        text: '{{ texts.get("password_fair", "พอใช้" if current_lang == "th" else "Fair") }}'
-                    },
-                    4: {
-                        class: 'good',
-                        text: '{{ texts.get("password_good", "ดี" if current_lang == "th" else "Good") }}'
-                    },
-                    5: {
-                        class: 'strong',
-                        text: '{{ texts.get("password_strong", "แข็งแรง" if current_lang == "th" else "Strong") }}'
-                    }
-                };
-
-                const level = strengthLevels[strength];
-
-                // Remove all strength classes
-                if (strengthFill && strengthText) {
-                    strengthFill.className = 'password-strength-fill';
-                    strengthText.className = 'password-strength-text';
-
-                    if (password.length > 0) {
-                        strengthFill.classList.add(level.class);
-                        strengthText.classList.add(level.class);
-                        strengthText.textContent = level.text;
-                    } else {
-                        strengthText.textContent = '';
-                    }
+            // Update strength indicator
+            const strengthLevels = {
+                0: { class: '', text: '' },
+                1: {
+                    class: 'weak',
+                    text: '{{ texts.get("password_weak", "อ่อนแอ" if current_lang == "th" else "Weak") }}'
+                },
+                2: {
+                    class: 'weak',
+                    text: '{{ texts.get("password_weak", "อ่อนแอ" if current_lang == "th" else "Weak") }}'
+                },
+                3: {
+                    class: 'fair',
+                    text: '{{ texts.get("password_fair", "พอใช้" if current_lang == "th" else "Fair") }}'
+                },
+                4: {
+                    class: 'good',
+                    text: '{{ texts.get("password_good", "ดี" if current_lang == "th" else "Good") }}'
+                },
+                5: {
+                    class: 'strong',
+                    text: '{{ texts.get("password_strong", "แข็งแรง" if current_lang == "th" else "Strong") }}'
                 }
+            };
 
-                return strength === 5;
-            }
+            const level = strengthLevels[strength];
 
-            function updateRequirement(element, isMet) {
-                if (!element) return;
+            // Remove all strength classes
+            if (strengthFill && strengthText) {
+                strengthFill.className = 'password-strength-fill';
+                strengthText.className = 'password-strength-text';
 
-                if (isMet) {
-                    element.classList.add('met');
-                    const icon = element.querySelector('i');
-                    if (icon) {
-                        icon.className = 'fas fa-check-circle';
-                    }
+                if (password.length > 0) {
+                    strengthFill.classList.add(level.class);
+                    strengthText.classList.add(level.class);
+                    strengthText.textContent = level.text;
                 } else {
-                    element.classList.remove('met');
-                    const icon = element.querySelector('i');
-                    if (icon) {
-                        icon.className = 'fas fa-circle';
-                    }
+                    strengthText.textContent = '';
                 }
             }
 
-            function validatePasswordMatch() {
-                const password = passwordInput.value;
-                const confirmPassword = confirmPasswordInput.value;
+            return strength === 5;
+        }
 
-                // Only validate if confirm password has been entered
-                if (confirmPassword.length === 0) {
-                    passwordMatchMessage.textContent = '';
-                    passwordMatchMessage.className = 'help-text';
-                    confirmPasswordInput.classList.remove('field-success', 'field-error');
-                    return;
+        function updateRequirement(element, isMet) {
+            if (!element) return;
+
+            if (isMet) {
+                element.classList.add('met');
+                const icon = element.querySelector('i');
+                if (icon) {
+                    icon.className = 'fas fa-check-circle';
                 }
+            } else {
+                element.classList.remove('met');
+                const icon = element.querySelector('i');
+                if (icon) {
+                    icon.className = 'fas fa-circle';
+                }
+            }
+        }
 
-                if (password === confirmPassword) {
-                    // Passwords match
-                    const matchText = '{{ texts.get("password_match", "รหัสผ่านตรงกัน" if current_lang == "th" else "Passwords match") }}';
-                    passwordMatchMessage.textContent = '✓ ' + matchText;
-                    passwordMatchMessage.className = 'help-text is-success';
-                    confirmPasswordInput.classList.remove('field-error');
-                    confirmPasswordInput.classList.add('field-success');
+        function validatePasswordMatch() {
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+
+            // Only validate if confirm password has been entered
+            if (confirmPassword.length === 0) {
+                passwordMatchMessage.textContent = '';
+                passwordMatchMessage.className = 'help-text';
+                confirmPasswordInput.classList.remove('field-success', 'field-error');
+                return;
+            }
+
+            if (password === confirmPassword) {
+                // Passwords match
+                const matchText = '{{ texts.get("password_match", "รหัสผ่านตรงกัน" if current_lang == "th" else "Passwords match") }}';
+                passwordMatchMessage.textContent = '✓ ' + matchText;
+                passwordMatchMessage.className = 'help-text is-success';
+                confirmPasswordInput.classList.remove('field-error');
+                confirmPasswordInput.classList.add('field-success');
+            } else {
+                // Passwords don't match
+                const noMatchText = '{{ texts.get("password_no_match", "รหัสผ่านไม่ตรงกัน" if current_lang == "th" else "Passwords do not match") }}';
+                passwordMatchMessage.textContent = '✗ ' + noMatchText;
+                passwordMatchMessage.className = 'help-text is-danger';
+                confirmPasswordInput.classList.remove('field-success');
+                confirmPasswordInput.classList.add('field-error');
+            }
+        }
+
+        // Validate on confirm password input
+        if (confirmPasswordInput) {
+            confirmPasswordInput.addEventListener('input', validatePasswordMatch);
+            confirmPasswordInput.addEventListener('blur', validatePasswordMatch);
+        }
+
+        // Check password strength on input
+        if (passwordInput) {
+            passwordInput.addEventListener('input', function () {
+                checkPasswordStrength(this.value);
+                // Also validate match if confirm password has value
+                if (confirmPasswordInput && confirmPasswordInput.value.length > 0) {
+                    validatePasswordMatch();
+                }
+            });
+        }
+
+        // Password Toggle Visibility
+        const togglePassword = document.getElementById('toggle-password');
+        const toggleConfirmPassword = document.getElementById('toggle-confirm-password');
+
+        if (togglePassword && passwordInput) {
+            togglePassword.addEventListener('click', function () {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+
+                // Toggle icon
+                if (type === 'text') {
+                    this.classList.remove('fa-eye');
+                    this.classList.add('fa-eye-slash');
+                    this.setAttribute('title', '{{ texts.get("hide_password", "ซ่อนรหัสผ่าน" if current_lang == "th" else "Hide password") }}');
                 } else {
-                    // Passwords don't match
-                    const noMatchText = '{{ texts.get("password_no_match", "รหัสผ่านไม่ตรงกัน" if current_lang == "th" else "Passwords do not match") }}';
-                    passwordMatchMessage.textContent = '✗ ' + noMatchText;
-                    passwordMatchMessage.className = 'help-text is-danger';
-                    confirmPasswordInput.classList.remove('field-success');
-                    confirmPasswordInput.classList.add('field-error');
+                    this.classList.remove('fa-eye-slash');
+                    this.classList.add('fa-eye');
+                    this.setAttribute('title', '{{ texts.get("show_password", "แสดงรหัสผ่าน" if current_lang == "th" else "Show password") }}');
                 }
-            }
+            });
+        }
 
-            // Validate on confirm password input
-            if (confirmPasswordInput) {
-                confirmPasswordInput.addEventListener('input', validatePasswordMatch);
-                confirmPasswordInput.addEventListener('blur', validatePasswordMatch);
-            }
+        if (toggleConfirmPassword && confirmPasswordInput) {
+            toggleConfirmPassword.addEventListener('click', function () {
+                const type = confirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                confirmPasswordInput.setAttribute('type', type);
 
-            // Check password strength on input
-            if (passwordInput) {
-                passwordInput.addEventListener('input', function () {
-                    checkPasswordStrength(this.value);
-                    // Also validate match if confirm password has value
-                    if (confirmPasswordInput && confirmPasswordInput.value.length > 0) {
-                        validatePasswordMatch();
-                    }
-                });
-            }
+                // Toggle icon
+                if (type === 'text') {
+                    this.classList.remove('fa-eye');
+                    this.classList.add('fa-eye-slash');
+                    this.setAttribute('title', '{{ texts.get("hide_password", "ซ่อนรหัสผ่าน" if current_lang == "th" else "Hide password") }}');
+                } else {
+                    this.classList.remove('fa-eye-slash');
+                    this.classList.add('fa-eye');
+                    this.setAttribute('title', '{{ texts.get("show_password", "แสดงรหัสผ่าน" if current_lang == "th" else "Show password") }}');
+                }
+            });
+        }
 
-            // Password Toggle Visibility
-            const togglePassword = document.getElementById('toggle-password');
-            const toggleConfirmPassword = document.getElementById('toggle-confirm-password');
+        // Organization Type Toggle with Dynamic Organization Loading
+        const orgTypeSelect = document.getElementById('organization-type-select');
+        const orgTypeOtherField = document.getElementById('organization-type-other-field');
+        const orgNameInput = document.querySelector('input[name="organization_name"]');
+        const orgDatalist = document.getElementById('organization-name-options');
 
-            if (togglePassword && passwordInput) {
-                togglePassword.addEventListener('click', function () {
-                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                    passwordInput.setAttribute('type', type);
-
-                    // Toggle icon
-                    if (type === 'text') {
-                        this.classList.remove('fa-eye');
-                        this.classList.add('fa-eye-slash');
-                        this.setAttribute('title', '{{ texts.get("hide_password", "ซ่อนรหัสผ่าน" if current_lang == "th" else "Hide password") }}');
-                    } else {
-                        this.classList.remove('fa-eye-slash');
-                        this.classList.add('fa-eye');
-                        this.setAttribute('title', '{{ texts.get("show_password", "แสดงรหัสผ่าน" if current_lang == "th" else "Show password") }}');
-                    }
-                });
-            }
-
-            if (toggleConfirmPassword && confirmPasswordInput) {
-                toggleConfirmPassword.addEventListener('click', function () {
-                    const type = confirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                    confirmPasswordInput.setAttribute('type', type);
-
-                    // Toggle icon
-                    if (type === 'text') {
-                        this.classList.remove('fa-eye');
-                        this.classList.add('fa-eye-slash');
-                        this.setAttribute('title', '{{ texts.get("hide_password", "ซ่อนรหัสผ่าน" if current_lang == "th" else "Hide password") }}');
-                    } else {
-                        this.classList.remove('fa-eye-slash');
-                        this.classList.add('fa-eye');
-                        this.setAttribute('title', '{{ texts.get("show_password", "แสดงรหัสผ่าน" if current_lang == "th" else "Show password") }}');
-                    }
-                });
-            }
-
-            // Organization Type Toggle with Dynamic Organization Loading
-            const orgTypeSelect = document.getElementById('organization-type-select');
-            const orgTypeOtherField = document.getElementById('organization-type-other-field');
-            const orgNameInput = document.querySelector('input[name="organization_name"]');
-            const orgDatalist = document.getElementById('organization-name-options');
-
-            if (orgTypeSelect && orgTypeOtherField) {
-                orgTypeSelect.addEventListener('change', async () => {
-                    orgTypeOtherField.style.display = orgTypeSelect.value === 'other' ? 'block' : 'none';
-                    // Clear value if hidden
-                    if (orgTypeSelect.value !== 'other') {
-                        const input = orgTypeOtherField.querySelector('input');
-                        if (input) input.value = '';
-                    }
-
-                    // Load organizations dynamically for type 7 or 1
-                    const selectedTypeId = parseInt(orgTypeSelect.value);
-                    if (selectedTypeId === 7 || selectedTypeId === 1) {
-                        try {
-                            const response = await fetch(`/continuing_edu/api/organizations_by_type/${selectedTypeId}`);
-                            const data = await response.json();
-
-                            if (data.success && data.organizations) {
-                                // Clear existing options
-                                orgDatalist.innerHTML = '';
-
-                                // Add new options from client organizations
-                                data.organizations.forEach(org => {
-                                    const option = document.createElement('option');
-                                    option.value = org.name;
-                                    orgDatalist.appendChild(option);
-                                });
-
-                                console.log(`Loaded ${data.organizations.length} organizations for type ${selectedTypeId}`);
-                            }
-                        } catch (error) {
-                            console.error('Error loading organizations:', error);
-                        }
-                    } else if (selectedTypeId && selectedTypeId !== 'other') {
-                        // Load regular organizations for other types
-                        try {
-                            const response = await fetch(`/continuing_edu/api/organizations_by_type/${selectedTypeId}`);
-                            const data = await response.json();
-
-                            if (data.success && data.organizations) {
-                                orgDatalist.innerHTML = '';
-                                data.organizations.forEach(org => {
-                                    const option = document.createElement('option');
-                                    option.value = org.name;
-                                    orgDatalist.appendChild(option);
-                                });
-                            }
-                        } catch (error) {
-                            console.error('Error loading organizations:', error);
-                        }
-                    }
-                });
-                // Initialize on page load
+        if (orgTypeSelect && orgTypeOtherField) {
+            orgTypeSelect.addEventListener('change', async () => {
                 orgTypeOtherField.style.display = orgTypeSelect.value === 'other' ? 'block' : 'none';
-            }
+                // Clear value if hidden
+                if (orgTypeSelect.value !== 'other') {
+                    const input = orgTypeOtherField.querySelector('input');
+                    if (input) input.value = '';
+                }
 
-            // Occupation Toggle
-            const occupationSelect = document.getElementById('occupation-select');
-            const occupationOtherField = document.getElementById('occupation-other-field');
-            if (occupationSelect && occupationOtherField) {
-                occupationSelect.addEventListener('change', () => {
-                    occupationOtherField.style.display = occupationSelect.value === 'other' ? 'block' : 'none';
-                    // Clear value if hidden
-                    if (occupationSelect.value !== 'other') {
-                        const input = occupationOtherField.querySelector('input');
-                        if (input) input.value = '';
+                // Load organizations dynamically for type 7 or 1
+                const selectedTypeId = parseInt(orgTypeSelect.value);
+                if (selectedTypeId === 7 || selectedTypeId === 1) {
+                    try {
+                        const response = await fetch(`/continuing_edu/api/organizations_by_type/${selectedTypeId}`);
+                        const data = await response.json();
+
+                        if (data.success && data.organizations) {
+                            // Clear existing options
+                            orgDatalist.innerHTML = '';
+
+                            // Add new options from client organizations
+                            data.organizations.forEach(org => {
+                                const option = document.createElement('option');
+                                option.value = org.name;
+                                orgDatalist.appendChild(option);
+                            });
+
+                            console.log(`Loaded ${data.organizations.length} organizations for type ${selectedTypeId}`);
+                        }
+                    } catch (error) {
+                        console.error('Error loading organizations:', error);
                     }
-                });
-                // Initialize on page load
+                } else if (selectedTypeId && selectedTypeId !== 'other') {
+                    // Load regular organizations for other types
+                    try {
+                        const response = await fetch(`/continuing_edu/api/organizations_by_type/${selectedTypeId}`);
+                        const data = await response.json();
+
+                        if (data.success && data.organizations) {
+                            orgDatalist.innerHTML = '';
+                            data.organizations.forEach(org => {
+                                const option = document.createElement('option');
+                                option.value = org.name;
+                                orgDatalist.appendChild(option);
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error loading organizations:', error);
+                    }
+                }
+            });
+            // Initialize on page load
+            orgTypeOtherField.style.display = orgTypeSelect.value === 'other' ? 'block' : 'none';
+        }
+
+        // Occupation Toggle
+        const occupationSelect = document.getElementById('occupation-select');
+        const occupationOtherField = document.getElementById('occupation-other-field');
+        if (occupationSelect && occupationOtherField) {
+            occupationSelect.addEventListener('change', () => {
                 occupationOtherField.style.display = occupationSelect.value === 'other' ? 'block' : 'none';
-            }
+                // Clear value if hidden
+                if (occupationSelect.value !== 'other') {
+                    const input = occupationOtherField.querySelector('input');
+                    if (input) input.value = '';
+                }
+            });
+            // Initialize on page load
+            occupationOtherField.style.display = occupationSelect.value === 'other' ? 'block' : 'none';
+        }
 
-            // Function to update address numbers
-            function updateAddressNumbers() {
-                const entries = addressesContainer.querySelectorAll('.address-entry');
-                entries.forEach((entry, index) => {
-                    const numberElement = entry.querySelector('.address-number');
-                    if (numberElement) {
-                        const addressText = '{{ texts.get("address", "ที่อยู่" if current_lang == "th" else "Address") }}';
-                        numberElement.textContent = `${addressText} #${index + 1}`;
-                    }
-                    entry.setAttribute('data-index', index + 1);
-                });
-            }
+        // Function to update address numbers
+        function updateAddressNumbers() {
+            const entries = addressesContainer.querySelectorAll('.address-entry');
+            entries.forEach((entry, index) => {
+                const numberElement = entry.querySelector('.address-number');
+                if (numberElement) {
+                    const addressText = '{{ texts.get("address", "ที่อยู่" if current_lang == "th" else "Address") }}';
+                    numberElement.textContent = `${addressText} #${index + 1}`;
+                }
+                entry.setAttribute('data-index', index + 1);
+            });
+        }
 
-            // Address Management
-            const addressesContainer = document.getElementById('addresses-container');
-            const addAddressButton = document.getElementById('add-address-button');
+        // Address Management
+        const addressesContainer = document.getElementById('addresses-container');
+        const addAddressButton = document.getElementById('add-address-button');
 
-            if (addAddressButton && addressesContainer) {
-                addAddressButton.addEventListener('click', () => {
-                    const newEntry = document.createElement('div');
-                    newEntry.className = 'address-entry';
-                    const currentCount = addressesContainer.querySelectorAll('.address-entry').length;
-                    newEntry.innerHTML = `
+        if (addAddressButton && addressesContainer) {
+            addAddressButton.addEventListener('click', () => {
+                const newEntry = document.createElement('div');
+                newEntry.className = 'address-entry';
+                const currentCount = addressesContainer.querySelectorAll('.address-entry').length;
+                newEntry.innerHTML = `
                 <div class="address-entry-header">
                     <strong class="address-number">{{ texts.get('address', 'ที่อยู่' if current_lang == 'th' else 'Address') }} #${currentCount + 1}</strong>
                     <div>
@@ -1782,89 +1761,89 @@
                     </div>
                 </div>
             `;
-                    addressesContainer.appendChild(newEntry);
-                    updateAddressNumbers();
-                });
-            }
-
-            // Remove Address Handler (Event Delegation)
-            if (addressesContainer) {
-                addressesContainer.addEventListener('click', (e) => {
-                    if (e.target.closest('.remove-address')) {
-                        const entries = addressesContainer.querySelectorAll('.address-entry');
-                        if (entries.length > 1) {
-                            e.target.closest('.address-entry').remove();
-                            updateAddressNumbers(); // Re-index after removal
-                        }
-                    }
-
-                    // Clear Address Handler
-                    if (e.target.closest('.clear-address')) {
-                        const entry = e.target.closest('.address-entry');
-                        if (entry && confirm('{{ texts.get("confirm_clear_address", "ต้องการเคลียร์ข้อมูลที่อยู่นี้หรือไม่?" if current_lang == "th" else "Clear this address?") }}')) {
-                            // Clear all input fields in this address entry
-                            entry.querySelectorAll('input[type="text"]').forEach(input => {
-                                input.value = '';
-                            });
-                            // Hide any open suggestions
-                            entry.querySelectorAll('.thai-address-suggestions').forEach(suggestions => {
-                                suggestions.classList.remove('is-active');
-                            });
-                        }
-                    }
-                });
-            }
-
-            // Close notifications
-            document.querySelectorAll('.notification .delete').forEach(($delete) => {
-                $delete.addEventListener('click', () => {
-                    $delete.parentNode.remove();
-                });
+                addressesContainer.appendChild(newEntry);
+                updateAddressNumbers();
             });
+        }
 
-            // Thai Address Autocomplete System
-            function initThaiAddressAutocomplete() {
-                if (!window.thaiAddressAutocomplete) {
-                    console.warn('Thai Address Database not loaded');
-                    return;
+        // Remove Address Handler (Event Delegation)
+        if (addressesContainer) {
+            addressesContainer.addEventListener('click', (e) => {
+                if (e.target.closest('.remove-address')) {
+                    const entries = addressesContainer.querySelectorAll('.address-entry');
+                    if (entries.length > 1) {
+                        e.target.closest('.address-entry').remove();
+                        updateAddressNumbers(); // Re-index after removal
+                    }
                 }
 
-                const addressInputs = document.querySelectorAll('.thai-address-input');
-                let currentFocusedInput = null;
-                let highlightedIndex = -1;
+                // Clear Address Handler
+                if (e.target.closest('.clear-address')) {
+                    const entry = e.target.closest('.address-entry');
+                    if (entry && confirm('{{ texts.get("confirm_clear_address", "ต้องการเคลียร์ข้อมูลที่อยู่นี้หรือไม่?" if current_lang == "th" else "Clear this address?") }}')) {
+                        // Clear all input fields in this address entry
+                        entry.querySelectorAll('input[type="text"]').forEach(input => {
+                            input.value = '';
+                        });
+                        // Hide any open suggestions
+                        entry.querySelectorAll('.thai-address-suggestions').forEach(suggestions => {
+                            suggestions.classList.remove('is-active');
+                        });
+                    }
+                }
+            });
+        }
 
-                addressInputs.forEach(input => {
-                    const field = input.dataset.field; // d, a, p, z
-                    const suggestionsContainer = input.closest('.thai-address-field').querySelector('.thai-address-suggestions');
-                    const addressEntry = input.closest('.address-entry');
+        // Close notifications
+        document.querySelectorAll('.notification .delete').forEach(($delete) => {
+            $delete.addEventListener('click', () => {
+                $delete.parentNode.remove();
+            });
+        });
 
-                    // Input event handler
-                    input.addEventListener('input', function (e) {
-                        const query = this.value.trim();
-                        highlightedIndex = -1;
+        // Thai Address Autocomplete System
+        function initThaiAddressAutocomplete() {
+            if (!window.thaiAddressAutocomplete) {
+                console.warn('Thai Address Database not loaded');
+                return;
+            }
 
-                        if (query.length === 0) {
-                            suggestionsContainer.classList.remove('is-active');
-                            suggestionsContainer.innerHTML = '';
-                            return;
-                        }
+            const addressInputs = document.querySelectorAll('.thai-address-input');
+            let currentFocusedInput = null;
+            let highlightedIndex = -1;
 
-                        // Search Thai address database
-                        const results = window.thaiAddressAutocomplete.search(query, field);
+            addressInputs.forEach(input => {
+                const field = input.dataset.field; // d, a, p, z
+                const suggestionsContainer = input.closest('.thai-address-field').querySelector('.thai-address-suggestions');
+                const addressEntry = input.closest('.address-entry');
 
-                        if (results.length === 0) {
-                            suggestionsContainer.classList.remove('is-active');
-                            suggestionsContainer.innerHTML = '';
-                            return;
-                        }
+                // Input event handler
+                input.addEventListener('input', function (e) {
+                    const query = this.value.trim();
+                    highlightedIndex = -1;
 
-                        // Display suggestions
+                    if (query.length === 0) {
+                        suggestionsContainer.classList.remove('is-active');
                         suggestionsContainer.innerHTML = '';
-                        results.forEach((item, index) => {
-                            const suggestionItem = document.createElement('div');
-                            suggestionItem.className = 'thai-address-suggestion-item';
-                            suggestionItem.dataset.index = index;
-                            suggestionItem.innerHTML = `
+                        return;
+                    }
+
+                    // Search Thai address database
+                    const results = window.thaiAddressAutocomplete.search(query, field);
+
+                    if (results.length === 0) {
+                        suggestionsContainer.classList.remove('is-active');
+                        suggestionsContainer.innerHTML = '';
+                        return;
+                    }
+
+                    // Display suggestions
+                    suggestionsContainer.innerHTML = '';
+                    results.forEach((item, index) => {
+                        const suggestionItem = document.createElement('div');
+                        suggestionItem.className = 'thai-address-suggestion-item';
+                        suggestionItem.dataset.index = index;
+                        suggestionItem.innerHTML = `
                                 <div class="suggestion-main">${item.d}</div>
                                 <div class="suggestion-detail">
                                     <i class="fas fa-arrow-right"></i> ${item.a}
@@ -1873,200 +1852,198 @@
                                 </div>
                             `;
 
-                            // Click handler
-                            suggestionItem.addEventListener('click', () => {
-                                fillAddressFields(addressEntry, item);
-                                suggestionsContainer.classList.remove('is-active');
-                                suggestionsContainer.innerHTML = '';
-                            });
-
-                            // Mouse enter handler
-                            suggestionItem.addEventListener('mouseenter', () => {
-                                suggestionsContainer.querySelectorAll('.thai-address-suggestion-item').forEach(item => {
-                                    item.classList.remove('is-highlighted');
-                                });
-                                suggestionItem.classList.add('is-highlighted');
-                                highlightedIndex = index;
-                            });
-
-                            suggestionsContainer.appendChild(suggestionItem);
-                        });
-
-                        suggestionsContainer.classList.add('is-active');
-                        currentFocusedInput = input;
-                    });
-
-                    // Keyboard navigation
-                    input.addEventListener('keydown', function (e) {
-                        const suggestions = suggestionsContainer.querySelectorAll('.thai-address-suggestion-item');
-                        if (suggestions.length === 0) return;
-
-                        if (e.key === 'ArrowDown') {
-                            e.preventDefault();
-                            highlightedIndex = Math.min(highlightedIndex + 1, suggestions.length - 1);
-                            updateHighlight(suggestions);
-                        } else if (e.key === 'ArrowUp') {
-                            e.preventDefault();
-                            highlightedIndex = Math.max(highlightedIndex - 1, 0);
-                            updateHighlight(suggestions);
-                        } else if (e.key === 'Enter') {
-                            e.preventDefault();
-                            if (highlightedIndex >= 0 && suggestions[highlightedIndex]) {
-                                suggestions[highlightedIndex].click();
-                            }
-                        } else if (e.key === 'Escape') {
+                        // Click handler
+                        suggestionItem.addEventListener('click', () => {
+                            fillAddressFields(addressEntry, item);
                             suggestionsContainer.classList.remove('is-active');
                             suggestionsContainer.innerHTML = '';
-                        }
-                    });
-
-                    // Focus handler
-                    input.addEventListener('focus', function () {
-                        currentFocusedInput = this;
-                    });
-
-                    // Blur handler - delay to allow click on suggestion
-                    input.addEventListener('blur', function () {
-                        setTimeout(() => {
-                            if (currentFocusedInput === this) {
-                                suggestionsContainer.classList.remove('is-active');
-                            }
-                        }, 200);
-                    });
-                });
-
-                // Helper function to update highlight
-                function updateHighlight(suggestions) {
-                    suggestions.forEach((item, index) => {
-                        if (index === highlightedIndex) {
-                            item.classList.add('is-highlighted');
-                            item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-                        } else {
-                            item.classList.remove('is-highlighted');
-                        }
-                    });
-                }
-
-                // Helper function to fill all address fields
-                function fillAddressFields(addressEntry, addressData) {
-                    const subdistrictInput = addressEntry.querySelector('[name="address_subdistrict[]"]');
-                    const districtInput = addressEntry.querySelector('[name="address_district[]"]');
-                    const provinceInput = addressEntry.querySelector('[name="address_province[]"]');
-                    const zipcodeInput = addressEntry.querySelector('[name="address_zipcode[]"]');
-
-                    if (subdistrictInput) subdistrictInput.value = addressData.d;
-                    if (districtInput) districtInput.value = addressData.a;
-                    if (provinceInput) provinceInput.value = addressData.p;
-                    if (zipcodeInput) zipcodeInput.value = addressData.z;
-
-                    // Add visual feedback
-                    [subdistrictInput, districtInput, provinceInput, zipcodeInput].forEach(input => {
-                        if (input) {
-                            input.classList.add('is-success');
-                            setTimeout(() => input.classList.remove('is-success'), 1000);
-                        }
-                    });
-                }
-
-                // Close suggestions when clicking outside
-                document.addEventListener('click', (e) => {
-                    if (!e.target.closest('.thai-address-field')) {
-                        document.querySelectorAll('.thai-address-suggestions').forEach(container => {
-                            container.classList.remove('is-active');
                         });
-                    }
-                });
-            }
 
-            // Initialize Thai address autocomplete
-            initThaiAddressAutocomplete();
-
-            // Re-initialize when new address is added
-            const originalAddAddress = addAddressButton?.addEventListener;
-            if (addAddressButton) {
-                const addButton = addAddressButton;
-                addButton.addEventListener('click', () => {
-                    setTimeout(initThaiAddressAutocomplete, 100);
-                });
-            }
-
-            // Form Validation before Submit
-            const registrationForm = document.querySelector('form[action*="register"]');
-            if (registrationForm) {
-                registrationForm.addEventListener('submit', function (e) {
-                    let isValid = true;
-                    let errorMessages = [];
-
-                    // Validate Full Name (Thai OR English required)
-                    const fullNameTh = document.getElementById('full-name-th');
-                    const fullNameEn = document.getElementById('full-name-en');
-                    if (fullNameTh && fullNameEn) {
-                        if (!fullNameTh.value.trim() && !fullNameEn.value.trim()) {
-                            isValid = false;
-                            errorMessages.push('{{ texts.get("error_name_required", "กรุณากรอกชื่อภาษาไทย หรือ ภาษาอังกฤษ อย่างน้อย 1 ภาษา" if current_lang == "th" else "Please enter name in Thai or English (at least one required)") }}');
-                            fullNameTh.classList.add('field-error');
-                            fullNameEn.classList.add('field-error');
-                        } else {
-                            fullNameTh.classList.remove('field-error');
-                            fullNameEn.classList.remove('field-error');
-                        }
-                    }
-
-                    // Validate Address (at least 1 address required)
-                    const addressEntries = document.querySelectorAll('.address-entry');
-                    if (addressEntries.length === 0) {
-                        isValid = false;
-                        errorMessages.push('{{ texts.get("error_address_required", "กรุณากรอกที่อยู่อย่างน้อย 1 ที่อยู่" if current_lang == "th" else "Please add at least one address") }}');
-                    } else {
-                        // Check if at least one address has some data
-                        let hasValidAddress = false;
-                        addressEntries.forEach(entry => {
-                            const inputs = entry.querySelectorAll('input[type="text"]');
-                            const hasData = Array.from(inputs).some(input => input.value.trim() !== '');
-                            if (hasData) hasValidAddress = true;
+                        // Mouse enter handler
+                        suggestionItem.addEventListener('mouseenter', () => {
+                            suggestionsContainer.querySelectorAll('.thai-address-suggestion-item').forEach(item => {
+                                item.classList.remove('is-highlighted');
+                            });
+                            suggestionItem.classList.add('is-highlighted');
+                            highlightedIndex = index;
                         });
-                        if (!hasValidAddress) {
-                            isValid = false;
-                            errorMessages.push('{{ texts.get("error_address_data_required", "กรุณากรอกข้อมูลที่อยู่อย่างน้อย 1 ที่อยู่" if current_lang == "th" else "Please fill in at least one address") }}');
-                        }
-                    }
 
-                    if (!isValid) {
+                        suggestionsContainer.appendChild(suggestionItem);
+                    });
+
+                    suggestionsContainer.classList.add('is-active');
+                    currentFocusedInput = input;
+                });
+
+                // Keyboard navigation
+                input.addEventListener('keydown', function (e) {
+                    const suggestions = suggestionsContainer.querySelectorAll('.thai-address-suggestion-item');
+                    if (suggestions.length === 0) return;
+
+                    if (e.key === 'ArrowDown') {
                         e.preventDefault();
-                        alert(errorMessages.join('\n'));
-                        // Scroll to first error
-                        const firstError = document.querySelector('.field-error');
-                        if (firstError) {
-                            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        highlightedIndex = Math.min(highlightedIndex + 1, suggestions.length - 1);
+                        updateHighlight(suggestions);
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        highlightedIndex = Math.max(highlightedIndex - 1, 0);
+                        updateHighlight(suggestions);
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (highlightedIndex >= 0 && suggestions[highlightedIndex]) {
+                            suggestions[highlightedIndex].click();
                         }
-                        return false;
+                    } else if (e.key === 'Escape') {
+                        suggestionsContainer.classList.remove('is-active');
+                        suggestionsContainer.innerHTML = '';
+                    }
+                });
+
+                // Focus handler
+                input.addEventListener('focus', function () {
+                    currentFocusedInput = this;
+                });
+
+                // Blur handler - delay to allow click on suggestion
+                input.addEventListener('blur', function () {
+                    setTimeout(() => {
+                        if (currentFocusedInput === this) {
+                            suggestionsContainer.classList.remove('is-active');
+                        }
+                    }, 200);
+                });
+            });
+
+            // Helper function to update highlight
+            function updateHighlight(suggestions) {
+                suggestions.forEach((item, index) => {
+                    if (index === highlightedIndex) {
+                        item.classList.add('is-highlighted');
+                        item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                    } else {
+                        item.classList.remove('is-highlighted');
                     }
                 });
             }
-        });
 
-        // Google Sign-in Callback
-        function handleCredentialResponse(response) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = "{{ url_for('continuing_edu.google_signup_callback', lang=current_lang) }}";
+            // Helper function to fill all address fields
+            function fillAddressFields(addressEntry, addressData) {
+                const subdistrictInput = addressEntry.querySelector('[name="address_subdistrict[]"]');
+                const districtInput = addressEntry.querySelector('[name="address_district[]"]');
+                const provinceInput = addressEntry.querySelector('[name="address_province[]"]');
+                const zipcodeInput = addressEntry.querySelector('[name="address_zipcode[]"]');
 
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = 'csrf_token';
-            csrfInput.value = "{{ csrf_token() }}";
+                if (subdistrictInput) subdistrictInput.value = addressData.d;
+                if (districtInput) districtInput.value = addressData.a;
+                if (provinceInput) provinceInput.value = addressData.p;
+                if (zipcodeInput) zipcodeInput.value = addressData.z;
 
-            const credentialInput = document.createElement('input');
-            credentialInput.type = 'hidden';
-            credentialInput.name = 'credential';
-            credentialInput.value = response.credential;
+                // Add visual feedback
+                [subdistrictInput, districtInput, provinceInput, zipcodeInput].forEach(input => {
+                    if (input) {
+                        input.classList.add('is-success');
+                        setTimeout(() => input.classList.remove('is-success'), 1000);
+                    }
+                });
+            }
 
-            form.appendChild(csrfInput);
-            form.appendChild(credentialInput);
-            document.body.appendChild(form);
-            form.submit();
+            // Close suggestions when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.thai-address-field')) {
+                    document.querySelectorAll('.thai-address-suggestions').forEach(container => {
+                        container.classList.remove('is-active');
+                    });
+                }
+            });
         }
-    </script>
-</body>
 
-</html>
+        // Initialize Thai address autocomplete
+        initThaiAddressAutocomplete();
+
+        // Re-initialize when new address is added
+        const originalAddAddress = addAddressButton?.addEventListener;
+        if (addAddressButton) {
+            const addButton = addAddressButton;
+            addButton.addEventListener('click', () => {
+                setTimeout(initThaiAddressAutocomplete, 100);
+            });
+        }
+
+        // Form Validation before Submit
+        const registrationForm = document.querySelector('form[action*="register"]');
+        if (registrationForm) {
+            registrationForm.addEventListener('submit', function (e) {
+                let isValid = true;
+                let errorMessages = [];
+
+                // Validate Full Name (Thai OR English required)
+                const fullNameTh = document.getElementById('full-name-th');
+                const fullNameEn = document.getElementById('full-name-en');
+                if (fullNameTh && fullNameEn) {
+                    if (!fullNameTh.value.trim() && !fullNameEn.value.trim()) {
+                        isValid = false;
+                        errorMessages.push('{{ texts.get("error_name_required", "กรุณากรอกชื่อภาษาไทย หรือ ภาษาอังกฤษ อย่างน้อย 1 ภาษา" if current_lang == "th" else "Please enter name in Thai or English (at least one required)") }}');
+                        fullNameTh.classList.add('field-error');
+                        fullNameEn.classList.add('field-error');
+                    } else {
+                        fullNameTh.classList.remove('field-error');
+                        fullNameEn.classList.remove('field-error');
+                    }
+                }
+
+                // Validate Address (at least 1 address required)
+                const addressEntries = document.querySelectorAll('.address-entry');
+                if (addressEntries.length === 0) {
+                    isValid = false;
+                    errorMessages.push('{{ texts.get("error_address_required", "กรุณากรอกที่อยู่อย่างน้อย 1 ที่อยู่" if current_lang == "th" else "Please add at least one address") }}');
+                } else {
+                    // Check if at least one address has some data
+                    let hasValidAddress = false;
+                    addressEntries.forEach(entry => {
+                        const inputs = entry.querySelectorAll('input[type="text"]');
+                        const hasData = Array.from(inputs).some(input => input.value.trim() !== '');
+                        if (hasData) hasValidAddress = true;
+                    });
+                    if (!hasValidAddress) {
+                        isValid = false;
+                        errorMessages.push('{{ texts.get("error_address_data_required", "กรุณากรอกข้อมูลที่อยู่อย่างน้อย 1 ที่อยู่" if current_lang == "th" else "Please fill in at least one address") }}');
+                    }
+                }
+
+                if (!isValid) {
+                    e.preventDefault();
+                    alert(errorMessages.join('\n'));
+                    // Scroll to first error
+                    const firstError = document.querySelector('.field-error');
+                    if (firstError) {
+                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    return false;
+                }
+            });
+        }
+    });
+
+    // Google Sign-in Callback
+    function handleCredentialResponse(response) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = "{{ url_for('continuing_edu.google_signup_callback', lang=current_lang) }}";
+
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = "{{ csrf_token() }}";
+
+        const credentialInput = document.createElement('input');
+        credentialInput.type = 'hidden';
+        credentialInput.name = 'credential';
+        credentialInput.value = response.credential;
+
+        form.appendChild(csrfInput);
+        form.appendChild(credentialInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+{% endblock %}

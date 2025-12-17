@@ -1,177 +1,171 @@
-<!DOCTYPE html>
-<html lang="{{ current_lang }}">
+{% extends "continueing_edu/base_frontend.html" %}
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ texts.my_registrations_page_title }}</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
-</head>
+{% block title %}{{ texts.my_registrations_page_title }}{% endblock %}
 
-<body class="has-text-gray-800">
-  <section class="section">
-    <div class="container">
-      <h1 class="title is-3">{{ texts.my_registrations_page_title }}</h1>
-      {% set TH = (current_lang == 'th') %}
-      {% if registrations %}
-      <table class="table is-fullwidth is-striped">
-        <thead>
-          <tr>
-            <th>{{ texts.label_event }}</th>
-            <th>{{ texts.label_type }}</th>
-            <th>{{ texts.label_registered_at }}</th>
-            <th>{{ texts.label_payment }}</th>
-            <th>{{ texts.label_progress }}</th>
-            <th>{{ texts.label_actions }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in registrations %}
-          <tr>
-            {% set entity = r.event_entity %}
-            {% set event_title = entity.title_th if TH and entity and entity.title_th else (entity.title_en if entity
-            and entity.title_en else (entity.title_th if entity and entity.title_th else texts.label_none)) %}
-            <td>{{ event_title }}</td>
-            {% set event_type = entity.event_type if entity else '' %}
-            {% set event_type_key = 'event_type_' + (event_type or '') %}
-            <td>{{ texts.get(event_type_key, event_type|title) }}</td>
-            <td>{{ r.registration_date }}</td>
-            <td>
-              {% set pay = payments_map.get(r.event_entity.id) %}
-              {% if pay %}
-              <div>
-                <span class="tag is-light">{{ pay.payment_status_ref.name_th if TH and pay.payment_status_ref and
-                  pay.payment_status_ref.name_th else (pay.payment_status_ref.name_en if pay.payment_status_ref else
-                  texts.label_none) }}</span>
-              </div>
-              <div>
-                {{ texts.label_amount }}: {{ '%.2f'|format(pay.payment_amount or 0) }} {{ texts.currency_thb }}
-              </div>
-              <div>
-                {{ texts.label_proof }}:
-                {% if pay.payment_proof_url %}
-                <button class="button is-small is-light" type="button"
-                  onclick="openProofModal('{{ pay.proof_presigned_url()|e }}')">{{ texts.button_view }}</button>
-                {% else %}
-                <em>{{ texts.label_none }}</em>
-                {% endif %}
-              </div>
+{% block content %}
+<section class="section">
+  <div class="container">
+    <h1 class="title is-3">{{ texts.my_registrations_page_title }}</h1>
+    {% set TH = (current_lang == 'th') %}
+    {% if registrations %}
+    <table class="table is-fullwidth is-striped">
+      <thead>
+        <tr>
+          <th>{{ texts.label_event }}</th>
+          <th>{{ texts.label_type }}</th>
+          <th>{{ texts.label_registered_at }}</th>
+          <th>{{ texts.label_payment }}</th>
+          <th>{{ texts.label_progress }}</th>
+          <th>{{ texts.label_actions }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in registrations %}
+        <tr>
+          {% set entity = r.event_entity %}
+          {% set event_title = entity.title_th if TH and entity and entity.title_th else (entity.title_en if entity
+          and entity.title_en else (entity.title_th if entity and entity.title_th else texts.label_none)) %}
+          <td>{{ event_title }}</td>
+          {% set event_type = entity.event_type if entity else '' %}
+          {% set event_type_key = 'event_type_' + (event_type or '') %}
+          <td>{{ texts.get(event_type_key, event_type|title) }}</td>
+          <td>{{ r.registration_date }}</td>
+          <td>
+            {% set pay = payments_map.get(r.event_entity.id) %}
+            {% if pay %}
+            <div>
+              <span class="tag is-light">{{ pay.payment_status_ref.name_th if TH and pay.payment_status_ref and
+                pay.payment_status_ref.name_th else (pay.payment_status_ref.name_en if pay.payment_status_ref else
+                texts.label_none) }}</span>
+            </div>
+            <div>
+              {{ texts.label_amount }}: {{ '%.2f'|format(pay.payment_amount or 0) }} {{ texts.currency_thb }}
+            </div>
+            <div>
+              {{ texts.label_proof }}:
+              {% if pay.payment_proof_url %}
+              <button class="button is-small is-light" type="button"
+                onclick="openProofModal('{{ pay.proof_presigned_url()|e }}')">{{ texts.button_view }}</button>
+              {% else %}
+              <em>{{ texts.label_none }}</em>
+              {% endif %}
+            </div>
+            <form method="post"
+              action="{{ url_for('continuing_edu.submit_payment_proof', payment_id=pay.id, lang=current_lang) }}"
+              class="is-flex" style="margin-top:6px;">
+              <input class="input" type="url" name="payment_proof_url" placeholder="https://..."
+                style="max-width:260px;margin-right:8px;">
+              <button class="button is-small is-link" type="submit">{{ texts.button_replace_url if
+                pay.payment_proof_url else texts.button_submit_url }}</button>
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            </form>
+            {% else %}
+            <em>{{ texts.label_no_payment_record }}</em>
+            {% endif %}
+          </td>
+          <td>
+            <div>{{ texts.label_started_at }}: {{ r.started_at or '-' }}</div>
+            <div>{{ texts.label_completed_at }}: {{ r.completed_at or '-' }}</div>
+            {% set approved = (pay and pay.payment_status_ref and pay.payment_status_ref.name_en=='approved') %}
+            <div class="buttons mt-2">
+              {% if approved and not r.started_at %}
               <form method="post"
-                action="{{ url_for('continuing_edu.submit_payment_proof', payment_id=pay.id, lang=current_lang) }}"
-                class="is-flex" style="margin-top:6px;">
-                <input class="input" type="url" name="payment_proof_url" placeholder="https://..."
-                  style="max-width:260px;margin-right:8px;">
-                <button class="button is-small is-link" type="submit">{{ texts.button_replace_url if
-                  pay.payment_proof_url else texts.button_submit_url }}</button>
+                action="{{ url_for('continuing_edu.start_progress', event_id=r.event_entity.id, lang=current_lang) }}">
+                <button class="button is-small" type="submit">{{ texts.button_start }}</button>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               </form>
-              {% else %}
-              <em>{{ texts.label_no_payment_record }}</em>
               {% endif %}
-            </td>
-            <td>
-              <div>{{ texts.label_started_at }}: {{ r.started_at or '-' }}</div>
-              <div>{{ texts.label_completed_at }}: {{ r.completed_at or '-' }}</div>
-              {% set approved = (pay and pay.payment_status_ref and pay.payment_status_ref.name_en=='approved') %}
-              <div class="buttons mt-2">
-                {% if approved and not r.started_at %}
-                <form method="post"
-                  action="{{ url_for('continuing_edu.start_progress', event_id=r.event_entity.id, lang=current_lang) }}">
-                  <button class="button is-small" type="submit">{{ texts.button_start }}</button>
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                </form>
-                {% endif %}
-                {% if approved and r.started_at and not r.completed_at %}
-                <form method="post"
-                  action="{{ url_for('continuing_edu.complete_progress', event_id=r.event_entity.id, lang=current_lang) }}">
-                  <input type="hidden" name="passed" value="1">
-                  <button class="button is-small is-link" type="submit">{{ texts.button_complete }}</button>
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                </form>
-                {% endif %}
-                {% if r.certificate_url %}
-                <a class="button is-small is-success is-light"
-                  href="{{ url_for('continuing_edu.certificate_view', reg_id=r.id, lang=current_lang) }}">{{
-                  texts.button_view_certificate }}</a>
-                <a class="button is-small"
-                  href="{{ url_for('continuing_edu.certificate_pdf', reg_id=r.id, lang=current_lang) }}">{{
-                  texts.button_download_pdf }}</a>
-                {% endif %}
-              </div>
-            </td>
-            <td>
-              {% if r.event_entity.event_type == 'course' %}
-              <a class="button is-small is-link"
-                href="{{ url_for('continuing_edu.course_detail', course_id=r.event_entity.id, lang=current_lang) }}">{{
-                texts.button_view }}</a>
-              {% else %}
-              <a class="button is-small is-link"
-                href="{{ url_for('continuing_edu.webinar_detail', webinar_id=r.event_entity.id, lang=current_lang) }}">{{
-                texts.button_view }}</a>
+              {% if approved and r.started_at and not r.completed_at %}
+              <form method="post"
+                action="{{ url_for('continuing_edu.complete_progress', event_id=r.event_entity.id, lang=current_lang) }}">
+                <input type="hidden" name="passed" value="1">
+                <button class="button is-small is-link" type="submit">{{ texts.button_complete }}</button>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              </form>
               {% endif %}
               {% if r.certificate_url %}
-              <a class="button is-small is-light" href="{{ r.certificate_presigned_url() }}" target="_blank">{{
+              <a class="button is-small is-success is-light"
+                href="{{ url_for('continuing_edu.certificate_view', reg_id=r.id, lang=current_lang) }}">{{
                 texts.button_view_certificate }}</a>
-              {% else %}
               <a class="button is-small"
                 href="{{ url_for('continuing_edu.certificate_pdf', reg_id=r.id, lang=current_lang) }}">{{
-                texts.button_generate_certificate }}</a>
+                texts.button_download_pdf }}</a>
               {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <p>{{ texts.message_no_registrations }}</p>
-      {% endif %}
-      <a class="button" href="{{ url_for('continuing_edu.index', lang=current_lang) }}">{{ texts.button_back_home }}</a>
-    </div>
-  </section>
-
-  <!-- Proof Modal -->
-  <div id="proof-modal" class="modal">
-    <div class="modal-background" onclick="closeProofModal()"></div>
-    <div class="modal-content">
-      <div class="box">
-        <div id="proof-container" class="content" style="text-align:center"></div>
-      </div>
-    </div>
-    <button class="modal-close is-large" aria-label="close" onclick="closeProofModal()"></button>
+            </div>
+          </td>
+          <td>
+            {% if r.event_entity.event_type == 'course' %}
+            <a class="button is-small is-link"
+              href="{{ url_for('continuing_edu.course_detail', course_id=r.event_entity.id, lang=current_lang) }}">{{
+              texts.button_view }}</a>
+            {% else %}
+            <a class="button is-small is-link"
+              href="{{ url_for('continuing_edu.webinar_detail', webinar_id=r.event_entity.id, lang=current_lang) }}">{{
+              texts.button_view }}</a>
+            {% endif %}
+            {% if r.certificate_url %}
+            <a class="button is-small is-light" href="{{ r.certificate_presigned_url() }}" target="_blank">{{
+              texts.button_view_certificate }}</a>
+            {% else %}
+            <a class="button is-small"
+              href="{{ url_for('continuing_edu.certificate_pdf', reg_id=r.id, lang=current_lang) }}">{{
+              texts.button_generate_certificate }}</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>{{ texts.message_no_registrations }}</p>
+    {% endif %}
+    <a class="button" href="{{ url_for('continuing_edu.index', lang=current_lang) }}">{{ texts.button_back_home }}</a>
   </div>
+</section>
 
-  <script>
-    function isImageUrl(url) {
-      return /\.(png|jpg|jpeg|gif|webp|svg)(\?.*)?$/i.test(url);
-    }
-    function openProofModal(url) {
-      var modal = document.getElementById('proof-modal');
-      var container = document.getElementById('proof-container');
-      container.innerHTML = '';
-      if (isImageUrl(url)) {
-        var img = document.createElement('img');
-        img.src = url;
-        img.alt = '{{ texts.label_proof }}';
-        img.style.maxWidth = '100%';
-        img.style.maxHeight = '70vh';
-        container.appendChild(img);
-      } else {
-        var iframe = document.createElement('iframe');
-        iframe.src = url;
-        iframe.style.width = '100%';
-        iframe.style.height = '70vh';
-        iframe.setAttribute('frameborder', '0');
-        container.appendChild(iframe);
-      }
-      modal.classList.add('is-active');
-    }
-    function closeProofModal() {
-      var modal = document.getElementById('proof-modal');
-      var container = document.getElementById('proof-container');
-      modal.classList.remove('is-active');
-      container.innerHTML = '';
-    }
-  </script>
-</body>
+<!-- Proof Modal -->
+<div id="proof-modal" class="modal">
+  <div class="modal-background" onclick="closeProofModal()"></div>
+  <div class="modal-content">
+    <div class="box">
+      <div id="proof-container" class="content" style="text-align:center"></div>
+    </div>
+  </div>
+  <button class="modal-close is-large" aria-label="close" onclick="closeProofModal()"></button>
+</div>
+{% endblock %}
 
-</html>
+{% block extra_js %}
+<script>
+  function isImageUrl(url) {
+    return /\.(png|jpg|jpeg|gif|webp|svg)(\?.*)?$/i.test(url);
+  }
+  function openProofModal(url) {
+    var modal = document.getElementById('proof-modal');
+    var container = document.getElementById('proof-container');
+    container.innerHTML = '';
+    if (isImageUrl(url)) {
+      var img = document.createElement('img');
+      img.src = url;
+      img.alt = '{{ texts.label_proof }}';
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '70vh';
+      container.appendChild(img);
+    } else {
+      var iframe = document.createElement('iframe');
+      iframe.src = url;
+      iframe.style.width = '100%';
+      iframe.style.height = '70vh';
+      iframe.setAttribute('frameborder', '0');
+      container.appendChild(iframe);
+    }
+    modal.classList.add('is-active');
+  }
+  function closeProofModal() {
+    var modal = document.getElementById('proof-modal');
+    var container = document.getElementById('proof-container');
+    modal.classList.remove('is-active');
+    container.innerHTML = '';
+  }
+</script>
+{% endblock %}

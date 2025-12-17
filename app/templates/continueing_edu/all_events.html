@@ -1,11 +1,21 @@
-<h1>All Events</h1>
-<ul>
-  {% for event in events %}
-  <li>
-    {{ event.title_en }} ({{ event.event_type }})
-    {% if registered_ids and event.id in registered_ids %}
-      <span class="tag is-success is-light">Registered</span>
-    {% endif %}
-  </li>
-  {% endfor %}
-</ul>
+{% extends "continueing_edu/base_frontend.html" %}
+
+{% block title %}All Events{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <h1 class="title">All Events</h1>
+    <ul>
+      {% for event in events %}
+      <li>
+        {{ event.title_en }} ({{ event.event_type }})
+        {% if registered_ids and event.id in registered_ids %}
+        <span class="tag is-success is-light">Registered</span>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endblock %}

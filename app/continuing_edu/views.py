@@ -1491,6 +1491,8 @@ def register_event(event_id):
     texts = tr.get(lang, tr['en'])
     event = EventEntity.query.get_or_404(event_id)
     member = get_current_user()
+
+    print(f"Registering for event ID: {event_id}, Member ID: {member.id if member else 'None'}")
     
     # Redirect to login if not authenticated
     if not member:
@@ -1511,6 +1513,7 @@ def register_event(event_id):
 
     # Check if early bird is active
     is_early_bird = is_early_bird_active(event)
+
     
     # Show confirmation page
     return render_template('continueing_edu/registration_confirmation.html', 

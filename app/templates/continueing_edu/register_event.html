@@ -1,49 +1,45 @@
-<!DOCTYPE html>
-<html lang="{{ current_lang }}">
+{% extends "continueing_edu/base_frontend.html" %}
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ texts.university_name }} - {{ texts.register_page_title }}</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
-</head>
+{% block title %}{{ texts.university_name }} - {{ texts.register_page_title }}{% endblock %}
 
-<body>
-  <section class="section">
-    <div class="container">
-      <nav class="breadcrumb" aria-label="breadcrumbs">
-        <ul>
-          <li><a href="{{ url_for('continuing_edu.index', lang=current_lang) }}">{{ texts.university_name }}</a></li>
-          <li class="is-active"><a href="#" aria-current="page">{{ texts.registration_fee_label }}</a></li>
-        </ul>
-      </nav>
-      {% set TH = (current_lang == 'th') %}
-      {% set event_title = event.title_th if TH and event and event.title_th else (event.title_en if event and event.title_en else (event.title_th if event and event.title_th else texts.label_none)) %}
-      <h1 class="title is-3">{{ texts.register_for_label }} {{ event_title }}</h1>
-      <div class="box">
-        <p><strong>{{ texts.label_member }}:</strong> {{ member.username }} ({{ member.email }})</p>
-        {% set member_type = fee.member_type_ref %}
-        {% set member_type_name = member_type.name_th if TH and member_type and member_type.name_th else (member_type.name_en if member_type and member_type.name_en else texts.label_none) %}
-        <p><strong>{{ texts.member_type_label }}:</strong> {{ member_type_name }}</p>
-        <p>
-          <strong>{{ texts.label_fee }}:</strong>
-          {% if fee.early_bird_price is not none and (event.early_bird_start or event.early_bird_end) %}
-          {% set eb_active = True %}
-          <span style="text-decoration:line-through;">{{ '%.2f'|format(fee.price) }} {{ texts.currency_thb }}</span>
-          <span class="tag is-success is-light">{{ '%.2f'|format(price) }} {{ texts.currency_thb }} ({{ texts.label_early_bird }})</span>
-          {% else %}
-          {{ '%.2f'|format(price) }} {{ texts.currency_thb }}
-          {% endif %}
-        </p>
-      </div>
-      <form method="post">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-        <button class="button is-primary" type="submit">{{ texts.button_confirm_registration }}</button>
-        <a class="button"
-          href="{{ url_for('continuing_edu.course_detail' if event.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event.id if event.event_type=='course' else None, webinar_id=event.id if event.event_type=='webinar' else None, lang=current_lang) }}">{{ texts.button_cancel }}</a>
-      </form>
+{% block content %}
+<section class="section">
+  <div class="container">
+    <nav class="breadcrumb" aria-label="breadcrumbs">
+      <ul>
+        <li><a href="{{ url_for('continuing_edu.index', lang=current_lang) }}">{{ texts.university_name }}</a></li>
+        <li class="is-active"><a href="#" aria-current="page">{{ texts.registration_fee_label }}</a></li>
+      </ul>
+    </nav>
+    {% set TH = (current_lang == 'th') %}
+    {% set event_title = event.title_th if TH and event and event.title_th else (event.title_en if event and
+    event.title_en else (event.title_th if event and event.title_th else texts.label_none)) %}
+    <h1 class="title is-3">{{ texts.register_for_label }} {{ event_title }}</h1>
+    <div class="box">
+      <p><strong>{{ texts.label_member }}:</strong> {{ member.username }} ({{ member.email }})</p>
+      {% set member_type = fee.member_type_ref %}
+      {% set member_type_name = member_type.name_th if TH and member_type and member_type.name_th else
+      (member_type.name_en if member_type and member_type.name_en else texts.label_none) %}
+      <p><strong>{{ texts.member_type_label }}:</strong> {{ member_type_name }}</p>
+      <p>
+        <strong>{{ texts.label_fee }}:</strong>
+        {% if fee.early_bird_price is not none and (event.early_bird_start or event.early_bird_end) %}
+        {% set eb_active = True %}
+        <span style="text-decoration:line-through;">{{ '%.2f'|format(fee.price) }} {{ texts.currency_thb }}</span>
+        <span class="tag is-success is-light">{{ '%.2f'|format(price) }} {{ texts.currency_thb }} ({{
+          texts.label_early_bird }})</span>
+        {% else %}
+        {{ '%.2f'|format(price) }} {{ texts.currency_thb }}
+        {% endif %}
+      </p>
     </div>
-  </section>
-</body>
-
-</html>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button class="button is-primary" type="submit">{{ texts.button_confirm_registration }}</button>
+      <a class="button"
+        href="{{ url_for('continuing_edu.course_detail' if event.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event.id if event.event_type=='course' else None, webinar_id=event.id if event.event_type=='webinar' else None, lang=current_lang) }}">{{
+        texts.button_cancel }}</a>
+    </form>
+  </div>
+</section>
+{% endblock %}

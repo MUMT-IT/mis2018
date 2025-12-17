@@ -1,10 +1,8 @@
-version: "3.4"
 services:
   nginx:
     build: ./nginx
     ports:
-      - 1337:80
-      - 80:80
+      - 3331:80
     depends_on:
       - web
   traefik:
@@ -14,9 +12,9 @@ services:
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./traefik/acme:/etc/traefik/acme
     ports:
-      - "80:80"
-      - "443:443"
-      - "8080:8080"
+      - "3332:80"
+      - "3333:443"
+      - "3334:8080"
   web:
     build: .
     depends_on:
@@ -24,7 +22,7 @@ services:
     env_file:
       - web_variables.env
     ports:
-      - 5000
+      - "3330:5000"
     labels:
       - "traefik.enable=true"
       - "traefik.frontend.rule=Host:web-docker.localhost"
@@ -40,11 +38,12 @@ services:
   pg:
     image: postgres:11
     environment:
-      - POSTGRES_PASSWORD
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=mis2018
     volumes:
       - misdata:/var/lib/postgresql/data
     ports:
-      - "5443:5432"
+      - "3335:5432"
 
 volumes:
   misdata:

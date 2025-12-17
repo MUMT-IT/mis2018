@@ -1,8 +1,10 @@
-{% extends "continueing_edu/base.html" %}
+{% extends "continueing_edu/base_frontend.html" %}
 
-{% block title %}{{ texts.get('complete_profile_title', 'กรอกข้อมูลส่วนตัว' if current_lang == 'th' else 'Complete Your Profile') }} - {{ texts.university_name }}{% endblock %}
+{% block title %}{{ texts.get('complete_profile_title', 'กรอกข้อมูลส่วนตัว' if current_lang == 'th' else 'Complete Your
+Profile') }}{% endblock %}
 
-{% block head %}
+{% block extra_css %}
+{{ super() }}
 <style>
     /* Reuse modern design system from register_modern.html */
     :root {
@@ -222,6 +224,7 @@
             opacity: 0;
             transform: translateY(20px);
         }
+
         to {
             opacity: 1;
             transform: translateY(0);
@@ -236,7 +239,7 @@
         .hero-title {
             font-size: 1.75rem;
         }
-        
+
         .modern-card {
             padding: 1.5rem;
         }
@@ -253,30 +256,36 @@
     <div class="hero-content">
         <div class="welcome-badge">
             <i class="fas fa-user-check"></i>
-            <span>{{ texts.get('welcome', 'ยินดีต้อนรับ' if current_lang == 'th' else 'Welcome') }}, {{ member.full_name_en or member.username }}!</span>
+            <span>{{ texts.get('welcome', 'ยินดีต้อนรับ' if current_lang == 'th' else 'Welcome') }}, {{
+                member.full_name_en or member.username }}!</span>
         </div>
-        <h1 class="hero-title">{{ texts.get('complete_profile_title', 'กรอกข้อมูลส่วนตัว' if current_lang == 'th' else 'Complete Your Profile') }}</h1>
+        <h1 class="hero-title">{{ texts.get('complete_profile_title', 'กรอกข้อมูลส่วนตัว' if current_lang == 'th' else
+            'Complete Your Profile') }}</h1>
         <p class="hero-subtitle">
-            {{ texts.get('complete_profile_subtitle', 'เพียงขั้นตอนสุดท้าย! กรุณากรอกข้อมูลเพื่อประสบการณ์ที่ดีขึ้น' if current_lang == 'th' else 'Just one more step! Please fill in your details for a better experience') }}
+            {{ texts.get('complete_profile_subtitle', 'เพียงขั้นตอนสุดท้าย! กรุณากรอกข้อมูลเพื่อประสบการณ์ที่ดีขึ้น' if
+            current_lang == 'th' else 'Just one more step! Please fill in your details for a better experience') }}
         </p>
-        
+
         <!-- Step Progress Indicator -->
         <div class="steps-indicator">
             <div class="step-item is-completed">
                 <div class="step-circle">
                     <i class="fas fa-check"></i>
                 </div>
-                <span class="step-label">{{ texts.get('step_account', 'สร้างบัญชี' if current_lang == 'th' else 'Create Account') }}</span>
+                <span class="step-label">{{ texts.get('step_account', 'สร้างบัญชี' if current_lang == 'th' else 'Create
+                    Account') }}</span>
             </div>
             <div class="step-connector"></div>
             <div class="step-item is-active">
                 <div class="step-circle">2</div>
-                <span class="step-label">{{ texts.get('step_profile', 'ข้อมูลส่วนตัว' if current_lang == 'th' else 'Profile Info') }}</span>
+                <span class="step-label">{{ texts.get('step_profile', 'ข้อมูลส่วนตัว' if current_lang == 'th' else
+                    'Profile Info') }}</span>
             </div>
             <div class="step-connector"></div>
             <div class="step-item">
                 <div class="step-circle">3</div>
-                <span class="step-label">{{ texts.get('step_complete', 'เสร็จสิ้น' if current_lang == 'th' else 'Complete') }}</span>
+                <span class="step-label">{{ texts.get('step_complete', 'เสร็จสิ้น' if current_lang == 'th' else
+                    'Complete') }}</span>
             </div>
         </div>
     </div>
@@ -304,7 +313,8 @@
 
                 <div class="card-title">
                     <i class="fas fa-user-circle"></i>
-                    {{ texts.get('personal_info', 'ข้อมูลส่วนตัว' if current_lang == 'th' else 'Personal Information') }}
+                    {{ texts.get('personal_info', 'ข้อมูลส่วนตัว' if current_lang == 'th' else 'Personal Information')
+                    }}
                 </div>
 
                 <!-- Basic Information -->
@@ -317,14 +327,18 @@
                     <div class="columns">
                         <div class="column is-4">
                             <div class="field">
-                                <label class="modern-label">{{ texts.get('member_type', 'ประเภทสมาชิก' if current_lang == 'th' else 'Member Type') }}</label>
+                                <label class="modern-label">{{ texts.get('member_type', 'ประเภทสมาชิก' if current_lang
+                                    == 'th' else 'Member Type') }}</label>
                                 <div class="control">
                                     <div class="select is-fullwidth">
                                         <select name="member_type_id" class="modern-input">
-                                            <option value="">{{ texts.get('select_member_type', '-- เลือกประเภท --' if current_lang == 'th' else '-- Select Type --') }}</option>
+                                            <option value="">{{ texts.get('select_member_type', '-- เลือกประเภท --' if
+                                                current_lang == 'th' else '-- Select Type --') }}</option>
                                             {% for member_type in member_types %}
-                                            <option value="{{ member_type.id }}" {% if member.member_type_id == member_type.id %}selected{% endif %}>
-                                                {{ member_type.name_th if current_lang == 'th' else member_type.name_en }}
+                                            <option value="{{ member_type.id }}" {% if
+                                                member.member_type_id==member_type.id %}selected{% endif %}>
+                                                {{ member_type.name_th if current_lang == 'th' else member_type.name_en
+                                                }}
                                             </option>
                                             {% endfor %}
                                         </select>
@@ -334,13 +348,16 @@
                         </div>
                         <div class="column is-4">
                             <div class="field">
-                                <label class="modern-label">{{ texts.get('gender', 'เพศ' if current_lang == 'th' else 'Gender') }}</label>
+                                <label class="modern-label">{{ texts.get('gender', 'เพศ' if current_lang == 'th' else
+                                    'Gender') }}</label>
                                 <div class="control">
                                     <div class="select is-fullwidth">
                                         <select name="gender_id" class="modern-input">
-                                            <option value="">{{ texts.get('select_gender', '-- เลือกเพศ --' if current_lang == 'th' else '-- Select Gender --') }}</option>
+                                            <option value="">{{ texts.get('select_gender', '-- เลือกเพศ --' if
+                                                current_lang == 'th' else '-- Select Gender --') }}</option>
                                             {% for gender in genders %}
-                                            <option value="{{ gender.id }}" {% if member.gender_id == gender.id %}selected{% endif %}>
+                                            <option value="{{ gender.id }}" {% if member.gender_id==gender.id
+                                                %}selected{% endif %}>
                                                 {{ gender.name_th if current_lang == 'th' else gender.name_en }}
                                             </option>
                                             {% endfor %}
@@ -351,13 +368,16 @@
                         </div>
                         <div class="column is-4">
                             <div class="field">
-                                <label class="modern-label">{{ texts.get('age_range', 'ช่วงอายุ' if current_lang == 'th' else 'Age Range') }}</label>
+                                <label class="modern-label">{{ texts.get('age_range', 'ช่วงอายุ' if current_lang == 'th'
+                                    else 'Age Range') }}</label>
                                 <div class="control">
                                     <div class="select is-fullwidth">
                                         <select name="age_range_id" class="modern-input">
-                                            <option value="">{{ texts.get('select_age', '-- เลือกอายุ --' if current_lang == 'th' else '-- Select Age --') }}</option>
+                                            <option value="">{{ texts.get('select_age', '-- เลือกอายุ --' if
+                                                current_lang == 'th' else '-- Select Age --') }}</option>
                                             {% for age_range in age_ranges %}
-                                            <option value="{{ age_range.id }}" {% if member.age_range_id == age_range.id %}selected{% endif %}>
+                                            <option value="{{ age_range.id }}" {% if member.age_range_id==age_range.id
+                                                %}selected{% endif %}>
                                                 {{ age_range.name_th if current_lang == 'th' else age_range.name_en }}
                                             </option>
                                             {% endfor %}
@@ -369,11 +389,12 @@
                     </div>
 
                     <div class="field">
-                        <label class="modern-label">{{ texts.get('full_name_th', 'ชื่อ-นามสกุล (ภาษาไทย)' if current_lang == 'th' else 'Full Name (Thai)') }}</label>
+                        <label class="modern-label">{{ texts.get('full_name_th', 'ชื่อ-นามสกุล (ภาษาไทย)' if
+                            current_lang == 'th' else 'Full Name (Thai)') }}</label>
                         <div class="control">
-                            <input class="input modern-input" type="text" name="full_name_th" 
-                                   value="{{ member.full_name_th or '' }}"
-                                   placeholder="{{ texts.get('full_name_th_placeholder', 'นายสมชาย ใจดี' if current_lang == 'th' else 'Thai full name') }}">
+                            <input class="input modern-input" type="text" name="full_name_th"
+                                value="{{ member.full_name_th or '' }}"
+                                placeholder="{{ texts.get('full_name_th_placeholder', 'นายสมชาย ใจดี' if current_lang == 'th' else 'Thai full name') }}">
                         </div>
                     </div>
 
@@ -383,9 +404,9 @@
                             {{ texts.get('phone', 'เบอร์โทรศัพท์' if current_lang == 'th' else 'Phone Number') }}
                         </label>
                         <div class="control">
-                            <input class="input modern-input" type="tel" name="phone_no" 
-                                   value="{{ member.phone_no or '' }}"
-                                   placeholder="{{ texts.get('phone_placeholder', '0812345678') }}">
+                            <input class="input modern-input" type="tel" name="phone_no"
+                                value="{{ member.phone_no or '' }}"
+                                placeholder="{{ texts.get('phone_placeholder', '0812345678') }}">
                         </div>
                     </div>
                 </div>
@@ -400,13 +421,16 @@
                     <div class="columns">
                         <div class="column is-6">
                             <div class="field">
-                                <label class="modern-label">{{ texts.get('organization', 'องค์กร' if current_lang == 'th' else 'Organization') }}</label>
+                                <label class="modern-label">{{ texts.get('organization', 'องค์กร' if current_lang ==
+                                    'th' else 'Organization') }}</label>
                                 <div class="control">
                                     <div class="select is-fullwidth">
                                         <select name="organization_id" class="modern-input">
-                                            <option value="">{{ texts.get('select_organization', '-- เลือกองค์กร --' if current_lang == 'th' else '-- Select Organization --') }}</option>
+                                            <option value="">{{ texts.get('select_organization', '-- เลือกองค์กร --' if
+                                                current_lang == 'th' else '-- Select Organization --') }}</option>
                                             {% for org in organizations %}
-                                            <option value="{{ org.id }}" {% if member.organization_id == org.id %}selected{% endif %}>
+                                            <option value="{{ org.id }}" {% if member.organization_id==org.id
+                                                %}selected{% endif %}>
                                                 {{ org.name }}
                                             </option>
                                             {% endfor %}
@@ -417,13 +441,16 @@
                         </div>
                         <div class="column is-6">
                             <div class="field">
-                                <label class="modern-label">{{ texts.get('occupation', 'อาชีพ' if current_lang == 'th' else 'Occupation') }}</label>
+                                <label class="modern-label">{{ texts.get('occupation', 'อาชีพ' if current_lang == 'th'
+                                    else 'Occupation') }}</label>
                                 <div class="control">
                                     <div class="select is-fullwidth">
                                         <select name="occupation_id" class="modern-input">
-                                            <option value="">{{ texts.get('select_occupation', '-- เลือกอาชีพ --' if current_lang == 'th' else '-- Select Occupation --') }}</option>
+                                            <option value="">{{ texts.get('select_occupation', '-- เลือกอาชีพ --' if
+                                                current_lang == 'th' else '-- Select Occupation --') }}</option>
                                             {% for occupation in occupations %}
-                                            <option value="{{ occupation.id }}" {% if member.occupation_id == occupation.id %}selected{% endif %}>
+                                            <option value="{{ occupation.id }}" {% if
+                                                member.occupation_id==occupation.id %}selected{% endif %}>
                                                 {{ occupation.name_th if current_lang == 'th' else occupation.name_en }}
                                             </option>
                                             {% endfor %}
@@ -446,39 +473,43 @@
                     </div>
 
                     <div class="field">
-                        <label class="modern-label">{{ texts.get('address_line1', 'ที่อยู่' if current_lang == 'th' else 'Address Line 1') }}</label>
+                        <label class="modern-label">{{ texts.get('address_line1', 'ที่อยู่' if current_lang == 'th' else
+                            'Address Line 1') }}</label>
                         <div class="control">
-                            <input class="input modern-input" type="text" name="address_line1" 
-                                   value="{{ member.address or '' }}">
+                            <input class="input modern-input" type="text" name="address_line1"
+                                value="{{ member.address or '' }}">
                         </div>
                     </div>
 
                     <div class="columns">
                         <div class="column is-6">
                             <div class="field">
-                                <label class="modern-label">{{ texts.get('province', 'จังหวัด' if current_lang == 'th' else 'Province/State') }}</label>
+                                <label class="modern-label">{{ texts.get('province', 'จังหวัด' if current_lang == 'th'
+                                    else 'Province/State') }}</label>
                                 <div class="control">
-                                    <input class="input modern-input" type="text" name="address_province" 
-                                           value="{{ member.province or '' }}">
+                                    <input class="input modern-input" type="text" name="address_province"
+                                        value="{{ member.province or '' }}">
                                 </div>
                             </div>
                         </div>
                         <div class="column is-6">
                             <div class="field">
-                                <label class="modern-label">{{ texts.get('zipcode', 'รหัสไปรษณีย์' if current_lang == 'th' else 'Postal Code') }}</label>
+                                <label class="modern-label">{{ texts.get('zipcode', 'รหัสไปรษณีย์' if current_lang ==
+                                    'th' else 'Postal Code') }}</label>
                                 <div class="control">
-                                    <input class="input modern-input" type="text" name="address_zipcode" 
-                                           value="{{ member.zip_code or '' }}">
+                                    <input class="input modern-input" type="text" name="address_zipcode"
+                                        value="{{ member.zip_code or '' }}">
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="field">
-                        <label class="modern-label">{{ texts.get('country', 'ประเทศ' if current_lang == 'th' else 'Country') }}</label>
+                        <label class="modern-label">{{ texts.get('country', 'ประเทศ' if current_lang == 'th' else
+                            'Country') }}</label>
                         <div class="control">
-                            <input class="input modern-input" type="text" name="country" 
-                                   value="{{ member.country or 'Thailand' }}">
+                            <input class="input modern-input" type="text" name="country"
+                                value="{{ member.country or 'Thailand' }}">
                         </div>
                     </div>
                 </div>
@@ -488,13 +519,15 @@
                     <div class="control">
                         <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}" class="btn-secondary">
                             <i class="fas fa-times"></i>
-                            <span>{{ texts.get('skip', 'ข้ามไปก่อน' if current_lang == 'th' else 'Skip for Now') }}</span>
+                            <span>{{ texts.get('skip', 'ข้ามไปก่อน' if current_lang == 'th' else 'Skip for Now')
+                                }}</span>
                         </a>
                     </div>
                     <div class="control">
                         <button class="btn-primary" type="submit">
                             <i class="fas fa-check-circle"></i>
-                            <span>{{ texts.get('save_continue', 'บันทึกและดำเนินการต่อ' if current_lang == 'th' else 'Save & Continue') }}</span>
+                            <span>{{ texts.get('save_continue', 'บันทึกและดำเนินการต่อ' if current_lang == 'th' else
+                                'Save & Continue') }}</span>
                         </button>
                     </div>
                 </div>
@@ -502,15 +535,18 @@
         </div>
     </div>
 </section>
+{% endblock %}
 
+{% block extra_js %}
+{{ super() }}
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    // Close notifications
-    document.querySelectorAll('.notification .delete').forEach(($delete) => {
-        $delete.addEventListener('click', () => {
-            $delete.parentNode.remove();
+    document.addEventListener('DOMContentLoaded', () => {
+        // Close notifications
+        document.querySelectorAll('.notification .delete').forEach(($delete) => {
+            $delete.addEventListener('click', () => {
+                $delete.parentNode.remove();
+            });
         });
     });
-});
 </script>
 {% endblock %}

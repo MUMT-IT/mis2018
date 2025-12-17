@@ -1,704 +1,653 @@
-{% extends "continueing_edu/base.html" %}
+{% extends "continueing_edu/base_frontend.html" %}
 
-{% block title %}{{ texts.get('confirm_registration', 'ยืนยันการลงทะเบียน' if current_lang == 'th' else 'Confirm
-Registration') }}{% endblock %}
+{% block title %}{{ texts.get('university_name', 'มหาวิทยาลัยมหิดล') }} - Registration Confirmation{% endblock %}
 
-{% block head %}
+{% block extra_css %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <style>
-          /* Modern Gradient Background */
-          .registration-hero {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    padding: 3rem 0;
-                    position: relative;
-                    overflow: hidden;
+          body {
+                    font-family: 'Inter', sans-serif;
+                    background-color: #f8fafc;
           }
 
-          .registration-hero::before {
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-                    opacity: 0.3;
+          .rounded-lg {
+                    border-radius: 0.5rem;
           }
 
-          .hero-content {
-                    position: relative;
-                    z-index: 1;
+          .shadow-sm {
+                    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+          }
+
+          .shadow-lg {
+                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+          }
+
+          .has-text-gray-600 {
+                    color: #4b5563;
+          }
+
+          .has-text-gray-800 {
+                    color: #1f2937;
+          }
+
+          .has-background-indigo-700 {
+                    background-color: #4338ca;
+          }
+
+          .hover\:has-background-indigo-800:hover {
+                    background-color: #3730a3;
+          }
+
+          .university-logo {
+                    max-height: 2.5rem;
+                    margin-right: 0.5rem;
+                    width: auto;
+          }
+
+          .language-button {
+                    margin-left: 0.5rem;
+                    min-width: 40px;
                     text-align: center;
           }
 
-          .hero-title {
-                    font-size: 2.5rem;
+          .language-button.is-active {
+                    background-color: #4338ca;
+                    color: white;
+                    border-color: #4338ca;
+          }
+
+          .language-button:not(.is-active) {
+                    background-color: #e0e7ff;
+                    color: #4338ca;
+                    border-color: #e0e7ff;
+          }
+
+          /* Page Title */
+          .page-title {
+                    font-size: 2rem;
                     font-weight: 700;
-                    color: white;
-                    margin-bottom: 0.5rem;
-                    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    color: #1f2937;
+                    margin-bottom: 2rem;
+                    padding-bottom: 1rem;
+                    border-bottom: 2px solid #e5e7eb;
           }
 
-          .hero-subtitle {
-                    color: rgba(255, 255, 255, 0.9);
-                    font-size: 1.1rem;
-          }
-
-          /* Glass-morphism Cards */
-          .modern-card {
-                    background: rgba(255, 255, 255, 0.95);
-                    backdrop-filter: blur(10px);
-                    border-radius: 16px;
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-                    transition: transform 0.3s ease, box-shadow 0.3s ease;
-                    overflow: hidden;
-          }
-
-          .modern-card:hover {
-                    transform: translateY(-4px);
-                    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
-          }
-
-          .card-header-modern {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          /* Course Info Card */
+          .info-card {
+                    background: white;
+                    border-radius: 0.5rem;
                     padding: 1.5rem;
-                    border: none;
+                    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+                    margin-bottom: 1.5rem;
           }
 
-          .card-header-modern.is-info {
-                    background: linear-gradient(135deg, #00d1b2 0%, #00c4a7 100%);
+          .course-image {
+                    border-radius: 0.5rem;
+                    overflow: hidden;
+                    margin-bottom: 1rem;
           }
 
-          .card-header-modern.is-link {
-                    background: linear-gradient(135deg, #3273dc 0%, #2366d1 100%);
+          .course-image img {
+                    width: 100%;
+                    height: 250px;
+                    object-fit: cover;
           }
 
-          .card-header-title-modern {
-                    color: white;
-                    font-weight: 600;
-                    font-size: 1.1rem;
+          /* Summary Card */
+          .summary-card {
+                    background: white;
+                    border-radius: 0.5rem;
+                    padding: 1.5rem;
+                    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+                    position: sticky;
+                    top: 2rem;
+          }
+
+          .summary-row {
                     display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
+                    justify-content: space-between;
+                    padding: 0.75rem 0;
+                    border-bottom: 1px solid #f3f4f6;
           }
 
-          .card-header-title-modern .icon {
-                    font-size: 1.25rem;
-          }
-
-          .card-content-modern {
-                    padding: 2rem;
-          }
-
-          /* Event Image Modern Style */
-          .event-image-wrapper {
-                    position: relative;
-                    border-radius: 12px;
-                    overflow: hidden;
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-          }
-
-          .event-image-wrapper img {
-                    transition: transform 0.3s ease;
-          }
-
-          .event-image-wrapper:hover img {
-                    transform: scale(1.05);
-          }
-
-          /* Price Display */
-          .price-display {
-                    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-                    padding: 1.5rem;
-                    border-radius: 12px;
-                    color: white;
-                    text-align: center;
-          }
-
-          .price-amount {
-                    font-size: 3rem;
-                    font-weight: 700;
-                    line-height: 1;
-                    margin-bottom: 0.5rem;
-          }
-
-          .price-currency {
-                    font-size: 1.5rem;
-                    font-weight: 400;
-                    opacity: 0.9;
-          }
-
-          .early-bird-badge {
-                    display: inline-block;
-                    background: #48c774;
-                    color: white;
-                    padding: 0.5rem 1rem;
-                    border-radius: 20px;
-                    font-weight: 600;
-                    margin-top: 0.5rem;
-                    animation: pulse 2s infinite;
-          }
-
-          @keyframes pulse {
-
-                    0%,
-                    100% {
-                              opacity: 1;
-                    }
-
-                    50% {
-                              opacity: 0.8;
-                    }
-          }
-
-          /* Info Table Modern */
-          .info-table {
-                    background: transparent;
-                    border: none;
-          }
-
-          .info-table td,
-          .info-table th {
-                    border: none;
-                    padding: 1rem 0;
-                    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-          }
-
-          .info-table tr:last-child td,
-          .info-table tr:last-child th {
+          .summary-row:last-child {
                     border-bottom: none;
           }
 
-          .info-table th {
-                    font-weight: 600;
-                    color: #7957d5;
+          .summary-total {
+                    border-top: 2px solid #4338ca;
+                    margin-top: 1rem;
+                    padding-top: 1rem;
+                    font-size: 1.25rem;
+                    font-weight: 700;
+                    color: #4338ca;
           }
 
-          /* Checkbox Modern */
-          .modern-checkbox {
-                    display: flex;
-                    align-items: center;
-                    padding: 1.5rem;
-                    background: rgba(102, 126, 234, 0.05);
-                    border-radius: 12px;
-                    border: 2px solid rgba(102, 126, 234, 0.1);
-                    transition: all 0.3s ease;
-          }
-
-          .modern-checkbox:hover {
-                    background: rgba(102, 126, 234, 0.08);
-                    border-color: rgba(102, 126, 234, 0.2);
-          }
-
-          .modern-checkbox input[type="checkbox"] {
-                    width: 1.5rem;
-                    height: 1.5rem;
-                    margin-right: 1rem;
-                    cursor: pointer;
-          }
-
-          .modern-checkbox label {
-                    cursor: pointer;
-                    user-select: none;
-                    margin: 0;
-          }
-
-          /* Action Buttons */
-          .action-buttons {
-                    display: grid;
-                    grid-template-columns: 1fr 2fr;
-                    gap: 1rem;
-                    padding: 1.5rem;
-                    background: rgba(0, 0, 0, 0.02);
-          }
-
-          .btn-cancel {
-                    background: white;
-                    color: #7957d5;
-                    border: 2px solid #7957d5;
-                    padding: 1rem 2rem;
-                    border-radius: 8px;
-                    font-weight: 600;
-                    transition: all 0.3s ease;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 0.5rem;
-                    text-decoration: none;
-          }
-
-          .btn-cancel:hover {
-                    background: #7957d5;
-                    color: white;
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(121, 87, 213, 0.3);
-          }
-
+          /* Buttons */
           .btn-confirm {
-                    background: linear-gradient(135deg, #48c774 0%, #3ec46d 100%);
+                    background: linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
                     color: white;
                     border: none;
-                    padding: 1rem 2rem;
-                    border-radius: 8px;
+                    padding: 0.75rem 2rem;
+                    border-radius: 0.5rem;
                     font-weight: 600;
-                    font-size: 1.1rem;
                     cursor: pointer;
-                    transition: all 0.3s ease;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 0.5rem;
+                    transition: all 0.3s;
+                    width: 100%;
           }
 
           .btn-confirm:hover {
                     transform: translateY(-2px);
-                    box-shadow: 0 6px 20px rgba(72, 199, 116, 0.4);
+                    box-shadow: 0 4px 12px rgba(67, 56, 202, 0.4);
           }
 
-          .btn-confirm:active {
-                    transform: translateY(0);
+          .btn-back {
+                    background: white;
+                    color: #4b5563;
+                    border: 1px solid #d1d5db;
+                    padding: 0.75rem 2rem;
+                    border-radius: 0.5rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                    width: 100%;
+                    text-align: center;
+                    display: inline-block;
           }
 
-          /* Tag Styles */
-          .event-type-tag {
+          .btn-back:hover {
+                    background: #f9fafb;
+                    border-color: #9ca3af;
+          }
+
+          /* Info Table */
+          .info-table td {
+                    padding: 0.75rem;
+                    border-bottom: 1px solid #f3f4f6;
+          }
+
+          .info-table tr:last-child td {
+                    border-bottom: none;
+          }
+
+          /* Checkbox */
+          .checkbox-wrapper {
+                    display: flex;
+                    align-items: flex-start;
+                    padding: 1rem;
+                    background: #f9fafb;
+                    border-radius: 0.5rem;
+                    border: 1px solid #e5e7eb;
+                    margin-bottom: 1rem;
+          }
+
+          .checkbox-wrapper input[type="checkbox"] {
+                    margin-right: 0.75rem;
+                    margin-top: 0.25rem;
+          }
+
+          /* Member Type Badge */
+          .member-badge {
                     display: inline-flex;
                     align-items: center;
-                    gap: 0.5rem;
                     padding: 0.5rem 1rem;
-                    border-radius: 20px;
+                    background: #ede9fe;
+                    color: #5b21b6;
+                    border-radius: 0.375rem;
                     font-weight: 600;
-                    font-size: 0.9rem;
+                    margin-bottom: 1rem;
           }
 
-          /* Smooth Fade In Animation */
-          @keyframes fadeInUp {
-                    from {
-                              opacity: 0;
-                              transform: translateY(20px);
+          /* Responsive */
+          @media screen and (max-width: 768px) {
+                    .summary-card {
+                              position: relative;
+                              top: 0;
+                              margin-top: 1.5rem;
                     }
 
-                    to {
-                              opacity: 1;
-                              transform: translateY(0);
+                    .course-image img {
+                              height: 200px;
                     }
-          }
-
-          .animate-in {
-                    animation: fadeInUp 0.6s ease-out;
-          }
-
-          .animate-in:nth-child(1) {
-                    animation-delay: 0.1s;
-          }
-
-          .animate-in:nth-child(2) {
-                    animation-delay: 0.2s;
-          }
-
-          .animate-in:nth-child(3) {
-                    animation-delay: 0.3s;
-          }
-
-          .animate-in:nth-child(4) {
-                    animation-delay: 0.4s;
-          }
-
-          /* Progress Steps */
-          .progress-steps {
-                    display: flex;
-                    justify-content: center;
-                    gap: 1rem;
-                    margin-bottom: 2rem;
-          }
-
-          .step {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    color: white;
-                    font-weight: 500;
-          }
-
-          .step-number {
-                    width: 2rem;
-                    height: 2rem;
-                    background: rgba(255, 255, 255, 0.2);
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-weight: 600;
-          }
-
-          .step.active .step-number {
-                    background: white;
-                    color: #667eea;
           }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Modern Hero Section -->
-<div class="registration-hero">
-          <div class="container">
-                    <div class="hero-content">
-                              <div class="progress-steps">
-                                        <div class="step">
-                                                  <span class="step-number">1</span>
-                                                  <span>{{ texts.get('select_event', 'เลือกคอร์ส' if current_lang ==
-                                                            'th' else 'Select Event') }}</span>
-                                        </div>
-                                        <div class="step active">
-                                                  <span class="step-number">2</span>
-                                                  <span>{{ texts.get('confirm', 'ยืนยัน' if current_lang == 'th' else
-                                                            'Confirm') }}</span>
-                                        </div>
-                                        <div class="step">
-                                                  <span class="step-number">3</span>
-                                                  <span>{{ texts.get('payment', 'ชำระเงิน' if current_lang == 'th' else
-                                                            'Payment') }}</span>
+<!-- Header (Same as course_detail) -->
+<!-- <header class="navbar has-background-white shadow-sm py-4">
+                    <div
+                              class="container is-fluid is-flex is-flex-direction-column is-flex-direction-row-desktop is-justify-content-space-between is-align-items-center">
+                              <div class="navbar-brand">
+                                        <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}"
+                                                  class="navbar-item">
+                                                  <img src="https://placehold.co/100x40/4338CA/FFFFFF?text=LOGO"
+                                                            alt="University Logo" class="university-logo">
+                                        </a>
+                                        <div class="navbar-burger burger" data-target="navbarMenu">
+                                                  <span></span>
+                                                  <span></span>
+                                                  <span></span>
                                         </div>
                               </div>
-                              <h1 class="hero-title">{{ texts.get('confirm_registration', 'ยืนยันการลงทะเบียน' if
-                                        current_lang == 'th' else 'Confirm Registration') }}</h1>
-                              <p class="hero-subtitle">{{ texts.get('review_details', 'กรุณาตรวจสอบรายละเอียดก่อนยืนยัน'
-                                        if current_lang == 'th' else 'Please review the details before confirming') }}
-                              </p>
+                              <div id="navbarMenu" class="navbar-menu">
+                                        <div class="navbar-end mt-4-mobile mt-0-desktop">
+                                                  <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#short-courses"
+                                                            class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">
+                                                            {{ texts.get('short_courses_nav', 'Short Courses' if
+                                                            current_lang == 'en' else 'หลักสูตรระยะสั้น') }}
+                                                  </a>
+                                                  <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#webinars"
+                                                            class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">
+                                                            {{ texts.get('webinars_nav', 'Webinars' if current_lang ==
+                                                            'en' else 'สัมมนา') }}
+                                                  </a>
+                                                  <a href="{{ url_for('continuing_edu.login', lang=current_lang) }}"
+                                                            class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">
+                                                            <i class="fas fa-user-circle mr-2"></i>
+                                                            {{ texts.get('login_nav', 'Login' if current_lang == 'en'
+                                                            else 'เข้าสู่ระบบ') }}
+                                                  </a>
+                                                  <div class="navbar-item">
+                                                            <div class="buttons">
+                                                                      <a href="{{ url_for('continuing_edu.register_event', event_id=event.id, lang='th') }}"
+                                                                                class="button language-button is-small {% if current_lang == 'th' %}is-active{% endif %}">TH</a>
+                                                                      <a href="{{ url_for('continuing_edu.register_event', event_id=event.id, lang='en') }}"
+                                                                                class="button language-button is-small {% if current_lang == 'en' %}is-active{% endif %}">EN</a>
+                                                            </div>
+                                                  </div>
+                                        </div>
+                              </div>
                     </div>
-          </div>
-</div>
+          </header> -->
 
-<section class="section" style="margin-top: -2rem; padding-top: 0;">
+<!-- Main Content -->
+<section class="section" style="padding-top: 3rem; padding-bottom: 4rem;">
           <div class="container">
-                    <div class="columns is-centered">
-                              <div class="column is-10-tablet is-8-desktop">
-                                        <!-- Event Summary Card -->
-                                        <div class="modern-card mb-5 animate-in">
-                                                  <div class="card-header-modern">
-                                                            <div class="card-header-title-modern">
-                                                                      <span class="icon"><i
-                                                                                          class="fas fa-calendar-check"></i></span>
-                                                                      <span>{{ texts.get('event_details',
-                                                                                'รายละเอียดคอร์ส' if current_lang ==
-                                                                                'th' else 'Event Details') }}</span>
-                                                            </div>
+                    <!-- Page Title -->
+                    <h1 class="page-title">
+                              <i class="fas fa-clipboard-check mr-3"></i>
+                              {{ texts.get('registration_confirmation', 'Registration Confirmation' if
+                              current_lang == 'en' else 'ยืนยันการลงทะเบียน') }}
+                    </h1>
+
+                    <div class="columns">
+                              <!-- Left Column: Course/Webinar Information -->
+                              <div class="column is-8">
+                                        <!-- Course/Webinar Info Card -->
+                                        <div class="info-card">
+                                                  <h2 class="title is-4 mb-4">
+                                                            <i class="fas fa-info-circle has-text-info mr-2"></i>
+                                                            {{ texts.get('event_information', 'Event
+                                                            Information' if current_lang == 'en' else
+                                                            'ข้อมูลหลักสูตร/สัมมนา') }}
+                                                  </h2>
+
+                                                  <!-- Event Image -->
+                                                  {% set cover = event.cover_presigned_url() or
+                                                  event.poster_presigned_url() or event.image_url or
+                                                  url_for('static', filename='img/LOGO_MT-Mahidol.png') %}
+                                                  <div class="course-image">
+                                                            <img src="{{ cover }}"
+                                                                      alt="{{ event.title_en or event.title_th }}">
                                                   </div>
-                                                  <div class="card-content-modern">
-                                                            <div class="columns is-vcentered">
-                                                                      {% set cover = event.cover_presigned_url() or
-                                                                      event.poster_presigned_url() or event.image_url %}
-                                                                      {% if cover %}
-                                                                      <div class="column is-4">
-                                                                                <div class="event-image-wrapper">
-                                                                                          <figure
-                                                                                                    class="image is-square">
-                                                                                                    <img src="{{ cover }}"
-                                                                                                              alt="{{ event.title_en or event.title_th }}"
-                                                                                                              style="object-fit: cover;">
-                                                                                          </figure>
-                                                                                </div>
-                                                                      </div>
-                                                                      {% endif %}
-                                                                      <div class="column">
-                                                                                <div class="mb-3">
-                                                                                          {% if event.event_type ==
-                                                                                          'course' %}
-                                                                                          <span
-                                                                                                    class="event-type-tag has-background-info has-text-white">
+
+                                                  <!-- Event Type Badge -->
+                                                  <div class="mb-3">
+                                                            {% if event.event_type == 'course' %}
+                                                            <span class="tag is-info is-medium">
+                                                                      <i class="fas fa-graduation-cap mr-2"></i>
+                                                                      {{ texts.get('course', 'Course' if
+                                                                      current_lang == 'en' else 'หลักสูตร') }}
+                                                            </span>
+                                                            {% else %}
+                                                            <span class="tag is-link is-medium">
+                                                                      <i class="fas fa-video mr-2"></i>
+                                                                      {{ texts.get('webinar', 'Webinar' if
+                                                                      current_lang == 'en' else 'สัมมนา') }}
+                                                            </span>
+                                                            {% endif %}
+                                                  </div>
+
+                                                  <!-- Event Title -->
+                                                  <h3 class="title is-3 mb-3">
+                                                            {{ event.title_th if current_lang == 'th' else
+                                                            event.title_en }}
+                                                  </h3>
+
+                                                  <!-- Event Description -->
+                                                  {% if event.description_th or event.description_en %}
+                                                  <div class="content mb-4">
+                                                            <p class="has-text-grey-dark">
+                                                                      {{ event.description_th if current_lang
+                                                                      == 'th' else event.description_en }}
+                                                            </p>
+                                                  </div>
+                                                  {% endif %}
+
+                                                  <!-- Event Details Table -->
+                                                  <table class="table is-fullwidth info-table">
+                                                            <tbody>
+                                                                      {% if event.start_time %}
+                                                                      <tr>
+                                                                                <td style="width: 30%;">
+                                                                                          <strong>
                                                                                                     <i
-                                                                                                              class="fas fa-graduation-cap"></i>
+                                                                                                              class="fas fa-calendar-alt has-text-info mr-2"></i>
                                                                                                     {{
-                                                                                                    texts.get('course',
-                                                                                                    'หลักสูตร' if
-                                                                                                    current_lang == 'th'
-                                                                                                    else 'Course') }}
-                                                                                          </span>
-                                                                                          {% else %}
-                                                                                          <span
-                                                                                                    class="event-type-tag has-background-link has-text-white">
-                                                                                                    <i
-                                                                                                              class="fas fa-video"></i>
-                                                                                                    {{
-                                                                                                    texts.get('webinar',
-                                                                                                    'สัมมนา' if
-                                                                                                    current_lang == 'th'
-                                                                                                    else 'Webinar') }}
-                                                                                          </span>
-                                                                                          {% endif %}
-                                                                                </div>
-                                                                                <h2 class="title is-3 mb-3">{{
-                                                                                          event.title_th if current_lang
-                                                                                          == 'th' else event.title_en }}
-                                                                                </h2>
-                                                                                {% if event.description_th or
-                                                                                event.description_en %}
-                                                                                <div class="content has-text-grey-dark">
-                                                                                          <p>{{ event.description_th if
-                                                                                                    current_lang == 'th'
+                                                                                                    texts.get('event_date',
+                                                                                                    'Event
+                                                                                                    Date' if
+                                                                                                    current_lang
+                                                                                                    == 'en'
                                                                                                     else
-                                                                                                    event.description_en
-                                                                                                    }}</p>
-                                                                                </div>
-                                                                                {% endif %}
-                                                                      </div>
-                                                            </div>
-                                                  </div>
-                                        </div>
-
-                                        <!-- Registration Fee Card -->
-                                        <div class="modern-card mb-5 animate-in">
-                                                  <div class="card-header-modern is-info">
-                                                            <div class="card-header-title-modern">
-                                                                      <span class="icon"><i
-                                                                                          class="fas fa-money-bill-wave"></i></span>
-                                                                      <span>{{ texts.get('registration_fee',
-                                                                                'ค่าลงทะเบียน' if current_lang == 'th'
-                                                                                else 'Registration Fee') }}</span>
-                                                            </div>
-                                                  </div>
-                                                  <div class="card-content-modern">
-                                                            <div class="columns">
-                                                                      <div class="column">
-                                                                                <div class="mb-2">
-                                                                                          <span class="has-text-grey">{{
-                                                                                                    texts.get('fee_type',
-                                                                                                    'ประเภทสมาชิก' if
-                                                                                                    current_lang == 'th'
-                                                                                                    else 'Member Type')
-                                                                                                    }}</span>
-                                                                                </div>
-                                                                                <h3 class="title is-4">
-                                                                                          <i
-                                                                                                    class="fas fa-user-tag has-text-info"></i>
-                                                                                          {{ fee.member_type.name_th if
-                                                                                          current_lang == 'th' else
-                                                                                          fee.member_type.name_en }}
-                                                                                </h3>
-                                                                      </div>
-                                                                      <div class="column is-5">
-                                                                                <div class="price-display">
-                                                                                          <div class="price-amount">
-                                                                                                    {% if is_early_bird
-                                                                                                    %}
-                                                                                                    {{ price }}
-                                                                                                    {% else %}
-                                                                                                    {{ price }}
-                                                                                                    {% endif %}
-                                                                                          </div>
-                                                                                          <div class="price-currency">{{
-                                                                                                    texts.get('currency',
-                                                                                                    'บาท' if
-                                                                                                    current_lang == 'th'
-                                                                                                    else 'THB') }}</div>
-                                                                                          {% if is_early_bird %}
-                                                                                          <div class="mt-3">
-                                                                                                    <span
-                                                                                                              class="early-bird-badge">
-                                                                                                              <i
-                                                                                                                        class="fas fa-bolt"></i>
-                                                                                                              {{
-                                                                                                              texts.get('early_bird',
-                                                                                                              'Early
-                                                                                                              Bird') }}
-                                                                                                    </span>
-                                                                                                    <div class="mt-2 has-text-white"
-                                                                                                              style="opacity: 0.8;">
-                                                                                                              <small>{{ texts.get('regular_price',
-                                                                                                                        'ราคาปกติ'
-                                                                                                                        if
-                                                                                                                        current_lang
-                                                                                                                        ==
-                                                                                                                        'th'
-                                                                                                                        else
-                                                                                                                        'Regular')
-                                                                                                                        }}:
-                                                                                                                        <s>{{ fee.price
-                                                                                                                                  }}
-                                                                                                                                  {{
-                                                                                                                                  texts.get('currency',
-                                                                                                                                  'บาท'
-                                                                                                                                  if
-                                                                                                                                  current_lang
-                                                                                                                                  ==
-                                                                                                                                  'th'
-                                                                                                                                  else
-                                                                                                                                  'THB')
-                                                                                                                                  }}</s></small>
-                                                                                                    </div>
-                                                                                          </div>
+                                                                                                    'วันที่จัด')
+                                                                                                    }}
+                                                                                          </strong>
+                                                                                </td>
+                                                                                <td>
+                                                                                          {{
+                                                                                          event.start_time.strftime('%d/%m/%Y')
+                                                                                          }}
+                                                                                          {% if event.end_time
+                                                                                          and event.end_time
+                                                                                          != event.start_time
+                                                                                          %}
+                                                                                          - {{
+                                                                                          event.end_time.strftime('%d/%m/%Y')
+                                                                                          }}
                                                                                           {% endif %}
-                                                                                </div>
-                                                                      </div>
-                                                            </div>
-                                                  </div>
+                                                                                </td>
+                                                                      </tr>
+                                                                      {% endif %}
+                                                                      {% if event.start_time and
+                                                                      event.end_time %}
+                                                                      <tr>
+                                                                                <td>
+                                                                                          <strong>
+                                                                                                    <i
+                                                                                                              class="fas fa-clock has-text-info mr-2"></i>
+                                                                                                    {{
+                                                                                                    texts.get('event_time',
+                                                                                                    'Time' if
+                                                                                                    current_lang
+                                                                                                    == 'en'
+                                                                                                    else
+                                                                                                    'เวลา') }}
+                                                                                          </strong>
+                                                                                </td>
+                                                                                <td>
+                                                                                          {{
+                                                                                          event.start_time.strftime('%H:%M')
+                                                                                          }} - {{
+                                                                                          event.end_time.strftime('%H:%M')
+                                                                                          }}
+                                                                                </td>
+                                                                      </tr>
+                                                                      {% endif %}
+                                                            </tbody>
+                                                  </table>
                                         </div>
 
-                                        <!-- User Information Card -->
-                                        <div class="modern-card mb-5 animate-in">
-                                                  <div class="card-header-modern is-link">
-                                                            <div class="card-header-title-modern">
-                                                                      <span class="icon"><i
-                                                                                          class="fas fa-user-circle"></i></span>
-                                                                      <span>{{ texts.get('your_information',
-                                                                                'ข้อมูลของคุณ' if current_lang == 'th'
-                                                                                else 'Your Information') }}</span>
-                                                            </div>
-                                                  </div>
-                                                  <div class="card-content-modern">
-                                                            <table class="table info-table is-fullwidth">
-                                                                      <tbody>
-                                                                                <tr>
-                                                                                          <th style="width: 200px;">
+                                        <!-- Member Information Card -->
+                                        <div class="info-card">
+                                                  <h2 class="title is-4 mb-4">
+                                                            <i class="fas fa-user-circle has-text-link mr-2"></i>
+                                                            {{ texts.get('your_information', 'Your
+                                                            Information' if current_lang == 'en' else
+                                                            'ข้อมูลของคุณ') }}
+                                                  </h2>
+
+                                                  <table class="table is-fullwidth info-table">
+                                                            <tbody>
+                                                                      <tr>
+                                                                                <td style="width: 30%;">
+                                                                                          <strong>
                                                                                                     <i
-                                                                                                              class="fas fa-user has-text-link"></i>
-                                                                                                    {{ texts.get('name',
-                                                                                                    'ชื่อ' if
-                                                                                                    current_lang == 'th'
-                                                                                                    else 'Name') }}
-                                                                                          </th>
-                                                                                          <td
-                                                                                                    class="has-text-weight-semibold">
+                                                                                                              class="fas fa-user has-text-link mr-2"></i>
                                                                                                     {{
-                                                                                                    member.full_name_th
-                                                                                                    if current_lang ==
-                                                                                                    'th' else
-                                                                                                    member.full_name_en
-                                                                                                    }}</td>
-                                                                                </tr>
-                                                                                <tr>
-                                                                                          <th>
+                                                                                                    texts.get('name',
+                                                                                                    'Name' if
+                                                                                                    current_lang
+                                                                                                    == 'en'
+                                                                                                    else
+                                                                                                    'ชื่อ') }}
+                                                                                          </strong>
+                                                                                </td>
+                                                                                <td>{{ member.full_name_th if
+                                                                                          current_lang == 'th'
+                                                                                          else
+                                                                                          member.full_name_en
+                                                                                          }}</td>
+                                                                      </tr>
+                                                                      <tr>
+                                                                                <td>
+                                                                                          <strong>
                                                                                                     <i
-                                                                                                              class="fas fa-envelope has-text-link"></i>
+                                                                                                              class="fas fa-envelope has-text-link mr-2"></i>
                                                                                                     {{
                                                                                                     texts.get('email',
-                                                                                                    'อีเมล' if
-                                                                                                    current_lang == 'th'
-                                                                                                    else 'Email') }}
-                                                                                          </th>
-                                                                                          <td
-                                                                                                    class="has-text-weight-semibold">
-                                                                                                    {{ member.email }}
-                                                                                          </td>
-                                                                                </tr>
-                                                                                {% if member.phone_no %}
-                                                                                <tr>
-                                                                                          <th>
+                                                                                                    'Email' if
+                                                                                                    current_lang
+                                                                                                    == 'en'
+                                                                                                    else
+                                                                                                    'อีเมล')
+                                                                                                    }}
+                                                                                          </strong>
+                                                                                </td>
+                                                                                <td>{{ member.email }}</td>
+                                                                      </tr>
+                                                                      {% if member.phone_no %}
+                                                                      <tr>
+                                                                                <td>
+                                                                                          <strong>
                                                                                                     <i
-                                                                                                              class="fas fa-phone has-text-link"></i>
+                                                                                                              class="fas fa-phone has-text-link mr-2"></i>
                                                                                                     {{
                                                                                                     texts.get('phone',
-                                                                                                    'เบอร์โทร' if
-                                                                                                    current_lang == 'th'
-                                                                                                    else 'Phone') }}
-                                                                                          </th>
-                                                                                          <td
-                                                                                                    class="has-text-weight-semibold">
-                                                                                                    {{ member.phone_no
-                                                                                                    }}</td>
-                                                                                </tr>
-                                                                                {% endif %}
-                                                                      </tbody>
-                                                            </table>
-                                                  </div>
+                                                                                                    'Phone' if
+                                                                                                    current_lang
+                                                                                                    == 'en'
+                                                                                                    else
+                                                                                                    'เบอร์โทร')
+                                                                                                    }}
+                                                                                          </strong>
+                                                                                </td>
+                                                                                <td>{{ member.phone_no }}</td>
+                                                                      </tr>
+                                                                      {% endif %}
+                                                            </tbody>
+                                                  </table>
                                         </div>
 
-                                        <!-- Confirmation Form -->
+                                        <!-- Terms & Conditions -->
                                         <form method="POST"
-                                                  action="{{ url_for('continuing_edu.confirm_registration', event_id=event.id, lang=current_lang) }}">
-                                                  <div class="modern-card animate-in">
-                                                            <div class="card-content-modern">
-                                                                      <div class="modern-checkbox">
-                                                                                <input type="checkbox"
-                                                                                          name="terms_accepted"
-                                                                                          id="terms_accepted" required>
-                                                                                <label for="terms_accepted">
-                                                                                          <span
-                                                                                                    class="has-text-weight-semibold">
+                                                  action="{{ url_for('continuing_edu.confirm_registration', event_id=event.id, lang=current_lang) }}"
+                                                  id="confirmForm">
+                                                  <div class="info-card">
+                                                            <div class="checkbox-wrapper">
+                                                                      <input type="checkbox" name="terms_accepted"
+                                                                                id="terms_accepted" required>
+                                                                      <label for="terms_accepted">
+                                                                                <strong>
+                                                                                          {{
+                                                                                          texts.get('accept_terms',
+                                                                                          'I have read and
+                                                                                          accept the
+                                                                                          registration terms
+                                                                                          and conditions' if
+                                                                                          current_lang == 'en'
+                                                                                          else
+                                                                                          'ฉันได้อ่านและยอมรับเงื่อนไขการลงทะเบียน')
+                                                                                          }}
+                                                                                </strong>
+                                                                      </label>
+                                                            </div>
+
+                                                            <!-- Action Buttons -->
+                                                            <div class="columns">
+                                                                      <div class="column is-6">
+                                                                                {% if event.event_type ==
+                                                                                'course' %}
+                                                                                <a href="{{ url_for('continuing_edu.course_detail', course_id=event.id, lang=current_lang) }}"
+                                                                                          class="btn-back">
+                                                                                          {% else %}
+                                                                                          <a href="{{ url_for('continuing_edu.webinar_detail', webinar_id=event.id, lang=current_lang) }}"
+                                                                                                    class="btn-back">
+                                                                                                    {% endif
+                                                                                                    %}
+                                                                                                    <i
+                                                                                                              class="fas fa-arrow-left mr-2"></i>
                                                                                                     {{
-                                                                                                    texts.get('accept_terms',
-                                                                                                    'ฉันได้อ่านและยอมรับเงื่อนไขการลงทะเบียน'
-                                                                                                    if current_lang ==
-                                                                                                    'th' else 'I have
-                                                                                                    read and accept the
-                                                                                                    registration terms
-                                                                                                    and conditions') }}
-                                                                                          </span>
-                                                                                </label>
+                                                                                                    texts.get('back',
+                                                                                                    'Back' if
+                                                                                                    current_lang
+                                                                                                    == 'en'
+                                                                                                    else
+                                                                                                    'ย้อนกลับ')
+                                                                                                    }}
+                                                                                          </a>
+                                                                      </div>
+                                                                      <div class="column is-6">
+                                                                                <button type="submit"
+                                                                                          class="btn-confirm"
+                                                                                          id="confirmBtn">
+                                                                                          <i
+                                                                                                    class="fas fa-check-circle mr-2"></i>
+                                                                                          {{
+                                                                                          texts.get('confirm_register',
+                                                                                          'Confirm
+                                                                                          Registration' if
+                                                                                          current_lang == 'en'
+                                                                                          else
+                                                                                          'ยืนยันการลงทะเบียน')
+                                                                                          }}
+                                                                                </button>
                                                                       </div>
                                                             </div>
-                                                            <div class="action-buttons">
-                                                                      <a href="{{ url_for('continuing_edu.course_detail' if event.event_type == 'course' else 'continuing_edu.webinar_detail', 
-                         course_id=event.id if event.event_type == 'course' else None,
-                         webinar_id=event.id if event.event_type == 'webinar' else None,
-                         lang=current_lang) }}" class="btn-cancel">
-                                                                                <i class="fas fa-arrow-left"></i>
-                                                                                <span>{{ texts.get('back', 'ย้อนกลับ' if
-                                                                                          current_lang == 'th' else
-                                                                                          'Back') }}</span>
-                                                                      </a>
-                                                                      <button type="submit" class="btn-confirm">
-                                                                                <i class="fas fa-check-circle"></i>
-                                                                                <span>{{ texts.get('confirm_register',
-                                                                                          'ยืนยันการลงทะเบียน' if
-                                                                                          current_lang == 'th' else
-                                                                                          'Confirm Registration')
-                                                                                          }}</span>
-                                                                      </button>
+
+                                                            <div class="has-text-centered mt-4">
+                                                                      <p class="has-text-grey is-size-7">
+                                                                                <i class="fas fa-shield-alt mr-1"></i>
+                                                                                {{ texts.get('secure_info',
+                                                                                'Your information is secure
+                                                                                and encrypted' if current_lang
+                                                                                == 'en' else
+                                                                                'ข้อมูลของคุณปลอดภัยและเข้ารหัส')
+                                                                                }}
+                                                                      </p>
                                                             </div>
                                                   </div>
                                         </form>
+                              </div>
 
-                                        <!-- Additional Info -->
-                                        <div class="has-text-centered mt-5">
-                                                  <p class="has-text-grey">
-                                                            <i class="fas fa-shield-alt"></i>
-                                                            {{ texts.get('secure_info', 'ข้อมูลของคุณปลอดภัยและเข้ารหัส'
-                                                            if current_lang == 'th' else 'Your information is secure and
-                                                            encrypted') }}
-                                                  </p>
+                              <!-- Right Column: Price Summary -->
+                              <div class="column is-4">
+                                        <div class="summary-card">
+                                                  <h2 class="title is-5 mb-4">
+                                                            <i class="fas fa-receipt has-text-info mr-2"></i>
+                                                            {{ texts.get('payment_summary', 'Payment Summary'
+                                                            if current_lang == 'en' else 'สรุปยอดชำระ') }}
+                                                  </h2>
+
+                                                  <!-- Member Type -->
+                                                  <div class="member-badge">
+                                                            <i class="fas fa-user-tag mr-2"></i>
+                                                            {{ fee.member_type_ref.name_th if current_lang ==
+                                                            'th' else fee.member_type_ref.name_en }}
+                                                  </div>
+
+                                                  <!-- Price Breakdown -->
+                                                  <div class="summary-row">
+                                                            <span class="has-text-grey">{{
+                                                                      texts.get('subtotal', 'Subtotal' if
+                                                                      current_lang == 'en' else 'ยอดรวม')
+                                                                      }}</span>
+                                                            <span class="has-text-weight-semibold">฿{{
+                                                                      "{:,.2f}".format(fee.price) }}</span>
+                                                  </div>
+
+                                                  {% if is_early_bird and fee.early_bird_price and
+                                                  fee.early_bird_price < fee.price %} <div class="summary-row">
+                                                            <span class="has-text-success">
+                                                                      <i class="fas fa-bolt mr-1"></i>
+                                                                      {{ texts.get('early_bird_discount',
+                                                                      'Early Bird Discount' if current_lang ==
+                                                                      'en' else 'ส่วนลด Early Bird') }}
+                                                            </span>
+                                                            <span class="has-text-success has-text-weight-semibold">-฿{{
+                                                                      "{:,.2f}".format(fee.price -
+                                                                      fee.early_bird_price) }}</span>
+                                        </div>
+                                        {% endif %}
+
+                                        <div class="summary-row summary-total">
+                                                  <span>{{ texts.get('total_payment', 'Total Payment' if
+                                                            current_lang == 'en' else 'ยอดชำระทั้งหมด')
+                                                            }}</span>
+                                                  <span>฿{{ "{:,.2f}".format(price) }}</span>
                                         </div>
 
+                                        <!-- Secure Badge -->
+                                        <div class="notification is-light is-success mt-4">
+                                                  <div class="has-text-centered">
+                                                            <i class="fas fa-lock has-text-success is-size-4 mb-2"></i>
+                                                            <p class="has-text-weight-semibold has-text-success">
+                                                                      {{ texts.get('secure_payment', 'Secure
+                                                                      Payment' if current_lang == 'en' else
+                                                                      'ชำระเงินปลอดภัย') }}
+                                                            </p>
+                                                  </div>
+                                        </div>
+
+                                        <!-- Next Steps -->
+                                        <div class="notification is-light is-info mt-3">
+                                                  <p class="has-text-weight-semibold mb-2">
+                                                            <i class="fas fa-info-circle mr-2"></i>
+                                                            {{ texts.get('next_steps', 'Next Steps' if
+                                                            current_lang == 'en' else 'ขั้นตอนต่อไป') }}
+                                                  </p>
+                                                  <p class="is-size-7">
+                                                            {{ texts.get('payment_instruction', 'After
+                                                            confirmation, you will be redirected to the
+                                                            payment page to complete your registration.' if
+                                                            current_lang == 'en' else 'หลังจากยืนยัน
+                                                            คุณจะถูกนำไปยังหน้าชำระเงินเพื่อดำเนินการลงทะเบียนให้เสร็จสมบูรณ์')
+                                                            }}
+                                                  </p>
+                                        </div>
                               </div>
                     </div>
           </div>
+          </div>
 </section>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-          // Smooth scroll and animation enhancements
-          document.addEventListener('DOMContentLoaded', function () {
-                    // Add smooth scroll behavior
-                    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                              anchor.addEventListener('click', function (e) {
-                                        e.preventDefault();
-                                        document.querySelector(this.getAttribute('href')).scrollIntoView({
-                                                  behavior: 'smooth'
+          // Navbar burger toggle
+          document.addEventListener('DOMContentLoaded', () => {
+                    const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+                    if ($navbarBurgers.length > 0) {
+                              $navbarBurgers.forEach(el => {
+                                        el.addEventListener('click', () => {
+                                                  const target = el.dataset.target;
+                                                  const $target = document.getElementById(target);
+                                                  el.classList.toggle('is-active');
+                                                  $target.classList.toggle('is-active');
                                         });
-                              });
-                    });
-
-                    // Add focus effect to checkbox
-                    const checkbox = document.getElementById('terms_accepted');
-                    if (checkbox) {
-                              checkbox.addEventListener('change', function () {
-                                        const container = this.closest('.modern-checkbox');
-                                        if (this.checked) {
-                                                  container.style.borderColor = 'rgba(72, 199, 116, 0.5)';
-                                                  container.style.background = 'rgba(72, 199, 116, 0.05)';
-                                        } else {
-                                                  container.style.borderColor = 'rgba(102, 126, 234, 0.1)';
-                                                  container.style.background = 'rgba(102, 126, 234, 0.05)';
-                                        }
                               });
                     }
 
-                    // Button loading state
-                    const form = document.querySelector('form');
-                    if (form) {
-                              form.addEventListener('submit', function () {
-                                        const btn = this.querySelector('.btn-confirm');
-                                        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>' +
-                                                  (document.documentElement.lang === 'th' ? 'กำลังดำเนินการ...' : 'Processing...') +
-                                                  '</span>';
+                    // Form submission with loading state
+                    const form = document.getElementById('confirmForm');
+                    const btn = document.getElementById('confirmBtn');
+
+                    if (form && btn) {
+                              form.addEventListener('submit', function (e) {
+                                        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>' +
+                                                  (document.documentElement.lang === 'th' ? 'กำลังดำเนินการ...' : 'Processing...');
                                         btn.disabled = true;
                               });
                     }

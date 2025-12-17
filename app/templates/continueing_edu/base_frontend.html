@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+
+<head>
+          <!-- Animate On Scroll Library -->
+          <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>{% block title %}{{ texts.university_name }}{% endblock %}</title>
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+                    rel="stylesheet">
+          <!-- FontAwesome for icons -->
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+          {% block extra_css %}
+          <style>
+                    /* Animate On Scroll custom overrides */
+                    [data-aos] {
+                              opacity: 0;
+                              transition-property: opacity, transform;
+                    }
+
+                    [data-aos].aos-animate {
+                              opacity: 1;
+                    }
+
+                    html {
+                              scroll-behavior: smooth;
+                    }
+
+                    body {
+                              font-family: 'Inter', sans-serif;
+                              background-color: #f8fafc;
+                    }
+
+                    /* Custom styles for rounded corners and shadows */
+                    .rounded-md {
+                              border-radius: 0.375rem;
+                    }
+
+                    .rounded-lg {
+                              border-radius: 0.5rem;
+                    }
+
+                    .rounded-full {
+                              border-radius: 9999px;
+                    }
+
+                    .rounded-b-lg {
+                              border-bottom-left-radius: 0.5rem;
+                              border-bottom-right-radius: 0.5rem;
+                    }
+
+                    .rounded-t-lg {
+                              border-top-left-radius: 0.5rem;
+                              border-top-right-radius: 0.5rem;
+                    }
+
+                    .shadow-sm {
+                              box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+                    }
+
+                    .shadow-md {
+                              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                    }
+
+                    .shadow-lg {
+                              box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+                    }
+
+                    .card {
+                              transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+                    }
+
+                    .card:hover {
+                              transform: translateY(-5px);
+                              box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+                    }
+
+                    /* Modern Navigation Styles */
+                    .modern-navbar {
+                              backdrop-filter: blur(10px);
+                              background: rgba(255, 255, 255, 0.95) !important;
+                              border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+                              transition: all 0.3s ease;
+                    }
+
+                    .navbar-item {
+                              transition: all 0.2s ease;
+                              border-radius: 8px;
+                              margin: 0 0.25rem;
+                              font-size: 0.9rem;
+                              padding: 0.5rem 0.75rem;
+                    }
+
+                    .navbar-item .icon {
+                              margin-right: 0.5rem;
+                    }
+
+                    .navbar-item:hover:not(.no-hover) {
+                              background-color: rgba(102, 126, 234, 0.08) !important;
+                              color: #4f46e5 !important;
+                    }
+
+                    .navbar-dropdown {
+                              border-radius: 12px;
+                              border: 1px solid rgba(102, 126, 234, 0.1);
+                              box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+                              margin-top: 0.5rem;
+                    }
+
+                    .navbar-dropdown .navbar-item {
+                              border-radius: 8px;
+                              margin: 0.25rem 0.5rem;
+                    }
+
+                    /* User Dropdown Styles */
+                    .user-dropdown-toggle {
+                              display: flex;
+                              align-items: center;
+                              gap: 0.5rem;
+                              padding: 0.4rem 0.9rem !important;
+                              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                              color: white !important;
+                              border-radius: 50px;
+                              font-weight: 600;
+                              font-size: 0.9rem;
+                              transition: all 0.3s ease;
+                    }
+
+                    .user-dropdown-toggle:hover {
+                              transform: translateY(-2px);
+                              box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+                              background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
+                    }
+
+                    .user-avatar {
+                              width: 28px;
+                              height: 28px;
+                              border-radius: 50%;
+                              background: rgb(215, 223, 242);
+                              display: flex;
+                              align-items: center;
+                              justify-content: center;
+                              font-weight: bold;
+                              color: #667eea;
+                              font-size: 0.8rem;
+                    }
+
+                    /* Custom styles for language buttons - Capsule Style */
+                    .language-button {
+                              min-width: 50px;
+                              text-align: center;
+                              transition: all 0.2s ease;
+                              font-size: 0.875rem;
+                              padding: 0.5rem 1rem;
+                              border: none;
+                    }
+
+                    .language-button.is-active {
+                              background-color: #4f46e5;
+                              color: white;
+                              font-weight: 600;
+                    }
+
+                    .language-button:not(.is-active) {
+                              background-color: #e0e7ff;
+                              color: #4f46e5;
+                    }
+
+                    .language-button:not(.is-active):hover {
+                              background-color: #c7d2fe;
+                    }
+
+                    /* Capsule shape for language buttons */
+                    .buttons.has-addons .language-button {
+                              border-radius: 0 !important;
+                    }
+
+                    .buttons.has-addons .language-button:first-child {
+                              border-top-left-radius: 290486px !important;
+                              border-bottom-left-radius: 290486px !important;
+                    }
+
+                    .buttons.has-addons .language-button:last-child {
+                              border-top-right-radius: 290486px !important;
+                              border-bottom-right-radius: 290486px !important;
+                    }
+
+
+                    /* Custom padding for buttons */
+                    .button.custom-padding {
+                              padding-left: 2rem;
+                              padding-right: 2rem;
+                              padding-top: 0.75rem;
+                              padding-bottom: 0.75rem;
+                    }
+
+                    .button.custom-padding-small {
+                              padding-left: 1.5rem;
+                              padding-right: 1.5rem;
+                              padding-top: 0.5rem;
+                              padding-bottom: 0.5rem;
+                    }
+
+                    /* Additional spacing utilities */
+                    .space-y-4>*:not(:last-child) {
+                              margin-bottom: 1rem;
+                    }
+
+                    .mb-8 {
+                              margin-bottom: 2rem;
+                    }
+
+                    .mb-12 {
+                              margin-bottom: 3rem;
+                    }
+
+                    .mt-4 {
+                              margin-top: 1rem;
+                    }
+
+                    .mt-5 {
+                              margin-top: 1.25rem;
+                    }
+
+                    .mt-12 {
+                              margin-top: 3rem;
+                    }
+
+                    .py-4 {
+                              padding-top: 1rem;
+                              padding-bottom: 1rem;
+                    }
+
+                    .py-8 {
+                              padding-top: 2rem;
+                              padding-bottom: 2rem;
+                    }
+
+                    .py-16 {
+                              padding-top: 4rem;
+                              padding-bottom: 4rem;
+                    }
+
+                    .px-4 {
+                              padding-left: 1rem;
+                              padding-right: 1rem;
+                    }
+
+                    .p-6 {
+                              padding: 1.5rem;
+                    }
+
+                    .p-8 {
+                              padding: 2rem;
+                    }
+
+                    /* Responsive adjustments */
+                    @media screen and (min-width: 769px) {
+                              .is-flex-direction-row-desktop {
+                                        flex-direction: row !important;
+                              }
+
+                              .mt-0-desktop {
+                                        margin-top: 0 !important;
+                              }
+
+                              .py-24-desktop {
+                                        padding-top: 6rem !important;
+                                        padding-bottom: 6rem !important;
+                              }
+
+                              .is-flex-direction-row-tablet {
+                                        flex-direction: row !important;
+                              }
+                    }
+
+                    @media screen and (max-width: 768px) {
+                              .mt-4-mobile {
+                                        margin-top: 1rem !important;
+                              }
+
+                              .space-y-4-mobile>*:not(:last-child) {
+                                        margin-bottom: 1rem;
+                              }
+                    }
+
+                    .max-w-3xl {
+                              max-width: 48rem;
+                    }
+
+                    .max-w-2xl {
+                              max-width: 42rem;
+                    }
+
+                    .max-w-xl {
+                              max-width: 36rem;
+                    }
+
+                    .mx-auto {
+                              margin-left: auto;
+                              margin-right: auto;
+                    }
+
+                    .w-full {
+                              width: 100%;
+                    }
+
+                    .text-sm {
+                              font-size: 0.875rem;
+                    }
+
+                    .text-lg {
+                              font-size: 1.125rem;
+                    }
+
+                    .text-xl {
+                              font-size: 1.25rem;
+                    }
+
+                    .text-2xl {
+                              font-size: 1.5rem;
+                    }
+
+                    .text-3xl {
+                              font-size: 1.875rem;
+                    }
+
+                    .text-4xl {
+                              font-size: 2.25rem;
+                    }
+          </style>
+          {% endblock %}
+</head>
+
+<body class="has-text-gray-800">
+
+          <header style="z-index:100;">
+                    <nav class="navbar modern-navbar py-3" style="position:fixed;top:0;left:0;width:100%;z-index:100;">
+                              <div class="container is-fluid">
+                                        <div class="navbar-brand">
+                                                  <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}"
+                                                            class="navbar-item" style="padding: 0.5rem 1rem;">
+                                                            <figure class="image" style="max-height:48px;">
+                                                                      <img src="{{ url_for('static', filename='img/LOGO_MT-Mahidol.png') }}"
+                                                                                alt="Mahidol Faculty of Medical Technology Logo"
+                                                                                style="max-height:48px; width:auto;">
+                                                            </figure>
+                                                  </a>
+                                                  <div class="navbar-burger burger" data-target="navbarMenu">
+                                                            <span></span>
+                                                            <span></span>
+                                                            <span></span>
+                                                  </div>
+                                        </div>
+                                        <div id="navbarMenu" class="navbar-menu">
+                                                  <div class="navbar-end">
+                                                            {% if logged_in_user and logged_in_user.is_admin %}
+                                                            <div class="navbar-item has-dropdown is-hoverable">
+                                                                      <a class="navbar-link has-text-danger has-text-weight-bold"
+                                                                                style="border-radius: 8px;">
+                                                                                <span class="icon"><i
+                                                                                                    class="fas fa-shield-alt"></i></span>
+                                                                                <span>Admin</span>
+                                                                      </a>
+                                                                      <div class="navbar-dropdown">
+                                                                                <a href="{{ url_for('continuing_edu.admin_events') }}"
+                                                                                          class="navbar-item">
+                                                                                          <span class="icon"><i
+                                                                                                              class="fas fa-calendar-alt"></i></span>
+                                                                                          <span>จัดการกิจกรรม/คอร์ส</span>
+                                                                                </a>
+                                                                                <a href="{{ url_for('continuing_edu.admin_members') }}"
+                                                                                          class="navbar-item">
+                                                                                          <span class="icon"><i
+                                                                                                              class="fas fa-users"></i></span>
+                                                                                          <span>จัดการสมาชิก</span>
+                                                                                </a>
+                                                                                <a href="{{ url_for('continuing_edu.admin_reports') }}"
+                                                                                          class="navbar-item">
+                                                                                          <span class="icon"><i
+                                                                                                              class="fas fa-chart-bar"></i></span>
+                                                                                          <span>รายงาน</span>
+                                                                                </a>
+                                                                      </div>
+                                                            </div>
+                                                            {% endif %}
+                                                            <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#short-courses"
+                                                                      class="navbar-item has-text-weight-medium">
+                                                                      <span class="icon is-small"><i
+                                                                                          class="fas fa-graduation-cap"></i></span>
+                                                                      <span>{{ texts.short_courses_nav }}</span>
+                                                            </a>
+                                                            <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#webinars"
+                                                                      class="navbar-item has-text-weight-medium">
+                                                                      <span class="icon is-small"><i
+                                                                                          class="fas fa-video"></i></span>
+                                                                      <span>{{ texts.webinars_nav }}</span>
+                                                            </a>
+                                                            <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#contact"
+                                                                      class="navbar-item has-text-weight-medium">
+                                                                      <span class="icon is-small"><i
+                                                                                          class="fas fa-envelope"></i></span>
+                                                                      <span>{{ texts.contact_us_nav }}</span>
+                                                            </a>
+                                                            {% if logged_in_user %}
+                                                            <div class="navbar-item has-dropdown is-hoverable">
+                                                                      <a class="navbar-link  no-hover">
+                                                                                <div class="user-avatar"
+                                                                                          style=" margin-right: 0.5rem">
+                                                                                          {{
+                                                                                          logged_in_user.username[0].upper()
+                                                                                          }}
+                                                                                </div>
+                                                                                <span>{{ logged_in_user.username
+                                                                                          }}</span>
+
+                                                                      </a>
+                                                                      <div class="navbar-dropdown is-right">
+                                                                                <a href="{{ url_for('continuing_edu.member_dashboard', lang=current_lang) }}"
+                                                                                          class="navbar-item">
+                                                                                          <span class="icon"><i
+                                                                                                              class="fas fa-tachometer-alt"></i></span>
+                                                                                          <span>{{ texts.dashboard_nav
+                                                                                                    }}</span>
+                                                                                </a>
+                                                                                <hr class="navbar-divider">
+                                                                                <a href="{{ url_for('continuing_edu.account_settings', lang=current_lang) }}"
+                                                                                          class="navbar-item">
+                                                                                          <span class="icon"><i
+                                                                                                              class="fas fa-user-cog"></i></span>
+                                                                                          <span>{{ texts.get('account_settings',
+                                                                                                    'ตั้งค่าบัญชี' if
+                                                                                                    current_lang == 'th'
+                                                                                                    else 'Account
+                                                                                                    Settings') }}</span>
+                                                                                </a>
+                                                                                <a href="{{ url_for('continuing_edu.my_registrations', lang=current_lang) }}"
+                                                                                          class="navbar-item">
+                                                                                          <span class="icon"><i
+                                                                                                              class="fas fa-clipboard-list"></i></span>
+                                                                                          <span>{{ texts.get('my_registrations',
+                                                                                                    'การลงทะเบียนของฉัน'
+                                                                                                    if current_lang ==
+                                                                                                    'th' else 'My
+                                                                                                    Registrations')
+                                                                                                    }}</span>
+                                                                                </a>
+                                                                                <a href="{{ url_for('continuing_edu.my_payments', lang=current_lang) }}"
+                                                                                          class="navbar-item">
+                                                                                          <span class="icon"><i
+                                                                                                              class="fas fa-wallet"></i></span>
+                                                                                          <span>{{ texts.get('my_payments',
+                                                                                                    'การชำระเงินของฉัน'
+                                                                                                    if current_lang ==
+                                                                                                    'th' else 'My
+                                                                                                    Payments') }}</span>
+                                                                                </a>
+                                                                                <hr class="navbar-divider">
+                                                                                <a href="{{ url_for('continuing_edu.logout', lang=current_lang) }}"
+                                                                                          class="navbar-item has-text-danger">
+                                                                                          <span class="icon"><i
+                                                                                                              class="fas fa-sign-out-alt"></i></span>
+                                                                                          <span>{{ texts.logout_btn
+                                                                                                    }}</span>
+                                                                                </a>
+                                                                      </div>
+                                                            </div>
+                                                            {% else %}
+                                                            <a href="{{ url_for('continuing_edu.register', lang=current_lang) }}"
+                                                                      class="navbar-item has-text-weight-medium">
+                                                                      <span class="icon is-small"><i
+                                                                                          class="fas fa-user-plus"></i></span>
+                                                                      <span>{{ texts.register_page_title }}</span>
+                                                            </a>
+                                                            <a href="{{ url_for('continuing_edu.login', lang=current_lang) }}"
+                                                                      class="navbar-item has-text-weight-medium">
+                                                                      <span class="icon is-small"><i
+                                                                                          class="fas fa-sign-in-alt"></i></span>
+                                                                      <span>{{ texts.login_page_title }}</span>
+                                                            </a>
+                                                            {% endif %}
+                                                            <div class="navbar-item no-hover">
+                                                                      <div class="buttons has-addons">
+                                                                                <a class="button is-small language-button {% if current_lang == 'en' %}is-active{% endif %}"
+                                                                                          href="{{ url_for(request.endpoint or 'continuing_edu.index', lang='en', **request.view_args or {}) }}">
+                                                                                          EN
+                                                                                </a>
+                                                                                <a class="button is-small language-button {% if current_lang == 'th' %}is-active{% endif %}"
+                                                                                          href="{{ url_for(request.endpoint or 'continuing_edu.index', lang='th', **request.view_args or {}) }}">
+                                                                                          TH
+                                                                                </a>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                        </div>
+                              </div>
+                    </nav>
+          </header>
+
+          {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+          <div class="container mt-4">
+                    <div class="notification is-light is-marginless-top">
+                              <button class="delete"></button>
+                              {% for category, message in messages %}
+                              <p
+                                        class="has-text-{{ 'danger' if category == 'error' else 'success' if category == 'success' else 'info' }}">
+                                        {{ message }}</p>
+                              {% endfor %}
+                    </div>
+          </div>
+          {% endif %}
+          {% endwith %}
+
+          <div style="height:80px;"></div> <!-- Spacer for fixed navbar -->
+
+          {% block content %}
+          <!-- Page content goes here -->
+          {% endblock %}
+
+          <footer class="footer has-background-dark has-text-white" style="padding: 2rem 1.5rem;">
+                    <div class="container">
+                              <div class="level is-mobile" style="margin-bottom: 0;">
+                                        <div class="level-left">
+                                                  <div class="level-item">
+                                                            <p class="is-size-7 has-text-grey-light">
+                                                                      © 2025 {{
+                                                                      texts.get('university_academic_services',
+                                                                      'University Academic Services') }}.
+                                                                      {{ texts.get('all_rights_reserved', 'All rights
+                                                                      reserved.') }}
+                                                            </p>
+                                                  </div>
+                                        </div>
+                                        <div class="level-right">
+                                                  <div class="level-item">
+                                                            <a href="#" class="has-text-grey-light is-size-7"
+                                                                      style="margin-right: 1.5rem; transition: color 0.3s ease;"
+                                                                      onmouseover="this.style.color='#ffffff'"
+                                                                      onmouseout="this.style.color=''">
+                                                                      {{ texts.privacy_policy }}
+                                                            </a>
+                                                  </div>
+                                                  <div class="level-item">
+                                                            <a href="#" class="has-text-grey-light is-size-7"
+                                                                      style="transition: color 0.3s ease;"
+                                                                      onmouseover="this.style.color='#ffffff'"
+                                                                      onmouseout="this.style.color=''">
+                                                                      {{ texts.terms_of_service }}
+                                                            </a>
+                                                  </div>
+                                        </div>
+                              </div>
+                    </div>
+          </footer>
+
+          <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+          <script>
+                    AOS.init({
+                              duration: 800,
+                              once: true
+                    });
+          </script>
+
+          <script>
+                    document.addEventListener('DOMContentLoaded', () => {
+                              // Get all "navbar-burger" elements
+                              const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+
+                              // Check if there are any navbar burgers
+                              if ($navbarBurgers.length > 0) {
+                                        // Add a click event on each of them
+                                        $navbarBurgers.forEach(el => {
+                                                  el.addEventListener('click', () => {
+                                                            // Get the target from the "data-target" attribute
+                                                            const target = el.dataset.target;
+                                                            const $target = document.getElementById(target);
+                                                            // Toggle the "is-active" class on both the "navbar-burger" and the "navbar-menu"
+                                                            el.classList.toggle('is-active');
+                                                            $target.classList.toggle('is-active');
+                                                  });
+                                        });
+                              }
+                              // Close flash messages
+                              (document.querySelectorAll('.notification .delete') || []).forEach(($delete) => {
+                                        const $notification = $delete.parentNode;
+                                        $delete.addEventListener('click', () => {
+                                                  $notification.parentNode.removeChild($notification);
+                                        });
+                              });
+                    });
+          </script>
+
+          {% block extra_js %}{% endblock %}
+
+</body>
+
+</html>

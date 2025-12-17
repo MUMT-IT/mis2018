@@ -1,822 +1,691 @@
-<!DOCTYPE html>
-<html lang="{{ current_lang }}">
+{% extends "continueing_edu/base_frontend.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ texts.university_name }} - {{ texts.course_detail_title }}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
-            /* Light Slate 50 */
-        }
+{% block title %}{{ texts.university_name }} - {{ texts.course_detail_title }}{% endblock %}
 
-        /* Custom styles for rounded corners and shadows */
-        .rounded-md {
-            border-radius: 0.375rem;
-        }
+{% block extra_css %}
+{{ super() }}
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f8fafc;
+        /* Light Slate 50 */
+    }
 
-        .rounded-lg {
-            border-radius: 0.5rem;
-        }
+    /* Custom styles for rounded corners and shadows */
+    .rounded-md {
+        border-radius: 0.375rem;
+    }
 
-        .rounded-full {
-            border-radius: 9999px;
-        }
+    .rounded-lg {
+        border-radius: 0.5rem;
+    }
 
-        .shadow-sm {
-            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-        }
+    .rounded-full {
+        border-radius: 9999px;
+    }
 
-        .shadow-lg {
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
+    .shadow-sm {
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
 
-        .object-cover {
-            object-fit: cover;
-        }
+    .shadow-lg {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
 
-        .h-64 {
-            height: 16rem;
-            /* 256px */
-        }
+    .object-cover {
+        object-fit: cover;
+    }
 
-        .mb-4 {
-            margin-bottom: 1rem;
-        }
+    .h-64 {
+        height: 16rem;
+        /* 256px */
+    }
 
-        .mb-6 {
-            margin-bottom: 1.5rem;
-        }
+    .mb-4 {
+        margin-bottom: 1rem;
+    }
 
-        .mb-8 {
-            margin-bottom: 2rem;
-        }
+    .mb-6 {
+        margin-bottom: 1.5rem;
+    }
 
-        .mb-12 {
-            margin-bottom: 3rem;
-        }
+    .mb-8 {
+        margin-bottom: 2rem;
+    }
 
-        .mt-4 {
-            margin-top: 1rem;
-        }
+    .mb-12 {
+        margin-bottom: 3rem;
+    }
 
-        .mt-12 {
-            margin-top: 3rem;
-        }
+    .mt-4 {
+        margin-top: 1rem;
+    }
 
-        .py-4 {
-            padding-top: 1rem;
-            padding-bottom: 1rem;
-        }
+    .mt-12 {
+        margin-top: 3rem;
+    }
 
-        .py-8 {
-            padding-top: 2rem;
-            padding-bottom: 2rem;
-        }
+    .py-4 {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
 
-        .py-16 {
-            padding-top: 4rem;
-            padding-bottom: 4rem;
-        }
+    .py-8 {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
 
-        .px-4 {
-            padding-left: 1rem;
-            padding-right: 1rem;
-        }
+    .py-16 {
+        padding-top: 4rem;
+        padding-bottom: 4rem;
+    }
 
-        .p-6 {
-            padding: 1.5rem;
-        }
+    .px-4 {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
 
-        /* Colors */
-        .has-text-gray-800 {
-            color: #1f2937;
-        }
+    .p-6 {
+        padding: 1.5rem;
+    }
 
-        .has-text-gray-600 {
-            color: #4b5563;
-        }
+    /* Colors */
+    .has-text-gray-800 {
+        color: #1f2937;
+    }
 
-        .has-text-gray-700 {
-            color: #374151;
-        }
+    .has-text-gray-600 {
+        color: #4b5563;
+    }
 
-        .has-text-gray-400 {
-            color: #9ca3af;
-        }
+    .has-text-gray-700 {
+        color: #374151;
+    }
 
-        .has-text-indigo-700 {
-            color: #4338ca;
-        }
+    .has-text-gray-400 {
+        color: #9ca3af;
+    }
 
-        .has-text-indigo-600 {
-            color: #4f46e5;
-        }
+    .has-text-indigo-700 {
+        color: #4338ca;
+    }
 
-        .has-text-white {
-            color: #ffffff;
-        }
+    .has-text-indigo-600 {
+        color: #4f46e5;
+    }
 
-        .has-background-white {
-            background-color: #ffffff;
-        }
+    .has-text-white {
+        color: #ffffff;
+    }
 
-        .has-background-gray-50 {
-            background-color: #f9fafb;
-        }
+    .has-background-white {
+        background-color: #ffffff;
+    }
 
-        .has-background-indigo-600 {
-            background-color: #4f46e5;
-        }
+    .has-background-gray-50 {
+        background-color: #f9fafb;
+    }
 
-        .has-background-indigo-700 {
-            background-color: #4338ca;
-        }
+    .has-background-indigo-600 {
+        background-color: #4f46e5;
+    }
 
-        .has-background-gray-800 {
-            background-color: #1f2937;
-        }
+    .has-background-indigo-700 {
+        background-color: #4338ca;
+    }
 
-        .hover\:has-text-indigo-700:hover {
-            color: #4338ca;
-        }
+    .has-background-gray-800 {
+        background-color: #1f2937;
+    }
 
-        .hover\:has-background-indigo-700:hover {
-            background-color: #4338ca;
-        }
+    .hover\:has-text-indigo-700:hover {
+        color: #4338ca;
+    }
 
-        .hover\:has-background-indigo-800:hover {
-            background-color: #3730a3;
-        }
+    .hover\:has-background-indigo-700:hover {
+        background-color: #4338ca;
+    }
 
-        .hover\:has-text-white:hover {
-            color: #ffffff;
-        }
+    .hover\:has-background-indigo-800:hover {
+        background-color: #3730a3;
+    }
 
-        .border {
-            border-width: 1px;
-            border-style: solid;
-        }
+    .hover\:has-text-white:hover {
+        color: #ffffff;
+    }
 
-        .border-gray-200 {
-            border-color: #e5e7eb;
-        }
+    .border {
+        border-width: 1px;
+        border-style: solid;
+    }
 
-        .is-flex {
-            display: flex;
-        }
+    .border-gray-200 {
+        border-color: #e5e7eb;
+    }
 
-        .is-flex-direction-column {
-            flex-direction: column;
-        }
+    .is-flex {
+        display: flex;
+    }
 
-        .is-justify-content-space-between {
-            justify-content: space-between;
-        }
+    .is-flex-direction-column {
+        flex-direction: column;
+    }
 
-        .is-align-items-center {
-            align-items: center;
-        }
+    .is-justify-content-space-between {
+        justify-content: space-between;
+    }
 
-        .is-centered {
-            justify-content: center;
-        }
+    .is-align-items-center {
+        align-items: center;
+    }
 
-        .is-fullwidth {
-            width: 100%;
-        }
+    .is-centered {
+        justify-content: center;
+    }
 
-        /* Custom styles for language buttons */
-        .language-button {
-            margin-left: 0.5rem;
-            min-width: 40px;
-            text-align: center;
-        }
+    .is-fullwidth {
+        width: 100%;
+    }
 
-        .language-button.is-active {
-            background-color: #4338ca;
-            color: white;
-            border-color: #4338ca;
-        }
+    /* Custom styles for language buttons */
+    .language-button {
+        margin-left: 0.5rem;
+        min-width: 40px;
+        text-align: center;
+    }
 
-        .language-button:not(.is-active) {
-            background-color: #e0e7ff;
-            color: #4338ca;
-            border-color: #e0e7ff;
-        }
+    .language-button.is-active {
+        background-color: #4338ca;
+        color: white;
+        border-color: #4338ca;
+    }
 
-        .language-button:not(.is-active):hover {
-            background-color: #c7d2fe;
-            border-color: #c7d2fe;
-        }
+    .language-button:not(.is-active) {
+        background-color: #e0e7ff;
+        color: #4338ca;
+        border-color: #e0e7ff;
+    }
 
-        /* Style for the university logo */
-        .university-logo {
-            max-height: 2.5rem;
-            margin-right: 0.5rem;
-            width: auto;
-        }
-    </style>
-</head>
+    .language-button:not(.is-active):hover {
+        background-color: #c7d2fe;
+        border-color: #c7d2fe;
+    }
 
-<body class="has-text-gray-800">
+    /* Style for the university logo */
+    .university-logo {
+        max-height: 2.5rem;
+        margin-right: 0.5rem;
+        width: auto;
+    }
+</style>
+{% endblock %}\n
+{% block content %}
+<div class="container">
+    <nav class="breadcrumb is-large" aria-label="breadcrumbs">
+        <ul>
+            <li><a href="{{ url_for('continuing_edu.index', lang=current_lang) }}">{{ texts.university_name
+                    }}</a></li>
+            <li><a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#short-courses">{{
+                    texts.our_short_courses_title }}</a></li>
+            {% set title_local = course.title_en if current_lang=='en' else (course.title_th or course.title_en)
+            %}
+            <li class="is-active"><a href="#" aria-current="page">{{ title_local }}</a></li>
+        </ul>
+    </nav>
+    <h1 class="title is-1 has-text-centered mb-12 has-text-gray-800 rounded-md">{{ title_local }}</h1>
 
-    <header class="navbar has-background-white shadow-sm py-4">
-        <div
-            class="container is-fluid is-flex is-flex-direction-column is-flex-direction-row-desktop is-justify-content-space-between is-align-items-center">
-            <div class="navbar-brand">
-                <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}" class="navbar-item">
-                    <img src="https://placehold.co/100x40/4338CA/FFFFFF?text=LOGO" alt="[Image of University Logo]"
-                        class="university-logo">
-                </a>
-                <!-- <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}"
-                    class="navbar-item title is-4 has-text-indigo-700 rounded-md">{{ texts.university_name }}</a> -->
-                <div class="navbar-burger burger" data-target="navbarMenu">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
+    <div class="columns is-vcentered is-desktop">
+        <div class="column is-half-desktop content">
+            <figure class="image is-3by2 rounded-lg shadow-lg">
+                {% set cover = course.cover_presigned_url() if course.cover_image_url else None %}
+                {% set poster = course.poster_presigned_url() if course.poster_image_url else None %}
+                <img src="{{ cover or poster or course.image_url or url_for('static', filename='img/LOGO_MT-Mahidol.png') }}"
+                    alt="[Image of {{ course.title or course.title_en }}]" class="object-cover rounded-lg shadow-lg">
+            </figure>
+            {% if poster %}
+            <div class="has-text-centered mt-3">
+                <button class="button is-info is-light" onclick="showPosterModal()">
+                    <span class="icon">
+                        <i class="fas fa-image"></i>
+                    </span>
+                    <span>{{ texts.get('view_poster', 'ดูโปสเตอร์' if current_lang == 'th' else 'View Poster')
+                        }}</span>
+                </button>
             </div>
-            <div id="navbarMenu" class="navbar-menu">
-                <div class="navbar-end mt-4-mobile mt-0-desktop">
-                    <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#short-courses"
-                        class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">{{
-                        texts.short_courses_nav }}</a>
-                    <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#webinars"
-                        class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">{{
-                        texts.webinars_nav }}</a>
-                    <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#contact"
-                        class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">
-                        {{ texts.contact_us_nav }}
-                    </a>
-                    {% if logged_in_user %}
-                    <div class="navbar-item has-text-gray-700">
-                        {{ texts.welcome_message }} {{ logged_in_user.username }}!
-                    </div>
-                    <a href="{{ url_for('continuing_edu.logout', lang=current_lang) }}"
-                        class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">
-                        {{ texts.logout_btn }}
-                    </a>
-                    {% else %}
-                    <a href="{{ url_for('continuing_edu.register', lang=current_lang) }}"
-                        class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">
-                        {{ texts.register_page_title }}
-                    </a>
-                    <a href="{{ url_for('continuing_edu.login', lang=current_lang) }}"
-                        class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">
-                        {{ texts.login_page_title }}
-                    </a>
-                    {% endif %}
-
-                    <div class="navbar-item">
-                        <div class="buttons has-addons">
-                            <a class="button is-small language-button {% if current_lang == 'en' %}is-active{% endif %}"
-                                href="{{ url_for('continuing_edu.course_detail', course_id=course.id, lang='en') }}">
-                                EN
-                            </a>
-                            <a class="button is-small language-button {% if current_lang == 'th' %}is-active{% endif %}"
-                                href="{{ url_for('continuing_edu.course_detail', course_id=course.id, lang='th') }}">
-                                TH
-                            </a>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
+            {% endif %}
         </div>
-    </header>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    <div class="container mt-4">
-        <div class="notification is-light is-marginless-top">
-            <button class="delete"></button>
-            {% for category, message in messages %}
-            <p
-                class="has-text-{{ 'danger' if category == 'error' else 'success' if category == 'success' else 'info' }}">
-                {{ message }}</p>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-    {% endwith %}
-
-    <section class="section py-16">
-        <div class="container">
-            <nav class="breadcrumb is-large" aria-label="breadcrumbs">
-                <ul>
-                    <li><a href="{{ url_for('continuing_edu.index', lang=current_lang) }}">{{ texts.university_name
-                            }}</a></li>
-                    <li><a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#short-courses">{{
-                            texts.our_short_courses_title }}</a></li>
-                    {% set title_local = course.title_en if current_lang=='en' else (course.title_th or course.title_en)
+        <div class="column is-half-desktop">
+            <div class="content">
+                {% set long_desc = course.long_description_en if current_lang=='en' else
+                (course.long_description_th or course.long_description_en) %}
+                {% set short_desc = course.description_en if current_lang=='en' else (course.description_th or
+                course.description_en) %}
+                {% if long_desc %}
+                <p class="is-size-5 has-text-gray-700 mb-6 rounded-md">{{ long_desc }}</p>
+                {% elif short_desc %}
+                <p class="is-size-5 has-text-gray-700 mb-6 rounded-md">{{ short_desc }}</p>
+                {% endif %}
+                <ul class="list-disc has-text-gray-700 mb-4 rounded-md">
+                    {% set duration = course.duration_en if current_lang=='en' else (course.duration_th or
+                    course.duration_en) %}
+                    {% set fmt = course.format_en if current_lang=='en' else (course.format_th or
+                    course.format_en) %}
+                    {% set cert = course.certificate_name_en if current_lang=='en' else
+                    (course.certificate_name_th or course.certificate_name_en) %}
+                    {% set loc = course.location_en if current_lang=='en' else (course.location_th or
+                    course.location_en) %}
+                    {% if duration %}<li><strong>{{ texts.duration_label }}:</strong> {{ duration }}</li>{%
+                    endif %}
+                    {% if fmt %}<li><strong>{{ texts.format_label }}:</strong> {{ fmt }}</li>{% endif %}
+                    {% if cert %}<li><strong>{{ texts.certification_label }}:</strong> {{ cert }}</li>{% endif
                     %}
-                    <li class="is-active"><a href="#" aria-current="page">{{ title_local }}</a></li>
+                    {% if loc %}<li><strong>{{ texts.location_label }}:</strong> {{ loc }}</li>{% endif %}
+                    {% if course.continue_education_score %}
+                    <li><strong>CE Score:</strong> {{ '%.2f'|format(course.continue_education_score) }}</li>
+                    {% endif %}
                 </ul>
-            </nav>
-            <h1 class="title is-1 has-text-centered mb-12 has-text-gray-800 rounded-md">{{ title_local }}</h1>
 
-            <div class="columns is-vcentered is-desktop">
-                <div class="column is-half-desktop content">
-                    <figure class="image is-3by2 rounded-lg shadow-lg">
-                        {% set cover = course.cover_presigned_url() if course.cover_image_url else None %}
-                        {% set poster = course.poster_presigned_url() if course.poster_image_url else None %}
-                        <img src="{{ cover or poster or course.image_url }}"
-                            alt="[Image of {{ course.title or course.title_en }}]"
-                            class="object-cover rounded-lg shadow-lg">
-                    </figure>
-                    {% if poster %}
-                    <div class="has-text-centered mt-3">
-                        <button class="button is-info is-light" onclick="showPosterModal()">
-                            <span class="icon">
-                                <i class="fas fa-image"></i>
+                <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.instructors_label }}</h4>
+                {% if course.speakers %}
+                <div class="instructor-grid"
+                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                    {% for sp in course.speakers %}
+                    {% set sp_name = sp.name_en if current_lang=='en' else (sp.name_th or sp.name_en) %}
+                    {% set sp_title = sp.title_en if current_lang=='en' else (sp.title_th or sp.title_en) %}
+                    {% set sp_pos = sp.position_en if current_lang=='en' else (sp.position_th or sp.position_en)
+                    %}
+                    {% set sp_inst = sp.institution_en if current_lang=='en' else (sp.institution_th or
+                    sp.institution_en) %}
+                    {% set sp_bio = sp.bio_en if current_lang=='en' else (sp.bio_th or sp.bio_en) %}
+                    <div class="instructor-card" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+                        onclick='showInstructorModal({{ sp.id }}, "{{ sp_title|e }}", "{{ sp_name|e }}", "{{ sp_pos|e }}", "{{ sp_inst|e }}", "{{ sp.image_url|e if sp.image_url else "" }}", "{{ sp_bio|e if sp_bio else "" }}", "{{ sp.email|e }}", "{{ sp.phone|e }}")'>
+                        <div class="box has-text-centered"
+                            style="height: 100%; padding: 1rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                            <figure class="image is-96x96" style="margin: 0 auto 0.75rem;">
+                                {% if sp.image_url %}
+                                <img src="{{ sp.image_url }}" alt="{{ sp_name }}"
+                                    style="border-radius: 50%; object-fit: cover; width: 96px; height: 96px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);">
+                                {% else %}
+                                <div
+                                    style="width: 96px; height: 96px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);">
+                                    <span style="color: white; font-size: 2.5rem; font-weight: 600;">{{
+                                        sp_name[0] if sp_name else '?' }}</span>
+                                </div>
+                                {% endif %}
+                            </figure>
+                            <p class="has-text-weight-semibold has-text-gray-800"
+                                style="font-size: 0.95rem; margin-bottom: 0.25rem;">
+                                {{ sp_title }} {{ sp_name }}
+                            </p>
+                            {% if sp_pos %}
+                            <p class="has-text-gray-600" style="font-size: 0.8rem; margin-bottom: 0.15rem;">{{
+                                sp_pos }}</p>
+                            {% endif %}
+                            {% if sp_inst %}
+                            <p class="has-text-gray-500" style="font-size: 0.75rem;">{{ sp_inst }}</p>
+                            {% endif %}
+                            <span class="icon has-text-indigo-600 mt-2">
+                                <i class="fas fa-info-circle"></i>
                             </span>
-                            <span>{{ texts.get('view_poster', 'ดูโปสเตอร์' if current_lang == 'th' else 'View Poster')
-                                }}</span>
-                        </button>
+                        </div>
                     </div>
+                    {% endfor %}
+                </div>
+
+                <style>
+                    .instructor-card:hover {
+                        transform: translateY(-4px);
+                    }
+
+                    .instructor-card:hover .box {
+                        box-shadow: 0 8px 24px rgba(79, 70, 229, 0.15) !important;
+                    }
+
+                    .instructor-card:active {
+                        transform: translateY(-2px);
+                    }
+                </style>
+                {% else %}
+                <p class="has-text-grey">—</p>
+                {% endif %}
+
+                <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.agenda_label }}</h4>
+                {% if course.agendas %}
+                <ul class="list-disc has-text-gray-700 mb-4">
+                    {% for a in course.agendas|sort(attribute='start_time') %}
+                    <li>
+                        {% if a.start_time and a.end_time %}
+                        [{{ a.start_time.strftime('%H:%M') }}–{{ a.end_time.strftime('%H:%M') }}]
+                        {% endif %}
+                        {% set atitle = a.title_en if current_lang=='en' else (a.title_th or a.title_en) %}
+                        {{ atitle }}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="has-text-grey">—</p>
+                {% endif %}
+
+                {% if course.early_bird_end %}
+                <div class="notification is-info is-light" id="eb-banner"
+                    data-eb-end="{{ course.early_bird_end.isoformat() }}">
+                    <strong>Early Bird!</strong> Ends in <span id="eb-countdown">—</span>
+                </div>
+                {% endif %}
+
+                <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.registration_fee_label }}</h4>
+                <div class="content">
+                    {% if course.registration_fees %}
+                    <ul id="fees-list"
+                        data-eb-start="{{ course.early_bird_start.isoformat() if course.early_bird_start else '' }}"
+                        data-eb-end="{{ course.early_bird_end.isoformat() if course.early_bird_end else '' }}">
+                        {% for fee in course.registration_fees %}
+                        <li>
+                            <span class="has-text-weight-semibold">{{ fee.member_type_ref.name_en }} / {{
+                                fee.member_type_ref.name_th }}:</span>
+                            {% if fee.early_bird_price is not none %}
+                            <span class="normal-price">{{ '%.2f'|format(fee.price) }} THB</span>
+                            <span class="early-price tag is-success is-light" style="display:none;">{{
+                                '%.2f'|format(fee.early_bird_price) }} THB</span>
+                            {% else %}
+                            <span>{{ '%.2f'|format(fee.price) }} THB</span>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="has-text-grey">No fees configured.</p>
                     {% endif %}
                 </div>
-                <div class="column is-half-desktop">
-                    <div class="content">
-                        {% set long_desc = course.long_description_en if current_lang=='en' else
-                        (course.long_description_th or course.long_description_en) %}
-                        {% set short_desc = course.description_en if current_lang=='en' else (course.description_th or
-                        course.description_en) %}
-                        {% if long_desc %}
-                        <p class="is-size-5 has-text-gray-700 mb-6 rounded-md">{{ long_desc }}</p>
-                        {% elif short_desc %}
-                        <p class="is-size-5 has-text-gray-700 mb-6 rounded-md">{{ short_desc }}</p>
-                        {% endif %}
-                        <ul class="list-disc has-text-gray-700 mb-4 rounded-md">
-                            {% set duration = course.duration_en if current_lang=='en' else (course.duration_th or
-                            course.duration_en) %}
-                            {% set fmt = course.format_en if current_lang=='en' else (course.format_th or
-                            course.format_en) %}
-                            {% set cert = course.certificate_name_en if current_lang=='en' else
-                            (course.certificate_name_th or course.certificate_name_en) %}
-                            {% set loc = course.location_en if current_lang=='en' else (course.location_th or
-                            course.location_en) %}
-                            {% if duration %}<li><strong>{{ texts.duration_label }}:</strong> {{ duration }}</li>{%
-                            endif %}
-                            {% if fmt %}<li><strong>{{ texts.format_label }}:</strong> {{ fmt }}</li>{% endif %}
-                            {% if cert %}<li><strong>{{ texts.certification_label }}:</strong> {{ cert }}</li>{% endif
-                            %}
-                            {% if loc %}<li><strong>{{ texts.location_label }}:</strong> {{ loc }}</li>{% endif %}
-                            {% if course.continue_education_score %}
-                            <li><strong>CE Score:</strong> {{ '%.2f'|format(course.continue_education_score) }}</li>
-                            {% endif %}
-                        </ul>
 
-                        <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.instructors_label }}</h4>
-                        {% if course.speakers %}
-                        <div class="instructor-grid"
-                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-                            {% for sp in course.speakers %}
-                            {% set sp_name = sp.name_en if current_lang=='en' else (sp.name_th or sp.name_en) %}
-                            {% set sp_title = sp.title_en if current_lang=='en' else (sp.title_th or sp.title_en) %}
-                            {% set sp_pos = sp.position_en if current_lang=='en' else (sp.position_th or sp.position_en)
-                            %}
-                            {% set sp_inst = sp.institution_en if current_lang=='en' else (sp.institution_th or
-                            sp.institution_en) %}
-                            {% set sp_bio = sp.bio_en if current_lang=='en' else (sp.bio_th or sp.bio_en) %}
-                            <div class="instructor-card"
-                                style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
-                                onclick='showInstructorModal({{ sp.id }}, "{{ sp_title|e }}", "{{ sp_name|e }}", "{{ sp_pos|e }}", "{{ sp_inst|e }}", "{{ sp.image_url|e if sp.image_url else "" }}", "{{ sp_bio|e if sp_bio else "" }}", "{{ sp.email|e }}", "{{ sp.phone|e }}")'>
-                                <div class="box has-text-centered"
-                                    style="height: 100%; padding: 1rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                                    <figure class="image is-96x96" style="margin: 0 auto 0.75rem;">
-                                        {% if sp.image_url %}
-                                        <img src="{{ sp.image_url }}" alt="{{ sp_name }}"
-                                            style="border-radius: 50%; object-fit: cover; width: 96px; height: 96px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);">
-                                        {% else %}
-                                        <div
-                                            style="width: 96px; height: 96px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);">
-                                            <span style="color: white; font-size: 2.5rem; font-weight: 600;">{{
-                                                sp_name[0] if sp_name else '?' }}</span>
-                                        </div>
-                                        {% endif %}
-                                    </figure>
-                                    <p class="has-text-weight-semibold has-text-gray-800"
-                                        style="font-size: 0.95rem; margin-bottom: 0.25rem;">
-                                        {{ sp_title }} {{ sp_name }}
-                                    </p>
-                                    {% if sp_pos %}
-                                    <p class="has-text-gray-600" style="font-size: 0.8rem; margin-bottom: 0.15rem;">{{
-                                        sp_pos }}</p>
-                                    {% endif %}
-                                    {% if sp_inst %}
-                                    <p class="has-text-gray-500" style="font-size: 0.75rem;">{{ sp_inst }}</p>
-                                    {% endif %}
-                                    <span class="icon has-text-indigo-600 mt-2">
-                                        <i class="fas fa-info-circle"></i>
-                                    </span>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
+                {% from 'continueing_edu/_registration_macros.html' import registration_button,
+                registration_status_badge %}
 
-                        <style>
-                            .instructor-card:hover {
-                                transform: translateY(-4px);
-                            }
+                {% if logged_in_user %}
+                {% if already_registered %}
+                <div class="notification is-success is-light">
+                    <p class="mb-2"><strong>{{ texts.get('status_registered', 'ลงทะเบียนแล้ว' if current_lang ==
+                            'th' else 'You are registered') }}</strong></p>
+                    {{ registration_status_badge(course, [course.id], approved_payment, texts, current_lang) }}
+                </div>
 
-                            .instructor-card:hover .box {
-                                box-shadow: 0 8px 24px rgba(79, 70, 229, 0.15) !important;
-                            }
-
-                            .instructor-card:active {
-                                transform: translateY(-2px);
-                            }
-                        </style>
+                <div class="box mt-4">
+                    <p class="mb-2"><strong>{{ texts.get('progress', 'ความคืบหน้า' if current_lang == 'th' else
+                            'Progress') }}</strong></p>
+                    <p>{{ texts.get('started', 'เริ่มเรียน' if current_lang == 'th' else 'Started') }}: {{
+                        (logged_in_user.registrations|selectattr('event_entity_id','equalto',
+                        course.id)|map(attribute='started_at')|list|first) or '-' }}</p>
+                    <p>{{ texts.get('completed', 'เสร็จสิ้น' if current_lang == 'th' else 'Completed') }}: {{
+                        (logged_in_user.registrations|selectattr('event_entity_id','equalto',
+                        course.id)|map(attribute='completed_at')|list|first) or '-' }}</p>
+                    <div class="buttons mt-2">
+                        {% if approved_payment %}
+                        <form method="post"
+                            action="{{ url_for('continuing_edu.start_progress', event_id=course.id, lang=current_lang) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                            <button class="button is-small is-primary" type="submit">
+                                <span class="icon"><i class="fas fa-play"></i></span>
+                                <span>{{ texts.get('start', 'เริ่มเรียน' if current_lang == 'th' else 'Start')
+                                    }}</span>
+                            </button>
+                        </form>
+                        <form method="post"
+                            action="{{ url_for('continuing_edu.complete_progress', event_id=course.id, lang=current_lang) }}"
+                            class="ml-2">
+                            <input type="hidden" name="passed" value="1">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                            <button class="button is-small is-success" type="submit">
+                                <span class="icon"><i class="fas fa-check"></i></span>
+                                <span>{{ texts.get('complete_issue_cert', 'เสร็จสิ้นและออกใบประกาศนียบัตร' if
+                                    current_lang == 'th' else 'Complete & Issue Certificate') }}</span>
+                            </button>
+                        </form>
                         {% else %}
-                        <p class="has-text-grey">—</p>
-                        {% endif %}
-
-                        <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.agenda_label }}</h4>
-                        {% if course.agendas %}
-                        <ul class="list-disc has-text-gray-700 mb-4">
-                            {% for a in course.agendas|sort(attribute='start_time') %}
-                            <li>
-                                {% if a.start_time and a.end_time %}
-                                [{{ a.start_time.strftime('%H:%M') }}–{{ a.end_time.strftime('%H:%M') }}]
-                                {% endif %}
-                                {% set atitle = a.title_en if current_lang=='en' else (a.title_th or a.title_en) %}
-                                {{ atitle }}
-                            </li>
-                            {% endfor %}
-                        </ul>
-                        {% else %}
-                        <p class="has-text-grey">—</p>
-                        {% endif %}
-
-                        {% if course.early_bird_end %}
-                        <div class="notification is-info is-light" id="eb-banner"
-                            data-eb-end="{{ course.early_bird_end.isoformat() }}">
-                            <strong>Early Bird!</strong> Ends in <span id="eb-countdown">—</span>
-                        </div>
-                        {% endif %}
-
-                        <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.registration_fee_label }}</h4>
-                        <div class="content">
-                            {% if course.registration_fees %}
-                            <ul id="fees-list"
-                                data-eb-start="{{ course.early_bird_start.isoformat() if course.early_bird_start else '' }}"
-                                data-eb-end="{{ course.early_bird_end.isoformat() if course.early_bird_end else '' }}">
-                                {% for fee in course.registration_fees %}
-                                <li>
-                                    <span class="has-text-weight-semibold">{{ fee.member_type_ref.name_en }} / {{
-                                        fee.member_type_ref.name_th }}:</span>
-                                    {% if fee.early_bird_price is not none %}
-                                    <span class="normal-price">{{ '%.2f'|format(fee.price) }} THB</span>
-                                    <span class="early-price tag is-success is-light" style="display:none;">{{
-                                        '%.2f'|format(fee.early_bird_price) }} THB</span>
-                                    {% else %}
-                                    <span>{{ '%.2f'|format(fee.price) }} THB</span>
-                                    {% endif %}
-                                </li>
-                                {% endfor %}
-                            </ul>
-                            {% else %}
-                            <p class="has-text-grey">No fees configured.</p>
-                            {% endif %}
-                        </div>
-
-                        {% from 'continueing_edu/_registration_macros.html' import registration_button,
-                        registration_status_badge %}
-
-                        {% if logged_in_user %}
-                        {% if already_registered %}
-                        <div class="notification is-success is-light">
-                            <p class="mb-2"><strong>{{ texts.get('status_registered', 'ลงทะเบียนแล้ว' if current_lang ==
-                                    'th' else 'You are registered') }}</strong></p>
-                            {{ registration_status_badge(course, [course.id], approved_payment, texts, current_lang) }}
-                        </div>
-
-                        <div class="box mt-4">
-                            <p class="mb-2"><strong>{{ texts.get('progress', 'ความคืบหน้า' if current_lang == 'th' else
-                                    'Progress') }}</strong></p>
-                            <p>{{ texts.get('started', 'เริ่มเรียน' if current_lang == 'th' else 'Started') }}: {{
-                                (logged_in_user.registrations|selectattr('event_entity_id','equalto',
-                                course.id)|map(attribute='started_at')|list|first) or '-' }}</p>
-                            <p>{{ texts.get('completed', 'เสร็จสิ้น' if current_lang == 'th' else 'Completed') }}: {{
-                                (logged_in_user.registrations|selectattr('event_entity_id','equalto',
-                                course.id)|map(attribute='completed_at')|list|first) or '-' }}</p>
-                            <div class="buttons mt-2">
-                                {% if approved_payment %}
-                                <form method="post"
-                                    action="{{ url_for('continuing_edu.start_progress', event_id=course.id, lang=current_lang) }}">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                                    <button class="button is-small is-primary" type="submit">
-                                        <span class="icon"><i class="fas fa-play"></i></span>
-                                        <span>{{ texts.get('start', 'เริ่มเรียน' if current_lang == 'th' else 'Start')
-                                            }}</span>
-                                    </button>
-                                </form>
-                                <form method="post"
-                                    action="{{ url_for('continuing_edu.complete_progress', event_id=course.id, lang=current_lang) }}"
-                                    class="ml-2">
-                                    <input type="hidden" name="passed" value="1">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                                    <button class="button is-small is-success" type="submit">
-                                        <span class="icon"><i class="fas fa-check"></i></span>
-                                        <span>{{ texts.get('complete_issue_cert', 'เสร็จสิ้นและออกใบประกาศนียบัตร' if
-                                            current_lang == 'th' else 'Complete & Issue Certificate') }}</span>
-                                    </button>
-                                </form>
-                                {% else %}
-                                <span class="tag is-warning is-medium">
-                                    <span class="icon"><i class="fas fa-clock"></i></span>
-                                    <span>{{ texts.get('waiting_payment_approval', 'รอการอนุมัติการชำระเงิน' if
-                                        current_lang == 'th' else 'Waiting for payment approval') }}</span>
-                                </span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% else %}
-                        <div class="mt-4">
-                            {{ registration_button(course, logged_in_user, already_registered, texts, current_lang) }}
-                        </div>
-                        {% endif %}
-                        {% else %}
-                        <div class="box has-background-warning-light mt-4">
-                            <p class="mb-3"><strong>{{ texts.get('login_required_title', 'กรุณาเข้าสู่ระบบ' if
-                                    current_lang == 'th' else 'Login Required') }}</strong></p>
-                            {{ registration_button(course, logged_in_user, already_registered, texts, current_lang) }}
-                        </div>
+                        <span class="tag is-warning is-medium">
+                            <span class="icon"><i class="fas fa-clock"></i></span>
+                            <span>{{ texts.get('waiting_payment_approval', 'รอการอนุมัติการชำระเงิน' if
+                                current_lang == 'th' else 'Waiting for payment approval') }}</span>
+                        </span>
                         {% endif %}
                     </div>
                 </div>
-            </div>
-
-            <div class="has-text-centered mt-12">
-                <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#short-courses"
-                    class="button is-light is-rounded has-text-indigo-700 hover:has-background-indigo-100">
-                    {{ texts.back_to_courses_btn }}
-                </a>
+                {% else %}
+                <div class="mt-4">
+                    {{ registration_button(course, logged_in_user, already_registered, texts, current_lang) }}
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="box has-background-warning-light mt-4">
+                    <p class="mb-3"><strong>{{ texts.get('login_required_title', 'กรุณาเข้าสู่ระบบ' if
+                            current_lang == 'th' else 'Login Required') }}</strong></p>
+                    {{ registration_button(course, logged_in_user, already_registered, texts, current_lang) }}
+                </div>
+                {% endif %}
             </div>
         </div>
-    </section>
+    </div>
 
-    <!-- Poster Modal -->
-    {% if poster %}
-    <div id="poster-modal" class="modal">
-        <div class="modal-background" onclick="closePosterModal()"></div>
-        <div class="modal-content" style="max-width: 90%; width: auto;">
-            <div class="box">
-                <figure class="image">
-                    <img src="{{ poster }}" alt="Poster - {{ title_local }}" style="width: 100%; height: auto;">
+    <div class="has-text-centered mt-12">
+        <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#short-courses"
+            class="button is-light is-rounded has-text-indigo-700 hover:has-background-indigo-100">
+            {{ texts.back_to_courses_btn }}
+        </a>
+    </div>
+</div>
+</section>
+
+<!-- Poster Modal -->
+{% if poster %}
+<div id="poster-modal" class="modal">
+    <div class="modal-background" onclick="closePosterModal()"></div>
+    <div class="modal-content" style="max-width: 90%; width: auto;">
+        <div class="box">
+            <figure class="image">
+                <img src="{{ poster }}" alt="Poster - {{ title_local }}" style="width: 100%; height: auto;">
+            </figure>
+        </div>
+    </div>
+    <button class="modal-close is-large" aria-label="close" onclick="closePosterModal()"></button>
+</div>
+{% endif %}
+
+<!-- Instructor Profile Modal -->
+<div id="instructor-modal" class="modal">
+    <div class="modal-background" onclick="closeInstructorModal()"></div>
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="box" style="border-radius: 16px;">
+            <div class="has-text-centered mb-4">
+                <figure class="image is-128x128" style="margin: 0 auto 1rem auto;"
+                    id="instructor-modal-image-container">
+                    <!-- Dynamic image will be inserted here -->
                 </figure>
+                <h3 class="title is-4 has-text-indigo-700 mb-2" id="instructor-modal-name">Instructor Name</h3>
+                <p class="subtitle is-6 has-text-gray-600 mb-1" id="instructor-modal-position"></p>
+                <p class="has-text-gray-500 is-size-7" id="instructor-modal-institution"></p>
             </div>
-        </div>
-        <button class="modal-close is-large" aria-label="close" onclick="closePosterModal()"></button>
-    </div>
-    {% endif %}
 
-    <!-- Instructor Profile Modal -->
-    <div id="instructor-modal" class="modal">
-        <div class="modal-background" onclick="closeInstructorModal()"></div>
-        <div class="modal-content" style="max-width: 600px;">
-            <div class="box" style="border-radius: 16px;">
-                <div class="has-text-centered mb-4">
-                    <figure class="image is-128x128" style="margin: 0 auto 1rem auto;"
-                        id="instructor-modal-image-container">
-                        <!-- Dynamic image will be inserted here -->
-                    </figure>
-                    <h3 class="title is-4 has-text-indigo-700 mb-2" id="instructor-modal-name">Instructor Name</h3>
-                    <p class="subtitle is-6 has-text-gray-600 mb-1" id="instructor-modal-position"></p>
-                    <p class="has-text-gray-500 is-size-7" id="instructor-modal-institution"></p>
-                </div>
+            <div class="content" id="instructor-modal-bio-container" style="display: none;">
+                <hr style="background-color: #e5e7eb; margin: 1.5rem 0;">
+                <h5 class="title is-6 has-text-indigo-600 mb-2">
+                    {{ texts.get('about', 'เกี่ยวกับ' if current_lang == 'th' else 'About') }}
+                </h5>
+                <p class="has-text-gray-700" id="instructor-modal-bio" style="line-height: 1.6;"></p>
+            </div>
 
-                <div class="content" id="instructor-modal-bio-container" style="display: none;">
-                    <hr style="background-color: #e5e7eb; margin: 1.5rem 0;">
-                    <h5 class="title is-6 has-text-indigo-600 mb-2">
-                        {{ texts.get('about', 'เกี่ยวกับ' if current_lang == 'th' else 'About') }}
-                    </h5>
-                    <p class="has-text-gray-700" id="instructor-modal-bio" style="line-height: 1.6;"></p>
-                </div>
-
-                <div class="content" id="instructor-modal-contact-container" style="display: none;">
-                    <hr style="background-color: #e5e7eb; margin: 1.5rem 0;">
-                    <h5 class="title is-6 has-text-indigo-600 mb-3">
-                        {{ texts.get('contact', 'ติดต่อ' if current_lang == 'th' else 'Contact') }}
-                    </h5>
-                    <div class="is-flex is-flex-direction-column" style="gap: 0.5rem;">
-                        <div id="instructor-modal-email" class="is-flex is-align-items-center" style="gap: 0.5rem;">
-                            <span class="icon has-text-indigo-600">
-                                <i class="fas fa-envelope"></i>
-                            </span>
-                            <span class="has-text-gray-700"></span>
-                        </div>
-                        <div id="instructor-modal-phone" class="is-flex is-align-items-center" style="gap: 0.5rem;">
-                            <span class="icon has-text-indigo-600">
-                                <i class="fas fa-phone"></i>
-                            </span>
-                            <span class="has-text-gray-700"></span>
-                        </div>
+            <div class="content" id="instructor-modal-contact-container" style="display: none;">
+                <hr style="background-color: #e5e7eb; margin: 1.5rem 0;">
+                <h5 class="title is-6 has-text-indigo-600 mb-3">
+                    {{ texts.get('contact', 'ติดต่อ' if current_lang == 'th' else 'Contact') }}
+                </h5>
+                <div class="is-flex is-flex-direction-column" style="gap: 0.5rem;">
+                    <div id="instructor-modal-email" class="is-flex is-align-items-center" style="gap: 0.5rem;">
+                        <span class="icon has-text-indigo-600">
+                            <i class="fas fa-envelope"></i>
+                        </span>
+                        <span class="has-text-gray-700"></span>
+                    </div>
+                    <div id="instructor-modal-phone" class="is-flex is-align-items-center" style="gap: 0.5rem;">
+                        <span class="icon has-text-indigo-600">
+                            <i class="fas fa-phone"></i>
+                        </span>
+                        <span class="has-text-gray-700"></span>
                     </div>
                 </div>
             </div>
         </div>
-        <button class="modal-close is-large" aria-label="close" onclick="closeInstructorModal()"></button>
     </div>
+    <button class="modal-close is-large" aria-label="close" onclick="closeInstructorModal()"></button>
+</div>
 
-    <footer class="footer has-background-gray-800 has-text-white py-8 mt-12 rounded-t-lg">
-        <div class="container has-text-centered px-4">
-            <p class="is-size-7 rounded-md">{{ texts.footer_text | safe }}</p>
-            <div class="level is-mobile mt-4">
-                <div class="level-item">
-                    <a href="#" class="has-text-gray-400 hover:has-text-white rounded-md">{{ texts.privacy_policy }}</a>
-                </div>
-                <div class="level-item">
-                    <a href="#" class="has-text-gray-400 hover:has-text-white rounded-md">{{ texts.terms_of_service
-                        }}</a>
-                </div>
-            </div>
-        </div>
-    </footer>
+{% endblock %}
 
-    <script>
-        // Poster modal functions
-        function showPosterModal() {
-            var modal = document.getElementById('poster-modal');
-            if (modal) {
-                modal.classList.add('is-active');
-            }
-        }
-
-        function closePosterModal() {
-            var modal = document.getElementById('poster-modal');
-            if (modal) {
-                modal.classList.remove('is-active');
-            }
-        }
-
-        // Instructor modal functions
-        function showInstructorModal(id, title, name, position, institution, imageUrl, bio, email, phone) {
-            var modal = document.getElementById('instructor-modal');
-            if (!modal) return;
-
-            // Set name, position, institution
-            var nameEl = document.getElementById('instructor-modal-name');
-            var positionEl = document.getElementById('instructor-modal-position');
-            var institutionEl = document.getElementById('instructor-modal-institution');
-
-            if (nameEl) nameEl.textContent = (title ? title + ' ' : '') + (name || '');
-            if (positionEl) positionEl.textContent = position || '';
-            if (institutionEl) institutionEl.textContent = institution || '';
-
-            // Handle image
-            var imageContainer = document.getElementById('instructor-modal-image-container');
-            if (imageContainer) {
-                if (imageUrl && imageUrl !== 'None' && imageUrl !== '') {
-                    imageContainer.innerHTML = '<div style="width: 128px; height: 128px; border-radius: 50%; background: #f5f5f5; display: flex; align-items: center; justify-content: center; margin: 0 auto; overflow: hidden;"><img src="' + imageUrl + '" alt="' + name + '" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;"></div>';
-                } else {
-                    // Show placeholder with initial
-                    var initial = name ? name.charAt(0).toUpperCase() : '?';
-                    imageContainer.innerHTML = '<div style="width: 128px; height: 128px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto;"><span style="color: white; font-size: 3rem; font-weight: bold;">' + initial + '</span></div>';
-                }
-            }
-
-            // Handle bio
-            var bioContainer = document.getElementById('instructor-modal-bio-container');
-            var bioText = document.getElementById('instructor-modal-bio');
-            if (bioContainer && bioText) {
-                if (bio && bio !== 'None' && bio !== '') {
-                    bioText.textContent = bio;
-                    bioContainer.style.display = 'block';
-                } else {
-                    bioContainer.style.display = 'none';
-                }
-            }
-
-            // Handle contact
-            var contactContainer = document.getElementById('instructor-modal-contact-container');
-            var emailDiv = document.getElementById('instructor-modal-email');
-            var phoneDiv = document.getElementById('instructor-modal-phone');
-
-            var hasContact = false;
-            if (email && email !== 'None' && email !== '') {
-                if (emailDiv) {
-                    var emailSpan = emailDiv.querySelector('span');
-                    if (emailSpan) emailSpan.textContent = email;
-                    emailDiv.style.display = 'flex';
-                    hasContact = true;
-                }
-            } else {
-                if (emailDiv) emailDiv.style.display = 'none';
-            }
-
-            if (phone && phone !== 'None' && phone !== '') {
-                if (phoneDiv) {
-                    var phoneSpan = phoneDiv.querySelector('span');
-                    if (phoneSpan) phoneSpan.textContent = phone;
-                    phoneDiv.style.display = 'flex';
-                    hasContact = true;
-                }
-            } else {
-                if (phoneDiv) phoneDiv.style.display = 'none';
-            }
-
-            if (contactContainer) {
-                contactContainer.style.display = hasContact ? 'block' : 'none';
-            }
-
-            // Show modal
+{% block extra_js %}
+<script>
+    // Poster modal functions
+    function showPosterModal() {
+        var modal = document.getElementById('poster-modal');
+        if (modal) {
             modal.classList.add('is-active');
         }
+    }
 
-        function closeInstructorModal() {
-            var modal = document.getElementById('instructor-modal');
-            if (modal) {
-                modal.classList.remove('is-active');
+    function closePosterModal() {
+        var modal = document.getElementById('poster-modal');
+        if (modal) {
+            modal.classList.remove('is-active');
+        }
+    }
+
+    // Instructor modal functions
+    function showInstructorModal(id, title, name, position, institution, imageUrl, bio, email, phone) {
+        var modal = document.getElementById('instructor-modal');
+        if (!modal) return;
+
+        // Set name, position, institution
+        var nameEl = document.getElementById('instructor-modal-name');
+        var positionEl = document.getElementById('instructor-modal-position');
+        var institutionEl = document.getElementById('instructor-modal-institution');
+
+        if (nameEl) nameEl.textContent = (title ? title + ' ' : '') + (name || '');
+        if (positionEl) positionEl.textContent = position || '';
+        if (institutionEl) institutionEl.textContent = institution || '';
+
+        // Handle image
+        var imageContainer = document.getElementById('instructor-modal-image-container');
+        if (imageContainer) {
+            if (imageUrl && imageUrl !== 'None' && imageUrl !== '') {
+                imageContainer.innerHTML = '<div style="width: 128px; height: 128px; border-radius: 50%; background: #f5f5f5; display: flex; align-items: center; justify-content: center; margin: 0 auto; overflow: hidden;"><img src="' + imageUrl + '" alt="' + name + '" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;"></div>';
+            } else {
+                // Show placeholder with initial
+                var initial = name ? name.charAt(0).toUpperCase() : '?';
+                imageContainer.innerHTML = '<div style="width: 128px; height: 128px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto;"><span style="color: white; font-size: 3rem; font-weight: bold;">' + initial + '</span></div>';
             }
         }
 
-        // Close modals on Escape key
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') {
-                closePosterModal();
-                closeInstructorModal();
+        // Handle bio
+        var bioContainer = document.getElementById('instructor-modal-bio-container');
+        var bioText = document.getElementById('instructor-modal-bio');
+        if (bioContainer && bioText) {
+            if (bio && bio !== 'None' && bio !== '') {
+                bioText.textContent = bio;
+                bioContainer.style.display = 'block';
+            } else {
+                bioContainer.style.display = 'none';
             }
-        });
+        }
 
-        // Early bird countdown + price toggle
-        (function () {
-            function inWindow(startIso, endIso) {
-                try {
-                    var now = new Date();
-                    var start = startIso ? new Date(startIso) : null;
-                    var end = endIso ? new Date(endIso) : null;
-                    if (end && now > end) return false;
-                    if (start && now < start) return false;
-                    return !!(end || start);
-                } catch (e) { return false; }
+        // Handle contact
+        var contactContainer = document.getElementById('instructor-modal-contact-container');
+        var emailDiv = document.getElementById('instructor-modal-email');
+        var phoneDiv = document.getElementById('instructor-modal-phone');
+
+        var hasContact = false;
+        if (email && email !== 'None' && email !== '') {
+            if (emailDiv) {
+                var emailSpan = emailDiv.querySelector('span');
+                if (emailSpan) emailSpan.textContent = email;
+                emailDiv.style.display = 'flex';
+                hasContact = true;
             }
-            function toggleFees() {
-                var list = document.getElementById('fees-list');
-                if (!list) return;
-                var isIn = inWindow(list.dataset.ebStart, list.dataset.ebEnd);
-                var normals = list.querySelectorAll('.normal-price');
-                var earlys = list.querySelectorAll('.early-price');
-                normals.forEach(function (el) { el.style.textDecoration = isIn ? 'line-through' : 'none'; });
-                earlys.forEach(function (el) { el.style.display = isIn ? '' : 'none'; });
+        } else {
+            if (emailDiv) emailDiv.style.display = 'none';
+        }
+
+        if (phone && phone !== 'None' && phone !== '') {
+            if (phoneDiv) {
+                var phoneSpan = phoneDiv.querySelector('span');
+                if (phoneSpan) phoneSpan.textContent = phone;
+                phoneDiv.style.display = 'flex';
+                hasContact = true;
             }
-            function countdown() {
-                var banner = document.getElementById('eb-banner');
-                if (!banner) return;
-                var endIso = banner.dataset.ebEnd;
-                if (!endIso) return;
-                var end = new Date(endIso);
-                function tick() {
-                    var now = new Date();
-                    var diff = end - now;
-                    var el = document.getElementById('eb-countdown');
-                    if (diff <= 0) { banner.style.display = 'none'; toggleFees(); return; }
-                    var d = Math.floor(diff / 86400000), h = Math.floor((diff % 86400000) / 3600000), m = Math.floor((diff % 3600000) / 60000), s = Math.floor((diff % 60000) / 1000);
-                    if (el) el.textContent = d + 'd ' + h + 'h ' + m + 'm ' + s + 's';
-                    toggleFees();
-                }
-                tick();
-                setInterval(tick, 1000);
+        } else {
+            if (phoneDiv) phoneDiv.style.display = 'none';
+        }
+
+        if (contactContainer) {
+            contactContainer.style.display = hasContact ? 'block' : 'none';
+        }
+
+        // Show modal
+        modal.classList.add('is-active');
+    }
+
+    function closeInstructorModal() {
+        var modal = document.getElementById('instructor-modal');
+        if (modal) {
+            modal.classList.remove('is-active');
+        }
+    }
+
+    // Close modals on Escape key
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closePosterModal();
+            closeInstructorModal();
+        }
+    });
+
+    // Early bird countdown + price toggle
+    (function () {
+        function inWindow(startIso, endIso) {
+            try {
+                var now = new Date();
+                var start = startIso ? new Date(startIso) : null;
+                var end = endIso ? new Date(endIso) : null;
+                if (end && now > end) return false;
+                if (start && now < start) return false;
+                return !!(end || start);
+            } catch (e) { return false; }
+        }
+        function toggleFees() {
+            var list = document.getElementById('fees-list');
+            if (!list) return;
+            var isIn = inWindow(list.dataset.ebStart, list.dataset.ebEnd);
+            var normals = list.querySelectorAll('.normal-price');
+            var earlys = list.querySelectorAll('.early-price');
+            normals.forEach(function (el) { el.style.textDecoration = isIn ? 'line-through' : 'none'; });
+            earlys.forEach(function (el) { el.style.display = isIn ? '' : 'none'; });
+        }
+        function countdown() {
+            var banner = document.getElementById('eb-banner');
+            if (!banner) return;
+            var endIso = banner.dataset.ebEnd;
+            if (!endIso) return;
+            var end = new Date(endIso);
+            function tick() {
+                var now = new Date();
+                var diff = end - now;
+                var el = document.getElementById('eb-countdown');
+                if (diff <= 0) { banner.style.display = 'none'; toggleFees(); return; }
+                var d = Math.floor(diff / 86400000), h = Math.floor((diff % 86400000) / 3600000), m = Math.floor((diff % 3600000) / 60000), s = Math.floor((diff % 60000) / 1000);
+                if (el) el.textContent = d + 'd ' + h + 'h ' + m + 'm ' + s + 's';
+                toggleFees();
             }
-            toggleFees();
-            countdown();
-        })();
-        document.addEventListener('DOMContentLoaded', () => {
-            // Get all "navbar-burger" elements
-            const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
-
-            // Check if there are any navbar burgers
-            if ($navbarBurgers.length > 0) {
-                // Add a click event on each of them
-                $navbarBurgers.forEach(el => {
-                    el.addEventListener('click', () => {
-                        // Get the target from the "data-target" attribute
-                        const target = el.dataset.target;
-                        const $target = document.getElementById(target);
-
-                        // Toggle the "is-active" class on both the "navbar-burger" and the "navbar-menu"
-                        el.classList.toggle('is-active');
-                        $target.classList.toggle('is-active');
-                    });
-                });
-            }
-            // Close flash messages
-            (document.querySelectorAll('.notification .delete') || []).forEach(($delete) => {
-                const $notification = $delete.parentNode;
-                $delete.addEventListener('click', () => {
-                    $notification.parentNode.removeChild($notification);
-                });
-            });
-        });
-    </script>
-
-</body>
-
-</html>
+            tick();
+            setInterval(tick, 1000);
+        }
+        toggleFees();
+        countdown();
+    })();
+</script>
+{% endblock %}

@@ -1,552 +1,426 @@
-<!DOCTYPE html>
-<html lang="{{ current_lang }}">
+{% extends "continueing_edu/base_frontend.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ texts.university_name }} - {{ texts.webinar_detail_title }}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
-            /* Light Slate 50 */
-        }
+{% block title %}{{ texts.university_name }} - {{ texts.webinar_detail_title }}{% endblock %}
 
-        /* Custom styles for rounded corners and shadows */
-        .rounded-md {
-            border-radius: 0.375rem;
-        }
+{% block extra_css %}
+{{ super() }}
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f8fafc;
+        /* Light Slate 50 */
+    }
 
-        .rounded-lg {
-            border-radius: 0.5rem;
-        }
+    /* Custom styles for rounded corners and shadows */
+    .rounded-md {
+        border-radius: 0.375rem;
+    }
 
-        .rounded-full {
-            border-radius: 9999px;
-        }
+    .rounded-lg {
+        border-radius: 0.5rem;
+    }
 
-        .shadow-sm {
-            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-        }
+    .rounded-full {
+        border-radius: 9999px;
+    }
 
-        .shadow-lg {
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
+    .shadow-sm {
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
 
-        .object-cover {
-            object-fit: cover;
-        }
+    .shadow-lg {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
 
-        .h-64 {
-            height: 16rem;
-            /* 256px */
-        }
+    .object-cover {
+        object-fit: cover;
+    }
 
-        .mb-4 {
-            margin-bottom: 1rem;
-        }
+    .h-64 {
+        height: 16rem;
+        /* 256px */
+    }
 
-        .mb-6 {
-            margin-bottom: 1.5rem;
-        }
+    .mb-4 {
+        margin-bottom: 1rem;
+    }
 
-        .mb-8 {
-            margin-bottom: 2rem;
-        }
+    .mb-6 {
+        margin-bottom: 1.5rem;
+    }
 
-        .mb-12 {
-            margin-bottom: 3rem;
-        }
+    .mb-8 {
+        margin-bottom: 2rem;
+    }
 
-        .mt-4 {
-            margin-top: 1rem;
-        }
+    .mb-12 {
+        margin-bottom: 3rem;
+    }
 
-        .mt-12 {
-            margin-top: 3rem;
-        }
+    .mt-4 {
+        margin-top: 1rem;
+    }
 
-        .py-4 {
-            padding-top: 1rem;
-            padding-bottom: 1rem;
-        }
+    .mt-12 {
+        margin-top: 3rem;
+    }
 
-        .py-8 {
-            padding-top: 2rem;
-            padding-bottom: 2rem;
-        }
+    .py-4 {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
 
-        .py-16 {
-            padding-top: 4rem;
-            padding-bottom: 4rem;
-        }
+    .py-8 {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
 
-        .px-4 {
-            padding-left: 1rem;
-            padding-right: 1rem;
-        }
+    .py-16 {
+        padding-top: 4rem;
+        padding-bottom: 4rem;
+    }
 
-        .p-6 {
-            padding: 1.5rem;
-        }
+    .px-4 {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
 
-        /* Colors */
-        .has-text-gray-800 {
-            color: #1f2937;
-        }
+    .p-6 {
+        padding: 1.5rem;
+    }
 
-        .has-text-gray-600 {
-            color: #4b5563;
-        }
+    /* Colors */
+    .has-text-gray-800 {
+        color: #1f2937;
+    }
 
-        .has-text-gray-700 {
-            color: #374151;
-        }
+    .has-text-gray-600 {
+        color: #4b5563;
+    }
 
-        .has-text-gray-400 {
-            color: #9ca3af;
-        }
+    .has-text-gray-700 {
+        color: #374151;
+    }
 
-        .has-text-indigo-700 {
-            color: #4338ca;
-        }
+    .has-text-gray-400 {
+        color: #9ca3af;
+    }
 
-        .has-text-indigo-600 {
-            color: #4f46e5;
-        }
+    .has-text-indigo-700 {
+        color: #4338ca;
+    }
 
-        .has-text-white {
-            color: #ffffff;
-        }
+    .has-text-indigo-600 {
+        color: #4f46e5;
+    }
 
-        .has-background-white {
-            background-color: #ffffff;
-        }
+    .has-text-white {
+        color: #ffffff;
+    }
 
-        .has-background-gray-50 {
-            background-color: #f9fafb;
-        }
+    .has-background-white {
+        background-color: #ffffff;
+    }
 
-        .has-background-indigo-600 {
-            background-color: #4f46e5;
-        }
+    .has-background-gray-50 {
+        background-color: #f9fafb;
+    }
 
-        .has-background-indigo-700 {
-            background-color: #4338ca;
-        }
+    .has-background-indigo-600 {
+        background-color: #4f46e5;
+    }
 
-        .has-background-gray-800 {
-            background-color: #1f2937;
-        }
+    .has-background-indigo-700 {
+        background-color: #4338ca;
+    }
 
-        .hover\:has-text-indigo-700:hover {
-            color: #4338ca;
-        }
+    .has-background-gray-800 {
+        background-color: #1f2937;
+    }
 
-        .hover\:has-background-indigo-700:hover {
-            background-color: #4338ca;
-        }
+    .hover\:has-text-indigo-700:hover {
+        color: #4338ca;
+    }
 
-        .hover\:has-background-indigo-800:hover {
-            background-color: #3730a3;
-        }
+    .hover\:has-background-indigo-700:hover {
+        background-color: #4338ca;
+    }
 
-        .hover\:has-text-white:hover {
-            color: #ffffff;
-        }
+    .hover\:has-background-indigo-800:hover {
+        background-color: #3730a3;
+    }
 
-        .border {
-            border-width: 1px;
-            border-style: solid;
-        }
+    .hover\:has-text-white:hover {
+        color: #ffffff;
+    }
 
-        .border-gray-200 {
-            border-color: #e5e7eb;
-        }
+    .border {
+        border-width: 1px;
+        border-style: solid;
+    }
 
-        .is-flex {
-            display: flex;
-        }
+    .border-gray-200 {
+        border-color: #e5e7eb;
+    }
 
-        .is-flex-direction-column {
-            flex-direction: column;
-        }
+    .is-flex {
+        display: flex;
+    }
 
-        .is-justify-content-space-between {
-            justify-content: space-between;
-        }
+    .is-flex-direction-column {
+        flex-direction: column;
+    }
 
-        .is-align-items-center {
-            align-items: center;
-        }
+    .is-justify-content-space-between {
+        justify-content: space-between;
+    }
 
-        .is-centered {
-            justify-content: center;
-        }
+    .is-align-items-center {
+        align-items: center;
+    }
 
-        .is-fullwidth {
-            width: 100%;
-        }
+    .is-centered {
+        justify-content: center;
+    }
 
-        /* Custom styles for language buttons */
-        .language-button {
-            margin-left: 0.5rem;
-            min-width: 40px;
-            text-align: center;
-        }
+    .is-fullwidth {
+        width: 100%;
+    }
 
-        .language-button.is-active {
-            background-color: #4338ca;
-            color: white;
-            border-color: #4338ca;
-        }
+    /* Custom styles for language buttons */
+    .language-button {
+        margin-left: 0.5rem;
+        min-width: 40px;
+        text-align: center;
+    }
 
-        .language-button:not(.is-active) {
-            background-color: #e0e7ff;
-            color: #4338ca;
-            border-color: #e0e7ff;
-        }
+    .language-button.is-active {
+        background-color: #4338ca;
+        color: white;
+        border-color: #4338ca;
+    }
 
-        .language-button:not(.is-active):hover {
-            background-color: #c7d2fe;
-            border-color: #c7d2fe;
-        }
+    .language-button:not(.is-active) {
+        background-color: #e0e7ff;
+        color: #4338ca;
+        border-color: #e0e7ff;
+    }
 
-        /* Style for the university logo */
-        .university-logo {
-            max-height: 2.5rem;
-            margin-right: 0.5rem;
-            width: auto;
-        }
-    </style>
-</head>
+    .language-button:not(.is-active):hover {
+        background-color: #c7d2fe;
+        border-color: #c7d2fe;
+    }
 
-<body class="has-text-gray-800">
+    /* Style for the university logo */
+    .university-logo {
+        max-height: 2.5rem;
+        margin-right: 0.5rem;
+        width: auto;
+    }
+</style>
+{% endblock %}
 
-    <header class="navbar has-background-white shadow-sm py-4">
-        <div
-            class="container is-fluid is-flex is-flex-direction-column is-flex-direction-row-desktop is-justify-content-space-between is-align-items-center">
-            <div class="navbar-brand">
-                <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}" class="navbar-item">
-                    <img src="https://placehold.co/100x40/4338CA/FFFFFF?text=LOGO" alt="[Image of University Logo]"
-                        class="university-logo">
-                </a>
-                <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}"
-                    class="navbar-item title is-4 has-text-indigo-700 rounded-md">{{ texts.university_name }}</a>
-                <div class="navbar-burger burger" data-target="navbarMenu">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
+{% block content %}
+<section class="section py-16">
+    <div class="container">
+        <nav class="breadcrumb is-large" aria-label="breadcrumbs">
+            <ul>
+                <li><a href="{{ url_for('continuing_edu.index', lang=current_lang) }}">{{ texts.university_name
+                        }}</a></li>
+                <li><a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#webinars">{{
+                        texts.upcoming_webinars_title }}</a></li>
+                {% set title_local = webinar.title_en if current_lang=='en' else (webinar.title_th or
+                webinar.title_en) %}
+                <li class="is-active"><a href="#" aria-current="page">{{ title_local }}</a></li>
+            </ul>
+        </nav>
+        <h1 class="title is-1 has-text-centered mb-12 has-text-gray-800 rounded-md">{{ title_local }}</h1>
+
+        <div class="columns is-vcentered is-desktop">
+            <div class="column is-half-desktop">
+                <figure class="image is-3by2">
+                    {% set cover = webinar.cover_presigned_url() if webinar.cover_image_url else None %}
+                    {% set poster = webinar.poster_presigned_url() if webinar.poster_image_url else None %}
+                    {% set fallback = 'https://placehold.co/600x300/E0E7FF/4338CA?text=Webinar' %}
+                    <img src="{{ cover or poster or webinar.image_url or fallback }}" alt="[Image of Webinar]"
+                        class="object-cover rounded-lg shadow-lg">
+                </figure>
             </div>
-            <div id="navbarMenu" class="navbar-menu">
-                <div class="navbar-end mt-4-mobile mt-0-desktop">
-                    <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#short-courses"
-                        class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">{{
-                        texts.short_courses_nav }}</a>
-                    <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#webinars"
-                        class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">{{
-                        texts.webinars_nav }}</a>
-                    <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#contact"
-                        class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">
-                        {{ texts.contact_us_nav }}
-                    </a>
-                    {% if logged_in_user %}
-                    <div class="navbar-item has-text-gray-700">
-                        {{ texts.welcome_message }} {{ logged_in_user.username }}!
-                    </div>
-                    <a href="{{ url_for('continuing_edu.logout', lang=current_lang) }}"
-                        class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">
-                        {{ texts.logout_btn }}
-                    </a>
-                    {% else %}
-                    <a href="{{ url_for('continuing_edu.register', lang=current_lang) }}"
-                        class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">
-                        {{ texts.register_page_title }}
-                    </a>
-                    <a href="{{ url_for('continuing_edu.login', lang=current_lang) }}"
-                        class="navbar-item has-text-gray-600 hover:has-text-indigo-700 has-text-weight-medium rounded-md">
-                        {{ texts.login_page_title }}
-                    </a>
+            <div class="column is-half-desktop">
+                <div class="content">
+                    {% set long_desc = webinar.long_description_en if current_lang=='en' else
+                    (webinar.long_description_th or webinar.long_description_en) %}
+                    {% set short_desc = webinar.description_en if current_lang=='en' else (webinar.description_th or
+                    webinar.description_en) %}
+                    {% if long_desc %}
+                    <p class="is-size-5 has-text-gray-700 mb-6 rounded-md">{{ long_desc }}</p>
+                    {% elif short_desc %}
+                    <p class="is-size-5 has-text-gray-700 mb-6 rounded-md">{{ short_desc }}</p>
                     {% endif %}
-                    <div class="navbar-item">
-                        <div class="buttons has-addons">
-                            <a class="button is-small is-rounded language-button {% if current_lang == 'en' %}is-active{% endif %}"
-                                href="{{ url_for('continuing_edu.webinar_detail', webinar_id=webinar.id, lang='en') }}">
-                                EN
-                            </a>
-                            <a class="button is-small is-rounded language-button {% if current_lang == 'th' %}is-active{% endif %}"
-                                href="{{ url_for('continuing_edu.webinar_detail', webinar_id=webinar.id, lang='th') }}">
-                                TH
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    <div class="container mt-4">
-        <div class="notification is-light is-marginless-top">
-            <button class="delete"></button>
-            {% for category, message in messages %}
-            <p
-                class="has-text-{{ 'danger' if category == 'error' else 'success' if category == 'success' else 'info' }}">
-                {{ message }}</p>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-    {% endwith %}
-
-    <section class="section py-16">
-        <div class="container">
-            <nav class="breadcrumb is-large" aria-label="breadcrumbs">
-                <ul>
-                    <li><a href="{{ url_for('continuing_edu.index', lang=current_lang) }}">{{ texts.university_name
-                            }}</a></li>
-                    <li><a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#webinars">{{
-                            texts.upcoming_webinars_title }}</a></li>
-                    {% set title_local = webinar.title_en if current_lang=='en' else (webinar.title_th or
-                    webinar.title_en) %}
-                    <li class="is-active"><a href="#" aria-current="page">{{ title_local }}</a></li>
-                </ul>
-            </nav>
-            <h1 class="title is-1 has-text-centered mb-12 has-text-gray-800 rounded-md">{{ title_local }}</h1>
-
-            <div class="columns is-vcentered is-desktop">
-                <div class="column is-half-desktop">
-                    <figure class="image is-3by2">
-                        {% set cover = webinar.cover_presigned_url() if webinar.cover_image_url else None %}
-                        {% set poster = webinar.poster_presigned_url() if webinar.poster_image_url else None %}
-                        {% set fallback = 'https://placehold.co/600x300/E0E7FF/4338CA?text=Webinar' %}
-                        <img src="{{ cover or poster or webinar.image_url or fallback }}" alt="[Image of Webinar]"
-                            class="object-cover rounded-lg shadow-lg">
-                    </figure>
-                </div>
-                <div class="column is-half-desktop">
-                    <div class="content">
-                        {% set long_desc = webinar.long_description_en if current_lang=='en' else
-                        (webinar.long_description_th or webinar.long_description_en) %}
-                        {% set short_desc = webinar.description_en if current_lang=='en' else (webinar.description_th or
-                        webinar.description_en) %}
-                        {% if long_desc %}
-                        <p class="is-size-5 has-text-gray-700 mb-6 rounded-md">{{ long_desc }}</p>
-                        {% elif short_desc %}
-                        <p class="is-size-5 has-text-gray-700 mb-6 rounded-md">{{ short_desc }}</p>
+                    <ul class="list-disc has-text-gray-700 mb-4 rounded-md">
+                        {% set duration = webinar.duration_en if current_lang=='en' else (webinar.duration_th or
+                        webinar.duration_en) %}
+                        {% set fmt = webinar.format_en if current_lang=='en' else (webinar.format_th or
+                        webinar.format_en) %}
+                        {% set cert = webinar.certificate_name_en if current_lang=='en' else
+                        (webinar.certificate_name_th or webinar.certificate_name_en) %}
+                        {% set loc = webinar.location_en if current_lang=='en' else (webinar.location_th or
+                        webinar.location_en) %}
+                        {% if duration %}<li><strong>{{ texts.duration_label }}:</strong> {{ duration }}</li>{%
+                        endif %}
+                        {% if fmt %}<li><strong>{{ texts.format_label }}:</strong> {{ fmt }}</li>{% endif %}
+                        {% if cert %}<li><strong>{{ texts.certification_label }}:</strong> {{ cert }}</li>{% endif
+                        %}
+                        {% if loc %}<li><strong>{{ texts.location_label }}:</strong> {{ loc }}</li>{% endif %}
+                        {% if webinar.continue_education_score %}
+                        <li><strong>CE Score:</strong> {{ '%.2f'|format(webinar.continue_education_score) }}</li>
                         {% endif %}
-                        <ul class="list-disc has-text-gray-700 mb-4 rounded-md">
-                            {% set duration = webinar.duration_en if current_lang=='en' else (webinar.duration_th or
-                            webinar.duration_en) %}
-                            {% set fmt = webinar.format_en if current_lang=='en' else (webinar.format_th or
-                            webinar.format_en) %}
-                            {% set cert = webinar.certificate_name_en if current_lang=='en' else
-                            (webinar.certificate_name_th or webinar.certificate_name_en) %}
-                            {% set loc = webinar.location_en if current_lang=='en' else (webinar.location_th or
-                            webinar.location_en) %}
-                            {% if duration %}<li><strong>{{ texts.duration_label }}:</strong> {{ duration }}</li>{%
-                            endif %}
-                            {% if fmt %}<li><strong>{{ texts.format_label }}:</strong> {{ fmt }}</li>{% endif %}
-                            {% if cert %}<li><strong>{{ texts.certification_label }}:</strong> {{ cert }}</li>{% endif
-                            %}
-                            {% if loc %}<li><strong>{{ texts.location_label }}:</strong> {{ loc }}</li>{% endif %}
-                            {% if webinar.continue_education_score %}
-                            <li><strong>CE Score:</strong> {{ '%.2f'|format(webinar.continue_education_score) }}</li>
+                    </ul>
+
+                    <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.instructors_label }}</h4>
+                    {% if webinar.speakers %}
+                    <ul class="list-disc has-text-gray-700 mb-4">
+                        {% for sp in webinar.speakers %}
+                        {% set sp_name = sp.name_en if current_lang=='en' else (sp.name_th or sp.name_en) %}
+                        {% set sp_title = sp.title_en if current_lang=='en' else (sp.title_th or sp.title_en) %}
+                        {% set sp_pos = sp.position_en if current_lang=='en' else (sp.position_th or sp.position_en)
+                        %}
+                        {% set sp_inst = sp.institution_en if current_lang=='en' else (sp.institution_th or
+                        sp.institution_en) %}
+                        <li>{{ sp_title }} {{ sp_name }}{% if sp_pos %}, {{ sp_pos }}{% endif %}{% if sp_inst %} —
+                            {{ sp_inst }}{% endif %}</li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="has-text-grey">—</p>
+                    {% endif %}
+
+                    <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.agenda_label }}</h4>
+                    {% if webinar.agendas %}
+                    <ul class="list-disc has-text-gray-700 mb-4">
+                        {% for a in webinar.agendas|sort(attribute='start_time') %}
+                        <li>
+                            {% if a.start_time and a.end_time %}
+                            [{{ a.start_time.strftime('%H:%M') }}–{{ a.end_time.strftime('%H:%M') }}]
                             {% endif %}
-                        </ul>
+                            {% set atitle = a.title_en if current_lang=='en' else (a.title_th or a.title_en) %}
+                            {{ atitle }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="has-text-grey">—</p>
+                    {% endif %}
 
-                        <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.instructors_label }}</h4>
-                        {% if webinar.speakers %}
-                        <ul class="list-disc has-text-gray-700 mb-4">
-                            {% for sp in webinar.speakers %}
-                            {% set sp_name = sp.name_en if current_lang=='en' else (sp.name_th or sp.name_en) %}
-                            {% set sp_title = sp.title_en if current_lang=='en' else (sp.title_th or sp.title_en) %}
-                            {% set sp_pos = sp.position_en if current_lang=='en' else (sp.position_th or sp.position_en)
-                            %}
-                            {% set sp_inst = sp.institution_en if current_lang=='en' else (sp.institution_th or
-                            sp.institution_en) %}
-                            <li>{{ sp_title }} {{ sp_name }}{% if sp_pos %}, {{ sp_pos }}{% endif %}{% if sp_inst %} —
-                                {{ sp_inst }}{% endif %}</li>
-                            {% endfor %}
-                        </ul>
-                        {% else %}
-                        <p class="has-text-grey">—</p>
-                        {% endif %}
+                    {% if webinar.early_bird_end %}
+                    <div class="notification is-info is-light" id="eb-banner"
+                        data-eb-end="{{ webinar.early_bird_end.isoformat() }}">
+                        <strong>Early Bird!</strong> Ends in <span id="eb-countdown">—</span>
+                    </div>
+                    {% endif %}
 
-                        <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.agenda_label }}</h4>
-                        {% if webinar.agendas %}
-                        <ul class="list-disc has-text-gray-700 mb-4">
-                            {% for a in webinar.agendas|sort(attribute='start_time') %}
+                    <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.registration_fee_label }}</h4>
+                    <div class="content">
+                        {% if webinar.registration_fees %}
+                        <ul id="fees-list"
+                            data-eb-start="{{ webinar.early_bird_start.isoformat() if webinar.early_bird_start else '' }}"
+                            data-eb-end="{{ webinar.early_bird_end.isoformat() if webinar.early_bird_end else '' }}">
+                            {% for fee in webinar.registration_fees %}
                             <li>
-                                {% if a.start_time and a.end_time %}
-                                [{{ a.start_time.strftime('%H:%M') }}–{{ a.end_time.strftime('%H:%M') }}]
+                                <span class="has-text-weight-semibold">{{ fee.member_type_ref.name_en }} / {{
+                                    fee.member_type_ref.name_th }}:</span>
+                                {% if fee.early_bird_price is not none %}
+                                <span class="normal-price">{{ '%.2f'|format(fee.price) }} THB</span>
+                                <span class="early-price tag is-success is-light" style="display:none;">{{
+                                    '%.2f'|format(fee.early_bird_price) }} THB</span>
+                                {% else %}
+                                <span>{{ '%.2f'|format(fee.price) }} THB</span>
                                 {% endif %}
-                                {% set atitle = a.title_en if current_lang=='en' else (a.title_th or a.title_en) %}
-                                {{ atitle }}
                             </li>
                             {% endfor %}
                         </ul>
                         {% else %}
-                        <p class="has-text-grey">—</p>
-                        {% endif %}
-
-                        {% if webinar.early_bird_end %}
-                        <div class="notification is-info is-light" id="eb-banner"
-                            data-eb-end="{{ webinar.early_bird_end.isoformat() }}">
-                            <strong>Early Bird!</strong> Ends in <span id="eb-countdown">—</span>
-                        </div>
-                        {% endif %}
-
-                        <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.registration_fee_label }}</h4>
-                        <div class="content">
-                            {% if webinar.registration_fees %}
-                            <ul id="fees-list"
-                                data-eb-start="{{ webinar.early_bird_start.isoformat() if webinar.early_bird_start else '' }}"
-                                data-eb-end="{{ webinar.early_bird_end.isoformat() if webinar.early_bird_end else '' }}">
-                                {% for fee in webinar.registration_fees %}
-                                <li>
-                                    <span class="has-text-weight-semibold">{{ fee.member_type_ref.name_en }} / {{
-                                        fee.member_type_ref.name_th }}:</span>
-                                    {% if fee.early_bird_price is not none %}
-                                    <span class="normal-price">{{ '%.2f'|format(fee.price) }} THB</span>
-                                    <span class="early-price tag is-success is-light" style="display:none;">{{
-                                        '%.2f'|format(fee.early_bird_price) }} THB</span>
-                                    {% else %}
-                                    <span>{{ '%.2f'|format(fee.price) }} THB</span>
-                                    {% endif %}
-                                </li>
-                                {% endfor %}
-                            </ul>
-                            {% else %}
-                            <p class="has-text-grey">No fees configured.</p>
-                            {% endif %}
-                        </div>
-
-                        {% from 'continueing_edu/_registration_macros.html' import registration_button,
-                        registration_status_badge %}
-
-                        {% if logged_in_user %}
-                        {% if already_registered %}
-                        <div class="notification is-success is-light">
-                            <p class="mb-2"><strong>{{ texts.get('status_registered', 'ลงทะเบียนแล้ว' if current_lang ==
-                                    'th' else 'You are registered') }}</strong></p>
-                            {{ registration_status_badge(webinar, [webinar.id], approved_payment, texts, current_lang)
-                            }}
-                        </div>
-
-                        <div class="box mt-4">
-                            <p class="mb-2"><strong>{{ texts.get('progress', 'ความคืบหน้า' if current_lang == 'th' else
-                                    'Progress') }}</strong></p>
-                            <p>{{ texts.get('started', 'เริ่มเรียน' if current_lang == 'th' else 'Started') }}: {{
-                                (logged_in_user.registrations|selectattr('event_entity_id','equalto',
-                                webinar.id)|map(attribute='started_at')|list|first) or '-' }}</p>
-                            <p>{{ texts.get('completed', 'เสร็จสิ้น' if current_lang == 'th' else 'Completed') }}: {{
-                                (logged_in_user.registrations|selectattr('event_entity_id','equalto',
-                                webinar.id)|map(attribute='completed_at')|list|first) or '-' }}</p>
-                            <div class="buttons mt-2">
-                                {% if approved_payment %}
-                                <form method="post"
-                                    action="{{ url_for('continuing_edu.start_progress', event_id=webinar.id, lang=current_lang) }}">
-                                    <button class="button is-small is-primary" type="submit">
-                                        <span class="icon"><i class="fas fa-play"></i></span>
-                                        <span>{{ texts.get('start', 'เริ่มเรียน' if current_lang == 'th' else 'Start')
-                                            }}</span>
-                                    </button>
-                                </form>
-                                <form method="post"
-                                    action="{{ url_for('continuing_edu.complete_progress', event_id=webinar.id, lang=current_lang) }}"
-                                    class="ml-2">
-                                    <input type="hidden" name="passed" value="1">
-                                    <button class="button is-small is-success" type="submit">
-                                        <span class="icon"><i class="fas fa-check"></i></span>
-                                        <span>{{ texts.get('complete_issue_cert', 'เสร็จสิ้นและออกใบประกาศนียบัตร' if
-                                            current_lang == 'th' else 'Complete & Issue Certificate') }}</span>
-                                    </button>
-                                </form>
-                                {% else %}
-                                <span class="tag is-warning is-medium">
-                                    <span class="icon"><i class="fas fa-clock"></i></span>
-                                    <span>{{ texts.get('waiting_payment_approval', 'รอการอนุมัติการชำระเงิน' if
-                                        current_lang == 'th' else 'Waiting for payment approval') }}</span>
-                                </span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% else %}
-                        <div class="mt-4">
-                            {{ registration_button(webinar, logged_in_user, already_registered, texts, current_lang) }}
-                        </div>
-                        {% endif %}
-                        {% else %}
-                        <div class="box has-background-warning-light mt-4">
-                            <p class="mb-3"><strong>{{ texts.get('login_required_title', 'กรุณาเข้าสู่ระบบ' if
-                                    current_lang == 'th' else 'Login Required') }}</strong></p>
-                            {{ registration_button(webinar, logged_in_user, already_registered, texts, current_lang) }}
-                        </div>
+                        <p class="has-text-grey">No fees configured.</p>
                         {% endif %}
                     </div>
-                </div>
-            </div>
 
-            <div class="has-text-centered mt-12">
-                <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#webinars"
-                    class="button is-light is-rounded has-text-indigo-700 hover:has-background-indigo-100">
-                    {{ texts.back_to_webinars_btn }}
-                </a>
+                    {% from 'continueing_edu/_registration_macros.html' import registration_button,
+                    registration_status_badge %}
+
+                    {% if logged_in_user %}
+                    {% if already_registered %}
+                    <div class="notification is-success is-light">
+                        <p class="mb-2"><strong>{{ texts.get('status_registered', 'ลงทะเบียนแล้ว' if current_lang ==
+                                'th' else 'You are registered') }}</strong></p>
+                        {{ registration_status_badge(webinar, [webinar.id], approved_payment, texts, current_lang)
+                        }}
+                    </div>
+
+                    <div class="box mt-4">
+                        <p class="mb-2"><strong>{{ texts.get('progress', 'ความคืบหน้า' if current_lang == 'th' else
+                                'Progress') }}</strong></p>
+                        <p>{{ texts.get('started', 'เริ่มเรียน' if current_lang == 'th' else 'Started') }}: {{
+                            (logged_in_user.registrations|selectattr('event_entity_id','equalto',
+                            webinar.id)|map(attribute='started_at')|list|first) or '-' }}</p>
+                        <p>{{ texts.get('completed', 'เสร็จสิ้น' if current_lang == 'th' else 'Completed') }}: {{
+                            (logged_in_user.registrations|selectattr('event_entity_id','equalto',
+                            webinar.id)|map(attribute='completed_at')|list|first) or '-' }}</p>
+                        <div class="buttons mt-2">
+                            {% if approved_payment %}
+                            <form method="post"
+                                action="{{ url_for('continuing_edu.start_progress', event_id=webinar.id, lang=current_lang) }}">
+                                <button class="button is-small is-primary" type="submit">
+                                    <span class="icon"><i class="fas fa-play"></i></span>
+                                    <span>{{ texts.get('start', 'เริ่มเรียน' if current_lang == 'th' else 'Start')
+                                        }}</span>
+                                </button>
+                            </form>
+                            <form method="post"
+                                action="{{ url_for('continuing_edu.complete_progress', event_id=webinar.id, lang=current_lang) }}"
+                                class="ml-2">
+                                <input type="hidden" name="passed" value="1">
+                                <button class="button is-small is-success" type="submit">
+                                    <span class="icon"><i class="fas fa-check"></i></span>
+                                    <span>{{ texts.get('complete_issue_cert', 'เสร็จสิ้นและออกใบประกาศนียบัตร' if
+                                        current_lang == 'th' else 'Complete & Issue Certificate') }}</span>
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="tag is-warning is-medium">
+                                <span class="icon"><i class="fas fa-clock"></i></span>
+                                <span>{{ texts.get('waiting_payment_approval', 'รอการอนุมัติการชำระเงิน' if
+                                    current_lang == 'th' else 'Waiting for payment approval') }}</span>
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="mt-4">
+                        {{ registration_button(webinar, logged_in_user, already_registered, texts, current_lang) }}
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="box has-background-warning-light mt-4">
+                        <p class="mb-3"><strong>{{ texts.get('login_required_title', 'กรุณาเข้าสู่ระบบ' if
+                                current_lang == 'th' else 'Login Required') }}</strong></p>
+                        {{ registration_button(webinar, logged_in_user, already_registered, texts, current_lang) }}
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
-    </section>
 
-    <footer class="footer has-background-gray-800 has-text-white py-8 mt-12 rounded-t-lg">
-        <div class="container has-text-centered px-4">
-            <p class="is-size-7 rounded-md">{{ texts.footer_text | safe }}</p>
-            <div class="level is-mobile mt-4">
-                <div class="level-item">
-                    <a href="#" class="has-text-gray-400 hover:has-text-white rounded-md">{{ texts.privacy_policy }}</a>
-                </div>
-                <div class="level-item">
-                    <a href="#" class="has-text-gray-400 hover:has-text-white rounded-md">{{ texts.terms_of_service
-                        }}</a>
-                </div>
-            </div>
+        <div class="has-text-centered mt-12">
+            <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#webinars"
+                class="button is-light is-rounded has-text-indigo-700 hover:has-background-indigo-100">
+                {{ texts.back_to_webinars_btn }}
+            </a>
         </div>
-    </footer>
+    </div>
+</section>
+{% endblock %}
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Get all "navbar-burger" elements
-            const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
-
-            // Check if there are any navbar burgers
-            if ($navbarBurgers.length > 0) {
-                // Add a click event on each of them
-                $navbarBurgers.forEach(el => {
-                    el.addEventListener('click', () => {
-                        // Get the target from the "data-target" attribute
-                        const target = el.dataset.target;
-                        const $target = document.getElementById(target);
-
-                        // Toggle the "is-active" class on both the "navbar-burger" and the "navbar-menu"
-                        el.classList.toggle('is-active');
-                        $target.classList.toggle('is-active');
-                    });
-                });
-            }
-            // Close flash messages
-            (document.querySelectorAll('.notification .delete') || []).forEach(($delete) => {
-                const $notification = $delete.parentNode;
-                $delete.addEventListener('click', () => {
-                    $notification.parentNode.removeChild($notification);
-                });
-            });
-        });
-    </script>
-
-</body>
+{% block extra_js %}
 <script>
     (function () {
         function inWindow(startIso, endIso) {
@@ -590,5 +464,4 @@
         countdown();
     })();
 </script>
-
-</html>
+{% endblock %}

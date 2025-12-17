@@ -1,10 +1,6 @@
-FROM python:2
-
-RUN mkdir -p /mis2018/app
-RUN mkdir -p /mis2018/warehouse
-RUN mkdir /mis2018/migrations
-COPY /app/requirements.txt /mis2018/app
+FROM python:3.9
 WORKDIR /mis2018
-RUN pip install -r app/requirements.txt
-
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "5", "--threads", "12", "app.main:app"]
