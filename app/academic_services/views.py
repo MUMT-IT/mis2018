@@ -258,7 +258,7 @@ def bacteria_request_data(service_request, type):
     return values
 
 
-def disinfection_request_data(service_request, type):
+def virus_disinfection_request_data(service_request, type):
     data = service_request.data
     form = VirusDisinfectionRequestForm(data=data)
     values = []
@@ -310,7 +310,7 @@ def disinfection_request_data(service_request, type):
     return values
 
 
-def air_disinfection_request_data(service_request, type):
+def virus_air_disinfection_request_data(service_request, type):
     data = service_request.data
     form = VirusAirDisinfectionRequestForm(data=data)
     values = []
@@ -630,8 +630,8 @@ def toxicology_request_data(service_request, type):
 
 
 request_data_paths = {'bacteria': bacteria_request_data,
-                      'disinfection': disinfection_request_data,
-                      'air_disinfection': air_disinfection_request_data,
+                      'disinfection': virus_disinfection_request_data,
+                      'air_disinfection': virus_air_disinfection_request_data,
                       'heavymetal': heavymetal_request_data,
                       'foodsafety': foodsafety_request_data,
                       'protein_identification': protein_identification_request_data,
@@ -3570,7 +3570,7 @@ def get_quotation_addresses():
     return jsonify({'results': results})
 
 
-@academic_services.route('/customer/quotation/address/add/<int:request_id>', methods=['GET', 'POST'])
+@academic_services.route('/customer/request/quotation/<int:request_id>', methods=['GET', 'POST'])
 def request_quotation(request_id):
     menu = request.args.get('menu')
     status_id = get_status(2)
@@ -3587,7 +3587,7 @@ def request_quotation(request_id):
     )
     title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
     link = url_for("service_admin.generate_quotation", request_id=request_id, menu='quotation',
-                   _external=True, _scheme=scheme)
+                   code=service_request.sub_lab.code, _external=True, _scheme=scheme)
     customer_name = service_request.customer.customer_name.replace(' ', '_')
     contact_email = current_user.contact_email if current_user.contact_email else current_user.email
     if admins:
