@@ -17,10 +17,13 @@
                             <hr style="background-color: gainsboro">
                             <div class="field-body mb-2">
                                 <div class="field">
-                                    <label class="label">{{ form.lab.label }}</label>
+                                    <label class="label">
+                                        {{ form.lab.label }}
+                                        <span class="has-text-danger">*</span>
+                                    </label>
                                     <div class="control">
                                         {{ form.lab(class='input') }}
-                                        <span class="has-text-danger">*</span>
+
                                     </div>
                                 </div>
                                 <div class="field">
@@ -29,7 +32,7 @@
                                         <span class="has-text-danger">*</span>
                                     </label>
                                     <div class="control">
-                                        {{ form.phone_number(class='input', oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
+                                        {{ form.phone_number(class='input') }}
                                     </div>
                                 </div>
                             </div>
