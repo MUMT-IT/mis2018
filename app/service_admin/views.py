@@ -1735,9 +1735,15 @@ def add_protein_identification_condition_item():
             <p><strong>รายการที่ {}</strong></p>
             <table class="table is-fullwidth ">
                 <thead>
+                    <th style="border: none">
+                        {}
+                        <span class="has-text-danger">*</span>
+                    </th>
                     <th style="border: none">{}</th>
-                    <th style="border: none">{}</th>
-                    <th style="border: none">{}</th>
+                    <th style="border: none">
+                        {}
+                        <span class="has-text-danger">*</span>
+                    </th>
                 </thead>
                 <tbody>
                     <td style="border: none" class="control">{}</td>
@@ -1773,9 +1779,15 @@ def remove_protein_identification_condition_item():
                 <p><strong>รายการที่ {}</strong></p>
                 <table class="table is-fullwidth ">
                     <thead>
+                        <th style="border: none">
+                            {}
+                            <span class="has-text-danger">*</span>
+                        </th>
                         <th style="border: none">{}</th>
-                        <th style="border: none">{}</th>
-                        <th style="border: none">{}</th>
+                        <th style="border: none">
+                            {}
+                            <span class="has-text-danger">*</span>
+                        </th>
                     </thead>
                     <tbody>
                         <td style="border: none" class="control">{}</td>
