@@ -1731,10 +1731,10 @@ def add_food_safety_condition_item():
             <p><strong>รายการที่ {}</strong></p>
             <table class="table is-fullwidth ">
                 <thead>
-                    <th style="border: none">{}</th>
-                    <th style="border: none">{}</th>
-                    <th style="border: none">{}</th>
-                    <th style="border: none">{}</th>
+                    <th style="border: none">{}<span class="has-text-danger ml-1">*</span></th>
+                    <th style="border: none">{}<span class="has-text-danger ml-1">*</span></th>
+                    <th style="border: none">{}<span class="has-text-danger ml-1">*</span></th>
+                    <th style="border: none">{}<span class="has-text-danger ml-1">*</span></th>
                 </thead>
                 <tbody>
                     <td style="border: none" class="control">{}</td>
@@ -1773,7 +1773,7 @@ def remove_food_safety_condition_item():
     form = FoodSafetyRequestForm()
     form.food_safety_condition_field.pop_entry()
     resp = ''
-    for i, item_form in enumerate(form.quantitative_condition_field, start=1):
+    for i, item_form in enumerate(form.food_safety_condition_field, start=1):
         hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
         template = """
             <div id="{}">
@@ -1781,10 +1781,10 @@ def remove_food_safety_condition_item():
                 <p><strong>รายการที่ {}</strong></p>
                 <table class="table is-fullwidth ">
                     <thead>
-                        <th style="border: none">{}</th>
-                        <th style="border: none">{}</th>
-                        <th style="border: none">{}</th>
-                        <th style="border: none">{}</th>
+                        <th style="border: none">{}<span class="has-text-danger ml-1">*</span></th>
+                        <th style="border: none">{}<span class="has-text-danger ml-1">*</span></th>
+                        <th style="border: none">{}<span class="has-text-danger ml-1">*</span></th>
+                        <th style="border: none">{}<span class="has-text-danger ml-1">*</span></th>
                     </thead>
                     <tbody>
                         <td style="border: none" class="control">{}</td>
