@@ -95,9 +95,15 @@
                                         <p class="mt-4 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
                                         <table class="table is-fullwidth ">
                                             <thead>
-                                            <th style="border: none">{{ item_form.sample_name.label }}</th>
+                                            <th style="border: none">
+                                                {{ item_form.sample_name.label }}
+                                                <span class="has-text-danger">*</span>
+                                            </th>
                                             <th style="border: none">{{ item_form.clean_up.label }}</th>
-                                            <th style="border: none">{{ item_form.staining.label }}</th>
+                                            <th style="border: none">
+                                                {{ item_form.staining.label }}
+                                                <span class="has-text-danger">*</span>
+                                            </th>
                                             </thead>
                                             <tbody>
                                             <td style="border: none" class="control">
