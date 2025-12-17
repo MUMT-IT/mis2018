@@ -1364,10 +1364,10 @@ def add_heavy_metal_condition_item():
             <p><strong>รายการที่ {}</strong></p>
             <table class="table is-fullwidth ">
                 <thead>
-                    <th style="border: none">{}</th>
-                    <th style="border: none">{}</th>
-                    <th style="border: none">{}</th>
-                    <th style="border: none">{}</th>
+                    <th style="border: none">{}<span class="has-text-danger ml-1">*</span></th>
+                    <th style="border: none">{}<span class="has-text-danger ml-1">*</span></th>
+                    <th style="border: none">{}<span class="has-text-danger ml-1">*</span></th>
+                    <th style="border: none">{}<span class="has-text-danger ml-1">*</span></th>
                 </thead>
                 <tbody>
                     <td style="border: none" class="control">{}</td>
@@ -1414,10 +1414,10 @@ def remove_heavy_metal_condition_item():
                 <p><strong>รายการที่ {}</strong></p>
                 <table class="table is-fullwidth ">
                     <thead>
-                        <th style="border: none">{}</th>
-                        <th style="border: none">{}</th>
-                        <th style="border: none">{}</th>
-                        <th style="border: none">{}</th>
+                        <th style="border: none">{}<span class="has-text-danger ml-1">*</span></th>
+                        <th style="border: none">{}<span class="has-text-danger ml-1">*</span></th>
+                        <th style="border: none">{}<span class="has-text-danger ml-1">*</span></th>
+                        <th style="border: none">{}<span class="has-text-danger ml-1">*</span></th>
                     </thead>
                     <tbody>
                         <td style="border: none" class="control">{}</td>
