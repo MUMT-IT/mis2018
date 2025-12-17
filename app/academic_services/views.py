@@ -2341,7 +2341,10 @@ def add_metabolomic_condition_item():
             <p><strong>รายการที่ {}</strong></p>
             <table class="table is-fullwidth ">
                 <thead>
-                    <th style="border: none">{}<span class="has-text-danger">*</span></th>
+                    <th style="border: none">
+                        {}
+                        <span class="has-text-danger">*</span>
+                    </th>
                     <th style="border: none">{}</th>
                     <th style="border: none">{}</th>
                     <th style="border: none">{}</th>
@@ -2383,7 +2386,10 @@ def remove_metabolomic_condition_item():
                 <p><strong>รายการที่ {}</strong></p>
                 <table class="table is-fullwidth ">
                     <thead>
-                        <th style="border: none">{}<span class="has-text-danger">*</span></th>
+                        <th style="border: none">
+                            {}
+                            <span class="has-text-danger">*</span>
+                        </th>
                         <th style="border: none">{}</th>
                         <th style="border: none">{}</th>
                         <th style="border: none">{}</th>
