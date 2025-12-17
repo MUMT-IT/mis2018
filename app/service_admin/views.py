@@ -5348,22 +5348,23 @@ def generate_virus_disinfection_quotation():
                 quote_column_names[row['field_group']] = set()
             for field_name in row['field_name'].split(','):
                 quote_column_names[row['field_group']].add(field_name.strip())
-            key = ''.join(sorted(row[4:].str.cat())).replace(' ', '')
+            sorted_field_group = ''.join(sorted(row['field_group'])).replace(' ', '')
+            key = sorted_field_group + ''.join(sorted(row[4:].str.cat())).replace(' ', '')
             if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
                 quote_prices[key] = row['government_price']
             else:
                 quote_prices[key] = row['other_price']
 
         for field in form:
-            print('f', field.label.text)
             if field.label.text not in quote_column_names:
                 continue
             keys = []
             keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
             for r in range(1, len(quote_column_names[field.label.text]) + 1):
                 for key in itertools.combinations(keys, r):
+                    sorted_field_label = ''.join(sorted(field.label.text)).replace(' ', '')
                     sorted_key_ = sorted(''.join([k[1] for k in key]))
-                    p_key = ''.join(sorted_key_).replace(' ', '')
+                    p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
                     values = ', '.join(
                         [f"<i>{k[1]}</i>" if "organism" in k[0] and k[1] != "None" else k[1] for k in key])
                     count_value.update(values.split(', '))
@@ -5427,7 +5428,6 @@ def generate_virus_air_disinfection_quotation():
         quote_column_names = {}
         quote_details = {}
         quote_prices = {}
-        count_value = Counter()
         data = service_request.data
         for _, row in df_price.iterrows():
             if row['field_group'] not in quote_column_names:
