@@ -4266,9 +4266,8 @@ def create_sample_appointment(sample_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
-    service_request = ServiceRequest.query.get(sample.request_id)
-    request_data = request_data_paths[service_request.sub_lab.code]
-    datas = request_data(service_request, type='form')
+    request_data = request_data_paths[sample.request.sub_lab.code]
+    datas = request_data(sample.request, type='form')
     form = ServiceSampleForm(obj=sample)
     admins = (
         ServiceAdmin.query
@@ -4295,72 +4294,72 @@ def create_sample_appointment(sample_id):
         db.session.add(sample)
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
-        title_prefix = 'คุณ' if service_request.customer.customer_info.type.type == 'บุคคล' else ''
+        title_prefix = 'คุณ' if sample.request.customer.customer_info.type.type == 'บุคคล' else ''
         link = url_for("service_admin.sample_verification", sample_id=sample.id, menu=menu, tab='delivery',
                        _external=True, _scheme=scheme)
-        customer_name = service_request.customer.customer_name.replace(' ', '_')
+        customer_name = sample.request.customer.customer_name.replace(' ', '_')
         if admins:
-            if service_request.status.status_id == 9:
-                title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งแก้ไขนัดหมายส่งตัวอย่าง)'''
-                message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.sub_lab}\n\n'''
-                message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}\n'''
-                message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
-                message += f'''ในนาม : {service_request.quotation_address.name}\n'''
+            if sample.request.status.status_id == 9:
+                title = f'''[{sample.request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({sample.request.quotation_address.name}) | (แจ้งแก้ไขนัดหมายส่งตัวอย่าง)'''
+                message = f'''เรียน เจ้าหน้าที่{sample.request.sub_lab.sub_lab}\n\n'''
+                message += f'''ใบคำขอรับบริการเลขที่ {sample.request.request_no}\n'''
+                message += f'''ลูกค้า : {sample.request.customer.customer_name}\n'''
+                message += f'''ในนาม : {sample.request.quotation_address.name}\n'''
                 message += f'''ได้ดำเนินการแก้ไขข้อมูลการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
-                message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
+                message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in sample.request.quotations)}\n'''
                 if sample.appointment_date:
                     message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
                 if sample.location:
                     message += f'''สถานที่นัดหมาย : {sample.location_name}\n'''
                     if sample.location == 'salaya':
-                        message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.salaya_address}\n'''
+                        message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.salaya_address}\n'''
                     else:
-                        message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.siriraj_address}\n'''
+                        message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.siriraj_address}\n'''
                 else:
-                    message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.address}\n'''
-                message += f'''เบอร์โทรศัพท์ : {service_request.sub_lab.lab.phone_number}\n'''
-                if service_request.sub_lab.lab.email:
-                    message += f'''เบอร์โทรศัพท์ : {service_request.sub_lab.lab.email}\n'''
+                    message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.address}\n'''
+                message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.lab.phone_number}\n'''
+                if sample.request.sub_lab.lab.email:
+                    message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.lab.email}\n'''
                 message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
                 message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
                 message += f'''{link}\n\n'''
                 message += f'''ผู้ประสานงาน\n'''
-                message += f'''{service_request.customer.customer_name}\n'''
-                message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n'''
+                message += f'''{sample.request.customer.customer_name}\n'''
+                message += f'''เบอร์โทร {sample.request.customer.contact_phone_number}\n'''
                 message += f'''ระบบงานบริการวิชาการ'''
             else:
-                title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งนัดหมายส่งตัวอย่าง)'''
-                message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.sub_lab}\n\n'''
-                message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}\n'''
-                message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
-                message += f'''ในนาม : {service_request.quotation_address.name}\n'''
+                title = f'''[{sample.request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({sample.request.quotation_address.name}) | (แจ้งนัดหมายส่งตัวอย่าง)'''
+                message = f'''เรียน เจ้าหน้าที่{sample.request.sub_lab.sub_lab}\n\n'''
+                message += f'''ใบคำขอรับบริการเลขที่ {sample.request.request_no}\n'''
+                message += f'''ลูกค้า : {sample.request.customer.customer_name}\n'''
+                message += f'''ในนาม : {sample.request.quotation_address.name}\n'''
                 message += f'''ได้ดำเนินการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
-                message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
+                message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in sample.request.quotations)}\n'''
                 if sample.appointment_date:
                     message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
                 if sample.location:
                     message += f'''สถานที่นัดหมาย : {sample.location_name}\n'''
                     if sample.location == 'salaya':
-                        message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.salaya_address}\n'''
+                        message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.salaya_address}\n'''
                     else:
-                        message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.siriraj_address}\n'''
+                        message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.siriraj_address}\n'''
                 else:
-                    message += f'''รายละเอียดสถานที่ : {service_request.sub_lab.address}\n'''
-                message += f'''เบอร์โทรศัพท์ : {service_request.sub_lab.lab.phone_number}\n'''
-                if service_request.sub_lab.lab.email:
-                    message += f'''เบอร์โทรศัพท์ : {service_request.sub_lab.lab.email}\n'''
+                    message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.address}\n'''
+                message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.lab.phone_number}\n'''
+                if sample.request.sub_lab.lab.email:
+                    message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.lab.email}\n'''
                 message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n'''
                 message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
                 message += f'''{link}\n\n'''
                 message += f'''ผู้ประสานงาน\n'''
-                message += f'''{service_request.customer.customer_name}\n'''
-                message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n'''
+                message += f'''{sample.request.customer.customer_name}\n'''
+                message += f'''เบอร์โทร {sample.request.customer.contact_phone_number}\n'''
                 message += f'''ระบบงานบริการวิชาการ'''
             send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
-        if service_request.status.status_id == 6:
+        if sample.request.status.status_id == 6:
             status_id = get_status(9)
-            service_request.status_id = status_id
-            db.session.add(service_request)
+            sample.request.status_id = status_id
+            db.session.add(sample.request)
             db.session.commit()
         flash('อัพเดตข้อมูลสำเร็จ', 'success')
         return redirect(url_for('academic_services.confirm_sample_appointment_page', menu=menu, tab='delivery',
@@ -4369,9 +4368,7 @@ def create_sample_appointment(sample_id):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
         return render_template('academic_services/create_sample_appointment.html', form=form, menu=menu,
-                               tab=tab, sample=sample, sample_id=sample_id, datas=datas,
-                               service_request=service_request,
-                               holidays=holidays)
+                               tab=tab, sample=sample, sample_id=sample_id, datas=datas, holidays=holidays)
 
 
 @academic_services.route('/customer/sample-appointment/confirm/page/<int:request_id>', methods=['GET', 'POST'])

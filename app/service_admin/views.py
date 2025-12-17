@@ -5333,7 +5333,7 @@ def create_quotation_for_admin(quotation_id):
     tab = request.args.get('tab')
     action = request.form.get('action')
     quotation = ServiceQuotation.query.get(quotation_id)
-    request_data = request_data_paths[service_request.sub_lab.code]
+    request_data = request_data_paths[quotation.request.sub_lab.code]
     datas = request_data(quotation.request, type='form')
     quotation.quotation_items = sorted(quotation.quotation_items, key=lambda x: x.sequence)
     form = ServiceQuotationForm(obj=quotation)
