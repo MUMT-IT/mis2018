@@ -258,7 +258,7 @@ def bacteria_request_data(service_request, type):
     return values
 
 
-def disinfection_request_data(service_request, type):
+def virus_disinfection_request_data(service_request, type):
     data = service_request.data
     form = VirusDisinfectionRequestForm(data=data)
     values = []
@@ -310,7 +310,7 @@ def disinfection_request_data(service_request, type):
     return values
 
 
-def air_disinfection_request_data(service_request, type):
+def virus_air_disinfection_request_data(service_request, type):
     data = service_request.data
     form = VirusAirDisinfectionRequestForm(data=data)
     values = []
@@ -630,8 +630,8 @@ def toxicology_request_data(service_request, type):
 
 
 request_data_paths = {'bacteria': bacteria_request_data,
-                      'disinfection': disinfection_request_data,
-                      'air_disinfection': air_disinfection_request_data,
+                      'disinfection': virus_disinfection_request_data,
+                      'air_disinfection': virus_air_disinfection_request_data,
                       'heavymetal': heavymetal_request_data,
                       'foodsafety': foodsafety_request_data,
                       'protein_identification': protein_identification_request_data,
@@ -640,7 +640,7 @@ request_data_paths = {'bacteria': bacteria_request_data,
                       'metabolomic': metabolomic_request_data,
                       'endotoxin': endotoxin_request_data,
                       'toxicology': toxicology_request_data
-              }
+                      }
 
 
 @service_admin.route('/')
@@ -678,45 +678,45 @@ def menu():
             position = 'Admin'
 
         request_count = (ServiceRequest.query
-                         .join(ServiceRequest.status)
-                         .join(ServiceRequest.sub_lab)
-                         .join(ServiceSubLab.admins)
-                         .filter(
+        .join(ServiceRequest.status)
+        .join(ServiceRequest.sub_lab)
+        .join(ServiceSubLab.admins)
+        .filter(
             ServiceStatus.status_id.in_([2]),
-                ServiceAdmin.admin_id == current_user.id
+            ServiceAdmin.admin_id == current_user.id
         )).count()
         quotation_count = (ServiceRequest.query
-                           .join(ServiceRequest.status)
-                           .join(ServiceRequest.sub_lab)
-                           .join(ServiceSubLab.admins)
-                           .filter(
+        .join(ServiceRequest.status)
+        .join(ServiceRequest.sub_lab)
+        .join(ServiceSubLab.admins)
+        .filter(
             ServiceStatus.status_id.in_([3, 4, 5]),
-                ServiceAdmin.admin_id == current_user.id
+            ServiceAdmin.admin_id == current_user.id
         )).count()
         sample_count = (ServiceRequest.query
-                        .join(ServiceRequest.status)
-                        .join(ServiceRequest.sub_lab)
-                        .join(ServiceSubLab.admins)
-                        .filter(
+        .join(ServiceRequest.status)
+        .join(ServiceRequest.sub_lab)
+        .join(ServiceSubLab.admins)
+        .filter(
             ServiceStatus.status_id.in_([6, 8, 9]),
-                ServiceAdmin.admin_id == current_user.id
-            )
+            ServiceAdmin.admin_id == current_user.id
+        )
         ).count()
         test_item_count = (ServiceRequest.query
-                           .join(ServiceRequest.status)
-                           .join(ServiceRequest.sub_lab)
-                           .join(ServiceSubLab.admins)
-                           .filter(
+        .join(ServiceRequest.status)
+        .join(ServiceRequest.sub_lab)
+        .join(ServiceSubLab.admins)
+        .filter(
             ServiceStatus.status_id.in_([10, 11, 12, 13, 14, 15]),
-                ServiceAdmin.admin_id == current_user.id
+            ServiceAdmin.admin_id == current_user.id
         )).count()
         invoice_count = (ServiceRequest.query
-                         .join(ServiceRequest.status)
-                         .join(ServiceRequest.sub_lab)
-                         .join(ServiceSubLab.admins)
-                         .filter(
+        .join(ServiceRequest.status)
+        .join(ServiceRequest.sub_lab)
+        .join(ServiceSubLab.admins)
+        .filter(
             ServiceStatus.status_id.in_([16, 17, 18, 19, 20, 21]),
-                ServiceAdmin.admin_id == current_user.id
+            ServiceAdmin.admin_id == current_user.id
         )).count()
         report_count = (
             ServiceResult.query
@@ -853,8 +853,8 @@ def request_index():
             .join(ServiceSubLab.admins)
             .filter(
                 ServiceStatus.status_id.in_(group_ids),
-                    ServiceAdmin.admin_id == current_user.id
-                )
+                ServiceAdmin.admin_id == current_user.id
+            )
         ).count()
 
         status_groups[key]['count'] = query
@@ -871,7 +871,7 @@ def get_requests():
         .join(ServiceSubLab.admins)
         .filter(
             ServiceStatus.status_id.notin_([1, 23]),
-                ServiceAdmin.admin_id == current_user.id
+            ServiceAdmin.admin_id == current_user.id
 
         )
     )
@@ -2803,7 +2803,7 @@ def sample_index():
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
         .filter(
-                ServiceAdmin.admin_id == current_user.id
+            ServiceAdmin.admin_id == current_user.id
         )
     )
     schedule_query = query.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
@@ -2954,8 +2954,8 @@ def test_item_index():
         .join(ServiceRequest.status)
         .join(ServiceSubLab.admins)
         .filter(
-                ServiceAdmin.admin_id == current_user.id
-            )
+            ServiceAdmin.admin_id == current_user.id
+        )
     )
     not_started_query = query.filter(ServiceStatus.status_id == 10)
     testing_query = query.filter(or_(ServiceStatus.status_id == 11, ServiceStatus.status_id == 12,
@@ -3671,8 +3671,8 @@ def result_index():
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
         .filter(
-                ServiceAdmin.admin_id == current_user.id
-            )
+            ServiceAdmin.admin_id == current_user.id
+        )
     )
     pending_query = query.filter(ServiceResult.sent_at == None)
     edit_query = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False)
@@ -4112,9 +4112,11 @@ def invoice_index():
     )
     draft_query = query.filter(ServiceInvoice.sent_at == None)
     pending_supervisor_query = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at == None)
-    pending_assistant_query = query.filter(ServiceInvoice.head_approved_at != None, ServiceInvoice.assistant_approved_at == None)
-    pending_dean_query = query.filter(ServiceInvoice.assistant_approved_at != None, ServiceInvoice.file_attached_at == None)
-    waiting_payment_query = query.outerjoin(ServicePayment).filter(or_(ServicePayment.invoice_id==None,
+    pending_assistant_query = query.filter(ServiceInvoice.head_approved_at != None,
+                                           ServiceInvoice.assistant_approved_at == None)
+    pending_dean_query = query.filter(ServiceInvoice.assistant_approved_at != None,
+                                      ServiceInvoice.file_attached_at == None)
+    waiting_payment_query = query.outerjoin(ServicePayment).filter(or_(ServicePayment.invoice_id == None,
                                                                        ServicePayment.verified_at == None),
                                                                    ServiceInvoice.file_attached_at != None)
     payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None)
@@ -4157,7 +4159,8 @@ def invoice_index():
     return render_template('service_admin/invoice_index.html', menu=menu, tab=tab,
                            draft_count=draft_query.count(), pending_supervisor_count=pending_supervisor_query.count(),
                            pending_assistant_count=pending_assistant_query.count(),
-                           pending_dean_count=pending_dean_query.count(), waiting_payment_count=waiting_payment_query.count(),
+                           pending_dean_count=pending_dean_query.count(),
+                           waiting_payment_count=waiting_payment_query.count(),
                            payment_count=payment_query.count(), is_central_admin=is_central_admin)
 
 
@@ -4175,8 +4178,9 @@ def invoice_index_for_central_admin():
         .join(ServiceSubLab.admins)
         .filter(ServiceAdmin.admin_id == current_user.id)
     )
-    pending_dean_query = query.filter(ServiceInvoice.assistant_approved_at != None, ServiceInvoice.file_attached_at == None)
-    waiting_payment_query = query.outerjoin(ServicePayment).filter(or_(ServicePayment.invoice_id==None,
+    pending_dean_query = query.filter(ServiceInvoice.assistant_approved_at != None,
+                                      ServiceInvoice.file_attached_at == None)
+    waiting_payment_query = query.outerjoin(ServicePayment).filter(or_(ServicePayment.invoice_id == None,
                                                                        ServicePayment.verified_at == None),
                                                                    ServiceInvoice.file_attached_at != None)
     payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None)
@@ -4211,7 +4215,8 @@ def invoice_index_for_central_admin():
                         'draw': request.args.get('draw', type=int)
                         })
     return render_template('service_admin/invoice_index_for_central_admin.html', menu=menu, tab=tab,
-                           pending_dean_count=pending_dean_query.count(), waiting_payment_count=waiting_payment_query.count())
+                           pending_dean_count=pending_dean_query.count(),
+                           waiting_payment_count=waiting_payment_query.count())
 
 
 # @service_admin.route('/api/invoice/index')
@@ -4225,43 +4230,43 @@ def invoice_index_for_central_admin():
 #         .join(ServiceSubLab.admins)
 #         .filter(ServiceAdmin.admin_id == current_user.id)
 #     )
-    # if tab == 'draft':
-    #     query = query.filter(ServiceInvoice.sent_at == None)
-    # elif tab == 'pending_supervisor':
-    #     query = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at == None)
-    # elif tab == 'pending_assistant':
-    #     query = query.filter(ServiceInvoice.head_approved_at != None, ServiceInvoice.assistant_approved_at == None)
-    # elif tab == 'pending_dean':
-    #     query = query.filter(ServiceInvoice.assistant_approved_at != None, ServiceInvoice.file_attached_at == None)
-    # elif tab == 'waiting_payment':
-    #     query = query.join(ServicePayment).filter(or_(ServicePayment.paid_at == None,
-    #                                                   ServicePayment.verified_at == None),
-    #                                               ServiceInvoice.file_attached_at != None)
-    # elif tab == 'payment':
-    #     query = query.join(ServicePayment).filter(ServicePayment.verified_at != None)
-    # records_total = query.count()
-    # search = request.args.get('search[value]')
-    # if search:
-    #     query = query.filter(ServiceInvoice.invoice_no.contains(search))
-    # start = request.args.get('start', type=int)
-    # length = request.args.get('length', type=int)
-    # total_filtered = query.count()
-    # query = query.offset(start).limit(length)
-    # data = []
-    # for item in query:
-    #     item_data = item.to_dict()
-    #     if item.payments:
-    #         for payment in item.payments:
-    #             if payment.slip and payment.cancelled_at:
-    #                 item_data['slip'] = generate_url(payment.slip)
-    #             else:
-    #                 item_data['slip'] = None
-    #     data.append(item_data)
-    # return jsonify({'data': data,
-    #                 'recordFiltered': total_filtered,
-    #                 'recordTotal': records_total,
-    #                 'draw': request.args.get('draw', type=int)
-    #                 })
+# if tab == 'draft':
+#     query = query.filter(ServiceInvoice.sent_at == None)
+# elif tab == 'pending_supervisor':
+#     query = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at == None)
+# elif tab == 'pending_assistant':
+#     query = query.filter(ServiceInvoice.head_approved_at != None, ServiceInvoice.assistant_approved_at == None)
+# elif tab == 'pending_dean':
+#     query = query.filter(ServiceInvoice.assistant_approved_at != None, ServiceInvoice.file_attached_at == None)
+# elif tab == 'waiting_payment':
+#     query = query.join(ServicePayment).filter(or_(ServicePayment.paid_at == None,
+#                                                   ServicePayment.verified_at == None),
+#                                               ServiceInvoice.file_attached_at != None)
+# elif tab == 'payment':
+#     query = query.join(ServicePayment).filter(ServicePayment.verified_at != None)
+# records_total = query.count()
+# search = request.args.get('search[value]')
+# if search:
+#     query = query.filter(ServiceInvoice.invoice_no.contains(search))
+# start = request.args.get('start', type=int)
+# length = request.args.get('length', type=int)
+# total_filtered = query.count()
+# query = query.offset(start).limit(length)
+# data = []
+# for item in query:
+#     item_data = item.to_dict()
+#     if item.payments:
+#         for payment in item.payments:
+#             if payment.slip and payment.cancelled_at:
+#                 item_data['slip'] = generate_url(payment.slip)
+#             else:
+#                 item_data['slip'] = None
+#     data.append(item_data)
+# return jsonify({'data': data,
+#                 'recordFiltered': total_filtered,
+#                 'recordTotal': records_total,
+#                 'draw': request.args.get('draw', type=int)
+#                 })
 
 
 @service_admin.route('/invoice/add/<int:quotation_id>', methods=['GET', 'POST'])
@@ -4318,8 +4323,9 @@ def approve_invoice(invoice_id):
     customer_name = invoice.customer_name.replace(' ', '_')
     title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
     if admin == 'assistant':
-        invoice_for_central_admin_url = url_for("service_admin.view_invoice_for_central_admin", invoice_id=invoice.id, menu=menu, _external=True,
-                              tab=tab, _scheme=scheme)
+        invoice_for_central_admin_url = url_for("service_admin.view_invoice_for_central_admin", invoice_id=invoice.id,
+                                                menu=menu, _external=True,
+                                                tab=tab, _scheme=scheme)
         status_id = get_status(19)
         invoice.quotation.request.status_id = status_id
         invoice.assistant_approved_at = arrow.now('Asia/Bangkok').datetime
@@ -5094,6 +5100,7 @@ def quotation_index():
 #         quote_details = {}
 #         quote_prices = {}
 #         count_value = Counter()
+#         data = service_request.data
 #         for _, row in df_price.iterrows():
 #             if service_request.sub_lab.code == 'quantitative':
 #                 quote_column_names[row['field_group']] = set(row['field_name'].split(', '))
@@ -5107,43 +5114,79 @@ def quotation_index():
 #                 quote_prices[key] = row['government_price']
 #             else:
 #                 quote_prices[key] = row['other_price']
-#         sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
-#         wksr = gc.open_by_key(sheet_request_id)
-#         sheet_request = wksr.worksheet(service_request.sub_lab.sheet)
-#         df_request = pandas.DataFrame(sheet_request.get_all_records())
-#         data = service_request.data
-#         request_form = create_request_form(df_request)(**data)
-#         for field in request_form:
-#             if field.name not in quote_column_names:
-#                 continue
-#             keys = []
-#             keys = walk_form_fields(field, quote_column_names[field.name], keys=keys)
-#             for r in range(1, len(quote_column_names[field.name]) + 1):
-#                 for key in itertools.combinations(keys, r):
-#                     sorted_key_ = sorted(''.join([k[1] for k in key]))
-#                     p_key = ''.join(sorted_key_).replace(' ', '')
-#                     values = ', '.join(
-#                         [f"<i>{k[1]}</i>" if "germ" in k[0] and k[1] != "None" else k[1] for k in key]
-#                     )
-#                     count_value.update(values.split(', '))
-#                     quantities = (
-#                         ', '.join(str(count_value[v]) for v in values.split(', '))
-#                         if ((service_request.sub_lab.code not in ['bacteria', 'virology']))
-#                         else 1
-#                     )
-#                     if service_request.sub_lab.code == 'endotoxin':
-#                         for k in key:
-#                             if not k[1]:
-#                                 break
-#                             for price in quote_prices.values():
-#                                 quote_details[p_key] = {"value": values, "price": price, "quantity": quantities}
-#                     else:
-#                         if p_key in quote_prices:
-#                             prices = quote_prices[p_key]
-#                             quote_details[p_key] = {"value": values, "price": prices, "quantity": quantities}
-#         quotation_no = ServiceNumberID.get_number('QT', db,
-#                                                   lab=service_request.sub_lab.lab.code if service_request.sub_lab.lab.code == 'protein' \
-#                                                       else service_request.sub_lab.code)
+#
+#         if service_request.sub_lab.code == 'air_disinfection':
+#             test_methods = []
+#             surface_fields = data.get('surface_condition_field', {}).get('surface_disinfection_organism_fields', [])
+#             airborne_fields = data.get('airborne_disinfection_organism', {}).get(
+#                 'airborne_disinfection_organism_fields', [])
+#
+#             if surface_fields:
+#                 for f in surface_fields:
+#                     organisms = f.get('surface_disinfection_organism', '')
+#                     period_tests = f.get('surface_disinfection_period_test', '')
+#                     for organism in organisms:
+#                         if organism and period_tests:
+#                             test_methods.append((organism, period_tests))
+#                     for _, row in df_price.iterrows():
+#                         organism_rows = row['surface_disinfection_organism']
+#                         period_test_rows = row['surface_disinfection_period_test']
+#                         if (organism_rows, period_test_rows) in test_methods:
+#                             p_key = ''.join(sorted(f"{organism_rows}{period_test_rows}".replace(' ', '')))
+#                             values = f"<i>{organism_rows}</i> {period_test_rows}"
+#                             price = quote_prices.get(p_key, 0)
+#                             quote_details[p_key] = {"value": values, "price": price, "quantity": 1}
+#             else:
+#                 for f in airborne_fields:
+#                     organisms = f.get('airborne_disinfection_organism', '')
+#                     period_tests = f.get('airborne_disinfection_period_test', '')
+#                     for organism in organisms:
+#                         if organism and period_tests:
+#                             test_methods.append((organism, period_tests))
+#                     for _, row in df_price.iterrows():
+#                         organism_rows = row['airborne_disinfection_organism']
+#                         period_test_rows = row['airborne_disinfection_period_test']
+#                         if (organism_rows, period_test_rows) in test_methods:
+#                             p_key = ''.join(sorted(f"{organism_rows}{period_test_rows}".replace(' ', '')))
+#                             values = f"<i>{organism_rows}</i> {period_test_rows}"
+#                             price = quote_prices.get(p_key, 0)
+#                             quote_details[p_key] = {"value": values, "price": price, "quantity": 1}
+#         else:
+#             if service_request.sub_lab.code == 'bacteria':
+#                 form = BacteriaRequestForm(data=data)
+#             elif service_request.sub_lab.code == 'disinfection':
+#                 form = VirusDisinfectionRequestForm(data=data)
+#             else:
+#                 form = VirusAirDisinfectionRequestForm(data=data)
+#             for field in form:
+#                 if field.label.text not in quote_column_names:
+#                     continue
+#                 keys = []
+#                 keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
+#                 for r in range(1, len(quote_column_names[field.label.text]) + 1):
+#                     for key in itertools.combinations(keys, r):
+#                         sorted_key_ = sorted(''.join([k[1] for k in key]))
+#                         p_key = ''.join(sorted_key_).replace(' ', '')
+#                         values = ', '.join(
+#                             [f"<i>{k[1]}</i>" if "organism" in k[0] and k[1] != "None" else k[1] for k in key]
+#                         )
+#                         count_value.update(values.split(', '))
+#                         quantities = (
+#                             ', '.join(str(count_value[v]) for v in values.split(', '))
+#                             if ((service_request.sub_lab.code not in ['bacteria', 'disinfection', 'air_disinfection']))
+#                             else 1
+#                         )
+#                         if service_request.sub_lab.code == 'endotoxin':
+#                             for k in key:
+#                                 if not k[1]:
+#                                     break
+#                                 for price in quote_prices.values():
+#                                     quote_details[p_key] = {"value": values, "price": price, "quantity": quantities}
+#                         else:
+#                             if p_key in quote_prices:
+#                                 prices = quote_prices[p_key]
+#                                 quote_details[p_key] = {"value": values, "price": prices, "quantity": quantities}
+#         quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
 #         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
 #                                      name=service_request.quotation_name,
 #                                      address=service_request.quotation_issue_address,
@@ -5167,15 +5210,15 @@ def quotation_index():
 #             db.session.commit()
 #         if service_request.report_languages:
 #             for rl in service_request.report_languages:
-#                 if rl.report_language.price != 0:
-#                     quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
-#                                                           item=rl.report_language.item,
-#                                                           quantity=1,
-#                                                           unit_price=rl.report_language.price,
-#                                                           total_price=rl.report_language.price)
-#                     sequence_no.count += 1
-#                     db.session.add(quotation_item)
-#                     db.session.commit()
+#                 quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+#                                                       item=rl.report_language.item,
+#                                                       quantity=1,
+#                                                       unit_price=rl.report_language.price,
+#                                                       total_price=rl.report_language.price)
+#                 sequence_no.count += 1
+#                 db.session.add(quotation_item)
+#                 db.session.commit()
+#         flash('ร่างใบเสนอราคาสำเร็จ กรุณาดำเนินการตรวจสอบข้อมูล', 'success')
 #         return redirect(
 #             url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
 #     else:
@@ -5183,9 +5226,194 @@ def quotation_index():
 #                                quotation_id=quotation.id, request_no=service_request.request_no, menu=menu)
 
 
-@service_admin.route('/quotation/generate', methods=['GET', 'POST'])
-@login_required
+@service_admin.route('/quotation/generate')
 def generate_quotation():
+    code = request.args.get('code')
+    menu = request.args.get('menu')
+    request_id = request.args.get('request_id')
+    request_paths = {'bacteria': 'service_admin.generate_bacteria_quotation',
+                     'disinfection': 'service_admin.generate_virus_disinfection_quotation',
+                     'air_disinfection': 'service_admin.generate_virus_air_disinfection_quotation'
+                     }
+    return redirect(url_for(request_paths[code], menu=menu, request_id=request_id))
+
+
+@service_admin.route('/quotation/bacteria/generate', methods=['GET', 'POST'])
+def generate_bacteria_quotation():
+    menu = request.args.get('menu')
+    request_id = request.args.get('request_id')
+    service_request = ServiceRequest.query.get(request_id)
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, cancelled_at=None).first()
+    if not quotation:
+        sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
+        gc = get_credential(json_keyfile)
+        wksp = gc.open_by_key(sheet_price_id)
+        sheet_price = wksp.worksheet(service_request.sub_lab.code)
+        df_price = pandas.DataFrame(sheet_price.get_all_records())
+        quote_column_names = {}
+        quote_details = {}
+        quote_prices = {}
+        count_value = Counter()
+        data = service_request.data
+        form = BacteriaRequestForm(data=data)
+
+        for _, row in df_price.iterrows():
+            if row['field_group'] not in quote_column_names:
+                quote_column_names[row['field_group']] = set()
+            for field_name in row['field_name'].split(','):
+                quote_column_names[row['field_group']].add(field_name.strip())
+            key = ''.join(sorted(row[4:].str.cat())).replace(' ', '')
+            if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
+                quote_prices[key] = row['government_price']
+            else:
+                quote_prices[key] = row['other_price']
+
+        for field in form:
+            if field.label.text not in quote_column_names:
+                continue
+            keys = []
+            keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
+            for r in range(1, len(quote_column_names[field.label.text]) + 1):
+                for key in itertools.combinations(keys, r):
+                    sorted_key_ = sorted(''.join([k[1] for k in key]))
+                    p_key = ''.join(sorted_key_).replace(' ', '')
+                    values = ', '.join(
+                        [f"<i>{k[1]}</i>" if "organism" in k[0] and k[1] != "None" else k[1] for k in key])
+                    count_value.update(values.split(', '))
+
+                    if p_key in quote_prices:
+                        prices = quote_prices[p_key]
+                        quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
+        quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
+        quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
+                                     name=service_request.quotation_name,
+                                     address=service_request.quotation_issue_address,
+                                     taxpayer_identification_no=service_request.taxpayer_identification_no,
+                                     creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
+        db.session.add(quotation)
+        quotation_no.count += 1
+        status_id = get_status(3)
+        service_request.status_id = status_id
+        db.session.add(service_request)
+        db.session.commit()
+        sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
+        for _, (_, item) in enumerate(quote_details.items()):
+            quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                  item=item['value'],
+                                                  quantity=item['quantity'],
+                                                  unit_price=item['price'],
+                                                  total_price=int(item['quantity']) * item['price'])
+            sequence_no.count += 1
+            db.session.add(quotation_item)
+            db.session.commit()
+        if service_request.report_languages:
+            for rl in service_request.report_languages:
+                quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                      item=rl.report_language.item,
+                                                      quantity=1,
+                                                      unit_price=rl.report_language.price,
+                                                      total_price=rl.report_language.price)
+                sequence_no.count += 1
+                db.session.add(quotation_item)
+                db.session.commit()
+        flash('ร่างใบเสนอราคาสำเร็จ กรุณาดำเนินการตรวจสอบข้อมูล', 'success')
+        return redirect(
+            url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
+    else:
+        return render_template('service_admin/quotation_created_confirmation_page.html',
+                               quotation_id=quotation.id, request_no=service_request.request_no, menu=menu)
+
+
+@service_admin.route('/quotation/virus/disinfection/generate', methods=['GET', 'POST'])
+def generate_virus_disinfection_quotation():
+    menu = request.args.get('menu')
+    request_id = request.args.get('request_id')
+    service_request = ServiceRequest.query.get(request_id)
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, cancelled_at=None).first()
+    if not quotation:
+        sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
+        gc = get_credential(json_keyfile)
+        wksp = gc.open_by_key(sheet_price_id)
+        sheet_price = wksp.worksheet(service_request.sub_lab.code)
+        df_price = pandas.DataFrame(sheet_price.get_all_records())
+        quote_column_names = {}
+        quote_details = {}
+        quote_prices = {}
+        count_value = Counter()
+        data = service_request.data
+        form = VirusDisinfectionRequestForm(data=data)
+
+        for _, row in df_price.iterrows():
+            if row['field_group'] not in quote_column_names:
+                quote_column_names[row['field_group']] = set()
+            for field_name in row['field_name'].split(','):
+                quote_column_names[row['field_group']].add(field_name.strip())
+            key = ''.join(sorted(row[4:].str.cat())).replace(' ', '')
+            if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
+                quote_prices[key] = row['government_price']
+            else:
+                quote_prices[key] = row['other_price']
+
+        for field in form:
+            print('f', field.label.text)
+            if field.label.text not in quote_column_names:
+                continue
+            keys = []
+            keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
+            for r in range(1, len(quote_column_names[field.label.text]) + 1):
+                for key in itertools.combinations(keys, r):
+                    sorted_key_ = sorted(''.join([k[1] for k in key]))
+                    p_key = ''.join(sorted_key_).replace(' ', '')
+                    values = ', '.join(
+                        [f"<i>{k[1]}</i>" if "organism" in k[0] and k[1] != "None" else k[1] for k in key])
+                    count_value.update(values.split(', '))
+
+                    if p_key in quote_prices:
+                        prices = quote_prices[p_key]
+                        quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
+        quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
+        quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
+                                     name=service_request.quotation_name,
+                                     address=service_request.quotation_issue_address,
+                                     taxpayer_identification_no=service_request.taxpayer_identification_no,
+                                     creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
+        db.session.add(quotation)
+        quotation_no.count += 1
+        status_id = get_status(3)
+        service_request.status_id = status_id
+        db.session.add(service_request)
+        db.session.commit()
+        sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
+        for _, (_, item) in enumerate(quote_details.items()):
+            quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                  item=item['value'],
+                                                  quantity=item['quantity'],
+                                                  unit_price=item['price'],
+                                                  total_price=int(item['quantity']) * item['price'])
+            sequence_no.count += 1
+            db.session.add(quotation_item)
+            db.session.commit()
+        if service_request.report_languages:
+            for rl in service_request.report_languages:
+                quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                      item=rl.report_language.item,
+                                                      quantity=1,
+                                                      unit_price=rl.report_language.price,
+                                                      total_price=rl.report_language.price)
+                sequence_no.count += 1
+                db.session.add(quotation_item)
+                db.session.commit()
+        flash('ร่างใบเสนอราคาสำเร็จ กรุณาดำเนินการตรวจสอบข้อมูล', 'success')
+        return redirect(
+            url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
+    else:
+        return render_template('service_admin/quotation_created_confirmation_page.html',
+                               quotation_id=quotation.id, request_no=service_request.request_no, menu=menu)
+
+
+@service_admin.route('/quotation/virus/air_disinfection/generate', methods=['GET', 'POST'])
+@login_required
+def generate_virus_air_disinfection_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
@@ -5202,13 +5430,10 @@ def generate_quotation():
         count_value = Counter()
         data = service_request.data
         for _, row in df_price.iterrows():
-            if service_request.sub_lab.code == 'quantitative':
-                quote_column_names[row['field_group']] = set(row['field_name'].split(', '))
-            else:
-                if row['field_group'] not in quote_column_names:
-                    quote_column_names[row['field_group']] = set()
-                for field_name in row['field_name'].split(','):
-                    quote_column_names[row['field_group']].add(field_name.strip())
+            if row['field_group'] not in quote_column_names:
+                quote_column_names[row['field_group']] = set()
+            for field_name in row['field_name'].split(','):
+                quote_column_names[row['field_group']].add(field_name.strip())
             key = ''.join(sorted(row[4:].str.cat())).replace(' ', '')
             if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
                 quote_prices[key] = row['government_price']
@@ -5251,41 +5476,6 @@ def generate_quotation():
                             values = f"<i>{organism_rows}</i> {period_test_rows}"
                             price = quote_prices.get(p_key, 0)
                             quote_details[p_key] = {"value": values, "price": price, "quantity": 1}
-        else:
-            if service_request.sub_lab.code == 'bacteria':
-                form = BacteriaRequestForm(data=data)
-            elif service_request.sub_lab.code == 'disinfection':
-                form = VirusDisinfectionRequestForm(data=data)
-            else:
-                form = VirusAirDisinfectionRequestForm(data=data)
-            for field in form:
-                if field.label.text not in quote_column_names:
-                    continue
-                keys = []
-                keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
-                for r in range(1, len(quote_column_names[field.label.text]) + 1):
-                    for key in itertools.combinations(keys, r):
-                        sorted_key_ = sorted(''.join([k[1] for k in key]))
-                        p_key = ''.join(sorted_key_).replace(' ', '')
-                        values = ', '.join(
-                            [f"<i>{k[1]}</i>" if "organism" in k[0] and k[1] != "None" else k[1] for k in key]
-                        )
-                        count_value.update(values.split(', '))
-                        quantities = (
-                            ', '.join(str(count_value[v]) for v in values.split(', '))
-                            if ((service_request.sub_lab.code not in ['bacteria', 'disinfection', 'air_disinfection']))
-                            else 1
-                        )
-                        if service_request.sub_lab.code == 'endotoxin':
-                            for k in key:
-                                if not k[1]:
-                                    break
-                                for price in quote_prices.values():
-                                    quote_details[p_key] = {"value": values, "price": price, "quantity": quantities}
-                        else:
-                            if p_key in quote_prices:
-                                prices = quote_prices[p_key]
-                                quote_details[p_key] = {"value": values, "price": prices, "quantity": quantities}
         quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
                                      name=service_request.quotation_name,
@@ -6187,7 +6377,8 @@ def confirm_payment(invoice_id):
     status_id = get_status(22)
     payment = ServicePayment.query.filter_by(invoice_id=invoice_id, cancelled_at=None).first()
     if not payment:
-        payment = ServicePayment(invoice_id=invoice_id, payment_type='เช็คเงินสด', amount_paid=payment.invoice.grand_total,
+        payment = ServicePayment(invoice_id=invoice_id, payment_type='เช็คเงินสด',
+                                 amount_paid=payment.invoice.grand_total,
                                  paid_at=arrow.now('Asia/Bangkok').datetime,
                                  customer_id=payment.invoice.quotation.request.customer_id,
                                  created_at=arrow.now('Asia/Bangkok').datetime,
@@ -6255,7 +6446,7 @@ def get_receipts():
         .join(ServiceInvoice.receipts)
         .join(ServiceSubLab.admins)
         .filter(
-                ServiceAdmin.admin_id == current_user.id
+            ServiceAdmin.admin_id == current_user.id
         )
     )
     records_total = query.count()
