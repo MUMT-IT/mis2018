@@ -2125,7 +2125,7 @@ def remove_sds_page_condition_item():
     form = SDSPageRequestForm()
     form.sds_page_condition_field.pop_entry()
     resp = ''
-    for i, item_form in enumerate(form.quantitative_condition_field, start=1):
+    for i, item_form in enumerate(form.sds_page_condition_field, start=1):
         hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
         template = """
             <div id="{}">
