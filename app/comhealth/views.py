@@ -1755,13 +1755,15 @@ def export_csv(service_id):
                      'firstname': u'{}'.format(record.customer.firstname),
                      'lastname': u'{}'.format(record.customer.lastname),
                      'employmentType': u'{}'.format(emptype),
+                     'emp_id': u'{}'.format(record.customer.emp_id or ''),
                      'age': u'{}'.format(record.customer.age_years or ''),
+                     'dob': u'{}'.format(record.customer.dob or ''),
                      'gender': u'{}'.format(record.customer.gender),
-                     'phone': u'{}'.format(record.customer.phone),
+                     'phone': u'{}'.format(record.customer.phone or ''),
                      'organization': u'{}'.format(record.customer.org.name),
                      'department': u'{}'.format(department),
                      'division': u'{}'.format(division),
-                     'unit': u'{}'.format(record.customer.unit),
+                     'unit': u'{}'.format(record.customer.unit or ''),
                      'labno': u'{}'.format(record.labno),
                      'tests': u'{}'.format(tests),
                      'urgent': record.urgent,
@@ -1778,6 +1780,7 @@ def export_csv(service_id):
                                              'firstname',
                                              'lastname',
                                              'age',
+                                             'dob',
                                              'gender',
                                              'phone',
                                              'organization',
@@ -1785,6 +1788,7 @@ def export_csv(service_id):
                                              'division',
                                              'unit',
                                              'employmentType',
+                                             'emp_id',
                                              'tests',
                                              'urgent',
                                              'note_to_lab',
@@ -2236,6 +2240,14 @@ def create_receipt(record_id):
         address = request.form.get('receipt_address', None)
         issued_for = request.form.get('issued_for', None)
         issuer = ComHealthCashier.query.filter_by(staff=current_user).first()
+        reason_text = record.finance_contact.reason or ""
+        if record.note:
+            record.note = f"{record.note}:{reason_text}"
+        else:
+            # ถ้ายังไม่มี note เดิม ไม่ต้องขึ้นต้นด้วย :
+            record.note = f"{reason_text}"
+
+        print("note",record.note)
         if not issuer:
             issuer = ComHealthCashier(staff=current_user,
                                       position=current_user.personal_info.position)
