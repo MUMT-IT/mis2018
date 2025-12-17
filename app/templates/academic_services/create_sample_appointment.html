@@ -32,7 +32,7 @@
                                 <span class="icon"><i class="fas fa-flask"></i></span> งานบริการ
                             </p>
                             <div style="margin-left: 1.75rem;">
-                                {{ service_request.sub_lab.sub_lab }}
+                                {{ sample.request.sub_lab.sub_lab }}
                             </div>
                         </div>
                         <hr>
@@ -50,12 +50,12 @@
                                                 ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
                                             </p>
                                             <div style="margin-left: 1.75rem;">
-                                                <p>ออกในนาม : {{ service_request.quotation_name }}</p>
-                                                <p>ที่อยู่ : {{ service_request.quotation_issue_address }}</p>
+                                                <p>ออกในนาม : {{ sample.request.quotation_name }}</p>
+                                                <p>ที่อยู่ : {{ sample.request.quotation_issue_address }}</p>
                                                 <p>เลขประจำตัวผู้เสียภาษีอากร
-                                                    : {{ service_request.taxpayer_identification_no }}</p>
-                                                <p>เบอร์โทรศัพท์ : {{ service_request.quotation_phone_number }}</p>
-                                                <p>อีเมล : {{ service_request.customer.contact_email }}</p>
+                                                    : {{ sample.request.taxpayer_identification_no }}</p>
+                                                <p>เบอร์โทรศัพท์ : {{ sample.request.quotation_phone_number }}</p>
+                                                <p>อีเมล : {{ sample.request.customer.contact_email }}</p>
                                             </div>
                                         </div>
                                         <div class="column">
@@ -64,10 +64,10 @@
                                                 ข้อมูลที่อยู่จัดส่งเอกสาร
                                             </p>
                                             <div style="margin-left: 1.75rem;">
-                                                <p>ถึง : {{ service_request.receive_name }}</p>
-                                                <p>ที่อยู่ : {{ service_request.receive_address }}</p>
-                                                <p>เบอร์โทรศัพท์ : {{ service_request.receive_phone_number }}</p>
-                                                <p>อีเมล : {{ service_request.customer.contact_email }}</p>
+                                                <p>ถึง : {{ sample.request.receive_name }}</p>
+                                                <p>ที่อยู่ : {{ sample.request.receive_address }}</p>
+                                                <p>เบอร์โทรศัพท์ : {{ sample.request.receive_phone_number }}</p>
+                                                <p>อีเมล : {{ sample.request.customer.contact_email }}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -78,10 +78,10 @@
                                         <span class="icon"><i class="fas fa-user"></i></span> ข้อมูลผู้ประสานงาน
                                     </p>
                                     <div style="margin-left: 1.75rem;">
-                                        {% for cus_contact in service_request.customer.customer_info.customer_contacts %}
+                                        {% for cus_contact in sample.request.customer.customer_info.customer_contacts %}
                                             <p>ชื่อ-นามสกุล : {{ cus_contact.contact_name }}</p>
                                             <p>เลขประจำตัวผู้เสียภาษี
-                                                : {{ service_request.customer.customer_info.taxpayer_identification_no }}</p>
+                                                : {{ sample.request.customer.customer_info.taxpayer_identification_no }}</p>
                                             <p>เบอร์โทรศัพท์ : {{ cus_contact.phone_number }}</p>
                                             <p>อีเมล : {{ cus_contact.email }}</p>
                                             {% if cus_contact.remark %}
@@ -161,8 +161,8 @@
                             </p>
                             <div class="content" style="margin-left: 1.75rem;">
                                 <ul>
-                                    {% if service_request.report_languages %}
-                                        {% for rl in service_request.report_languages %}
+                                    {% if sample.request.report_languages %}
+                                        {% for rl in sample.request.report_languages %}
                                             <li>{{ rl.report_language.item }}</li>
                                         {% endfor %}
                                     {% else %}
@@ -208,12 +208,12 @@
                                         <div class="content">
                                             <p>
                                                 <strong>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล วิทยาเขตศาลายา</strong><br>
-                                                สถานที่ : {{ service_request.sub_lab.salaya_address }}
+                                                สถานที่ : {{ sample.request.sub_lab.salaya_address }}
                                                 <br/>
-                                                เบอร์โทรศัพท์ : {{ service_request.sub_lab.lab.phone_number }}
-                                                {% if service_request.sub_lab.lab.email %}
+                                                เบอร์โทรศัพท์ : {{ sample.request.sub_lab.lab.phone_number }}
+                                                {% if sample.request.sub_lab.lab.email %}
                                                     <br/>
-                                                    อีเมล : {{ service_request.sub_lab.lab.email }}
+                                                    อีเมล : {{ sample.request.sub_lab.lab.email }}
                                                 {% endif %}
                                             </p>
                                         </div>
@@ -229,12 +229,12 @@
                                             <p>
                                                 <strong>คณะเทคนิคการแพทย์ โรงพยาบาลศิริราช
                                                     วิทยาเขตบางกอกน้อย</strong><br>
-                                                สถานที่ : {{ service_request.sub_lab.siriraj_address }}
+                                                สถานที่ : {{ sample.request.sub_lab.siriraj_address }}
                                                 <br/>
-                                                เบอร์โทรศัพท์ : {{ service_request.sub_lab.lab.phone_number }}
-                                                {% if service_request.sub_lab.lab.email %}
+                                                เบอร์โทรศัพท์ : {{ sample.request.sub_lab.lab.phone_number }}
+                                                {% if sample.request.sub_lab.lab.email %}
                                                     <br/>
-                                                    อีเมล : {{ service_request.sub_lab.lab.email }}
+                                                    อีเมล : {{ sample.request.sub_lab.lab.email }}
                                                 {% endif %}
                                             </p>
                                         </div>
@@ -255,12 +255,12 @@
                                     รายละเอียดสถานที่ส่งตัวอย่าง
                                 </label>
                                 <div class="control">
-                                    สถานที่ : {{ service_request.sub_lab.address }}
+                                    สถานที่ : {{ sample.request.sub_lab.address }}
                                     <br/>
-                                    เบอร์โทรศัพท์ : {{ service_request.sub_lab.lab.phone_number }}
-                                    {% if service_request.sub_lab.lab.email %}
+                                    เบอร์โทรศัพท์ : {{ sample.request.sub_lab.lab.phone_number }}
+                                    {% if sample.request.sub_lab.lab.email %}
                                         <br/>
-                                        อีเมล : {{ service_request.sub_lab.lab.email }}
+                                        อีเมล : {{ sample.request.sub_lab.lab.email }}
                                     {% endif %}
                                 </div>
                             </div>
@@ -269,7 +269,7 @@
                                 <div class="is-size-7">
                                     1. กรุณานำส่งตัวอย่างพร้อมใบนำส่งตัวอย่าง, ใบอนุญาตนำเข้าหรือผลิต และสูตรตำรับ/สูตร
                                     100% ของตัวอย่าง<br/>
-                                    2. {{ service_request.sub_lab.note }}
+                                    2. {{ sample.request.sub_lab.note }}
                                 </div>
                             </div>
                         </div>
