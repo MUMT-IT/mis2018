@@ -216,7 +216,7 @@
                             var supervisor = '{{ supervisor }}';
                             var assistant = '{{ assistant }}';
                             if (admin == 'True' && row.status_id == 2 && row.is_completed) {
-                                var quotation_url = '/service_admin/quotation/generate?request_id=' + data + '&tab=draft' + '&menu=quotation';
+                                var quotation_url = '/service_admin/quotation/generate?request_id=' + data + '&tab=draft' + '&menu=quotation&code=' + row.code;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
