@@ -145,7 +145,8 @@ def calculate_leave_quota_limit(staff_id, quota_id, date_time):
 
 def get_seminar_yearly_budget(staff_account_id, start_datetime):
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(start_datetime)
-    yearly_budget = SeminarYearlyBudget.query.filter_by(staff_account_id=staff_account_id, year=START_FISCAL_DATE.year).first()
+    yearly_budget = SeminarYearlyBudget.query.filter_by(staff_account_id=staff_account_id,
+                                                        year=START_FISCAL_DATE.year).first()
     if yearly_budget:
         return yearly_budget
 
@@ -155,7 +156,7 @@ def get_seminar_yearly_budget(staff_account_id, start_datetime):
     for a in StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(and_(
              StaffSeminarAttend.start_datetime >= START_FISCAL_DATE,
              StaffSeminarAttend.end_datetime <= END_FISCAL_DATE)).all():
-        if "IDP" in a.objectives:
+        if any("IDP" in obj.objective for obj in a.objectives):
             if a.budget:
                 total_used += a.budget
     seminar_yearly_budget = SeminarYearlyBudget(
