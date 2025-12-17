@@ -155,8 +155,9 @@ def get_seminar_yearly_budget(staff_account_id, start_datetime):
     for a in StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(and_(
              StaffSeminarAttend.start_datetime >= START_FISCAL_DATE,
              StaffSeminarAttend.end_datetime <= END_FISCAL_DATE)).all():
-        if a.budget:
-            total_used += a.budget
+        if "IDP" in a.objectives:
+            if a.budget:
+                total_used += a.budget
     seminar_yearly_budget = SeminarYearlyBudget(
             staff=staff_account,
             year=START_FISCAL_DATE.year,
@@ -3358,9 +3359,13 @@ def seminar_create_record(seminar_id):
             from app.PA.models import IDPItem
             for item in request.form.getlist('idps'):
                 idp_item = IDPItem.query.get(item)
+            if "IDP" in request.form.get('objective'):
+                yearly_budget = get_seminar_yearly_budget(current_user.id, seminar.start_datetime)
+                if attend.budget:
+                    yearly_budget.total_used = yearly_budget.total_used + attend.budget
+                    yearly_budget.remaining = yearly_budget.remaining - attend.budget
+                    db.session.add(yearly_budget)
             db.session.commit()
-            yearly_budget = get_seminar_yearly_budget(current_user.id, seminar.start_datetime)
-
             # req_title = u'ทดสอบแจ้งการขออนุมัติ' + attend.seminar.topic_type
             # req_msg = u'{} ขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
             #           u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
@@ -3430,7 +3435,7 @@ def get_idp_for_seminar(seminar_id):
                     </table>
                 '''
             yearly_budget = get_seminar_yearly_budget(current_user.id, seminar.start_datetime)
-            html_content += f'''<p class="is-size-5">วงเงิน {yearly_budget.budget} บาท ยอดที่ใช้(รวมครั้งนี้) {yearly_budget.total_used} บาท คงเหลือ {yearly_budget.remaining} บาท</p>'''
+            html_content += f'''<p class="is-size-5">วงเงิน {yearly_budget.budget} บาท ยอดที่ใช้(ยังไม่รวมครั้งนี้) {yearly_budget.total_used} บาท คงเหลือ {yearly_budget.remaining} บาท</p>'''
         resp = make_response(html_content)
         resp.headers['HX-Trigger-After-Swap'] = 'initSelect2'
         return resp

@@ -82,7 +82,7 @@
                         <br>
                         <span class="is-size-5"><strong>รายละเอียด</strong></span>
                         <b-field>
-                            <b-select placeholder="เลือก" name="objective" id="objective"
+                            <b-select placeholder="เลือก" name="objective" id="objective" required
                                  hx-get="{{ url_for('staff.get_idp_for_seminar', seminar_id=seminar.id) }}"
                                  hx-target="#related-idp"
                                  hx-swap="innerHTML"
@@ -265,7 +265,7 @@
                             <div>
                                 <label>ผู้อนุมัติ</label>
                                 <div class="select">
-                                {{ form.approver(**{'hx-get': url_for('staff.get_positions'),
+                                {{ form.approver(required=True,**{'hx-get': url_for('staff.get_positions'),
                                 'hx-target': '#related-position', 'hx-swap': 'innerHTML', 'hx-trigger': 'change, load'}) }}
                                 </div>
                             </div>
