@@ -123,15 +123,28 @@
                     },
                     {
                         data: 'status',
-                        render: function (data) {
-                            var text = data == 'ส่งคำขอแล้ว' ? 'รอดำเนินการ' : data;
-                            var status_color = data == 'ส่งคำขอแล้ว' ? 'is-info' : data == 'อยู่ระหว่างพิจารณา' ? 'is-warning' :
-                                data == 'อนุมัติ' ? 'is-success' : data == 'เสร็จสิ้น' ? 'is-info' : data == 'ไม่อนุมัติ' ?
-                                'is-danger' : 'is-dark';
+                        render: function (data, type, row) {
+                            var text = data == 'เสร็จสิ้น' ? 'ดำเนินการเสร็จสิ้น' : row.has_timeline ? 'กำลังพัฒนา' : 'ยังไม่ดำเนินการ';
+                            var status_color = data == 'เสร็จสิ้น' ? 'is-success' : row.has_timeline ? 'is-warning' : 'is-danger';
+                            var icon = data == 'เสร็จสิ้น' ? '<i class="fas fa-check-circle"></i>' : row.has_timeline ? '<i class="fas fa-hourglass-end"></i>' : '<i class="fas fa-times-circle"></i>';
                             if (data != null) {
-                                return '<span class="tag '+ status_color +'">' + text +'</span>'
+                                return '<span class="tag ' + status_color + '">' +
+                                           '<span class="icon">' +
+                                               icon +
+                                           '</span>' +
+                                           '<span>' +
+                                               text +
+                                           '</span>' +
+                                       '</span>';
                             } else {
-                                return '<span class="tag is-light">ไม่มีสถานะ</span>'
+                                return '<span class="tag is-danger">' +
+                                            '<span class="icon">' +
+                                               '<i class="fas fa-times-circle"></i>' +
+                                           '</span>' +
+                                           '<span>' +
+                                                'ยังไม่ดำเนินการ' +
+                                           '</span>' +
+                                        '</span>'
                             }
                         }
                     },
