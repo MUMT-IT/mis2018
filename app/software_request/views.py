@@ -120,55 +120,96 @@ def get_systems():
 @login_required
 def admin_index():
     tab = request.args.get('tab')
-    pending_count = SoftwareRequestDetail.query.filter_by(status='ส่งคำขอแล้ว').count()
-    consider_count = SoftwareRequestDetail.query.filter_by(status='อยู่ระหว่างพิจารณา').count()
-    approve_count = SoftwareRequestDetail.query.filter_by(status='อนุมัติ').count()
-    disapprove_count = SoftwareRequestDetail.query.filter_by(status='ไม่อนุมัติ').count()
-    cancel_count = SoftwareRequestDetail.query.filter_by(status='ยกเลิก').count()
-    return render_template('software_request/admin_index.html', tab=tab, pending_count=pending_count,
-                           consider_count=consider_count, approve_count=approve_count,
-                           disapprove_count=disapprove_count,
-                           cancel_count=cancel_count)
+    api = request.args.get('api', 'false')
+    query = SoftwareRequestDetail.query
+    pending_query = query.filter_by(status='ส่งคำขอแล้ว')
+    consider_query = query.filter_by(status='อยู่ระหว่างพิจารณา')
+    approve_query = query.filter_by(status='อนุมัติ')
+    complete_query = query.filter_by(status='เสร็จสิ้น')
+    disapprove_query = query.filter_by(status='ไม่อนุมัติ')
+    cancel_query = query.filter_by(status='ยกเลิก')
+    if api == 'true':
+        tab = request.args.get('tab')
+        if tab == 'pending':
+            query = pending_query
+        elif tab == 'consider':
+            query = consider_query
+        elif tab == 'approve':
+            query = approve_query
+        elif tab == 'complete':
+            query = complete_query
+        elif tab == 'disapprove':
+            query = disapprove_query
+        elif tab == 'cancel':
+            query = cancel_query
+
+        records_total = query.count()
+        search = request.args.get('search[value]')
+        if search:
+            query = query.filter(db.or_
+                                 (SoftwareRequestDetail.type.ilike(u'%{}%'.format(search)),
+                                  SoftwareRequestDetail.description.ilike(u'%{}%'.format(search)),
+                                  SoftwareRequestDetail.created_by.ilike(u'%{}%'.format(search)),
+                                  SoftwareRequestDetail.created_date.ilike(u'%{}%'.format(search)),
+                                  SoftwareRequestDetail.status.ilike(u'%{}%'.format(search))
+                                  ))
+        start = request.args.get('start', type=int)
+        length = request.args.get('length', type=int)
+        total_filtered = query.count()
+        query = query.offset(start).limit(length)
+        data = []
+        for item in query:
+            item_data = item.to_dict()
+            data.append(item_data)
+        return jsonify({'data': data,
+                        'recordFiltered': total_filtered,
+                        'recordTotal': records_total,
+                        'draw': request.args.get('draw', type=int)
+                        })
+    return render_template('software_request/admin_index.html', tab=tab, pending_count=pending_query.count(),
+                           consider_count=consider_query.count(), approve_count=approve_query.count(),
+                           complete_count=complete_query.count(), disapprove_count=disapprove_query.count(),
+                           cancel_count=cancel_query.count())
 
 
-@software_request.route('/api/request/index')
-def get_requests():
-    tab = request.args.get('tab')
-    if tab == 'pending':
-        query = SoftwareRequestDetail.query.filter_by(status='ส่งคำขอแล้ว')
-    elif tab == 'consider':
-        query = SoftwareRequestDetail.query.filter_by(status='อยู่ระหว่างพิจารณา')
-    elif tab == 'approve':
-        query = SoftwareRequestDetail.query.filter_by(status='อนุมัติ')
-    elif tab == 'disapprove':
-        query = SoftwareRequestDetail.query.filter_by(status='ไม่อนุมัติ')
-    elif tab == 'cancel':
-        query = SoftwareRequestDetail.query.filter_by(status='ยกเลิก')
-    else:
-        query = SoftwareRequestDetail.query
-    records_total = query.count()
-    search = request.args.get('search[value]')
-    if search:
-        query = query.filter(db.or_
-                             (SoftwareRequestDetail.type.ilike(u'%{}%'.format(search)),
-                              SoftwareRequestDetail.description.ilike(u'%{}%'.format(search)),
-                              SoftwareRequestDetail.created_by.ilike(u'%{}%'.format(search)),
-                              SoftwareRequestDetail.created_date.ilike(u'%{}%'.format(search)),
-                              SoftwareRequestDetail.status.ilike(u'%{}%'.format(search))
-                              ))
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    total_filtered = query.count()
-    query = query.offset(start).limit(length)
-    data = []
-    for item in query:
-        item_data = item.to_dict()
-        data.append(item_data)
-    return jsonify({'data': data,
-                    'recordFiltered': total_filtered,
-                    'recordTotal': records_total,
-                    'draw': request.args.get('draw', type=int)
-                    })
+# @software_request.route('/api/request/index')
+# def get_requests():
+#     tab = request.args.get('tab')
+#     if tab == 'pending':
+#         query = SoftwareRequestDetail.query.filter_by(status='ส่งคำขอแล้ว')
+#     elif tab == 'consider':
+#         query = SoftwareRequestDetail.query.filter_by(status='อยู่ระหว่างพิจารณา')
+#     elif tab == 'approve':
+#         query = SoftwareRequestDetail.query.filter_by(status='อนุมัติ')
+#     elif tab == 'disapprove':
+#         query = SoftwareRequestDetail.query.filter_by(status='ไม่อนุมัติ')
+#     elif tab == 'cancel':
+#         query = SoftwareRequestDetail.query.filter_by(status='ยกเลิก')
+#     else:
+#         query = SoftwareRequestDetail.query
+#     records_total = query.count()
+#     search = request.args.get('search[value]')
+#     if search:
+#         query = query.filter(db.or_
+#                              (SoftwareRequestDetail.type.ilike(u'%{}%'.format(search)),
+#                               SoftwareRequestDetail.description.ilike(u'%{}%'.format(search)),
+#                               SoftwareRequestDetail.created_by.ilike(u'%{}%'.format(search)),
+#                               SoftwareRequestDetail.created_date.ilike(u'%{}%'.format(search)),
+#                               SoftwareRequestDetail.status.ilike(u'%{}%'.format(search))
+#                               ))
+#     start = request.args.get('start', type=int)
+#     length = request.args.get('length', type=int)
+#     total_filtered = query.count()
+#     query = query.offset(start).limit(length)
+#     data = []
+#     for item in query:
+#         item_data = item.to_dict()
+#         data.append(item_data)
+#     return jsonify({'data': data,
+#                     'recordFiltered': total_filtered,
+#                     'recordTotal': records_total,
+#                     'draw': request.args.get('draw', type=int)
+#                     })
 
 
 @software_request.route('/admin/request/edit/<int:detail_id>', methods=['GET', 'POST'])
