@@ -55,14 +55,17 @@
                 <div class="column">
                     <table id="request" class="table is-fullwidth">
                         <thead>
-                            <th>โครงการ/ระบบ</th>
-                            <th>ประเภทคำขอ</th>
-                            <th>รายละเอียด</th>
-                            <th>ผู้ส่งคำขอ</th>
-                            <th>สังกัด</th>
-                            <th>วันที่ส่งคำขอ</th>
-                            <th>สถานะ</th>
-                            <th></th>
+                            <tr>
+                                <th>โครงการ/ระบบ</th>
+                                <th>ประเภทคำขอ</th>
+                                <th>รายละเอียด</th>
+                                <th>ผู้ส่งคำขอ</th>
+                                <th>สังกัด</th>
+                                <th>วันที่ส่งคำขอ</th>
+                                <th>สถานะ</th>
+                                <th>issues</th>
+                                <th></th>
+                            </tr>
                         </thead>
                         <tbody>
                         </tbody>
@@ -113,6 +116,16 @@
                         }
                     },
                     {
+                        data: 'open_issues',
+                        render: function (data) {
+                            if (data > 0) {
+                                return `<span class="tag is-rounded is-danger">${data}</span>`
+                            } else {
+                                return `<span class="tag is-rounded is-light">0</span>`
+                            }
+                        }
+                    },
+                    {
                         data: 'id',
                         render: function (data) {
                             var url = '/software_request/admin/request/edit/' +  data + '?tab=' + '{{ tab }}';
@@ -120,7 +133,7 @@
                                         <div class="control">
                                             <a href="${url}">
                                                 <span class="icon">
-                                                    <i class="fas fa-pencil"></i>
+                                                    <i class="fa-solid fa-eye"></i>
                                                 </span>
                                             </a>
                                         </div>

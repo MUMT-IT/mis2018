@@ -253,7 +253,6 @@ def notify_room_booking():
     start = arrow.now('Asia/Bangkok')
     if when == 'tomorrow':
         start = start.shift(hours=+15)
-
     end = start.shift(hours=+8)
     coords = defaultdict(list)
     for evt in RoomEvent.query \
@@ -261,24 +260,20 @@ def notify_room_booking():
                         (DateTimeRange(lower=start.datetime, upper=end.datetime, bounds='[]'))) \
             .filter(RoomEvent.cancelled_at == None):
         for co in evt.room.coordinators:
-            coords[co].append((evt.room.number, evt.datetime))
-
+            coords[co].append((evt.room.number, evt.datetime,
+                               evt.creator.personal_info.fullname, evt.comment))
     for co in coords:
         if when == 'today':
             message = 'รายการจองห้องที่ท่านดูแลในวันนี้:\n'
         elif when == 'tomorrow':
             message = 'รายการจองห้องที่ท่านดูแลในวันพรุ่งนี้:\n'
-
+        for room_number, datetime, creator, comment in coords[co]:
+            start = tz.localize(datetime.lower).strftime("%H:%M")
+            end = tz.localize(datetime.upper).strftime('%H:%M')
+            message += f'ห้อง {room_number} เวลา {start} - {end} ผู้จอง {creator} ' + (f'({comment})' if comment else '')+'\n'
         if co.line_id:
             try:
-                for room_number, datetime in coords[co]:
-                    message += 'ห้อง {} เวลา {} - {}\n'.format(
-                    room_number,
-                    tz.localize(datetime.lower).strftime('%H:%M'),
-                    tz.localize(datetime.upper).strftime('%H:%M'),
-                )
-                line_bot_api.push_message(to=co.line_id,
-                                          messages=TextSendMessage(text=message))
+                line_bot_api.push_message(to=co.line_id, messages=TextSendMessage(text=message))
             except LineBotApiError as e:
                 return jsonify({'message': str(e)})
 

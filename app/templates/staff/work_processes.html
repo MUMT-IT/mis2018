@@ -19,6 +19,7 @@
                         <th>ตัวชี้วัด</th>
                         </thead>
                         {% for proc in current_user.processes %}
+                            {% if not proc.is_expired %}
                             <tr>
                                 <td>
                                     {{ proc.name }}
@@ -65,6 +66,7 @@
                                     </div>
                                 </td>
                             </tr>
+                            {% endif %}
                         {% endfor %}
                     </table>
                 </div>

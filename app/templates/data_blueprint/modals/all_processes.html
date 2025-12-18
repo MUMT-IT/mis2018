@@ -1,0 +1,48 @@
+<style>
+.modal-content {
+  border-radius: 10px; /* Adjust the value for desired roundness */
+  overflow: hidden; /* Ensures content also respects the rounded corners */
+}
+
+/* If using modal-card for header/footer */
+.modal-card {
+  border-radius: 10px; /* Apply to the entire card */
+  overflow: hidden;
+}
+
+.modal-card-head,
+.modal-card-foot {
+  border-bottom-left-radius: 0; /* Override default rounded corners for head/foot if needed */
+  border-bottom-right-radius: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+</style>
+<div class="modal is-active" id="processes-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <div class="modal-card-body">
+            <div class="tags are-medium">
+                {% for p in processes %}
+                    <a class="tag is-rounded"
+                       {% if p.name %}
+                           href="{{url_for('data_bp.process_detail', process_id=p.id)}}">
+                        {% else %}
+                           href="{{url_for('data_bp.core_service_detail', service_id=p.id)}}">
+                        {% endif %}
+                        {{ p.name or p.service }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <button id="cancelButton" class="modal-close is-large" aria-label="close"></button>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#processes-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', (evt) => {
+        htmx.removeClass(htmx.find('#processes-modal'), 'is-active')
+    })
+</script>

@@ -29,7 +29,7 @@
                 <table class="table is-striped" id="preseminarTable">
                     <thead>
                         <th>วันที่จัด</th>
-                        <th>ถึงวันที่</th>
+                        <th>ปิดลงทะเบียน</th>
                         <th>ชื่อกิจกรรม</th>
                         <th>แก้ไข</th>
                     </thead>
@@ -40,7 +40,7 @@
                             {{ seminar.start_datetime|localdatetime }}
                         </td>
                         <td style="width: 10%">
-                             {{ seminar.end_datetime|localdatetime }}
+                             {{ seminar.closed_at|localdatetime }}
                         </td>
                         <td style="width: 70%">
                             <a href="{{ url_for('staff.seminar_pre_register_info', seminar_id=seminar.id) }}">

@@ -91,7 +91,7 @@ def get_events():
 
         evt = {
             'location': room.location,
-            'title': u'({} {}) {} ({} คน): {}'.format(room.number, room.location, event.title, event.occupancy, event.note),
+            'title': u'({} {})({}) {} ({} คน): {}'.format(room.number, room.location, event.creator.fullname[:14] + '..' if len(event.creator.fullname) >= 14 else event.creator.fullname, event.title, event.occupancy, event.note),
             'description': event.note,
             'start': start.isoformat(),
             'end': end.isoformat(),

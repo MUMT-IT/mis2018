@@ -3,6 +3,14 @@
 {% block page_content %}
 <section class="section">
     <div class="container" id="app">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li><a href="{{ url_for('pa.index') }}">หน้าหลัก</a></li>
+                <li><a href="{{ url_for('pa.all_request') }}">รายการคำร้อง</a></li>
+                <li class="is-active"><a href="#" aria-current="page">ประเมินผล</a></li>
+                <li><a href="{{ url_for('pa.all_pa_score') }}" aria-current="page">คะแนน</a></li>
+            </ul>
+        </nav>
         <div class="columns">
             <div class="column has-text-left">
                 <h1 class="title">การประเมินผลการปฏิบัติงาน สำหรับประธานกรรมการ</h1>
@@ -15,10 +23,10 @@
                 <div class="notification is-info is-light">
                     <span>
                         * ขั้นตอนประเมินผลงาน<br>
-                        1. เลือก <span class="icon"><i class="fa-solid fa-user-plus"></i></span><span>กรรมการ</span>
-                        เพื่อเลือกกลุ่มกรรมการที่จะประเมินผู้รับประเมินในรอบนั้นๆ<br><br>
-                        2. เลือก <span class="icon"><i class="fa-solid fa-magnifying-glass-chart"></i></span>
+                        1. เลือก <span class="icon"><i class="fa-solid fa-magnifying-glass-chart"></i></span>
                         <span>ประเมิน</span> เพื่อดำเนินการประเมินสำหรับผู้บังคับบัญชาชั้นต้น<br><br>
+                        2. เลือก <span class="icon"><i class="fa-solid fa-user-plus"></i></span><span>กรรมการ</span>
+                        เพื่อเลือกกลุ่มกรรมการที่จะประเมินผู้รับประเมินในรอบนั้นๆ<br><br>
                         3. เลือก <span class="icon"><i class="fa-solid fa-paper-plane"></i></span>
                         <span>ส่งแบบประเมิน</span> เพื่อส่งให้กลุ่มกรรมการดำเนินการประเมินต่อ
                     </span>
@@ -75,26 +83,6 @@
                         {% elif pa.is_submitted %}
                         <div class="field has-addons">
                             <div class="control">
-                                <a href="{{ url_for('pa.assign_committee', pa_id=pa.id) }}"
-                                   class="button is-dark is-rounded is-outlined is-small">
-                                    {% if pa.is_committee %}
-                                    <span class="tag is-success is-light">
-                                        <span class="icon">
-                                            <i class="fa-solid fa-user-plus"></i>
-                                        </span>
-                                        <span>1. กรรมการ</span>
-                                    </span>
-                                    {% else %}
-                                    <span class="is-light">
-                                        <span class="icon">
-                                            <i class="fa-solid fa-user-plus"></i>
-                                        </span>
-                                        <span>1. กรรมการ</span>
-                                    </span>
-                                    {% endif %}
-                                </a>
-                            </div>
-                            <div class="control">
                                 <a href="{{ url_for('pa.create_scoresheet', pa_id=pa.id) }}"
                                    class="button is-dark is-outlined is-rounded is-small">
                                     {% if pa.is_final_head_scoresheet %}
@@ -108,7 +96,27 @@
                                     <span class="icon">
                                         <i class="fa-solid fa-magnifying-glass-chart"></i>
                                     </span>
-                                    <span>2. ประเมิน</span>
+                                    <span>1. ประเมิน</span>
+                                    {% endif %}
+                                </a>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('pa.assign_committee', pa_id=pa.id) }}"
+                                   class="button is-dark is-rounded is-outlined is-small">
+                                    {% if pa.is_committee %}
+                                    <span class="tag is-success is-light">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-user-plus"></i>
+                                        </span>
+                                        <span>2. กรรมการ</span>
+                                    </span>
+                                    {% else %}
+                                    <span class="is-light">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-user-plus"></i>
+                                        </span>
+                                        <span>2. กรรมการ</span>
+                                    </span>
                                     {% endif %}
                                 </a>
                             </div>
@@ -225,7 +233,7 @@
                     </a>
                     <b-dropdown hoverable aria-role="list">
                         <button class="button is-info" slot="trigger">
-                            <span>ปีอื่นๆ</span>
+                            <span>ปีงบอื่นๆ</span>
                             <b-icon icon="menu-down"></b-icon>
                         </button>
                         {% for fy in end_round_year|sort(attribute='fy', reverse=True) %}
@@ -251,6 +259,7 @@
                     </thead>
                     <tbody>
                     {% for pa in pa_query %}
+                        {% if not pa.staff.is_retired %}
                     <tr>
                         <td style="width: 5%">
                             {{ pa.round.desc }} ({{ pa.round }})
@@ -265,7 +274,7 @@
                                 {% endif %}
                             {% endfor %}
                             {% if pa.approved_at %}
-                                    <span class="tag is-info is-rounded">
+                                    <span class="tag is-success is-light is-rounded">
                                         <span class="icon">
                                             <i class="fas fa-check-circle"></i>
                                         </span>
@@ -296,7 +305,7 @@
                                 {% endif %}
                             {% endfor %}
                             {% if pa.submitted_at %}
-                                    <span class="tag is-link is-rounded">
+                                    <span class="tag is-success is-light is-rounded">
                                         <span class="icon">
                                             <i class="fas fa-check-circle"></i>
                                         </span>
@@ -305,7 +314,7 @@
                             {% endif %}
                         </td>
                         <td style="width: 13%">
-                            {% for s in pa.pa_score_sheet %}
+                            {% for s in pa.pa_score_sheet|sort(attribute='id') %}
                                 {% if not s.staff_id %}
                                     {% if s.committee %}
                                         {% if s.is_consolidated %}
@@ -324,7 +333,7 @@
                                         </span>
                                         <br>
                                     {% else %}
-                                        <span class="tag is-light is-rounded">
+                                        <span class="tag is-warning is-rounded">
                                             <span class="icon">
                                                 <i class="fas fa-hourglass"></i>
                                             </span>
@@ -336,6 +345,14 @@
                             {% endfor %}
                         </td>
                         <td>
+                            {% for s in pa.pa_score_sheet %}
+                                {% for a in s.approved_score_sheet %}
+                                    {% if not a.approved_at %}
+                                        <span class="is-size-6">{{ a.committee.staff.fullname }}</span>
+                                        <span class="is-size-7">:ยังไม่อนุมัติคะแนนสรุป <br></span>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
                             {% if pa.evaluated_at %}
                                     <span class="tag is-success is-rounded">
                                         <span class="icon">
@@ -346,6 +363,7 @@
                             {% endif %}
                         </td>
                     </tr>
+                        {% endif %}
                     {% endfor %}
                     </tbody>
                 </table>

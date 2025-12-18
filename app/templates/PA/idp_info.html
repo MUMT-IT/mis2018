@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 {% block page_content %}
+    {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
+    {{ user_evaluate('idp') }}
     <section class="section">
         <div class="container">
             {% include "messages.html" %}
@@ -24,7 +26,7 @@
                                             <th></th>
                                             </thead>
                                             <tbody>
-                                            {% for idp in all_idp %}
+                                            {% for idp in all_idp|sort(attribute='id', reverse=True) %}
                                                 {% if idp.round.is_closed != True %}
                                                     <tr>
                                                         <td>{{ idp.round.desc }}</td>

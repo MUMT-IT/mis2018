@@ -2,6 +2,14 @@
 
 {% include "data_blueprint/nav.html" %}
 
+{% block head %}
+    {{ super() }}
+    <style>
+    .no-underline {
+      text-decoration: none !important;
+    }
+    </style>
+{% endblock %}
 {% block page_content %}
 <section class="section">
     {% include "messages.html" %}
@@ -21,26 +29,33 @@
                     <h1 class="title is-size-4 has-text-centered">Performance Management</h1>
                     <div class="tags">
                         {% for p in performance_processes %}
-                        <a href="{{url_for('data_bp.process_detail', process_id=p.id)}}">
-                            <span class="tag is-medium is-success is-light is-rounded">
+                        <a class="tag is-rounded is-light has-text-black no-underline" href="{{url_for('data_bp.process_detail', process_id=p.id)}}">
                             {{ p.name }}
-                            </span>
                         </a>
                         {% endfor %}
+                        <a class="tag is-rounded is-light has-text-black no-underline" hx-get="{{ url_for('data_bp.index', process_category='performance') }}"
+                           hx-swap="innerHTML" hx-target="#processes-modal-placeholder">
+                            more...
+                        </a>
                     </div>
                 </article>
             </div>
+            <div id="processes-modal-placeholder"></div>
             <div class="tile is-parent">
                 <article class="tile is-child notification is-success">
                     <h1 class="title is-size-4 has-text-centered">Experience Management</h1>
                     <div class="tags">
                         {% for p in crm_processes %}
-                        <a href="{{url_for('data_bp.process_detail', process_id=p.id)}}">
-                            <span class="tag is-medium is-success is-light is-rounded">
+                        <a class="no-underline tag has-text-black is-light is-rounded"
+                           href="{{url_for('data_bp.process_detail', process_id=p.id)}}">
                             {{ p.name }}
-                            </span>
                         </a>
                         {% endfor %}
+                        <a class="no-underline tag has-text-black is-light is-rounded"
+                           hx-get="{{ url_for('data_bp.index', process_category='crm') }}"
+                           hx-swap="innerHTML" hx-target="#processes-modal-placeholder">
+                            more...
+                        </a>
                     </div>
                 </article>
             </div>
@@ -55,12 +70,15 @@
                     </h1>
                     <div class="tags">
                         {% for sv in core_services %}
-                            <a href="{{url_for('data_bp.core_service_detail', service_id=sv.id)}}">
-                                <span class="tag is-light is-info is-medium is-rounded">
+                            <a class="tag has-text-black no-underline is-light is-rounded" href="{{url_for('data_bp.core_service_detail', service_id=sv.id)}}">
                                 {{ sv.service }}
-                                </span>
                             </a>
                         {% endfor %}
+                        <a class="tag has-text-black no-underline is-light is-rounded"
+                           hx-get="{{ url_for('data_bp.index', process_category='core_services') }}"
+                           hx-swap="innerHTML" hx-target="#processes-modal-placeholder">
+                            more...
+                        </a>
                     </div>
                 </article>
             </div>
@@ -69,12 +87,16 @@
                     <h1 class="title is-size-4 has-text-centered">Back Office</h1>
                     <div class="tags">
                         {% for p in back_office_processes %}
-                        <a href="{{url_for('data_bp.process_detail', process_id=p.id)}}">
-                            <span class="tag is-light is-medium is-warning is-rounded">
+                        <a class="tag has-text-black no-underline is-light is-rounded"
+                           href="{{url_for('data_bp.process_detail', process_id=p.id)}}">
                             {{ p.name }}
-                            </span>
                         </a>
                         {% endfor %}
+                        <a class="tag has-text-black no-underline is-light is-rounded"
+                           hx-get="{{ url_for('data_bp.index', process_category='back_office') }}"
+                           hx-swap="innerHTML" hx-target="#processes-modal-placeholder">
+                            more...
+                        </a>
                     </div>
                 </article>
             </div>
@@ -84,12 +106,17 @@
                     </h1>
                     <div class="tags">
                         {% for p in regulation_processes %}
-                        <a href="{{url_for('data_bp.process_detail', process_id=p.id)}}">
-                            <span class="tag is-light is-medium is-warning is-rounded">
+                        <a class="tag has-text-black is-light is-rounded no-underline"
+                           href="{{url_for('data_bp.process_detail', process_id=p.id)}}">
                             {{ p.name }}
                             </span>
                         </a>
                         {% endfor %}
+                        <a class="tag has-text-black no-underline is-light is-rounded"
+                           hx-get="{{ url_for('data_bp.index', process_category='regulation') }}"
+                           hx-swap="innerHTML" hx-target="#processes-modal-placeholder">
+                            more...
+                        </a>
                     </div>
                 </article>
             </div>
@@ -106,10 +133,9 @@
                     </h1>
                     <div class="tags">
                         {% for dt in data %}
-                            <a href="{{ url_for('data_bp.data_detail', data_id=dt.id) }}">
-                                <p class="tag is-danger is-medium is-light is-rounded">
+                            <a class="tag has-text-black no-underline is-rounded is-light"
+                               href="{{ url_for('data_bp.data_detail', data_id=dt.id) }}">
                                 {{ dt.name }}
-                                </p>
                             </a>
                         {% endfor %}
                     </div>

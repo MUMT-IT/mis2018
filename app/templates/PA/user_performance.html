@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% include "PA/nav.html" %}
 {% block page_content %}
+    {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
+    {{ user_evaluate('pa') }}
     <section class="section">
         <div class="container">
             <nav class="breadcrumb" aria-label="breadcrumbs">
@@ -115,11 +117,6 @@
                             </table>
                         </div>
                     </div>
-                </div>
-            </div>
-            <div class="columns">
-                <div class="column is-two-thirds is-offset-2 has-text-right">
-                    พบปัญหาติดต่อ akharawat.ons@mahidol.ac.th หรือเบอร์ต่อ 2834<br> napatsakorn.pis@mahidol.ac.th หรือเบอร์ต่อ 2845
                 </div>
             </div>
         </div>

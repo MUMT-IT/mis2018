@@ -1,10 +1,30 @@
 {% extends "base.html" %}
 {% include "nav.html" %}
-{% block page_content %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}{% block page_content %}
 <section class="section">
     <div class="container" id="app">
         {% include "messages.html" %}
         <div class="columns">
+            {% if is_secretary %}
+            <div id="seminar-pre-register-modal-container"></div>
+            <a hx-get="{{ url_for('staff.seminar_pre_register_manage') }}"
+               hx-target="#seminar-pre-register-modal-container" hx-swap="innerHTML" class="button is-rounded is-warning ">
+                <span class="icon">
+                    <i class="fas fa-plus"></i>
+                </span>
+                <span>สร้างกิจกรรมใหม่(ลงทะเบียนล่วงหน้า)</span>
+            </a>
+            <a href="{{ url_for('staff.create_seminar') }}" class="button is-rounded is-warning">
+                <span class="icon">
+                    <i class="fas fa-walking"></i>
+                </span>
+                <span>สร้างลงทะเบียนหน้างาน(กรณีไม่มีลงทะเบียนล่วงหน้า)</span>
+            </a>
+            {% endif %}
             <div class="column has-text-right">
                 <a href="{{ url_for('staff.seminar_pre_register_my_records') }}" class="button is-rounded is-warning is-light">
                     <span>การลงทะเบียนของฉัน</span>
@@ -51,6 +71,41 @@
                 </table>
             </div>
         </div>
+        {% if is_secretary %}
+            <h1 class="title">ประวัติการสร้าง</h1>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-striped" id="seminarTable">
+                        <thead>
+                            <th>วันที่จัด</th>
+                            <th>ถึงวันที่</th>
+                            <th>ชื่อกิจกรรม</th>
+                            <th>ปิดลงทะเบียน</th>
+                        </thead>
+                        <tbody>
+                        {% for seminar in all_created_seminars %}
+                        <tr>
+                            <td style="width: 10%">
+                                {{ seminar.start_datetime|localdatetime }}
+                            </td>
+                            <td style="width: 10%">
+                                 {{ seminar.end_datetime|localdatetime }}
+                            </td>
+                            <td style="width: 70%">
+                                <a href="{{ url_for('staff.seminar_pre_register_info', seminar_id=seminar.id) }}">
+                                    <span>{{ seminar.topic }}</span>
+                                </a>
+                            </td>
+                            <td>
+                                {{ seminar.closed_at|localdatetime }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endif %}
         <div class="columns">
             <div class="column">
                 <a href="{{ url_for('index') }}" class="button is-rounded is-info is-light">
@@ -69,6 +124,57 @@
 <script>
     $(document).ready(function(){
         $('#preseminarTable').DataTable();
+        $('#seminarTable').DataTable();
     });
 </script>
+
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript" src="//fastly.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
+    <script type="text/javascript">
+        const DATETIME_FORMAT = 'YYYY-MM-DD HH:mm:ss'
+        function initDatePicker() {
+            console.log('init..datepicker')
+            $("#start_datetime").daterangepicker({
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 30,
+                timePicker24Hour: true,
+                buttonClasses: 'button is-small',
+                applyButtonClasses: 'is-info',
+                cancelButtonClasses: 'is-text',
+                showDropdowns: true,
+                locale: {
+                    format: DATETIME_FORMAT
+                }
+            });
+            $("#end_datetime").daterangepicker({
+                showDropdowns: true,
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 30,
+                timePicker24Hour: true,
+                buttonClasses: 'button is-small',
+                applyButtonClasses: 'is-info',
+                cancelButtonClasses: 'is-text',
+                locale: {
+                    format: DATETIME_FORMAT
+                }
+            });
+            $('input[name="closed_at"]').daterangepicker({
+                showDropdowns: true,
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 30,
+                timePicker24Hour: true,
+                buttonClasses: 'button is-small',
+                applyButtonClasses: 'is-info',
+                cancelButtonClasses: 'is-text',
+                locale: {
+                    format: DATETIME_FORMAT
+                }
+            });
+        }
+        document.addEventListener('initDatePicker', initDatePicker)
+    </script>
 {% endblock %}

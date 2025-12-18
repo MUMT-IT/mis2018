@@ -451,6 +451,15 @@ class StaffHeadPosition(db.Model):
     staff = db.relationship('StaffAccount', backref=db.backref('head_position_staff'))
 
 
+class StaffResignation(db.Model):
+    __tablename__ = 'staff_resignations'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship('StaffAccount', backref=db.backref('resignation'))
+    hire_date = db.Column('hire_date', db.Date())
+    resign_date = db.Column('resign_date', db.Date())
+
+
 class StaffLeaveType(db.Model):
     __tablename__ = 'staff_leave_types'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -754,6 +763,7 @@ class StaffSeminar(db.Model):
     created_by = db.relationship('StaffAccount', foreign_keys=[created_account_id],
                             backref=db.backref('seminar_created_by', lazy='dynamic',
                                                cascade='all, delete-orphan'))
+    require_food = db.Column('require_food', db.Boolean(), default=False)
 
     def __str__(self):
         return u'{}'.format(self.topic)
@@ -763,6 +773,7 @@ class StaffSeminarMission(db.Model):
     __tablename__ = 'staff_seminar_missions'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     mission = db.Column('mission', db.String())
+    is_active = db.Column('is_active', db.Boolean(), default=True)
 
 
 class StaffSeminarObjective(db.Model):
@@ -784,6 +795,8 @@ class StaffSeminarPreRegister(db.Model):
                             backref=db.backref('seminar_pre_register_staff', lazy='dynamic',
                                                cascade='all, delete-orphan'))
     seminar = db.relationship('StaffSeminar', backref=db.backref('pre_registers'), foreign_keys=[seminar_id])
+    food_type = db.Column('food_type', db.String(), info={'label': 'ประเภทอาหาร', 'choices': [
+                        (c, c) for c in ['ปกติ', 'อิสลาม', 'มังสวิรัติ']]})
 
 
 class StaffSeminarAttend(db.Model):
@@ -841,6 +854,17 @@ class StaffSeminarAttend(db.Model):
     @property
     def objective_list(self):
         return [o.objective for o in self.objectives]
+
+
+class StaffSeminarDocumentApprover(db.Model):
+    __tablename__ = 'staff_seminar_document_approvers'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    seminar_attend_id = db.Column('seminar_attend_id', db.ForeignKey('staff_seminar_attends.id'))
+    seminar_attend = db.relationship('StaffSeminarAttend', foreign_keys=[seminar_attend_id],
+                                     backref=db.backref('document_approver', lazy='dynamic'))
+    position_id = db.Column('position_id', db.ForeignKey('staff_head_positions.id'))
+    position = db.relationship('StaffHeadPosition', foreign_keys=[position_id],
+                                    backref=db.backref('position_document_approver'))
 
 
 class StaffSeminarProposal(db.Model):

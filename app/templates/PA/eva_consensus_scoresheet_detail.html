@@ -1,5 +1,19 @@
+<style>
+    .fixed-bottom-notification {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        z-index: 999;
+        box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    body {
+        padding-bottom: 100px;
+    }
+</style>
 {% extends "base.html" %}
-{% include "PA/nav.html" %}
+{% include "staff/nav.html" %}
 
 {% block page_content %}
     <section class="section">
@@ -7,13 +21,50 @@
             {% include "messages.html" %}
             <div class="columns has-text-centered">
                 <div class="column">
-                    <div class="notification is-info is-light">
+                    <div>
                      <h1 class="subtitle">ผู้รับการประเมิน {{ consolidated_score_sheet.pa.staff.personal_info.fullname }}<br>
                         ตำแหน่ง {{ consolidated_score_sheet.pa.staff.personal_info.position }}<br>
                         รอบการประเมิน {{ consolidated_score_sheet.pa.round }}
                     </h1>
                     </div>
                 </div>
+            </div>
+            <div class="fixed-bottom-notification">
+                 <div class="notification is-success is-light has-text-centered">
+                     <h1 class="subtitle">
+                         ผู้รับการประเมิน: {{ consolidated_score_sheet.pa.staff.personal_info.fullname }}
+                         ({{ consolidated_score_sheet.pa.staff.personal_info.job_position }})
+                     </h1>
+                {% if approve_scoresheet.approved_at == None %}
+                <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="columns">
+                    <div class="column">
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.all_scoresheet') }}"
+                                   class="button is-light is-medium">กลับ</a>
+                            </div>
+                            <div class="control">
+                                <input type="submit" value="อนุมัติ" class="button is-success is-medium"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </form>
+                {% else %}
+                <div class="columns">
+                    <div class="column">
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.all_scoresheet') }}"
+                                   class="button is-light">กลับ</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                 </div>
             </div>
             <div class="columns">
                 <div class="column">
@@ -122,32 +173,6 @@
                         </table>
                     </div>
                 </div>
-                {% if approve_scoresheet.approved_at == None %}
-                <div class="columns">
-                    <div class="column">
-                        <div class="field is-grouped is-grouped-centered">
-                            <div class="control">
-                                <a href="{{ url_for('pa.consensus_scoresheets') }}"
-                                   class="button is-light">Cancel</a>
-                            </div>
-                            <div class="control">
-                                <input type="submit" value="submit" class="button is-success"/>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% else %}
-                <div class="columns">
-                    <div class="column">
-                        <div class="field is-grouped is-grouped-centered">
-                            <div class="control">
-                                <a href="{{ url_for('pa.consensus_scoresheets') }}"
-                                   class="button is-light">กลับ</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
             </form>
         </div>
     </section>

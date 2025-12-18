@@ -71,6 +71,7 @@
                                 <p>{{ req.contact_phone }}</p>
                             </td>
                         </tr>
+                        {% if used_quota != 0 %}
                         <tr>
                             <td>
                                <label class="label">{{ req.quota.leave_type }}มาแล้ว</label>
@@ -79,6 +80,7 @@
                                 <p>{{ used_quota }} วันทำการ</p>
                             </td>
                         </tr>
+                        {% endif %}
                         <tr>
                             <td>
                                ลาครั้งสุดท้ายเมื่อ

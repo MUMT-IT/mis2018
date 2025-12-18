@@ -23,7 +23,7 @@ from ..models import (Org, KPI, Strategy, StrategyTactic,
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-from ..staff.models import StaffPersonalInfo, StaffAccount
+from ..roles import executive_permission
 
 scope = ['https://spreadsheets.google.com/feeds',
          'https://www.googleapis.com/auth/drive']
@@ -2068,4 +2068,6 @@ def show_boardeval():
 @login_required
 def dashboard_index():
     dashboard = Dashboard.query.all()
-    return render_template('kpi/dashboard/index.html', dashboard=dashboard)
+    return render_template('kpi/dashboard/index.html',
+                           executive_permission=executive_permission,
+                           dashboard=dashboard)

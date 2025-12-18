@@ -2,7 +2,6 @@
 
 
 import click
-import arrow
 import pandas
 import pandas as pd
 import requests
@@ -20,7 +19,6 @@ from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from flask_qrcode import QRcode
-from psycopg2._range import DateTimeRange
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 from flask_mail import Mail
@@ -244,19 +242,6 @@ from app.studs import studbp as stud_blueprint
 
 app.register_blueprint(stud_blueprint, url_prefix='/stud')
 
-# from app.food import foodbp as food_blueprint
-#
-# app.register_blueprint(food_blueprint, url_prefix='/food')
-# from app.food.models import (Person, Farm, Produce, PesticideTest,
-#                              BactTest, ParasiteTest)
-#
-# admin.add_views(ModelView(Person, db.session, category='Food'))
-# admin.add_views(ModelView(Farm, db.session, category='Food'))
-# admin.add_views(ModelView(Produce, db.session, category='Food'))
-# admin.add_views(ModelView(PesticideTest, db.session, category='Food'))
-# admin.add_views(ModelView(BactTest, db.session, category='Food'))
-# admin.add_views(ModelView(ParasiteTest, db.session, category='Food'))
-
 from app.research import researchbp as research_blueprint
 
 app.register_blueprint(research_blueprint, url_prefix='/research')
@@ -353,6 +338,7 @@ admin.add_view(ModelView(StrategyActivity, db.session, category='Strategy'))
 admin.add_views(ModelView(Role, db.session, category='Permission'))
 admin.add_views(MyStaffAccountModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
+admin.add_views(ModelView(StaffResignation, db.session, category='Staff'))
 admin.add_views(ModelView(StaffEduDegree, db.session, category='Staff'))
 admin.add_views(ModelView(StaffAcademicPosition, db.session, category='Staff'))
 admin.add_views(ModelView(StaffAcademicPositionRecord, db.session, category='Staff'))
@@ -1600,6 +1586,8 @@ def import_seminar_data():
                 end_datetime=tz.localize(end_date),
                 created_at=tz.localize(datetime.today())
             )
+            if location == 'รูปแบบออนไลน์':
+                seminar.is_online = True
             db.session.add(seminar)
         else:
             topic_type = row['topic_type']
@@ -1621,27 +1609,30 @@ def import_seminar_attend_data():
         seminar = StaffSeminar.query.filter_by(topic=row['seminar']).first()
         role = row['role']
         budget_type = row['budget_type']
-        budget = row['budget']
+        budget = row['budget'] if row['budget'] else 0
         objective = StaffSeminarObjective.query.filter_by(objective=row['objective']).first()
         mission = StaffSeminarMission.query.filter_by(mission=row['mission']).first()
         start_date = pandas.to_datetime(row['start_date'], format='%d/%m/%Y')
         end_date = pandas.to_datetime(row['end_date'], format='%d/%m/%Y')
         if staff_account:
-            attend = StaffSeminarAttend(
-                seminar_id=seminar.id,
-                staff_account_id=staff_account.id,
-                start_datetime=tz.localize(start_date),
-                end_datetime=tz.localize(end_date),
-                created_at=tz.localize(datetime.today()),
-                role=role,
-                budget_type=budget_type,
-                budget=budget
-            )
-            db.session.add(attend)
-            if objective:
-                objective.objective_attends.append(attend)
-            if mission:
-                mission.mission_attends.append(attend)
+            if seminar.id:
+                attend = StaffSeminarAttend(
+                    seminar_id=seminar.id,
+                    staff_account_id=staff_account.id,
+                    start_datetime=tz.localize(start_date),
+                    end_datetime=tz.localize(end_date),
+                    created_at=tz.localize(datetime.today()),
+                    role=role,
+                    budget_type=budget_type,
+                    budget=budget
+                )
+                db.session.add(attend)
+                if objective:
+                    objective.objective_attends.append(attend)
+                if mission:
+                    mission.mission_attends.append(attend)
+            else:
+                print('Not found seminar topic of {} {}'.format(staff_account.email, tz.localize(start_date)))
         else:
             print(u'Cannot save data of email: {} start date: {}'.format(row['seminar'], start_date))
     db.session.commit()
