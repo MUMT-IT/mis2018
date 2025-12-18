@@ -12,35 +12,54 @@
                         <a href="{{ url_for('software_request.admin_index', tab='pending') }}">
                             <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
                             <span style="margin-right: .5em">รอดำเนินการ</span>
-                            <span class="tag is-rounded is-danger">{{ pending_count }}</span>
+                            {% if pending_count %}
+                                <span class="tag is-rounded is-danger">{{ pending_count }}</span>
+                            {% endif %}
                         </a>
                     </li>
                     <li {% if tab == 'consider' %}class="is-active"{% endif %}>
                         <a href="{{ url_for('software_request.admin_index', tab='consider') }}">
                             <span class="icon is-small"><i class="fas fa-history"></i></span>
                             <span style="margin-right: .5em">อยู่ระหว่างพิจารณา</span>
-                            <span class="tag is-rounded is-danger">{{ consider_count }}</span>
+                            {% if consider_count %}
+                                <span class="tag is-rounded is-danger">{{ consider_count }}</span>
+                            {% endif %}
                         </a>
                     </li>
                     <li {% if tab == 'approve' %}class="is-active"{% endif %}>
                         <a href="{{ url_for('software_request.admin_index', tab='approve') }}">
-                            <span class="icon is-small"><i class="fas fa-check"></i></span>
+                            <span class="icon is-small"><i class="fas fa-pen-fancy"></i></span>
                             <span style="margin-right: .5em">อนุมัติ</span>
-                            <span class="tag is-rounded is-danger">{{ approve_count }}</span>
+                            {% if approve_count %}
+                                <span class="tag is-rounded is-danger">{{ approve_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    <li {% if tab == 'complete' %}class="is-active"{% endif %}>
+                        <a href="{{ url_for('software_request.admin_index', tab='complete') }}">
+                            <span class="icon is-small"><i class="fas fa-check"></i></span>
+                            <span style="margin-right: .5em">เสร็จสิ้น</span>
+                            {% if complete_count %}
+                                <span class="tag is-rounded is-danger">{{ complete_count }}</span>
+                            {% endif %}
                         </a>
                     </li>
                     <li {% if tab == 'disapprove' %}class="is-active"{% endif %}>
                         <a href="{{ url_for('software_request.admin_index', tab='disapprove') }}">
                             <span class="icon is-small"><i class="fas fa-times"></i></span>
                             <span style="margin-right: .5em">ไม่อนุมัติ</span>
-                            <span class="tag is-rounded is-danger">{{ disapprove_count }}</span>
+                            {% if disapprove_count %}
+                                <span class="tag is-rounded is-danger">{{ disapprove_count }}</span>
+                            {% endif %}
                         </a>
                     </li>
                     <li {% if tab == 'cancel' %}class="is-active"{% endif %}>
                         <a href="{{ url_for('software_request.admin_index', tab='cancel') }}">
                             <span class="icon is-small"><i class="fas fa-ban"></i></span>
                             <span style="margin-right: .5em">ยกเลิก</span>
-                            <span class="tag is-rounded is-danger">{{ cancel_count }}</span>
+                            {% if cancel_count %}
+                                <span class="tag is-rounded is-danger">{{ cancel_count }}</span>
+                            {% endif %}
                         </a>
                     </li>
                     <li {% if tab == 'all' %}class="is-active"{% endif %}>
@@ -82,7 +101,7 @@
             $.fn.dataTable.moment('lll');
             $('#request').DataTable({
                 ajax: {
-                    url: {{ url_for('software_request.get_requests', tab=tab)|tojson|safe}},
+                    url: {{ url_for('software_request.admin_index', tab=tab, api='true')|tojson|safe}},
                 },
                 order: [[4, 'desc']],
                 columns: [
@@ -107,7 +126,8 @@
                         render: function (data) {
                             var text = data == 'ส่งคำขอแล้ว' ? 'รอดำเนินการ' : data;
                             var status_color = data == 'ส่งคำขอแล้ว' ? 'is-info' : data == 'อยู่ระหว่างพิจารณา' ? 'is-warning' :
-                                data == 'อนุมัติ' ? 'is-success' : data == 'ไม่อนุมัติ' ? 'is-danger' : 'is-dark';
+                                data == 'อนุมัติ' ? 'is-success' : data == 'เสร็จสิ้น' ? 'is-info' : data == 'ไม่อนุมัติ' ?
+                                'is-danger' : 'is-dark';
                             if (data != null) {
                                 return '<span class="tag '+ status_color +'">' + text +'</span>'
                             } else {
