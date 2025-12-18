@@ -188,6 +188,17 @@
                                         </a>
                                     </div>
                                     <div class="control">
+                                        <a {% if detail.status == 'เสร็จสิ้น' %}
+                                            class="button is-rounded is-info"
+                                        {% else %}
+                                            class="button is-outlined is-rounded is-info"
+                                        {% endif %}
+                                            onclick="setStatus('เสร็จสิ้น')"
+                                        >
+                                            เสร็จสิ้น
+                                        </a>
+                                    </div>
+                                    <div class="control">
                                         <a {% if detail.status == 'ไม่อนุมัติ' %}
                                             class="button is-rounded is-danger"
                                         {% else %}
