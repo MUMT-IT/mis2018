@@ -6,6 +6,8 @@
         <div class="container">
             <h1 class="title">รายการขอรับบริการพัฒนา Software (สำหรับหน่วย IT)</h1>
             {% include 'messages.html' %}
+            <hr>
+            <h1 class="title is-size-4">Request</h1>
             <div class="tabs is-boxed">
                 <ul>
                     <li {% if tab == 'pending' %}class="is-active"{% endif %}>
@@ -74,19 +76,90 @@
                 <div class="column">
                     <table id="request" class="table is-fullwidth">
                         <thead>
-                            <tr>
-                                <th>โครงการ/ระบบ</th>
-                                <th>ประเภทคำขอ</th>
-                                <th>รายละเอียด</th>
-                                <th>ผู้ส่งคำขอ</th>
-                                <th>สังกัด</th>
-                                <th>วันที่ส่งคำขอ</th>
-                                <th>สถานะ</th>
-                                <th>issues</th>
-                                <th></th>
-                            </tr>
+                        <tr>
+                            <th>โครงการ/ระบบ</th>
+                            <th>ประเภทคำขอ</th>
+                            <th>รายละเอียด</th>
+                            <th>ผู้ส่งคำขอ</th>
+                            <th>สังกัด</th>
+                            <th>วันที่ส่งคำขอ</th>
+                            <th>สถานะ</th>
+                            <th>issues</th>
+                            <th></th>
+                        </tr>
                         </thead>
                         <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <hr>
+            <h1 class="title is-size-4">Timeine</h1>
+            <div class="columns">
+                <div class="column">
+                    <table id="timeline" class="table is-fullwidth">
+                        <thead>
+                        <tr>
+                            <th>Task</th>
+                            <th>Phase</th>
+                            <th>โครงการ/ระบบ</th>
+                            <th>วันที่เริ่มต้น</th>
+                            <th>วันที่คาดว่าจะแล้วเสร็จ</th>
+                            <th>สถานะ</th>
+                            <th>Update</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for timeline in timelines|sort(attribute='start') %}
+                            <tr>
+                                <td>{{ timeline.task }}</td>
+                                <td>{{ timeline.phase }}</td>
+                                <td>{{ timeline.request.title }}</td>
+                                <td>{{ timeline.start.strftime('%d/%m/%Y') }}</td>
+                                <td>{{ timeline.estimate.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    <span
+                                        {% if timeline.status == 'รอดำเนินการ' %}
+                                            class="tag is-info is-light"
+                                        {% elif timeline.status == 'กำลังดำเนินการ' %}
+                                            class="tag is-warning is-light"
+                                        {% elif timeline.status == 'เสร็จสิ้น' %}
+                                            class="tag is-success is-light"
+                                        {% else %}
+                                            class="tag is-danger is-light"
+                                        {% endif %}
+                                    >
+                                        {{ timeline.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="field has-addons">
+                                        <div class="control">
+                                            <a class="button is-small is-rounded"
+                                               hx-swap="innerHTML"
+                                               hx-target="#timeline_form"
+                                               hx-get="{{ url_for('software_request.create_timeline',
+                                                                                      timeline_id=timeline.id, tab=tab) }}"
+                                            >
+                                                                            <span class="icon">
+                                                                                <i class="fas fa-pencil-alt"></i>
+                                                                            </span>
+                                            </a>
+                                        </div>
+                                        <div class="control">
+                                            <a class="button is-small is-rounded"
+                                               hx-delete="{{ url_for('software_request.delete_timeline', timeline_id=timeline.id) }}"
+                                               hx-confirm="ท่านต้องการลบรายการนี้หรือไม่"
+                                            >
+                                                                            <span class="icon">
+                                                                                <i class="far fa-trash-alt has-text-danger"></i>
+                                                                            </span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
                         </tbody>
                     </table>
                 </div>
@@ -96,30 +169,37 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-       <script>
+    <script>
+        $(document).ready(function () {
+            $('#timeline').DataTable({
+                order: [[2, 'asc']]
+            })
+        });
+    </script>
+    <script>
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
             $('#request').DataTable({
                 ajax: {
                     url: {{ url_for('software_request.admin_index', tab=tab, api='true')|tojson|safe}},
                 },
-                order: [[4, 'desc']],
+                order: [[5, 'desc']],
                 columns: [
-                    { data: 'title' },
-                    { data: 'type' },
-                    { data: 'description' },
-                    { data: 'created_by' },
-                    { data: 'org' },
+                    {data: 'title'},
+                    {data: 'type'},
+                    {data: 'description'},
+                    {data: 'created_by'},
+                    {data: 'org'},
                     {
                         data: 'created_date',
-                        render: function(data) {
+                        render: function (data) {
                             if (data !== null) {
                                 let d = moment(data)
-                                    return d.format('lll')
-                                } else {
-                                    return ''
-                                }
+                                return d.format('lll')
+                            } else {
+                                return ''
                             }
+                        }
                     },
                     {
                         data: 'status',
@@ -129,22 +209,22 @@
                             var icon = data == 'เสร็จสิ้น' ? '<i class="fas fa-check-circle"></i>' : row.has_timeline ? '<i class="fas fa-hourglass-end"></i>' : '<i class="fas fa-times-circle"></i>';
                             if (data != null) {
                                 return '<span class="tag ' + status_color + '">' +
-                                           '<span class="icon">' +
-                                               icon +
-                                           '</span>' +
-                                           '<span>' +
-                                               text +
-                                           '</span>' +
-                                       '</span>';
+                                    '<span class="icon">' +
+                                    icon +
+                                    '</span>' +
+                                    '<span>' +
+                                    text +
+                                    '</span>' +
+                                    '</span>';
                             } else {
                                 return '<span class="tag is-danger">' +
-                                            '<span class="icon">' +
-                                               '<i class="fas fa-times-circle"></i>' +
-                                           '</span>' +
-                                           '<span>' +
-                                                'ยังไม่ดำเนินการ' +
-                                           '</span>' +
-                                        '</span>'
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-times-circle"></i>' +
+                                    '</span>' +
+                                    '<span>' +
+                                    'ยังไม่ดำเนินการ' +
+                                    '</span>' +
+                                    '</span>'
                             }
                         }
                     },
@@ -161,7 +241,7 @@
                     {
                         data: 'id',
                         render: function (data) {
-                            var url = '/software_request/admin/request/edit/' +  data + '?tab=' + '{{ tab }}';
+                            var url = '/software_request/admin/request/edit/' + data + '?tab=' + '{{ tab }}';
                             return `<div class="field">
                                         <div class="control">
                                             <a href="${url}">
