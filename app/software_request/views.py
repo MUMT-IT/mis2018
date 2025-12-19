@@ -299,6 +299,34 @@ def create_timeline(detail_id=None, timeline_id=None):
                            detail_id=detail_id, timeline_id=timeline_id)
 
 
+@software_request.route('/admin/request/timeline/update/<int:timeline_id>', methods=['GET', 'POST'])
+def update_timeline_status(timeline_id):
+    status = request.form.get('status')
+    timeline = SoftwareRequestTimeline.query.get(timeline_id)
+    timeline.status = status
+    timeline.request.updated_date = arrow.now('Asia/Bangkok').datetime
+    db.session.add(timeline)
+    db.session.commit()
+    flash('อัพเดตสถานะสำเร็จ', 'success')
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
+
+
+@software_request.route('/admin/request/timeline/delete/<int:timeline_id>', methods=['GET', 'DELETE'])
+def delete_timeline(timeline_id):
+    timeline = SoftwareRequestTimeline.query.get(timeline_id)
+    timeline.request.updated_date = arrow.now('Asia/Bangkok').datetime
+    db.session.add(timeline)
+    db.session.commit()
+    db.session.delete(timeline)
+    db.session.commit()
+    flash('ลบข้อมูลสำเร็จ', 'success')
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
+
+
 @software_request.route('/admin/request/issues/<int:issue_id>', methods=['GET', 'POST'])
 @software_request.route('/admin/request/details/<int:detail_id>/issues', methods=['GET', 'POST'])
 def create_issue(detail_id=None, issue_id=None):
@@ -337,18 +365,3 @@ def create_issue(detail_id=None, issue_id=None):
         form.populate_obj(issue)
     return render_template('software_request/modal/create_issue_modal.html',
                            form=form, issue_id=issue_id, detail_id=detail_id)
-
-
-
-@software_request.route('/admin/request/timeline/delete/<int:timeline_id>', methods=['GET', 'DELETE'])
-def delete_timeline(timeline_id):
-    timeline = SoftwareRequestTimeline.query.get(timeline_id)
-    timeline.request.updated_date = arrow.now('Asia/Bangkok').datetime
-    db.session.add(timeline)
-    db.session.commit()
-    db.session.delete(timeline)
-    db.session.commit()
-    flash('ลบข้อมูลสำเร็จ', 'success')
-    resp = make_response()
-    resp.headers['HX-Refresh'] = 'true'
-    return resp
