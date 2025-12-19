@@ -218,6 +218,7 @@ def update_request(detail_id):
     tab = request.args.get('tab')
     detail = SoftwareRequestDetail.query.get(detail_id)
     status = detail.status
+
     SoftwareRequestDetailForm = create_request_form(detail_id=detail_id)
     form = SoftwareRequestDetailForm(obj=detail)
     if detail.url:
@@ -237,12 +238,10 @@ def update_request(detail_id):
         db.session.commit()
         if form.status.data:
             scheme = 'http' if current_app.debug else 'https'
-            scheme = 'http' if current_app.debug else 'https'
             link = url_for("software_request.view_request", detail_id=detail_id, _external=True, _scheme=scheme)
             title = f'''แจ้งอัปเดตสถานะคำร้องขอรับบริการพัฒนา Software'''
             message = f'''เรียน คุณ{detail.created_by.fullname}\n\n'''
-            message += f'''{detail.approver.fullname} ได้ทำการอัปเดตสถานะคำร้องขอรับบริการพัฒนา Software ของท่าน \n\n'''
-            message += f'''สถานะปัจจุบัน: {detail.status}\n\n'''
+            message += f'''{detail.approver.fullname} ได้ทำการอัปเดตสถานะคำร้องขอรับบริการพัฒนา Software ของท่านเป็น "{detail.status}"\n\n'''
             message += f'''ท่านสามารถตรวจสอบรายละเอียดและความคืบหน้าเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
             message += f'''{link}\n\n'''
             message += f'''หากมีข้อสงสัยหรือต้องการสอบถามข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่รับผิดชอบ\n\n'''
@@ -300,8 +299,7 @@ def create_timeline(detail_id=None, timeline_id=None):
                                _scheme=scheme)
                 title = f'''แจ้งอัปเดตสถานะ Timeline คำร้องขอรับบริการพัฒนา Software'''
                 message = f'''เรียน คุณ{timeline.request.created_by.fullname}\n\n'''
-                message += f'''{timeline.request.approver.fullname} ได้ทำการอัปเดตความคืบหน้า (Timeline) ของคำร้องขอรับบริการพัฒนา Software ของท่าน \n\n'''
-                message += f'''สถานะปัจจุบัน: {timeline.status}\n\n'''
+                message += f'''{timeline.request.approver.fullname} ได้ทำการอัปเดตความคืบหน้า (Timeline) ของคำร้องขอรับบริการพัฒนา Software ของท่านเป็น "{timeline.status}"\n\n'''
                 message += f'''ท่านสามารถตรวจสอบรายละเอียดและความคืบหน้าเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
                 message += f'''{link}\n\n'''
                 message += f'''หากมีข้อสงสัยหรือต้องการสอบถามข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่รับผิดชอบ\n\n'''
@@ -329,8 +327,7 @@ def update_timeline_status(timeline_id):
     link = url_for("software_request.view_request", detail_id=timeline.request_id, _external=True, _scheme=scheme)
     title = f'''แจ้งอัปเดตสถานะ Timeline คำร้องขอรับบริการพัฒนา Software'''
     message = f'''เรียน คุณ{timeline.request.created_by.fullname}\n\n'''
-    message += f'''{timeline.request.approver.fullname} ได้ทำการอัปเดตความคืบหน้า (Timeline) ของคำร้องขอรับบริการพัฒนา Software ของท่าน \n\n'''
-    message += f'''สถานะปัจจุบัน: {timeline.status}\n\n'''
+    message += f'''{timeline.request.approver.fullname} ได้ทำการอัปเดตความคืบหน้า (Timeline) ของคำร้องขอรับบริการพัฒนา Software ของท่านเป็น "{timeline.status}"\n\n'''
     message += f'''ท่านสามารถตรวจสอบรายละเอียดและความคืบหน้าเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
     message += f'''{link}\n\n'''
     message += f'''หากมีข้อสงสัยหรือต้องการสอบถามข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่รับผิดชอบ\n\n'''
