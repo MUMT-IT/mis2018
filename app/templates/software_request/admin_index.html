@@ -102,6 +102,7 @@
             <h1 class="title is-size-4">Timeine</h1>
             <div class="columns">
                 <div class="column">
+                    <div id="timeline_form"></div>
                     <table id="timeline" class="table is-fullwidth">
                         <thead>
                         <tr>
@@ -115,92 +116,86 @@
                             <th></th>
                         </tr>
                         </thead>
-                        <tbody>
-                        {% for timeline in timelines|sort(attribute='start') %}
-                            <tr>
-                                <td>{{ timeline.task }}</td>
-                                <td>{{ timeline.phase }}</td>
-                                <td>{{ timeline.request.title }}</td>
-                                <td>{{ timeline.start.strftime('%d/%m/%Y') }}</td>
-                                <td>{{ timeline.estimate.strftime('%d/%m/%Y') }}</td>
-                                <td>
-                                    <span
+                        <tbody id="timelines">
+                            {% for timeline in timelines|sort(attribute='start') %}
+                                <tr>
+                                    <td>{{ timeline.task }}</td>
+                                    <td>{{ timeline.phase }}</td>
+                                    <td>{{ timeline.request.title }}</td>
+                                    <td>{{ timeline.start.strftime('%d/%m/%Y') }}</td>
+                                    <td>{{ timeline.estimate.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <span
+                                            {% if timeline.status == 'รอดำเนินการ' %}
+                                                class="tag is-info is-light"
+                                            {% elif timeline.status == 'เสร็จสิ้น' %}
+                                                class="tag is-success is-light"
+                                            {% else %}
+                                                class="tag is-danger is-light"
+                                            {% endif %}
+                                        >
+                                            {{ timeline.status }}
+                                        </span>
+                                    </td>
+                                    <td>
                                         {% if timeline.status == 'รอดำเนินการ' %}
-                                            class="tag is-info is-light"
-                                        {% elif timeline.status == 'เสร็จสิ้น' %}
-                                            class="tag is-success is-light"
-                                        {% else %}
-                                            class="tag is-danger is-light"
-                                        {% endif %}
-                                    >
-                                        {{ timeline.status }}
-                                    </span>
-                                </td>
-                                <td>
-                                    {% if timeline.status == 'รอดำเนินการ' %}
+                                            <div class="field has-addons">
+                                                <div class="control">
+                                                    <a class="button is-small is-success is-rounded"
+                                                       hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                                                       hx-post="{{ url_for('software_request.update_timeline_status',
+                                                       timeline_id=timeline.id) }}"
+                                                       hx-vals='{"status": "เสร็จสิ้น"}'
+                                                       hx-confirm="ท่านต้องกาอัพเดตสถานะรายการนี้หรือไม่"
+                                                    >
+                                                        <span class="icon">
+                                                            <i class="fas fa-check"></i>
+                                                        </span>
+                                                        <span>เสร็จสิ้น</span>
+                                                    </a>
+                                                </div>
+                                                <div class="control">
+                                                    <a class="button is-small is-danger is-rounded"
+                                                       hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                                                       hx-post="{{ url_for('software_request.update_timeline_status',
+                                                       timeline_id=timeline.id) }}"
+                                                       hx-vals='{"status": "ยกเลิกการพัฒนา"}'
+                                                       hx-confirm="ท่านต้องกาอัพเดตสถานะรายการนี้หรือไม่"
+                                                    >
+                                                        <span class="icon">
+                                                            <i class="fas fa-times"></i>
+                                                        </span>
+                                                        <sapn>ยกเลิกการพัฒนา</sapn>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    {% endif %}
+                                    <td>
                                         <div class="field has-addons">
                                             <div class="control">
-                                                <a class="button is-small is-success is-rounded"
-                                                   hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
-                                                   hx-post="{{ url_for('software_request.update_timeline_status',
-                                                   timeline_id=timeline.id, status='เสร็จสิ้น') }}"
-                                                   hx-vals='{"status": "เสร็จสิ้น"}'
-                                                   hx-confirm="ท่านต้องกาอัพเดตสถานะรายการนี้หรือไม่"
+                                                <a class="button is-small is-rounded"
+                                                   hx-swap="innerHTML"
+                                                   hx-target="#timeline_form"
+                                                   hx-get="{{ url_for('software_request.create_timeline',
+                                                   timeline_id=timeline.id, tab=tab) }}"
                                                 >
-                                                    <span class="icon">
-                                                        <i class="fas fa-check"></i>
-                                                    </span>
-                                                    <span>เสร็จสิ้น</span>
+                                                    <span class="icon"><i class="fas fa-pencil-alt"></i></span>
                                                 </a>
                                             </div>
                                             <div class="control">
-                                                <a class="button is-small is-danger is-rounded"
+                                                <a class="button is-small is-rounded"
                                                    hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
-                                                   hx-post="{{ url_for('software_request.update_timeline_status',
-                                                   timeline_id=timeline.id) }}"
-                                                   hx-vals='{"status": "ยกเลิกการพัฒนา"}'
-                                                   hx-confirm="ท่านต้องกาอัพเดตสถานะรายการนี้หรือไม่"
+                                                   hx-delete="{{ url_for('software_request.delete_timeline', timeline_id=timeline.id) }}"
+                                                   hx-confirm="ท่านต้องการลบรายการนี้หรือไม่"
                                                 >
-                                                    <span class="icon">
-                                                        <i class="fas fa-times"></i>
-                                                    </span>
-                                                    <sapn>ยกเลิกการพัฒนา</sapn>
+                                                    <span class="icon"><i class="far fa-trash-alt has-text-danger"></i></span>
                                                 </a>
                                             </div>
                                         </div>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div id="timeline_form"></div>
-                                    <div class="field has-addons">
-                                        <div class="control">
-                                            <a class="button is-small is-rounded"
-                                               hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
-                                               hx-swap="innerHTML"
-                                               hx-target="#timeline_form"
-                                               hx-get="{{ url_for('software_request.create_timeline',
-                                               timeline_id=timeline.id, tab=tab) }}"
-                                            >
-                                                <span class="icon">
-                                                    <i class="fas fa-pencil-alt"></i>
-                                                </span>
-                                            </a>
-                                        </div>
-                                        <div class="control">
-                                            <a class="button is-small is-rounded"
-                                               hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
-                                               hx-delete="{{ url_for('software_request.delete_timeline', timeline_id=timeline.id) }}"
-                                               hx-confirm="ท่านต้องการลบรายการนี้หรือไม่"
-                                            >
-                                                <span class="icon">
-                                                    <i class="far fa-trash-alt has-text-danger"></i>
-                                                </span>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
                 </div>
