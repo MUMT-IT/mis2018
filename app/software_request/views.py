@@ -122,6 +122,7 @@ def admin_index():
     tab = request.args.get('tab')
     api = request.args.get('api', 'false')
     query = SoftwareRequestDetail.query
+    timelines = SoftwareRequestTimeline.query.filter_by(admin_id=current_user.id)
     pending_query = query.filter_by(status='ส่งคำขอแล้ว')
     consider_query = query.filter_by(status='อยู่ระหว่างพิจารณา')
     approve_query = query.filter_by(status='อนุมัติ')
@@ -169,7 +170,7 @@ def admin_index():
     return render_template('software_request/admin_index.html', tab=tab, pending_count=pending_query.count(),
                            consider_count=consider_query.count(), approve_count=approve_query.count(),
                            complete_count=complete_query.count(), disapprove_count=disapprove_query.count(),
-                           cancel_count=cancel_query.count())
+                           cancel_count=cancel_query.count(), timelines=timelines)
 
 
 # @software_request.route('/api/request/index')
