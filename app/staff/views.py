@@ -1,4 +1,6 @@
 # -*- coding:utf-8 -*-
+from io import BytesIO
+
 import arrow
 import pandas as pd
 from dateutil import parser
@@ -12,7 +14,7 @@ from app.main import get_weekdays, mail, app, csrf
 from app.models import Holidays
 from flask import (jsonify, render_template, request,
                    redirect, url_for, flash, session, send_from_directory,
-                   make_response, current_app)
+                   make_response, current_app, send_file)
 from datetime import date, timedelta
 from sqlalchemy import or_
 from collections import defaultdict, namedtuple
@@ -155,6 +157,21 @@ def calculate_leave_quota_limit(staff_id, quota_id, date_time):
         else:
             quota_limit = quota.first_year if not quota.min_employed_months else 0
     return quota_limit
+
+
+@staff.route('/aws-s3/download/<key>', methods=['GET'])
+def download_file(key):
+    download_filename = request.args.get('download_filename')
+    s3_client = boto3.client(
+        's3',
+        region_name=os.getenv('BUCKETEER_AWS_REGION'),
+        aws_access_key_id=os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+    )
+    outfile = BytesIO()
+    s3_client.download_fileobj(os.getenv('BUCKETEER_BUCKET_NAME'), key, outfile)
+    outfile.seek(0)
+    return send_file(outfile, download_name=download_filename, as_attachment=True)
 
 
 @staff.route('/')
