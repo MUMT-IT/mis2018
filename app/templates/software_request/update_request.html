@@ -231,7 +231,7 @@
                                 <div class="field-body">
                                     <div class="field is-expanded">
                                         <div class="control">
-                                            <table class="table is-fullwidth is-striped is-hoverable">
+                                            <table id="timeline" class="table is-fullwidth is-striped">
                                                 <thead>
                                                     <th>Sequence</th>
                                                     <th>Task</th>
@@ -429,6 +429,17 @@
     {{ super() }}
     <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#timeline').DataTable({
+                order: [[0, 'asc']],
+                lengthChange: false,
+                searching: false,
+                paging: false,
+                info: false
+            })
+        });
+    </script>
     <script>
         function setStatus(status) {
             if (confirm("แน่ใจหรือไม่ว่าจะเปลี่ยนสถานะ?")) {
