@@ -3929,8 +3929,8 @@ def seminar_attends_each_person_details(staff_account_id):
 def current_seminar_attends(staff_account_id):
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
     attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(and_(
-                        StaffSeminarAttend.start_datetime >= START_FISCAL_DATE,
-                        StaffSeminarAttend.end_datetime <= END_FISCAL_DATE)).all()
+                        StaffSeminarAttend.end_datetime >= START_FISCAL_DATE,
+                        StaffSeminarAttend.start_datetime <= END_FISCAL_DATE)).all()
     total_fee = 0
     for a in attends:
         if a.budget:
@@ -3941,14 +3941,20 @@ def current_seminar_attends(staff_account_id):
 @staff.route('/seminar/attend/search-result', methods=['GET', 'POST'])
 @login_required
 def seminar_attend_search_result():
-    seminar_attend_records = []
     budget = 0
     distinct_topic_types = db.session.query(StaffSeminar.topic_type).distinct().all()
     distinct_role = db.session.query(StaffSeminarAttend.role).distinct().all()
     distinct_org = db.session.query(Org.name).distinct().order_by(Org.id).all()
     distinct_objective = db.session.query(StaffSeminarObjective.objective).distinct().all()
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    seminar_attend_records = StaffSeminarAttend.query \
+        .filter(func.date(StaffSeminarAttend.end_datetime) >= START_FISCAL_DATE,
+                func.date(StaffSeminarAttend.start_datetime) <= END_FISCAL_DATE) \
+        .order_by(StaffSeminarAttend.start_datetime.desc())
+
     if request.method == 'POST':
         form = request.form
+        selected_dates = request.form.get('dates', None)
         start_d, end_d = form.get('dates').split(' - ')
         start = datetime.strptime(start_d, '%d/%m/%Y')
         end = datetime.strptime(end_d, '%d/%m/%Y')
@@ -3963,8 +3969,8 @@ def seminar_attend_search_result():
         if start:
             query = query.filter(
                 and_(
-                    func.date(StaffSeminarAttend.start_datetime) >= start.date(),
-                    func.date(StaffSeminarAttend.end_datetime) <= end.date()
+                    func.date(StaffSeminarAttend.end_datetime) >= start.date(),
+                    func.date(StaffSeminarAttend.start_datetime) <= end.date()
                 )
             )
 
@@ -3992,7 +3998,7 @@ def seminar_attend_search_result():
                 budget += s.budget
         selected_staff = db.session.get(StaffPersonalInfo, personal_info_id) if personal_info_id else None
         return render_template('staff/seminar_attend_search_result.html', seminar_attend_records=seminar_attend_records,
-                               budget=budget, selected_dates=request.form.get("dates"),
+                               budget=budget, selected_dates=selected_dates,
                                personal_info_id=personal_info_id,
                                selected_staff_name=selected_staff.fullname if selected_staff else "",
                                selected_topic_type=topic_type, selected_role=role,

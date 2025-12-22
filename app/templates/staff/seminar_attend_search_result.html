@@ -174,14 +174,24 @@
             });
         });
         $(document).ready(() => {
+            var today = moment();
+            var startOfYear = moment().startOf('year');
+            var selectedDates = '{{ selected_dates or "" }}';
+            if (!selectedDates) {
+                selectedDates = startOfYear.format('DD/MM/YYYY') + ' - ' + today.format('DD/MM/YYYY');
+            }
+
             $('#dates').daterangepicker({
                 timePicker: false,
                 showDropdowns: true,
                 linkedCalendars: false,
                 locale: {
                     format: 'DD/MM/YYYY'
-                }
+                },
+                startDate: selectedDates.split(' - ')[0],
+                endDate: selectedDates.split(' - ')[1]
             });
+
         });
         let selectedStaff = "{{ selected_staff }}";
         $('.js-example-basic').select2({
