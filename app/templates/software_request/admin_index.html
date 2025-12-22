@@ -89,6 +89,7 @@
                             <th>สังกัด</th>
                             <th>วันที่ส่งคำขอ</th>
                             <th>สถานะ</th>
+                            <th>Timelines</th>
                             <th>issues</th>
                             <th></th>
                         </tr>
@@ -268,6 +269,16 @@
                                     'ยังไม่ดำเนินการ' +
                                     '</span>' +
                                     '</span>'
+                            }
+                        }
+                    },
+                    {
+                        data: 'num_timelines',
+                        render: function (data) {
+                            if (data > 0) {
+                                return `<span class="tag is-rounded is-danger">${data}</span>`
+                            } else {
+                                return `<span class="tag is-rounded is-light">0</span>`
                             }
                         }
                     },
