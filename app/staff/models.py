@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
-
+import os
+import boto3
 from sqlalchemy import func
-
 from ..main import db, ma
 from werkzeug.security import generate_password_hash, check_password_hash
 from dateutil.relativedelta import relativedelta
@@ -9,6 +9,18 @@ from pytz import timezone
 from marshmallow import fields
 from app.models import Org, OrgSchema, OrgStructure, KPI, StrategyActivity, KPICascade
 from datetime import datetime
+
+AWS_ACCESS_KEY_ID = os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+AWS_REGION = os.getenv('BUCKETEER_AWS_REGION')
+S3_BUCKET_NAME = os.getenv('BUCKETEER_BUCKET_NAME')
+
+s3 = boto3.client(
+    's3',
+    region_name=AWS_REGION,
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+)
 
 today = datetime.today()
 
@@ -1030,6 +1042,23 @@ class StaffGroupDetail(db.Model):
 
     def buddhist_year(self):
         return u'{}'.format(self.appointment_date.year + 543)
+
+    @property
+    def to_link(self):
+        return self.generate_presigned_url(s3, S3_BUCKET_NAME)
+
+    def generate_presigned_url(self):
+        if self.url:
+            try:
+                return s3.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': S3_BUCKET_NAME, 'Key': self.url},
+                    ExpiresIn=3600
+                )
+            except Exception as e:
+                print(f"Error generating presigned URL: {e}")
+                return None
+        return None
 
     def __str__(self):
         return f'{self.activity_name}'
