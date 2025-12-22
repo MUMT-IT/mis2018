@@ -112,6 +112,13 @@
                                 </span>
                                 <span>สแกนเข้าร่วม</span>
                             </a>
+                            <a href=""
+                               class="button is-light is-info">
+                                <span class="icon">
+                                   <i class="fas fa-qrcode"></i>
+                                </span>
+                                <span>สแกนเข้าร่วมสำหรับนักศึกษา</span>
+                            </a>
                             <a href="{{ url_for('staff.attend_download', seminar_id=seminar.id)}}"
                                class="button is-warning" >
                                 <span class="icon"><i class="fas fa-download"></i></span>
@@ -122,7 +129,6 @@
                     <table class="cell-border" id="attendTable">
                         <thead>
                         <th>ชื่อ-นามสกุล</th>
-                        <th>Email</th>
                         <th>หน่วยงาน/ภาควิชา</th>
                         <th>ประเภทการเข้าร่วม</th>
                         <th>วันและเวลา</th>
@@ -134,9 +140,6 @@
                         <tr>
                             <td>
                                 {{ attend.staff.personal_info.fullname }}
-                            </td>
-                            <td>
-                                {{ attend.staff.email }}
                             </td>
                             <td>
                                 {{ attend.staff.personal_info.org.name }}
@@ -172,6 +175,42 @@
                         </tbody>
                     </table>
                 </div>
+            {% if students %}
+                <span class="title">จำนวนนักศึกษา: {{ students|length }}</span>
+                {% if student_officer %}
+                <div class="box">
+                    <p class="title has-text-centered">ข้อมูลนักศึกษา</p>
+                    <table class="cell-border" id="studentTable">
+                            <thead>
+                            <th>รหัสนักศึกษา</th>
+                            <th>ชื่อ-นามสกุล</th>
+                            <th>วันและเวลา</th>
+                            <th></th>
+                            </thead>
+                            <tbody>
+                            {% for student in students %}
+                            <tr>
+                                <td></td>
+                                <td>
+                                    {{ student.name }}
+                                </td>
+                                <td>
+                                    {{ student.start_datetime|localdatetime }} - {{ student.end_datetime|localdatetime }}
+                                </td>
+                                <td>
+                                    <a class="button is-danger is-light"href="">
+                                        <span class="icon">
+                                            <i class="fas fa-user-minus"></i>
+                                        </span>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            {% endif %}
             </div>
         </div>
         <div class="columns">
@@ -213,6 +252,8 @@
 <script>
     $(document).ready(function(){
         $('#attendTable').DataTable();
+        $('#studentTable').DataTable();
     });
 </script>
 {% endblock %}
+
