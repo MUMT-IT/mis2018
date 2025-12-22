@@ -3951,6 +3951,10 @@ def seminar_attend_search_result():
         .filter(func.date(StaffSeminarAttend.end_datetime) >= START_FISCAL_DATE,
                 func.date(StaffSeminarAttend.start_datetime) <= END_FISCAL_DATE) \
         .order_by(StaffSeminarAttend.start_datetime.desc())
+    selected_dates = "{} - {}".format(
+        START_FISCAL_DATE.strftime('%d/%m/%Y'),
+        END_FISCAL_DATE.strftime('%d/%m/%Y')
+    )
 
     if request.method == 'POST':
         form = request.form
@@ -4006,7 +4010,7 @@ def seminar_attend_search_result():
                                distinct_org=distinct_org, selected_org=org, distinct_objective=distinct_objective)
     return render_template('staff/seminar_attend_search_result.html', seminar_attend_records=seminar_attend_records,
                            budget=budget, distinct_topic_types=distinct_topic_types, distinct_role=distinct_role,
-                           distinct_org=distinct_org, distinct_objective=distinct_objective)
+                           distinct_org=distinct_org, distinct_objective=distinct_objective, selected_dates=selected_dates)
 
 
 @staff.route('/api/time-report')

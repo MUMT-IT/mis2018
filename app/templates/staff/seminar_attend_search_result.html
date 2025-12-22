@@ -174,12 +174,13 @@
             });
         });
         $(document).ready(() => {
-            var today = moment();
-            var startOfYear = moment().startOf('year');
             var selectedDates = '{{ selected_dates or "" }}';
             if (!selectedDates) {
+                 var today = moment();
+                var startOfYear = moment().startOf('year');
                 selectedDates = startOfYear.format('DD/MM/YYYY') + ' - ' + today.format('DD/MM/YYYY');
             }
+            $('#dates').val(selectedDates);
 
             $('#dates').daterangepicker({
                 timePicker: false,
