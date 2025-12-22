@@ -1024,6 +1024,7 @@ class StaffGroupDetail(db.Model):
     responsibility = db.Column('responsibility', db.Text(), info={'label': 'หน้าที่ความรับผิดชอบ'})
     public = db.Column('public', db.Boolean(), default=False, info={'label': 'เปิดเผย'})
     official = db.Column('official', db.Boolean(), default=False, info={'label': 'ไม่เปิดเผย'})
+    file = db.Column('file', db.String())
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('group_committee'))
 
