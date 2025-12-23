@@ -330,6 +330,8 @@
                                                     <th>Status</th>
                                                     <th>Created By</th>
                                                     <th>Created At</th>
+                                                    <th>Updated By</th>
+                                                    <th>Updated At</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -367,6 +369,8 @@
                                                     </td>
                                                     <td>{{ issue.creator.fullname }}</td>
                                                     <td>{{ issue.created_at|localdatetime }}</td>
+                                                    <td>{{ issue.updater.fullname }}</td>
+                                                    <td>{{ issue.updated_at|localdatetime }}</td>
                                                 </tr>
                                             {% endfor %}
                                             </tbody>

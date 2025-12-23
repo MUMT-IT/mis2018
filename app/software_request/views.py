@@ -266,6 +266,8 @@ def create_issue(detail_id=None, issue_id=None):
             if issue_id:
                 issue =  SoftwareIssues.query.get(issue_id)
                 current_status = issue.status
+                issue.updated_at = arrow.now('Asia/Bangkok').datetime
+                issue.updater = current_user
             else:
                 issue = SoftwareIssues(software_request_detail_id=detail_id)
                 issue.created_at = arrow.now('Asia/Bangkok').datetime
