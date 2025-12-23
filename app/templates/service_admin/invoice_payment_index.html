@@ -21,9 +21,7 @@
         <div class="container">
             <div class="columns is-centered">
                 <div class="column">
-                    <div class="column is-11">
-                        <h1 class="title has-text-centered">รายการชำระเงินบริการวิชาการ</h1>
-                    </div>
+                    <h1 class="title has-text-centered">รายการชำระเงินบริการวิชาการ</h1>
                     <table id='invoices' class="table is-fullwidth">
                         <thead>
                         <th>เลขใบแจ้งหนี้</th>
@@ -176,11 +174,11 @@
                         render: function (data, type, row) {
                             const dueDate = new Date(row.due_date);
                             const today = new Date();
-                            if (data !== null && row.is_paid) {
+                            if (data !== null && row.is_paid == true) {
                                 return `<span class="tag is-success">ชำระแล้ว</span>`;
                             } else if (data !== null && row.paid_at != null) {
                                 return `<span class="tag is-warning">รอตรวจสอบ</span>`;
-                            } else if (data !== null && today > dueDate && row.paid_at == null) {
+                            } else if (data !== null && today > dueDate && row.paid_at != null) {
                                 return `<span class="tag is-danger">เกินกำหนด</span>`;
                             } else {
                                 return `<span class="tag is-info">รอชำระเงิน</span>`;
@@ -209,7 +207,7 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.is_paid == null) {
+                            if (row.is_paid == false) {
                                 return `<div class="field has-addons">
                                             <div class="control">
                                                 <a class="button is-small is-rounded is-success"
@@ -219,7 +217,7 @@
                                                 </a>
                                             </div>
                                         </div>`;
-                            } else if (row.is_paid != null && row.receipt_id == null) {
+                            } else if (row.is_paid == true && row.receipt_id == null) {
                                 var url = '/receipt_printing/receipt/create' + '?invoice_id=' + data;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -229,7 +227,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.is_paid != null && row.receipt_id != null) {
+                            } else if (row.is_paid == true && row.receipt_id != null) {
                                 var url = '/receipt_printing/receipts/pdf/' + row.receipt_id;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -247,7 +245,7 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.is_paid != null) {
+                            if (row.paid_at && row.is_paid == false) {
                                 return `<div class="field has-addons">
                                             <div class="control">
                                                 <a class="button is-small is-rounded is-danger"

@@ -23,49 +23,7 @@
                 <div class="column">
                     <ul class="steps">
                         <li class="steps-segment
-                            {% if (not invoice.sent_at or invoice.sent_at) and not invoice.head_approved_at %}
-                                is-active
-                            {% endif %}"
-                        >
-                            <span class="steps-marker">
-                                <span class="icon">
-                                    <i class="fas fa-search"></i>
-                                </span>
-                            </span>
-                            <div class="steps-content">
-                                <p>ร่างใบแจ้งหนี้</p>
-                            </div>
-                        </li>
-                        <li class="steps-segment
-                            {% if invoice.head_approved_at and not invoice.assistant_approved_at %}
-                                is-active
-                            {% endif %}"
-                        >
-                            <span class="steps-marker">
-                                <span class="icon">
-                                    <i class="fas fa-hourglass-half"></i>
-                                </span>
-                            </span>
-                            <div class="steps-content">
-                                <p>หัวหน้าอนุมัติ</p>
-                            </div>
-                        </li>
-                        <li class="steps-segment
-                            {% if invoice.assistant_approved_at and not invoice.file_attached_at %}
-                                is-active
-                            {% endif %}"
-                        >
-                            <span class="steps-marker">
-                                <span class="icon">
-                                    <i class="fas fa-clock"></i>
-                                </span>
-                            </span>
-                            <div class="steps-content">
-                                <p>ผู้ช่วยคณบดีอนุมัติ</p>
-                            </div>
-                        </li>
-                        <li class="steps-segment
-                            {% if invoice.file_attached_at and (not invoice.paid_at or not invoice.is_paid) %}
+                            {% if not invoice.file_attached_at %}
                                 is-active
                             {% endif %}"
                         >
@@ -76,6 +34,34 @@
                             </span>
                             <div class="steps-content">
                                 <p>อัปโหลดใบแจ้งหนี้ฉบับสมบูรณ์</p>
+                            </div>
+                        </li>
+                        <li class="steps-segment
+                            {% if not invoice.paid_at  %}
+                                is-active
+                            {% endif %}"
+                        >
+                            <span class="steps-marker">
+                                <span class="icon">
+                                    <i class="fas fa-hand-holding-usd"></i>
+                                </span>
+                            </span>
+                            <div class="steps-content">
+                                <p>รอขำระเงิน</p>
+                            </div>
+                        </li>
+                        <li class="steps-segment
+                            {% if invoice.paid_at and not invoice.is_paid %}
+                                is-active
+                            {% endif %}"
+                        >
+                            <span class="steps-marker">
+                                <span class="icon">
+                                    <i class="fas fa-hourglass-half"></i>
+                                </span>
+                            </span>
+                            <div class="steps-content">
+                                <p>รอเจ้าหน้าที่ตรวจสอบ</p>
                             </div>
                         </li>
                         <li class="steps-segment
@@ -234,34 +220,44 @@
                                 การดำเนินการ
                             </p>
                             <ul class="menu-list">
-                                {% if invoice.quotation.request.status.status_id == 16 and admin %}
+                                {% if invoice.assistant_approved_at and not invoice.file_attached_at %}
                                     <li>
-                                        <a class="button is-success is-rounded is-full-height mb-2"
-                                           href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
-                                           admin='admin', menu=menu, tab='pending_supervisor') }}"
+                                        <div id="mhesi_number"></div>
+                                        <a class="button is-warning is-rounded is-full-height mb-2"
+                                           href="{{ url_for('service_admin.upload_invoice_file', invoice_id=invoice.id,
+                                           menu=menu, tab=tab) }}"
                                         >
                                             <span class="icon">
-                                                <i class="fas fa-check"></i>
+                                                <i class="fas fa-pen"></i>
                                             </span>
-                                            <span>เสนอหัวหน้าอนุมัติ</span>
+                                            <span>อัปโหลดไฟล์ใบแจ้งหนี้</span>
                                         </a>
                                     </li>
-                                {% elif (invoice.quotation.request.status.status_id == 17 and supervisor) or
-                                        (invoice.quotation.request.status.status_id == 18 and assistant) %}
                                     <li>
-                                        <a class="button is-success is-rounded is-full-height mb-2"
-                                                {% if supervisor %}
-                                                   href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
-                                                   admin='supervisor', menu=menu, tab='pending_assistant') }}"
-                                                {% elif assistant %}
-                                                   href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
-                                                   admin='assistant', menu=menu, tab='pending_dean') }}"
-                                                {% endif %}
+                                        <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
+                                           href="{{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id) }}"
                                         >
-                                            <span class="icon">
-                                                <i class="fas fa-check"></i>
-                                            </span>
-                                            <span>อนุมัติ</span>
+                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                            <span>ดาวน์โหลด PDF</span>
+                                        </a>
+                                    </li>
+                                {% elif invoice.file_attached_at and not invoice.paid_at %}
+                                    <li>
+                                        <a class="button is-info is-rounded is-full-height mb-2"
+                                           href="{{ url_for('service_admin.add_payment', invoice_id=invoice.id,
+                                           menu=menu, tab=tab) }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-plus"></i></span>
+                                            <span>อัปโหลดหลักฐานการชำระเงิน</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
+                                           href="{{ url_for('service_admin.download_file', key=invoice.file,
+                                            download_filename=invoice.invoice_no ~ '.pdf') }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                            <span>ดาวน์โหลดใบแจ้งหนี้</span>
                                         </a>
                                     </li>
                                 {% elif invoice.file %}
@@ -274,6 +270,15 @@
                                             <span>ดาวน์โหลดใบแจ้งหนี้</span>
                                         </a>
                                     </li>
+                                {% else %}
+                                    <li>
+                                        <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
+                                           href="{{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id) }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                            <span>ดาวน์โหลด PDF</span>
+                                        </a>
+                                    </li>
                                 {% endif %}
                             </ul>
                         </aside>
@@ -284,7 +289,7 @@
         <div class="columns">
             <div class="column is-two-thirds is-offset-2 has-text-centered">
                 <div class="buttons is-centered">
-                    <a class="button is-light" href="{{ url_for('service_admin.invoice_index', menu=menu, tab=tab) }}">
+                    <a class="button is-light" href="{{ url_for('service_admin.invoice_index_for_central_admin', menu=menu, tab=tab) }}">
                             <span class="icon">
                                 <i class="fas fa-chevron-left"></i>
                             </span>

@@ -258,7 +258,7 @@
                                 การดำเนินการ
                             </p>
                             <ul class="menu-list">
-                                {% if service_request.status.status_id == 2 %}
+                                {% if service_request.status.status_id == 2 and service_request.admin_id %}
                                     <li>
                                         <a class="button is-info is-rounded is-fullwidth mb-2"
                                            href="{{ url_for('service_admin.generate_quotation',
@@ -270,7 +270,30 @@
                                             <span>ออกใบเสนอราคา</span>
                                         </a>
                                     </li>
-                                {% elif (service_request.status.status_id == 10 or service_request.status.status_id >= 11) %}
+                                    <li>
+                                        <a class="button is-small is-outlined is-rounded is-fullwidth mb-2"
+                                           href="{{ url_for('service_admin.create_request',
+                                           request_id=service_request.id, code=service_request.sub_lab.code,
+                                           customer_id=service_request.customer_id) }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-pen"></i></span>
+                                            <span>แก้ไขข้อมูลคำขอ</span>
+                                        </a>
+                                    </li>
+                                {% elif service_request.status.status_id == 2 %}
+                                    <li>
+                                        <a class="button is-info is-rounded is-fullwidth mb-2"
+                                           href="{{ url_for('service_admin.generate_quotation',
+                                            request_id=service_request.id, code=service_request.sub_lab.code, menu='quotation',
+                                            tab='draft') }}"
+                                        >
+                                            <span class="icon">
+                                                <i class="fas fa-file-invoice"></i>
+                                            </span>
+                                            <span>ออกใบเสนอราคา</span>
+                                        </a>
+                                    </li>
+                                {% elif (service_request.status.status_id == 10 or service_request.status.status_id == 11) %}
                                     <li>
                                         <a class="button is-primary is-rounded is-fullwidth mb-2"
                                            {% if result_id %}

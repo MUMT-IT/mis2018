@@ -1,13 +1,13 @@
 import os
 import boto3
 from sqlalchemy import func, LargeBinary
-from sqlalchemy_utils import DateTimeRangeType
-
+import math
 from app.main import db
 from dateutil.utils import today
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from app.models import Province, District, Subdistrict, Zipcode
+from app.scb_payment_service.models import ScbPaymentRecord
 from app.staff.models import StaffAccount
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -366,6 +366,7 @@ class ServiceAdmin(db.Model):
     admin = db.relationship(StaffAccount, backref=db.backref('lab_admins', cascade='all, delete-orphan'))
     is_central_admin = db.Column('is_central_admin', db.Boolean())
     is_supervisor = db.Column('is_supervisor', db.Boolean())
+    is_assistant = db.Column('is_assistant', db.Boolean())
 
 
 class ServiceRequest(db.Model):
@@ -465,15 +466,14 @@ class ServiceRequest(db.Model):
             'invoice_file_attached_at': ', '.join(str(invoice.file_attached_at) for quotation in self.quotations
                                                   if quotation.invoices for invoice in quotation.invoices
                                                   if invoice.file_attached_at) if self.quotations else None,
-            'paid_at': ', '.join(str(invoice.paid_at) for quotation in self.quotations
+            'paid_at': ', '.join(str(payment.paid_at) for quotation in self.quotations
                                                   if quotation.invoices for invoice in quotation.invoices
-                                                  if invoice.paid_at) if self.quotations else None,
-            'is_paid': ', '.join(str(invoice.is_paid) for quotation in self.quotations
+                                                  if invoice.payments for payment in invoice.payments if payment.paid_at)
+                                                    if self.quotations else None,
+            'verified_at':  ', '.join(str(payment.verified_at) for quotation in self.quotations
                                                   if quotation.invoices for invoice in quotation.invoices
-                                                  if invoice.is_paid) if self.quotations else None,
-            'verify_at':  ', '.join(str(invoice.verify_at) for quotation in self.quotations
-                                                  if quotation.invoices for invoice in quotation.invoices
-                                                  if invoice.verify_at) if self.quotations else None,
+                                                  if invoice.payments for payment in invoice.payments if payment.verified_at)
+                                                    if self.quotations else None,
             'invoice_no': invoice_no,
             'invoice_file': invoice_file,
             'has_invoice': has_invoice,
@@ -812,8 +812,6 @@ class ServiceInvoice(db.Model):
     file_attached_by = db.relationship(StaffAccount, backref=db.backref('file_attached_invoices'),
                                        foreign_keys=[file_attached_id])
     due_date = db.Column('due_date', db.DateTime(timezone=True))
-    paid_at = db.Column('paid_at', db.DateTime(timezone=True))
-    is_paid = db.Column('is_paid', db.Boolean())
     note = db.Column('note', db.Text())
     verify_at = db.Column('verify_at', db.DateTime(timezone=True))
     verify_id = db.Column('verify_id', db.ForeignKey('staff_account.id'))
@@ -832,17 +830,16 @@ class ServiceInvoice(db.Model):
             'admin_status_color': self.admin_status_color if self.admin_status_color else None,
             'customer_status': self.customer_status if self.customer_status else None,
             'customer_status_color': self.customer_status_color if self.customer_status_color else None,
-            'total_price': '{:,.2f}'.format(self.grand_total()),
+            'total_price': '{:,.2f}'.format(self.grand_total),
             'created_at': self.created_at,
             'due_date': self.due_date if self.due_date else None,
             'creator': self.creator.fullname if self.creator else None,
             'file_attached_at': self.file_attached_at if self.file_attached_at else None,
             'assistant_approved_at': self.assistant_approved_at if self.assistant_approved_at else None,
-            'payment_type': [payment.payment_type for payment in self.payments] if self.payments else None,
-            'payment_date': ', '.join(str(payment.paid_at) if payment.paid_at else '' for payment in self.payments)
-                            if self.payments else None,
-            'paid_at': self.paid_at if self.paid_at else None,
-            'is_paid': self.is_paid if self.is_paid else None,
+            'payment_type': self.get_payment().payment_type if self.get_payment() else None,
+            'paid_at': self.paid_at,
+            'amount_paid': self.get_payment().amount_paid if self.get_payment() else None,
+            'is_paid': self.is_paid,
             'invoice_file': self.file if self.file else None,
             'receipt_id': [receipt.id for receipt in self.receipts] if self.receipts else None,
             'receipt_no': [receipt.number for receipt in self.receipts] if self.receipts else None,
@@ -868,9 +865,37 @@ class ServiceInvoice(db.Model):
     def contact_phone_number(self):
         return self.quotation.request.customer.contact_phone_number
 
+    def get_payment(self):
+        payment = self.payments.filter(ServicePayment.created_at != None,
+                                       ServicePayment.cancelled_at == None,
+                                       ServicePayment.amount_paid == self.grand_total).first()
+        if not payment:
+            return None
+        if payment.payment_type == 'QR Code Payment':
+            record = ScbPaymentRecord.query.filter_by(bill_payment_ref1=self.invoice_no).first()
+            if record:
+                grand_total = float(self.grand_total)
+                if math.isclose(grand_total, record.amount):
+                    return payment
+                else:
+                    None
+            else:
+                return None
+        else:
+            return payment
+
+    @property
+    def paid_at(self):
+        return self.get_payment().paid_at.strftime('%d/%m/%Y %H:%M:%S') if self.get_payment() else None
+
+    @property
+    def is_paid(self):
+        return True if self.get_payment() and self.get_payment().verified_at else False
+
     @property
     def admin_status(self):
-        if self.is_paid:
+        payment = self.get_payment()
+        if payment and payment.verified_at:
             status = 'ชำระเงินแล้ว'
         elif self.paid_at:
             status = 'รอตรวจสอบการชำระเงิน'
@@ -888,7 +913,8 @@ class ServiceInvoice(db.Model):
 
     @property
     def admin_status_color(self):
-        if self.is_paid:
+        payment = self.get_payment()
+        if payment and payment.verified_at:
             color = 'is-success'
         elif self.paid_at:
             color = 'is-warning'
@@ -906,7 +932,8 @@ class ServiceInvoice(db.Model):
 
     @property
     def customer_status(self):
-        if self.is_paid:
+        payment = self.get_payment()
+        if payment and payment.verified_at:
             status = 'ชำระเงินแล้ว'
         elif self.paid_at:
             status = 'รอตรวจสอบการชำระเงิน'
@@ -918,7 +945,8 @@ class ServiceInvoice(db.Model):
 
     @property
     def customer_status_color(self):
-        if self.is_paid:
+        payment = self.get_payment()
+        if payment and payment.verified_at:
             color = 'is-success'
         elif self.paid_at:
             color = 'is-warning'
@@ -945,6 +973,7 @@ class ServiceInvoice(db.Model):
             total_price += invoice_item.total_price
         return total_price
 
+    @property
     def grand_total(self):
         total_price = 0
         for invoice_item in self.invoice_items:
@@ -1010,13 +1039,16 @@ class ServicePayment(db.Model):
     customer_id = db.Column('customer_id', db.ForeignKey('service_customer_accounts.id'))
     customer = db.relationship(ServiceCustomerAccount, backref=db.backref("created_payments"),
                                foreign_keys=[customer_id])
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    canceller_id = db.Column('canceller_id', db.ForeignKey('staff_account.id'))
+    canceller = db.relationship(StaffAccount, backref=db.backref('cancelled_payments'), foreign_keys=[canceller_id])
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
     admin = db.relationship(StaffAccount, backref=db.backref('created_payments'), foreign_keys=[admin_id])
     verified_at = db.Column('verified_at', db.DateTime(timezone=True))
     verifier_id = db.Column('verifier_id', db.ForeignKey('staff_account.id'))
     verifier = db.relationship(StaffAccount, backref=db.backref('verified_payments'), foreign_keys=[verifier_id])
     invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
-    invoice = db.relationship(ServiceInvoice, backref=db.backref('payments', cascade="all, delete-orphan"))
+    invoice = db.relationship(ServiceInvoice, backref=db.backref('payments', cascade="all, delete-orphan", lazy='dynamic'))
 
     @property
     def to_link(self):
@@ -1084,7 +1116,7 @@ class ServiceResult(db.Model):
             'lab_no': self.lab_no,
             'request_no': self.request.request_no if self.request else None,
             'tracking_number': self.tracking_number,
-            'status_id': self.status.status_id if self.status else None,
+            'status_id': self.request.status.status_id if self.request else None,
             'admin_status': self.admin_status if self.admin_status else None,
             'customer_status': self.customer_status if self.customer_status else None,
             'released_at': self.released_at if self.released_at else None,

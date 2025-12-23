@@ -41,7 +41,7 @@
                             <div class="field">
                                 <label class="label">ราคา</label>
                                 <div class="control">
-                                    {{ "{:,.2f}".format(invoice.grand_total()) }} บาท
+                                    {{ "{:,.2f}".format(invoice.grand_total) }} บาท
                                 </div>
                             </div>
                             <div class="field">
@@ -62,7 +62,7 @@
                             <div class="column">
                                 <div class="field is-grouped is-grouped-centered">
                                     <div class="control">
-                                        <a href="{{ url_for('service_admin.invoice_index', menu=menu, tab=tab) }}"
+                                        <a href="{{ url_for('service_admin.invoice_index_for_central_admin', menu=menu, tab=tab) }}"
                                            class="button">ยกเลิก</a>
                                     </div>
                                     <div class="control">

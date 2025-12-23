@@ -25,27 +25,18 @@
                             <a href="{{ url_for('academic_services.quotation_index', tab='confirm', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-check"></i></span>
                                 <span>ยืนยันแล้ว</span>
-                                {% if confirm_count > 0 %}
-                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ confirm_count }}</span>
-                                {% endif %}
                             </a>
                         </li>
                         <li {% if tab == 'cancel' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('academic_services.quotation_index', tab='cancel', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-times"></i></span>
                                 <span>ยกเลิก</span>
-                                {% if cancel_count > 0 %}
-                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ cancel_count }}</span>
-                                {% endif %}
                             </a>
                         </li>
                         <li {% if tab == 'all' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('academic_services.quotation_index', tab='all', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
                                 <span>ทั้งหมด</span>
-                                {% if all_count > 0 %}
-                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ all_count }}</span>
-                                {% endif %}
                             </a>
                         </li>
                     </ul>
@@ -73,7 +64,7 @@
             $.fn.dataTable.moment('lll');
             $('#quotations').DataTable({
                 ajax: {
-                    url: {{ url_for('academic_services.get_quotations', tab=tab)|tojson|safe}},
+                    url: {{ url_for('academic_services.quotation_index', tab=tab, api='true')|tojson|safe}},
                 },
                 order: [[1, 'desc']],
                 columns: [

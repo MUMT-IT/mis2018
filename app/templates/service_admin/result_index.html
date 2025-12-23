@@ -44,18 +44,12 @@
                             <a href="{{ url_for('service_admin.result_index', tab='confirm', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-check"></i></span>
                                 <span>ยืนยันผลแล้ว</span>
-                                {% if confirm_count > 0 %}
-                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ confirm_count }}</span>
-                                {% endif %}
                             </a>
                         </li>
                         <li {% if tab == 'all' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('service_admin.result_index', tab='all', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
                                 <span>ทั้งหมด</span>
-                                {% if all_count > 0 %}
-                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ all_count }}</span>
-                                {% endif %}
                             </a>
                         </li>
                     </ul>
@@ -85,7 +79,7 @@
             $.fn.dataTable.moment('lll');
             $('#results').DataTable({
                 ajax: {
-                    url: {{ url_for('service_admin.get_results', tab=tab)|tojson|safe }},
+                    url: {{ url_for('service_admin.result_index', tab=tab, api='true')|tojson|safe }},
                 },
                 order: [[2, 'desc']],
                 scrollX: true,
