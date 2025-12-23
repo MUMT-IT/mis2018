@@ -2,7 +2,7 @@
 {% block head %}
     {{ super() }}
     <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
-    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
 {% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
@@ -16,7 +16,7 @@
                     {% else %}
                         <h1 class="title has-text-centered">สร้างกลุ่มใหม่</h1>
                     {% endif %}
-                    <form method="post">
+                    <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
                         <div class="field">
                             <label class="label">
@@ -43,14 +43,39 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ 'ตั้งค่ากลุ่ม' }}</label>
+                            <label class="label">{{ 'ตั้งค่ากลุ่ม' }}<span class="has-text-danger">*</span></label>
                             <div class="field">
                                 <label class="checkbox">
-                                <input type="checkbox" name="public" value="True" checked>
-                                {{ 'กลุ่มสาธารณะ' }}</label>
+                                    <input type="checkbox" name="public" value="True" checked>
+                                    {{ 'กลุ่มสาธารณะ' }}</label>
                             </div>
                             <div class="field">
-                                <label class="checkbox"> {{ form.official() }} {{ 'กลุ่มทางการ' }}</label>
+                                <label class="checkbox"> {{ form.official() }} {{ 'กลุ่มส่วนตัว' }}</label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                เอกสารเพิ่มเติม
+                            </label>
+                            <div class="file">
+                                <label class="file-label">
+                                    {{ form.file_upload(class="file-input") }}
+                                    <span class="file-cta">
+                                            <span class="file-icon">
+                                                <i class="fas fa-upload"></i>
+                                            </span>
+                                            <span class="file-label">
+                                                เลือกไฟล์…
+                                            </span>
+                                        </span>
+                                    <span class="file-name" id="filename">
+                                        {% if group_detail and group_detail.file %}
+                                            {{ group_detail.file }}
+                                        {% else %}
+                                            กรุณาเลือกไฟล์
+                                        {% endif %}
+                                    </span>
+                                </label>
                             </div>
                         </div>
                         <div class="field">
@@ -88,16 +113,16 @@
                             </div>
                             <footer class="card-footer">
                                 <a class="card-footer-item"
-                                    hx-post="{{ url_for('staff.add_group') }}"
-                                    hx-target="#positions" hx-swap="beforeend">
+                                   hx-post="{{ url_for('staff.add_group') }}"
+                                   hx-target="#positions" hx-swap="beforeend">
                                     <span class="icon">
                                         <i class="fas fa-plus"></i>
                                     </span>
                                     <span>เพิ่ม</span>
                                 </a>
                                 <a class="card-footer-item"
-                                    hx-delete="{{ url_for('staff.remove_group') }}"
-                                    hx-target="#positions" hx-swap="innerHTML">
+                                   hx-delete="{{ url_for('staff.remove_group') }}"
+                                   hx-target="#positions" hx-swap="innerHTML">
                                     <span class="icon">
                                         <i class="far fa-trash-alt has-text-danger"></i>
                                     </span>
@@ -123,7 +148,17 @@
 {% block scripts %}
     {{ super() }}
     <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript"
+            src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $('#file_upload').on('change', function () {
+            if (this.files.length > 0) {
+                $('#filename').text(this.files[0].name);
+            } else {
+                $('#filename').text('กรุณาเลือกไฟล์');
+            }
+        });
+    </script>
     <script>
         function initSelect2() {
             $(document).ready(() => {

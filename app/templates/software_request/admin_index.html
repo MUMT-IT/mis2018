@@ -1,46 +1,72 @@
 {% extends "base.html" %}
 {% block title %}MUMT Internal Information System{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+{% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
     <section class="section">
         <div class="container">
             <h1 class="title">รายการขอรับบริการพัฒนา Software (สำหรับหน่วย IT)</h1>
             {% include 'messages.html' %}
+            <hr>
+            <h1 class="title is-size-4">Request</h1>
             <div class="tabs is-boxed">
                 <ul>
                     <li {% if tab == 'pending' %}class="is-active"{% endif %}>
                         <a href="{{ url_for('software_request.admin_index', tab='pending') }}">
                             <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
                             <span style="margin-right: .5em">รอดำเนินการ</span>
-                            <span class="tag is-rounded is-danger">{{ pending_count }}</span>
+                            {% if pending_count %}
+                                <span class="tag is-rounded is-danger">{{ pending_count }}</span>
+                            {% endif %}
                         </a>
                     </li>
                     <li {% if tab == 'consider' %}class="is-active"{% endif %}>
                         <a href="{{ url_for('software_request.admin_index', tab='consider') }}">
                             <span class="icon is-small"><i class="fas fa-history"></i></span>
                             <span style="margin-right: .5em">อยู่ระหว่างพิจารณา</span>
-                            <span class="tag is-rounded is-danger">{{ consider_count }}</span>
+                            {% if consider_count %}
+                                <span class="tag is-rounded is-danger">{{ consider_count }}</span>
+                            {% endif %}
                         </a>
                     </li>
                     <li {% if tab == 'approve' %}class="is-active"{% endif %}>
                         <a href="{{ url_for('software_request.admin_index', tab='approve') }}">
-                            <span class="icon is-small"><i class="fas fa-check"></i></span>
+                            <span class="icon is-small"><i class="fas fa-pen-fancy"></i></span>
                             <span style="margin-right: .5em">อนุมัติ</span>
-                            <span class="tag is-rounded is-danger">{{ approve_count }}</span>
+                            {% if approve_count %}
+                                <span class="tag is-rounded is-danger">{{ approve_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    <li {% if tab == 'complete' %}class="is-active"{% endif %}>
+                        <a href="{{ url_for('software_request.admin_index', tab='complete') }}">
+                            <span class="icon is-small"><i class="fas fa-check"></i></span>
+                            <span style="margin-right: .5em">เสร็จสิ้น</span>
+                            {% if complete_count %}
+                                <span class="tag is-rounded is-danger">{{ complete_count }}</span>
+                            {% endif %}
                         </a>
                     </li>
                     <li {% if tab == 'disapprove' %}class="is-active"{% endif %}>
                         <a href="{{ url_for('software_request.admin_index', tab='disapprove') }}">
                             <span class="icon is-small"><i class="fas fa-times"></i></span>
                             <span style="margin-right: .5em">ไม่อนุมัติ</span>
-                            <span class="tag is-rounded is-danger">{{ disapprove_count }}</span>
+                            {% if disapprove_count %}
+                                <span class="tag is-rounded is-danger">{{ disapprove_count }}</span>
+                            {% endif %}
                         </a>
                     </li>
                     <li {% if tab == 'cancel' %}class="is-active"{% endif %}>
                         <a href="{{ url_for('software_request.admin_index', tab='cancel') }}">
                             <span class="icon is-small"><i class="fas fa-ban"></i></span>
                             <span style="margin-right: .5em">ยกเลิก</span>
-                            <span class="tag is-rounded is-danger">{{ cancel_count }}</span>
+                            {% if cancel_count %}
+                                <span class="tag is-rounded is-danger">{{ cancel_count }}</span>
+                            {% endif %}
                         </a>
                     </li>
                     <li {% if tab == 'all' %}class="is-active"{% endif %}>
@@ -55,19 +81,122 @@
                 <div class="column">
                     <table id="request" class="table is-fullwidth">
                         <thead>
-                            <tr>
-                                <th>โครงการ/ระบบ</th>
-                                <th>ประเภทคำขอ</th>
-                                <th>รายละเอียด</th>
-                                <th>ผู้ส่งคำขอ</th>
-                                <th>สังกัด</th>
-                                <th>วันที่ส่งคำขอ</th>
-                                <th>สถานะ</th>
-                                <th>issues</th>
-                                <th></th>
-                            </tr>
+                        <tr>
+                            <th>โครงการ/ระบบ</th>
+                            <th>ประเภทคำขอ</th>
+                            <th>รายละเอียด</th>
+                            <th>ผู้ส่งคำขอ</th>
+                            <th>สังกัด</th>
+                            <th>วันที่ส่งคำขอ</th>
+                            <th>สถานะ</th>
+                            <th>Timelines</th>
+                            <th>issues</th>
+                            <th></th>
+                        </tr>
                         </thead>
                         <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <hr>
+            <h1 class="title is-size-4">Timeline</h1>
+            <div class="columns">
+                <div class="column">
+                    <div id="timeline_form"></div>
+                    <table id="timeline" class="table is-fullwidth">
+                        <thead>
+                        <tr>
+                            <th>Task</th>
+                            <th>Phase</th>
+                            <th>โครงการ/ระบบ</th>
+                            <th>วันที่เริ่มต้น</th>
+                            <th>วันที่คาดว่าจะแล้วเสร็จ</th>
+                            <th>สถานะ</th>
+                            <th>Update</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody id="timelines">
+                            {% for timeline in timelines|sort(attribute='start') %}
+                                <tr>
+                                    <td>{{ timeline.task }}</td>
+                                    <td>{{ timeline.phase }}</td>
+                                    <td>{{ timeline.request.title }}</td>
+                                    <td>{{ timeline.start.strftime('%d/%m/%Y') }}</td>
+                                    <td>{{ timeline.estimate.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <span
+                                            {% if timeline.status == 'รอดำเนินการ' %}
+                                                class="tag is-info is-light"
+                                            {% elif timeline.status == 'เสร็จสิ้น' %}
+                                                class="tag is-success is-light"
+                                            {% else %}
+                                                class="tag is-danger is-light"
+                                            {% endif %}
+                                        >
+                                            {{ timeline.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if timeline.status == 'รอดำเนินการ' %}
+                                            <div class="field has-addons">
+                                                <div class="control">
+                                                    <a class="button is-small is-success is-rounded"
+                                                       hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                                                       hx-post="{{ url_for('software_request.update_timeline_status',
+                                                       timeline_id=timeline.id) }}"
+                                                       hx-vals='{"status": "เสร็จสิ้น"}'
+                                                       hx-confirm="ท่านต้องกาอัพเดตสถานะรายการนี้หรือไม่"
+                                                    >
+                                                        <span class="icon">
+                                                            <i class="fas fa-check"></i>
+                                                        </span>
+                                                        <span>เสร็จสิ้น</span>
+                                                    </a>
+                                                </div>
+                                                <div class="control">
+                                                    <a class="button is-small is-danger is-rounded"
+                                                       hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                                                       hx-post="{{ url_for('software_request.update_timeline_status',
+                                                       timeline_id=timeline.id) }}"
+                                                       hx-vals='{"status": "ยกเลิกการพัฒนา"}'
+                                                       hx-confirm="ท่านต้องกาอัพเดตสถานะรายการนี้หรือไม่"
+                                                    >
+                                                        <span class="icon">
+                                                            <i class="fas fa-times"></i>
+                                                        </span>
+                                                        <sapn>ยกเลิกการพัฒนา</sapn>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    {% endif %}
+                                    <td>
+                                        <div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-rounded"
+                                                   hx-swap="innerHTML"
+                                                   hx-target="#timeline_form"
+                                                   hx-get="{{ url_for('software_request.create_timeline',
+                                                   timeline_id=timeline.id, tab=tab) }}"
+                                                >
+                                                    <span class="icon"><i class="fas fa-pencil-alt"></i></span>
+                                                </a>
+                                            </div>
+                                            <div class="control">
+                                                <a class="button is-small is-rounded"
+                                                   hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                                                   hx-delete="{{ url_for('software_request.delete_timeline', timeline_id=timeline.id) }}"
+                                                   hx-confirm="ท่านต้องการลบรายการนี้หรือไม่"
+                                                >
+                                                    <span class="icon"><i class="far fa-trash-alt has-text-danger"></i></span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
                 </div>
@@ -77,41 +206,79 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-       <script>
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+    window.document.addEventListener("closeTimeline", function () {
+            htmx.removeClass(htmx.find('#timeline-modal'), "is-active")
+        })
+    </script>
+    <script>
+        $(document).ready(function () {
+            $('#timeline').DataTable({
+                order: [[2, 'asc']]
+            })
+        });
+    </script>
+    <script>
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
             $('#request').DataTable({
                 ajax: {
-                    url: {{ url_for('software_request.get_requests', tab=tab)|tojson|safe}},
+                    url: {{ url_for('software_request.admin_index', tab=tab, api='true')|tojson|safe}},
                 },
-                order: [[4, 'desc']],
+                order: [[5, 'desc']],
                 columns: [
-                    { data: 'title' },
-                    { data: 'type' },
-                    { data: 'description' },
-                    { data: 'created_by' },
-                    { data: 'org' },
+                    {data: 'title'},
+                    {data: 'type'},
+                    {data: 'description'},
+                    {data: 'created_by'},
+                    {data: 'org'},
                     {
                         data: 'created_date',
-                        render: function(data) {
+                        render: function (data) {
                             if (data !== null) {
                                 let d = moment(data)
-                                    return d.format('lll')
-                                } else {
-                                    return ''
-                                }
+                                return d.format('lll')
+                            } else {
+                                return ''
                             }
+                        }
                     },
                     {
                         data: 'status',
-                        render: function (data) {
-                            var text = data == 'ส่งคำขอแล้ว' ? 'รอดำเนินการ' : data;
-                            var status_color = data == 'ส่งคำขอแล้ว' ? 'is-info' : data == 'อยู่ระหว่างพิจารณา' ? 'is-warning' :
-                                data == 'อนุมัติ' ? 'is-success' : data == 'ไม่อนุมัติ' ? 'is-danger' : 'is-dark';
+                        render: function (data, type, row) {
+                            var text = data == 'เสร็จสิ้น' ? 'ดำเนินการเสร็จสิ้น' : row.has_timeline ? 'กำลังพัฒนา' : 'ยังไม่ดำเนินการ';
+                            var status_color = data == 'เสร็จสิ้น' ? 'is-success' : row.has_timeline ? 'is-warning' : 'is-danger';
+                            var icon = data == 'เสร็จสิ้น' ? '<i class="fas fa-check-circle"></i>' : row.has_timeline ? '<i class="fas fa-hourglass-end"></i>' : '<i class="fas fa-times-circle"></i>';
                             if (data != null) {
-                                return '<span class="tag '+ status_color +'">' + text +'</span>'
+                                return '<span class="tag ' + status_color + '">' +
+                                    '<span class="icon">' +
+                                    icon +
+                                    '</span>' +
+                                    '<span>' +
+                                    text +
+                                    '</span>' +
+                                    '</span>';
                             } else {
-                                return '<span class="tag is-light">ไม่มีสถานะ</span>'
+                                return '<span class="tag is-danger">' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-times-circle"></i>' +
+                                    '</span>' +
+                                    '<span>' +
+                                    'ยังไม่ดำเนินการ' +
+                                    '</span>' +
+                                    '</span>'
+                            }
+                        }
+                    },
+                    {
+                        data: 'num_timelines',
+                        render: function (data) {
+                            if (data > 0) {
+                                return `<span class="tag is-rounded is-danger">${data}</span>`
+                            } else {
+                                return `<span class="tag is-rounded is-light">0</span>`
                             }
                         }
                     },
@@ -128,7 +295,7 @@
                     {
                         data: 'id',
                         render: function (data) {
-                            var url = '/software_request/admin/request/edit/' +  data + '?tab=' + '{{ tab }}';
+                            var url = '/software_request/admin/request/edit/' + data + '?tab=' + '{{ tab }}';
                             return `<div class="field">
                                         <div class="control">
                                             <a href="${url}">
