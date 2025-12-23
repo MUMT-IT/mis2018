@@ -188,6 +188,17 @@
                                         </a>
                                     </div>
                                     <div class="control">
+                                        <a {% if detail.status == 'เสร็จสิ้น' %}
+                                            class="button is-rounded is-info"
+                                        {% else %}
+                                            class="button is-outlined is-rounded is-info"
+                                        {% endif %}
+                                            onclick="setStatus('เสร็จสิ้น')"
+                                        >
+                                            เสร็จสิ้น
+                                        </a>
+                                    </div>
+                                    <div class="control">
                                         <a {% if detail.status == 'ไม่อนุมัติ' %}
                                             class="button is-rounded is-danger"
                                         {% else %}
@@ -212,7 +223,7 @@
                                 </div>
                             </div>
                         </div>
-                        {% if detail.status == 'อนุมัติ' or detail.status == 'ยกเลิก' %}
+                        {% if detail.status == 'อนุมัติ' or detail.status == 'ยกเลิก' or detail.status == 'เสร็จสิ้น'%}
                             <div class="field is-horizontal">
                                 <div class="field-label">
                                     <label class="label">Timeline</label>
@@ -220,7 +231,7 @@
                                 <div class="field-body">
                                     <div class="field is-expanded">
                                         <div class="control">
-                                            <table class="table is-fullwidth is-striped is-hoverable">
+                                            <table id="timeline" class="table is-fullwidth is-striped">
                                                 <thead>
                                                     <th>Sequence</th>
                                                     <th>Task</th>
@@ -237,8 +248,8 @@
                                                             <td>{{ timeline.sequence }}</td>
                                                             <td>{{ timeline.task }}</td>
                                                             <td>
-                                                                <span {% if timeline.status == 'รอดำเนินการ' %}#}
-                                                                    class="tag is-info is-light"
+                                                                <span {% if timeline.status == 'รอดำเนินการ' %}
+                                                                        class="tag is-info is-light"
                                                                 {% elif timeline.status == 'กำลังดำเนินการ' %}
                                                                     class="tag is-warning is-light"
                                                                 {% elif timeline.status == 'เสร็จสิ้น' %}
@@ -247,7 +258,7 @@
                                                                     class="tag is-danger is-light"
                                                                 {% endif %}
                                                                 >
-                                                                        {{ timeline.status }}
+                                                                    {{ timeline.status }}
                                                                 </span>
                                                             </td>
                                                             <td>{{ timeline.phase }}</td>
@@ -422,6 +433,17 @@
     {{ super() }}
     <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#timeline').DataTable({
+                order: [[0, 'asc']],
+                lengthChange: false,
+                searching: false,
+                paging: false,
+                info: false
+            })
+        });
+    </script>
     <script>
         function setStatus(status) {
             if (confirm("แน่ใจหรือไม่ว่าจะเปลี่ยนสถานะ?")) {

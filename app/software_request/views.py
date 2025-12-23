@@ -27,7 +27,7 @@ FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
 
 json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'docx', 'doc'}
 
 
 def send_mail(recp, title, message):
@@ -120,55 +120,97 @@ def get_systems():
 @login_required
 def admin_index():
     tab = request.args.get('tab')
-    pending_count = SoftwareRequestDetail.query.filter_by(status='ส่งคำขอแล้ว').count()
-    consider_count = SoftwareRequestDetail.query.filter_by(status='อยู่ระหว่างพิจารณา').count()
-    approve_count = SoftwareRequestDetail.query.filter_by(status='อนุมัติ').count()
-    disapprove_count = SoftwareRequestDetail.query.filter_by(status='ไม่อนุมัติ').count()
-    cancel_count = SoftwareRequestDetail.query.filter_by(status='ยกเลิก').count()
-    return render_template('software_request/admin_index.html', tab=tab, pending_count=pending_count,
-                           consider_count=consider_count, approve_count=approve_count,
-                           disapprove_count=disapprove_count,
-                           cancel_count=cancel_count)
+    api = request.args.get('api', 'false')
+    query = SoftwareRequestDetail.query
+    timelines = SoftwareRequestTimeline.query.filter_by(admin_id=current_user.id)
+    pending_query = query.filter_by(status='ส่งคำขอแล้ว')
+    consider_query = query.filter_by(status='อยู่ระหว่างพิจารณา')
+    approve_query = query.filter_by(status='อนุมัติ')
+    complete_query = query.filter_by(status='เสร็จสิ้น')
+    disapprove_query = query.filter_by(status='ไม่อนุมัติ')
+    cancel_query = query.filter_by(status='ยกเลิก')
+    if api == 'true':
+        tab = request.args.get('tab')
+        if tab == 'pending':
+            query = pending_query
+        elif tab == 'consider':
+            query = consider_query
+        elif tab == 'approve':
+            query = approve_query
+        elif tab == 'complete':
+            query = complete_query
+        elif tab == 'disapprove':
+            query = disapprove_query
+        elif tab == 'cancel':
+            query = cancel_query
+
+        records_total = query.count()
+        search = request.args.get('search[value]')
+        if search:
+            query = query.filter(db.or_
+                                 (SoftwareRequestDetail.type.ilike(u'%{}%'.format(search)),
+                                  SoftwareRequestDetail.description.ilike(u'%{}%'.format(search)),
+                                  SoftwareRequestDetail.created_by.ilike(u'%{}%'.format(search)),
+                                  SoftwareRequestDetail.created_date.ilike(u'%{}%'.format(search)),
+                                  SoftwareRequestDetail.status.ilike(u'%{}%'.format(search))
+                                  ))
+        start = request.args.get('start', type=int)
+        length = request.args.get('length', type=int)
+        total_filtered = query.count()
+        query = query.offset(start).limit(length)
+        data = []
+        for item in query:
+            item_data = item.to_dict()
+            data.append(item_data)
+        return jsonify({'data': data,
+                        'recordFiltered': total_filtered,
+                        'recordTotal': records_total,
+                        'draw': request.args.get('draw', type=int)
+                        })
+    return render_template('software_request/admin_index.html', tab=tab, pending_count=pending_query.count(),
+                           consider_count=consider_query.count(), approve_count=approve_query.count(),
+                           complete_count=complete_query.count(), disapprove_count=disapprove_query.count(),
+                           cancel_count=cancel_query.count(), timelines=timelines)
 
 
-@software_request.route('/api/request/index')
-def get_requests():
-    tab = request.args.get('tab')
-    if tab == 'pending':
-        query = SoftwareRequestDetail.query.filter_by(status='ส่งคำขอแล้ว')
-    elif tab == 'consider':
-        query = SoftwareRequestDetail.query.filter_by(status='อยู่ระหว่างพิจารณา')
-    elif tab == 'approve':
-        query = SoftwareRequestDetail.query.filter_by(status='อนุมัติ')
-    elif tab == 'disapprove':
-        query = SoftwareRequestDetail.query.filter_by(status='ไม่อนุมัติ')
-    elif tab == 'cancel':
-        query = SoftwareRequestDetail.query.filter_by(status='ยกเลิก')
-    else:
-        query = SoftwareRequestDetail.query
-    records_total = query.count()
-    search = request.args.get('search[value]')
-    if search:
-        query = query.filter(db.or_
-                             (SoftwareRequestDetail.type.ilike(u'%{}%'.format(search)),
-                              SoftwareRequestDetail.description.ilike(u'%{}%'.format(search)),
-                              SoftwareRequestDetail.created_by.ilike(u'%{}%'.format(search)),
-                              SoftwareRequestDetail.created_date.ilike(u'%{}%'.format(search)),
-                              SoftwareRequestDetail.status.ilike(u'%{}%'.format(search))
-                              ))
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    total_filtered = query.count()
-    query = query.offset(start).limit(length)
-    data = []
-    for item in query:
-        item_data = item.to_dict()
-        data.append(item_data)
-    return jsonify({'data': data,
-                    'recordFiltered': total_filtered,
-                    'recordTotal': records_total,
-                    'draw': request.args.get('draw', type=int)
-                    })
+# @software_request.route('/api/request/index')
+# def get_requests():
+#     tab = request.args.get('tab')
+#     if tab == 'pending':
+#         query = SoftwareRequestDetail.query.filter_by(status='ส่งคำขอแล้ว')
+#     elif tab == 'consider':
+#         query = SoftwareRequestDetail.query.filter_by(status='อยู่ระหว่างพิจารณา')
+#     elif tab == 'approve':
+#         query = SoftwareRequestDetail.query.filter_by(status='อนุมัติ')
+#     elif tab == 'disapprove':
+#         query = SoftwareRequestDetail.query.filter_by(status='ไม่อนุมัติ')
+#     elif tab == 'cancel':
+#         query = SoftwareRequestDetail.query.filter_by(status='ยกเลิก')
+#     else:
+#         query = SoftwareRequestDetail.query
+#     records_total = query.count()
+#     search = request.args.get('search[value]')
+#     if search:
+#         query = query.filter(db.or_
+#                              (SoftwareRequestDetail.type.ilike(u'%{}%'.format(search)),
+#                               SoftwareRequestDetail.description.ilike(u'%{}%'.format(search)),
+#                               SoftwareRequestDetail.created_by.ilike(u'%{}%'.format(search)),
+#                               SoftwareRequestDetail.created_date.ilike(u'%{}%'.format(search)),
+#                               SoftwareRequestDetail.status.ilike(u'%{}%'.format(search))
+#                               ))
+#     start = request.args.get('start', type=int)
+#     length = request.args.get('length', type=int)
+#     total_filtered = query.count()
+#     query = query.offset(start).limit(length)
+#     data = []
+#     for item in query:
+#         item_data = item.to_dict()
+#         data.append(item_data)
+#     return jsonify({'data': data,
+#                     'recordFiltered': total_filtered,
+#                     'recordTotal': records_total,
+#                     'draw': request.args.get('draw', type=int)
+#                     })
 
 
 @software_request.route('/admin/request/edit/<int:detail_id>', methods=['GET', 'POST'])
@@ -176,6 +218,7 @@ def update_request(detail_id):
     tab = request.args.get('tab')
     detail = SoftwareRequestDetail.query.get(detail_id)
     status = detail.status
+
     SoftwareRequestDetailForm = create_request_form(detail_id=detail_id)
     form = SoftwareRequestDetailForm(obj=detail)
     if detail.url:
@@ -196,10 +239,10 @@ def update_request(detail_id):
         if form.status.data:
             scheme = 'http' if current_app.debug else 'https'
             link = url_for("software_request.view_request", detail_id=detail_id, _external=True, _scheme=scheme)
-            title = f'''แจ้งอัพเดตสถานะ{detail.title}'''
+            title = f'''แจ้งอัปเดตสถานะคำร้องขอรับบริการพัฒนา Software'''
             message = f'''เรียน คุณ{detail.created_by.fullname}\n\n'''
-            message += f'''{detail.approver.fullname} ได้ทำการอัปเดตสถานะคำร้องขอใช้ซอฟต์แวร์ของท่านเป็น "{detail.status}"\n'''
-            message += f'''ท่านสามารถตรวจสอบรายละเอียดเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
+            message += f'''{detail.approver.fullname} ได้ทำการอัปเดตสถานะคำร้องขอรับบริการพัฒนา Software ของ{detail.title}เป็น "{detail.status}"\n\n'''
+            message += f'''ท่านสามารถตรวจสอบรายละเอียดและความคืบหน้าเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
             message += f'''{link}\n\n'''
             message += f'''หากมีข้อสงสัยหรือต้องการสอบถามข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่รับผิดชอบ\n\n'''
             message += f'''ขอบคุณค่ะ\n'''
@@ -227,6 +270,7 @@ def create_timeline(detail_id=None, timeline_id=None):
     else:
         timeline = SoftwareRequestTimeline.query.get(timeline_id)
         form = SoftwareRequestTimelineForm(obj=timeline)
+        status = timeline.status
     if form.validate_on_submit():
         if detail_id:
             timeline = SoftwareRequestTimeline()
@@ -244,17 +288,110 @@ def create_timeline(detail_id=None, timeline_id=None):
         db.session.add(timeline)
         db.session.commit()
         if detail_id:
+            scheme = 'http' if current_app.debug else 'https'
+            link = url_for("software_request.view_request", detail_id=timeline.request_id, _external=True,
+                           _scheme=scheme)
+            title = f'''แจ้งเพิ่มความคืบหน้า (Timeline) คำร้องขอรับบริการพัฒนา Software'''
+            message = f'''เรียน คุณ{timeline.request.created_by.fullname}\n\n'''
+            message += f'''{timeline.request.approver.fullname} ได้ทำการเพิ่มความคืบหน้า (Timeline) ของคำร้องขอรับบริการพัฒนา \n\n'''
+            message += f'''โดยมีรายละเอียดข้อมูลดังต่อไปนี้\n'''
+            message += f'''  – รอบการดำเนินการพัฒนา (Phase): {timeline.phase}\n'''
+            message += f'''  – งานที่ต้องดำเนินการ (Task): {timeline.task}\n'''
+            message += f'''  – สถานะการดำเนินงาน: {timeline.status}\n'''
+            message += f'''  – วันที่เริ่มต้น: {timeline.start.strftime('%d/%m/%Y')}\n'''
+            message += f'''  – วันที่คาดว่าจะแล้วเสร็จ: {timeline.estimate.strftime('%d/%m/%Y')}\n'''
+            message += f'''  – สถานะ: {timeline.status}\n'''
+            message += f'''ท่านสามารถตรวจสอบรายละเอียดและความคืบหน้าเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n\n'''
+            message += f'''{link}\n\n'''
+            message += f'''หากมีข้อสงสัยหรือต้องการสอบถามข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่รับผิดชอบ\n\n'''
+            message += f'''ขอบคุณค่ะ\n'''
+            message += f'''ระบบขอรับบริการพัฒนา Software\n'''
+            message += f'''คณะเทคนิคการแพทย์'''
+            send_mail([timeline.request.created_by.email + '@mahidol.ac.th'], title, message)
             flash('เพิ่มข้อมูลสำเร็จ', 'success')
             resp = make_response(render_template('software_request/timeline_template.html',tab=tab,
                                                  timeline=timeline))
             resp.headers['HX-Trigger'] = 'closeTimeline'
         else:
+            if status != timeline.status:
+                scheme = 'http' if current_app.debug else 'https'
+                link = url_for("software_request.view_request", detail_id=timeline.request_id, _external=True,
+                               _scheme=scheme)
+                title = f'''แจ้งอัปเดตสถานะความคืบหน้า (Timeline) คำร้องขอรับบริการพัฒนา Software'''
+                message = f'''เรียน คุณ{timeline.request.created_by.fullname}\n\n'''
+                message += f'''{timeline.request.approver.fullname} ได้ทำการอัปเดตความคืบหน้า (Timeline) ของคำร้องขอรับบริการพัฒนา Software ของ{timeline.request.title}เป็น "{timeline.status}"\n\n'''
+                message += f'''ท่านสามารถตรวจสอบรายละเอียดและความคืบหน้าเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
+                message += f'''{link}\n\n'''
+                message += f'''หากมีข้อสงสัยหรือต้องการสอบถามข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่รับผิดชอบ\n\n'''
+                message += f'''ขอบคุณค่ะ\n'''
+                message += f'''ระบบขอรับบริการพัฒนา Software\n'''
+                message += f'''คณะเทคนิคการแพทย์'''
+                send_mail([timeline.request.created_by.email + '@mahidol.ac.th'], title, message)
             flash('แก้ไขข้อมูลสำเร็จ', 'success')
             resp = make_response()
             resp.headers['HX-Refresh'] = 'true'
         return resp
     return render_template('software_request/modal/create_timeline_modal.html', form=form, tab=tab,
                            detail_id=detail_id, timeline_id=timeline_id)
+
+
+@software_request.route('/admin/request/timeline/update/<int:timeline_id>', methods=['GET', 'POST'])
+def update_timeline_status(timeline_id):
+    status = request.form.get('status')
+    timeline = SoftwareRequestTimeline.query.get(timeline_id)
+    timeline.status = status
+    timeline.request.updated_date = arrow.now('Asia/Bangkok').datetime
+    db.session.add(timeline)
+    db.session.commit()
+    scheme = 'http' if current_app.debug else 'https'
+    link = url_for("software_request.view_request", detail_id=timeline.request_id, _external=True, _scheme=scheme)
+    title = f'''แจ้งอัปเดตสถานะความคืบหน้า (Timeline) คำร้องขอรับบริการพัฒนา Software'''
+    message = f'''เรียน คุณ{timeline.request.created_by.fullname}\n\n'''
+    message += f'''{timeline.request.approver.fullname} ได้ทำการอัปเดตความคืบหน้า (Timeline) ของคำร้องขอรับบริการพัฒนา Software ของท่านเป็น "{timeline.status}"\n\n'''
+    message += f'''ท่านสามารถตรวจสอบรายละเอียดและความคืบหน้าเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
+    message += f'''{link}\n\n'''
+    message += f'''หากมีข้อสงสัยหรือต้องการสอบถามข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่รับผิดชอบ\n\n'''
+    message += f'''ขอบคุณค่ะ\n'''
+    message += f'''ระบบขอรับบริการพัฒนา Software\n'''
+    message += f'''คณะเทคนิคการแพทย์'''
+    send_mail([timeline.request.created_by.email + '@mahidol.ac.th'], title, message)
+    flash('อัพเดตสถานะสำเร็จ', 'success')
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
+
+
+@software_request.route('/admin/request/timeline/delete/<int:timeline_id>', methods=['GET', 'DELETE'])
+def delete_timeline(timeline_id):
+    timeline = SoftwareRequestTimeline.query.get(timeline_id)
+    timeline.request.updated_date = arrow.now('Asia/Bangkok').datetime
+    db.session.add(timeline)
+    db.session.commit()
+    scheme = 'http' if current_app.debug else 'https'
+    link = url_for("software_request.view_request", detail_id=timeline.request_id, _external=True, _scheme=scheme)
+    title = f'''แจ้งการยกเลิกพัฒนาความคืบหน้า (Timeline) คำร้องขอรับบริการพัฒนา Software'''
+    message = f'''เรียน คุณ{timeline.request.created_by.fullname}\n\n'''
+    message += f'''{timeline.request.approver.fullname} ได้ทำการยกเลิกพัฒนาความคืบหน้า (Timeline) ของคำร้องขอรับบริการพัฒนา \n\n'''
+    message += f'''โดยมีรายละเอียดข้อมูลดังต่อไปนี้\n'''
+    message += f'''  – รอบการดำเนินการพัฒนา (Phase): {timeline.phase}\n'''
+    message += f'''  – งานที่ต้องดำเนินการ (Task): {timeline.task}\n'''
+    message += f'''  – สถานะการดำเนินงาน: {timeline.status}\n'''
+    message += f'''  – วันที่เริ่มต้น: {timeline.start.strftime('%d/%m/%Y')}\n'''
+    message += f'''  – วันที่คาดว่าจะแล้วเสร็จ: {timeline.estimate.strftime('%d/%m/%Y')}\n'''
+    message += f'''  – สถานะ: {timeline.status}\n'''
+    message += f'''ท่านสามารถตรวจสอบรายละเอียดเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
+    message += f'''{link}\n\n'''
+    message += f'''หากมีข้อสงสัยหรือต้องการสอบถามข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่รับผิดชอบ\n\n'''
+    message += f'''ขอบคุณค่ะ\n'''
+    message += f'''ระบบขอรับบริการพัฒนา Software\n'''
+    message += f'''คณะเทคนิคการแพทย์'''
+    send_mail([timeline.request.created_by.email + '@mahidol.ac.th'], title, message)
+    db.session.delete(timeline)
+    db.session.commit()
+    flash('ลบข้อมูลสำเร็จ', 'success')
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
 
 
 @software_request.route('/admin/request/issues/<int:issue_id>', methods=['GET', 'POST'])
@@ -297,18 +434,3 @@ def create_issue(detail_id=None, issue_id=None):
         form.populate_obj(issue)
     return render_template('software_request/modal/create_issue_modal.html',
                            form=form, issue_id=issue_id, detail_id=detail_id)
-
-
-
-@software_request.route('/admin/request/timeline/delete/<int:timeline_id>', methods=['GET', 'DELETE'])
-def delete_timeline(timeline_id):
-    timeline = SoftwareRequestTimeline.query.get(timeline_id)
-    timeline.request.updated_date = arrow.now('Asia/Bangkok').datetime
-    db.session.add(timeline)
-    db.session.commit()
-    db.session.delete(timeline)
-    db.session.commit()
-    flash('ลบข้อมูลสำเร็จ', 'success')
-    resp = make_response()
-    resp.headers['HX-Refresh'] = 'true'
-    return resp

@@ -94,17 +94,23 @@ class SoftwareRequestDetail(db.Model):
     def num_open_issues(self):
         return len([issue for issue in self.issues.all() if issue.status != 'Closed'])
 
+    @property
+    def num_timelines(self):
+        return len([timeline for timeline in self.timelines if timeline.status != 'ยกเลิกการพัฒนา' or timeline.status != 'เสร็จสิ้น'])
+
     def to_dict(self):
         return {
             'id': self.id,
             'title': self.title,
             'type': self.type,
             'description': self.description,
+            'has_timeline': True if self.timelines else False,
             'created_by': self.created_by.fullname if self.created_by else None,
             'org': self.created_by.personal_info.org.name if self.created_by else None,
             'created_date': self.created_date,
             'status': self.status,
             'open_issues': self.num_open_issues,
+            'num_timelines': self.num_timelines
         }
 
 
