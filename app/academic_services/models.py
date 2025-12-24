@@ -904,7 +904,7 @@ class ServiceInvoice(db.Model):
 
     @property
     def paid_at(self):
-        return self.get_payment().paid_at.strftime('%d/%m/%Y %H:%M:%S') if self.get_payment() else None
+        return self.get_payment().paid_at if self.get_payment() else None
 
     @property
     def is_paid(self):
