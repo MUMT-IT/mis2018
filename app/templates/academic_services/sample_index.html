@@ -67,7 +67,7 @@
                         <thead>
                         <th>เลขใบคำร้องขอ</th>
                         <th>หมายเลขติดตามพัสดุ</th>
-                        <th>วัน-เวลาที่นัดหมาย</th>
+                        <th>วันที่นัดหมาย</th>
                         <th>วัน-เวลาที่รับ</th>
                         <th>สถานที่</th>
                         <th>การส่งตัวอย่าง</th>
@@ -115,7 +115,8 @@
                                 </td>
                                 <td>
                                     {% if sample.appointment_date %}
-                                        {{ sample.appointment_date.strftime('%d/%m/%Y') }}
+                                        {{ sample.appointment_date.strftime('%d/%m/%Y') }}<br>
+                                        {{ sample.appointment_time_slot }}
                                     {% else %}
                                         {{ '' }}
                                     {% endif %}

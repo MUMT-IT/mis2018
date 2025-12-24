@@ -717,7 +717,7 @@ class ServiceSample(db.Model):
             'ship_type': self.ship_type,
             'location_name': self.location_name if self.location_name else None,
             'tracking_number': self.tracking_number,
-            # 'appointment_time_slot': self.appointment_time_slot if self.appointment_time_slot else None,
+            'appointment_time_slot': self.appointment_time_slot if self.appointment_time_slot else None,
             'note': self.note if self.note else None,
             'received_at': self.received_at,
             'received_by': self.received_by.fullname if self.received_by else None,
