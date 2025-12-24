@@ -684,6 +684,14 @@ class ServiceSample(db.Model):
     ship_type = db.Column('ship_type', db.String(), info={'label': 'วิธีการส่งตัวอย่าง'})
     location = db.Column('location', db.String())
     location_name = db.Column('location_name', db.String())
+    appointment_time_slot = db.Column('appointment_time_slot', db.String(), info={'label': 'ช่วงเวลานัดหมาย',
+                                                                                  'choices': [(c, c) for c in
+                                                                                              ['9:00-10:00 น.',
+                                                                                               '10:00-11:00 น.',
+                                                                                               '11:00-12:00 น.',
+                                                                                               '13:00-14:00 น.',
+                                                                                               '14:00-15:00 น.',
+                                                                                               '15:00-16:00 น.']]})
     tracking_number = db.Column('tracking_number', db.String(), info={'label': 'เลขพัสดุ'})
     sample_integrity = db.Column('sample_integrity', db.String())
     packaging_sealed = db.Column('packaging_sealed', db.String())
@@ -709,6 +717,7 @@ class ServiceSample(db.Model):
             'ship_type': self.ship_type,
             'location_name': self.location_name if self.location_name else None,
             'tracking_number': self.tracking_number,
+            # 'appointment_time_slot': self.appointment_time_slot if self.appointment_time_slot else None,
             'note': self.note if self.note else None,
             'received_at': self.received_at,
             'received_by': self.received_by.fullname if self.received_by else None,
