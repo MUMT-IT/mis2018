@@ -325,6 +325,15 @@ class ServiceSubLab(db.Model):
         return self.code
 
 
+class ServiceAppointmentTimeSlot(db.Model):
+    __tablename__ = 'service_appointment_time_slots'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    time = db.Column('time', db.String())
+
+    def __str__(self):
+        return self.time
+
+
 class ServiceStatus(db.Model):
     __tablename__ = 'service_statuses'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
