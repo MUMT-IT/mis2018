@@ -1026,8 +1026,12 @@ def create_customer_account(customer_id=None):
                                   message=message)
             return redirect(url_for('academic_services.verify_email_page'))
         else:
-            for er in form.errors:
-                flash("{} {}".format(er, form.errors[er]), 'danger')
+            cus_account = ServiceCustomerAccount.query.filter_by(email=form.email.data).first()
+            if cus_account:
+                flash('อีเมลนี้มีบัญชีผู้ใช้งานอยู่แล้ว กรุณาดำเนินการเข้าสู่ระบบ', 'danger')
+            else:
+                for er in form.errors:
+                    flash("{} {}".format(er, form.errors[er]), 'danger')
     else:
         return redirect(url_for('academic_services.accept_policy'))
     return render_template('academic_services/create_customer.html', form=form, customer_id=customer_id,
