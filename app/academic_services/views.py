@@ -4379,6 +4379,7 @@ def create_sample_appointment(sample_id):
                 message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in sample.request.quotations)}\n'''
                 if sample.appointment_date:
                     message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
+                    message += f'''ช่วงเวลานัดหมาย : {sample.appointment_time_slot}\n'''
                 if sample.location:
                     message += f'''สถานที่นัดหมาย : {sample.location_name}\n'''
                     if sample.location == 'salaya':
@@ -4407,6 +4408,7 @@ def create_sample_appointment(sample_id):
                 message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in sample.request.quotations)}\n'''
                 if sample.appointment_date:
                     message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
+                    message += f'''ช่วงเวลานัดหมาย : {sample.appointment_time_slot}\n'''
                 if sample.location:
                     message += f'''สถานที่นัดหมาย : {sample.location_name}\n'''
                     if sample.location == 'salaya':
