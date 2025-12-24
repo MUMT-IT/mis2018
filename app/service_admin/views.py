@@ -5880,26 +5880,25 @@ def generate_quotation_pdf(quotation, sign=False):
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
-    text_style = ParagraphStyle(
-        'TextStyle',
+    detail_style = ParagraphStyle(
+        'DetailStyle',
         parent=style_sheet['ThaiStyle'],
-        fontSize=12,
-        leading=16,
+        leading=17
     )
 
     issued_date = arrow.get(quotation.approved_at.astimezone(localtz)).format(fmt='DD MMMM YYYY',
                                                                               locale='th-th') if sign else ''
-    customer = '''<para>
-                วันที่ {issued_date}<br/>
-                เรื่อง ใบเสนอราคาค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ<br/>
-                เรียน {customer}<br/>
-                ที่อยู่ {address}<br/>
-                เลขประจำตัวผู้เสียภาษี {taxpayer_identification_no}
-                </para>
-                '''.format(issued_date=issued_date, customer=quotation.name, address=quotation.address,
-                           taxpayer_identification_no=quotation.taxpayer_identification_no if quotation.taxpayer_identification_no else '-')
+    customer = '''<para><font size=14>
+                    วันที่ {issued_date}<br/>
+                    เรื่อง ใบเสนอราคาค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ<br/>
+                    เรียน {customer}<br/>
+                    ที่อยู่ {address}<br/>
+                    เลขประจำตัวผู้เสียภาษี {taxpayer_identification_no}
+                    </font></para>
+                    '''.format(issued_date=issued_date, customer=quotation.name, address=quotation.address,
+                               taxpayer_identification_no=quotation.taxpayer_identification_no if quotation.taxpayer_identification_no else '-')
 
-    customer_table = Table([[Paragraph(customer, style=text_style)]], colWidths=[540, 280])
+    customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[540, 280])
     customer_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                                         ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
 
