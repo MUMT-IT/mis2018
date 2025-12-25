@@ -23,7 +23,49 @@
                 <div class="column">
                     <ul class="steps">
                         <li class="steps-segment
-                            {% if not invoice.file_attached_at %}
+                            {% if (not invoice.sent_at or invoice.sent_at) and not invoice.head_approved_at %}
+                                is-active
+                            {% endif %}"
+                        >
+                            <span class="steps-marker">
+                                <span class="icon">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                            </span>
+                            <div class="steps-content">
+                                <p>ร่างใบแจ้งหนี้</p>
+                            </div>
+                        </li>
+                        <li class="steps-segment
+                            {% if invoice.head_approved_at and not invoice.assistant_approved_at %}
+                                is-active
+                            {% endif %}"
+                        >
+                            <span class="steps-marker">
+                                <span class="icon">
+                                    <i class="fas fa-hourglass-half"></i>
+                                </span>
+                            </span>
+                            <div class="steps-content">
+                                <p>หัวหน้าอนุมัติ</p>
+                            </div>
+                        </li>
+                        <li class="steps-segment
+                            {% if invoice.assistant_approved_at and not invoice.file_attached_at %}
+                                is-active
+                            {% endif %}"
+                        >
+                            <span class="steps-marker">
+                                <span class="icon">
+                                    <i class="fas fa-clock"></i>
+                                </span>
+                            </span>
+                            <div class="steps-content">
+                                <p>ผู้ช่วยคณบดีอนุมัติ</p>
+                            </div>
+                        </li>
+                        <li class="steps-segment
+                            {% if invoice.file_attached_at and (not invoice.paid_at or not invoice.is_paid) %}
                                 is-active
                             {% endif %}"
                         >
@@ -34,34 +76,6 @@
                             </span>
                             <div class="steps-content">
                                 <p>อัปโหลดใบแจ้งหนี้ฉบับสมบูรณ์</p>
-                            </div>
-                        </li>
-                        <li class="steps-segment
-                            {% if not invoice.paid_at  %}
-                                is-active
-                            {% endif %}"
-                        >
-                            <span class="steps-marker">
-                                <span class="icon">
-                                    <i class="fas fa-hand-holding-usd"></i>
-                                </span>
-                            </span>
-                            <div class="steps-content">
-                                <p>รอขำระเงิน</p>
-                            </div>
-                        </li>
-                        <li class="steps-segment
-                            {% if invoice.paid_at and not invoice.is_paid %}
-                                is-active
-                            {% endif %}"
-                        >
-                            <span class="steps-marker">
-                                <span class="icon">
-                                    <i class="fas fa-hourglass-half"></i>
-                                </span>
-                            </span>
-                            <div class="steps-content">
-                                <p>รอเจ้าหน้าที่ตรวจสอบ</p>
                             </div>
                         </li>
                         <li class="steps-segment
