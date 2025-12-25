@@ -715,7 +715,15 @@ def menu():
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
         .filter(
-            ServiceStatus.status_id.in_([16, 17, 18, 19, 20, 21]),
+            ServiceStatus.status_id.in_([16, 17, 18, 19, 20]),
+            ServiceAdmin.admin_id == current_user.id
+        )).count()
+        invoice_count_for_central_admin = (ServiceRequest.query
+        .join(ServiceRequest.status)
+        .join(ServiceRequest.sub_lab)
+        .join(ServiceSubLab.admins)
+        .filter(
+            ServiceStatus.status_id.in_([19, 20]),
             ServiceAdmin.admin_id == current_user.id
         )).count()
         report_count = (
@@ -730,7 +738,8 @@ def menu():
         ).count()
     return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin, position=position,
                 request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
-                test_item_count=test_item_count, invoice_count=invoice_count, report_count=report_count)
+                test_item_count=test_item_count, invoice_count=invoice_count, report_count=report_count,
+                invoice_count_for_central_admin=invoice_count_for_central_admin)
 
 
 @service_admin.route('/customer/view')
@@ -4238,6 +4247,10 @@ def invoice_index_for_central_admin():
         .join(ServiceSubLab.admins)
         .filter(ServiceAdmin.admin_id == current_user.id)
     )
+    draft_query = query.filter(ServiceInvoice.sent_at == None)
+    pending_supervisor_query = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at == None)
+    pending_assistant_query = query.filter(ServiceInvoice.head_approved_at != None,
+                                           ServiceInvoice.assistant_approved_at == None)
     pending_dean_query = query.filter(ServiceInvoice.assistant_approved_at != None,
                                       ServiceInvoice.file_attached_at == None)
     waiting_payment_query = query.outerjoin(ServicePayment).filter(or_(ServicePayment.invoice_id == None,
@@ -4245,7 +4258,13 @@ def invoice_index_for_central_admin():
                                                                    ServiceInvoice.file_attached_at != None)
     payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None)
     if api == 'true':
-        if tab == 'pending_dean':
+        if tab == 'draft':
+            query = draft_query
+        elif tab == 'pending_supervisor':
+            query = pending_supervisor_query
+        elif tab == 'pending_assistant':
+            query = pending_assistant_query
+        elif tab == 'pending_dean':
             query = pending_dean_query
         elif tab == 'waiting_payment':
             query = waiting_payment_query
@@ -4275,8 +4294,11 @@ def invoice_index_for_central_admin():
                         'draw': request.args.get('draw', type=int)
                         })
     return render_template('service_admin/invoice_index_for_central_admin.html', menu=menu, tab=tab,
+                           draft_count=draft_query.count(), pending_supervisor_count=pending_supervisor_query.count(),
+                           pending_assistant_count=pending_assistant_query.count(),
                            pending_dean_count=pending_dean_query.count(),
-                           waiting_payment_count=waiting_payment_query.count())
+                           waiting_payment_count=waiting_payment_query.count(),
+                           payment_count=payment_query.count())
 
 
 # @service_admin.route('/api/invoice/index')
@@ -4927,10 +4949,15 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
 @service_admin.route('/invoice/pdf/<int:invoice_id>', methods=['GET'])
 @login_required
 def export_invoice_pdf(invoice_id):
+    is_download = request.args.get('is_download', 'false')
     invoice = ServiceInvoice.query.get(invoice_id)
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.sub_lab.code).first()
     ref1 = invoice.invoice_no
     ref2 = sub_lab.ref.upper()
+    if is_download == 'true' and not invoice.download_at:
+        invoice.download_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(invoice)
+        db.session.commit()
     qrcode_data = generate_qrcode(amount=invoice.grand_total, ref1=ref1, ref2=ref2, ref3=None)
     if qrcode_data:
         qr_image_base64 = qrcode_data['qrImage']
