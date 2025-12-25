@@ -438,7 +438,7 @@ class VirusLiquidConditionForm(FlaskForm):
                                default='ผลิตภัณฑ์ฆ่าเชื้อ ชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้',
                                render_kw={'class': 'input is-danger'})
     liquid_test_method = CheckboxField('วิธีทดสอบ',
-                                       choices=[(c, c) for c in ['วิธีทดสอบ ASTM E1052-20 (Virus suspension test',
+                                       choices=[(c, c) for c in ['วิธีทดสอบ ASTM E1052-20 (Virus suspension test)',
                                                                  'วิธีทดสอบ ASTM E1053-20 (Nonporous environmental surfaces)',
                                                                  'วิธีทดสอบ Modified ASTM E1053-20']],
                                        validators=[Optional()])
