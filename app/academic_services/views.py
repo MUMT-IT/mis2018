@@ -798,7 +798,7 @@ def forget_password():
             except:
                 flash('ระบบไม่สามารถส่งอีเมลได้กรุณาตรวจสอบอีกครั้ง'.format(form.email.data), 'danger')
             else:
-                flash('โปรดตรวจสอบอีเมลของท่านเพื่อทำการแก้ไขรหัสผ่านภายใน 20 นาที', 'success')
+                flash('โปรดตรวจสอบอีเมลของท่านเพื่อทำการแก้ไขรหัสผ่านภายใน 1 ชั่วโมง', 'success')
             return redirect(url_for('academic_services.login'))
         else:
             for er in form.errors:
@@ -811,7 +811,7 @@ def reset_password():
     token = request.args.get('token')
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
     try:
-        token_data = serializer.loads(token, max_age=72000)
+        token_data = serializer.loads(token, max_age=3600)
     except:
         return 'รหัสสำหรับทำการตั้งค่า password หมดอายุหรือไม่ถูกต้อง'
     user = ServiceCustomerAccount.query.filter_by(email=token_data.get('email')).first()
@@ -1012,7 +1012,7 @@ def create_customer_account(customer_id=None):
                             กรุณาคลิกที่ปุ่มด้านล่างเพื่อยืนยันบัญชีอีเมลของท่านเพื่อดำเนินการต่อ
                         </p>
                         <a href="{url}" class="confirm-button">ยืนยันบัญชีอีเมล</a>
-                        <p class="link-validity" >ลิงก์นี้จะสามารถใช้งานได้ภายใน 20 นาทีหลังจากที่อีเมลนี้ถูกส่งไป</p>
+                        <p class="link-validity" >ลิงก์นี้จะสามารถใช้งานได้ภายใน 1 ชั่วโมงหลังจากที่อีเมลนี้ถูกส่งไป</p>
                     </div>
                     <div class="footer">
                         <p>Copyright &copy; คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ระบบงานบริการตรวจวิเคราะห์</p>
@@ -1053,7 +1053,7 @@ def verify_email():
     token = request.args.get('token')
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
     try:
-        token_data = serializer.loads(token, max_age=72000)
+        token_data = serializer.loads(token, max_age=3600)
     except:
         return 'รหัสสำหรับทำการสมัครบัญชีหมดอายุหรือไม่ถูกต้อง'
     user = ServiceCustomerAccount.query.filter_by(email=token_data.get('email')).first()
