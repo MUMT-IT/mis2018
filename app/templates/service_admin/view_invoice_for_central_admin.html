@@ -220,6 +220,19 @@
                             </ul>
                             <hr>
                             <p class="menu-label">
+                                การดาวโหลดใบแจ้งหนี้
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {% if invoice.download_at %}
+                                        <span class="tag has-text-success is-rounded">ดาวโหลดแล้ว</span>
+                                    {% else %}
+                                        <span class="tag is-danger is-rounded">ยังไม่ดาวโหลด</span>
+                                    {% endif %}
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
                                 สถานะ
                             </p>
                             <ul class="menu-list">
@@ -249,7 +262,8 @@
                                     </li>
                                     <li>
                                         <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
-                                           href="{{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id) }}"
+                                           href="{{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id,
+                                           is_download='true') }}"
                                         >
                                             <span class="icon"><i class="fas fa-download"></i></span>
                                             <span>ดาวน์โหลด PDF</span>
