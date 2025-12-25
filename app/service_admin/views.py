@@ -5827,9 +5827,7 @@ def generate_quotation_pdf(quotation, sign=False):
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-        '&nbsp;&nbsp;&nbsp;&nbsp;')
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;')
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -5976,6 +5974,35 @@ def generate_quotation_pdf(quotation, sign=False):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
     ]))
 
+    head_remark_style = ParagraphStyle(
+        'HeadRemarkStyle',
+        parent=style_sheet['ThaiStyleBold'],
+        fontSize=10,
+        leading=13
+    )
+
+    remark_style = ParagraphStyle(
+        'ThaiStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=8,
+        leading=13
+    )
+    remark_table = Table([
+        [Paragraph("<font size=14>หมายเหตุ/Remark<br/></font>", style=head_remark_style)],
+        [Paragraph("<font size=12>ยืนยันราคาตามใบเสนอราคา ภายใน 90 วัน<br/></font>", style=remark_style)]
+    ],
+        colWidths=[500]
+    )
+    remark_table.hAlign = 'LEFT'
+    remark_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 1), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 1), (-1, 1), 0),
+    ]))
+
     sign_style = ParagraphStyle(
         'SignStyle',
         parent=style_sheet['ThaiStyleCenter'],
@@ -6019,9 +6046,9 @@ def generate_quotation_pdf(quotation, sign=False):
     data.append(KeepTogether(customer_table))
     data.append(KeepTogether(Spacer(1, 16)))
     data.append(KeepTogether(item_table))
-    data.append(KeepTogether(Spacer(1, 15)))
-    # data.append(KeepTogether(document_address_table))
-    # data.append(KeepTogether(Spacer(1, 5)))
+    data.append(KeepTogether(Spacer(1, 16)))
+    data.append(KeepTogether(remark_table))
+    data.append(KeepTogether(Spacer(1, 16)))
     data.append(KeepTogether(sign_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
