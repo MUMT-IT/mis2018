@@ -3020,18 +3020,38 @@ def test_item_index():
         ServiceTestItem.query
         .join(ServiceTestItem.request)
         .join(ServiceRequest.sub_lab)
-        .join(ServiceRequest.status)
         .join(ServiceSubLab.admins)
         .filter(
             ServiceAdmin.admin_id == current_user.id
         )
     )
-    not_started_query = query.filter(ServiceStatus.status_id == 10)
-    testing_query = query.filter(or_(ServiceStatus.status_id == 11, ServiceStatus.status_id == 12,
-                                     ServiceStatus.status_id == 15))
-    edit_report_query = query.filter(ServiceStatus.status_id == 14)
-    pending_invoice_query = query.filter(ServiceStatus.status_id == 13)
-    invoice_query = query.filter(ServiceStatus.status_id >= 16)
+    not_started_query = query.outerjoin(ServiceResult, ServiceResult.request_id == ServiceRequest.id).filter(ServiceResult.id == None)
+    testing_query = query.join(ServiceResult).filter(ServiceResult.approved_at == None,
+                                 or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
+                                     )
+                                 )
+    edit_report_query = query.join(ServiceResult).filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False)
+    pending_invoice_query = (
+        query
+        .join(
+            ServiceQuotation,
+            ServiceQuotation.request_id == ServiceRequest.id
+        )
+        .outerjoin(
+            ServiceInvoice,
+            ServiceInvoice.quotation_id == ServiceQuotation.id
+        )
+        .filter(ServiceInvoice.id == None)
+    )
+    invoice_query = (query.join(
+            ServiceQuotation,
+            ServiceQuotation.request_id == ServiceRequest.id
+        ).outerjoin(
+            ServiceInvoice,
+            ServiceInvoice.quotation_id == ServiceQuotation.id
+        )
+        .filter(ServiceInvoice.id != None)
+    )
 
     if api == 'true':
         if tab == 'not_started':
@@ -4109,6 +4129,67 @@ def lab_index(customer_id):
                            admin=admin)
 
 
+@service_admin.post('/api/districts')
+@login_required
+def get_districts():
+    province_id = request.form.get('province', type=int)
+    district_id = request.args.get('district_id', type=int)
+    districts = District.query.filter_by(province_id=province_id).order_by(District.name).all()
+    url = url_for('service_admin.get_subdistricts', district_id=district_id)
+    options = f'''
+                <select id="district" name="district" class="js-example-basic-single" hx-headers='{{"X-CSRF-Token": "{generate_csrf()}"}}' 
+                    hx-post="{url}"  hx-swap="innerHTML" hx-trigger="change, load" hx-target="#subdistricts">
+                    <option value="">กรุณาเลือกเขต/อำเภอ</option>
+                '''
+
+    for d in districts:
+        selected = 'selected' if district_id == d.id else ''
+        options += f'''
+            <option {selected} value="{d.id}">{d.name}</option>
+            '''
+
+    options += '</select>'
+    return options
+
+
+@service_admin.post('/api/subdistricts')
+@login_required
+def get_subdistricts():
+    district_id = request.form.get('district', type=int) or request.args.get('district_id', type=int)
+    print('d', district_id)
+    subdistrict_id = request.args.get('subdistrict_id', type=int)
+    print('s', subdistrict_id)
+    subdistricts = Subdistrict.query.filter_by(district_id=district_id).order_by(Subdistrict.name).all()
+    print('q', subdistricts)
+    url = url_for('service_admin.get_zipcode', subdistrict_id=subdistrict_id)
+    options = f'''
+                <select id="subdistrict" name="subdistrict" class="js-example-basic-single" hx-headers='{{"X-CSRF-Token": "{generate_csrf()}"}}' 
+                    hx-post="{url}" hx-swap="innerHTML" hx-trigger="change, load" hx-target="#zipcode">
+                    <option value="">กรุณาเลือกแขวง/ตำบล</option>
+                '''
+
+    for s in subdistricts:
+        selected = 'selected' if subdistrict_id == s.id else ''
+        options += f'''
+            <option {selected} value="{s.id}">{s.name}</option>
+            '''
+
+    options += '</select>'
+    return options
+
+
+@service_admin.post('/api/zipcode')
+@login_required
+def get_zipcode():
+    subdistrict_id = request.form.get('subdistrict', type=int) or request.args.get('subdistrict_id', type=int)
+    subdistrict = Subdistrict.query.filter_by(id=subdistrict_id).first()
+    if subdistrict:
+        input = f'''<input id="zipcode" name="zipcode" class="input" value="{subdistrict.zip_code.zip_code}" required>'''
+    else:
+        input = f'''<input id="zipcode" name="zipcode" class="input" value="">'''
+    return input
+
+
 @service_admin.route('/customer/address/add/<int:customer_id>', methods=['GET', 'POST'])
 @service_admin.route('/customer/address/edit/<int:customer_id>/<int:address_id>', methods=['GET', 'POST'])
 def create_customer_address(customer_id=None, address_id=None):
@@ -4121,7 +4202,8 @@ def create_customer_address(customer_id=None, address_id=None):
     else:
         ServiceCustomerAddressForm = crate_address_form(use_type=True)
         form = ServiceCustomerAddressForm()
-        address = ServiceCustomerAddress.query.all()
+        address = None
+
     if not form.taxpayer_identification_no.data:
         form.taxpayer_identification_no.data = customer.taxpayer_identification_no
     if form.validate_on_submit():
@@ -4142,8 +4224,11 @@ def create_customer_address(customer_id=None, address_id=None):
             return redirect(url_for('service_admin.address_index', customer_id=customer_id))
         elif form.type.data == False:
             flash('กรุณาเลือกประเภทที่อยู่', 'danger')
+    else:
+        for field, error in form.errors.items():
+            flash(f'{field}: {error}', 'danger')
     return render_template('service_admin/create_customer_address.html', form=form, customer_id=customer_id,
-                           address_id=address_id)
+                           address_id=address_id, address=address)
 
 
 @service_admin.route('/customer/adress/delete/<int:address_id>', methods=['GET', 'DELETE'])
@@ -4848,8 +4933,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
             "หรือ<u> Scan QR Code ด้านล่าง</u> หรือ <u>โปรดสั่งจ่ายเช็คในนาม มหาวิทยาลัยมหิดล</u><br/></font>",
             style=remark_style)],
         [Paragraph(
-            "<font size=12>2. จัดส่งหลักฐานการชำระเงินทาง E-mail : <u>mumtfinance@gmail.com</u> หรือ แจ้งผ่านโดยการ <u>Scan QR Code</u> "
-            "ด้านล่าง<br/></font>", style=remark_style)],
+            "<font size=12>2. จัดส่งหลักฐานการชำระเงินผ่านทาง <u>Scan QR Code</u> ด้านล่าง<br/></font>", style=remark_style)],
         [Paragraph(
             "<font size=12>3. โปรดชำระค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ <u><b>ภายใน 30 วัน</b></u> นับถัดจากวันที่ลงนามใน"
             "หนังสือแจ้งชำระค่าบริการฉบับนี้<br/></font>", style=remark_style)],
@@ -4877,6 +4961,12 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         qr_bytes = b64decode(qr_image_base64)
         qr_buffer = BytesIO(qr_bytes)
         qr_code_img = Image(qr_buffer, width=90, height=90)
+
+    qr_payment_buffer = BytesIO()
+    qr_payment_img = qrcode.make(url_for('academic_services.add_payment', invoice_id=invoice.id, menu='invoice',
+                                 tab='pending', _external=True))
+    qr_payment_img.save(qr_payment_buffer, format='PNG')
+    qr_code_payment = Image(qr_payment_buffer, width=90, height=90)
 
     sign_style = ParagraphStyle(
         'SignStyle',
@@ -4924,9 +5014,18 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
         ]))
 
+        qr_code_payment_text = Paragraph("QR Code<br/>แจ้งการโอนเงิน", style=style_sheet['ThaiStyleCenter'])
+        qr_code_payment_table = Table([[qr_code_payment], [qr_code_payment_text]], colWidths=[150])
+        qr_code_payment_table.hAlign = 'LEFT'
+
+        qr_code_payment_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]))
+
         combined_table = Table(
-            [[qr_code_table, sign_table]],
-            colWidths=[50, 450]
+            [[qr_code_table, qr_code_payment_table, sign_table]],
+            colWidths=[120, 120, 350]
         )
         combined_table.setStyle(TableStyle([
             ('VALIGN', (0, 0), (0, 0), 'TOP'),
@@ -4946,7 +5045,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
     return buffer
 
 
-@service_admin.route('/invoice/pdf/<int:invoice_id>', methods=['GET'])
+@service_admin.route('/invoice/pdf/<int:invoice_id>', methods=['GET', 'POST'])
 @login_required
 def export_invoice_pdf(invoice_id):
     is_download = request.args.get('is_download', 'false')
@@ -4954,16 +5053,16 @@ def export_invoice_pdf(invoice_id):
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.sub_lab.code).first()
     ref1 = invoice.invoice_no
     ref2 = sub_lab.ref.upper()
-    if is_download == 'true' and not invoice.download_at:
-        invoice.download_at = arrow.now('Asia/Bangkok').datetime
-        db.session.add(invoice)
-        db.session.commit()
     qrcode_data = generate_qrcode(amount=invoice.grand_total, ref1=ref1, ref2=ref2, ref3=None)
     if qrcode_data:
         qr_image_base64 = qrcode_data['qrImage']
     else:
         qr_image_base64 = None
     buffer = generate_invoice_pdf(invoice, qr_image_base64=qr_image_base64)
+    if is_download == 'true' and not invoice.downloaded_at:
+        invoice.downloaded_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(invoice)
+        db.session.commit()
     return send_file(buffer, download_name='Invoice.pdf', as_attachment=True)
 
 
