@@ -116,7 +116,7 @@
                         data: null,
                         render: function (data, type, row) {
                             var tab = '{{ tab }}';
-                            if (row.status_id == 13 || row.status_id >= 16) {
+                            if (row.approved_at) {
                                  var result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report&tab=all';
                                   return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -128,13 +128,13 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.status_id == 10 || row.status_id == 11) {
-                                if (row.status_id == 10) {
-                                    var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report&tab=' + tab;
-                                    var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=report&tab=' + tab;
-                                } else {
+                            } else if (row.sent_at == null) {
+                                if (row.has_result) {
                                     var draft_result_url = '/service_admin/result/draft/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report&tab=' + tab;
                                     var final_result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report&tab=' + tab;
+                                } else {
+                                    var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report&tab=' + tab;
+                                    var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=report&tab=' + tab;
                                 }
                                  return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -154,7 +154,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.status_id == 12 || row.status_id == 15) {
+                            } else if (row.sent_at && row.approved_at == null && (row.result_edit_at == null || row.is_edited != null)) {
                                 return `<span class="tag is-warning is-rounded is-light">
                                             <span class="icon">
                                                 <i class="fas fa-hourglass-half"></i>
@@ -163,7 +163,7 @@
                                                 รอยืนยันใบรายงานผล
                                             </span>
                                         </span>`;
-                            } else if (row.status_id == 14) {
+                            } else if (row.result_edit_at != null && row.is_edited == null) {
                                 return row.edit_file;
                             } else {
                                 return ''
@@ -171,22 +171,10 @@
                         }
                     },
                     {
-                        data: 'id',
+                        data: null,
                         render: function (data, type, row) {
-                            if (row.status_id == 13) {
-                                invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '?menu=invoice&tab=draft';
-                                return '<div class="field has-addons">' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + invoice_url + '>' +
-                                    '<span class="icon">' +
-                                    '<i class="fas fa-file-download"></i>' +
-                                    '</span>' +
-                                    '<span>ออกใบแจ้งหนี้</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '</div>'
-                            } else if (row.status_id >= 16) {
-                               invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice&tab=all';
+                            if (row.invoice_id) {
+                                var invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice&tab=all';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-primary is-rounded" ' + 'href=' + invoice_url + '>' +
@@ -198,14 +186,17 @@
                                     '</div>' +
                                     '</div>'
                             } else {
-                                return `<span class="tag is-warning is-light is-rounded">
-                                            <span class="icon">
-                                                <i class="fas fa-hourglass-half"></i>
-                                            </span>
-                                            <span>
-                                                รอออกใบแจ้งหนี้
-                                            </span>
-                                        </span>`;
+                                var invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '?menu=invoice&tab=draft';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + invoice_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-download"></i>' +
+                                    '</span>' +
+                                    '<span>ออกใบแจ้งหนี้</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
                             }
                         }
                     }
