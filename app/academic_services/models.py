@@ -404,6 +404,13 @@ class ServiceRequest(db.Model):
     def __str__(self):
         return self.request_no
 
+    def get_result(self):
+        result = self.results.filter(ServiceResult.request_id == self.id).first()
+        if result:
+            return result
+        else:
+            return None
+
     def to_dict(self):
         invoice_file = None
         invoice_no = None
