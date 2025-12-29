@@ -777,6 +777,22 @@ class ServiceTestItem(db.Model):
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('test_items'))
 
+    def get_result(self):
+        result = self.request.results.filter(ServiceResult.request_id == self.request_id).first()
+        if result:
+            return result
+        else:
+            return None
+
+    def get_invoice(self):
+        invoice = (ServiceInvoice.query.join(ServiceQuotation).filter(ServiceQuotation.request_id == self.request_id,
+                                                               ServiceQuotation.confirmed_at != None)
+                   ).first()
+        if invoice:
+            return invoice
+        else:
+            return None
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -785,10 +801,13 @@ class ServiceTestItem(db.Model):
             'customer': self.customer.customer_info.cus_name if self.customer else None,
             'status_id': self.request.status.status_id if self.request else None,
             'created_at': self.created_at,
+            'has_result': True if self.get_result() else None,
+            'sent_at': self.get_result().sent_at if self.get_result() and self.get_result().sent_at else None,
+            'result_edit_at': self.get_result().result_edit_at if self.get_result() and self.get_result().result_edit_at else None,
+            'is_edited': self.get_result().is_edited if self.get_result() and self.get_result().is_edited else None,
+            'approved_at': self.get_result().approved_at if self.get_result() and self.get_result().approved_at else None,
             'result_id': [result.id for result in self.request.results] if self.request.results else None,
-            'invoice_id': [invoice.id for quotation in self.request.quotations
-                           if quotation.confirmed_at for invoice in quotation.invoices]
-            if self.request.quotations else None,
+            'invoice_id': self.get_invoice().id if self.get_invoice() else None,
             'quotation_id': [quotation.id for quotation in self.request.quotations
                              if quotation.confirmed_at],
         }
@@ -1112,7 +1131,7 @@ class ServiceResult(db.Model):
     sender_id = db.Column('sender_id', db.ForeignKey('staff_account.id'))
     sender = db.relationship(StaffAccount, backref=db.backref('sended_results'), foreign_keys=[sender_id])
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
-    request = db.relationship(ServiceRequest, backref=db.backref('results', cascade="all, delete-orphan"))
+    request = db.relationship(ServiceRequest, backref=db.backref('results', cascade="all, delete-orphan", lazy='dynamic'))
     is_sent_email = db.Column('is_sent_email', db.Boolean())
     note = db.Column('note', db.Text())
     is_edited = db.Column('is_edited', db.Boolean())
@@ -1130,6 +1149,10 @@ class ServiceResult(db.Model):
             'admin_status': self.admin_status if self.admin_status else None,
             'customer_status': self.customer_status if self.customer_status else None,
             'released_at': self.released_at if self.released_at else None,
+            'sent_at': self.sent_at if self.sent_at else None,
+            'result_edit_at': self.result_edit_at if self.result_edit_at else None,
+            'is_edited': self.is_edited if self.is_edited else None,
+            'approved_at': self.approved_at if self.approved_at else None,
             'creator': self.creator.fullname if self.creator else None,
             'request_id': self.request_id if self.request_id else None
         }
