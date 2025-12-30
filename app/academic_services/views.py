@@ -3039,15 +3039,15 @@ def request_index():
             'icon': '<i class="fas fa-truck"></i>'
         },
         'wait_test': {
-            'id': [10, 11, 14],
+            'id': [10],
             'name': 'รอทดสอบตัวอย่าง',
             'icon': '<i class="fas fa-vial"></i>'
         },
-        'wait_report': {
-            'id': [12, 15],
-            'name': 'รอยืนยันใบรายงานผล',
-            'icon': '<i class="fas fa-file-alt"></i>'
-        },
+        # 'wait_report': {
+        #     'id': [12, 15],
+        #     'name': 'รอยืนยันใบรายงานผล',
+        #     'icon': '<i class="fas fa-file-alt"></i>'
+        # },
         'wait_payment': {
             'id': [20, 21],
             'name': 'รอชำระเงิน',

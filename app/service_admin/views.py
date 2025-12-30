@@ -827,12 +827,12 @@ def request_index():
             'color': 'is-info',
             'icon': '<i class="fas fa-vial"></i>'
         },
-        'waiting_report': {
-            'id': [11, 12, 14, 15],
-            'name': 'รอออกใบรายงานผล',
-            'color': 'is-info',
-            'icon': '<i class="fas fa-file-alt"></i>'
-        },
+        # 'waiting_report': {
+        #     'id': [11, 12, 14, 15],
+        #     'name': 'รอออกใบรายงานผล',
+        #     'color': 'is-info',
+        #     'icon': '<i class="fas fa-file-alt"></i>'
+        # },
         'create_invoice': {
             'id': [13, 16, 17, 18, 19],
             'name': 'รอออก/ยืนยันใบแจ้งหนี้',
@@ -4129,65 +4129,102 @@ def lab_index(customer_id):
                            admin=admin)
 
 
-@service_admin.post('/api/districts')
-@login_required
-def get_districts():
-    province_id = request.form.get('province', type=int)
-    district_id = request.args.get('district_id', type=int)
-    districts = District.query.filter_by(province_id=province_id).order_by(District.name).all()
-    url = url_for('service_admin.get_subdistricts', district_id=district_id)
-    options = f'''
-                <select id="district" name="district" class="js-example-basic-single" hx-headers='{{"X-CSRF-Token": "{generate_csrf()}"}}' 
-                    hx-post="{url}"  hx-swap="innerHTML" hx-trigger="change, load" hx-target="#subdistricts">
-                    <option value="">กรุณาเลือกเขต/อำเภอ</option>
-                '''
+@service_admin.route('/api/items', methods=['POST'])
+def get_items():
+    trigger = request.headers.get('hx-trigger')
+    use_type = request.args.get('use_type', type=bool)
+    ServiceCustomerAddressForm = crate_address_form(use_type=use_type)
+    form = ServiceCustomerAddressForm()
 
-    for d in districts:
-        selected = 'selected' if district_id == d.id else ''
-        options += f'''
-            <option {selected} value="{d.id}">{d.name}</option>
-            '''
+    form.province.choices = [(p.id, p.name) for p in Province.query.order_by(Province.name).all()]
 
-    options += '</select>'
-    return options
+    districts = (
+        District.query
+        .filter_by(province_id=form.province.data.id)
+        .order_by(District.name)
+        .all()
+    )
 
+    print('d', [(d.id, d.name) for d in districts])
+    if trigger == 'province':
+        form.district.choices = [(d.id, d.name) for d in districts]
+        print('f', form.district.choices)
+        district, _ = form.district.choices[0]
+        print('d', district)
+        subdistricts = Subdistrict.query.filter_by(district_id=district).order_by(Subdistrict.name).all()
+        form.subdistrict.choices = [(s.id, s.name) for s in subdistricts]
+    elif trigger == 'district' or trigger == 'subdistrict':
+        subdistricts = Subdistrict.query.filter_by(district_id=form.district.data.id).order_by(Subdistrict.name).all()
+        form.subdistrict.choices = (
+            [(s.id, s.name) for s in subdistricts]
+            if subdistricts else []
+        )
 
-@service_admin.post('/api/subdistricts')
-@login_required
-def get_subdistricts():
-    district_id = request.form.get('district', type=int) or request.args.get('district_id', type=int)
-    print('d', district_id)
-    subdistrict_id = request.args.get('subdistrict_id', type=int)
-    print('s', subdistrict_id)
-    subdistricts = Subdistrict.query.filter_by(district_id=district_id).order_by(Subdistrict.name).all()
-    print('q', subdistricts)
-    url = url_for('service_admin.get_zipcode', subdistrict_id=subdistrict_id)
-    options = f'''
-                <select id="subdistrict" name="subdistrict" class="js-example-basic-single" hx-headers='{{"X-CSRF-Token": "{generate_csrf()}"}}' 
-                    hx-post="{url}" hx-swap="innerHTML" hx-trigger="change, load" hx-target="#zipcode">
-                    <option value="">กรุณาเลือกแขวง/ตำบล</option>
-                '''
-
-    for s in subdistricts:
-        selected = 'selected' if subdistrict_id == s.id else ''
-        options += f'''
-            <option {selected} value="{s.id}">{s.name}</option>
-            '''
-
-    options += '</select>'
-    return options
+    template = f'''
+        {form.province(**{'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items')})}
+        {form.district(**{'hx-swap-oob': 'true', 'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items')})}
+        {form.subdistrict(**{'hx-swap-oob': 'true', 'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items')})}
+        '''
+    return template
 
 
-@service_admin.post('/api/zipcode')
-@login_required
-def get_zipcode():
-    subdistrict_id = request.form.get('subdistrict', type=int) or request.args.get('subdistrict_id', type=int)
-    subdistrict = Subdistrict.query.filter_by(id=subdistrict_id).first()
-    if subdistrict:
-        input = f'''<input id="zipcode" name="zipcode" class="input" value="{subdistrict.zip_code.zip_code}" required>'''
-    else:
-        input = f'''<input id="zipcode" name="zipcode" class="input" value="">'''
-    return input
+
+# @service_admin.post('/api/districts')
+# @login_required
+# def get_districts():
+#     province_id = request.form.get('province', type=int)
+#     district_id = request.args.get('district_id', type=int)
+#     districts = District.query.filter_by(province_id=province_id).order_by(District.name).all()
+#     url = url_for('service_admin.get_subdistricts', district_id=district_id)
+#     options = f'''
+#                 <select id="district" name="district" class="js-example-basic-single" hx-headers='{{"X-CSRF-Token": "{generate_csrf()}"}}'
+#                     hx-post="{url}"  hx-swap="innerHTML" hx-trigger="change, load" hx-target="#subdistricts">
+#                     <option value="">กรุณาเลือกเขต/อำเภอ</option>
+#                 '''
+#
+#     for d in districts:
+#         selected = 'selected' if district_id == d.id else ''
+#         options += f'''
+#             <option {selected} value="{d.id}">{d.name}</option>
+#             '''
+#
+#     options += '</select>'
+#     return options
+#
+#
+# @service_admin.post('/api/subdistricts')
+# @login_required
+# def get_subdistricts():
+#     district_id = request.form.get('district', type=int) or request.args.get('district_id', type=int)
+#     subdistrict_id = request.args.get('subdistrict_id', type=int)
+#     subdistricts = Subdistrict.query.filter_by(district_id=district_id).order_by(Subdistrict.name).all()
+#     url = url_for('service_admin.get_zipcode', subdistrict_id=subdistrict_id)
+#     options = f'''
+#                 <select id="subdistrict" name="subdistrict" class="js-example-basic-single" hx-headers='{{"X-CSRF-Token": "{generate_csrf()}"}}'
+#                     hx-post="{url}" hx-swap="innerHTML" hx-trigger="change, load" hx-target="#zipcode">
+#                     <option value="">กรุณาเลือกแขวง/ตำบล</option>
+#                 '''
+#
+#     for s in subdistricts:
+#         selected = 'selected' if subdistrict_id == s.id else ''
+#         options += f'''
+#             <option {selected} value="{s.id}">{s.name}</option>
+#             '''
+#
+#     options += '</select>'
+#     return options
+#
+#
+# @service_admin.post('/api/zipcode')
+# @login_required
+# def get_zipcode():
+#     subdistrict_id = request.form.get('subdistrict', type=int) or request.args.get('subdistrict_id', type=int)
+#     subdistrict = Subdistrict.query.filter_by(id=subdistrict_id).first()
+#     if subdistrict:
+#         input = f'''<input id="zipcode" name="zipcode" class="input" value="{subdistrict.zip_code.zip_code}" required>'''
+#     else:
+#         input = f'''<input id="zipcode" name="zipcode" class="input" value="">'''
+#     return input
 
 
 @service_admin.route('/customer/address/add/<int:customer_id>', methods=['GET', 'POST'])
