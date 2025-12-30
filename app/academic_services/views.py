@@ -5108,138 +5108,138 @@ def view_result_item(result_id, result_item_id):
                            menu=menu, tab=tab, generate_url=generate_url, result_item_id=result_item_id)
 
 
-@academic_services.route('/customer/result/confirm/<int:result_id>', methods=['GET', 'POST'])
-def confirm_result(result_id):
-    menu = request.args.get('menu')
-    status_id = get_status(13)
-    result = ServiceResult.query.get(result_id)
-    result.status_id = status_id
-    result.approver_id = current_user.id
-    result.approved_at = arrow.now('Asia/Bangkok').datetime
-    result.request.status_id = status_id
-    db.session.add(result)
-    db.session.commit()
-    scheme = 'http' if current_app.debug else 'https'
-    admins = (
-        ServiceAdmin.query
-        .join(ServiceSubLab)
-        .filter(ServiceSubLab.code == result.request.sub_lab.code)
-        .all()
-    )
-    title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
-    link = url_for("service_admin.create_invoice", quotation_id=result.quotation_id, menu='invoice',
-                   _external=True, _scheme=scheme)
-    customer_name = result.request.customer.customer_name.replace(' ', '_')
-    if admins:
-        title = f'''[{result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result.request.quotation_address.name}) | แจ้งยืนยันใบรายงานผลการทดสอบ'''
-        message = f'''เรียน เจ้าหน้าที่{result.request.sub_lab.sub_lab}\n\n'''
-        message += f'''ใบรายงานผลของใบคำขอรับบริการเลขที่ : {result.request.request_no}\n'''
-        message += f'''ลูกค้า : {result.request.customer.customer_name}\n'''
-        message += f'''ในนาม : {result.request.quotation_address.name}\n'''
-        message += f'''ได้ดำเนินการยืนยันเรียบร้อยแล้ว\n'''
-        message += f'''กรุณาดำเนินการออกใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'''
-        message += f'''{link}\n\n'''
-        message += f'''ผู้ประสานงาน\n'''
-        message += f'''{result.request.customer.customer_name}\n'''
-        message += f'''เบอร์โทร {result.request.customer.contact_phone_number}\n\n'''
-        message += f'''ระบบงานบริการวิชาการ'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
-        msg = ('แจ้งยืนยันใบรายงานผลการทดสอบ' \
-               '\n\nเรียน เจ้าหน้าที่{}'
-               '\n\nใบรายงานผลของใบคำขอรับบริการเลขที่ {}' \
-               '\nลูกค้า : {}' \
-               '\nในนาม : {}' \
-               '\nได้ดำเนินการยืนยันเรียบร้อยแล้ว' \
-               '\nกรุณาดำเนินการออกใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง' \
-               '\n{}' \
-               '\n\nผู้ประสานงาน' \
-               '\n{}' \
-               '\nเบอร์โทร {}' \
-               '\n\nระบบงานบริการวิชาการ'.format(result.request.sub_lab.sub_lab, result.request.request_no,
-                                                 result.request.customer.customer_name,
-                                                 result.request.quotation_address.name, link,
-                                                 result.request.customer.customer_name,
-                                                 result.request.customer.contact_phone_number)
-               )
-        if not current_app.debug:
-            for a in admins:
-                if not a.is_central_admin:
-                    try:
-                        line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                    except LineBotApiError:
-                        pass
-    flash('ยืนยันใบรายงานผลเรียบร้อยแล้ว', 'success')
-    return redirect(url_for('academic_services.result_index', menu=menu))
-
-
-@academic_services.route('/customer/result/edit/<int:result_id>', methods=['GET', 'POST'])
-def edit_result(result_id):
-    menu = request.args.get('menu')
-    result = ServiceResult.query.get(result_id)
-    form = ServiceResultForm(obj=result)
-    if form.validate_on_submit():
-        form.populate_obj(result)
-        status_id = get_status(14)
-        result.status_id = status_id
-        result.edit_requester_id = current_user.id
-        result.result_edit_at = arrow.now('Asia/Bangkok').datetime
-        result.request.status_id = status_id
-        db.session.add(result)
-        db.session.commit()
-        scheme = 'http' if current_app.debug else 'https'
-        admins = (
-            ServiceAdmin.query
-            .join(ServiceSubLab)
-            .filter(ServiceSubLab.code == result.request.sub_lab.code)
-            .all()
-        )
-        title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
-        link = url_for("service_admin.create_draft_result", rresult_id=result.id, request_id=result.request.id,
-                       menu='test_item', _external=True, _scheme=scheme)
-        customer_name = result.request.customer.customer_name.replace(' ', '_')
-        if admins:
-            title = f'''[{result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result.request.quotation_address.name}) | แจ้งขอแก้ไขใบรายงานผลการทดสอบ'''
-            message = f'''เรียน เจ้าหน้าที่{result.request.sub_lab.sub_lab}\n\n'''
-            message += f'''ใบรายงานผลของใบคำขอรับบริการเลขที่ : {result.request.request_no}\n'''
-            message += f'''ลูกค้า : {result.request.customer.customer_name}\n'''
-            message += f'''ในนาม : {result.request.quotation_address.name}\n'''
-            message += f'''ได้ขอดำเนินการแก้ไขรายงานผลการทดสอบเนื่องจาก {result.note}\n'''
-            message += f'''กรุณาดำเนินการแก้ไขรายงานผลการทดสอบได้ที่ลิงก์ด้านล่าง\n'''
-            message += f'''{link}\n\n'''
-            message += f'''ผู้ประสานงาน\n'''
-            message += f'''{result.request.customer.customer_name}\n'''
-            message += f'''เบอร์โทร {result.request.customer.contact_phone_number}\n\n'''
-            message += f'''ระบบงานบริการวิชาการ'''
-            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
-            msg = ('แจ้งขอแก้ไขใบรายงานผลการทดสอบ' \
-                   '\n\nเรียน เจ้าหน้าที่{}'
-                   '\n\nใบรายงานผลของใบคำขอรับบริการเลขที่ {}' \
-                   '\nลูกค้า : {}' \
-                   '\nในนาม : {}' \
-                   '\nได้ขอดำเนินการแก้ไขรายงานผลการทดสอบเนื่องจาก {}' \
-                   '\nกรุณาดำเนินการแก้ไขรายงานผลการทดสอบได้ที่ลิงก์ด้านล่าง' \
-                   '\n{}' \
-                   '\n\nผู้ประสานงาน' \
-                   '\n{}' \
-                   '\nเบอร์โทร {}' \
-                   '\n\nระบบงานบริการวิชาการ'.format(result.request.sub_lab.sub_lab, result.request.request_no,
-                                                     result.request.customer.customer_name,
-                                                     result.request.quotation_address.name, result.note, link,
-                                                     result.request.customer.customer_name,
-                                                     result.request.customer.contact_phone_number)
-                   )
-            if not current_app.debug:
-                for a in admins:
-                    if not a.is_central_admin:
-                        try:
-                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                        except LineBotApiError:
-                            pass
-        flash('ส่งคำขอแก้ไขเรียบร้อยแล้ว', 'success')
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
-        return resp
-    return render_template('academic_services/modal/edit_result_modal.html', form=form, result_id=result_id, menu=menu)
+# @academic_services.route('/customer/result/confirm/<int:result_id>', methods=['GET', 'POST'])
+# def confirm_result(result_id):
+#     menu = request.args.get('menu')
+#     status_id = get_status(13)
+#     result = ServiceResult.query.get(result_id)
+#     result.status_id = status_id
+#     result.approver_id = current_user.id
+#     result.approved_at = arrow.now('Asia/Bangkok').datetime
+#     result.request.status_id = status_id
+#     db.session.add(result)
+#     db.session.commit()
+#     scheme = 'http' if current_app.debug else 'https'
+#     admins = (
+#         ServiceAdmin.query
+#         .join(ServiceSubLab)
+#         .filter(ServiceSubLab.code == result.request.sub_lab.code)
+#         .all()
+#     )
+#     title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
+#     link = url_for("service_admin.create_invoice", quotation_id=result.quotation_id, menu='invoice',
+#                    _external=True, _scheme=scheme)
+#     customer_name = result.request.customer.customer_name.replace(' ', '_')
+#     if admins:
+#         title = f'''[{result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result.request.quotation_address.name}) | แจ้งยืนยันใบรายงานผลการทดสอบ'''
+#         message = f'''เรียน เจ้าหน้าที่{result.request.sub_lab.sub_lab}\n\n'''
+#         message += f'''ใบรายงานผลของใบคำขอรับบริการเลขที่ : {result.request.request_no}\n'''
+#         message += f'''ลูกค้า : {result.request.customer.customer_name}\n'''
+#         message += f'''ในนาม : {result.request.quotation_address.name}\n'''
+#         message += f'''ได้ดำเนินการยืนยันเรียบร้อยแล้ว\n'''
+#         message += f'''กรุณาดำเนินการออกใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'''
+#         message += f'''{link}\n\n'''
+#         message += f'''ผู้ประสานงาน\n'''
+#         message += f'''{result.request.customer.customer_name}\n'''
+#         message += f'''เบอร์โทร {result.request.customer.contact_phone_number}\n\n'''
+#         message += f'''ระบบงานบริการวิชาการ'''
+#         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
+#         msg = ('แจ้งยืนยันใบรายงานผลการทดสอบ' \
+#                '\n\nเรียน เจ้าหน้าที่{}'
+#                '\n\nใบรายงานผลของใบคำขอรับบริการเลขที่ {}' \
+#                '\nลูกค้า : {}' \
+#                '\nในนาม : {}' \
+#                '\nได้ดำเนินการยืนยันเรียบร้อยแล้ว' \
+#                '\nกรุณาดำเนินการออกใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง' \
+#                '\n{}' \
+#                '\n\nผู้ประสานงาน' \
+#                '\n{}' \
+#                '\nเบอร์โทร {}' \
+#                '\n\nระบบงานบริการวิชาการ'.format(result.request.sub_lab.sub_lab, result.request.request_no,
+#                                                  result.request.customer.customer_name,
+#                                                  result.request.quotation_address.name, link,
+#                                                  result.request.customer.customer_name,
+#                                                  result.request.customer.contact_phone_number)
+#                )
+#         if not current_app.debug:
+#             for a in admins:
+#                 if not a.is_central_admin:
+#                     try:
+#                         line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+#                     except LineBotApiError:
+#                         pass
+#     flash('ยืนยันใบรายงานผลเรียบร้อยแล้ว', 'success')
+#     return redirect(url_for('academic_services.result_index', menu=menu))
+#
+#
+# @academic_services.route('/customer/result/edit/<int:result_id>', methods=['GET', 'POST'])
+# def edit_result(result_id):
+#     menu = request.args.get('menu')
+#     result = ServiceResult.query.get(result_id)
+#     form = ServiceResultForm(obj=result)
+#     if form.validate_on_submit():
+#         form.populate_obj(result)
+#         status_id = get_status(14)
+#         result.status_id = status_id
+#         result.edit_requester_id = current_user.id
+#         result.result_edit_at = arrow.now('Asia/Bangkok').datetime
+#         result.request.status_id = status_id
+#         db.session.add(result)
+#         db.session.commit()
+#         scheme = 'http' if current_app.debug else 'https'
+#         admins = (
+#             ServiceAdmin.query
+#             .join(ServiceSubLab)
+#             .filter(ServiceSubLab.code == result.request.sub_lab.code)
+#             .all()
+#         )
+#         title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
+#         link = url_for("service_admin.create_draft_result", rresult_id=result.id, request_id=result.request.id,
+#                        menu='test_item', _external=True, _scheme=scheme)
+#         customer_name = result.request.customer.customer_name.replace(' ', '_')
+#         if admins:
+#             title = f'''[{result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result.request.quotation_address.name}) | แจ้งขอแก้ไขใบรายงานผลการทดสอบ'''
+#             message = f'''เรียน เจ้าหน้าที่{result.request.sub_lab.sub_lab}\n\n'''
+#             message += f'''ใบรายงานผลของใบคำขอรับบริการเลขที่ : {result.request.request_no}\n'''
+#             message += f'''ลูกค้า : {result.request.customer.customer_name}\n'''
+#             message += f'''ในนาม : {result.request.quotation_address.name}\n'''
+#             message += f'''ได้ขอดำเนินการแก้ไขรายงานผลการทดสอบเนื่องจาก {result.note}\n'''
+#             message += f'''กรุณาดำเนินการแก้ไขรายงานผลการทดสอบได้ที่ลิงก์ด้านล่าง\n'''
+#             message += f'''{link}\n\n'''
+#             message += f'''ผู้ประสานงาน\n'''
+#             message += f'''{result.request.customer.customer_name}\n'''
+#             message += f'''เบอร์โทร {result.request.customer.contact_phone_number}\n\n'''
+#             message += f'''ระบบงานบริการวิชาการ'''
+#             send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
+#             msg = ('แจ้งขอแก้ไขใบรายงานผลการทดสอบ' \
+#                    '\n\nเรียน เจ้าหน้าที่{}'
+#                    '\n\nใบรายงานผลของใบคำขอรับบริการเลขที่ {}' \
+#                    '\nลูกค้า : {}' \
+#                    '\nในนาม : {}' \
+#                    '\nได้ขอดำเนินการแก้ไขรายงานผลการทดสอบเนื่องจาก {}' \
+#                    '\nกรุณาดำเนินการแก้ไขรายงานผลการทดสอบได้ที่ลิงก์ด้านล่าง' \
+#                    '\n{}' \
+#                    '\n\nผู้ประสานงาน' \
+#                    '\n{}' \
+#                    '\nเบอร์โทร {}' \
+#                    '\n\nระบบงานบริการวิชาการ'.format(result.request.sub_lab.sub_lab, result.request.request_no,
+#                                                      result.request.customer.customer_name,
+#                                                      result.request.quotation_address.name, result.note, link,
+#                                                      result.request.customer.customer_name,
+#                                                      result.request.customer.contact_phone_number)
+#                    )
+#             if not current_app.debug:
+#                 for a in admins:
+#                     if not a.is_central_admin:
+#                         try:
+#                             line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+#                         except LineBotApiError:
+#                             pass
+#         flash('ส่งคำขอแก้ไขเรียบร้อยแล้ว', 'success')
+#         resp = make_response()
+#         resp.headers['HX-Refresh'] = 'true'
+#         return resp
+#     return render_template('academic_services/modal/edit_result_modal.html', form=form, result_id=result_id, menu=menu)
 
 
 @academic_services.route('/customer/result_item/confirm/<int:result_item_id>', methods=['GET', 'POST'])
@@ -5255,9 +5255,8 @@ def confirm_result_item(result_item_id):
     db.session.add(result_item)
     db.session.commit()
     if approved_all:
-        status_id = get_status(13)
-        result_item.result.status_id = status_id
-        result_item.result.request.status_id = status_id
+        # status_id = get_status(13)
+        # result_item.result.request.status_id = status_id
         result_item.result.approved_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(result_item)
         db.session.commit()
@@ -5331,11 +5330,10 @@ def edit_result_item(result_item_id):
     form = ServiceResultItemForm(obj=result_item)
     if form.validate_on_submit():
         form.populate_obj(result_item)
-        status_id = get_status(14)
-        result_item.result.status_id = status_id
+        # status_id = get_status(14)
         result_item.edit_requester_id = current_user.id
         result_item.req_edit_at = arrow.now('Asia/Bangkok').datetime
-        result_item.result.request.status_id = status_id
+        # result_item.result.request.status_id = status_id
         result_item.result.result_edit_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(result_item)
         db.session.commit()
