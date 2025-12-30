@@ -6291,10 +6291,10 @@ def create_draft_result(result_id=None):
         upload_all = all(item.draft_file for item in result.result_items)
         if action == 'send':
             if upload_all:
-                status_id = get_status(12)
+                # status_id = get_status(12)
                 result.is_edited = False
                 # result.status_id = status_id
-                result.request.status_id = status_id
+                # result.request.status_id = status_id
                 result.sent_at = arrow.now('Asia/Bangkok').datetime
                 result.sender_id = current_user.id
                 scheme = 'http' if current_app.debug else 'https'
@@ -6318,18 +6318,16 @@ def create_draft_result(result_id=None):
                     send_mail([contact_email], title, message)
                     result.is_sent_email = True
                 db.session.add(result)
-                # db.session.add(service_request)
                 db.session.commit()
                 flash("ส่งข้อมูลเรียบร้อยแล้ว", "success")
                 return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='testing'))
             else:
                 flash("กรุณาแนบไฟล์ให้ครบถ้วน", "danger")
         else:
-            status_id = get_status(11)
-            # result.status_id = status_id
-            service_request.status_id = status_id
+            # status_id = get_status(11)
+            # service_request.status_id = status_id
             db.session.add(result)
-            db.session.add(service_request)
+            # db.session.add(service_request)
             db.session.commit()
             flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
             return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='testing'))
@@ -6424,9 +6422,9 @@ def edit_draft_result(result_item_id):
             db.session.commit()
         edited_all = all(item.edited_at for item in result_item.result.result_items if item.req_edit_at)
         if edited_all:
-            status_id = get_status(12)
+            # status_id = get_status(12)
             # result_item.result.status_id = status_id
-            result_item.result.request.status_id = status_id
+            # result_item.result.request.status_id = status_id
             result_item.result.is_edited = True
             db.session.add(result_item)
             db.session.commit()
@@ -6458,11 +6456,9 @@ def edit_draft_result(result_item_id):
 
 @service_admin.route('/result/draft/delete/<int:item_id>', methods=['GET', 'POST'])
 def delete_draft_result(item_id):
-    # status_id = get_status(11)
     item = ServiceResultItem.query.get(item_id)
     item.draft_file = None
     item.modified_at = arrow.now('Asia/Bangkok').datetime
-    # item.result.status_id = status_id
     item.result.modified_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(item)
     db.session.commit()
@@ -6543,7 +6539,6 @@ def create_final_result(result_id=None):
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
             send_mail([contact_email], title, message)
         db.session.add(result)
-        db.session.add(service_request)
         db.session.commit()
         flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
         return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='all'))
