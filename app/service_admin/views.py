@@ -3026,32 +3026,34 @@ def test_item_index():
         )
     )
     not_started_query = query.outerjoin(ServiceResult, ServiceResult.request_id == ServiceRequest.id).filter(ServiceResult.id == None)
-    testing_query = query.join(ServiceResult).filter(ServiceResult.approved_at == None,
+    testing_query = query.join(ServiceResult).filter(ServiceResult.sent_at == None)
+    edit_report_query = query.join(ServiceResult).filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False)
+    waiting_confirm_query = query.join(ServiceResult).filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
                                  or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
                                      )
                                  )
-    edit_report_query = query.join(ServiceResult).filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False)
-    pending_invoice_query = (
-        query
-        .join(
-            ServiceQuotation,
-            ServiceQuotation.request_id == ServiceRequest.id
-        )
-        .outerjoin(
-            ServiceInvoice,
-            ServiceInvoice.quotation_id == ServiceQuotation.id
-        )
-        .filter(ServiceInvoice.id == None)
-    )
-    invoice_query = (query.join(
-            ServiceQuotation,
-            ServiceQuotation.request_id == ServiceRequest.id
-        ).outerjoin(
-            ServiceInvoice,
-            ServiceInvoice.quotation_id == ServiceQuotation.id
-        )
-        .filter(ServiceInvoice.id != None)
-    )
+    confirm_query = query.join(ServiceResult).filter(ServiceResult.approved_at != None)
+    # pending_invoice_query = (
+    #     query
+    #     .join(
+    #         ServiceQuotation,
+    #         ServiceQuotation.request_id == ServiceRequest.id
+    #     )
+    #     .outerjoin(
+    #         ServiceInvoice,
+    #         ServiceInvoice.quotation_id == ServiceQuotation.id
+    #     )
+    #     .filter(ServiceInvoice.id == None)
+    # )
+    # invoice_query = (query.join(
+    #         ServiceQuotation,
+    #         ServiceQuotation.request_id == ServiceRequest.id
+    #     ).outerjoin(
+    #         ServiceInvoice,
+    #         ServiceInvoice.quotation_id == ServiceQuotation.id
+    #     )
+    #     .filter(ServiceInvoice.id != None)
+    # )
 
     if api == 'true':
         if tab == 'not_started':
@@ -3060,10 +3062,14 @@ def test_item_index():
             query = testing_query
         elif tab == 'edit_report':
             query = edit_report_query
-        elif tab == 'pending_invoice':
-            query = pending_invoice_query
-        elif tab == 'invoice':
-            query = invoice_query
+        elif tab == 'waiting_confirm':
+            query = waiting_confirm_query
+        elif tab == 'confirm':
+            query = confirm_query
+        # elif tab == 'pending_invoice':
+        #     query = pending_invoice_query
+        # elif tab == 'invoice':
+        #     query = invoice_query
 
         records_total = query.count()
         search = request.args.get('search[value]')
@@ -3136,7 +3142,9 @@ def test_item_index():
     return render_template('service_admin/test_item_index.html', menu=menu, tab=tab,
                            not_started_count=not_started_query.count(),
                            testing_count=testing_query.count(), edit_report_count=edit_report_query.count(),
-                           pending_invoice_count=pending_invoice_query.count())
+                           waiting_confirm_query=waiting_confirm_query.count()
+                           # pending_invoice_count=pending_invoice_query.count()
+        )
 
 
 # @service_admin.route('/api/test-item/index')
