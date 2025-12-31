@@ -702,14 +702,16 @@ def menu():
             ServiceAdmin.admin_id == current_user.id
         )
         ).count()
-        test_item_count = (ServiceRequest.query
-        .join(ServiceRequest.status)
+        test_item_count = (ServiceTestItem.query
+        .join(ServiceTestItem.request)
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
+        .outerjoin(ServiceResult)
         .filter(
-            ServiceStatus.status_id.in_([10, 11, 12, 13, 14, 15]),
-            ServiceAdmin.admin_id == current_user.id
-        )).count()
+            ServiceAdmin.admin_id == current_user.id, or_(ServiceResult.request_id == None,
+                                                          ServiceResult.approved_at == None)
+        )
+        ).count()
         invoice_count = (ServiceRequest.query
         .join(ServiceRequest.status)
         .join(ServiceRequest.sub_lab)
@@ -3025,7 +3027,7 @@ def test_item_index():
             ServiceAdmin.admin_id == current_user.id
         )
     )
-    not_started_query = query.outerjoin(ServiceResult, ServiceResult.request_id == ServiceRequest.id).filter(ServiceResult.id == None)
+    not_started_query = query.outerjoin(ServiceResult).filter(ServiceResult.request_id == None)
     testing_query = query.join(ServiceResult).filter(ServiceResult.sent_at == None)
     edit_report_query = query.join(ServiceResult).filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False)
     waiting_confirm_query = query.join(ServiceResult).filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
