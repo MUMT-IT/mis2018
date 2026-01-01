@@ -5009,12 +5009,13 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         qr_bytes = b64decode(qr_image_base64)
         qr_buffer = BytesIO(qr_bytes)
         qr_code_img = Image(qr_buffer, width=90, height=90)
-
+    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
+    scheme = 'http' if current_app.debug else 'https'
     qr_payment_buffer = BytesIO()
     qr_payment_img = qrcode.make(url_for('academic_services.add_payment', invoice_id=invoice.id, menu='invoice',
-                                 tab='pending', _external=True))
+                                 tab='pending', _external=True, _scheme=scheme))
     qr_payment_img.save(qr_payment_buffer, format='PNG')
-    qr_code_payment = Image(qr_payment_buffer, width=90, height=90)
+    qr_code_payment = Image(qr_payment_buffer, width=95, height=95)
 
     sign_style = ParagraphStyle(
         'SignStyle',
@@ -5073,14 +5074,19 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
 
         combined_table = Table(
             [[qr_code_table, qr_code_payment_table, sign_table]],
-            colWidths=[120, 120, 350]
+            colWidths=[130, 130, 350]
         )
         combined_table.setStyle(TableStyle([
             ('VALIGN', (0, 0), (0, 0), 'TOP'),
             ('ALIGN', (0, 0), (0, 0), 'LEFT'),
             ('VALIGN', (1, 0), (1, 0), 'TOP'),
-            ('ALIGN', (1, 0), (1, 0), 'RIGHT')
+            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+            ('LEFTPADDING', (2, 0), (2, 0), 60),
         ]))
+
+        combined_table.hAlign = 'LEFT'
+        combined_table.leftIndent = 200
+
 
         data.append(Spacer(1, 16))
         data.append(KeepTogether(combined_table))
