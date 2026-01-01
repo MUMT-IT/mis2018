@@ -4701,78 +4701,81 @@ def add_payment():
     menu = request.args.get('menu')
     invoice_id = request.args.get('invoice_id')
     invoice = ServiceInvoice.query.get(invoice_id)
-    form = ServicePaymentForm()
-    if not form.amount_paid.data:
-        form.amount_paid.data = invoice.grand_total
-    if form.validate_on_submit():
-        payment = ServicePayment()
-        form.populate_obj(payment)
-        status_id = get_status(21)
-        file = form.file_upload.data
-        if (file and form.paid_at.data and form.payment_type.data and form.amount_paid.data):
-            payment.invoice_id = invoice_id
-            payment.created_at = arrow.now('Asia/Bangkok').datetime
-            payment.customer_id = current_user.id
-            payment.paid_at = arrow.get(form.paid_at.data, 'Asia/Bangkok').datetime
-            if file and allowed_file(file.filename):
-                mime_type = file.mimetype
-                file_name = '{}.{}'.format(uuid.uuid4().hex, file.filename.split('.')[-1])
-                file_data = file.stream.read()
-                response = s3.put_object(
-                    Bucket=S3_BUCKET_NAME,
-                    Key=file_name,
-                    Body=file_data,
-                    ContentType=mime_type
-                )
-                payment.slip = file_name
-                db.session.add(payment)
-                invoice.quotation.request.status_id = status_id
-                db.session.add(invoice)
-                db.session.commit()
-                scheme = 'http' if current_app.debug else 'https'
-                org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
-                staff = StaffAccount.get_account_by_email(org.head)
-                title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
-                link = url_for("service_admin.view_invoice_for_finance", invoice_id=invoice_id, _external=True,
-                               _scheme=scheme)
-                customer_name = invoice.customer_name.replace(' ', '_')
-                title = f'''[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอัปเดตการชำระเงิน'''
-                message = f'''เรียน เจ้าหน้าที่การเงิน\n\n'''
-                message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'''
-                message += f'''ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'''
-                message += f'''จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'''
-                message += f'''กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'''
-                message += f'''{link}\n\n'''
-                message += f'''ผู้ประสานงาน\n'''
-                message += f'''{invoice.customer_name}\n'''
-                message += f'''เบอร์โทร {invoice.contact_phone_number}\n\n'''
-                message += f'''ระบบงานบริการวิชาการ'''
-                send_mail([staff.email + '@mahidol.ac.th'], title, message)
-                msg = (f'แจ้งอัพเดตการชำระเงินใบแจ้งหนี้เลขที่ {invoice.invoice_no}\n\n'
-                       f'เรียน เจ้าหน้าที่การเงิน\n\n'
-                       f'ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'
-                       f'ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'
-                       f'จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'
-                       f'กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'
-                       f'{link}\n\n'
-                       f'ผู้ประสานงาน\n'
-                       f'{invoice.customer_name}\n'
-                       f'เบอร์โทร {invoice.contact_phone_number}\n\n'
-                       f'ระบบงานบริการวิชาการ'
-                       )
-                if not current_app.debug:
-                    try:
-                        line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
-                    except LineBotApiError:
-                        pass
-            flash('อัปโหลดหลักฐานการชำระเงินสำเร็จ', 'success')
-            return redirect(url_for('academic_services.invoice_index', menu=menu, tab='verify'))
+    if not invoice.payments:
+        form = ServicePaymentForm()
+        if not form.amount_paid.data:
+            form.amount_paid.data = invoice.grand_total
+        if form.validate_on_submit():
+            payment = ServicePayment()
+            form.populate_obj(payment)
+            status_id = get_status(21)
+            file = form.file_upload.data
+            if (file and form.paid_at.data and form.payment_type.data and form.amount_paid.data):
+                payment.invoice_id = invoice_id
+                payment.created_at = arrow.now('Asia/Bangkok').datetime
+                payment.customer_id = current_user.id
+                payment.paid_at = arrow.get(form.paid_at.data, 'Asia/Bangkok').datetime
+                if file and allowed_file(file.filename):
+                    mime_type = file.mimetype
+                    file_name = '{}.{}'.format(uuid.uuid4().hex, file.filename.split('.')[-1])
+                    file_data = file.stream.read()
+                    response = s3.put_object(
+                        Bucket=S3_BUCKET_NAME,
+                        Key=file_name,
+                        Body=file_data,
+                        ContentType=mime_type
+                    )
+                    payment.slip = file_name
+                    db.session.add(payment)
+                    invoice.quotation.request.status_id = status_id
+                    db.session.add(invoice)
+                    db.session.commit()
+                    scheme = 'http' if current_app.debug else 'https'
+                    org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
+                    staff = StaffAccount.get_account_by_email(org.head)
+                    title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
+                    link = url_for("service_admin.view_invoice_for_finance", invoice_id=invoice_id, _external=True,
+                                   _scheme=scheme)
+                    customer_name = invoice.customer_name.replace(' ', '_')
+                    title = f'''[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอัปเดตการชำระเงิน'''
+                    message = f'''เรียน เจ้าหน้าที่การเงิน\n\n'''
+                    message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'''
+                    message += f'''ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'''
+                    message += f'''จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'''
+                    message += f'''กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'''
+                    message += f'''{link}\n\n'''
+                    message += f'''ผู้ประสานงาน\n'''
+                    message += f'''{invoice.customer_name}\n'''
+                    message += f'''เบอร์โทร {invoice.contact_phone_number}\n\n'''
+                    message += f'''ระบบงานบริการวิชาการ'''
+                    send_mail([staff.email + '@mahidol.ac.th'], title, message)
+                    msg = (f'แจ้งอัพเดตการชำระเงินใบแจ้งหนี้เลขที่ {invoice.invoice_no}\n\n'
+                           f'เรียน เจ้าหน้าที่การเงิน\n\n'
+                           f'ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'
+                           f'ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'
+                           f'จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'
+                           f'กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'
+                           f'{link}\n\n'
+                           f'ผู้ประสานงาน\n'
+                           f'{invoice.customer_name}\n'
+                           f'เบอร์โทร {invoice.contact_phone_number}\n\n'
+                           f'ระบบงานบริการวิชาการ'
+                           )
+                    if not current_app.debug:
+                        try:
+                            line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
+                        except LineBotApiError:
+                            pass
+                flash('อัปโหลดหลักฐานการชำระเงินสำเร็จ', 'success')
+                return redirect(url_for('academic_services.invoice_index', menu=menu, tab='verify'))
+            else:
+                flash('กรุณากรอกวันที่ชำระเงิน, วิธีการชำระเงิน, จำนวนเงิน และหลักฐานการชำระเงิน', 'danger')
         else:
-            flash('กรุณากรอกวันที่ชำระเงิน, วิธีการชำระเงิน, จำนวนเงิน และหลักฐานการชำระเงิน', 'danger')
+            for field, error in form.errors.items():
+                flash(f'{field}: {error}', 'danger')
+        return render_template('academic_services/add_payment.html', menu=menu, form=form, invoice=invoice, tab=tab)
     else:
-        for field, error in form.errors.items():
-            flash(f'{field}: {error}', 'danger')
-    return render_template('academic_services/add_payment.html', menu=menu, form=form, invoice=invoice, tab=tab)
+        return render_template('academic_services/payment_verification_page.html', tab='all', menu=menu)
 
 
 @academic_services.route('/invoice/view/<int:invoice_id>')

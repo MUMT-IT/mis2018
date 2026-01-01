@@ -11,10 +11,10 @@
                 <h1 class="title is-3 mt-3">แจ้งชำระเงินแล้ว</h1>
                 <p class="subtitle is-5">ระบบได้รับข้อมูลการแจ้งชำระเงินของท่านเรียบร้อยแล้ว</p>
                 <div class="notification is-info is-light mt-4">
-                    เจ้าหน้าที่จะดำเนินการตรวจสอบข้อมูลการชำระเงินตามี่ท่านได้แจ้งไว้ เมื่อการตรวจสอบเสร็จสิ้น ระบบจะแจ้งให้ท่านทราบ
+                    เจ้าหน้าที่จะดำเนินการตรวจสอบข้อมูลการชำระเงินตามที่ท่านได้แจ้งไว้ เมื่อการตรวจสอบเสร็จสิ้น ระบบจะแจ้งให้ท่านทราบ
                 </div>
                 <div class="buttons is-centered mt-5">
-                    <a href='{{ url_for('academic_services.invoice_index', menu=menu, tab='all') }}' class="button is-link is-light">
+                    <a href='{{ url_for('academic_services.invoice_index', menu=menu, tab=tab) }}' class="button is-link is-light">
                         กลับหน้าหลัก
                     </a>
                 </div>
