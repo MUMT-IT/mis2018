@@ -98,7 +98,7 @@ def download_file(key):
     result_item = ServiceResultItem.query.filter_by(final_file=key).first()
     if result_item:
         req = result_item.result.request
-        if req.is_downloaded == None:
+        if req.is_downloaded == None or req.is_downloaded == False:
             req.is_downloaded = True
             db.session.add(req)
             db.session.commit()
