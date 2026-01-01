@@ -4509,7 +4509,8 @@ def create_invoice(quotation_id):
             db.session.commit()
         db.session.commit()
         status_id = get_status(16)
-        invoice.quotation.request.status_id = status_id
+        quotation.request.status_id = status_id
+        db.session.add(quotation)
         db.session.add(invoice)
         db.session.commit()
         flash('สร้างใบแจ้งหนี้สำเร็จ', 'success')
