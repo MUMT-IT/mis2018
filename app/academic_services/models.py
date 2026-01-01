@@ -439,6 +439,7 @@ class ServiceRequest(db.Model):
             'sender': self.customer.customer_info.cus_name if self.customer else None,
             'status_id': self.status.status_id if self.status else None,
             'is_completed': self.is_completed if self.is_completed else None,
+            'has_result': True if self.get_result() else None,
             'admin_status': self.status.admin_status if self.status else None,
             'admin_status_color': self.status.admin_status_color if self.status else None,
             'customer_status': self.status.customer_status if self.status else None,
@@ -457,10 +458,10 @@ class ServiceRequest(db.Model):
                 if self.samples else None,
             'sample_test_at' : ', '.join(str(result.released_at) for result in self.results if result.released_at)
                 if self.results else None,
-            'result_approved_at': ', '.join(str(result.approved_at) for result in self.results if result.approved_at)
-                                    if self.results else None,
-            'result_edit_at': ', '.join(str(result.result_edit_at) for result in self.results if result.result_edit_at)
-                                if self.results else None,
+            'result_approved_at': self.get_result().approved_at if self.get_result() and self.get_result().approved_at else None,
+            'result_edit_at': self.get_result().result_edit_at if self.get_result() and self.get_result().result_edit_at else None,
+            'result_sent_at': self.get_result().sent_at if self.get_result() and self.get_result().sent_at else None,
+            'result_is_edited' : self.get_result().is_edited if self.get_result() and self.get_result().is_edited else None,
             'invoice_sent_at': ', '.join(str(invoice.sent_at) for quotation in self.quotations
                                                   if quotation.invoices for invoice in quotation.invoices
                                                   if invoice.sent_at) if self.quotations else None,
