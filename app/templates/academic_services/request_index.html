@@ -70,7 +70,7 @@
                                         <span class="icon is-large" style="display:block; font-size:1.6rem">
                                             {{ group.icon | safe }}
                                         </span>
-                                        {% if group.count %}
+                                        {% if group.count and group.name != 'รายการทั้งหมด' %}
                                             <span class="tag is-danger is-rounded is-size-7 mt-1">{{ group.count }}</span>
                                         {% endif %}
                                         <span class="is-size-7 mt-1" style="display:block;">{{ group.name }}</span>
@@ -199,15 +199,26 @@
                     {
                         data: null,
                         render: function (data, type, row) {
-                            if (row.result_approved_at) {
-                                let approved_at = moment(row.result_approved_at).format('DD/MM/YYYY HH:mm')
-                                return `<div class="field">
-                                            <div class="control">
-                                                ${approved_at}<br/>
-                                            </div>
-                                       </div>`;
+                            if (row.has_result) {
+                                    if (row.result_approved_at) {
+                                    let approved_at = moment(row.result_approved_at).format('DD/MM/YYYY HH:mm')
+                                    return`<div class="field">
+                                                <div class="control">
+                                                    ${approved_at}<br/>
+                                                </div>
+                                           </div>`;
+                                } else if (row.result_edit_at && row.result_is_edited == null) {
+                                    return`<span class="tag is-info">ขอแก้ไขใบรายงานผล</span>`;
+                                } else if(row.result_sent_at != null) {
+                                    return`<span class="tag is-warning">รอยืนยันใบรายงานผล</span>`;
+                                } else if (row.result_sent_at == null) {
+                                    return`<span class="tag is-primary">กำลังดำเนินการทดสอบ</span>`;
+                                }
+                                else {
+                                    return`<span class="tag is-danger">ยังไม่ดำเนินการทดสอบ</span>`;
+                                }
                             } else {
-                                return '';
+                                return`<span class="tag is-danger">ยังไม่ดำเนินการทดสอบ</span>`;
                             }
                         }
                     },
