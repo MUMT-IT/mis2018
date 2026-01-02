@@ -15,10 +15,10 @@
         </header>
         <section class="modal-card-body">
             <form id="form" {% if address_id %}
-                        hx-post="{{ url_for('service_admin.edit_customer_address', address_id=address_id) }}"
-                  {% else %}
-                        hx-post="{{ url_for('service_admin.edit_customer_address', type=type, customer_id=customer_id) }}"
-                  {% endif %}
+                  hx-post="{{ url_for('service_admin.edit_customer_address', address_id=address_id) }}"
+            {% else %}
+                  hx-post="{{ url_for('service_admin.edit_customer_address', type=type, customer_id=customer_id) }}"
+            {% endif %}
                   hx-indicator="#submit-form"
             >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
@@ -66,68 +66,68 @@
                     </div>
                 </div>
                 <div class="field-body" style="margin-bottom: .8em">
-                            <div class="field">
-                                <label class="label">
-                                    {{ form.province.label }}
-                                    <span class="has-text-danger">*</span>
-                                </label>
-                                <div class="select">
-                                    {{ form.province(
-                                        **{'hx-include': 'closest form',
-                                            'hx-trigger': 'change',
-                                            'hx-target': '#province',
-                                            'hx-swap': 'outerHTML',
-                                            'hx-post': url_for('service_admin.get_items', use_type=false)
-                                        })
-                                    }}
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">
-                                    {{ form.district.label }}
-                                    <span class="has-text-danger">*</span>
-                                </label>
-                                <div class="select">
-                                    {{ form.district(
-                                        **{'hx-trigger': 'change',
-                                            'hx-target': '#province',
-                                            'hx-swap': 'outerHTML',
-                                            'hx-post': url_for('service_admin.get_items', use_type=false)
-                                        })
-                                    }}
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">
-                                    {{ form.subdistrict.label }}
-                                    <span class="has-text-danger">*</span>
-                                </label>
-                                <div class="select">
-                                    {{ form.subdistrict(
-                                        **{'hx-trigger': 'change',
-                                            'hx-target': '#province',
-                                            'hx-swap': 'outerHTML',
-                                            'hx-post': url_for('service_admin.get_items', use_type=false)
-                                        })
-                                    }}
-                                </div>
-                            </div>
+                    <div class="field">
+                        <label class="label">
+                            {{ form.province.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="select">
+                            {{ form.province(
+                                **{'hx-include': 'closest form',
+                                   'hx-trigger': 'change',
+                                   'hx-target': '#province',
+                                   'hx-swap': 'outerHTML',
+                                   'hx-post': url_for('service_admin.get_items', use_type=false)
+                                })
+                            }}
                         </div>
-                        <div class="field">
-                            <label class="label">
-                                รหัสไปรษณีย์
-                                <span class="has-text-danger">*</span>
-                            </label>
-                            <div class="control" id="zipcode">
-                                {{ form.zipcode(class='input',
-                                    **{'hx-trigger': 'change',
-                                        'hx-target': '#province',
-                                        'hx-swap': 'outerHTML',
-                                        'hx-post': url_for('service_admin.get_items', use_type=false)
-                                        })
-                                }}
-                            </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">
+                            {{ form.district.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="select">
+                            {{ form.district(
+                                **{'hx-trigger': 'change',
+                                   'hx-target': '#province',
+                                   'hx-swap': 'outerHTML',
+                                   'hx-post': url_for('service_admin.get_items', use_type=false)
+                                })
+                            }}
                         </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">
+                            {{ form.subdistrict.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="select">
+                            {{ form.subdistrict(
+                               **{'hx-trigger': 'change',
+                                  'hx-target': '#province',
+                                  'hx-swap': 'outerHTML',
+                                  'hx-post': url_for('service_admin.get_items', use_type=false)
+                               })
+                            }}
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">
+                        รหัสไปรษณีย์
+                        <span class="has-text-danger">*</span>
+                    </label>
+                    <div class="control" id="zipcode">
+                        {{ form.zipcode(class='input',
+                            **{'hx-trigger': 'change',
+                               'hx-target': '#province',
+                               'hx-swap': 'outerHTML',
+                               'hx-post': url_for('service_admin.get_items', use_type=false)
+                            })
+                        }}
+                    </div>
+                </div>
                 <div class="field">
                     <label class="label">
                         {{ form.phone_number.label }}
@@ -170,7 +170,7 @@
         htmx.removeClass(htmx.find('#address-modal'), "is-active", 500)
     })
 
-    $(document).ready(()=> {
+    $(document).ready(() => {
         $('.js-example-basic-single').select2({
             width: '100%'
         });
