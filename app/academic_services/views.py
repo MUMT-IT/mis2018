@@ -4242,6 +4242,16 @@ def create_address(address_id=None):
         form = ServiceCustomerAddressForm()
         address = ServiceCustomerAddress.query.all()
     address_type = address.address_type if address_id else None
+
+    if form.province.data:
+        form.district.query = form.province.data.districts
+    if form.district.data:
+        form.subdistrict.query = form.district.data.subdistricts
+    else:
+        province = Province.query.first()
+        form.district.query = province.districts
+        form.subdistrict.query = province.districts[0].subdistricts if province.districts else ''
+
     if not form.taxpayer_identification_no.data:
         form.taxpayer_identification_no.data = current_user.customer_info.taxpayer_identification_no
     if form.validate_on_submit():
@@ -4266,28 +4276,51 @@ def create_address(address_id=None):
                            type=type, form=form, menu=menu, address_type=address_type)
 
 
-@academic_services.route('/api/get_districts')
-def get_districts():
-    province_id = request.args.get('province_id')
-    districts = District.query.filter_by(province_id=province_id).order_by(District.name).all()
-    result = [{"id": d.id, "name": d.name} for d in districts]
-    return jsonify(result)
+@academic_services.route('/api/items', methods=['POST'])
+def get_items():
+    trigger = request.headers.get('hx-trigger')
+    form = ServiceCustomerAddressForm()
 
+    if trigger == 'province':
+        form.district.query = form.province.data.districts
+        district = form.province.data.districts[0] if form.province.data.districts else ''
+        form.subdistrict.query = district.subdistricts if district else ''
+    elif trigger == 'district' or trigger == 'subdistrict':
+        form.district.query = form.province.data.districts
+        form.subdistrict.query = form.district.data.subdistricts
+        if trigger == 'subdistrict':
+            form.zipcode.data = form.subdistrict.data.zip_code
 
-@academic_services.route('/api/get_subdistricts')
-def get_subdistricts():
-    district_id = request.args.get('district_id')
-    subdistricts = Subdistrict.query.filter_by(district_id=district_id).order_by(Subdistrict.name).all()
-    result = [{"id": s.id, "name": s.name} for s in subdistricts]
-    return jsonify(result)
+    template = f'''
+        {form.province(**{'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items')})}
+        {form.district(**{'hx-swap-oob': 'true', 'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items')})}
+        {form.subdistrict(**{'hx-swap-oob': 'true', 'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items')})}
+        {form.zipcode(class_='input', **{'hx-swap-oob': 'true', 'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items')})}
+        '''
+    return template
 
-
-@academic_services.route('/api/get_zipcode')
-def get_zipcode():
-    subdistrict_id = request.args.get('subdistrict_id')
-    subdistrict = Subdistrict.query.filter_by(id=subdistrict_id).first()
-    zipcode = subdistrict.zip_code.zip_code if subdistrict else ''
-    return jsonify({"zipcode": zipcode})
+# @academic_services.route('/api/get_districts')
+# def get_districts():
+#     province_id = request.args.get('province_id')
+#     districts = District.query.filter_by(province_id=province_id).order_by(District.name).all()
+#     result = [{"id": d.id, "name": d.name} for d in districts]
+#     return jsonify(result)
+#
+#
+# @academic_services.route('/api/get_subdistricts')
+# def get_subdistricts():
+#     district_id = request.args.get('district_id')
+#     subdistricts = Subdistrict.query.filter_by(district_id=district_id).order_by(Subdistrict.name).all()
+#     result = [{"id": s.id, "name": s.name} for s in subdistricts]
+#     return jsonify(result)
+#
+#
+# @academic_services.route('/api/get_zipcode')
+# def get_zipcode():
+#     subdistrict_id = request.args.get('subdistrict_id')
+#     subdistrict = Subdistrict.query.filter_by(id=subdistrict_id).first()
+#     zipcode = subdistrict.zip_code.zip_code if subdistrict else ''
+#     return jsonify({"zipcode": zipcode})
 
 
 @academic_services.route('/customer/address/delete/<int:address_id>', methods=['GET', 'DELETE'])
