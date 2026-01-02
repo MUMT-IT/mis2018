@@ -8,7 +8,7 @@
 {% block page_content %}
     <section class="section">
         <div class="columns">
-            <div class="column is-two-fifths is-offset-4">
+            <div class="column is-half is-offset-3">
                 {% include 'messages.html' %}
                 <div class="box">
                     {% if address_id %}
@@ -16,7 +16,7 @@
                     {% else %}
                         <h1 class="title has-text-centered">สร้างที่อยู่</h1>
                     {% endif %}
-                    <form method="post">
+                    <form id="form" method="post">
                         {{ form.hidden_tag() }}
                         <div class="field">
                             <label class="label" id="name-label">
@@ -70,12 +70,13 @@
                                     {{ form.province.label }}
                                     <span class="has-text-danger">*</span>
                                 </label>
-                                <div class="control">
-                                    {{ form.province(class='js-example-basic-single',
-                                        **{"hx-post": url_for('service_admin.get_districts'),
-                                           "hx-swap": "innerHTML",
-                                           "hx-trigger": "change, load",
-                                           "hx-target": "#districts"
+                                <div class="select">
+                                    {{ form.province(
+                                        **{'hx-include': 'closest form',
+                                            'hx-trigger': 'change',
+                                            'hx-target': '#province',
+                                            'hx-swap': 'outerHTML',
+                                            'hx-post': url_for('service_admin.get_items', use_type=true)
                                         })
                                     }}
                                 </div>
@@ -85,12 +86,12 @@
                                     {{ form.district.label }}
                                     <span class="has-text-danger">*</span>
                                 </label>
-                                <div class="control" id="districts">
-                                    {{ form.district(class='js-example-basic-single',
-                                        **{"hx-post": url_for('service_admin.get_subdistricts', subdistrict_id=address.subdistrict_id),
-                                            "hx-swap": "innerHTML",
-                                            "hx-trigger": "change, load",
-                                            "hx-target": "#subdistricts"
+                                <div class="select">
+                                    {{ form.district(
+                                        **{'hx-trigger': 'change',
+                                            'hx-target': '#province',
+                                            'hx-swap': 'outerHTML',
+                                            'hx-post': url_for('service_admin.get_items', use_type=true)
                                         })
                                     }}
                                 </div>
@@ -100,12 +101,12 @@
                                     {{ form.subdistrict.label }}
                                     <span class="has-text-danger">*</span>
                                 </label>
-                                <div class="control" id="subdistricts">
-                                    {{ form.subdistrict(class='js-example-basic-single',
-                                        **{"hx-post": url_for('service_admin.get_zipcode'),
-                                            "hx-swap": "innerHTML",
-                                            "hx-trigger": "change, load",
-                                            "hx-target": "#zipcode"
+                                <div class="select">
+                                    {{ form.subdistrict(
+                                        **{'hx-trigger': 'change',
+                                            'hx-target': '#province',
+                                            'hx-swap': 'outerHTML',
+                                            'hx-post': url_for('service_admin.get_items', use_type=true)
                                         })
                                     }}
                                 </div>
@@ -117,7 +118,13 @@
                                 <span class="has-text-danger">*</span>
                             </label>
                             <div class="control" id="zipcode">
-                                {{ form.zipcode(class='input') }}
+                                {{ form.zipcode(class='input',
+                                    **{'hx-trigger': 'change',
+                                        'hx-target': '#province',
+                                        'hx-swap': 'outerHTML',
+                                        'hx-post': url_for('service_admin.get_items', use_type=true)
+                                        })
+                                }}
                             </div>
                         </div>
                         <div class="field">
@@ -159,20 +166,13 @@
     {{ super() }}
     <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
-        function initSelect2() {
-            $('.js-example-basic-single').select2({ width: '100%' })
-                .on('select2:select', function () {
-                    this.dispatchEvent(new Event('change', { bubbles: true }));
-                });
-            }
-
         $(document).ready(() => {
-            initSelect2();
-            document.body.addEventListener('htmx:afterSwap', (evt) => {
-                initSelect2();
+            $('.js-example-basic-single').select2({
+                width: '100%',
             });
         });
-
+    </script>
+    <script>
         function updateNameLabel() {
             const addressType = document.querySelector('[name="address_type"]:checked');
             const nameLabel = document.getElementById("name-label");
