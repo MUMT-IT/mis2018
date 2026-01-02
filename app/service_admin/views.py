@@ -2808,9 +2808,21 @@ def edit_customer_address(customer_id=None, address_id=None):
         form = ServiceCustomerAddressForm(obj=address)
     else:
         form = ServiceCustomerAddressForm()
+
     address_type = address.address_type if address_id else None
-    if not form.taxpayer_identification_no.data:
+
+    if form.province.data:
+        form.district.query = form.province.data.districts
+    if form.district.data:
+        form.subdistrict.query = form.district.data.subdistricts
+    else:
+        province = Province.query.first()
+        form.district.query = province.districts
+        form.subdistrict.query = province.districts[0].subdistricts if province.districts else ''
+
+    if not form.taxpayer_identification_no.data and (type == 'quotation' or address.address_type == 'quotation'):
         form.taxpayer_identification_no.data = customer.taxpayer_identification_no
+
     if form.validate_on_submit():
         if address_id is None:
             address = ServiceCustomerAddress()
@@ -4139,104 +4151,6 @@ def lab_index(customer_id):
                            admin=admin)
 
 
-@service_admin.route('/api/items', methods=['POST'])
-def get_items():
-    trigger = request.headers.get('hx-trigger')
-    use_type = request.args.get('use_type', type=bool)
-    ServiceCustomerAddressForm = crate_address_form(use_type=use_type)
-    form = ServiceCustomerAddressForm()
-
-    form.province.choices = [(p.id, p.name) for p in Province.query.order_by(Province.name).all()]
-
-    districts = (
-        District.query
-        .filter_by(province_id=form.province.data.id)
-        .order_by(District.name)
-        .all()
-    )
-
-    print('d', [(d.id, d.name) for d in districts])
-    if trigger == 'province':
-        form.district.choices = [(d.id, d.name) for d in districts]
-        print('f', form.district.choices)
-        district, _ = form.district.choices[0]
-        print('d', district)
-        subdistricts = Subdistrict.query.filter_by(district_id=district).order_by(Subdistrict.name).all()
-        form.subdistrict.choices = [(s.id, s.name) for s in subdistricts]
-    elif trigger == 'district' or trigger == 'subdistrict':
-        subdistricts = Subdistrict.query.filter_by(district_id=form.district.data.id).order_by(Subdistrict.name).all()
-        form.subdistrict.choices = (
-            [(s.id, s.name) for s in subdistricts]
-            if subdistricts else []
-        )
-
-    template = f'''
-        {form.province(**{'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items')})}
-        {form.district(**{'hx-swap-oob': 'true', 'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items')})}
-        {form.subdistrict(**{'hx-swap-oob': 'true', 'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items')})}
-        '''
-    return template
-
-
-
-# @service_admin.post('/api/districts')
-# @login_required
-# def get_districts():
-#     province_id = request.form.get('province', type=int)
-#     district_id = request.args.get('district_id', type=int)
-#     districts = District.query.filter_by(province_id=province_id).order_by(District.name).all()
-#     url = url_for('service_admin.get_subdistricts', district_id=district_id)
-#     options = f'''
-#                 <select id="district" name="district" class="js-example-basic-single" hx-headers='{{"X-CSRF-Token": "{generate_csrf()}"}}'
-#                     hx-post="{url}"  hx-swap="innerHTML" hx-trigger="change, load" hx-target="#subdistricts">
-#                     <option value="">กรุณาเลือกเขต/อำเภอ</option>
-#                 '''
-#
-#     for d in districts:
-#         selected = 'selected' if district_id == d.id else ''
-#         options += f'''
-#             <option {selected} value="{d.id}">{d.name}</option>
-#             '''
-#
-#     options += '</select>'
-#     return options
-#
-#
-# @service_admin.post('/api/subdistricts')
-# @login_required
-# def get_subdistricts():
-#     district_id = request.form.get('district', type=int) or request.args.get('district_id', type=int)
-#     subdistrict_id = request.args.get('subdistrict_id', type=int)
-#     subdistricts = Subdistrict.query.filter_by(district_id=district_id).order_by(Subdistrict.name).all()
-#     url = url_for('service_admin.get_zipcode', subdistrict_id=subdistrict_id)
-#     options = f'''
-#                 <select id="subdistrict" name="subdistrict" class="js-example-basic-single" hx-headers='{{"X-CSRF-Token": "{generate_csrf()}"}}'
-#                     hx-post="{url}" hx-swap="innerHTML" hx-trigger="change, load" hx-target="#zipcode">
-#                     <option value="">กรุณาเลือกแขวง/ตำบล</option>
-#                 '''
-#
-#     for s in subdistricts:
-#         selected = 'selected' if subdistrict_id == s.id else ''
-#         options += f'''
-#             <option {selected} value="{s.id}">{s.name}</option>
-#             '''
-#
-#     options += '</select>'
-#     return options
-#
-#
-# @service_admin.post('/api/zipcode')
-# @login_required
-# def get_zipcode():
-#     subdistrict_id = request.form.get('subdistrict', type=int) or request.args.get('subdistrict_id', type=int)
-#     subdistrict = Subdistrict.query.filter_by(id=subdistrict_id).first()
-#     if subdistrict:
-#         input = f'''<input id="zipcode" name="zipcode" class="input" value="{subdistrict.zip_code.zip_code}" required>'''
-#     else:
-#         input = f'''<input id="zipcode" name="zipcode" class="input" value="">'''
-#     return input
-
-
 @service_admin.route('/customer/address/add/<int:customer_id>', methods=['GET', 'POST'])
 @service_admin.route('/customer/address/edit/<int:customer_id>/<int:address_id>', methods=['GET', 'POST'])
 def create_customer_address(customer_id=None, address_id=None):
@@ -4250,6 +4164,15 @@ def create_customer_address(customer_id=None, address_id=None):
         ServiceCustomerAddressForm = crate_address_form(use_type=True)
         form = ServiceCustomerAddressForm()
         address = None
+
+    if form.province.data:
+        form.district.query = form.province.data.districts
+    if form.district.data:
+        form.subdistrict.query = form.district.data.subdistricts
+    else:
+        province = Province.query.first()
+        form.district.query = province.districts
+        form.subdistrict.query = province.districts[0].subdistricts if province.districts else ''
 
     if not form.taxpayer_identification_no.data:
         form.taxpayer_identification_no.data = customer.taxpayer_identification_no
@@ -4276,6 +4199,32 @@ def create_customer_address(customer_id=None, address_id=None):
             flash(f'{field}: {error}', 'danger')
     return render_template('service_admin/create_customer_address.html', form=form, customer_id=customer_id,
                            address_id=address_id, address=address)
+
+
+@service_admin.route('/api/items', methods=['POST'])
+def get_items():
+    trigger = request.headers.get('hx-trigger')
+    use_type = request.args.get('use_type', type=bool)
+    ServiceCustomerAddressForm = crate_address_form(use_type=use_type)
+    form = ServiceCustomerAddressForm()
+
+    if trigger == 'province':
+        form.district.query = form.province.data.districts
+        district = form.province.data.districts[0] if form.province.data.districts else ''
+        form.subdistrict.query = district.subdistricts if district else ''
+    elif trigger == 'district' or trigger == 'subdistrict':
+        form.district.query = form.province.data.districts
+        form.subdistrict.query = form.district.data.subdistricts
+        if trigger == 'subdistrict':
+            form.zipcode.data = form.subdistrict.data.zip_code
+
+    template = f'''
+        {form.province(**{'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items', use_type=use_type)})}
+        {form.district(**{'hx-swap-oob': 'true', 'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items', use_type=use_type)})}
+        {form.subdistrict(**{'hx-swap-oob': 'true', 'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items', use_type=use_type)})}
+        {form.zipcode(class_='input', **{'hx-swap-oob': 'true', 'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items', use_type=use_type)})}
+        '''
+    return template
 
 
 @service_admin.route('/customer/adress/delete/<int:address_id>', methods=['GET', 'DELETE'])
