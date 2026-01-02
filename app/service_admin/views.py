@@ -702,20 +702,30 @@ def menu():
             ServiceAdmin.admin_id == current_user.id
         )
         ).count()
-        test_item_count = (ServiceRequest.query
-        .join(ServiceRequest.status)
+        test_item_count = (ServiceTestItem.query
+        .join(ServiceTestItem.request)
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
+        .outerjoin(ServiceResult)
         .filter(
-            ServiceStatus.status_id.in_([10, 11, 12, 13, 14, 15]),
-            ServiceAdmin.admin_id == current_user.id
-        )).count()
+            ServiceAdmin.admin_id == current_user.id, or_(ServiceResult.request_id == None,
+                                                          ServiceResult.approved_at == None)
+        )
+        ).count()
         invoice_count = (ServiceRequest.query
         .join(ServiceRequest.status)
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
         .filter(
-            ServiceStatus.status_id.in_([16, 17, 18, 19, 20, 21]),
+            ServiceStatus.status_id.in_([16, 17, 18, 19, 20]),
+            ServiceAdmin.admin_id == current_user.id
+        )).count()
+        invoice_count_for_central_admin = (ServiceRequest.query
+        .join(ServiceRequest.status)
+        .join(ServiceRequest.sub_lab)
+        .join(ServiceSubLab.admins)
+        .filter(
+            ServiceStatus.status_id.in_([19, 20]),
             ServiceAdmin.admin_id == current_user.id
         )).count()
         report_count = (
@@ -730,7 +740,8 @@ def menu():
         ).count()
     return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin, position=position,
                 request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
-                test_item_count=test_item_count, invoice_count=invoice_count, report_count=report_count)
+                test_item_count=test_item_count, invoice_count=invoice_count, report_count=report_count,
+                invoice_count_for_central_admin=invoice_count_for_central_admin)
 
 
 @service_admin.route('/customer/view')
@@ -818,12 +829,12 @@ def request_index():
             'color': 'is-info',
             'icon': '<i class="fas fa-vial"></i>'
         },
-        'waiting_report': {
-            'id': [11, 12, 14, 15],
-            'name': 'รอออกใบรายงานผล',
-            'color': 'is-info',
-            'icon': '<i class="fas fa-file-alt"></i>'
-        },
+        # 'waiting_report': {
+        #     'id': [11, 12, 14, 15],
+        #     'name': 'รอออกใบรายงานผล',
+        #     'color': 'is-info',
+        #     'icon': '<i class="fas fa-file-alt"></i>'
+        # },
         'create_invoice': {
             'id': [13, 16, 17, 18, 19],
             'name': 'รอออก/ยืนยันใบแจ้งหนี้',
@@ -2797,9 +2808,21 @@ def edit_customer_address(customer_id=None, address_id=None):
         form = ServiceCustomerAddressForm(obj=address)
     else:
         form = ServiceCustomerAddressForm()
+
     address_type = address.address_type if address_id else None
-    if not form.taxpayer_identification_no.data:
+
+    if form.province.data:
+        form.district.query = form.province.data.districts
+    if form.district.data:
+        form.subdistrict.query = form.district.data.subdistricts
+    else:
+        province = Province.query.first()
+        form.district.query = province.districts
+        form.subdistrict.query = province.districts[0].subdistricts if province.districts else ''
+
+    if not form.taxpayer_identification_no.data and (type == 'quotation' or address.address_type == 'quotation'):
         form.taxpayer_identification_no.data = customer.taxpayer_identification_no
+
     if form.validate_on_submit():
         if address_id is None:
             address = ServiceCustomerAddress()
@@ -3011,18 +3034,40 @@ def test_item_index():
         ServiceTestItem.query
         .join(ServiceTestItem.request)
         .join(ServiceRequest.sub_lab)
-        .join(ServiceRequest.status)
         .join(ServiceSubLab.admins)
         .filter(
             ServiceAdmin.admin_id == current_user.id
         )
     )
-    not_started_query = query.filter(ServiceStatus.status_id == 10)
-    testing_query = query.filter(or_(ServiceStatus.status_id == 11, ServiceStatus.status_id == 12,
-                                     ServiceStatus.status_id == 15))
-    edit_report_query = query.filter(ServiceStatus.status_id == 14)
-    pending_invoice_query = query.filter(ServiceStatus.status_id == 13)
-    invoice_query = query.filter(ServiceStatus.status_id >= 16)
+    not_started_query = query.outerjoin(ServiceResult).filter(ServiceResult.request_id == None)
+    testing_query = query.join(ServiceResult).filter(ServiceResult.sent_at == None)
+    edit_report_query = query.join(ServiceResult).filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False)
+    waiting_confirm_query = query.join(ServiceResult).filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
+                                 or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
+                                     )
+                                 )
+    confirm_query = query.join(ServiceResult).filter(ServiceResult.approved_at != None)
+    # pending_invoice_query = (
+    #     query
+    #     .join(
+    #         ServiceQuotation,
+    #         ServiceQuotation.request_id == ServiceRequest.id
+    #     )
+    #     .outerjoin(
+    #         ServiceInvoice,
+    #         ServiceInvoice.quotation_id == ServiceQuotation.id
+    #     )
+    #     .filter(ServiceInvoice.id == None)
+    # )
+    # invoice_query = (query.join(
+    #         ServiceQuotation,
+    #         ServiceQuotation.request_id == ServiceRequest.id
+    #     ).outerjoin(
+    #         ServiceInvoice,
+    #         ServiceInvoice.quotation_id == ServiceQuotation.id
+    #     )
+    #     .filter(ServiceInvoice.id != None)
+    # )
 
     if api == 'true':
         if tab == 'not_started':
@@ -3031,10 +3076,14 @@ def test_item_index():
             query = testing_query
         elif tab == 'edit_report':
             query = edit_report_query
-        elif tab == 'pending_invoice':
-            query = pending_invoice_query
-        elif tab == 'invoice':
-            query = invoice_query
+        elif tab == 'waiting_confirm':
+            query = waiting_confirm_query
+        elif tab == 'confirm':
+            query = confirm_query
+        # elif tab == 'pending_invoice':
+        #     query = pending_invoice_query
+        # elif tab == 'invoice':
+        #     query = invoice_query
 
         records_total = query.count()
         search = request.args.get('search[value]')
@@ -3107,7 +3156,9 @@ def test_item_index():
     return render_template('service_admin/test_item_index.html', menu=menu, tab=tab,
                            not_started_count=not_started_query.count(),
                            testing_count=testing_query.count(), edit_report_count=edit_report_query.count(),
-                           pending_invoice_count=pending_invoice_query.count())
+                           waiting_confirm_query=waiting_confirm_query.count()
+                           # pending_invoice_count=pending_invoice_query.count()
+        )
 
 
 # @service_admin.route('/api/test-item/index')
@@ -4112,7 +4163,17 @@ def create_customer_address(customer_id=None, address_id=None):
     else:
         ServiceCustomerAddressForm = crate_address_form(use_type=True)
         form = ServiceCustomerAddressForm()
-        address = ServiceCustomerAddress.query.all()
+        address = None
+
+    if form.province.data:
+        form.district.query = form.province.data.districts
+    if form.district.data:
+        form.subdistrict.query = form.district.data.subdistricts
+    else:
+        province = Province.query.first()
+        form.district.query = province.districts
+        form.subdistrict.query = province.districts[0].subdistricts if province.districts else ''
+
     if not form.taxpayer_identification_no.data:
         form.taxpayer_identification_no.data = customer.taxpayer_identification_no
     if form.validate_on_submit():
@@ -4133,8 +4194,37 @@ def create_customer_address(customer_id=None, address_id=None):
             return redirect(url_for('service_admin.address_index', customer_id=customer_id))
         elif form.type.data == False:
             flash('กรุณาเลือกประเภทที่อยู่', 'danger')
+    else:
+        for field, error in form.errors.items():
+            flash(f'{field}: {error}', 'danger')
     return render_template('service_admin/create_customer_address.html', form=form, customer_id=customer_id,
-                           address_id=address_id)
+                           address_id=address_id, address=address)
+
+
+@service_admin.route('/api/items', methods=['POST'])
+def get_items():
+    trigger = request.headers.get('hx-trigger')
+    use_type = request.args.get('use_type', type=bool)
+    ServiceCustomerAddressForm = crate_address_form(use_type=use_type)
+    form = ServiceCustomerAddressForm()
+
+    if trigger == 'province':
+        form.district.query = form.province.data.districts
+        district = form.province.data.districts[0] if form.province.data.districts else ''
+        form.subdistrict.query = district.subdistricts if district else ''
+    elif trigger == 'district' or trigger == 'subdistrict':
+        form.district.query = form.province.data.districts
+        form.subdistrict.query = form.district.data.subdistricts
+        if trigger == 'subdistrict':
+            form.zipcode.data = form.subdistrict.data.zip_code
+
+    template = f'''
+        {form.province(**{'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items', use_type=use_type)})}
+        {form.district(**{'hx-swap-oob': 'true', 'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items', use_type=use_type)})}
+        {form.subdistrict(**{'hx-swap-oob': 'true', 'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items', use_type=use_type)})}
+        {form.zipcode(class_='input', **{'hx-swap-oob': 'true', 'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items', use_type=use_type)})}
+        '''
+    return template
 
 
 @service_admin.route('/customer/adress/delete/<int:address_id>', methods=['GET', 'DELETE'])
@@ -4238,6 +4328,10 @@ def invoice_index_for_central_admin():
         .join(ServiceSubLab.admins)
         .filter(ServiceAdmin.admin_id == current_user.id)
     )
+    draft_query = query.filter(ServiceInvoice.sent_at == None)
+    pending_supervisor_query = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at == None)
+    pending_assistant_query = query.filter(ServiceInvoice.head_approved_at != None,
+                                           ServiceInvoice.assistant_approved_at == None)
     pending_dean_query = query.filter(ServiceInvoice.assistant_approved_at != None,
                                       ServiceInvoice.file_attached_at == None)
     waiting_payment_query = query.outerjoin(ServicePayment).filter(or_(ServicePayment.invoice_id == None,
@@ -4245,7 +4339,13 @@ def invoice_index_for_central_admin():
                                                                    ServiceInvoice.file_attached_at != None)
     payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None)
     if api == 'true':
-        if tab == 'pending_dean':
+        if tab == 'draft':
+            query = draft_query
+        elif tab == 'pending_supervisor':
+            query = pending_supervisor_query
+        elif tab == 'pending_assistant':
+            query = pending_assistant_query
+        elif tab == 'pending_dean':
             query = pending_dean_query
         elif tab == 'waiting_payment':
             query = waiting_payment_query
@@ -4275,8 +4375,11 @@ def invoice_index_for_central_admin():
                         'draw': request.args.get('draw', type=int)
                         })
     return render_template('service_admin/invoice_index_for_central_admin.html', menu=menu, tab=tab,
+                           draft_count=draft_query.count(), pending_supervisor_count=pending_supervisor_query.count(),
+                           pending_assistant_count=pending_assistant_query.count(),
                            pending_dean_count=pending_dean_query.count(),
-                           waiting_payment_count=waiting_payment_query.count())
+                           waiting_payment_count=waiting_payment_query.count(),
+                           payment_count=payment_query.count())
 
 
 # @service_admin.route('/api/invoice/index')
@@ -4355,7 +4458,8 @@ def create_invoice(quotation_id):
             db.session.commit()
         db.session.commit()
         status_id = get_status(16)
-        invoice.quotation.request.status_id = status_id
+        quotation.request.status_id = status_id
+        db.session.add(quotation)
         db.session.add(invoice)
         db.session.commit()
         flash('สร้างใบแจ้งหนี้สำเร็จ', 'success')
@@ -4826,8 +4930,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
             "หรือ<u> Scan QR Code ด้านล่าง</u> หรือ <u>โปรดสั่งจ่ายเช็คในนาม มหาวิทยาลัยมหิดล</u><br/></font>",
             style=remark_style)],
         [Paragraph(
-            "<font size=12>2. จัดส่งหลักฐานการชำระเงินทาง E-mail : <u>mumtfinance@gmail.com</u> หรือ แจ้งผ่านโดยการ <u>Scan QR Code</u> "
-            "ด้านล่าง<br/></font>", style=remark_style)],
+            "<font size=12>2. จัดส่งหลักฐานการชำระเงินผ่านทาง <u>Scan QR Code</u> ด้านล่าง<br/></font>", style=remark_style)],
         [Paragraph(
             "<font size=12>3. โปรดชำระค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ <u><b>ภายใน 30 วัน</b></u> นับถัดจากวันที่ลงนามใน"
             "หนังสือแจ้งชำระค่าบริการฉบับนี้<br/></font>", style=remark_style)],
@@ -4855,6 +4958,13 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         qr_bytes = b64decode(qr_image_base64)
         qr_buffer = BytesIO(qr_bytes)
         qr_code_img = Image(qr_buffer, width=90, height=90)
+    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
+    scheme = 'http' if current_app.debug else 'https'
+    qr_payment_buffer = BytesIO()
+    qr_payment_img = qrcode.make(url_for('academic_services.add_payment', invoice_id=invoice.id, menu='invoice',
+                                 tab='pending', _external=True, _scheme=scheme))
+    qr_payment_img.save(qr_payment_buffer, format='PNG')
+    qr_code_payment = Image(qr_payment_buffer, width=95, height=95)
 
     sign_style = ParagraphStyle(
         'SignStyle',
@@ -4902,16 +5012,30 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
         ]))
 
+        qr_code_payment_text = Paragraph("QR Code<br/>แจ้งการโอนเงิน", style=style_sheet['ThaiStyleCenter'])
+        qr_code_payment_table = Table([[qr_code_payment], [qr_code_payment_text]], colWidths=[150])
+        qr_code_payment_table.hAlign = 'LEFT'
+
+        qr_code_payment_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]))
+
         combined_table = Table(
-            [[qr_code_table, sign_table]],
-            colWidths=[50, 450]
+            [[qr_code_table, qr_code_payment_table, sign_table]],
+            colWidths=[130, 130, 350]
         )
         combined_table.setStyle(TableStyle([
             ('VALIGN', (0, 0), (0, 0), 'TOP'),
             ('ALIGN', (0, 0), (0, 0), 'LEFT'),
             ('VALIGN', (1, 0), (1, 0), 'TOP'),
-            ('ALIGN', (1, 0), (1, 0), 'RIGHT')
+            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+            ('LEFTPADDING', (2, 0), (2, 0), 60),
         ]))
+
+        combined_table.hAlign = 'LEFT'
+        combined_table.leftIndent = 200
+
 
         data.append(Spacer(1, 16))
         data.append(KeepTogether(combined_table))
@@ -4924,9 +5048,10 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
     return buffer
 
 
-@service_admin.route('/invoice/pdf/<int:invoice_id>', methods=['GET'])
+@service_admin.route('/invoice/pdf/<int:invoice_id>', methods=['GET', 'POST'])
 @login_required
 def export_invoice_pdf(invoice_id):
+    is_download = request.args.get('is_download', 'false')
     invoice = ServiceInvoice.query.get(invoice_id)
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.sub_lab.code).first()
     ref1 = invoice.invoice_no
@@ -4937,6 +5062,10 @@ def export_invoice_pdf(invoice_id):
     else:
         qr_image_base64 = None
     buffer = generate_invoice_pdf(invoice, qr_image_base64=qr_image_base64)
+    if is_download == 'true' and not invoice.downloaded_at:
+        invoice.downloaded_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(invoice)
+        db.session.commit()
     return send_file(buffer, download_name='Invoice.pdf', as_attachment=True)
 
 
@@ -5827,9 +5956,7 @@ def generate_quotation_pdf(quotation, sign=False):
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-        '&nbsp;&nbsp;&nbsp;&nbsp;')
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;')
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -5880,19 +6007,25 @@ def generate_quotation_pdf(quotation, sign=False):
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
+    detail_style = ParagraphStyle(
+        'DetailStyle',
+        parent=style_sheet['ThaiStyle'],
+        leading=17
+    )
+
     issued_date = arrow.get(quotation.approved_at.astimezone(localtz)).format(fmt='DD MMMM YYYY',
                                                                               locale='th-th') if sign else ''
-    customer = '''<para><font size=12>
-                วันที่ {issued_date}<br/>
-                เรื่อง ใบเสนอราคาค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ<br/>
-                เรียน {customer}<br/>
-                ที่อยู่ {address}<br/>
-                เลขประจำตัวผู้เสียภาษี {taxpayer_identification_no}
-                </font></para>
-                '''.format(issued_date=issued_date, customer=quotation.name, address=quotation.address,
-                           taxpayer_identification_no=quotation.taxpayer_identification_no if quotation.taxpayer_identification_no else '-')
+    customer = '''<para><font size=14>
+                    วันที่ {issued_date}<br/>
+                    เรื่อง ใบเสนอราคาค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ<br/>
+                    เรียน {customer}<br/>
+                    ที่อยู่ {address}<br/>
+                    เลขประจำตัวผู้เสียภาษี {taxpayer_identification_no}
+                    </font></para>
+                    '''.format(issued_date=issued_date, customer=quotation.name, address=quotation.address,
+                               taxpayer_identification_no=quotation.taxpayer_identification_no if quotation.taxpayer_identification_no else '-')
 
-    customer_table = Table([[Paragraph(customer, style=style_sheet['ThaiStyle'])]], colWidths=[540, 280])
+    customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[540, 280])
     customer_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                                         ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
 
@@ -5970,6 +6103,35 @@ def generate_quotation_pdf(quotation, sign=False):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
     ]))
 
+    head_remark_style = ParagraphStyle(
+        'HeadRemarkStyle',
+        parent=style_sheet['ThaiStyleBold'],
+        fontSize=10,
+        leading=13
+    )
+
+    remark_style = ParagraphStyle(
+        'ThaiStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=8,
+        leading=13
+    )
+    remark_table = Table([
+        [Paragraph("<font size=14>หมายเหตุ/Remark<br/></font>", style=head_remark_style)],
+        [Paragraph("<font size=12>ยืนยันราคาตามใบเสนอราคา ภายใน 90 วัน<br/></font>", style=remark_style)]
+    ],
+        colWidths=[500]
+    )
+    remark_table.hAlign = 'LEFT'
+    remark_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 1), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 1), (-1, 1), 0),
+    ]))
+
     sign_style = ParagraphStyle(
         'SignStyle',
         parent=style_sheet['ThaiStyleCenter'],
@@ -6013,9 +6175,9 @@ def generate_quotation_pdf(quotation, sign=False):
     data.append(KeepTogether(customer_table))
     data.append(KeepTogether(Spacer(1, 16)))
     data.append(KeepTogether(item_table))
-    data.append(KeepTogether(Spacer(1, 15)))
-    # data.append(KeepTogether(document_address_table))
-    # data.append(KeepTogether(Spacer(1, 5)))
+    data.append(KeepTogether(Spacer(1, 16)))
+    data.append(KeepTogether(remark_table))
+    data.append(KeepTogether(Spacer(1, 16)))
     data.append(KeepTogether(sign_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
@@ -6095,10 +6257,10 @@ def create_draft_result(result_id=None):
         upload_all = all(item.draft_file for item in result.result_items)
         if action == 'send':
             if upload_all:
-                status_id = get_status(12)
+                # status_id = get_status(12)
                 result.is_edited = False
                 # result.status_id = status_id
-                result.request.status_id = status_id
+                # result.request.status_id = status_id
                 result.sent_at = arrow.now('Asia/Bangkok').datetime
                 result.sender_id = current_user.id
                 scheme = 'http' if current_app.debug else 'https'
@@ -6122,18 +6284,16 @@ def create_draft_result(result_id=None):
                     send_mail([contact_email], title, message)
                     result.is_sent_email = True
                 db.session.add(result)
-                # db.session.add(service_request)
                 db.session.commit()
                 flash("ส่งข้อมูลเรียบร้อยแล้ว", "success")
                 return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='testing'))
             else:
                 flash("กรุณาแนบไฟล์ให้ครบถ้วน", "danger")
         else:
-            status_id = get_status(11)
-            # result.status_id = status_id
-            service_request.status_id = status_id
+            # status_id = get_status(11)
+            # service_request.status_id = status_id
             db.session.add(result)
-            db.session.add(service_request)
+            # db.session.add(service_request)
             db.session.commit()
             flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
             return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='testing'))
@@ -6228,9 +6388,9 @@ def edit_draft_result(result_item_id):
             db.session.commit()
         edited_all = all(item.edited_at for item in result_item.result.result_items if item.req_edit_at)
         if edited_all:
-            status_id = get_status(12)
+            # status_id = get_status(12)
             # result_item.result.status_id = status_id
-            result_item.result.request.status_id = status_id
+            # result_item.result.request.status_id = status_id
             result_item.result.is_edited = True
             db.session.add(result_item)
             db.session.commit()
@@ -6262,11 +6422,9 @@ def edit_draft_result(result_item_id):
 
 @service_admin.route('/result/draft/delete/<int:item_id>', methods=['GET', 'POST'])
 def delete_draft_result(item_id):
-    # status_id = get_status(11)
     item = ServiceResultItem.query.get(item_id)
     item.draft_file = None
     item.modified_at = arrow.now('Asia/Bangkok').datetime
-    # item.result.status_id = status_id
     item.result.modified_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(item)
     db.session.commit()
@@ -6347,7 +6505,6 @@ def create_final_result(result_id=None):
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
             send_mail([contact_email], title, message)
         db.session.add(result)
-        db.session.add(service_request)
         db.session.commit()
         flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
         return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='all'))

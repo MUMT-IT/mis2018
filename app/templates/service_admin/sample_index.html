@@ -62,7 +62,7 @@
                         <thead>
                         <th>เลขใบคำร้องขอ</th>
                         <th>หมายเลขติดตามพัสดุ</th>
-                        <th>วัน-เวลาที่นัดหมาย</th>
+                        <th>วันที่นัดหมาย</th>
                         <th>วัน-เวลาที่รับ</th>
                         <th>สถานที่</th>
                         <th>การส่งตัวอย่าง</th>
@@ -135,10 +135,11 @@
                     },
                     {
                         data: 'appointment_date',
-                        render: function (data) {
+                        render: function (data, type,row) {
                             if (data !== null) {
                                 let d = moment(data)
-                                return d.format('ll')
+                                var appintment_detail = `${d.format('ll')} <br>${row.appointment_time_slot}`
+                                return appintment_detail
                             } else {
                                 return ''
                             }

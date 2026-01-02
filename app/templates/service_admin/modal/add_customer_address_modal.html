@@ -14,11 +14,11 @@
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
-            <form {% if address_id %}
-                        hx-post="{{ url_for('service_admin.edit_customer_address', address_id=address_id) }}"
-                  {% else %}
-                        hx-post="{{ url_for('service_admin.edit_customer_address', type=type, customer_id=customer_id) }}"
-                  {% endif %}
+            <form id="form" {% if address_id %}
+                  hx-post="{{ url_for('service_admin.edit_customer_address', address_id=address_id) }}"
+            {% else %}
+                  hx-post="{{ url_for('service_admin.edit_customer_address', type=type, customer_id=customer_id) }}"
+            {% endif %}
                   hx-indicator="#submit-form"
             >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
@@ -71,8 +71,15 @@
                             {{ form.province.label }}
                             <span class="has-text-danger">*</span>
                         </label>
-                        <div class="control">
-                            {{ form.province(class='js-example-basic-single', onchange="updateDistricts()") }}
+                        <div class="select">
+                            {{ form.province(
+                                **{'hx-include': 'closest form',
+                                   'hx-trigger': 'change',
+                                   'hx-target': '#province',
+                                   'hx-swap': 'outerHTML',
+                                   'hx-post': url_for('service_admin.get_items', use_type=false)
+                                })
+                            }}
                         </div>
                     </div>
                     <div class="field">
@@ -80,8 +87,14 @@
                             {{ form.district.label }}
                             <span class="has-text-danger">*</span>
                         </label>
-                        <div class="control">
-                            {{ form.district(class='js-example-basic-single', onchange="updateSubdistricts()") }}
+                        <div class="select">
+                            {{ form.district(
+                                **{'hx-trigger': 'change',
+                                   'hx-target': '#province',
+                                   'hx-swap': 'outerHTML',
+                                   'hx-post': url_for('service_admin.get_items', use_type=false)
+                                })
+                            }}
                         </div>
                     </div>
                     <div class="field">
@@ -89,8 +102,14 @@
                             {{ form.subdistrict.label }}
                             <span class="has-text-danger">*</span>
                         </label>
-                        <div class="control">
-                            {{ form.subdistrict(class='js-example-basic-single', onchange="updateZipcode()") }}
+                        <div class="select">
+                            {{ form.subdistrict(
+                               **{'hx-trigger': 'change',
+                                  'hx-target': '#province',
+                                  'hx-swap': 'outerHTML',
+                                  'hx-post': url_for('service_admin.get_items', use_type=false)
+                               })
+                            }}
                         </div>
                     </div>
                 </div>
@@ -99,8 +118,14 @@
                         รหัสไปรษณีย์
                         <span class="has-text-danger">*</span>
                     </label>
-                    <div class="control">
-                        {{ form.zipcode(class='input') }}
+                    <div class="control" id="zipcode">
+                        {{ form.zipcode(class='input',
+                            **{'hx-trigger': 'change',
+                               'hx-target': '#province',
+                               'hx-swap': 'outerHTML',
+                               'hx-post': url_for('service_admin.get_items', use_type=false)
+                            })
+                        }}
                     </div>
                 </div>
                 <div class="field">
@@ -145,7 +170,7 @@
         htmx.removeClass(htmx.find('#address-modal'), "is-active", 500)
     })
 
-    $(document).ready(()=> {
+    $(document).ready(() => {
         $('.js-example-basic-single').select2({
             width: '100%'
         });

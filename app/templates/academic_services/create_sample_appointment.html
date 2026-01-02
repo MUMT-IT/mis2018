@@ -241,13 +241,26 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="field" id="appointment-date-field" style="display: none;">
-                                <label class="label">
-                                    {{ form.appointment_date.label }}
-                                    <span class="has-text-danger">*</span>
-                                </label>
-                                <div class="control">
-                                    {{ form.appointment_date(class='input', type='text') }}
+                            <div class="field is-horizontal" id="appointment-field" style="display: none;">
+                                <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.appointment_date.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.appointment_date(class='input', type='text') }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.appointment_time_slot.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="select">
+                                            {{ form.appointment_time_slot() }}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="field" id="address-field">
@@ -360,8 +373,9 @@
 
             function showInput() {
                 const shipTypeCheck = document.querySelector('input[name="ship_type"]:checked');
-                const appointmentDateField = document.getElementById("appointment-date-field");
+                const appointmentField = document.getElementById("appointment-field");
                 const appointmentDateInput = document.getElementById('appointment_date');
+                const appointmentTimeSlotSelect = document.getElementById('appointment_time_slot');
                 const addressField = document.getElementById('address-field');
                 const locationField = document.getElementById("location-field");
                 if (!shipTypeCheck) {
@@ -372,12 +386,13 @@
                 const shipType = shipTypeCheck.value;
 
                 if (shipType.includes("ส่งด้วยตนเอง")) {
-                    appointmentDateField.style.display = "block";
+                    appointmentField.style.display = "block";
                     appointmentDateInput.required = true;
+                    appointmentTimeSlotSelect.required = true;
                     locationField.style.display = "block";
                     addressField.style.display = 'none';
                 } else {
-                    appointmentDateField.style.display = "none";
+                    appointmentField.style.display = "none";
                     locationField.style.display = "none";
                     addressField.style.display = 'block';
                 }
