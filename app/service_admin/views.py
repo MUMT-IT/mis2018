@@ -4636,9 +4636,10 @@ def approve_invoice(invoice_id):
                            '\n{}' \
                            '\nเบอร์โทร {}' \
                            '\nระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.invoice_no,
+                                                           invoice.customer_name, invoice.name,
                                                            invoice.quotation.request.request_no,
-                                                           invoice.quotation.quotation_no, invoice.customer_name,
-                                                           invoice.name, invoice_url, invoice.customer_name,
+                                                           invoice.quotation.quotation_no,
+                                                           invoice_url, invoice.customer_name,
                                                            invoice.contact_phone_number))
                     for a in admins:
                         if a.is_supervisor:
