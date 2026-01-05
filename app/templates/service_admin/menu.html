@@ -10,8 +10,8 @@
                         menu='invoice', tab='all') }}">
                         <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>
                         <span>ใบแจ้งหนี้</span>
-                        {% if invoice_count > 0 %}
-                            <span class="tag is-danger is-rounded is-size-7 mt-1">{{ invoice_count }}</span>
+                        {% if invoice_count_for_central_admin > 0 %}
+                            <span class="tag is-danger is-rounded is-size-7 mt-1">{{ invoice_count_for_central_admin }}</span>
                         {% endif %}
                     </a>
                 </li>
