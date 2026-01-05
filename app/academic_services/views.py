@@ -3668,7 +3668,7 @@ def request_quotation(request_id):
         message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n\n'''
         message += f'''ระบบงานบริการวิชาการ'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if
-                   not a.is_supervisor or not a.is_central_admin or not a.is_assistant],
+                   not a.is_supervisor and not a.is_central_admin and not a.is_assistant],
                   title, message)
         msg = ('แจ้งขอใบเสนอราคา' \
                '\n\nเรียน เจ้าหน้าที่{}'
@@ -3689,7 +3689,7 @@ def request_quotation(request_id):
                )
         if not current_app.debug:
             for a in admins:
-                if not a.is_supervisor or not a.is_central_admin or not a.is_assistant:
+                if not a.is_supervisor and not a.is_central_admin and not a.is_assistant:
                     try:
                         line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                     except LineBotApiError:
@@ -4085,7 +4085,7 @@ def confirm_quotation(quotation_id):
         message += f'''{quotation.customer_name}\n'''
         message += f'''เบอร์โทร {quotation.request.customer.contact_phone_number}\n'''
         message += f'''ระบบบริการวิชาการ'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin or not a.is_assistant],
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
                   title, message)
     return redirect(url_for('academic_services.confirm_quotation_page', menu=menu, sample_id=sample.id))
 
@@ -4135,7 +4135,7 @@ def reject_quotation(quotation_id):
             message += f'''เบอร์โทร {quotation.request.customer.contact_phone_number}\n'''
             message += f'''ระบบบริการวิชาการ'''
             send_mail(
-                [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin or not a.is_assistant],
+                [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
                 title, message)
         resp = make_response()
         resp.headers['HX-Redirect'] = url_for('academic_services.quotation_index', menu=menu)
@@ -5321,7 +5321,7 @@ def confirm_result_item(result_item_id):
             message += f'''เบอร์โทร {result_item.result.request.customer.contact_phone_number}\n\n'''
             message += f'''ระบบงานบริการวิชาการ'''
             send_mail(
-                [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin or not a.is_assistant],
+                [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
                 title, message)
             msg = ('แจ้งยืนยันใบรายงานผลการทดสอบ' \
                    '\n\nเรียน เจ้าหน้าที่{}'
@@ -5343,7 +5343,7 @@ def confirm_result_item(result_item_id):
                    )
             if not current_app.debug:
                 for a in admins:
-                    if not a.is_central_admin or not a.is_assistant:
+                    if not a.is_central_admin and not a.is_assistant:
                         try:
                             line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                         except LineBotApiError:
@@ -5398,7 +5398,7 @@ def edit_result_item(result_item_id):
             message += f'''เบอร์โทร {result_item.result.request.customer.contact_phone_number}\n\n'''
             message += f'''ระบบงานบริการวิชาการ'''
             send_mail(
-                [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin or not a.is_assistant],
+                [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
                 title, message)
             msg = ('แจ้งขอแก้ไขใบรายงานผลการทดสอบ' \
                    '\n\nเรียน เจ้าหน้าที่{}'
@@ -5420,7 +5420,7 @@ def edit_result_item(result_item_id):
                    )
             if not current_app.debug:
                 for a in admins:
-                    if not a.is_central_admin or not a.is_assistant:
+                    if not a.is_central_admin and not a.is_assistant:
                         try:
                             line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                         except LineBotApiError:
