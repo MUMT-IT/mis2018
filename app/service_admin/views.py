@@ -5416,6 +5416,7 @@ def quotation_index():
 
 
 @service_admin.route('/quotation/generate')
+@login_required
 def generate_quotation():
     code = request.args.get('code')
     menu = request.args.get('menu')
