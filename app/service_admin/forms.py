@@ -3,6 +3,7 @@ from wtforms import FileField, FieldList, FormField, RadioField, widgets, Passwo
     HiddenField, TextAreaField, SelectField, SelectMultipleField
 from wtforms.validators import DataRequired, Optional
 from wtforms_alchemy import model_form_factory, QuerySelectField
+from wtforms_components import EmailField
 from app.academic_services.models import *
 from flask_login import current_user
 from sqlalchemy import or_
@@ -26,7 +27,7 @@ class ServiceCustomerContactForm(ModelForm):
 
     contact_name = StringField('ชื่อผู้ประสานงาน', validators=[DataRequired()])
     phone_number = StringField('เบอร์โทรศัพท์', validators=[DataRequired()])
-    email = StringField('อีเมล', validators=[DataRequired()])
+    email = EmailField('อีเมล', validators=[DataRequired()])
 
 
 class ServiceCustomerInfoForm(ModelForm):
@@ -39,6 +40,7 @@ class ServiceCustomerInfoForm(ModelForm):
     cus_name = StringField(validators=[DataRequired()])
     taxpayer_identification_no = StringField('เลขประจำตัวผู้เสียภาษีอากร', validators=[DataRequired()])
     phone_number = StringField('เบอร์โทรศัพท์', validators=[DataRequired()])
+    email = EmailField('อีเมล', validators=[DataRequired()])
     customer_contacts = FieldList(FormField(ServiceCustomerContactForm, default=ServiceCustomerContact), min_entries=1)
 
 
