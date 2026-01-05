@@ -67,10 +67,13 @@ class ServiceCustomerAddressForm(ModelForm):
                                 allow_blank=True,
                                 blank_text='กรุณาเลือกจังหวัด', get_label='name',
                                 validators=[DataRequired(message='กรุณาเลือกจังหวัด')])
-    district = QuerySelectField('เขต/อำเภอ', query_factory=lambda: [], allow_blank=True,
+    district = QuerySelectField('เขต/อำเภอ', query_factory=lambda: District.query.order_by(District.name),
+                                allow_blank=True,
                                 blank_text='กรุณาเลือกเขต/อำเภอ', get_label='name',
                                 validators=[DataRequired(message='กรุณาเลือกเขต/อำเภอ')])
-    subdistrict = QuerySelectField('แขวง/ตำบล', query_factory=lambda: [], allow_blank=True,
+    subdistrict = QuerySelectField('แขวง/ตำบล',
+                                   query_factory=lambda: Subdistrict.query.order_by(Subdistrict.name),
+                                   allow_blank=True,
                                    blank_text='กรุณาเลือกแขวง/ตำบล', get_label='name',
                                    validators=[DataRequired(message='กรุณาเลือกแขวง/ตำบล')])
     zipcode = StringField('รหัสไปรษณีย์', validators=[DataRequired()])
@@ -438,7 +441,7 @@ class VirusLiquidConditionForm(FlaskForm):
                                default='ผลิตภัณฑ์ฆ่าเชื้อ ชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้',
                                render_kw={'class': 'input is-danger'})
     liquid_test_method = CheckboxField('วิธีทดสอบ',
-                                       choices=[(c, c) for c in ['วิธีทดสอบ ASTM E1052-20 (Virus suspension test',
+                                       choices=[(c, c) for c in ['วิธีทดสอบ ASTM E1052-20 (Virus suspension test)',
                                                                  'วิธีทดสอบ ASTM E1053-20 (Nonporous environmental surfaces)',
                                                                  'วิธีทดสอบ Modified ASTM E1053-20']],
                                        validators=[Optional()])

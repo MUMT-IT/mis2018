@@ -116,7 +116,7 @@
                     {
                         data: 'sent_at',
                         render: function (data) {
-                            if (data !== '') {
+                            if (data !== null) {
                                 let d = moment(data)
                                 return d.format('lll')
                             } else {
@@ -151,7 +151,8 @@
                         render: function (data, type, row) {
                             var menu ='{{ menu }}'
                             var tab = '{{ tab }}';
-                            if (row.status_id == 13 || row.status_id >= 16) {
+                            console.log('t', row.is_edited)
+                            if (row.approved_at) {
                                 var final_result_url = '/service_admin/result/final/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -163,15 +164,10 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.status_id == 10 || row.status_id == 11) {
-                                if (row.status_id == 10) {
-                                    var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
-                                    var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
-                                } else {
-                                    var draft_result_url = '/service_admin/result/draft/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
-                                    var final_result_url = '/service_admin/result/final/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
-                                }
-                                 return '<div class="field has-addons">' +
+                            } else if (row.sent_at == null) {
+                                var draft_result_url = '/service_admin/result/draft/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
+                                var final_result_url = '/service_admin/result/final/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
+                                return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-primary is-rounded" ' + 'href=' + draft_result_url + '>' +
                                     '<span class="icon">' +
@@ -189,14 +185,13 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.status_id == 12 || row.status_id == 15) {
+                            } else if (row.sent_at && row.approved_at == null && (row.result_edit_at == null || row.is_edited != null)) {
                                 return '';
-                            }  else if (row.status_id == 14) {
+                            } else if (row.result_edit_at != null && row.is_edited == null) {
                                 return row.edit_file;
-                            }
-                            else {
-                                var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
-                                var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
+                            } else {
+                                var draft_result_url = '/service_admin/result/draft/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
+                                var final_result_url = '/service_admin/result/final/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-primary is-rounded" ' + 'href=' + draft_result_url + '>' +

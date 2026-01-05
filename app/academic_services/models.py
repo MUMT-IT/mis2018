@@ -404,6 +404,13 @@ class ServiceRequest(db.Model):
     def __str__(self):
         return self.request_no
 
+    def get_result(self):
+        result = self.results.filter(ServiceResult.request_id == self.id).first()
+        if result:
+            return result
+        else:
+            return None
+
     def to_dict(self):
         invoice_file = None
         invoice_no = None
@@ -432,6 +439,7 @@ class ServiceRequest(db.Model):
             'sender': self.customer.customer_info.cus_name if self.customer else None,
             'status_id': self.status.status_id if self.status else None,
             'is_completed': self.is_completed if self.is_completed else None,
+            'has_result': True if self.get_result() else None,
             'admin_status': self.status.admin_status if self.status else None,
             'admin_status_color': self.status.admin_status_color if self.status else None,
             'customer_status': self.status.customer_status if self.status else None,
@@ -450,10 +458,10 @@ class ServiceRequest(db.Model):
                 if self.samples else None,
             'sample_test_at' : ', '.join(str(result.released_at) for result in self.results if result.released_at)
                 if self.results else None,
-            'result_approved_at': ', '.join(str(result.approved_at) for result in self.results if result.approved_at)
-                                    if self.results else None,
-            'result_edit_at': ', '.join(str(result.result_edit_at) for result in self.results if result.result_edit_at)
-                                if self.results else None,
+            'result_approved_at': self.get_result().approved_at if self.get_result() and self.get_result().approved_at else None,
+            'result_edit_at': self.get_result().result_edit_at if self.get_result() and self.get_result().result_edit_at else None,
+            'result_sent_at': self.get_result().sent_at if self.get_result() and self.get_result().sent_at else None,
+            'result_is_edited' : self.get_result().is_edited if self.get_result() and self.get_result().is_edited else None,
             'invoice_sent_at': ', '.join(str(invoice.sent_at) for quotation in self.quotations
                                                   if quotation.invoices for invoice in quotation.invoices
                                                   if invoice.sent_at) if self.quotations else None,
@@ -675,6 +683,14 @@ class ServiceSample(db.Model):
     ship_type = db.Column('ship_type', db.String(), info={'label': 'วิธีการส่งตัวอย่าง'})
     location = db.Column('location', db.String())
     location_name = db.Column('location_name', db.String())
+    appointment_time_slot = db.Column('appointment_time_slot', db.String(), info={'label': 'ช่วงเวลานัดหมาย',
+                                                                                  'choices': [(c, c) for c in
+                                                                                              ['9:00-10:00 น.',
+                                                                                               '10:00-11:00 น.',
+                                                                                               '11:00-12:00 น.',
+                                                                                               '13:00-14:00 น.',
+                                                                                               '14:00-15:00 น.',
+                                                                                               '15:00-16:00 น.']]})
     tracking_number = db.Column('tracking_number', db.String(), info={'label': 'เลขพัสดุ'})
     sample_integrity = db.Column('sample_integrity', db.String())
     packaging_sealed = db.Column('packaging_sealed', db.String())
@@ -700,6 +716,7 @@ class ServiceSample(db.Model):
             'ship_type': self.ship_type,
             'location_name': self.location_name if self.location_name else None,
             'tracking_number': self.tracking_number,
+            'appointment_time_slot': self.appointment_time_slot if self.appointment_time_slot else None,
             'note': self.note if self.note else None,
             'received_at': self.received_at,
             'received_by': self.received_by.fullname if self.received_by else None,
@@ -768,6 +785,22 @@ class ServiceTestItem(db.Model):
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('test_items'))
 
+    def get_result(self):
+        result = self.request.results.filter(ServiceResult.request_id == self.request_id).first()
+        if result:
+            return result
+        else:
+            return None
+
+    def get_invoice(self):
+        invoice = (ServiceInvoice.query.join(ServiceQuotation).filter(ServiceQuotation.request_id == self.request_id,
+                                                               ServiceQuotation.confirmed_at != None)
+                   ).first()
+        if invoice:
+            return invoice
+        else:
+            return None
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -776,10 +809,13 @@ class ServiceTestItem(db.Model):
             'customer': self.customer.customer_info.cus_name if self.customer else None,
             'status_id': self.request.status.status_id if self.request else None,
             'created_at': self.created_at,
+            'has_result': True if self.get_result() else None,
+            'sent_at': self.get_result().sent_at if self.get_result() and self.get_result().sent_at else None,
+            'result_edit_at': self.get_result().result_edit_at if self.get_result() and self.get_result().result_edit_at else None,
+            'is_edited': self.get_result().is_edited if self.get_result() and self.get_result().is_edited else None,
+            'approved_at': self.get_result().approved_at if self.get_result() and self.get_result().approved_at else None,
             'result_id': [result.id for result in self.request.results] if self.request.results else None,
-            'invoice_id': [invoice.id for quotation in self.request.quotations
-                           if quotation.confirmed_at for invoice in quotation.invoices]
-            if self.request.quotations else None,
+            'invoice_id': self.get_invoice().id if self.get_invoice() else None,
             'quotation_id': [quotation.id for quotation in self.request.quotations
                              if quotation.confirmed_at],
         }
@@ -811,6 +847,7 @@ class ServiceInvoice(db.Model):
     file_attached_id = db.Column('file_attached_id', db.ForeignKey('staff_account.id'))
     file_attached_by = db.relationship(StaffAccount, backref=db.backref('file_attached_invoices'),
                                        foreign_keys=[file_attached_id])
+    downloaded_at = db.Column('downloaded_at', db.DateTime(timezone=True))
     due_date = db.Column('due_date', db.DateTime(timezone=True))
     note = db.Column('note', db.Text())
     verify_at = db.Column('verify_at', db.DateTime(timezone=True))
@@ -886,7 +923,7 @@ class ServiceInvoice(db.Model):
 
     @property
     def paid_at(self):
-        return self.get_payment().paid_at.strftime('%d/%m/%Y %H:%M:%S') if self.get_payment() else None
+        return self.get_payment().paid_at if self.get_payment() else None
 
     @property
     def is_paid(self):
@@ -1102,7 +1139,7 @@ class ServiceResult(db.Model):
     sender_id = db.Column('sender_id', db.ForeignKey('staff_account.id'))
     sender = db.relationship(StaffAccount, backref=db.backref('sended_results'), foreign_keys=[sender_id])
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
-    request = db.relationship(ServiceRequest, backref=db.backref('results', cascade="all, delete-orphan"))
+    request = db.relationship(ServiceRequest, backref=db.backref('results', cascade="all, delete-orphan", lazy='dynamic'))
     is_sent_email = db.Column('is_sent_email', db.Boolean())
     note = db.Column('note', db.Text())
     is_edited = db.Column('is_edited', db.Boolean())
@@ -1120,6 +1157,10 @@ class ServiceResult(db.Model):
             'admin_status': self.admin_status if self.admin_status else None,
             'customer_status': self.customer_status if self.customer_status else None,
             'released_at': self.released_at if self.released_at else None,
+            'sent_at': self.sent_at if self.sent_at else None,
+            'result_edit_at': self.result_edit_at if self.result_edit_at else None,
+            'is_edited': self.is_edited if self.is_edited else None,
+            'approved_at': self.approved_at if self.approved_at else None,
             'creator': self.creator.fullname if self.creator else None,
             'request_id': self.request_id if self.request_id else None
         }
