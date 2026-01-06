@@ -5935,8 +5935,10 @@ def delete_quotation_item(quotation_item_id):
 @service_admin.route('/quotation/password/enter/<int:quotation_id>', methods=['GET', 'POST'])
 @login_required
 def enter_password_for_sign_digital(quotation_id):
+    menu = request.args.get('menu')
     form = PasswordOfSignDigitalForm()
-    return render_template('service_admin/modal/password_modal.html', form=form, quotation_id=quotation_id)
+    return render_template('service_admin/modal/password_modal.html', form=form, menu=menu,
+                           quotation_id=quotation_id)
 
 
 @service_admin.route('/quotation/view/<int:quotation_id>')
