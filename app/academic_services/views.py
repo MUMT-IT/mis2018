@@ -1029,6 +1029,7 @@ def create_customer_account(customer_id=None):
             cus_account = ServiceCustomerAccount.query.filter_by(email=form.email.data).first()
             if cus_account:
                 flash('อีเมลนี้มีบัญชีผู้ใช้งานอยู่แล้ว กรุณาดำเนินการเข้าสู่ระบบ', 'danger')
+                return redirect(url_for('academic_services.login'))
             else:
                 for er in form.errors:
                     flash("{} {}".format(er, form.errors[er]), 'danger')
@@ -3653,7 +3654,7 @@ def request_quotation(request_id):
     link = url_for("service_admin.generate_quotation", request_id=request_id, menu='quotation',
                    code=service_request.sub_lab.code, _external=True, _scheme=scheme)
     customer_name = service_request.customer.customer_name.replace(' ', '_')
-    contact_email = current_user.contact_email if current_user.contact_email else current_user.email
+    # contact_email = current_user.contact_email if current_user.contact_email else current_user.email
     if admins:
         title = f'''[{service_request.request_no}] ใบคำขอรับบริการ - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | แจ้งขอใบเสนอราคา'''
         message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.sub_lab}\n\n'''
@@ -3668,7 +3669,7 @@ def request_quotation(request_id):
         message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n\n'''
         message += f'''ระบบงานบริการวิชาการ'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if
-                   not a.is_supervisor or not a.is_central_admin or not a.is_assistant],
+                   not a.is_supervisor and not a.is_central_admin and not a.is_assistant],
                   title, message)
         msg = ('แจ้งขอใบเสนอราคา' \
                '\n\nเรียน เจ้าหน้าที่{}'
@@ -3689,7 +3690,7 @@ def request_quotation(request_id):
                )
         if not current_app.debug:
             for a in admins:
-                if not a.is_supervisor or not a.is_central_admin or not a.is_assistant:
+                if not a.is_supervisor and not a.is_central_admin and not a.is_assistant:
                     try:
                         line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                     except LineBotApiError:
@@ -3707,7 +3708,7 @@ def request_quotation(request_id):
     message_for_customer += f'''ขอแสดงความนับถือ\n'''
     message_for_customer += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
     message_for_customer += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-    send_mail([contact_email], title_for_customer, message_for_customer)
+    send_mail([current_user.email], title_for_customer, message_for_customer)
     flash('ส่งใบคำขอรับบริการสำเร็จ', 'send_request')
     return redirect(url_for('academic_services.request_index', menu=menu))
 
@@ -4057,7 +4058,7 @@ def confirm_quotation(quotation_id):
     quotation.confirmer_id = current_user.id
     quotation.request.status_id = status_id
     db.session.add(quotation)
-    sample = ServiceSample(request_id=quotation.request_id)
+    sample = ServiceSample(request_id=quotation.request_id, created_at=arrow.now('Asia/Bangkok').datetime)
     db.session.add(sample)
     db.session.commit()
     flash('ยืนยันใบเสนอราคาสำเร็จ กรุณาดำเนินการนัดหมายส่งตัวอย่าง', 'success')
@@ -4085,7 +4086,7 @@ def confirm_quotation(quotation_id):
         message += f'''{quotation.customer_name}\n'''
         message += f'''เบอร์โทร {quotation.request.customer.contact_phone_number}\n'''
         message += f'''ระบบบริการวิชาการ'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin or not a.is_assistant],
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
                   title, message)
     return redirect(url_for('academic_services.confirm_quotation_page', menu=menu, sample_id=sample.id))
 
@@ -4135,7 +4136,7 @@ def reject_quotation(quotation_id):
             message += f'''เบอร์โทร {quotation.request.customer.contact_phone_number}\n'''
             message += f'''ระบบบริการวิชาการ'''
             send_mail(
-                [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin or not a.is_assistant],
+                [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
                 title, message)
         resp = make_response()
         resp.headers['HX-Redirect'] = url_for('academic_services.quotation_index', menu=menu)
@@ -4444,11 +4445,13 @@ def create_sample_appointment(sample_id):
                     message += f'''สถานที่นัดหมาย : {sample.location_name}\n'''
                     if sample.location == 'salaya':
                         message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.salaya_address}\n'''
+                        message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.salaya_phone_number}\n'''
                     else:
                         message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.siriraj_address}\n'''
+                        message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.siriraj_phone_number}\n'''
                 else:
                     message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.address}\n'''
-                message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.lab.phone_number}\n'''
+                    message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.lab.phone_number}\n'''
                 if sample.request.sub_lab.lab.email:
                     message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.lab.email}\n'''
                 message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
@@ -4473,11 +4476,13 @@ def create_sample_appointment(sample_id):
                     message += f'''สถานที่นัดหมาย : {sample.location_name}\n'''
                     if sample.location == 'salaya':
                         message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.salaya_address}\n'''
+                        message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.salaya_phone_number}\n'''
                     else:
                         message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.siriraj_address}\n'''
+                        message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.siriraj_phone_number}\n'''
                 else:
                     message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.address}\n'''
-                message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.lab.phone_number}\n'''
+                    message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.lab.phone_number}\n'''
                 if sample.request.sub_lab.lab.email:
                     message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.lab.email}\n'''
                 message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n'''
@@ -4607,13 +4612,14 @@ def invoice_index():
             ServiceRequest.customer_id == current_user.id
         )
     )
-    pending_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None)
+    pending_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None, today <= ServiceInvoice.due_date)
     verify_query = query.join(ServicePayment).filter(ServicePayment.paid_at != None, ServicePayment.verified_at == None,
                                                      ServicePayment.cancelled_at == None)
     payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at >= expire_time,
                                                       ServicePayment.cancelled_at == None)
-    overdue_query = query.join(ServicePayment).filter(today > ServiceInvoice.due_date, ServicePayment.paid_at == None,
-                                                      ServicePayment.cancelled_at == None)
+    overdue_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None, today > ServiceInvoice.due_date)
+        # overdue_query = query.join(ServicePayment).filter(today > ServiceInvoice.due_date, ServicePayment.paid_at == None,
+        #                                               ServicePayment.cancelled_at == None)
     if api == 'true':
         if tab == 'pending':
             query = pending_query
@@ -4734,7 +4740,8 @@ def add_payment():
     menu = request.args.get('menu')
     invoice_id = request.args.get('invoice_id')
     invoice = ServiceInvoice.query.get(invoice_id)
-    if not invoice.payments:
+    payment_invoice = ServicePayment.query.filter_by(invoice_id=invoice_id).first()
+    if not payment_invoice:
         form = ServicePaymentForm()
         if not form.amount_paid.data:
             form.amount_paid.data = invoice.grand_total
@@ -5321,7 +5328,7 @@ def confirm_result_item(result_item_id):
             message += f'''เบอร์โทร {result_item.result.request.customer.contact_phone_number}\n\n'''
             message += f'''ระบบงานบริการวิชาการ'''
             send_mail(
-                [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin or not a.is_assistant],
+                [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
                 title, message)
             msg = ('แจ้งยืนยันใบรายงานผลการทดสอบ' \
                    '\n\nเรียน เจ้าหน้าที่{}'
@@ -5343,7 +5350,7 @@ def confirm_result_item(result_item_id):
                    )
             if not current_app.debug:
                 for a in admins:
-                    if not a.is_central_admin or not a.is_assistant:
+                    if not a.is_central_admin and not a.is_assistant:
                         try:
                             line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                         except LineBotApiError:
@@ -5398,7 +5405,7 @@ def edit_result_item(result_item_id):
             message += f'''เบอร์โทร {result_item.result.request.customer.contact_phone_number}\n\n'''
             message += f'''ระบบงานบริการวิชาการ'''
             send_mail(
-                [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin or not a.is_assistant],
+                [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
                 title, message)
             msg = ('แจ้งขอแก้ไขใบรายงานผลการทดสอบ' \
                    '\n\nเรียน เจ้าหน้าที่{}'
@@ -5420,7 +5427,7 @@ def edit_result_item(result_item_id):
                    )
             if not current_app.debug:
                 for a in admins:
-                    if not a.is_central_admin or not a.is_assistant:
+                    if not a.is_central_admin and not a.is_assistant:
                         try:
                             line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                         except LineBotApiError:

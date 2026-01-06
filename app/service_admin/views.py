@@ -2991,7 +2991,7 @@ def sample_verification(sample_id):
             db.session.add(test_item)
             db.session.commit()
             scheme = 'http' if current_app.debug else 'https'
-            contact_email = sample.request.customer.contact_email if sample.request.customer.contact_email else sample.request.customer.email
+            # contact_email = sample.request.customer.contact_email if sample.request.customer.contact_email else sample.request.customer.email
             title_prefix = 'คุณ' if sample.request.customer.customer_info.type.type == 'บุคคล' else ''
             link = url_for("academic_services.request_index", menu='request', _external=True, _scheme=scheme)
             title = f'''แจ้งตรวจรับตัวอย่างของใบคำขอรับบริการ [{sample.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
@@ -3005,7 +3005,7 @@ def sample_verification(sample_id):
             message += f'''ขอแสดงความนับถือ\n'''
             message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-            send_mail([contact_email], title, message)
+            send_mail([sample.request.customer.email], title, message)
             flash('ผลการตรวจสอบตัวอย่างได้รับการบันทึกเรียบร้อยแล้ว', 'success')
             return redirect(url_for('service_admin.sample_index', menu=menu, tab='received'))
     else:
@@ -4054,7 +4054,7 @@ def create_result(result_id=None):
             scheme = 'http' if current_app.debug else 'https'
             if not result.is_sent_email:
                 customer_name = result.request.customer.customer_name.replace(' ', '_')
-                contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
+                # contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
                 title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
                 title = f'''แจ้งออกร่างรายงานผลการทดสอบของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
                 message = f'''เรียน {title_prefix}{customer_name}\n\n'''
@@ -4066,7 +4066,7 @@ def create_result(result_id=None):
                 message += f'''ขอแสดงความนับถือ\n'''
                 message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
                 message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-                send_mail([contact_email], title, message)
+                send_mail([result.request.customer.email], title, message)
             result.is_sent_email = True
         else:
             status_id = get_status(11)
@@ -4636,9 +4636,10 @@ def approve_invoice(invoice_id):
                            '\n{}' \
                            '\nเบอร์โทร {}' \
                            '\nระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.invoice_no,
+                                                           invoice.customer_name, invoice.name,
                                                            invoice.quotation.request.request_no,
-                                                           invoice.quotation.quotation_no, invoice.customer_name,
-                                                           invoice.name, invoice_url, invoice.customer_name,
+                                                           invoice.quotation.quotation_no,
+                                                           invoice_url, invoice.customer_name,
                                                            invoice.contact_phone_number))
                     for a in admins:
                         if a.is_supervisor:
@@ -4681,7 +4682,7 @@ def upload_invoice_file(invoice_id):
             db.session.commit()
             scheme = 'http' if current_app.debug else 'https'
             title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
-            contact_email = invoice.quotation.request.customer.contact_email if invoice.quotation.request.customer.contact_email else invoice.quotation.request.customer.email
+            # contact_email = invoice.quotation.request.customer.contact_email if invoice.quotation.request.customer.contact_email else invoice.quotation.request.customer.email
             org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
             staff = StaffAccount.get_account_by_email(org.head)
             invoice_url = url_for("academic_services.view_invoice", invoice_id=invoice.id, menu='invoice',
@@ -4706,7 +4707,7 @@ def upload_invoice_file(invoice_id):
             message += f'''ขอแสดงความนับถือ\n'''
             message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-            send_mail([contact_email], title, message)
+            send_mail([invoice.quotation.request.customer.email], title, message)
             if not current_app.debug:
                 try:
                     line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
@@ -5818,7 +5819,7 @@ def approval_quotation_for_supervisor(quotation_id):
                     sign_pdf.seek(0)
                     db.session.add(quotation)
                     db.session.commit()
-                    contact_email = quotation.request.customer.contact_email if quotation.request.customer.contact_email else quotation.request.customer.email
+                    # contact_email = quotation.request.customer.contact_email if quotation.request.customer.contact_email else quotation.request.customer.email
                     quotation_link = url_for("academic_services.view_quotation", quotation_id=quotation_id, menu=menu,
                                              tab='pending', _external=True, _scheme=scheme)
                     total_items = len(quotation.quotation_items)
@@ -5840,7 +5841,7 @@ def approval_quotation_for_supervisor(quotation_id):
                     message += f'''ขอแสดงความนับถือ\n'''
                     message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
                     message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-                    send_mail([contact_email], title, message)
+                    send_mail([quotation.request.customer.email], title, message)
                     admins = (
                         ServiceAdmin.query
                         .join(ServiceSubLab)
@@ -5934,8 +5935,10 @@ def delete_quotation_item(quotation_item_id):
 @service_admin.route('/quotation/password/enter/<int:quotation_id>', methods=['GET', 'POST'])
 @login_required
 def enter_password_for_sign_digital(quotation_id):
+    menu = request.args.get('menu')
     form = PasswordOfSignDigitalForm()
-    return render_template('service_admin/modal/password_modal.html', form=form, quotation_id=quotation_id)
+    return render_template('service_admin/modal/password_modal.html', form=form, menu=menu,
+                           quotation_id=quotation_id)
 
 
 @service_admin.route('/quotation/view/<int:quotation_id>')
@@ -6269,7 +6272,7 @@ def create_draft_result(result_id=None):
                     result_url = url_for('academic_services.result_index', menu='report', tab='approve', _external=True,
                                          _scheme=scheme)
                     customer_name = result.request.customer.customer_name.replace(' ', '_')
-                    contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
+                    # contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
                     title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
                     title = f'''แจ้งออกรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
                     message = f'''เรียน {title_prefix}{customer_name}\n\n'''
@@ -6282,7 +6285,7 @@ def create_draft_result(result_id=None):
                     message += f'''ขอแสดงความนับถือ\n'''
                     message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
                     message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-                    send_mail([contact_email], title, message)
+                    send_mail([result.request.customer.email], title, message)
                     result.is_sent_email = True
                 db.session.add(result)
                 db.session.commit()
@@ -6400,7 +6403,7 @@ def edit_draft_result(result_item_id):
                              result_item_id=result_item_id, menu='report', tab='approve', _external=True,
                              _scheme=scheme)
         customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
-        contact_email = result_item.result.request.customer.contact_email if result_item.result.request.customer.contact_email else result_item.result.request.customer.email
+        # contact_email = result_item.result.request.customer.contact_email if result_item.result.request.customer.contact_email else result_item.result.request.customer.email
         title_prefix = 'คุณ' if result_item.result.request.customer.customer_info.type.type == 'บุคคล' else ''
         title = f'''แจ้งแก้ไขรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ [{result_item.result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
         message = f'''เรียน {title_prefix}{customer_name}\n\n'''
@@ -6413,7 +6416,7 @@ def edit_draft_result(result_item_id):
         message += f'''ขอแสดงความนับถือ\n'''
         message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
         message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-        send_mail([contact_email], title, message)
+        send_mail([result_item.result.request.customer.email], title, message)
         flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
         return redirect(url_for('service_admin.result_index', menu=menu, tab=tab))
     else:
@@ -6492,7 +6495,7 @@ def create_final_result(result_id=None):
             result_url = url_for('academic_services.result_index', menu='report', tab='all', _external=True,
                                  _scheme=scheme)
             customer_name = result.request.customer.customer_name.replace(' ', '_')
-            contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
+            # contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
             title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
             title = f'''แจ้งออกรายงานผลการทดสอบฉบับจริงของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
             message = f'''เรียน {title_prefix}{customer_name}\n\n'''
@@ -6504,7 +6507,7 @@ def create_final_result(result_id=None):
             message += f'''ขอแสดงความนับถือ\n'''
             message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-            send_mail([contact_email], title, message)
+            send_mail([result.request.customer.email], title, message)
         db.session.add(result)
         db.session.commit()
         flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
@@ -6628,7 +6631,7 @@ def cancel_payment(invoice_id):
     upload_payment_link = url_for("academic_services.add_payment", invoice_id=invoice_id, tab='pending', menu='invoice',
                                   _external=True, _scheme=scheme)
     customer_name = invoice.quotation.request.customer.customer_name.replace(' ', '_')
-    contact_email = invoice.quotation.request.customer.contact_email if invoice.quotation.request.customer.contact_email else invoice.quotation.request.customer.email
+    # contact_email = invoice.quotation.request.customer.contact_email if invoice.quotation.request.customer.contact_email else invoice.quotation.request.customer.email
     title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
     title = f'''แจ้งยกเลิกการชำระเงินของใบแจ้งหนี้ [{invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
     message = f'''เรียน {title_prefix}{customer_name}\n\n'''
@@ -6642,7 +6645,7 @@ def cancel_payment(invoice_id):
     message += f'''ขอแสดงความนับถือ\n'''
     message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
     message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-    send_mail([contact_email], title, message)
+    send_mail([invoice.quotation.request.customer.email], title, message)
     flash('ยกเลิกการชำระเงินเรียบร้อยแล้ว', 'success')
     return redirect(url_for('service_admin.invoice_payment_index'))
 

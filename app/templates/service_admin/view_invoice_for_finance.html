@@ -151,6 +151,10 @@
                                 <span class="icon"><i class="fas fa-check"></i></span>
                                 <span>อนุมัติ</span>
                             </a>
+                            <a class="button is-danger" onclick="vm.danger({{ invoice.id }})">
+                                <span class="icon"><i class="fas fa-times"></i></span>
+                                <span>ยกเลิก</span>
+                            </a>
                         {% endif %}
                     </div>
                 </div>
@@ -162,24 +166,6 @@
     {{ super() }}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
     <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
-    <script>
-        vm = new Vue({
-            el: '#app',
-            methods: {
-                warn: function (quotation_item_id) {
-                    var menu = '{{ menu }}';
-                    this.$buefy.dialog.confirm({
-                        message: 'ท่านต้องการลบรายการนี้หรือไม่?',
-                        onConfirm: () => {
-                            const url = `/service_admin/quotation/item/delete/${quotation_item_id}?menu=${menu}`;
-                            window.location.href = url;
-                        },
-                        type: 'is-danger'
-                    });
-                }
-            }
-        })
-    </script>
     <script>
         function showToast(message) {
             toastr.options = {
@@ -224,6 +210,17 @@
                         type: 'is-success'
                     });
                 },
+                danger: function (invoice_id) {
+                    var menu = '{{ menu }}';
+                    this.$buefy.dialog.confirm({
+                        message: 'ต้องการยกเลิกการชำระเงินของรายการนี้หรือไม่',
+                        onConfirm: () => {
+                            const url = `/service_admin/invoice/payment/cancel/${invoice_id}`;
+                            window.location.href = url;
+                        },
+                        type: 'is-danger'
+                    });
+                }
             }
         })
     </script>
