@@ -311,18 +311,6 @@
                                             <span class="icon"><i class="fas fa-download"></i></span>
                                             <span>ออกใบรายงานผล (ฉบับร่าง)</span>
                                         </a>
-                                        <a class="button is-info is-rounded is-fullwidth mb-2"
-                                           {% if result_id %}
-                                                href="{{ url_for('service_admin.create_final_result', result_id=result_id,
-                                                request_id=service_request.id, menu='test_item') }}"
-                                           {% else %}
-                                                href="{{ url_for('service_admin.create_final_result', request_id=service_request.id,
-                                                menu='test_item') }}"
-                                           {% endif %}
-                                        >
-                                            <span class="icon"><i class="fas fa-download"></i></span>
-                                            <span>ออกใบรายงานผล (ฉบับจริง)</span>
-                                        </a>
                                     </li>
                                 {% elif (service_request.get_result() and service_request.get_result().result_edit_at != None
                                         and service_request.get_result().is_edited == None) %}
