@@ -50,6 +50,15 @@
             right: 12px;
             transform: scale(0.9);
         }
+
+        .active-text {
+            color: #3273dc !important;
+            font-weight: 700;
+        }
+
+        .active-icon {
+            color: #3273dc !important;
+        }
     </style>
 {% endblock %}
 {% block page_content %}
@@ -67,13 +76,13 @@
                             {% for key, group in status_groups.items() %}
                                 <li>
                                     <a class="filter-btn has-text-centered" id="{{ group.id }}">
-                                        <span class="icon is-large" style="display:block; font-size:1.6rem">
+                                        <span class="icon is-large active-icon" style="display:block; font-size:1.6rem">
                                             {{ group.icon | safe }}
                                         </span>
                                         {% if group.count and group.name != 'รายการทั้งหมด' %}
                                             <span class="tag is-danger is-rounded is-size-7 mt-1">{{ group.count }}</span>
                                         {% endif %}
-                                        <span class="is-size-7 mt-1" style="display:block;">{{ group.name }}</span>
+                                        <span class="name is-size-7 mt-1 active-text" style="display:block;">{{ group.name }}</span>
                                     </a>
                                 </li>
                             {% endfor %}
@@ -386,14 +395,23 @@
                 table.draw();
             }
 
-            $(document).on('click', '.filter-btn', function () {
+             $(document).on('click', '.filter-btn', function () {
                 const ids = JSON.parse($(this).attr('id'));
                 applyFilter(ids);
+                $('.filter-btn .name').removeClass('active-text');
+                $(this).find('.name').addClass('active-text');
+                $('.filter-btn .icon').removeClass('active-icon');
+                $(this).find('.icon').addClass('active-icon');
             });
 
             $(document).on('click', '.filter-reset', function () {
                 applyFilter(null);
+                $('.filter-btn .name').removeClass('active-text');
+                $('.filter-btn .icon').removeClass('active-icon');
             });
+
+            $('.filter-btn .name').removeClass('active-text');
+            $('.filter-btn .icon').removeClass('active-icon');
 
             $('#requests tbody').on('click', '.btn-content-info', function () {
                 Swal.fire({
