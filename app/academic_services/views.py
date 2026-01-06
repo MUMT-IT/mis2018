@@ -4612,13 +4612,14 @@ def invoice_index():
             ServiceRequest.customer_id == current_user.id
         )
     )
-    pending_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None)
+    pending_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None, today <= ServiceInvoice.due_date)
     verify_query = query.join(ServicePayment).filter(ServicePayment.paid_at != None, ServicePayment.verified_at == None,
                                                      ServicePayment.cancelled_at == None)
     payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at >= expire_time,
                                                       ServicePayment.cancelled_at == None)
-    overdue_query = query.join(ServicePayment).filter(today > ServiceInvoice.due_date, ServicePayment.paid_at == None,
-                                                      ServicePayment.cancelled_at == None)
+    overdue_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None, today > ServiceInvoice.due_date)
+        # overdue_query = query.join(ServicePayment).filter(today > ServiceInvoice.due_date, ServicePayment.paid_at == None,
+        #                                               ServicePayment.cancelled_at == None)
     if api == 'true':
         if tab == 'pending':
             query = pending_query
@@ -4739,7 +4740,8 @@ def add_payment():
     menu = request.args.get('menu')
     invoice_id = request.args.get('invoice_id')
     invoice = ServiceInvoice.query.get(invoice_id)
-    if not invoice.payments:
+    payment_invoice = ServicePayment.query.filter_by(invoice_id=invoice_id).first()
+    if not payment_invoice:
         form = ServicePaymentForm()
         if not form.amount_paid.data:
             form.amount_paid.data = invoice.grand_total
