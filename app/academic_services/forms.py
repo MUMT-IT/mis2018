@@ -386,7 +386,7 @@ class BacteriaRequestForm(FlaskForm):
                                                      "oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้นำเข้า/จัดจำหน่าย')",
                                                      "oninput": "this.setCustomValidity('')"
                                                  })
-    amount = IntegerField('จำนวนที่ส่ง', validators=[DataRequired()],
+    amount = StringField('จำนวนที่ส่ง', validators=[DataRequired()],
                           render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกจำนวนที่ส่ง')",
                                      "oninput": "this.setCustomValidity('')"
                                      })
@@ -553,7 +553,7 @@ class VirusDisinfectionRequestForm(FlaskForm):
                          render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกเลขที่ผลิต')",
                                     "oninput": "this.setCustomValidity('')"
                                     })
-    amount = IntegerField('จำนวนที่ส่ง', validators=[DataRequired()],
+    amount = StringField('จำนวนที่ส่ง', validators=[DataRequired()],
                           render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกจำนวนที่ส่ง')",
                                      "oninput": "this.setCustomValidity('')"
                                      })
