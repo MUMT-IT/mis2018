@@ -91,7 +91,7 @@
                                     <p>
                                         <label class="label">รายละเอียดสถานที่</label>
                                         {{ sample.request.sub_lab.salaya_address or 'ไม่ระบุ' }}
-                                        เบอร์โทรศัพท์ {{ sample.request.sub_lab.lab.phone_number }}
+                                        เบอร์โทรศัพท์ {{ sample.request.sub_lab.salaya_phone_number }}
                                         {% if sample.request.sub_lab.lab.email %}
                                             อีเมล {{ sample.request.sub_lab.lab.email }}
                                         {% endif %}
@@ -99,8 +99,8 @@
                                 {% else %}
                                     <p>
                                         <label class="label">รายละเอียดสถานที่</label>
-                                        {{ sample.request.sub_lab.salaya_address or 'ไม่ระบุ' }}
-                                        เบอร์โทรศัพท์ {{ sample.request.sub_lab.lab.phone_number }}
+                                        {{ sample.request.sub_lab.siriraj_address or 'ไม่ระบุ' }}
+                                        เบอร์โทรศัพท์ {{ sample.request.sub_lab.siriraj_phone_number }}
                                         {% if sample.request.sub_lab.lab.email %}
                                             อีเมล {{ sample.request.sub_lab.lab.email }}
                                         {% endif %}
