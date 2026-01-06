@@ -151,7 +151,6 @@
                         render: function (data, type, row) {
                             var menu ='{{ menu }}'
                             var tab = '{{ tab }}';
-                            console.log('t', row.is_edited)
                             if (row.approved_at) {
                                 var final_result_url = '/service_admin/result/final/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
                                 return '<div class="field has-addons">' +
@@ -166,7 +165,6 @@
                                     '</div>'
                             } else if (row.sent_at == null) {
                                 var draft_result_url = '/service_admin/result/draft/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
-                                var final_result_url = '/service_admin/result/final/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-primary is-rounded" ' + 'href=' + draft_result_url + '>' +
@@ -174,14 +172,6 @@
                                     '<i class="fas fa-file-alt"></i>' +
                                     '</span>' +
                                     '<span>อัปโหลดใบรายงานผล (ฉบับร่าง)</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + final_result_url + '>' +
-                                    '<span class="icon">' +
-                                    '<i class="fas fa-file-alt"></i>' +
-                                    '</span>' +
-                                    '<span>อัปโหลดใบรายงานผล (ฉบับจริง)</span>' +
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
@@ -191,7 +181,6 @@
                                 return row.edit_file;
                             } else {
                                 var draft_result_url = '/service_admin/result/draft/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
-                                var final_result_url = '/service_admin/result/final/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-primary is-rounded" ' + 'href=' + draft_result_url + '>' +
@@ -199,14 +188,6 @@
                                     '<i class="fas fa-file-alt"></i>' +
                                     '</span>' +
                                     '<span>อัปโหลดใบรายงานผล (ฉบับร่าง)</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + final_result_url + '>' +
-                                    '<span class="icon">' +
-                                    '<i class="fas fa-file-alt"></i>' +
-                                    '</span>' +
-                                    '<span>อัปโหลดใบรายงานผล (ฉบับจริง)</span>' +
                                     '</a>' +
                                     '</div>' +
                                     '</div>'

@@ -146,10 +146,8 @@
                             } else if (row.sent_at == null) {
                                 if (row.has_result) {
                                     var draft_result_url = '/service_admin/result/draft/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report&tab=' + tab;
-                                    var final_result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report&tab=' + tab;
                                 } else {
                                     var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report&tab=' + tab;
-                                    var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=report&tab=' + tab;
                                 }
                                  return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -158,14 +156,6 @@
                                     '<i class="fas fa-file-alt"></i>' +
                                     '</span>' +
                                     '<span>อัปโหลดใบรายงานผล (ฉบับร่าง)</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + final_result_url + '>' +
-                                    '<span class="icon">' +
-                                    '<i class="fas fa-file-alt"></i>' +
-                                    '</span>' +
-                                    '<span>อัปโหลดใบรายงานผล (ฉบับจริง)</span>' +
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
