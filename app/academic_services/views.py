@@ -1029,6 +1029,7 @@ def create_customer_account(customer_id=None):
             cus_account = ServiceCustomerAccount.query.filter_by(email=form.email.data).first()
             if cus_account:
                 flash('อีเมลนี้มีบัญชีผู้ใช้งานอยู่แล้ว กรุณาดำเนินการเข้าสู่ระบบ', 'danger')
+                return redirect(url_for('academic_services.login'))
             else:
                 for er in form.errors:
                     flash("{} {}".format(er, form.errors[er]), 'danger')

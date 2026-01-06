@@ -86,7 +86,6 @@ class ServiceCustomerAccountForm(ModelForm):
     class Meta:
         model = ServiceCustomerAccount
 
-    email = EmailField(validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired(),
                                                      Length(min=8,
                                                             message='รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร')])
