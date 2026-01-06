@@ -483,11 +483,10 @@
                 $(this).find('.icon').addClass('active-icon');
             });
 
-            $(document).on('click', '.filter-reset', function () {
-                applyFilter(null);
-                $('.filter-btn .name').removeClass('active-text');
-                $('.filter-btn .icon').removeClass('active-icon');
-            });
+            {#$(document).on('click', '.filter-reset', function () {#}
+            {#    applyFilter(null);#}
+            {#    $('.filter-btn .name').removeClass('active-text');#}
+            {#    $('.filter-btn .icon').removeClass('active-icon');#}
 
             $('.filter-btn .name').removeClass('active-text');
             $('.filter-btn .icon').removeClass('active-icon');
