@@ -170,6 +170,12 @@ def get_seminar_yearly_budget(staff_account_id, start_datetime):
     db.session.commit()
     return seminar_yearly_budget
 
+def get_org_and_children_ids(org):
+    ids = [org.id]
+    for child in org.children:
+        ids.extend(get_org_and_children_ids(child))
+    return ids
+
 @staff.route('/')
 @login_required
 def index():
@@ -3979,8 +3985,10 @@ def seminar_attend_search_result():
             )
 
         if org:
+            selected_org = Org.query.filter(Org.name == org).first()
+            org_ids = get_org_and_children_ids(selected_org)
             query = query.join(StaffSeminarAttend.staff).join(StaffAccount.personal_info) \
-                    .join(StaffPersonalInfo.org).filter(Org.name == org)
+                    .join(StaffPersonalInfo.org).filter(StaffPersonalInfo.org_id.in_(org_ids))
 
         if personal_info_id:
             query = query.filter(StaffSeminarAttend.staff == staff_account)
