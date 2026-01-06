@@ -3654,7 +3654,7 @@ def request_quotation(request_id):
     link = url_for("service_admin.generate_quotation", request_id=request_id, menu='quotation',
                    code=service_request.sub_lab.code, _external=True, _scheme=scheme)
     customer_name = service_request.customer.customer_name.replace(' ', '_')
-    contact_email = current_user.contact_email if current_user.contact_email else current_user.email
+    # contact_email = current_user.contact_email if current_user.contact_email else current_user.email
     if admins:
         title = f'''[{service_request.request_no}] ใบคำขอรับบริการ - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | แจ้งขอใบเสนอราคา'''
         message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.sub_lab}\n\n'''
@@ -3708,7 +3708,7 @@ def request_quotation(request_id):
     message_for_customer += f'''ขอแสดงความนับถือ\n'''
     message_for_customer += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
     message_for_customer += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-    send_mail([contact_email], title_for_customer, message_for_customer)
+    send_mail([current_user.email], title_for_customer, message_for_customer)
     flash('ส่งใบคำขอรับบริการสำเร็จ', 'send_request')
     return redirect(url_for('academic_services.request_index', menu=menu))
 
