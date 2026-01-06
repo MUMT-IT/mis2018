@@ -4,6 +4,8 @@ from wtforms import (FormField, BooleanField, TextAreaField, SelectField, Select
                      SubmitField, widgets, RadioField, FieldList, FileField, FloatField, IntegerField, StringField)
 from wtforms.validators import DataRequired, EqualTo, Length, Optional
 from wtforms_alchemy import model_form_factory, QuerySelectField
+from wtforms_components import EmailField
+
 from app.academic_services.models import *
 from collections import defaultdict, namedtuple
 from flask_wtf.csrf import generate_csrf
@@ -41,7 +43,7 @@ class ServiceCustomerContactForm(ModelForm):
 
     contact_name = StringField('ชื่อผู้ประสานงาน', validators=[DataRequired()])
     phone_number = StringField('เบอร์โทรศัพท์', validators=[DataRequired()])
-    email = StringField('อีเมล', validators=[DataRequired()])
+    email = EmailField('อีเมล', validators=[DataRequired()])
 
 
 class ServiceCustomerInfoForm(ModelForm):
@@ -84,6 +86,7 @@ class ServiceCustomerAccountForm(ModelForm):
     class Meta:
         model = ServiceCustomerAccount
 
+    email = EmailField(validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired(),
                                                      Length(min=8,
                                                             message='รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร')])
@@ -197,10 +200,12 @@ bacteria_wash_organisms = [
 
 class BacteriaLiquidTestConditionForm(FlaskForm):
     liquid_organism = CheckboxField('เชื้อ', validators=[Optional()])
-    liquid_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
-    liquid_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
+    liquid_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input',
+                                                                                                 'type': 'number'})
+    liquid_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input',
+                                                                                  'type': 'number'})
     liquid_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (นาที)', validators=[Optional()],
-                                        render_kw={'class': 'input'})
+                                        render_kw={'class': 'input', 'type': 'number'})
 
 
 class BacteriaLiquidConditionForm(FlaskForm):
@@ -224,15 +229,15 @@ class BacteriaLiquidConditionForm(FlaskForm):
 class BacteriaSprayTestConditionForm(FlaskForm):
     spray_organism = CheckboxField('เชื้อ', validators=[Optional()])
     spray_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()],
-                               render_kw={'class': 'input'})
-    spray_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
+                               render_kw={'class': 'input', 'type': 'number'})
+    spray_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input', 'type': 'number'})
     spray_distance = IntegerField('ระยะห่างในการฉีดพ่น (cm)', validators=[Optional()],
-                                  render_kw={'class': 'input'})
+                                  render_kw={'class': 'input', 'type': 'number'})
     spray_of_time = IntegerField('ระยะเวลาฉีดพ่น (วินาที)', validators=[Optional()],
-                                 render_kw={'class': 'input'})
+                                 render_kw={'class': 'input', 'type': 'number'})
     spray_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (นาที)',
                                        validators=[Optional()],
-                                       render_kw={'class': 'input'})
+                                       render_kw={'class': 'input', 'type': 'number'})
 
 
 class BacteriaSprayConditionForm(FlaskForm):
@@ -261,7 +266,7 @@ class BacteriaSprayConditionForm(FlaskForm):
 class BacteriaSheetTestConditionForm(FlaskForm):
     sheet_organism = CheckboxField('เชื้อ', validators=[Optional()])
     sheet_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (นาที)', validators=[Optional()],
-                                       render_kw={'class': 'input'})
+                                       render_kw={'class': 'input', 'type': 'number'})
 
 
 class BacteriaSheetConditionForm(FlaskForm):
@@ -282,10 +287,11 @@ class BacteriaSheetConditionForm(FlaskForm):
 
 class BacteriaAfterWashTestConditionForm(FlaskForm):
     after_wash_organism = CheckboxField('เชื้อ', validators=[Optional()])
-    after_wash_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
-    after_wash_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
+    after_wash_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input',
+                                                                                                     'type': 'number'})
+    after_wash_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input', 'type': 'number'})
     after_wash_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับผ้า (นาที)', validators=[Optional()],
-                                            render_kw={'class': 'input'})
+                                            render_kw={'class': 'input', 'type': 'number'})
 
 
 class BacteriaAfterWashConditionForm(FlaskForm):
@@ -310,10 +316,10 @@ class BacteriaAfterWashConditionForm(FlaskForm):
 
 class BacteriaInWashTestConditionForm(FlaskForm):
     in_wash_organism = CheckboxField('เชื้อ', validators=[Optional()])
-    in_wash_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
-    in_wash_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
+    in_wash_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input', 'type': 'number'})
+    in_wash_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input', 'type': 'number'})
     in_wash_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับผ้า (นาที)', validators=[Optional()],
-                                         render_kw={'class': 'input'})
+                                         render_kw={'class': 'input', 'type': 'number'})
 
 
 class BacteriaInWashConditionForm(FlaskForm):
@@ -430,10 +436,11 @@ virus_airborne_organisms = [
 
 class VirusLiquidTestConditionForm(FlaskForm):
     liquid_organism = CheckboxField('เชื้อ', validators=[Optional()])
-    liquid_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
-    liquid_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
-    liquid_time_duration_ = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
-                                         render_kw={'class': 'input'})
+    liquid_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input',
+                                                                                                 'type': 'number'})
+    liquid_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input', 'type': 'number'})
+    liquid_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
+                                         render_kw={'class': 'input', 'type': 'number'})
 
 
 class VirusLiquidConditionForm(FlaskForm):
@@ -460,12 +467,15 @@ class VirusLiquidConditionForm(FlaskForm):
 
 class VirusSprayTestConditionForm(FlaskForm):
     spray_organism = CheckboxField('เชื้อ', validators=[Optional()])
-    spray_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
-    spray_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
-    spray_distance = IntegerField('ระยะห่างในการฉีดพ่น (cm)', validators=[Optional()], render_kw={'class': 'input'})
-    spray_of_time = IntegerField('ระยะเวลาฉีดพ่น (วินาที)', validators=[Optional()], render_kw={'class': 'input'})
+    spray_ratio = IntegerField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input',
+                                                                                                'type': 'number'})
+    spray_per_water = IntegerField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input', 'type': 'number'})
+    spray_distance = IntegerField('ระยะห่างในการฉีดพ่น (cm)', validators=[Optional()], render_kw={'class': 'input',
+                                                                                                  'type': 'number'})
+    spray_of_time = IntegerField('ระยะเวลาฉีดพ่น (วินาที)', validators=[Optional()], render_kw={'class': 'input',
+                                                                                                'type': 'number'})
     spray_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
-                                       render_kw={'class': 'input'})
+                                       render_kw={'class': 'input', 'type': 'number'})
 
 
 class VirusSprayConditionForm(FlaskForm):
@@ -497,7 +507,7 @@ class VirusSprayConditionForm(FlaskForm):
 class VirusCoatTestConditionForm(FlaskForm):
     coat_organism = CheckboxField('เชื้อ', validators=[Optional()])
     coat_time_duration = IntegerField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
-                                      render_kw={'class': 'input'})
+                                      render_kw={'class': 'input', 'type': 'number'})
 
 
 class VirusCoatConditionForm(FlaskForm):
