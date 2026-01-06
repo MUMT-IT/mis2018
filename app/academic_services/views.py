@@ -4058,7 +4058,7 @@ def confirm_quotation(quotation_id):
     quotation.confirmer_id = current_user.id
     quotation.request.status_id = status_id
     db.session.add(quotation)
-    sample = ServiceSample(request_id=quotation.request_id)
+    sample = ServiceSample(request_id=quotation.request_id, created_at=arrow.now('Asia/Bangkok').datetime)
     db.session.add(sample)
     db.session.commit()
     flash('ยืนยันใบเสนอราคาสำเร็จ กรุณาดำเนินการนัดหมายส่งตัวอย่าง', 'success')
@@ -4445,11 +4445,13 @@ def create_sample_appointment(sample_id):
                     message += f'''สถานที่นัดหมาย : {sample.location_name}\n'''
                     if sample.location == 'salaya':
                         message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.salaya_address}\n'''
+                        message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.salaya_phone_number}\n'''
                     else:
                         message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.siriraj_address}\n'''
+                        message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.siriraj_phone_number}\n'''
                 else:
                     message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.address}\n'''
-                message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.lab.phone_number}\n'''
+                    message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.lab.phone_number}\n'''
                 if sample.request.sub_lab.lab.email:
                     message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.lab.email}\n'''
                 message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
@@ -4474,11 +4476,13 @@ def create_sample_appointment(sample_id):
                     message += f'''สถานที่นัดหมาย : {sample.location_name}\n'''
                     if sample.location == 'salaya':
                         message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.salaya_address}\n'''
+                        message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.salaya_phone_number}\n'''
                     else:
                         message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.siriraj_address}\n'''
+                        message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.siriraj_phone_number}\n'''
                 else:
                     message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.address}\n'''
-                message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.lab.phone_number}\n'''
+                    message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.lab.phone_number}\n'''
                 if sample.request.sub_lab.lab.email:
                     message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.lab.email}\n'''
                 message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n'''
