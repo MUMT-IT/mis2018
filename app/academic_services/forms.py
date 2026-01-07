@@ -660,14 +660,8 @@ class VirusAirDisinfectionRequestForm(FlaskForm):
                                          render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้ผลิต')",
                                                     "oninput": "this.setCustomValidity('')"
                                                     })
-    importer = StringField('ผู้นำเข้า', validators=[DataRequired()],
-                           render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อผู้นำเข้า')",
-                                      "oninput": "this.setCustomValidity('')"
-                                      })
-    importer_address = TextAreaField('ที่อยู่ผู้นำเข้า', validators=[DataRequired()],
-                                     render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้นำเข้า')",
-                                                "oninput": "this.setCustomValidity('')"
-                                                })
+    importer = StringField('ผู้นำเข้า')
+    importer_address = TextAreaField('ที่อยู่ผู้นำเข้า')
     distributor = StringField('ผู้จัดจำหน่าย', validators=[DataRequired()],
                               render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อผู้จัดจำหน่าย')",
                                          "oninput": "this.setCustomValidity('')"
