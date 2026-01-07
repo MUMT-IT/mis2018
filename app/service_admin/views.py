@@ -4499,7 +4499,7 @@ def approve_invoice(invoice_id):
         if admins:
             email = [a.admin.email + '@mahidol.ac.th' for a in admins if a.is_central_admin]
             if email:
-                title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้'
+                title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งดาวโหลดใบแจ้งหนี้'
                 message = f'''เรียน แอดมินส่วนกลาง\n\n'''
                 message += f'''ตามที่มีการออกใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
                 message += f'''ลูกค้า : {invoice.customer_name}\n'''
@@ -4507,7 +4507,7 @@ def approve_invoice(invoice_id):
                 message += f'''อ้างอิงจาก : \n'''
                 message += f'''- ใบคำขอรับบริการเลขที่ : {invoice.quotation.request.request_no}\n'''
                 message += f'''- ใบเสนอราคาเลขที่ : {invoice.quotation.quotation_no}\n\n'''
-                message += f'''กรุณาดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้ดังกล่าวเข้าสู่ระบบ e-Office เพื่อให้คณบดีลงนามและออกเลข อว. ต่อไป '''
+                message += f'''กรุณาดำเนินการดาวโหลดใบแจ้งหนี้ดังกล่าวเข้าสู่ระบบ e-Office เพื่อให้คณบดีลงนามและออกเลข อว. ต่อไป '''
                 message += f'''หลังจากดำเนินการแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้กลับเข้าสู่ระบบบริการวิชาการ\n'''
                 message += f'''สามารถพิมพ์ใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'''
                 message += f'''{invoice_for_central_admin_url}\n\n'''
@@ -4518,7 +4518,7 @@ def approve_invoice(invoice_id):
                 send_mail(email, title, message)
                 if not current_app.debug:
                     msg = (
-                        'แจ้งแอดมินส่วนกลางดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้เลขที่ {}\n\n'
+                        'แจ้งแอดมินส่วนกลางดำเนินการดาวโหลดใบแจ้งหนี้เลขที่ {}\n\n'
                         'เรียน แอดมินส่วนกลาง\n\n'
                         'ตามที่มีการออกใบแจ้งหนี้เลขที่ : {}\n'
                         'ลูกค้า : {}\n'
@@ -4526,7 +4526,7 @@ def approve_invoice(invoice_id):
                         'อ้างอิงจาก : \n'
                         '- ใบคำขอรับบริการเลขที่ : {}\n'
                         '- ใบเสนอราคาเลขที่ : {}\n\n'
-                        'กรุณาดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้ดังกล่าวเข้าสู่ระบบ e-Office เพื่อให้คณบดีลงนามและออกเลข อว. ต่อไป'
+                        'กรุณาดำเนินการดาวโหลดใบแจ้งหนี้ดังกล่าวเข้าสู่ระบบ e-Office เพื่อให้คณบดีลงนามและออกเลข อว. ต่อไป'
                         'หลังจากดำเนินการแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้กลับเข้าสู่ระบบบริการวิชาการ\n\n'
                         'สามารถพิมพ์ใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'
                         '{}\n\n'
@@ -6266,28 +6266,26 @@ def create_draft_result(result_id=None):
                 # result.request.status_id = status_id
                 result.sent_at = arrow.now('Asia/Bangkok').datetime
                 result.sender_id = current_user.id
-                scheme = 'http' if current_app.debug else 'https'
-                if not result.is_sent_email:
-                    result_url = url_for('academic_services.result_index', menu='report', tab='approve', _external=True,
-                                         _scheme=scheme)
-                    customer_name = result.request.customer.customer_name.replace(' ', '_')
-                    # contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
-                    title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
-                    title = f'''แจ้งออกรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-                    message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-                    message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
-                    message += f''' ขณะนี้ได้จัดทำรายงานผลการทดสอบฉบับร่างเรียบร้อยแล้ว'''
-                    message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
-                    message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง\n'''
-                    message += f'''{result_url}\n\n'''
-                    message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-                    message += f'''ขอแสดงความนับถือ\n'''
-                    message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
-                    message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-                    send_mail([result.request.customer.email], title, message)
-                    result.is_sent_email = True
                 db.session.add(result)
                 db.session.commit()
+                scheme = 'http' if current_app.debug else 'https'
+                result_url = url_for('academic_services.result_index', menu='report', tab='approve', _external=True,
+                                     _scheme=scheme)
+                customer_name = result.request.customer.customer_name.replace(' ', '_')
+                # contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
+                title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
+                title = f'''แจ้งออกรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+                message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
+                message += f''' ขณะนี้ได้จัดทำรายงานผลการทดสอบฉบับร่างเรียบร้อยแล้ว'''
+                message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
+                message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง\n'''
+                message += f'''{result_url}\n\n'''
+                message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+                message += f'''ขอแสดงความนับถือ\n'''
+                message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+                message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                send_mail([result.request.customer.email], title, message)
                 flash("ส่งข้อมูลเรียบร้อยแล้ว", "success")
                 return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='testing'))
             else:
