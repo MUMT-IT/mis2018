@@ -6230,7 +6230,7 @@ def create_draft_result(result_id=None):
                                                         creator_id=current_user.id)
                         sequence_no.count += 1
                         db.session.add(result_item)
-                        db.session.commit()
+                    db.session.commit()
                 result = ServiceResult.query.get(result_list.id)
             else:
                 result = ServiceResult.query.filter_by(request_id=request_id).first()
@@ -6256,7 +6256,7 @@ def create_draft_result(result_id=None):
                     item.modified_at = arrow.now('Asia/Bangkok').datetime
                     item.result.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(item)
-                db.session.commit()
+                # db.session.commit()
         upload_all = all(item.draft_file for item in result.result_items)
         if action == 'send':
             if upload_all:
@@ -6386,7 +6386,7 @@ def edit_draft_result(result_item_id):
             result_item.is_edited = True
             result_item.modified_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(result_item)
-            db.session.commit()
+            # db.session.commit()
         edited_all = all(item.edited_at for item in result_item.result.result_items if item.req_edit_at)
         if edited_all:
             # status_id = get_status(12)
@@ -6394,7 +6394,7 @@ def edit_draft_result(result_item_id):
             # result_item.result.request.status_id = status_id
             result_item.result.is_edited = True
             db.session.add(result_item)
-            db.session.commit()
+        db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
         result_url = url_for('academic_services.view_result_item', result_id=result_item.result_id,
                              result_item_id=result_item_id, menu='report', tab='approve', _external=True,
@@ -6443,30 +6443,30 @@ def create_final_result(result_id=None):
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    if not result_id:
-        result = ServiceResult.query.filter_by(request_id=request_id).first()
-        if not result:
-            if request.method == 'GET':
-                result_list = ServiceResult(request_id=request_id, released_at=arrow.now('Asia/Bangkok').datetime,
-                                            creator_id=current_user.id)
-                db.session.add(result_list)
-                if service_request.report_languages:
-                    sequence_no = ServiceSequenceResultItemID.get_number('RS', db,
-                                                                         result='result_' + str(result_list.id))
-                    for rl in service_request.report_languages:
-                        result_item = ServiceResultItem(sequence=sequence_no.number,
-                                                        report_language=rl.report_language.item,
-                                                        result=result_list,
-                                                        released_at=arrow.now('Asia/Bangkok').datetime,
-                                                        creator_id=current_user.id)
-                        sequence_no.count += 1
-                        db.session.add(result_item)
-                        db.session.commit()
-                result = ServiceResult.query.get(result_list.id)
-            else:
-                result = ServiceResult.query.filter_by(request_id=request_id).first()
-    else:
-        result = ServiceResult.query.get(result_id)
+    # if not result_id:
+    #     result = ServiceResult.query.filter_by(request_id=request_id).first()
+    #     if not result:
+    #         if request.method == 'GET':
+    #             result_list = ServiceResult(request_id=request_id, released_at=arrow.now('Asia/Bangkok').datetime,
+    #                                         creator_id=current_user.id)
+    #             db.session.add(result_list)
+    #             if service_request.report_languages:
+    #                 sequence_no = ServiceSequenceResultItemID.get_number('RS', db,
+    #                                                                      result='result_' + str(result_list.id))
+    #                 for rl in service_request.report_languages:
+    #                     result_item = ServiceResultItem(sequence=sequence_no.number,
+    #                                                     report_language=rl.report_language.item,
+    #                                                     result=result_list,
+    #                                                     released_at=arrow.now('Asia/Bangkok').datetime,
+    #                                                     creator_id=current_user.id)
+    #                     sequence_no.count += 1
+    #                     db.session.add(result_item)
+    #                     db.session.commit()
+    #             result = ServiceResult.query.get(result_list.id)
+    #         else:
+    #             result = ServiceResult.query.filter_by(request_id=request_id).first()
+    # else:
+    result = ServiceResult.query.get(result_id)
     if request.method == 'POST':
         for item in result.result_items:
             file = request.files.get(f'file_{item.id}')
@@ -6485,7 +6485,8 @@ def create_final_result(result_id=None):
                 item.modified_at = arrow.now('Asia/Bangkok').datetime
                 item.result.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(item)
-                db.session.commit()
+                # db.session.commit()
+        db.session.commit()
         uploaded_all = all(item.final_file for item in result.result_items)
         if uploaded_all:
             scheme = 'http' if current_app.debug else 'https'
@@ -6505,8 +6506,6 @@ def create_final_result(result_id=None):
             message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
             send_mail([result.request.customer.email], title, message)
-        db.session.add(result)
-        db.session.commit()
         flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
         return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='all'))
     return render_template('service_admin/create_final_result.html', result_id=result_id, menu=menu,
