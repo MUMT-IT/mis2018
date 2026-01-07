@@ -1033,7 +1033,7 @@ def create_customer_account(customer_id=None):
             cus_account = ServiceCustomerAccount.query.filter_by(email=form.email.data).first()
             if cus_account:
                 flash('อีเมลนี้มีบัญชีผู้ใช้งานอยู่แล้ว กรุณาดำเนินการเข้าสู่ระบบ', 'danger')
-                return redirect(url_for('academic_services.login'))
+                return redirect(url_for('academic_services.customer_index'))
             else:
                 for er in form.errors:
                     flash("{} {}".format(er, form.errors[er]), 'danger')
@@ -5368,17 +5368,19 @@ def edit_result_item(result_item_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     result_item = ServiceResultItem.query.get(result_item_id)
-    result_item.is_edited = False
-    result_item.edit_requester_id = None
-    result_item.req_edit_at = None
-    result_item.note = None
-    db.session.add(result_item)
-    db.session.commit()
+    # result_item.is_edited = False
+    # result_item.edit_requester_id = None
+    # result_item.req_edit_at = None
+    # result_item.note = None
+    # db.session.add(result_item)
+    # db.session.commit()
     form = ServiceResultItemForm(obj=result_item)
+    form.note.data = None
     if form.validate_on_submit():
         form.populate_obj(result_item)
         # status_id = get_status(14)
         if form.note.data:
+            result_item.is_edited = False
             result_item.edit_requester_id = current_user.id
             result_item.req_edit_at = arrow.now('Asia/Bangkok').datetime
             # result_item.result.request.status_id = status_id
@@ -5394,8 +5396,8 @@ def edit_result_item(result_item_id):
                 .all()
             )
             title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
-            link = url_for("service_admin.create_draft_result", rresult_id=result_item.result_id, request_id=result_item.result.request.id,
-                           menu='test_item', _external=True, _scheme=scheme)
+            link = url_for("service_admin.edit_draft_result", result_item_id=result_item_id, menu='test_item',
+                           tab='edit_report', _external=True, _scheme=scheme)
             customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
             if admins:
                 title = f'''[{result_item.result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result_item.result.request.quotation_address.name}) | แจ้งขอแก้ไขใบรายงานผลการทดสอบ'''
