@@ -129,9 +129,10 @@
                     background: linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
                     color: white;
                     border: none;
-                    padding: 0.75rem 2rem;
-                    border-radius: 0.5rem;
-                    font-weight: 600;
+                    padding: 1rem 2.5rem;
+                    border-radius: 0.75rem;
+                    font-weight: 700;
+                    font-size: 1.125rem;
                     cursor: pointer;
                     transition: all 0.3s;
                     width: 100%;
@@ -197,6 +198,82 @@
                     border-radius: 0.375rem;
                     font-weight: 600;
                     margin-bottom: 1rem;
+          }
+
+          /* Payment Method Radio */
+          .payment-method-option {
+                    border: 2px solid #e5e7eb;
+                    border-radius: 0.5rem;
+                    cursor: pointer;
+                    transition: all 0.2s;
+          }
+
+          .payment-method-option:hover {
+                    border-color: #c7d2fe;
+                    background-color: #fafafa;
+          }
+
+          .payment-method-option input[type="radio"]:checked+span {
+                    color: #4338ca;
+                    font-weight: 700;
+          }
+
+          .payment-method-option:has(input[type="radio"]:checked) {
+                    border-color: #4338ca;
+                    background-color: #eef2ff;
+                    box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.1);
+          }
+
+          /* Payment Steps */
+          .payment-steps {
+                    display: none;
+                    background: #fefce8;
+                    border: 2px solid #fbbf24;
+                    border-radius: 0.5rem;
+                    padding: 1.5rem;
+                    margin-top: 1rem;
+                    animation: slideDown 0.3s ease-out;
+          }
+
+          .payment-steps.active {
+                    display: block;
+          }
+
+          @keyframes slideDown {
+                    from {
+                              opacity: 0;
+                              transform: translateY(-10px);
+                    }
+
+                    to {
+                              opacity: 1;
+                              transform: translateY(0);
+                    }
+          }
+
+          .payment-steps h4 {
+                    color: #92400e;
+                    font-size: 1rem;
+                    font-weight: 700;
+                    margin-bottom: 1rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+          }
+
+          .payment-steps ol {
+                    margin-left: 1.5rem;
+                    list-style: decimal;
+          }
+
+          .payment-steps li {
+                    color: #78350f;
+                    padding: 0.5rem 0;
+                    line-height: 1.6;
+          }
+
+          .payment-steps li strong {
+                    color: #92400e;
           }
 
           /* Responsive */
@@ -265,12 +342,35 @@
 <!-- Main Content -->
 <section class="section" style="padding-top: 3rem; padding-bottom: 4rem;">
           <div class="container">
-                    <!-- Page Title -->
-                    <h1 class="page-title">
-                              <i class="fas fa-clipboard-check mr-3"></i>
-                              {{ texts.get('registration_confirmation', 'Registration Confirmation' if
-                              current_lang == 'en' else 'ยืนยันการลงทะเบียน') }}
-                    </h1>
+                    <!-- Header with Back Button and Title -->
+                    <div style="display: flex; align-items: center; margin-bottom: 3rem; position: relative;">
+                              <!-- Back Button (Left) -->
+                              <div style="position: absolute; left: 0;">
+                                        {% if event.event_type == 'course' %}
+                                        <a href="{{ url_for('continuing_edu.course_detail', course_id=event.id, lang=current_lang) }}"
+                                                  class="button is-light">
+                                                  <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                                                  <span>{{ texts.get('back', 'Back' if current_lang == 'en' else
+                                                            'ย้อนกลับ') }}</span>
+                                        </a>
+                                        {% else %}
+                                        <a href="{{ url_for('continuing_edu.webinar_detail', webinar_id=event.id, lang=current_lang) }}"
+                                                  class="button is-light">
+                                                  <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                                                  <span>{{ texts.get('back', 'Back' if current_lang == 'en' else
+                                                            'ย้อนกลับ') }}</span>
+                                        </a>
+                                        {% endif %}
+                              </div>
+
+                              <!-- Page Title (Center) -->
+                              <h1 class="page-title"
+                                        style="flex: 1; text-align: center; margin: 0; border: none; padding: 0;">
+                                        <i class="fas fa-clipboard-check mr-3"></i>
+                                        {{ texts.get('registration_confirmation', 'Registration Confirmation' if
+                                        current_lang == 'en' else 'ยืนยันการลงทะเบียน') }}
+                              </h1>
+                    </div>
 
                     <div class="columns">
                               <!-- Left Column: Course/Webinar Information -->
@@ -457,89 +557,27 @@
                                                                                 <td>{{ member.phone_no }}</td>
                                                                       </tr>
                                                                       {% endif %}
+                                                                      <tr>
+                                                                                <td>
+                                                                                          <p
+                                                                                                    class="has-text-grey is-size-7">
+                                                                                                    <i
+                                                                                                              class="fas fa-shield-alt mr-1"></i>
+                                                                                                    {{
+                                                                                                    texts.get('secure_info',
+                                                                                                    'Your information is
+                                                                                                    secure
+                                                                                                    and encrypted' if
+                                                                                                    current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ข้อมูลของคุณปลอดภัยและเข้ารหัส')
+                                                                                                    }}
+                                                                                          </p>
+                                                                                </td>
+                                                                      </tr>
                                                             </tbody>
                                                   </table>
                                         </div>
-
-                                        <!-- Terms & Conditions -->
-                                        <form method="POST"
-                                                  action="{{ url_for('continuing_edu.confirm_registration', event_id=event.id, lang=current_lang) }}"
-                                                  id="confirmForm">
-                                                  <div class="info-card">
-                                                            <div class="checkbox-wrapper">
-                                                                      <input type="checkbox" name="terms_accepted"
-                                                                                id="terms_accepted" required>
-                                                                      <label for="terms_accepted">
-                                                                                <strong>
-                                                                                          {{
-                                                                                          texts.get('accept_terms',
-                                                                                          'I have read and
-                                                                                          accept the
-                                                                                          registration terms
-                                                                                          and conditions' if
-                                                                                          current_lang == 'en'
-                                                                                          else
-                                                                                          'ฉันได้อ่านและยอมรับเงื่อนไขการลงทะเบียน')
-                                                                                          }}
-                                                                                </strong>
-                                                                      </label>
-                                                            </div>
-
-                                                            <!-- Action Buttons -->
-                                                            <div class="columns">
-                                                                      <div class="column is-6">
-                                                                                {% if event.event_type ==
-                                                                                'course' %}
-                                                                                <a href="{{ url_for('continuing_edu.course_detail', course_id=event.id, lang=current_lang) }}"
-                                                                                          class="btn-back">
-                                                                                          {% else %}
-                                                                                          <a href="{{ url_for('continuing_edu.webinar_detail', webinar_id=event.id, lang=current_lang) }}"
-                                                                                                    class="btn-back">
-                                                                                                    {% endif
-                                                                                                    %}
-                                                                                                    <i
-                                                                                                              class="fas fa-arrow-left mr-2"></i>
-                                                                                                    {{
-                                                                                                    texts.get('back',
-                                                                                                    'Back' if
-                                                                                                    current_lang
-                                                                                                    == 'en'
-                                                                                                    else
-                                                                                                    'ย้อนกลับ')
-                                                                                                    }}
-                                                                                          </a>
-                                                                      </div>
-                                                                      <div class="column is-6">
-                                                                                <button type="submit"
-                                                                                          class="btn-confirm"
-                                                                                          id="confirmBtn">
-                                                                                          <i
-                                                                                                    class="fas fa-check-circle mr-2"></i>
-                                                                                          {{
-                                                                                          texts.get('confirm_register',
-                                                                                          'Confirm
-                                                                                          Registration' if
-                                                                                          current_lang == 'en'
-                                                                                          else
-                                                                                          'ยืนยันการลงทะเบียน')
-                                                                                          }}
-                                                                                </button>
-                                                                      </div>
-                                                            </div>
-
-                                                            <div class="has-text-centered mt-4">
-                                                                      <p class="has-text-grey is-size-7">
-                                                                                <i class="fas fa-shield-alt mr-1"></i>
-                                                                                {{ texts.get('secure_info',
-                                                                                'Your information is secure
-                                                                                and encrypted' if current_lang
-                                                                                == 'en' else
-                                                                                'ข้อมูลของคุณปลอดภัยและเข้ารหัส')
-                                                                                }}
-                                                                      </p>
-                                                            </div>
-                                                  </div>
-                                        </form>
                               </div>
 
                               <!-- Right Column: Price Summary -->
@@ -601,22 +639,355 @@
                                                   </div>
                                         </div>
 
-                                        <!-- Next Steps -->
-                                        <div class="notification is-light is-info mt-3">
-                                                  <p class="has-text-weight-semibold mb-2">
-                                                            <i class="fas fa-info-circle mr-2"></i>
-                                                            {{ texts.get('next_steps', 'Next Steps' if
-                                                            current_lang == 'en' else 'ขั้นตอนต่อไป') }}
-                                                  </p>
-                                                  <p class="is-size-7">
-                                                            {{ texts.get('payment_instruction', 'After
-                                                            confirmation, you will be redirected to the
-                                                            payment page to complete your registration.' if
-                                                            current_lang == 'en' else 'หลังจากยืนยัน
-                                                            คุณจะถูกนำไปยังหน้าชำระเงินเพื่อดำเนินการลงทะเบียนให้เสร็จสมบูรณ์')
-                                                            }}
-                                                  </p>
-                                        </div>
+                                        <!-- Registration Form -->
+                                        <form method="POST"
+                                                  action="{{ url_for('continuing_edu.confirm_registration', event_id=event.id, lang=current_lang) }}"
+                                                  id="confirmForm">
+                                                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+                                                  <!-- Payment Method Selection -->
+                                                  <div class="box mt-4" style="background-color: #f9fafb;">
+                                                            <h3 class="title is-6 mb-3">
+                                                                      <i class="fas fa-credit-card mr-2"></i>
+                                                                      {{ texts.get('payment_method', 'Payment Method' if
+                                                                      current_lang == 'en' else 'วิธีชำระเงิน') }}
+                                                            </h3>
+
+                                                            <div class="field">
+                                                                      <div class="control">
+                                                                                <label
+                                                                                          class="radio is-block mb-2 p-3 payment-method-option">
+                                                                                          <input type="radio"
+                                                                                                    name="payment_method"
+                                                                                                    value="promptpay"
+                                                                                                    checked>
+                                                                                          <span class="ml-2">
+                                                                                                    <i
+                                                                                                              class="fas fa-qrcode has-text-info mr-2"></i>
+                                                                                                    <strong>{{ texts.get('promptpay',
+                                                                                                              'PromptPay'
+                                                                                                              if
+                                                                                                              current_lang
+                                                                                                              == 'en'
+                                                                                                              else
+                                                                                                              'พร้อมเพย์')
+                                                                                                              }}</strong>
+                                                                                                    <span
+                                                                                                              class="tag is-success is-light ml-2">{{
+                                                                                                              texts.get('recommended',
+                                                                                                              'Recommended'
+                                                                                                              if
+                                                                                                              current_lang
+                                                                                                              == 'en'
+                                                                                                              else
+                                                                                                              'แนะนำ')
+                                                                                                              }}</span>
+                                                                                          </span>
+                                                                                </label>
+
+                                                                                <label
+                                                                                          class="radio is-block mb-2 p-3 payment-method-option">
+                                                                                          <input type="radio"
+                                                                                                    name="payment_method"
+                                                                                                    value="bank_transfer">
+                                                                                          <span class="ml-2">
+                                                                                                    <i
+                                                                                                              class="fas fa-university has-text-primary mr-2"></i>
+                                                                                                    <strong>{{ texts.get('bank_transfer',
+                                                                                                              'Bank
+                                                                                                              Transfer'
+                                                                                                              if
+                                                                                                              current_lang
+                                                                                                              == 'en'
+                                                                                                              else
+                                                                                                              'โอนเงินผ่านธนาคาร')
+                                                                                                              }}</strong>
+                                                                                          </span>
+                                                                                </label>
+
+                                                                                <label
+                                                                                          class="radio is-block mb-2 p-3 payment-method-option">
+                                                                                          <input type="radio"
+                                                                                                    name="payment_method"
+                                                                                                    value="credit_card">
+                                                                                          <span class="ml-2">
+                                                                                                    <i
+                                                                                                              class="fas fa-credit-card has-text-link mr-2"></i>
+                                                                                                    <strong>{{ texts.get('credit_card',
+                                                                                                              'Credit/Debit
+                                                                                                              Card'
+                                                                                                              if
+                                                                                                              current_lang
+                                                                                                              ==
+                                                                                                              'en' else
+                                                                                                              'บัตรเครดิต/เดบิต')
+                                                                                                              }}</strong>
+                                                                                          </span>
+                                                                                </label>
+
+                                                                                <label
+                                                                                          class="radio is-block p-3 payment-method-option">
+                                                                                          <input type="radio"
+                                                                                                    name="payment_method"
+                                                                                                    value="counter">
+                                                                                          <span class="ml-2">
+                                                                                                    <i
+                                                                                                              class="fas fa-store has-text-warning mr-2"></i>
+                                                                                                    <strong>{{ texts.get('counter_service',
+                                                                                                              'Counter
+                                                                                                              Service'
+                                                                                                              if
+                                                                                                              current_lang
+                                                                                                              == 'en'
+                                                                                                              else
+                                                                                                              'ชำระที่เคาน์เตอร์')
+                                                                                                              }}</strong>
+                                                                                          </span>
+                                                                                </label>
+                                                                      </div>
+                                                            </div>
+
+                                                            <!-- Payment Steps (Dynamic) -->
+                                                            <div id="payment-steps-promptpay"
+                                                                      class="payment-steps active">
+                                                                      <h4>
+                                                                                <i class="fas fa-list-ol"></i>
+                                                                                {{ texts.get('payment_steps', 'Payment
+                                                                                Steps' if current_lang == 'en' else
+                                                                                'ขั้นตอนการชำระเงิน') }}
+                                                                      </h4>
+                                                                      <ol>
+                                                                                <li><strong>{{ texts.get('step1', 'Step
+                                                                                                    1' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 1')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('promptpay_step1',
+                                                                                          'System generates QR Code' if
+                                                                                          current_lang == 'en' else
+                                                                                          'ระบบสร้าง QR Code') }}</li>
+                                                                                <li><strong>{{ texts.get('step2', 'Step
+                                                                                                    2' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 2')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('promptpay_step2',
+                                                                                          'Scan and pay with your
+                                                                                          banking app' if current_lang
+                                                                                          == 'en' else
+                                                                                          'สแกนและจ่ายด้วยแอปธนาคาร') }}
+                                                                                </li>
+                                                                                <li><strong>{{ texts.get('step3', 'Step
+                                                                                                    3' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 3')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('promptpay_step3',
+                                                                                          'Wait for payment confirmation
+                                                                                          (instantly)' if current_lang
+                                                                                          == 'en' else
+                                                                                          'รอยืนยันการชำระเงิน (ทันที)')
+                                                                                          }}</li>
+                                                                                <li><strong>{{ texts.get('step4', 'Step
+                                                                                                    4' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 4')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('promptpay_step4',
+                                                                                          'Receive receipt and
+                                                                                          registration confirmation' if
+                                                                                          current_lang == 'en' else
+                                                                                          'รับใบเสร็จและยืนยันการลงทะเบียน')
+                                                                                          }}</li>
+                                                                      </ol>
+                                                            </div>
+
+                                                            <div id="payment-steps-bank" class="payment-steps">
+                                                                      <h4>
+                                                                                <i class="fas fa-list-ol"></i>
+                                                                                {{ texts.get('payment_steps', 'Payment
+                                                                                Steps' if current_lang == 'en' else
+                                                                                'ขั้นตอนการชำระเงิน') }}
+                                                                      </h4>
+                                                                      <ol>
+                                                                                <li><strong>{{ texts.get('step1', 'Step
+                                                                                                    1' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 1')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('bank_step1', 'View
+                                                                                          bank account details' if
+                                                                                          current_lang == 'en' else
+                                                                                          'ดูข้อมูลบัญชีธนาคาร') }}</li>
+                                                                                <li><strong>{{ texts.get('step2', 'Step
+                                                                                                    2' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 2')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('bank_step2',
+                                                                                          'Transfer money to the
+                                                                                          account' if current_lang ==
+                                                                                          'en' else 'โอนเงินเข้าบัญชี')
+                                                                                          }}</li>
+                                                                                <li><strong>{{ texts.get('step3', 'Step
+                                                                                                    3' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 3')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('bank_step3',
+                                                                                          'Upload payment slip' if
+                                                                                          current_lang == 'en' else
+                                                                                          'อัปโหลดสลิปการโอนเงิน') }}
+                                                                                </li>
+                                                                                <li><strong>{{ texts.get('step4', 'Step
+                                                                                                    4' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 4')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('bank_step4', 'Wait
+                                                                                          for verification (1-2 business
+                                                                                          days)' if current_lang == 'en'
+                                                                                          else 'รอตรวจสอบและยืนยัน (1-2
+                                                                                          วันทำการ)') }}</li>
+                                                                      </ol>
+                                                            </div>
+
+                                                            <div id="payment-steps-credit" class="payment-steps">
+                                                                      <h4>
+                                                                                <i class="fas fa-list-ol"></i>
+                                                                                {{ texts.get('payment_steps', 'Payment
+                                                                                Steps' if current_lang == 'en' else
+                                                                                'ขั้นตอนการชำระเงิน') }}
+                                                                      </h4>
+                                                                      <ol>
+                                                                                <li><strong>{{ texts.get('step1', 'Step
+                                                                                                    1' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 1')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('credit_step1',
+                                                                                          'Enter card information' if
+                                                                                          current_lang == 'en' else
+                                                                                          'กรอกข้อมูลบัตร') }}</li>
+                                                                                <li><strong>{{ texts.get('step2', 'Step
+                                                                                                    2' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 2')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('credit_step2',
+                                                                                          'Verify with OTP' if
+                                                                                          current_lang == 'en' else
+                                                                                          'ยืนยันด้วย OTP') }}</li>
+                                                                                <li><strong>{{ texts.get('step3', 'Step
+                                                                                                    3' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 3')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('credit_step3',
+                                                                                          'Payment processed instantly'
+                                                                                          if current_lang == 'en' else
+                                                                                          'ระบบประมวลผลการชำระเงินทันที')
+                                                                                          }}</li>
+                                                                                <li><strong>{{ texts.get('step4', 'Step
+                                                                                                    4' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 4')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('credit_step4',
+                                                                                          'Receive receipt immediately'
+                                                                                          if current_lang == 'en' else
+                                                                                          'รับใบเสร็จทันที') }}</li>
+                                                                      </ol>
+                                                            </div>
+
+                                                            <div id="payment-steps-counter" class="payment-steps">
+                                                                      <h4>
+                                                                                <i class="fas fa-list-ol"></i>
+                                                                                {{ texts.get('payment_steps', 'Payment
+                                                                                Steps' if current_lang == 'en' else
+                                                                                'ขั้นตอนการชำระเงิน') }}
+                                                                      </h4>
+                                                                      <ol>
+                                                                                <li><strong>{{ texts.get('step1', 'Step
+                                                                                                    1' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 1')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('counter_step1',
+                                                                                          'Print payment notification'
+                                                                                          if current_lang == 'en' else
+                                                                                          'พิมพ์ใบแจ้งชำระเงิน') }}</li>
+                                                                                <li><strong>{{ texts.get('step2', 'Step
+                                                                                                    2' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 2')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('counter_step2',
+                                                                                          'Pay at counter (7-Eleven,
+                                                                                          FamilyMart, etc.)' if
+                                                                                          current_lang == 'en' else
+                                                                                          'ชำระเงินที่เคาน์เตอร์
+                                                                                          (7-Eleven, FamilyMart ฯลฯ)')
+                                                                                          }}</li>
+                                                                                <li><strong>{{ texts.get('step3', 'Step
+                                                                                                    3' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 3')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('counter_step3',
+                                                                                          'Upload payment receipt' if
+                                                                                          current_lang == 'en' else
+                                                                                          'อัปโหลดใบเสร็จการชำระเงิน')
+                                                                                          }}</li>
+                                                                                <li><strong>{{ texts.get('step4', 'Step
+                                                                                                    4' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 4')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('counter_step4',
+                                                                                          'Wait for verification (1-2
+                                                                                          business days)' if
+                                                                                          current_lang == 'en' else
+                                                                                          'รอตรวจสอบและยืนยัน (1-2
+                                                                                          วันทำการ)') }}</li>
+                                                                      </ol>
+                                                            </div>
+
+                                                            <!-- Terms and Conditions -->
+                                                            <div class="checkbox-wrapper" style="margin-top: 1.5rem;">
+                                                                      <input type="checkbox" name="terms_accepted"
+                                                                                id="terms_accepted" required>
+                                                                      <label for="terms_accepted">
+                                                                                <strong>
+                                                                                          {{ texts.get('accept_terms',
+                                                                                          'I have read and accept the
+                                                                                          registration
+                                                                                          terms and conditions' if
+                                                                                          current_lang ==
+                                                                                          'en'
+                                                                                          else
+                                                                                          'ฉันได้อ่านแลมยอมรับเงื่อนไขการลงทะเบียน')
+                                                                                          }}
+                                                                                </strong>
+                                                                      </label>
+                                                            </div>
+
+                                                            <!-- Confirm Button -->
+                                                            <div class="mt-4">
+                                                                      <button type="submit" class="btn-confirm"
+                                                                                id="confirmBtn">
+                                                                                <i class="fas fa-check-circle mr-2"></i>
+                                                                                {{
+                                                                                texts.get('confirm_register_and_payment',
+                                                                                'Confirm Registration & Payment' if
+                                                                                current_lang
+                                                                                == 'en' else
+                                                                                'ยืนยันการลงทะเบียนและชำระเงิน') }}
+                                                                      </button>
+                                                            </div>
+                                        </form>
+
+
                               </div>
                     </div>
           </div>
@@ -651,6 +1022,30 @@
                                         btn.disabled = true;
                               });
                     }
+
+                    // Payment method steps toggle
+                    const paymentRadios = document.querySelectorAll('input[name="payment_method"]');
+                    const paymentSteps = {
+                              'promptpay': document.getElementById('payment-steps-promptpay'),
+                              'bank_transfer': document.getElementById('payment-steps-bank'),
+                              'credit_card': document.getElementById('payment-steps-credit'),
+                              'counter': document.getElementById('payment-steps-counter')
+                    };
+
+                    paymentRadios.forEach(radio => {
+                              radio.addEventListener('change', function () {
+                                        // Hide all steps
+                                        Object.values(paymentSteps).forEach(step => {
+                                                  if (step) step.classList.remove('active');
+                                        });
+
+                                        // Show selected step
+                                        const selectedStep = paymentSteps[this.value];
+                                        if (selectedStep) {
+                                                  selectedStep.classList.add('active');
+                                        }
+                              });
+                    });
           });
 </script>
 {% endblock %}

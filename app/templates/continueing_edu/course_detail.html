@@ -217,253 +217,711 @@
         margin-right: 0.5rem;
         width: auto;
     }
-</style>
-{% endblock %}\n
-{% block content %}
-<div class="container">
-    <nav class="breadcrumb is-large" aria-label="breadcrumbs">
-        <ul>
-            <li><a href="{{ url_for('continuing_edu.index', lang=current_lang) }}">{{ texts.university_name
-                    }}</a></li>
-            <li><a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#short-courses">{{
-                    texts.our_short_courses_title }}</a></li>
-            {% set title_local = course.title_en if current_lang=='en' else (course.title_th or course.title_en)
-            %}
-            <li class="is-active"><a href="#" aria-current="page">{{ title_local }}</a></li>
-        </ul>
-    </nav>
-    <h1 class="title is-1 has-text-centered mb-12 has-text-gray-800 rounded-md">{{ title_local }}</h1>
 
-    <div class="columns is-vcentered is-desktop">
-        <div class="column is-half-desktop content">
-            <figure class="image is-3by2 rounded-lg shadow-lg">
-                {% set cover = course.cover_presigned_url() if course.cover_image_url else None %}
-                {% set poster = course.poster_presigned_url() if course.poster_image_url else None %}
-                <img src="{{ cover or poster or course.image_url or url_for('static', filename='img/LOGO_MT-Mahidol.png') }}"
-                    alt="[Image of {{ course.title or course.title_en }}]" class="object-cover rounded-lg shadow-lg">
-            </figure>
-            {% if poster %}
-            <div class="has-text-centered mt-3">
-                <button class="button is-info is-light" onclick="showPosterModal()">
-                    <span class="icon">
-                        <i class="fas fa-image"></i>
-                    </span>
-                    <span>{{ texts.get('view_poster', 'ดูโปสเตอร์' if current_lang == 'th' else 'View Poster')
-                        }}</span>
-                </button>
+    /* Modern Instructor Cards - Horizontal Layout */
+    .instructor-section {
+        margin-top: 3rem;
+    }
+
+    .instructor-cards-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .modern-instructor-card {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border: 1px solid #e5e7eb;
+        display: flex;
+        flex-direction: row;
+        align-items: stretch;
+    }
+
+    .modern-instructor-card:hover {
+        transform: translateX(8px);
+        box-shadow: 0 8px 32px rgba(79, 70, 229, 0.2);
+        border-color: #667eea;
+    }
+
+    .instructor-image-wrapper {
+        position: relative;
+        width: 200px;
+        min-width: 200px;
+        overflow: hidden;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .instructor-image-wrapper img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .instructor-image-wrapper .placeholder {
+        font-size: 4rem;
+        font-weight: 700;
+        color: white;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .instructor-content {
+        padding: 1.5rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .instructor-info {
+        flex: 1;
+    }
+
+    .instructor-name {
+        font-size: 1.15rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+
+    .instructor-position {
+        font-size: 0.9rem;
+        color: #6b7280;
+        margin-bottom: 0.25rem;
+    }
+
+    .instructor-institution {
+        font-size: 0.85rem;
+        color: #9ca3af;
+        margin-bottom: 1rem;
+    }
+
+    .instructor-bio-preview {
+        font-size: 0.875rem;
+        color: #6b7280;
+        line-height: 1.6;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .view-more-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        align-self: flex-start;
+        margin-top: 1rem;
+    }
+
+    /* Info badge styles */
+    .info-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: white;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        margin-bottom: 0.75rem;
+    }
+
+    .info-badge .icon {
+        color: #667eea;
+    }
+
+    .info-badge strong {
+        color: #1f2937;
+    }
+
+    .info-badge .value {
+        color: #4b5563;
+    }
+
+    .seats-full {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+        padding: 0.75rem 1.25rem;
+        border-radius: 12px;
+        font-weight: 600;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+
+    @media screen and (max-width: 768px) {
+        .modern-instructor-card {
+            flex-direction: column;
+        }
+
+        .instructor-image-wrapper {
+            width: 100%;
+            min-width: 100%;
+            height: 200px;
+        }
+
+        .instructor-bio-preview {
+            -webkit-line-clamp: 2;
+        }
+    }
+
+    /* Image Banner Hero Section */
+    .course-hero {
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 2rem;
+        min-height: 450px;
+        display: flex;
+        align-items: center;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+
+    /* Dark Overlay for better text readability */
+    .course-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.85) 0%, rgba(118, 75, 162, 0.85) 100%);
+        z-index: 1;
+    }
+
+    /* Subtle Pattern Overlay */
+    .course-hero::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        z-index: 2;
+        opacity: 0.3;
+    }
+
+    /* Back Button */
+    .back-button {
+        position: absolute;
+        top: 50%;
+        left: 1.5rem;
+        transform: translateY(-50%);
+        z-index: 10;
+    }
+
+    .back-button a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 50px;
+        height: 50px;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        color: white;
+        font-size: 1.25rem;
+        transition: all 0.3s ease;
+        text-decoration: none;
+    }
+
+    .back-button a:hover {
+        background: rgba(255, 255, 255, 0.25);
+        transform: translateX(-5px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Hero Content */
+    .hero-content-wrapper {
+        position: relative;
+        z-index: 3;
+        width: 100%;
+        padding: 4rem 0;
+    }
+
+    .hero-title-section {
+        text-align: center;
+        color: white;
+    }
+
+    .hero-title {
+        font-size: 3rem;
+        font-weight: 700;
+        color: white;
+        margin: 0 0 1rem 0;
+        text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        line-height: 1.2;
+    }
+
+    .hero-meta {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        margin-top: 1.5rem;
+    }
+
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 50px;
+        color: white;
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+
+    .hero-badge .icon {
+        font-size: 1rem;
+    }
+
+    @media (max-width: 768px) {
+        .course-hero {
+            min-height: 350px;
+        }
+
+        .hero-title {
+            font-size: 2rem;
+        }
+
+        .back-button {
+            top: 50%;
+            left: 1rem;
+            transform: translateY(-50%);
+        }
+
+        .back-button a {
+            width: 45px;
+            height: 45px;
+            font-size: 1.1rem;
+        }
+
+        .hero-content-wrapper {
+            padding: 3rem 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set title_local = course.title_en if current_lang=='en' else (course.title_th or course.title_en) %}
+{% set cover = course.cover_presigned_url() if course.cover_image_url else None %}
+{% set poster = course.poster_presigned_url() if course.poster_image_url else None %}
+{% set hero_image = cover or poster or course.image_url or url_for('static', filename='img/LOGO_MT-Mahidol.png') %}
+
+<!-- Image Banner Hero Section -->
+<div class="course-hero" style="background-image: url('{{ hero_image }}');">
+    <!-- Back Button -->
+    <div class="back-button">
+        <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#short-courses"
+            title="{{ texts.get('back_to_courses', 'กลับไปหน้าคอร์ส' if current_lang == 'th' else 'Back to Courses') }}">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+    </div>
+
+    <!-- Hero Content -->
+    <div class="hero-content-wrapper">
+        <div class="container">
+            <div class="hero-title-section">
+                <h1 class="hero-title">{{ title_local }}</h1>
+
+                <!-- Course Meta Information -->
+                <div class="hero-meta">
+                    {% set duration = course.duration_en if current_lang=='en' else (course.duration_th or
+                    course.duration_en) %}
+                    {% set fmt = course.format_en if current_lang=='en' else (course.format_th or course.format_en) %}
+
+                    {% if duration %}
+                    <div class="hero-badge">
+                        <span class="icon">
+                            <i class="fas fa-clock"></i>
+                        </span>
+                        <span>{{ duration }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if fmt %}
+                    <div class="hero-badge">
+                        <span class="icon">
+                            <i class="fas fa-laptop"></i>
+                        </span>
+                        <span>{{ fmt }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if course.continue_education_score %}
+                    <div class="hero-badge">
+                        <span class="icon">
+                            <i class="fas fa-certificate"></i>
+                        </span>
+                        <span>{{ '%.1f'|format(course.continue_education_score) }} CE</span>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            {% endif %}
         </div>
-        <div class="column is-half-desktop">
+    </div>
+</div>
+
+<div class="container" style="padding-top: 2rem;">
+    <div class="columns">
+        <!-- Left Column (8): Course Details -->
+        <div class="column is-8-desktop is-12-tablet">
             <div class="content">
+                <!-- Course Image -->
+                <figure class="image is-16by9 rounded-lg shadow-lg mb-5">
+                    {% set cover = course.cover_presigned_url() if course.cover_image_url else None %}
+                    {% set poster = course.poster_presigned_url() if course.poster_image_url else None %}
+                    <img src="{{ cover or poster or course.image_url or url_for('static', filename='img/LOGO_MT-Mahidol.png') }}"
+                        alt="[Image of {{ course.title or course.title_en }}]"
+                        class="object-cover rounded-lg shadow-lg">
+                </figure>
+                {% if poster %}
+                <div class="has-text-centered mb-5">
+                    <button class="button is-info is-light" onclick="showPosterModal()">
+                        <span class="icon">
+                            <i class="fas fa-image"></i>
+                        </span>
+                        <span>{{ texts.get('view_poster', 'ดูโปสเตอร์' if current_lang == 'th' else 'View Poster')
+                            }}</span>
+                    </button>
+                </div>
+                {% endif %}
+
+                <!-- Course Description -->
                 {% set long_desc = course.long_description_en if current_lang=='en' else
                 (course.long_description_th or course.long_description_en) %}
                 {% set short_desc = course.description_en if current_lang=='en' else (course.description_th or
                 course.description_en) %}
                 {% if long_desc %}
-                <p class="is-size-5 has-text-gray-700 mb-6 rounded-md">{{ long_desc }}</p>
+                <div class="box has-background-white mb-5" style="padding: 2rem;">
+                    <p class="is-size-5 has-text-gray-700" style="line-height: 1.8;">{{ long_desc }}</p>
+                </div>
                 {% elif short_desc %}
-                <p class="is-size-5 has-text-gray-700 mb-6 rounded-md">{{ short_desc }}</p>
+                <div class="box has-background-white mb-5" style="padding: 2rem;">
+                    <p class="is-size-5 has-text-gray-700" style="line-height: 1.8;">{{ short_desc }}</p>
+                </div>
                 {% endif %}
-                <ul class="list-disc has-text-gray-700 mb-4 rounded-md">
-                    {% set duration = course.duration_en if current_lang=='en' else (course.duration_th or
-                    course.duration_en) %}
-                    {% set fmt = course.format_en if current_lang=='en' else (course.format_th or
-                    course.format_en) %}
-                    {% set cert = course.certificate_name_en if current_lang=='en' else
-                    (course.certificate_name_th or course.certificate_name_en) %}
-                    {% set loc = course.location_en if current_lang=='en' else (course.location_th or
-                    course.location_en) %}
-                    {% if duration %}<li><strong>{{ texts.duration_label }}:</strong> {{ duration }}</li>{%
-                    endif %}
-                    {% if fmt %}<li><strong>{{ texts.format_label }}:</strong> {{ fmt }}</li>{% endif %}
-                    {% if cert %}<li><strong>{{ texts.certification_label }}:</strong> {{ cert }}</li>{% endif
-                    %}
-                    {% if loc %}<li><strong>{{ texts.location_label }}:</strong> {{ loc }}</li>{% endif %}
-                    {% if course.continue_education_score %}
-                    <li><strong>CE Score:</strong> {{ '%.2f'|format(course.continue_education_score) }}</li>
-                    {% endif %}
-                </ul>
 
-                <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.instructors_label }}</h4>
-                {% if course.speakers %}
-                <div class="instructor-grid"
-                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-                    {% for sp in course.speakers %}
-                    {% set sp_name = sp.name_en if current_lang=='en' else (sp.name_th or sp.name_en) %}
-                    {% set sp_title = sp.title_en if current_lang=='en' else (sp.title_th or sp.title_en) %}
-                    {% set sp_pos = sp.position_en if current_lang=='en' else (sp.position_th or sp.position_en)
-                    %}
-                    {% set sp_inst = sp.institution_en if current_lang=='en' else (sp.institution_th or
-                    sp.institution_en) %}
-                    {% set sp_bio = sp.bio_en if current_lang=='en' else (sp.bio_th or sp.bio_en) %}
-                    <div class="instructor-card" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
-                        onclick='showInstructorModal({{ sp.id }}, "{{ sp_title|e }}", "{{ sp_name|e }}", "{{ sp_pos|e }}", "{{ sp_inst|e }}", "{{ sp.image_url|e if sp.image_url else "" }}", "{{ sp_bio|e if sp_bio else "" }}", "{{ sp.email|e }}", "{{ sp.phone|e }}")'>
-                        <div class="box has-text-centered"
-                            style="height: 100%; padding: 1rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                            <figure class="image is-96x96" style="margin: 0 auto 0.75rem;">
-                                {% if sp.image_url %}
-                                <img src="{{ sp.image_url }}" alt="{{ sp_name }}"
-                                    style="border-radius: 50%; object-fit: cover; width: 96px; height: 96px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);">
-                                {% else %}
-                                <div
-                                    style="width: 96px; height: 96px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);">
-                                    <span style="color: white; font-size: 2.5rem; font-weight: 600;">{{
-                                        sp_name[0] if sp_name else '?' }}</span>
-                                </div>
-                                {% endif %}
-                            </figure>
-                            <p class="has-text-weight-semibold has-text-gray-800"
-                                style="font-size: 0.95rem; margin-bottom: 0.25rem;">
-                                {{ sp_title }} {{ sp_name }}
-                            </p>
-                            {% if sp_pos %}
-                            <p class="has-text-gray-600" style="font-size: 0.8rem; margin-bottom: 0.15rem;">{{
-                                sp_pos }}</p>
-                            {% endif %}
-                            {% if sp_inst %}
-                            <p class="has-text-gray-500" style="font-size: 0.75rem;">{{ sp_inst }}</p>
-                            {% endif %}
-                            <span class="icon has-text-indigo-600 mt-2">
-                                <i class="fas fa-info-circle"></i>
+                <!-- Instructors Section -->
+                <div class="instructor-section">
+                    <h3 class="title is-4 has-text-indigo-700 mb-4">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-chalkboard-teacher"></i>
                             </span>
+                            <span>{{ texts.instructors_label }}</span>
+                        </span>
+                    </h3>
+                    {% if course.speakers %}
+                    <div class="instructor-cards-grid">
+                        {% for sp in course.speakers %}
+                        {% set sp_name = sp.name_en if current_lang=='en' else (sp.name_th or sp.name_en) %}
+                        {% set sp_title = sp.title_en if current_lang=='en' else (sp.title_th or sp.title_en) %}
+                        {% set sp_pos = sp.position_en if current_lang=='en' else (sp.position_th or sp.position_en) %}
+                        {% set sp_inst = sp.institution_en if current_lang=='en' else (sp.institution_th or
+                        sp.institution_en) %}
+                        {% set sp_bio = sp.bio_en if current_lang=='en' else (sp.bio_th or sp.bio_en) %}
+                        <div class="modern-instructor-card"
+                            onclick='showInstructorModal({{ sp.id }}, "{{ sp_title|e }}", "{{ sp_name|e }}", "{{ sp_pos|e }}", "{{ sp_inst|e }}", "{{ sp.image_url|e if sp.image_url else "" }}", "{{ sp_bio|e if sp_bio else "" }}", "{{ sp.email|e }}", "{{ sp.phone|e }}")'>
+                            <div class="instructor-image-wrapper">
+                                {% if sp.image_url %}
+                                <img src="{{ sp.image_url }}" alt="{{ sp_name }}">
+                                {% else %}
+                                <div class="placeholder">{{ sp_name[0] if sp_name else '?' }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="instructor-content">
+                                <div class="instructor-info">
+                                    <div class="instructor-name">{{ sp_title }} {{ sp_name }}</div>
+                                    {% if sp_pos %}
+                                    <div class="instructor-position">{{ sp_pos }}</div>
+                                    {% endif %}
+                                    {% if sp_inst %}
+                                    <div class="instructor-institution">{{ sp_inst }}</div>
+                                    {% endif %}
+                                    {% if sp_bio %}
+                                    <div class="instructor-bio-preview">{{ sp_bio }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="view-more-badge">
+                                    <span>{{ texts.get('view_profile', 'ดูโปรไฟล์' if current_lang == 'th' else 'View
+                                        Profile') }}</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
                         </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
+                    {% else %}
+                    <p class="has-text-grey">{{ texts.get('no_instructors', 'ยังไม่มีข้อมูลวิทยากร' if current_lang ==
+                        'th' else 'No instructors available') }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column (4): Information Sections -->
+        <div class="column is-4-desktop is-12-tablet">
+            <div class="content">
+                <!-- Event Dates & Registration Info -->
+                <div class="box mb-4"
+                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                    <h4 class="title is-6 mb-3" style="color: white;">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-calendar-check"></i>
+                            </span>
+                            <span>{{ texts.get('event_info', 'ข้อมูลการอบรม' if current_lang == 'th' else 'Event
+                                Information') }}</span>
+                        </span>
+                    </h4>
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        {% if course.agendas and course.agendas|length > 0 %}
+                        {% set first_agenda = course.agendas|sort(attribute='start_time')|first %}
+                        {% set last_agenda = course.agendas|sort(attribute='end_time')|last %}
+                        <div class="info-badge">
+                            <span class="icon"><i class="fas fa-calendar"></i></span>
+                            <div>
+                                <strong>{{ texts.get('training_date', 'วันที่อบรม' if current_lang == 'th' else
+                                    'Training Date') }}:</strong><br>
+                                <span class="value">{{ first_agenda.start_time.strftime('%d %B %Y') if
+                                    first_agenda.start_time else '-' }}</span>
+                                {% if last_agenda.end_time and last_agenda.end_time.date() !=
+                                first_agenda.start_time.date() %}
+                                <span class="value"> - {{ last_agenda.end_time.strftime('%d %B %Y') }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if course.early_bird_start %}
+                        <div class="info-badge">
+                            <span class="icon"><i class="fas fa-door-open"></i></span>
+                            <div>
+                                <strong>{{ texts.get('registration_opens', 'เปิดรับสมัคร' if current_lang == 'th' else
+                                    'Registration Opens') }}:</strong><br>
+                                <span class="value">{{ course.early_bird_start.strftime('%d %B %Y') }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% set total_registered = course.registrations|length %}
+                        {% set max_seats = 50 %} <!-- TODO: Add max_seats field to model -->
+                        {% if total_registered >= max_seats %}
+                        <div class="seats-full">
+                            <i class="fas fa-users"></i> {{ texts.get('seats_full', 'ที่นั่งเต็มแล้ว' if current_lang ==
+                            'th' else 'Seats Full') }}
+                        </div>
+                        {% else %}
+                        <div class="info-badge">
+                            <span class="icon"><i class="fas fa-users"></i></span>
+                            <div>
+                                <strong>{{ texts.get('available_seats', 'ที่นั่งว่าง' if current_lang == 'th' else
+                                    'Available Seats') }}:</strong><br>
+                                <span class="value">{{ max_seats - total_registered }} / {{ max_seats }} {{
+                                    texts.get('seats', 'ที่นั่ง' if current_lang == 'th' else 'seats') }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
 
-                <style>
-                    .instructor-card:hover {
-                        transform: translateY(-4px);
-                    }
-
-                    .instructor-card:hover .box {
-                        box-shadow: 0 8px 24px rgba(79, 70, 229, 0.15) !important;
-                    }
-
-                    .instructor-card:active {
-                        transform: translateY(-2px);
-                    }
-                </style>
-                {% else %}
-                <p class="has-text-grey">—</p>
-                {% endif %}
-
-                <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.agenda_label }}</h4>
-                {% if course.agendas %}
-                <ul class="list-disc has-text-gray-700 mb-4">
-                    {% for a in course.agendas|sort(attribute='start_time') %}
-                    <li>
-                        {% if a.start_time and a.end_time %}
-                        [{{ a.start_time.strftime('%H:%M') }}–{{ a.end_time.strftime('%H:%M') }}]
+                <!-- Course Information -->
+                <div class="box mb-4" style="background-color: #f9fafb;">
+                    <h4 class="title is-6 has-text-indigo-700 mb-3">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-info-circle"></i>
+                            </span>
+                            <span>{{ texts.get('course_info', 'ข้อมูลคอร์ส' if current_lang == 'th' else 'Course
+                                Information') }}</span>
+                        </span>
+                    </h4>
+                    <ul class="list-disc has-text-gray-700" style="font-size: 0.9rem;">
+                        {% set duration = course.duration_en if current_lang=='en' else (course.duration_th or
+                        course.duration_en) %}
+                        {% set fmt = course.format_en if current_lang=='en' else (course.format_th or course.format_en)
+                        %}
+                        {% set cert = course.certificate_name_en if current_lang=='en' else (course.certificate_name_th
+                        or course.certificate_name_en) %}
+                        {% set loc = course.location_en if current_lang=='en' else (course.location_th or
+                        course.location_en) %}
+                        {% if duration %}<li><strong>{{ texts.duration_label }}:</strong> {{ duration }}</li>{% endif %}
+                        {% if fmt %}<li><strong>{{ texts.format_label }}:</strong> {{ fmt }}</li>{% endif %}
+                        {% if cert %}<li><strong>{{ texts.certification_label }}:</strong> {{ cert }}</li>{% endif %}
+                        {% if loc %}<li><strong>{{ texts.location_label }}:</strong> {{ loc }}</li>{% endif %}
+                        {% if course.continue_education_score %}
+                        <li><strong>CE Score:</strong> {{ '%.2f'|format(course.continue_education_score) }}</li>
                         {% endif %}
-                        {% set atitle = a.title_en if current_lang=='en' else (a.title_th or a.title_en) %}
-                        {{ atitle }}
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <p class="has-text-grey">—</p>
-                {% endif %}
+                    </ul>
+                </div>
 
+                <!-- Agenda Section -->
+                <div class="box mb-4" style="background-color: #f9fafb;">
+                    <h4 class="title is-6 has-text-indigo-700 mb-3">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-calendar-alt"></i>
+                            </span>
+                            <span>{{ texts.agenda_label }}</span>
+                        </span>
+                    </h4>
+                    {% if course.agendas %}
+                    <ul class="list-disc has-text-gray-700" style="font-size: 0.9rem;">
+                        {% for a in course.agendas|sort(attribute='start_time') %}
+                        <li style="margin-bottom: 0.5rem;">
+                            {% if a.start_time and a.end_time %}
+                            <strong>[{{ a.start_time.strftime('%H:%M') }}–{{ a.end_time.strftime('%H:%M') }}]</strong>
+                            {% endif %}
+                            {% set atitle = a.title_en if current_lang=='en' else (a.title_th or a.title_en) %}
+                            {{ atitle }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="has-text-grey">—</p>
+                    {% endif %}
+                </div>
+
+                <!-- Early Bird Banner -->
                 {% if course.early_bird_end %}
-                <div class="notification is-info is-light" id="eb-banner"
+                <div class="notification is-info is-light mb-4" id="eb-banner"
                     data-eb-end="{{ course.early_bird_end.isoformat() }}">
                     <strong>Early Bird!</strong> Ends in <span id="eb-countdown">—</span>
                 </div>
                 {% endif %}
 
-                <h4 class="title is-5 has-text-indigo-700 mt-5 mb-3">{{ texts.registration_fee_label }}</h4>
-                <div class="content">
-                    {% if course.registration_fees %}
-                    <ul id="fees-list"
-                        data-eb-start="{{ course.early_bird_start.isoformat() if course.early_bird_start else '' }}"
-                        data-eb-end="{{ course.early_bird_end.isoformat() if course.early_bird_end else '' }}">
-                        {% for fee in course.registration_fees %}
-                        <li>
-                            <span class="has-text-weight-semibold">{{ fee.member_type_ref.name_en }} / {{
-                                fee.member_type_ref.name_th }}:</span>
-                            {% if fee.early_bird_price is not none %}
-                            <span class="normal-price">{{ '%.2f'|format(fee.price) }} THB</span>
-                            <span class="early-price tag is-success is-light" style="display:none;">{{
-                                '%.2f'|format(fee.early_bird_price) }} THB</span>
-                            {% else %}
-                            <span>{{ '%.2f'|format(fee.price) }} THB</span>
-                            {% endif %}
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    {% else %}
-                    <p class="has-text-grey">No fees configured.</p>
-                    {% endif %}
-                </div>
-
-                {% from 'continueing_edu/_registration_macros.html' import registration_button,
-                registration_status_badge %}
-
-                {% if logged_in_user %}
-                {% if already_registered %}
-                <div class="notification is-success is-light">
-                    <p class="mb-2"><strong>{{ texts.get('status_registered', 'ลงทะเบียนแล้ว' if current_lang ==
-                            'th' else 'You are registered') }}</strong></p>
-                    {{ registration_status_badge(course, [course.id], approved_payment, texts, current_lang) }}
-                </div>
-
-                <div class="box mt-4">
-                    <p class="mb-2"><strong>{{ texts.get('progress', 'ความคืบหน้า' if current_lang == 'th' else
-                            'Progress') }}</strong></p>
-                    <p>{{ texts.get('started', 'เริ่มเรียน' if current_lang == 'th' else 'Started') }}: {{
-                        (logged_in_user.registrations|selectattr('event_entity_id','equalto',
-                        course.id)|map(attribute='started_at')|list|first) or '-' }}</p>
-                    <p>{{ texts.get('completed', 'เสร็จสิ้น' if current_lang == 'th' else 'Completed') }}: {{
-                        (logged_in_user.registrations|selectattr('event_entity_id','equalto',
-                        course.id)|map(attribute='completed_at')|list|first) or '-' }}</p>
-                    <div class="buttons mt-2">
-                        {% if approved_payment %}
-                        <form method="post"
-                            action="{{ url_for('continuing_edu.start_progress', event_id=course.id, lang=current_lang) }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                            <button class="button is-small is-primary" type="submit">
-                                <span class="icon"><i class="fas fa-play"></i></span>
-                                <span>{{ texts.get('start', 'เริ่มเรียน' if current_lang == 'th' else 'Start')
-                                    }}</span>
-                            </button>
-                        </form>
-                        <form method="post"
-                            action="{{ url_for('continuing_edu.complete_progress', event_id=course.id, lang=current_lang) }}"
-                            class="ml-2">
-                            <input type="hidden" name="passed" value="1">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                            <button class="button is-small is-success" type="submit">
-                                <span class="icon"><i class="fas fa-check"></i></span>
-                                <span>{{ texts.get('complete_issue_cert', 'เสร็จสิ้นและออกใบประกาศนียบัตร' if
-                                    current_lang == 'th' else 'Complete & Issue Certificate') }}</span>
-                            </button>
-                        </form>
-                        {% else %}
-                        <span class="tag is-warning is-medium">
-                            <span class="icon"><i class="fas fa-clock"></i></span>
-                            <span>{{ texts.get('waiting_payment_approval', 'รอการอนุมัติการชำระเงิน' if
-                                current_lang == 'th' else 'Waiting for payment approval') }}</span>
+                <!-- Registration Fee Section -->
+                <div class="box mb-4" style="background-color: #f9fafb;">
+                    <h4 class="title is-6 has-text-indigo-700 mb-3">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-tags"></i>
+                            </span>
+                            <span>{{ texts.registration_fee_label }}</span>
                         </span>
+                    </h4>
+                    <div class="content">
+                        {% if course.registration_fees %}
+                        <ul id="fees-list"
+                            data-eb-start="{{ course.early_bird_start.isoformat() if course.early_bird_start else '' }}"
+                            data-eb-end="{{ course.early_bird_end.isoformat() if course.early_bird_end else '' }}">
+                            {% for fee in course.registration_fees %}
+                            <li>
+                                <span class="has-text-weight-semibold">{{ fee.member_type_ref.name_en }} / {{
+                                    fee.member_type_ref.name_th }}:</span>
+                                {% if fee.early_bird_price is not none %}
+                                <span class="normal-price">{{ '%.2f'|format(fee.price) }} THB</span>
+                                <span class="early-price tag is-success is-light" style="display:none;">{{
+                                    '%.2f'|format(fee.early_bird_price) }} THB</span>
+                                {% else %}
+                                <span>{{ '%.2f'|format(fee.price) }} THB</span>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p class="has-text-grey">No fees configured.</p>
                         {% endif %}
                     </div>
                 </div>
-                {% else %}
-                <div class="mt-4">
-                    {{ registration_button(course, logged_in_user, already_registered, texts, current_lang) }}
+
+                <!-- Registration Section -->
+                <div class="box" style="background-color: #f9fafb;">
+                    {% from 'continueing_edu/_registration_macros.html' import registration_button,
+                    registration_status_badge %}
+
+                    {% if logged_in_user %}
+                    {% if already_registered %}
+                    <div class="notification is-success is-light">
+                        <p class="mb-2"><strong>{{ texts.get('status_registered', 'ลงทะเบียนแล้ว' if current_lang ==
+                                'th' else 'You are registered') }}</strong></p>
+                        {{ registration_status_badge(course, [course.id], texts, current_lang, approved_payment) }}
+                    </div>
+
+                    <div class="box mt-4">
+                        <p class="mb-2"><strong>{{ texts.get('progress', 'ความคืบหน้า' if current_lang == 'th' else
+                                'Progress') }}</strong></p>
+                        <p>{{ texts.get('started', 'เริ่มเรียน' if current_lang == 'th' else 'Started') }}: {{
+                            (logged_in_user.registrations|selectattr('event_entity_id','equalto',
+                            course.id)|map(attribute='started_at')|list|first) or '-' }}</p>
+                        <p>{{ texts.get('completed', 'เสร็จสิ้น' if current_lang == 'th' else 'Completed') }}: {{
+                            (logged_in_user.registrations|selectattr('event_entity_id','equalto',
+                            course.id)|map(attribute='completed_at')|list|first) or '-' }}</p>
+                        <div class="buttons mt-2">
+                            {% if approved_payment %}
+                            <form method="post"
+                                action="{{ url_for('continuing_edu.start_progress', event_id=course.id, lang=current_lang) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                <button class="button is-small is-primary" type="submit">
+                                    <span class="icon"><i class="fas fa-play"></i></span>
+                                    <span>{{ texts.get('start', 'เริ่มเรียน' if current_lang == 'th' else 'Start')
+                                        }}</span>
+                                </button>
+                            </form>
+                            <form method="post"
+                                action="{{ url_for('continuing_edu.complete_progress', event_id=course.id, lang=current_lang) }}"
+                                class="ml-2">
+                                <input type="hidden" name="passed" value="1">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                <button class="button is-small is-success" type="submit">
+                                    <span class="icon"><i class="fas fa-check"></i></span>
+                                    <span>{{ texts.get('complete_issue_cert', 'เสร็จสิ้นและออกใบประกาศนียบัตร' if
+                                        current_lang == 'th' else 'Complete & Issue Certificate') }}</span>
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="tag is-warning is-medium">
+                                <span class="icon"><i class="fas fa-clock"></i></span>
+                                <span>{{ texts.get('waiting_payment_approval', 'รอการอนุมัติการชำระเงิน' if
+                                    current_lang == 'th' else 'Waiting for payment approval') }}</span>
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="mt-4">
+                        {{ registration_button(course, logged_in_user, already_registered, texts, current_lang) }}
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="box has-background-warning-light mt-4">
+                        <p class="mb-3"><strong>{{ texts.get('login_required_title', 'กรุณาเข้าสู่ระบบ' if
+                                current_lang == 'th' else 'Login Required') }}</strong></p>
+                        {{ registration_button(course, logged_in_user, already_registered, texts, current_lang) }}
+                    </div>
+                    {% endif %}
                 </div>
-                {% endif %}
-                {% else %}
-                <div class="box has-background-warning-light mt-4">
-                    <p class="mb-3"><strong>{{ texts.get('login_required_title', 'กรุณาเข้าสู่ระบบ' if
-                            current_lang == 'th' else 'Login Required') }}</strong></p>
-                    {{ registration_button(course, logged_in_user, already_registered, texts, current_lang) }}
-                </div>
-                {% endif %}
+
             </div>
+            <!-- End Right Column (4) -->
         </div>
+        <!-- End columns -->
     </div>
+    <!-- End container -->
 
     <div class="has-text-centered mt-12">
         <a href="{{ url_for('continuing_edu.index', lang=current_lang) }}#short-courses"

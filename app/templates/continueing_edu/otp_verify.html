@@ -1,216 +1,300 @@
 {% extends "continueing_edu/base_frontend.html" %}
 
-{% block title %}{{ texts.university_name }} - {{ texts.login_page_title }}{% endblock %}
+{% block title %}{{ texts.get('verify_otp', 'ยืนยัน OTP' if current_lang == 'th' else 'Verify OTP') }}{% endblock %}
 
 {% block extra_css %}
 {{ super() }}
 <style>
-          /* Custom styles for rounded corners and shadows */
-          .rounded-md {
-                    border-radius: 0.375rem;
+          :root {
+                    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
           }
 
-          .rounded-lg {
-                    border-radius: 0.5rem;
+          .verify-otp-container {
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 1rem;
           }
 
-          .rounded-full {
-                    border-radius: 9999px;
+          .verify-hero {
+                    background: var(--primary-gradient);
+                    padding: 2rem 1.5rem;
+                    border-radius: 16px 16px 0 0;
+                    text-align: center;
+                    color: white;
           }
 
-          .shadow-sm {
-                    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-          }
-
-          .shadow-lg {
-                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-          }
-
-          .mb-4 {
+          .hero-icon {
+                    font-size: 3rem;
                     margin-bottom: 1rem;
           }
 
-          .mb-6 {
-                    margin-bottom: 1.5rem;
+          .hero-title {
+                    font-size: 2rem;
+                    font-weight: 700;
+                    margin-bottom: 0.5rem;
           }
 
-          .mt-4 {
-                    margin-top: 1rem;
+          .hero-subtitle {
+                    font-size: 1rem;
+                    opacity: 0.95;
           }
 
-          .py-4 {
-                    padding-top: 1rem;
-                    padding-bottom: 1rem;
+          .modern-card {
+                    background: rgba(255, 255, 255, 0.95);
+                    backdrop-filter: blur(10px);
+                    border-radius: 16px;
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    box-shadow: var(--card-shadow);
+                    max-width: 500px;
+                    width: 100%;
+                    overflow: hidden;
           }
 
-          .px-4 {
-                    padding-left: 1rem;
-                    padding-right: 1rem;
+          .card-body {
+                    padding: 2.5rem;
           }
 
-          .p-8 {
-                    padding: 2rem;
-          }
-
-          /* Colors */
-          .has-text-gray-800 {
-                    color: #1f2937;
-          }
-
-          .has-text-gray-700 {
-                    color: #374151;
-          }
-
-          .has-text-indigo-700 {
-                    color: #4338ca;
-          }
-
-          .has-text-indigo-600 {
-                    color: #4f46e5;
-          }
-
-          .has-text-white {
-                    color: #ffffff;
-          }
-
-          .has-background-white {
-                    background-color: #ffffff;
-          }
-
-          .has-background-indigo-600 {
-                    background-color: #4f46e5;
-          }
-
-          .hover\:has-background-indigo-700:hover {
-                    background-color: #4338ca;
-          }
-
-          .border {
-                    border-width: 1px;
-                    border-style: solid;
-          }
-
-          .border-gray-200 {
-                    border-color: #e5e7eb;
-          }
-
-          .is-flex {
+          .otp-input-group {
                     display: flex;
-          }
-
-          .is-flex-direction-column {
-                    flex-direction: column;
-          }
-
-          .is-justify-content-space-between {
-                    justify-content: space-between;
-          }
-
-          .is-align-items-center {
-                    align-items: center;
-          }
-
-          .is-centered {
+                    gap: 1rem;
                     justify-content: center;
+                    margin: 2rem 0;
           }
 
-          .is-fullwidth {
+          .otp-input {
+                    width: 3.5rem;
+                    height: 3.5rem;
+                    text-align: center;
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    border: 2px solid #e0e7ff;
+                    border-radius: 8px;
+                    transition: all 0.3s ease;
+          }
+
+          .otp-input:focus {
+                    border-color: #667eea;
+                    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+                    outline: none;
+          }
+
+          .btn-primary {
+                    background: var(--primary-gradient);
+                    border: none;
+                    color: white;
+                    padding: 0.875rem 2rem;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    font-size: 1rem;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
                     width: 100%;
           }
 
-          /* Custom styles for language buttons */
-          .language-button {
-                    margin-left: 0.5rem;
-                    min-width: 40px;
+          .btn-primary:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+          }
+
+          .timer {
                     text-align: center;
+                    margin-top: 1rem;
+                    color: #7a7a7a;
+                    font-size: 0.95rem;
           }
 
-          .language-button.is-active {
-                    background-color: #4338ca;
-                    color: white;
-                    border-color: #4338ca;
+          .timer.warning {
+                    color: #f14668;
+                    font-weight: 600;
           }
 
-          .language-button:not(.is-active) {
-                    background-color: #e0e7ff;
-                    color: #4338ca;
-                    border-color: #e0e7ff;
+          .info-box {
+                    background: rgba(102, 126, 234, 0.05);
+                    border-left: 4px solid #667eea;
+                    padding: 1rem;
+                    border-radius: 8px;
+                    margin-bottom: 1.5rem;
+                    font-size: 0.95rem;
           }
 
-          .language-button:not(.is-active):hover {
-                    background-color: #c7d2fe;
-                    border-color: #c7d2fe;
+          .back-link {
+                    text-align: center;
+                    margin-top: 1.5rem;
           }
 
-          /* Style for the university logo */
-          .university-logo {
-                    max-height: 2.5rem;
-                    margin-right: 0.5rem;
-                    width: auto;
+          .back-link a {
+                    color: #667eea;
+                    font-weight: 600;
+                    text-decoration: none;
+          }
+
+          @keyframes fadeInUp {
+                    from {
+                              opacity: 0;
+                              transform: translateY(20px);
+                    }
+
+                    to {
+                              opacity: 1;
+                              transform: translateY(0);
+                    }
+          }
+
+          .animate-in {
+                    animation: fadeInUp 0.6s ease-out;
           }
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="section py-16">
-          <div class="container mt-6 mb-6">
-                    <div class="box max-w-2xl mx-auto p-8 rounded-lg shadow-md border border-gray-200">
-                              <h1 class="title is-3 has-text-centered mb-5">ลงทะเบียนสำเร็จ!</h1>
-                              <p class="is-size-5 mb-4 has-text-centered">
-                                        ระบบได้ส่งรหัส OTP 6 หลักไปยังอีเมลของคุณแล้ว
-                                        กรุณากรอกรหัสเพื่อยืนยันการสมัครสมาชิกให้สมบูรณ์
+<div class="verify-otp-container">
+          <div class="modern-card animate-in">
+                    <div class="verify-hero">
+                              <div class="hero-icon"><i class="fas fa-shield-alt"></i></div>
+                              <h1 class="hero-title">{{ texts.get('verify_otp', 'ยืนยัน OTP' if current_lang == 'th'
+                                        else 'Verify OTP') }}</h1>
+                              <p class="hero-subtitle">
+                                        {{ texts.get('registration_verification', 'ยืนยันการสมัครสมาชิกด้วยรหัส OTP' if
+                                        current_lang == 'th' else 'Verify your registration with the OTP code') }}
                               </p>
-                              <form method="post" action="{{ url_for('continuing_edu.otp_verify', lang=current_lang) }}"
-                                        class="mt-5">
+                    </div>
 
+                    <div class="card-body">
+                              <div class="info-box">
+                                        <i class="fas fa-info-circle" style="color: #667eea; margin-right: 0.5rem;"></i>
+                                        {{ texts.get('otp_sent_email', 'รหัส OTP ถูกส่งไปยังอีเมลของคุณ' if current_lang
+                                        == 'th' else 'OTP code has been sent to your email') }}
+                                        {% if username %}<strong> {{ username }}</strong>{% endif %}
+                              </div>
+
+                              <form method="POST" action="{{ url_for('continuing_edu.otp_verify', lang=current_lang) }}"
+                                        id="otp-form">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <div class="field mb-4 has-text-centered">
-                                                  <label class="label">รหัส OTP (6 หลัก)</label>
-                                                  <div class="control">
-                                                            <input class="input is-large has-text-centered" type="text"
-                                                                      name="otp_code" maxlength="6" pattern="\d{6}"
-                                                                      required autofocus>
-                                                  </div>
-                                        </div>
                                         <input type="hidden" name="username" value="{{ username }}">
-                                        <div class="field mt-5 has-text-centered">
-                                                  <button class="button is-info is-rounded has-background-indigo-600 has-text-white"
-                                                            type="submit">
-                                                            ยืนยัน OTP
-                                                  </button>
+
+                                        <div class="otp-input-group">
+                                                  <input type="text" class="otp-input" maxlength="1" pattern="[0-9]"
+                                                            inputmode="numeric" required>
+                                                  <input type="text" class="otp-input" maxlength="1" pattern="[0-9]"
+                                                            inputmode="numeric" required>
+                                                  <input type="text" class="otp-input" maxlength="1" pattern="[0-9]"
+                                                            inputmode="numeric" required>
+                                                  <input type="text" class="otp-input" maxlength="1" pattern="[0-9]"
+                                                            inputmode="numeric" required>
+                                                  <input type="text" class="otp-input" maxlength="1" pattern="[0-9]"
+                                                            inputmode="numeric" required>
+                                                  <input type="text" class="otp-input" maxlength="1" pattern="[0-9]"
+                                                            inputmode="numeric" required>
+                                        </div>
+
+                                        <input type="hidden" name="otp_code" id="otp-value">
+
+                                        <div class="timer" id="timer">
+                                                  {{ texts.get('otp_expires_in', 'รหัสหมดอายุใน' if current_lang == 'th'
+                                                  else 'Code expires in') }} <span id="countdown">15:00</span>
+                                        </div>
+
+                                        <div class="field" style="margin-top:2rem;">
+                                                  <button type="submit" class="btn-primary"><i
+                                                                      class="fas fa-check-circle"
+                                                                      style="margin-right:0.5rem"></i> {{
+                                                            texts.get('verify_continue', 'ยืนยันและดำเนินการต่อ' if
+                                                            current_lang == 'th' else 'Verify & Continue') }}</button>
                                         </div>
                               </form>
-                              <div class="has-text-centered mt-4">
-                                        <small>ไม่ได้รับอีเมล? <a href="#" onclick="location.reload();return false;">ขอ
-                                                            OTP
-                                                            ใหม่</a></small>
+
+                              <div class="back-link">
+                                        <a href="{{ url_for('continuing_edu.forgot_password', lang=current_lang) }}"><i
+                                                            class="fas fa-arrow-left"></i> {{
+                                                  texts.get('back_forgot_password', 'กลับไปขอรหัสใหม่' if current_lang
+                                                  == 'th' else 'Back to Request OTP') }}</a>
+                              </div>
+
+                              <div class="back-link">
+                                        <a href="{{ url_for('continuing_edu.login', lang=current_lang) }}"><i
+                                                            class="fas fa-sign-in-alt"></i> {{
+                                                  texts.get('back_to_login', 'กลับไปหน้าเข้าสู่ระบบ' if current_lang ==
+                                                  'th' else 'Back to Login') }}</a>
                               </div>
                     </div>
           </div>
-</section>
-{% endblock %}
+</div>
 
-{% block extra_js %}
 <script>
           document.addEventListener('DOMContentLoaded', () => {
-                    const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
-                    if ($navbarBurgers.length > 0) {
-                              $navbarBurgers.forEach(el => {
-                                        el.addEventListener('click', () => {
-                                                  const target = el.dataset.target;
-                                                  const $target = document.getElementById(target);
-                                                  el.classList.toggle('is-active');
-                                                  $target.classList.toggle('is-active');
-                                        });
+                    const otpInputs = document.querySelectorAll('.otp-input');
+                    const otpForm = document.getElementById('otp-form');
+                    const otpValue = document.getElementById('otp-value');
+                    const countdown = document.getElementById('countdown');
+                    const timer = document.getElementById('timer');
+
+                    otpInputs.forEach((input, index) => {
+                              input.addEventListener('input', (e) => {
+                                        if (e.target.value.length === 1 && index < otpInputs.length - 1) {
+                                                  otpInputs[index + 1].focus();
+                                        }
                               });
-                    }
-                    // Close flash messages
-                    (document.querySelectorAll('.notification .delete') || []).forEach(($delete) => {
-                              const $notification = $delete.parentNode;
-                              $delete.addEventListener('click', () => {
-                                        $notification.parentNode.removeChild($notification);
+
+                              input.addEventListener('keydown', (e) => {
+                                        if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                                                  otpInputs[index - 1].focus();
+                                        }
+                              });
+
+                              input.addEventListener('paste', (e) => {
+                                        e.preventDefault();
+                                        const pastedData = e.clipboardData.getData('text').slice(0, 6);
+                                        pastedData.split('').forEach((char, i) => {
+                                                  if (otpInputs[i] && /[0-9]/.test(char)) {
+                                                            otpInputs[i].value = char;
+                                                  }
+                                        });
+                                        if (otpInputs[pastedData.length]) {
+                                                  otpInputs[pastedData.length].focus();
+                                        }
                               });
                     });
+
+                    otpForm.addEventListener('submit', (e) => {
+                              e.preventDefault();
+                              const otp = Array.from(otpInputs).map(i => i.value).join('');
+                              if (otp.length === 6) {
+                                        otpValue.value = otp;
+                                        otpForm.submit();
+                              } else {
+                                        alert('{{ texts.get("otp_incomplete", "กรุณากรอก OTP ให้ครบ 6 หลัก" if current_lang == "th" else "Please enter all 6 digits") }}');
+                              }
+                    });
+
+                    let timeLeft = 15 * 60;
+                    const countdownInterval = setInterval(() => {
+                              timeLeft--;
+                              const minutes = Math.floor(timeLeft / 60);
+                              const seconds = timeLeft % 60;
+                              countdown.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                              if (timeLeft <= 60) {
+                                        timer.classList.add('warning');
+                              }
+                              if (timeLeft <= 0) {
+                                        clearInterval(countdownInterval);
+                                        countdown.textContent = '{{ texts.get("otp_expired", "หมดอายุแล้ว" if current_lang == "th" else "Expired") }}';
+                                        otpInputs.forEach(i => i.disabled = true);
+                                        alert('{{ texts.get("otp_expired_msg", "OTP หมดอายุแล้ว กรุณาขอรหัสใหม่" if current_lang == "th" else "OTP expired. Please request a new one") }}');
+                              }
+                    }, 1000);
+
+                    document.querySelectorAll('.notification .delete').forEach(($delete) => {
+                              $delete.addEventListener('click', () => $delete.parentNode.remove());
+                    });
+
+                    otpInputs[0].focus();
           });
 </script>
+
 {% endblock %}

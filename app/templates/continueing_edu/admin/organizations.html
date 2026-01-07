@@ -1,0 +1,52 @@
+{% extends 'continueing_edu/admin/base.html' %}
+
+{% block title %}Organizations - Admin{% endblock %}
+
+{% block content %}
+<div class="container">
+          <h1 class="title">Organization Types</h1>
+          <div class="box">
+                    <ul>
+                              {% for t in org_types %}
+                              <li>{{ t.name_en }} ({{ t.name_th or '-' }})</li>
+                              {% endfor %}
+                    </ul>
+          </div>
+
+          <h2 class="title">Organizations</h2>
+          <div class="box">
+                    <a class="button is-primary"
+                              href="{{ url_for('continuing_edu_admin.organizations_create') }}">Create Organization</a>
+                    <table class="table is-fullwidth mt-3">
+                              <thead>
+                                        <tr>
+                                                  <th>ID</th>
+                                                  <th>Name</th>
+                                                  <th>Type</th>
+                                                  <th>Actions</th>
+                                        </tr>
+                              </thead>
+                              <tbody>
+                                        {% for o in orgs %}
+                                        <tr>
+                                                  <td>{{ o.id }}</td>
+                                                  <td>{{ o.name }}</td>
+                                                  <td>{{ o.organization_type.name_en if o.organization_type else '-' }}
+                                                  </td>
+                                                  <td>
+                                                            <a class="button is-small"
+                                                                      href="{{ url_for('continuing_edu_admin.organizations_edit', org_id=o.id) }}">Edit</a>
+                                                            <form style="display:inline" method="post"
+                                                                      action="{{ url_for('continuing_edu_admin.organizations_delete', org_id=o.id) }}">
+                                                                      <button class="button is-small is-danger"
+                                                                                type="submit"
+                                                                                onclick="return confirm('Delete organization?');">Delete</button>
+                                                            </form>
+                                                  </td>
+                                        </tr>
+                                        {% endfor %}
+                              </tbody>
+                    </table>
+          </div>
+</div>
+{% endblock %}

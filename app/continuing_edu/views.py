@@ -17,6 +17,7 @@ from .models import (
     MemberRegistration,
     EventRegistrationFee,
     RegisterPayment,
+    ContinuingInvoice,
     RegisterPaymentStatus,
     Organization,
     OrganizationType,
@@ -25,6 +26,7 @@ from .models import (
     MemberType,
     Gender,
     AgeRange,
+    SpeakerProfile,
 )
 from app.comhealth.models import ComHealthOrg
 from sqlalchemy import or_, and_, func
@@ -39,6 +41,7 @@ except Exception:
     HTML = None
 
 import os, secrets, time
+import re
 from urllib.parse import urljoin
 from requests_oauthlib import OAuth2Session
 from datetime import datetime, timezone
@@ -47,6 +50,7 @@ from werkzeug.utils import secure_filename
 from textwrap import shorten
 
 from . import translations as tr  # Import translations from local package
+import arrow
 from .status_utils import get_registration_status, get_certificate_status
 from .certificate_utils import issue_certificate, can_issue_certificate, build_certificate_context
 
@@ -295,6 +299,7 @@ def test_google_signup():
 def register():
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
+    next_url = request.args.get('next') or request.form.get('next')
 
     form_values = request.form.to_dict() if request.method == 'POST' else {}
     address_entries = _collect_address_entries_from_form(request.form) if request.method == 'POST' else _default_address_entries()
@@ -319,6 +324,16 @@ def register():
         accept_news = bool(request.form.get('accept_news'))
         not_bot = (request.form.get('not_bot') or '').strip().lower()
 
+        member_type_choice = (request.form.get('member_type_id') or '').strip()
+        member_type_other = (request.form.get('member_type_other') or '').strip()
+        # template names: age_range and gender
+        age_ranges_choice = (request.form.get('age_range') or '').strip()
+        genders_choice = (request.form.get('gender') or '').strip()
+
+        member_type_id = member_type_choice
+        age_range_id = age_ranges_choice
+        gender_id = genders_choice
+      
         organization_name = (request.form.get('organization_name') or '').strip()
         organization_type_choice = (request.form.get('organization_type_id') or '').strip()
         organization_type_other = (request.form.get('organization_type_other') or '').strip()
@@ -344,6 +359,18 @@ def register():
             errors.append(texts.get('organization_type_other_placeholder', 'Please specify organization type.'))
         if occupation_choice == 'other' and not occupation_other:
             errors.append(texts.get('occupation_other_placeholder', 'Please specify occupation.'))
+
+        # Validate full name (at least one language) as shown in the form
+        full_name_th = (request.form.get('full_name_th') or '').strip()
+        full_name_en = (request.form.get('full_name_en') or '').strip()
+        if not (full_name_th or full_name_en):
+            errors.append(texts.get('name_requirement', 'Please provide your name in Thai or English.'))
+
+        # Organization and occupation are required by the form templates
+        if not organization_name:
+            errors.append(texts.get('organization_placeholder', 'Please provide an organization name.'))
+        if not occupation_choice:
+            errors.append(texts.get('occupation_label', 'Please select or specify an occupation.'))
 
         # Address validations
         meaningful_addresses = []
@@ -465,6 +492,20 @@ def register():
                 if organization_country_name and not organization.country:
                     organization.country = organization_country_name
 
+        # prepare nullable integer ids
+        try:
+            mt_id = int(member_type_id) if member_type_id else None
+        except (ValueError, TypeError):
+            mt_id = None
+        try:
+            ag_id = int(age_range_id) if age_range_id else None
+        except (ValueError, TypeError):
+            ag_id = None
+        try:
+            g_id = int(gender_id) if gender_id else None
+        except (ValueError, TypeError):
+            g_id = None
+
         member = Member(
             username=username,
             email=email,
@@ -472,6 +513,12 @@ def register():
             organization=organization,
             occupation=occupation,
             received_news=accept_news,
+            full_name_th=full_name_th or None,
+            full_name_en=full_name_en or None,
+            phone_no=(request.form.get('phone_no') or None),
+            member_type_id=mt_id,
+            age_range_id=ag_id,
+            gender_id=g_id,
         )
         db.session.add(member)
         db.session.flush()
@@ -519,6 +566,22 @@ def register():
             member.zip_code = created_addresses[0].postal_code
             member.country = created_addresses[0].country_name
 
+        # Final server-side validation using model helper
+        if not member.is_profile_complete():
+            db.session.rollback()
+            flash(texts.get('register_error_complete_form', 'Please complete all required fields in the form.'), 'danger')
+            return render_template(
+                'continueing_edu/register_modern.html',
+                texts=texts,
+                current_lang=lang,
+                form_values=form_values,
+                organization_types=organization_types,
+                occupations=occupations,
+                organizations=organizations,
+                address_entries=address_entries,
+                country_options=COUNTRY_OPTIONS,
+            )
+
         try:
             db.session.commit()
         except IntegrityError as exc:
@@ -542,6 +605,8 @@ def register():
         session['otp_code'] = otp_code
         session['otp_username'] = username
         session['otp_email'] = email
+        if next_url:
+            session['register_next_url'] = next_url
         try:
             if email:
                 send_mail(
@@ -560,7 +625,7 @@ def register():
                 'danger',
             )
 
-        return render_template('continueing_edu/otp_verify.html', username=username, current_lang=lang, texts=texts)
+        return render_template('continueing_edu/otp_verify.html', username=username, current_lang=lang, texts=texts, next=next_url)
 
     # Use modern template if requested
     use_modern = request.args.get('modern', '1') == '1'
@@ -637,10 +702,22 @@ def otp_verify():
         if member:
             member.is_verified = True  # You must add this field in your model/migration
             db.session.commit()
+            
+        # Get next_url from session
+        next_url = session.pop('register_next_url', None)
+        
         session.pop('otp_code', None)
         session.pop('otp_username', None)
         session.pop('otp_email', None)
+        
         flash('ยืนยัน OTP สำเร็จ! สมัครสมาชิกสมบูรณ์' if lang == 'th' else 'OTP verification successful! Registration complete', 'success')
+        
+        # If there's a next_url, auto-login and redirect
+        if next_url and member:
+            session['member_id'] = member.id
+            flash(f"ยินดีต้อนรับ {member.full_name_th or member.username}!" if lang == 'th' else f"Welcome {member.full_name_en or member.username}!", 'success')
+            return redirect(next_url)
+        
         return redirect(url_for('continuing_edu.login', lang=lang, texts=texts))
     else:
         flash('OTP ไม่ถูกต้อง กรุณาลองใหม่' if lang == 'th' else 'Invalid OTP. Please try again.', 'danger')
@@ -1492,29 +1569,40 @@ def register_event(event_id):
     event = EventEntity.query.get_or_404(event_id)
     member = get_current_user()
 
-    print(f"Registering for event ID: {event_id}, Member ID: {member.id if member else 'None'}")
+    print(f"[REGISTER_EVENT] Event ID: {event_id}, Member ID: {member.id if member else 'None'}")
     
     # Redirect to login if not authenticated
     if not member:
+        print(f"[REGISTER_EVENT] Member not logged in, redirecting to login")
         flash(texts.get('login_required', 'กรุณาเข้าสู่ระบบก่อนลงทะเบียน' if lang == 'th' else 'Please login to register.'), 'warning')
         next_url = url_for('continuing_edu.register_event', event_id=event_id, lang=lang)
         return redirect(url_for('continuing_edu.login', lang=lang, next=next_url))
 
+    # Check if member has member_type_id set
+    if not member.member_type_id:
+        print(f"[REGISTER_EVENT] Member has no member_type_id, redirecting to complete profile")
+        flash(texts.get('complete_profile_required', 'กรุณาเลือกประเภทสมาชิกก่อนลงทะเบียน' if lang == 'th' else 'Please complete your profile (member type) before registering.'), 'warning')
+        return redirect(url_for('continuing_edu.complete_profile', lang=lang, next=url_for('continuing_edu.register_event', event_id=event_id, lang=lang)))
+    
     # Already registered?
     existing = MemberRegistration.query.filter_by(member_id=member.id, event_entity_id=event.id).first()
     if existing:
+        print(f"[REGISTER_EVENT] Already registered - Registration ID: {existing.id}")
         flash(texts.get('already_registered', 'You are already registered for this event.'), 'info')
         return redirect(url_for('continuing_edu.course_detail' if event.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event.id if event.event_type=='course' else None, webinar_id=event.id if event.event_type=='webinar' else None, lang=lang))
 
     fee, price = _price_for_member(event, member)
+    print(f"[REGISTER_EVENT] Member type: {member.member_type_id}, Fee: {fee}, Price: {price}")
+    
     if not fee:
-        flash(texts.get('no_fee_defined', 'No registration fee defined for your member type.'), 'danger')
+        print(f"[REGISTER_EVENT] No fee found for member type: {member.member_type_id}, redirecting back")
+        flash(texts.get('no_fee_defined', 'ไม่พบข้อมูลค่าลงทะเบียนสำหรับประเภทสมาชิกของคุณ กรุณาติดต่อผู้ดูแลระบบ' if lang == 'th' else 'No registration fee defined for your member type. Please contact administrator.'), 'danger')
         return redirect(url_for('continuing_edu.course_detail' if event.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event.id if event.event_type=='course' else None, webinar_id=event.id if event.event_type=='webinar' else None, lang=lang))
 
     # Check if early bird is active
     is_early_bird = is_early_bird_active(event)
 
-    
+    print(f"[REGISTER_EVENT] Showing confirmation page for event: {event.title_en}")
     # Show confirmation page
     return render_template('continueing_edu/registration_confirmation.html', 
                          event=event, 
@@ -1536,6 +1624,8 @@ def confirm_registration(event_id):
     event = EventEntity.query.get_or_404(event_id)
     member = get_current_user()
     
+    print(f"[CONFIRM_REGISTRATION] Event ID: {event_id}, Member: {member.id if member else 'None'}")
+    
     if not member:
         flash(texts.get('login_required', 'กรุณาเข้าสู่ระบบก่อนลงทะเบียน' if lang == 'th' else 'Please login to register.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
@@ -1543,15 +1633,31 @@ def confirm_registration(event_id):
     # Check if already registered
     existing = MemberRegistration.query.filter_by(member_id=member.id, event_entity_id=event.id).first()
     if existing:
+        print(f"[CONFIRM_REGISTRATION] Already registered - Registration ID: {existing.id}")
         flash(texts.get('already_registered', 'คุณได้ลงทะเบียนแล้ว' if lang == 'th' else 'You are already registered for this event.'), 'info')
         return redirect(url_for('continuing_edu.course_detail' if event.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event.id if event.event_type=='course' else None, webinar_id=event.id if event.event_type=='webinar' else None, lang=lang))
     
     fee, price = _price_for_member(event, member)
+    print(f"[CONFIRM_REGISTRATION] Member type: {member.member_type_id}, Fee: {fee}, Price: {price}")
+    
     if not fee:
+        print(f"[CONFIRM_REGISTRATION] No fee found for member type: {member.member_type_id}")
         flash(texts.get('no_fee_defined', 'ไม่พบข้อมูลค่าลงทะเบียนสำหรับประเภทสมาชิกของคุณ' if lang == 'th' else 'No registration fee defined for your member type.'), 'danger')
         return redirect(url_for('continuing_edu.course_detail' if event.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event.id if event.event_type=='course' else None, webinar_id=event.id if event.event_type=='webinar' else None, lang=lang))
 
     if request.method == 'POST':
+        # Get payment method from form
+        payment_method = request.form.get('payment_method', 'promptpay')
+        terms_accepted = request.form.get('terms_accepted')
+        
+        print(f"[CONFIRM_REGISTRATION] Creating registration and payment...")
+        print(f"[CONFIRM_REGISTRATION] Payment method: {payment_method}, Terms accepted: {terms_accepted}")
+        
+        # Validate terms acceptance
+        if not terms_accepted:
+            flash(texts.get('terms_required', 'กรุณายอมรับข้อตกลงและเงื่อนไข' if lang == 'th' else 'Please accept the terms and conditions.'), 'warning')
+            return redirect(url_for('continuing_edu.register_event', event_id=event_id, lang=lang))
+        
         # Create registration and pending payment
         registered_status = get_registration_status('registered', 'registered', 'ลงทะเบียนแล้ว', 'is-info')
         pending_cert = get_certificate_status('pending', 'รอดำเนินการ', 'is-info')
@@ -1559,6 +1665,18 @@ def confirm_registration(event_id):
                                  status_id=registered_status.id,
                                  certificate_status_id=pending_cert.id)
         db.session.add(reg)
+        # create invoice record to be used across payment methods
+        try:
+            inv = ContinuingInvoice(member_id=member.id, event_entity_id=event.id, amount=price, status='pending')
+            db.session.add(inv)
+            db.session.commit()
+            # set invoice number after we have id
+            inv.invoice_no = f"INV{inv.id:06d}"
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            inv = None
+
         # payment status pending (id may be 1); try lookup by name_en
         pending = RegisterPaymentStatus.query.filter((RegisterPaymentStatus.register_payment_status_code=='pending') | (RegisterPaymentStatus.name_en=='pending')).first()
         pay = RegisterPayment(
@@ -1566,9 +1684,11 @@ def confirm_registration(event_id):
             event_entity_id=event.id,
             payment_status_id=pending.id if pending else 1,
             payment_amount=price,
+            invoice_id=inv.id if inv else None,
         )
         db.session.add(pay)
         db.session.commit()
+        print(f"[CONFIRM_REGISTRATION] Registration created - Reg ID: {reg.id}, Payment ID: {pay.id}")
         # Notify member by email (best-effort)
         try:
             subj = texts.get('registration_success', 'Registration submitted. Payment pending.')
@@ -1624,9 +1744,527 @@ def confirm_registration(event_id):
         except Exception:
             pass
         flash(texts.get('registration_success', 'Registration submitted. Payment pending.'), 'success')
-        return redirect(url_for('continuing_edu.course_detail' if event.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event.id if event.event_type=='course' else None, webinar_id=event.id if event.event_type=='webinar' else None, lang=lang))
+        # Redirect to payment page with payment method
+        print(f"[CONFIRM_REGISTRATION] Redirecting to payment page for payment ID: {pay.id}, method: {payment_method}")
+        return redirect(url_for('continuing_edu.payment_process', payment_id=pay.id, payment_method=payment_method, lang=lang))
 
     return render_template('continueing_edu/register_event.html', event=event, member=member, fee=fee, price=price, texts=texts, current_lang=lang)
+
+@ce_bp.route('/payment/<int:payment_id>')
+def payment_page(payment_id):
+    """Display payment options page for a registration"""
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    
+    # Get current user
+    member = get_current_user()
+    if not member:
+        flash(texts.get('login_required', 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' if lang == 'th' else 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    
+    # Get payment record
+    payment = RegisterPayment.query.get_or_404(payment_id)
+    
+    # Verify ownership
+    if payment.member_id != member.id:
+        flash(texts.get('not_allowed', 'คุณไม่ได้รับอนุญาตให้เข้าถึงหน้านี้' if lang == 'th' else 'You are not allowed to access this page.'), 'danger')
+        return redirect(url_for('continuing_edu.index', lang=lang))
+    
+    # Get event details
+    event = payment.event_entity
+    
+    # Get payment configuration from environment
+    payment_qr_url = os.environ.get('PAYMENT_QR_URL')
+    promptpay_id = os.environ.get('PROMPTPAY_ID')
+    bank_info = os.environ.get('BANK_INFO')
+    payment_instructions = os.environ.get('PAYMENT_INSTRUCTIONS')
+    payment_gateway_url = os.environ.get('PAYMENT_GATEWAY_URL')
+    # defaults for SCB QR variables
+    scb_qr_image = None
+    scb_ref1 = None
+    scb_ref2 = None
+
+    # If SCB gateway configured and user chose PromptPay, try to generate QR code (lazy import)
+    try:
+        if os.environ.get('PAYMENT_GATEWAY') == 'scb' and payment_method == 'promptpay':
+            try:
+                from app.scb_payment_service.views import generate_qrcode
+                # Use invoice number as ref1 and event id as ref2
+                invoice = getattr(payment, 'invoice', None)
+                if not invoice and payment.invoice_id:
+                    from .models import ContinuingInvoice as _CI
+                    invoice = _CI.query.get(payment.invoice_id)
+                scb_ref1 = invoice.invoice_no if invoice and invoice.invoice_no else (f"INV{(invoice.id if invoice else payment.id):06d}")
+                scb_ref2 = f"{event.id}"
+                # service/ref3: prefer env setting but default to MUMTEDU
+                ref3 = os.environ.get('SCB_REF3') or 'MUMTEDU'
+                # expiry: now (Asia/Bangkok) + 1 hour
+                expire_dt = arrow.utcnow().to('Asia/Bangkok').shift(hours=+1).format('YYYY-MM-DD HH:mm:ss')
+                # amount may be Decimal or string; ensure numeric-friendly
+                amount = float(payment.payment_amount) if payment.payment_amount is not None else 0.0
+                data = generate_qrcode(amount, ref1=scb_ref1, ref2=scb_ref2, ref3=ref3, expired_at=expire_dt)
+                if isinstance(data, dict) and data.get('qrImage'):
+                    scb_qr_image = data.get('qrImage')
+            except Exception:
+                # don't fail the whole page if SCB call fails; leave scb_qr_image None
+                scb_qr_image = None
+    except Exception:
+        scb_qr_image = None
+    payment_gateway = os.environ.get('PAYMENT_GATEWAY', '').lower()
+
+    # If using SCB gateway and promptpay selected, attempt to generate QR via SCB
+    scb_qr_image = None
+    scb_ref1 = None
+    scb_ref2 = None
+    if payment_method == 'promptpay' and payment_gateway == 'scb':
+        try:
+            # Build refs so SCB can return them in webhook (ref2 maps to our payment id)
+            scb_ref1 = f"EV{event.id}"
+            scb_ref2 = f"RP{payment.id}"
+            # Lazy import to avoid circular imports at module load
+            from app.scb_payment_service.views import generate_qrcode
+
+            data = generate_qrcode(amount=payment.payment_amount, ref1=scb_ref1, ref2=scb_ref2, ref3=os.environ.get('SCB_REF3') or os.environ.get('REF3'))
+            if isinstance(data, dict) and 'qrImage' in data:
+                scb_qr_image = data.get('qrImage')
+        except Exception as e:
+            print(f"[PAYMENT_PROCESS] SCB QR generation error: {e}")
+    
+    return render_template('continueing_edu/payment_page.html',
+                         payment=payment,
+                         event=event,
+                         member=member,
+                         texts=texts,
+                         current_lang=lang,
+                         payment_qr_url=payment_qr_url,
+                         promptpay_id=promptpay_id,
+                         bank_info=bank_info,
+                         payment_instructions=payment_instructions,
+                         payment_gateway_url=payment_gateway_url,
+                         logged_in_user=member)
+
+
+@ce_bp.route('/payment/<int:payment_id>/process')
+def payment_process(payment_id):
+    """Display payment processing page based on payment method"""
+    lang = request.args.get('lang', 'en')
+    payment_method = request.args.get('payment_method', 'promptpay')
+    texts = tr.get(lang, tr['en'])
+    
+    # Get current user
+    member = get_current_user()
+    if not member:
+        flash(texts.get('login_required', 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' if lang == 'th' else 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    
+    # Get payment record
+    payment = RegisterPayment.query.get_or_404(payment_id)
+    
+    # Verify ownership
+    if payment.member_id != member.id:
+        flash(texts.get('not_allowed', 'คุณไม่ได้รับอนุญาตให้เข้าถึงหน้านี้' if lang == 'th' else 'You are not allowed to access this page.'), 'danger')
+        return redirect(url_for('continuing_edu.index', lang=lang))
+    
+    # Get event details
+    event = payment.event_entity
+    
+    # Get payment configuration from environment
+    payment_qr_url = os.environ.get('PAYMENT_QR_URL')
+    promptpay_id = os.environ.get('PROMPTPAY_ID')
+    bank_info = os.environ.get('BANK_INFO')
+    payment_instructions = os.environ.get('PAYMENT_INSTRUCTIONS')
+    payment_gateway_url = os.environ.get('PAYMENT_GATEWAY_URL')
+    # Prepare SCB QR defaults so template variables always exist
+    scb_qr_image = None
+    scb_ref1 = None
+    scb_ref2 = None
+
+    # Attempt SCB QR generation when configured and PromptPay selected
+    try:
+        if os.environ.get('PAYMENT_GATEWAY') == 'scb' and payment_method == 'promptpay':
+            try:
+                from app.scb_payment_service.views import generate_qrcode
+                invoice = getattr(payment, 'invoice', None)
+                if not invoice and payment.invoice_id:
+                    from .models import ContinuingInvoice as _CI
+                    invoice = _CI.query.get(payment.invoice_id)
+                scb_ref1 = invoice.invoice_no if invoice and invoice.invoice_no else (f"INV{(invoice.id if invoice else payment.id):06d}")
+                scb_ref2 = f"{event.id}"
+                ref3 = os.environ.get('SCB_REF3') or 'MUMTEDU'
+                expire_dt = arrow.utcnow().to('Asia/Bangkok').shift(hours=+1).format('YYYY-MM-DD HH:mm:ss')
+                amount = float(payment.payment_amount) if payment.payment_amount is not None else 0.0
+                data = generate_qrcode(amount, ref1=scb_ref1, ref2=scb_ref2, ref3=ref3, expired_at=expire_dt)
+                if isinstance(data, dict) and data.get('qrImage'):
+                    scb_qr_image = data.get('qrImage')
+            except Exception:
+                scb_qr_image = None
+    except Exception:
+        scb_qr_image = None
+
+    return render_template('continueing_edu/payment_process.html',
+                         payment=payment,
+                         event=event,
+                         member=member,
+                         payment_method=payment_method,
+                         texts=texts,
+                         current_lang=lang,
+                         payment_qr_url=payment_qr_url,
+                         promptpay_id=promptpay_id,
+                         bank_info=bank_info,
+                         payment_instructions=payment_instructions,
+                         payment_gateway_url=payment_gateway_url,
+                         scb_qr_image=scb_qr_image,
+                         scb_ref1=scb_ref1,
+                         scb_ref2=scb_ref2,
+                         logged_in_user=member)
+
+
+@ce_bp.route('/payment/<int:payment_id>/upload-slip', methods=['POST'])
+def upload_payment_slip(payment_id):
+    """Upload payment slip for verification"""
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    
+    # Get current user
+    member = get_current_user()
+    if not member:
+        flash(texts.get('login_required', 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' if lang == 'th' else 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    
+    # Get payment record
+    payment = RegisterPayment.query.get_or_404(payment_id)
+    
+    # Verify ownership
+    if payment.member_id != member.id:
+        flash(texts.get('not_allowed', 'คุณไม่ได้รับอนุญาตให้เข้าถึงหน้านี้' if lang == 'th' else 'You are not allowed to access this page.'), 'danger')
+        return redirect(url_for('continuing_edu.index', lang=lang))
+    
+    # Check if file was uploaded
+    if 'slip' not in request.files:
+        flash(texts.get('no_file', 'กรุณาเลือกไฟล์' if lang == 'th' else 'Please select a file.'), 'warning')
+        return redirect(request.referrer or url_for('continuing_edu.my_payments', lang=lang))
+    
+    file = request.files['slip']
+    if file.filename == '':
+        flash(texts.get('no_file', 'กรุณาเลือกไฟล์' if lang == 'th' else 'Please select a file.'), 'warning')
+        return redirect(request.referrer or url_for('continuing_edu.my_payments', lang=lang))
+    
+    # Save file (implement your file storage logic here)
+    # For now, just update payment status to "pending verification"
+    try:
+        # You can save the file to a folder or cloud storage here
+        # filename = secure_filename(file.filename)
+        # file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        
+        # Update payment status to pending verification
+        verifying_status = RegisterPaymentStatus.query.filter(
+            (RegisterPaymentStatus.register_payment_status_code=='verifying') | 
+            (RegisterPaymentStatus.name_en=='verifying')
+        ).first()
+        
+        if verifying_status:
+            payment.payment_status_id = verifying_status.id
+            db.session.commit()
+        
+        # Send notification email to member that slip was uploaded
+        try:
+            subj = texts.get('slip_uploaded', 'Payment slip uploaded')
+            invoice_link = url_for('continuing_edu.view_invoice', payment_id=payment.id, lang=lang, _external=True)
+            body = (f"{texts.get('email_registered_for', 'Registered for')}: {payment.event_entity.title_en or payment.event_entity.title_th}\n"
+                    f"{texts.get('email_amount', 'Amount')}: {payment.payment_amount} THB\n"
+                    f"{texts.get('email_status', 'Status')}: {texts.get('status_verifying', 'Verifying')}\n\n"
+                    f"{texts.get('email_invoice', 'Invoice')}: {invoice_link}\n")
+            # use dedicated slip-uploaded template
+            email_html = render_template('continueing_edu/_slip_uploaded_email.html', payment=payment, event=payment.event_entity, member=member, texts=texts, current_lang=lang)
+            msg = Message(subject=subj, body=body, html=email_html, recipients=[member.email]) if getattr(member, 'email', None) else None
+            if msg:
+                mail.send(msg)
+        except Exception:
+            pass
+
+        flash(texts.get('slip_uploaded', 'อัพโหลดหลักฐานการชำระเงินสำเร็จ รอการตรวจสอบ' if lang == 'th' else 'Payment slip uploaded successfully. Waiting for verification.'), 'success')
+    except Exception as e:
+        print(f"Error uploading slip: {e}")
+        flash(texts.get('upload_error', 'เกิดข้อผิดพลาดในการอัพโหลด' if lang == 'th' else 'Error uploading file.'), 'danger')
+    
+    return redirect(url_for('continuing_edu.my_payments', lang=lang))
+
+
+@ce_bp.route('/payment/webhook/mock', methods=['POST'])
+def mock_payment_webhook():
+    """Mock webhook to simulate payment provider callback for development.
+    Accepts JSON with either `billPaymentRef2`, `payment_ref` or `payment_id`.
+    If `billPaymentRef2` like `RP{payment.id}` is provided, it maps back to the RegisterPayment.
+    """
+    data = request.get_json(silent=True) or request.form or {}
+    ref2 = data.get('billPaymentRef2') or data.get('payment_ref') or data.get('payment_id')
+    if not ref2:
+        return jsonify({'message': 'payment reference required (billPaymentRef2 or payment_id)'}), 400
+
+    # support multiple reference formats: INV{invoice_id}, RP{payment_id}, or plain payment id
+    payment = None
+    m_inv = re.search(r'INV(\d+)', str(ref2))
+    if m_inv:
+        inv_id = int(m_inv.group(1))
+        invoice = ContinuingInvoice.query.get(inv_id)
+        if not invoice:
+            return jsonify({'message': 'invoice not found'}), 404
+        payment = RegisterPayment.query.filter_by(invoice_id=invoice.id).first()
+    else:
+        m = re.search(r'RP(\d+)', str(ref2))
+        if m:
+            payment_id = int(m.group(1))
+            payment = RegisterPayment.query.get(payment_id)
+        else:
+            try:
+                payment_id = int(str(ref2))
+                payment = RegisterPayment.query.get(payment_id)
+            except Exception:
+                return jsonify({'message': 'invalid payment reference format'}), 400
+    if not payment:
+        return jsonify({'message': 'payment not found'}), 404
+
+    # mark as paid and notify using helper
+    try:
+        _mark_payment_paid_and_notify(payment.id, request.args.get('lang', 'en'))
+    except Exception:
+        return jsonify({'message': 'failed to mark payment'}), 500
+    return jsonify({'message': 'ok', 'payment_id': payment.id})
+
+
+def _mark_payment_paid_and_notify(payment_id, lang='en'):
+    """Helper to mark a RegisterPayment as paid and send notification email.
+    Intended for internal use by mock webhook and admin test page.
+    """
+    texts = tr.get(lang, tr['en'])
+    payment = RegisterPayment.query.get(payment_id)
+    if not payment:
+        raise ValueError('payment not found')
+    paid_status = RegisterPaymentStatus.query.filter(
+        (RegisterPaymentStatus.register_payment_status_code == 'paid') |
+        (RegisterPaymentStatus.name_en == 'paid')
+    ).first()
+    if paid_status:
+        payment.payment_status_id = paid_status.id
+    payment.paid_at = datetime.now()
+    db.session.add(payment)
+    db.session.commit()
+
+    # send notification
+    member = Member.query.get(payment.member_id)
+    subj = texts.get('payment_success', 'Payment successful!')
+    invoice_link = url_for('continuing_edu.view_invoice', payment_id=payment.id, lang=lang, _external=True)
+    payments_link = url_for('continuing_edu.my_payments', lang=lang, _external=True)
+    body = (f"{texts.get('email_registered_for', 'Registered for')}: {payment.event_entity.title_en or payment.event_entity.title_th}\n"
+            f"{texts.get('email_amount', 'Amount')}: {payment.payment_amount} THB\n"
+            f"{texts.get('email_status', 'Status')}: {texts.get('status_paid', 'Paid')}\n\n"
+            f"{texts.get('email_invoice', 'Invoice')}: {invoice_link}\n"
+            f"{texts.get('email_my_payments', 'My payments')}: {payments_link}\n")
+    email_html = render_template('continueing_edu/_payment_success_email.html', payment=payment, event=payment.event_entity, member=member, texts=texts, current_lang=lang)
+    msg = Message(subject=subj, body=body, html=email_html, recipients=[member.email]) if getattr(member, 'email', None) else None
+    if msg:
+        if HTML is not None:
+            try:
+                payment_qr_url = os.environ.get('PAYMENT_QR_URL')
+                promptpay_id = os.environ.get('PROMPTPAY_ID')
+                bank_info = os.environ.get('BANK_INFO')
+                payment_instructions = os.environ.get('PAYMENT_INSTRUCTIONS')
+                html = render_template(
+                    'continueing_edu/invoice.html',
+                    payment=payment,
+                    member=member,
+                    texts=texts,
+                    current_lang=lang,
+                    payment_qr_url=payment_qr_url,
+                    promptpay_id=promptpay_id,
+                    bank_info=bank_info,
+                    payment_instructions=payment_instructions,
+                    pdf_available=True,
+                )
+                pdf_bytes = HTML(string=html, base_url=request.host_url).write_pdf()
+                msg.attach(f"invoice_INV-{payment.id}.pdf", 'application/pdf', pdf_bytes)
+            except Exception:
+                pass
+        mail.send(msg)
+
+
+@ce_bp.route('/payment/<int:payment_id>/generate-scb-qrcode', methods=['POST'])
+def generate_scb_qrcode(payment_id):
+    """Generate SCB PromptPay QR for an existing RegisterPayment (dev helper).
+    Returns JSON: {qrImage: <base64>, ref1:..., ref2:...}
+    """
+    lang = request.args.get('lang', 'en')
+    member = get_current_user()
+    if not member:
+        return jsonify({'message': 'login required'}), 403
+    payment = RegisterPayment.query.get_or_404(payment_id)
+    if payment.member_id != member.id:
+        return jsonify({'message': 'not allowed'}), 403
+
+    if os.environ.get('PAYMENT_GATEWAY') != 'scb':
+        return jsonify({'message': 'scb gateway not enabled'}), 400
+
+    try:
+        from app.scb_payment_service.views import generate_qrcode
+        # Use invoice.invoice_no as ref1 and event id as ref2
+        invoice = getattr(payment, 'invoice', None)
+        if not invoice and payment.invoice_id:
+            from .models import ContinuingInvoice as _CI
+            invoice = _CI.query.get(payment.invoice_id)
+        scb_ref1 = invoice.invoice_no if invoice and invoice.invoice_no else (f"INV{(invoice.id if invoice else payment.id):06d}")
+        scb_ref2 = f"{payment.event_entity_id or getattr(payment.event_entity, 'id', 0)}"
+        ref3 = os.environ.get('SCB_REF3') or 'MUMTEDU'
+        expire_dt = arrow.utcnow().to('Asia/Bangkok').shift(hours=+1).format('YYYY-MM-DD HH:mm:ss')
+        amount = float(payment.payment_amount) if payment.payment_amount is not None else 0.0
+        data = generate_qrcode(amount, ref1=scb_ref1, ref2=scb_ref2, ref3=ref3, expired_at=expire_dt)
+        if isinstance(data, dict) and data.get('qrImage'):
+            return jsonify({'qrImage': data.get('qrImage'), 'ref1': scb_ref1, 'ref2': scb_ref2})
+        return jsonify({'error': data}), 500
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+
+@ce_bp.route('/admin/test-payment', methods=['GET', 'POST'])
+def admin_test_payment():
+    """Admin-only small page to trigger mock payment webhook locally.
+    Access controlled by environment variable `DEV_PAYMENT_ADMINS` which is a comma-separated list of allowed emails.
+    """
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    allowed_env = os.environ.get('DEV_PAYMENT_ADMINS')
+    allowed = []
+    if allowed_env:
+        allowed = [e.strip().lower() for e in allowed_env.split(',') if e.strip()]
+
+    if not user or (allowed and (not getattr(user, 'email', '').lower() in allowed)):
+        flash('Not allowed', 'danger')
+        return redirect(url_for('continuing_edu.index', lang=lang))
+
+    result = None
+    if request.method == 'POST':
+        payment_ref = request.form.get('payment_ref')
+        # reuse mock webhook parsing logic
+        data = {'billPaymentRef2': payment_ref}
+        # call internal function
+        # accept INV{invoice_id}, RP{payment_id} or plain numeric payment id
+        m_inv = re.search(r'INV(\d+)', str(payment_ref))
+        m = re.search(r'RP(\d+)', str(payment_ref))
+        pid = None
+        try:
+            if m_inv:
+                inv_id = int(m_inv.group(1))
+                inv = ContinuingInvoice.query.get(inv_id)
+                if not inv:
+                    raise ValueError('invoice not found')
+                payment_obj = RegisterPayment.query.filter_by(invoice_id=inv.id).first()
+                if not payment_obj:
+                    raise ValueError('payment for invoice not found')
+                pid = payment_obj.id
+            elif m:
+                pid = int(m.group(1))
+            else:
+                pid = int(str(payment_ref))
+            _mark_payment_paid_and_notify(pid, lang=lang)
+            result = {'status': 'ok', 'payment_id': pid}
+        except Exception as e:
+            result = {'status': 'error', 'error': str(e)}
+
+    return render_template('continueing_edu/admin_test_payment.html', result=result, texts=texts, current_lang=lang)
+
+
+@ce_bp.route('/payment/<int:payment_id>/process-credit-card', methods=['POST'])
+def process_credit_card(payment_id):
+    """Process credit card payment"""
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    
+    # Get current user
+    member = get_current_user()
+    if not member:
+        flash(texts.get('login_required', 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' if lang == 'th' else 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    
+    # Get payment record
+    payment = RegisterPayment.query.get_or_404(payment_id)
+    
+    # Verify ownership
+    if payment.member_id != member.id:
+        flash(texts.get('not_allowed', 'คุณไม่ได้รับอนุญาตให้เข้าถึงหน้านี้' if lang == 'th' else 'You are not allowed to access this page.'), 'danger')
+        return redirect(url_for('continuing_edu.index', lang=lang))
+    
+    # Get form data
+    card_number = request.form.get('card_number')
+    card_holder = request.form.get('card_holder')
+    expiry = request.form.get('expiry')
+    cvv = request.form.get('cvv')
+    
+    # Validate form data
+    if not all([card_number, card_holder, expiry, cvv]):
+        flash(texts.get('incomplete_data', 'กรุณากรอกข้อมูลให้ครบถ้วน' if lang == 'th' else 'Please fill in all fields.'), 'warning')
+        return redirect(url_for('continuing_edu.payment_process', payment_id=payment_id, payment_method='credit_card', lang=lang))
+    
+    try:
+        # TODO: Implement actual payment gateway integration here
+        # For now, just simulate success and update status
+        
+        # Update payment status to paid
+        paid_status = RegisterPaymentStatus.query.filter(
+            (RegisterPaymentStatus.register_payment_status_code=='paid') | 
+            (RegisterPaymentStatus.name_en=='paid')
+        ).first()
+        
+        if paid_status:
+            payment.payment_status_id = paid_status.id
+            payment.paid_at = datetime.now()
+            db.session.commit()
+            # Send payment success email with invoice/receipt
+            try:
+                subj = texts.get('payment_success', 'Payment successful!')
+                invoice_link = url_for('continuing_edu.view_invoice', payment_id=payment.id, lang=lang, _external=True)
+                payments_link = url_for('continuing_edu.my_payments', lang=lang, _external=True)
+                body = (f"{texts.get('email_registered_for', 'Registered for')}: {payment.event_entity.title_en or payment.event_entity.title_th}\n"
+                        f"{texts.get('email_amount', 'Amount')}: {payment.payment_amount} THB\n"
+                        f"{texts.get('email_status', 'Status')}: {texts.get('status_paid', 'Paid')}\n\n"
+                        f"{texts.get('email_invoice', 'Invoice')}: {invoice_link}\n"
+                        f"{texts.get('email_my_payments', 'My payments')}: {payments_link}\n")
+                # use dedicated payment success template
+                email_html = render_template('continueing_edu/_payment_success_email.html', payment=payment, event=payment.event_entity, member=member, texts=texts, current_lang=lang)
+                msg = Message(subject=subj, body=body, html=email_html, recipients=[member.email]) if getattr(member, 'email', None) else None
+                if msg:
+                    if HTML is not None:
+                        try:
+                            payment_qr_url = os.environ.get('PAYMENT_QR_URL')
+                            promptpay_id = os.environ.get('PROMPTPAY_ID')
+                            bank_info = os.environ.get('BANK_INFO')
+                            payment_instructions = os.environ.get('PAYMENT_INSTRUCTIONS')
+                            html = render_template(
+                                'continueing_edu/invoice.html',
+                                payment=payment,
+                                member=member,
+                                texts=texts,
+                                current_lang=lang,
+                                payment_qr_url=payment_qr_url,
+                                promptpay_id=promptpay_id,
+                                bank_info=bank_info,
+                                payment_instructions=payment_instructions,
+                                pdf_available=True,
+                            )
+                            pdf_bytes = HTML(string=html, base_url=request.host_url).write_pdf()
+                            msg.attach(f"invoice_INV-{payment.id}.pdf", 'application/pdf', pdf_bytes)
+                        except Exception:
+                            pass
+                    mail.send(msg)
+            except Exception:
+                pass
+
+        flash(texts.get('payment_success', 'ชำระเงินสำเร็จ' if lang == 'th' else 'Payment successful!'), 'success')
+        return redirect(url_for('continuing_edu.my_payments', lang=lang))
+    except Exception as e:
+        print(f"Error processing credit card: {e}")
+        flash(texts.get('payment_error', 'เกิดข้อผิดพลาดในการชำระเงิน' if lang == 'th' else 'Payment processing error.'), 'danger')
+        return redirect(url_for('continuing_edu.payment_process', payment_id=payment_id, payment_method='credit_card', lang=lang))
+
 
 @ce_bp.route('/members')
 def members_list():
@@ -1646,7 +2284,7 @@ def instructors_speakers():
     """Renders the instructors and speakers list page."""
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
-    speakers = InstructorSpeaker.query.all()
+    speakers = SpeakerProfile.query.all()
     return render_template('continueing_edu/instructors_speakers.html',
                            active_menu='Instructors & Speaker',
                            speakers=speakers,

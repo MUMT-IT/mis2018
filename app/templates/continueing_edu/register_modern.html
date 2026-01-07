@@ -1032,6 +1032,8 @@
                                 <option value="{{ org.name }}"></option>
                                 {% endfor %}
                             </datalist>
+                            <div id="org-suggest-list" class="org-suggest-list"
+                                style="display:block;position:relative;z-index:40;width:100%;"></div>
                         </div>
                     </div>
 
@@ -1145,6 +1147,22 @@
                                     value="{{ entry.label or '' }}"
                                     placeholder="{{ texts.get('address_name_placeholder', 'เช่น บ้าน, ที่ทำงาน' if current_lang == 'th' else 'e.g., Home, Work') }}">
                             </div>
+                            <!-- Address Line 1 (optional) -->
+                            <div class="columns">
+                                <div class="column is-12">
+                                    <div class="field">
+                                        <label class="modern-label">
+                                            <i class="fas fa-home field-icon"></i>
+                                            {{ texts.get('address_line1_label', 'ที่อยู่' if current_lang == 'th' else
+                                            'Address Line 1') }}
+                                        </label>
+                                        <input class="input modern-input" type="text" name="address_line1[]"
+                                            value="{{ entry.get('line1', entry.line1 if entry.line1 else '') }}"
+                                            placeholder="{{ texts.get('address_line1_placeholder', 'บ้านเลขที่ ซอย ถนน' if current_lang == 'th' else 'House number, Soi, Street') }}">
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Thai Address Autocomplete Fields -->
                             <div class="columns">
                                 <div class="column is-6">
@@ -1230,21 +1248,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- Address Line 1 (optional) -->
-                            <div class="columns">
-                                <div class="column is-12">
-                                    <div class="field">
-                                        <label class="modern-label">
-                                            <i class="fas fa-home field-icon"></i>
-                                            {{ texts.get('address_line1_label', 'ที่อยู่' if current_lang == 'th'
-                                            else 'Address Line 1') }}
-                                        </label>
-                                        <input class="input modern-input" type="text" name="address_line1[]"
-                                            value="{{ entry.get('line1', entry.line1 if entry.line1 else '') }}"
-                                            placeholder="{{ texts.get('address_line1_placeholder', 'บ้านเลขที่ ซอย ถนน' if current_lang == 'th' else 'House number, Soi, Street') }}">
-                                    </div>
-                                </div>
-                            </div>
+
                         </div>
                         {% endfor %}
                         {% endif %}
@@ -1649,6 +1653,78 @@
             // Initialize on page load
             orgTypeOtherField.style.display = orgTypeSelect.value === 'other' ? 'block' : 'none';
         }
+
+        // Enhanced autocomplete suggestions for organization input using datalist options
+        (function () {
+            const orgInput = document.getElementById('organization-name');
+            const orgDatalistEl = document.getElementById('organization-name-options');
+            if (!orgInput || !orgDatalistEl) return;
+
+            function buildOptions() {
+                return Array.from(orgDatalistEl.options).map(o => o.value).filter(Boolean);
+            }
+
+            // ensure parent is positioned for absolute suggestion box
+            const controlWrapper = orgInput.parentNode;
+            if (window.getComputedStyle(controlWrapper).position === 'static') {
+                controlWrapper.style.position = 'relative';
+            }
+
+            let suggestBox = document.getElementById('org-suggest-list');
+            if (!suggestBox) {
+                suggestBox = document.createElement('div');
+                suggestBox.id = 'org-suggest-list';
+                controlWrapper.appendChild(suggestBox);
+            }
+
+            // style suggestion box
+            suggestBox.style.position = 'absolute';
+            suggestBox.style.left = '0';
+            suggestBox.style.top = '100%';
+            suggestBox.style.background = '#fff';
+            suggestBox.style.border = '1px solid rgba(0,0,0,0.08)';
+            suggestBox.style.borderRadius = '6px';
+            suggestBox.style.boxShadow = '0 6px 12px rgba(0,0,0,0.08)';
+            suggestBox.style.width = '100%';
+            suggestBox.style.maxHeight = '200px';
+            suggestBox.style.overflow = 'auto';
+            suggestBox.style.zIndex = '60';
+
+            function renderMatches(val) {
+                const options = buildOptions();
+                suggestBox.innerHTML = '';
+                if (!val) return;
+                const matches = options.filter(o => o.toLowerCase().includes(val.toLowerCase())).slice(0, 12);
+                matches.forEach(m => {
+                    const item = document.createElement('div');
+                    item.textContent = m;
+                    item.style.padding = '8px 10px';
+                    item.style.cursor = 'pointer';
+                    item.style.borderBottom = '1px solid rgba(0,0,0,0.04)';
+                    item.addEventListener('mousedown', function (e) {
+                        e.preventDefault();
+                        orgInput.value = m;
+                        suggestBox.innerHTML = '';
+                    });
+                    suggestBox.appendChild(item);
+                });
+            }
+
+            orgInput.addEventListener('input', function () {
+                renderMatches(this.value.trim());
+            });
+
+            // hide suggestions on outside click
+            document.addEventListener('click', function (e) {
+                if (!controlWrapper.contains(e.target)) {
+                    suggestBox.innerHTML = '';
+                }
+            });
+
+            // keep options updated when datalist is changed dynamically
+            const observer = new MutationObserver(() => { });
+            observer.observe(orgDatalistEl, { childList: true });
+        })();
 
         // Occupation Toggle
         const occupationSelect = document.getElementById('occupation-select');

@@ -243,6 +243,28 @@ class Member(db.Model):
         return f"<Member {self.username}>"
 
 
+    def is_profile_complete(self) -> bool:
+        """Return True if the member has the minimal required profile information.
+
+        This mirrors the registration form requirements (at least one full name,
+        an organization, an occupation, and at least one address).
+        """
+        # At least one of the name fields should be present
+        if not (self.full_name_th or self.full_name_en):
+            return False
+
+        # Organization and occupation should be present according to the form
+        if not (self.organization_id or self.organization):
+            return False
+        if not (self.occupation_id or self.occupation):
+            return False
+
+        # At least one address
+        if not self.addresses or len(self.addresses) == 0:
+            return False
+
+        return True
+
 
 # Redesigned EventEntity: merged Course and Webinar fields into one table
 class EventEntity(db.Model):
@@ -471,6 +493,26 @@ class RegisterPaymentReceipt(db.Model):
         return f"<RegisterPaymentReceipt No:{self.receipt_number} Payment:{self.register_payment_id}>"  # Updated repr
 
 
+class ContinuingInvoice(db.Model):
+    """
+    Invoice record used for all payment methods for a registration.
+    """
+    __tablename__ = 'continuing_invoices'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    invoice_no = db.Column(db.String(100), unique=True, nullable=True)
+    member_id = db.Column(db.Integer, ForeignKey('members.id', ondelete='CASCADE'), nullable=False, index=True)
+    event_entity_id = db.Column(db.Integer, ForeignKey('event_entities.id', ondelete='CASCADE'), nullable=False, index=True)
+    amount = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(50), nullable=False, default='pending')
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+
+    member = relationship('Member', backref=db.backref('invoices', lazy=True))
+    event_entity = relationship('EventEntity', backref=db.backref('invoices', lazy=True))
+
+    def __repr__(self) -> str:
+        return f"<ContinuingInvoice {self.invoice_no or ('id:'+str(self.id))} Member:{self.member_id} Event:{self.event_entity_id} Amount:{self.amount}>"
+
+
 class RegisterPayment(db.Model):
     """Tracks payment information for event registrations."""
     __tablename__ = "register_payments"
@@ -496,6 +538,9 @@ class RegisterPayment(db.Model):
 
     # New field for payment proof file URL
     payment_proof_url = db.Column(db.String(500), nullable=True, comment="URL ของไฟล์หลักฐานการชำระเงิน")
+    # Link to invoice (optional)
+    invoice_id = db.Column(db.Integer, ForeignKey('continuing_invoices.id'), nullable=True)
+
 
     # New fields for staff approval
     approved_by_staff_id = db.Column(db.Integer, ForeignKey('staff_account.id'), nullable=True,
@@ -509,6 +554,7 @@ class RegisterPayment(db.Model):
                                                                       lazy=True))  # Relationship to StaffAccount for approval
     receipt = relationship("RegisterPaymentReceipt", back_populates="payment",
                            uselist=False)  # One-to-one relationship with RegisterPaymentReceipt
+    invoice = relationship('ContinuingInvoice', backref=db.backref('payments', lazy=True))
 
     def __repr__(self) -> str:
         return f"<RegisterPayment Member:{self.member_id} Event:{self.event_entity_id} Status:{self.payment_status_ref.name_en if self.payment_status_ref else 'N/A'}>"

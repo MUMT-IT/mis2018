@@ -7463,7 +7463,7 @@ const THAI_ADDRESS_DATA = [
 class ThaiAddressAutocomplete {
     constructor(data) {
         this.data = data;
-        this.maxResults = 10;
+        this.maxResults = 20;
     }
 
     search(query, field = null) {

@@ -5,171 +5,100 @@
 {% block extra_css %}
 {{ super() }}
 <style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
     body {
-        font-family: 'Inter', sans-serif;
-        background-color: #f8fafc;
-        /* Light Slate 50 */
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
     }
 
-    /* Custom styles for rounded corners and shadows */
-    .rounded-md {
-        border-radius: 0.375rem;
+    .modern-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: var(--card-shadow);
+        max-width: 520px;
+        width: 100%;
+        overflow: hidden;
     }
 
-    .rounded-lg {
-        border-radius: 0.5rem;
+    .card-body {
+        padding: 2rem 2.5rem;
     }
 
-    .rounded-full {
-        border-radius: 9999px;
-    }
-
-    .shadow-sm {
-        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    }
-
-    .shadow-lg {
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    }
-
-    .mb-4 {
-        margin-bottom: 1rem;
-    }
-
-    .mb-6 {
-        margin-bottom: 1.5rem;
-    }
-
-    .mt-4 {
-        margin-top: 1rem;
-    }
-
-    .py-4 {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-    }
-
-    .px-4 {
-        padding-left: 1rem;
-        padding-right: 1rem;
-    }
-
-    .p-8 {
-        padding: 2rem;
-    }
-
-    /* Colors */
-    .has-text-gray-800 {
-        color: #1f2937;
-    }
-
-    .has-text-gray-700 {
-        color: #374151;
-    }
-
-    .has-text-indigo-700 {
-        color: #4338ca;
-    }
-
-    .has-text-indigo-600 {
-        color: #4f46e5;
-    }
-
-    .has-text-white {
-        color: #ffffff;
-    }
-
-    .has-background-white {
-        background-color: #ffffff;
-    }
-
-    .has-background-indigo-600 {
-        background-color: #4f46e5;
-    }
-
-    .hover\:has-background-indigo-700:hover {
-        background-color: #4338ca;
-    }
-
-    .border {
-        border-width: 1px;
-        border-style: solid;
-    }
-
-    .border-gray-200 {
-        border-color: #e5e7eb;
-    }
-
-    .is-flex {
-        display: flex;
-    }
-
-    .is-flex-direction-column {
-        flex-direction: column;
-    }
-
-    .is-justify-content-space-between {
-        justify-content: space-between;
-    }
-
-    .is-align-items-center {
-        align-items: center;
-    }
-
-    .is-centered {
-        justify-content: center;
-    }
-
-    .is-fullwidth {
+    .modern-input {
+        border: 2px solid #e0e7ff;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: white;
         width: 100%;
     }
 
-
-    /* Custom styles for language buttons */
-    .language-button {
-        min-width: 60px;
-        /* Ensure a minimum width */
-        text-align: center;
+    .modern-input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        outline: none;
     }
 
-    .language-button.is-active {
-        background-color: #4338ca;
-        /* Indigo 700 */
+    .modern-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .password-toggle-wrapper {
+        position: relative;
+    }
+
+    .password-toggle-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #9ca3af;
+        z-index: 10;
+        padding: 8px;
+    }
+
+    .btn-primary {
+        background: var(--primary-gradient);
+        border: none;
         color: white;
-        border-color: #4338ca;
+        padding: 0.875rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        width: 100%;
     }
 
-    .language-button:not(.is-active) {
-        background-color: #e0e7ff;
-        /* Indigo 100 */
-        color: #4338ca;
-        /* Indigo 700 */
-        border-color: #e0e7ff;
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
     }
 
-    .language-button:not(.is-active):hover {
-        background-color: #c7d2fe;
-        /* Indigo 200 */
-        border-color: #c7d2fe;
+    .hero {
+        background: var(--primary-gradient);
+        padding: 1.25rem 1.25rem;
+        text-align: center;
+        color: white;
     }
 
-    /* Fix for language buttons with has-addons */
-    .buttons.has-addons .language-button:first-child {
-        border-top-left-radius: 290486px;
-        border-bottom-left-radius: 290486px;
-    }
-
-    .buttons.has-addons .language-button:last-child {
-        border-top-right-radius: 290486px;
-        border-bottom-right-radius: 290486px;
-    }
-
-
-    /* Style for the university logo */
-    .university-logo {
-        max-height: 2.5rem;
-        margin-right: 0.5rem;
-        width: auto;
+    .hero-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
     }
 </style>
 {% endblock %}
@@ -179,91 +108,72 @@
     <div class="container is-max-desktop">
         <h1 class="title is-2 has-text-centered mb-6 has-text-gray-800 rounded-md">{{ texts.login_page_title }}</h1>
 
-        <div class="box max-w-xl mx-auto p-8 rounded-lg shadow-md border border-gray-200">
-            <form method="POST" action="{{ url_for('continuing_edu.login', lang=current_lang) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                {% if next %}
-                <input type="hidden" name="next" value="{{ next }}" />
-                {% endif %}
-                <div class="field mb-4">
-                    <label for="email" class="label has-text-gray-700">
-                        <span class="icon-text">
-                            <span class="icon has-text-indigo-600">
-                                <i class="fas fa-envelope"></i>
-                            </span>
-                            <span>{{ 'อีเมล' if current_lang == 'th' else 'Email' }}</span>
-                        </span>
-                    </label>
-                    <div class="control has-icons-left">
-                        <input type="email" id="email" name="email" class="input rounded-md"
-                            placeholder="{{ 'your.email@example.com' if current_lang == 'en' else 'อีเมลของคุณ' }}"
-                            required>
-                        <span class="icon is-small is-left">
-                            <i class="fas fa-envelope"></i>
-                        </span>
-                    </div>
-                    <p class="help" style="color: #9ca3af; font-size: 0.875rem; margin-top: 0.25rem;">
-                        {{ 'ใช้อีเมลที่ลงทะเบียนไว้' if current_lang == 'th' else 'Use your registered email
-                        address' }}
-                    </p>
-                </div>
-                <div class="field mb-6">
-                    <label for="password" class="label has-text-gray-700">
-                        <span class="icon-text">
-                            <span class="icon has-text-indigo-600">
-                                <i class="fas fa-lock"></i>
-                            </span>
-                            <span>{{ texts.password_label }}</span>
-                        </span>
-                    </label>
-                    <div class="control has-icons-left">
-                        <input type="password" id="password" name="password" class="input rounded-md"
-                            placeholder="{{ texts.password_label }}" required>
-                        <span class="icon is-small is-left">
-                            <i class="fas fa-lock"></i>
-                        </span>
-                    </div>
-                </div>
-                <div class="field">
-                    <button type="submit"
-                        class="button is-info is-fullwidth is-rounded has-background-indigo-600 hover:has-background-indigo-700 has-text-white"
-                        style="font-weight: 600;">
-                        <span class="icon">
-                            <i class="fas fa-sign-in-alt"></i>
-                        </span>
-                        <span>{{ texts.login_btn }}</span>
-                    </button>
-                </div>
-
-
-            </form>
-            <p class="has-text-centered mt-4">
-                {{ texts.no_account_yet }} <a href="{{ url_for('continuing_edu.register', lang=current_lang) }}"
-                    class="has-text-indigo-700">{{ texts.register_btn }}</a>
-            </p>
-            <p class="has-text-centered mt-2">
-                <a href="{{ url_for('continuing_edu.forgot_password', lang=current_lang) }}" class="has-text-grey-dark">
-                    <span class="icon-text">
-                        <span class="icon">
-                            <i class="fas fa-key"></i>
-                        </span>
-                        <span>{{ 'ลืมรหัสผ่าน?' if current_lang=='th' else 'Forgot your password?' }}</span>
-                    </span>
-                </a>
-            </p>
-
-            <div style="display: flex; align-items: center; margin: 1.5rem 0;">
-                <div style="flex: 1; border-bottom: 1px solid #e5e7eb;"></div>
-                <span style="padding: 0 1rem; color: #6b7280; font-size: 0.875rem;">{{ 'หรือ' if current_lang ==
-                    'th' else 'OR' }}</span>
-                <div style="flex: 1; border-bottom: 1px solid #e5e7eb;"></div>
+        <div class="modern-card mx-auto animate-in">
+            <div class="hero">
+                <div class="hero-title">{{ texts.login_page_title }}</div>
             </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('continuing_edu.login', lang=current_lang) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    {% if next %}
+                    <input type="hidden" name="next" value="{{ next }}" />
+                    {% endif %}
+                    <div class="field" style="margin-bottom:1rem;">
+                        <label class="modern-label">
+                            <i class="fas fa-envelope field-icon"></i>
+                            {{ 'อีเมล' if current_lang == 'th' else 'Email' }}
+                        </label>
+                        <input type="email" id="email" name="email" class="modern-input"
+                            placeholder="{{ 'your.email@example.com' if current_lang == 'en' else 'อีเมลของคุณ' }}"
+                            required />
+                    </div>
 
-            <div class="has-text-centered mt-3">
-                <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline"
-                    data-text="continue_with" data-size="large" data-logo_alignment="center"
-                    data-client_id="206836986017-1dctro1ehrqta2r91e5appn5j78spn9h.apps.googleusercontent.com"
-                    data-ux_mode="popup" data-callback="handleCredentialResponse">
+                    <div class="field" style="margin-bottom:1.25rem;">
+                        <label class="modern-label">
+                            <i class="fas fa-lock field-icon"></i>
+                            {{ texts.password_label }}
+                        </label>
+                        <div class="password-toggle-wrapper">
+                            <input type="password" id="password" name="password" class="modern-input"
+                                placeholder="{{ texts.password_label }}" required />
+                            <i class="fas fa-eye password-toggle-icon" id="toggle-password"
+                                title="{{ texts.get('show_password', 'แสดงรหัสผ่าน' if current_lang == 'th' else 'Show password') }}"></i>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-sign-in-alt" style="margin-right:0.5rem"></i> {{ texts.login_btn }}
+                        </button>
+                    </div>
+
+
+                </form>
+                <p class="has-text-centered" style="margin-top:1rem">
+                    {{ texts.no_account_yet }} <a href="{{ url_for('continuing_edu.register', lang=current_lang) }}"
+                        class="has-text-indigo-700">{{ texts.register_btn }}</a>
+                </p>
+                <p class="has-text-centered" style="margin-top:0.5rem">
+                    <a href="{{ url_for('continuing_edu.forgot_password', lang=current_lang) }}"
+                        class="has-text-grey-dark">
+                        <i class="fas fa-key" style="margin-right:0.35rem"></i> {{ 'ลืมรหัสผ่าน?' if current_lang=='th'
+                        else 'Forgot your password?' }}
+                    </a>
+                </p>
+
+                <div style="display: flex; align-items: center; margin: 1.5rem 0;">
+                    <div style="flex: 1; border-bottom: 1px solid #e5e7eb;"></div>
+                    <span style="padding: 0 1rem; color: #6b7280; font-size: 0.875rem;">{{ 'หรือ' if current_lang ==
+                        'th' else 'OR' }}</span>
+                    <div style="flex: 1; border-bottom: 1px solid #e5e7eb;"></div>
+                </div>
+
+                <div class="has-text-centered mt-3">
+                    <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline"
+                        data-text="continue_with" data-size="large" data-logo_alignment="center"
+                        data-client_id="206836986017-1dctro1ehrqta2r91e5appn5j78spn9h.apps.googleusercontent.com"
+                        data-ux_mode="popup" data-callback="handleCredentialResponse">
+                    </div>
                 </div>
             </div>
         </div>
@@ -303,5 +213,26 @@
         document.body.appendChild(form);
         form.submit();
     }
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const togglePassword = document.getElementById('toggle-password');
+        const passwordInput = document.getElementById('password');
+        if (togglePassword && passwordInput) {
+            togglePassword.addEventListener('click', function () {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                if (type === 'text') {
+                    this.classList.remove('fa-eye');
+                    this.classList.add('fa-eye-slash');
+                    this.setAttribute('title', '{{ texts.get("hide_password", "ซ่อนรหัสผ่าน" if current_lang == "th" else "Hide password") }}');
+                } else {
+                    this.classList.remove('fa-eye-slash');
+                    this.classList.add('fa-eye');
+                    this.setAttribute('title', '{{ texts.get("show_password", "แสดงรหัสผ่าน" if current_lang == "th" else "Show password") }}');
+                }
+            });
+        }
+    });
 </script>
 {% endblock %}

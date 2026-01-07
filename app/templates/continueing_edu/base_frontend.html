@@ -26,11 +26,25 @@
 
                     html {
                               scroll-behavior: smooth;
+                              height: 100%;
                     }
 
                     body {
                               font-family: 'Inter', sans-serif;
                               background-color: #f8fafc;
+                              min-height: 100%;
+                              display: flex;
+                              flex-direction: column;
+                    }
+
+                    /* Make main content area grow to push footer down */
+                    body>header {
+                              flex-shrink: 0;
+                    }
+
+                    body>footer {
+                              flex-shrink: 0;
+                              margin-top: auto;
                     }
 
                     /* Custom styles for rounded corners and shadows */
@@ -173,8 +187,14 @@
                     }
 
                     /* Capsule shape for language buttons */
+                    .buttons.has-addons {
+                              display: inline-flex;
+                              flex-wrap: nowrap;
+                    }
+
                     .buttons.has-addons .language-button {
                               border-radius: 0 !important;
+                              white-space: nowrap;
                     }
 
                     .buttons.has-addons .language-button:first-child {
@@ -528,7 +548,7 @@
                                                             <p class="is-size-7 has-text-grey-light">
                                                                       © 2025 {{
                                                                       texts.get('university_academic_services',
-                                                                      'University Academic Services') }}.
+                                                                      'MUMT Academic Services') }}.
                                                                       {{ texts.get('all_rights_reserved', 'All rights
                                                                       reserved.') }}
                                                             </p>
