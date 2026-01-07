@@ -5378,65 +5378,69 @@ def edit_result_item(result_item_id):
     if form.validate_on_submit():
         form.populate_obj(result_item)
         # status_id = get_status(14)
-        result_item.edit_requester_id = current_user.id
-        result_item.req_edit_at = arrow.now('Asia/Bangkok').datetime
-        # result_item.result.request.status_id = status_id
-        result_item.result.result_edit_at = arrow.now('Asia/Bangkok').datetime
-        db.session.add(result_item)
-        db.session.commit()
-        scheme = 'http' if current_app.debug else 'https'
-        admins = (
-            ServiceAdmin.query
-            .join(ServiceSubLab)
-            .filter(ServiceSubLab.code == result_item.result.request.sub_lab.code)
-            .all()
-        )
-        title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
-        link = url_for("service_admin.create_draft_result", rresult_id=result_item.result_id, request_id=result_item.result.request.id,
-                       menu='test_item', _external=True, _scheme=scheme)
-        customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
-        if admins:
-            title = f'''[{result_item.result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result_item.result.request.quotation_address.name}) | แจ้งขอแก้ไขใบรายงานผลการทดสอบ'''
-            message = f'''เรียน เจ้าหน้าที่{result_item.result.request.sub_lab.sub_lab}\n\n'''
-            message += f'''{result_item.report_language}ฉบับร่างของใบคำขอรับบริการเลขที่ : {result_item.result.request.request_no}\n'''
-            message += f'''ลูกค้า : {result_item.result.request.customer.customer_name}\n'''
-            message += f'''ในนาม : {result_item.result.request.quotation_address.name}\n'''
-            message += f'''ได้ขอดำเนินการแก้ไขรายงานผลการทดสอบเนื่องจาก {result_item.result.note}\n'''
-            message += f'''กรุณาดำเนินการแก้ไขรายงานผลการทดสอบได้ที่ลิงก์ด้านล่าง\n'''
-            message += f'''{link}\n\n'''
-            message += f'''ผู้ประสานงาน\n'''
-            message += f'''{result_item.result.request.customer.customer_name}\n'''
-            message += f'''เบอร์โทร {result_item.result.request.customer.contact_phone_number}\n\n'''
-            message += f'''ระบบงานบริการวิชาการ'''
-            send_mail(
-                [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
-                title, message)
-            msg = ('แจ้งขอแก้ไขใบรายงานผลการทดสอบ' \
-                   '\n\nเรียน เจ้าหน้าที่{}'
-                   '\n\n{}ฉบับร่างของใบคำขอรับบริการเลขที่ {}' \
-                   '\nลูกค้า : {}' \
-                   '\nในนาม : {}' \
-                   '\nได้ขอดำเนินการแก้ไขรายงานผลการทดสอบเนื่องจาก {}' \
-                   '\nกรุณาดำเนินการแก้ไขรายงานผลการทดสอบได้ที่ลิงก์ด้านล่าง' \
-                   '\n{}' \
-                   '\n\nผู้ประสานงาน' \
-                   '\n{}' \
-                   '\nเบอร์โทร {}' \
-                   '\n\nระบบงานบริการวิชาการ'.format(result_item.result.request.sub_lab.sub_lab, result_item.report_language,
-                                                     result_item.result.request.request_no,
-                                                     result_item.result.request.customer.customer_name,
-                                                     result_item.result.request.quotation_address.name, result_item.note, link,
-                                                     result_item.result.request.customer.customer_name,
-                                                     result_item.result.request.customer.contact_phone_number)
-                   )
-            if not current_app.debug:
-                for a in admins:
-                    if not a.is_central_admin and not a.is_assistant:
-                        try:
-                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                        except LineBotApiError:
-                            pass
-        flash('ส่งคำขอแก้ไขเรียบร้อยแล้ว', 'success')
+        if form.note.data:
+            result_item.edit_requester_id = current_user.id
+            result_item.req_edit_at = arrow.now('Asia/Bangkok').datetime
+            # result_item.result.request.status_id = status_id
+            result_item.result.result_edit_at = arrow.now('Asia/Bangkok').datetime
+            result_item.result.is_edited = False
+            db.session.add(result_item)
+            db.session.commit()
+            scheme = 'http' if current_app.debug else 'https'
+            admins = (
+                ServiceAdmin.query
+                .join(ServiceSubLab)
+                .filter(ServiceSubLab.code == result_item.result.request.sub_lab.code)
+                .all()
+            )
+            title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
+            link = url_for("service_admin.create_draft_result", rresult_id=result_item.result_id, request_id=result_item.result.request.id,
+                           menu='test_item', _external=True, _scheme=scheme)
+            customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
+            if admins:
+                title = f'''[{result_item.result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result_item.result.request.quotation_address.name}) | แจ้งขอแก้ไขใบรายงานผลการทดสอบ'''
+                message = f'''เรียน เจ้าหน้าที่{result_item.result.request.sub_lab.sub_lab}\n\n'''
+                message += f'''{result_item.report_language}ฉบับร่างของใบคำขอรับบริการเลขที่ : {result_item.result.request.request_no}\n'''
+                message += f'''ลูกค้า : {result_item.result.request.customer.customer_name}\n'''
+                message += f'''ในนาม : {result_item.result.request.quotation_address.name}\n'''
+                message += f'''ได้ขอดำเนินการแก้ไขรายงานผลการทดสอบเนื่องจาก {result_item.note}\n'''
+                message += f'''กรุณาดำเนินการแก้ไขรายงานผลการทดสอบได้ที่ลิงก์ด้านล่าง\n'''
+                message += f'''{link}\n\n'''
+                message += f'''ผู้ประสานงาน\n'''
+                message += f'''{result_item.result.request.customer.customer_name}\n'''
+                message += f'''เบอร์โทร {result_item.result.request.customer.contact_phone_number}\n\n'''
+                message += f'''ระบบงานบริการวิชาการ'''
+                send_mail(
+                    [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
+                    title, message)
+                msg = ('แจ้งขอแก้ไขใบรายงานผลการทดสอบ' \
+                       '\n\nเรียน เจ้าหน้าที่{}'
+                       '\n\n{}ฉบับร่างของใบคำขอรับบริการเลขที่ {}' \
+                       '\nลูกค้า : {}' \
+                       '\nในนาม : {}' \
+                       '\nได้ขอดำเนินการแก้ไขรายงานผลการทดสอบเนื่องจาก {}' \
+                       '\nกรุณาดำเนินการแก้ไขรายงานผลการทดสอบได้ที่ลิงก์ด้านล่าง' \
+                       '\n{}' \
+                       '\n\nผู้ประสานงาน' \
+                       '\n{}' \
+                       '\nเบอร์โทร {}' \
+                       '\n\nระบบงานบริการวิชาการ'.format(result_item.result.request.sub_lab.sub_lab, result_item.report_language,
+                                                         result_item.result.request.request_no,
+                                                         result_item.result.request.customer.customer_name,
+                                                         result_item.result.request.quotation_address.name, result_item.note, link,
+                                                         result_item.result.request.customer.customer_name,
+                                                         result_item.result.request.customer.contact_phone_number)
+                       )
+                if not current_app.debug:
+                    for a in admins:
+                        if not a.is_central_admin and not a.is_assistant:
+                            try:
+                                line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                            except LineBotApiError:
+                                pass
+            flash('ส่งคำขอแก้ไขเรียบร้อยแล้ว', 'success')
+        else:
+            flash('กรุณากรอกรายละเอียดการขอแก้ไขใบรายงานผล', 'danger')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
