@@ -79,7 +79,7 @@ class ServiceSequenceResultItemID(db.Model):
 
     @property
     def number(self):
-        return u'{}'.format(self.count + 1)
+        return self.count + 1
 
 
 class ServiceSequenceQuotationID(db.Model):
@@ -1030,7 +1030,7 @@ class ServiceInvoice(db.Model):
 class ServiceInvoiceItem(db.Model):
     __tablename__ = 'service_invoice_items'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    sequence = db.Column('sequence', db.String())
+    sequence = db.Column('sequence', db.Integer())
     invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
     invoice = db.relationship(ServiceInvoice, backref=db.backref('invoice_items', cascade="all, delete-orphan"))
     discount_type = db.Column('discount_type', db.String())
@@ -1240,7 +1240,7 @@ class ServiceResult(db.Model):
 class ServiceResultItem(db.Model):
     __tablename__ = 'service_result_items'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    sequence = db.Column('sequence', db.String())
+    sequence = db.Column('sequence', db.Integer())
     result_id = db.Column('result_id', db.ForeignKey('service_results.id'))
     result = db.relationship(ServiceResult, backref=db.backref('result_items'))
     report_language = db.Column('report_language', db.String())
