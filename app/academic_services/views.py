@@ -4078,7 +4078,7 @@ def confirm_quotation(quotation_id):
     customer_name = quotation.customer_name.replace(' ', '_')
     if admins:
         title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} ({quotation.name}) | แจ้งยืนยันใบเสนอราคา'''
-        message = f'''เรียน เจ้าหน้าที่{quotation.request.sub_lab.sub_lab}่\n\n'''
+        message = f'''เรียน เจ้าหน้าที่{quotation.request.sub_lab.sub_lab}\n\n'''
         message += f'''ใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
         message += f'''ลูกค้า : {quotation.customer_name}\n'''
         message += f'''ในนาม : {quotation.name}\n'''
