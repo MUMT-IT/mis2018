@@ -4496,7 +4496,7 @@ def create_sample_appointment(sample_id):
                 message += f'''{sample.request.customer.customer_name}\n'''
                 message += f'''เบอร์โทร {sample.request.customer.contact_phone_number}\n'''
                 message += f'''ระบบงานบริการวิชาการ'''
-            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin], title, message)
+            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant], title, message)
         if sample.request.status.status_id == 6:
             status_id = get_status(9)
             sample.request.status_id = status_id

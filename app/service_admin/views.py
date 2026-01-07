@@ -6256,7 +6256,7 @@ def create_draft_result(result_id=None):
                     item.modified_at = arrow.now('Asia/Bangkok').datetime
                     item.result.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(item)
-                # db.session.commit()
+                db.session.commit()
         upload_all = all(item.draft_file for item in result.result_items)
         if action == 'send':
             if upload_all:
@@ -6485,7 +6485,7 @@ def create_final_result(result_id=None):
                 item.modified_at = arrow.now('Asia/Bangkok').datetime
                 item.result.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(item)
-                # db.session.commit()
+                db.session.commit()
         db.session.commit()
         uploaded_all = all(item.final_file for item in result.result_items)
         if uploaded_all:
