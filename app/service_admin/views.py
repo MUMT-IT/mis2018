@@ -3134,7 +3134,7 @@ def test_item_index():
                                                 <div class="control">
                                                     <a class="button is-small is-warning is-rounded" href="{edit_result}">
                                                         <span class="icon is-small"><i class="fas fa-pen"></i></span>
-                                                        <span>แก้ไขใบรายงานผล</span>
+                                                        <span>แก้ไข{i.report_language}</span>
                                                     </a>
                                                 </div>
                                             </div>
@@ -3857,7 +3857,7 @@ def result_index():
                                             <div class="control">
                                                 <a class="button is-small is-warning is-rounded" href="{edit_result}">
                                                     <span class="icon is-small"><i class="fas fa-pen"></i></span>
-                                                    <span>แก้ไขใบรายงานผล</span>
+                                                    <span>แก้ไข{i.report_language}</span>
                                                 </a>
                                             </div>
                                         </div>
