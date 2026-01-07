@@ -5371,11 +5371,10 @@ def edit_result_item(result_item_id):
     # result_item.is_edited = False
     # result_item.edit_requester_id = None
     # result_item.req_edit_at = None
-    # result_item.note = None
-    # db.session.add(result_item)
-    # db.session.commit()
+    result_item.note = None
+    db.session.add(result_item)
+    db.session.commit()
     form = ServiceResultItemForm(obj=result_item)
-    form.note.data = None
     if form.validate_on_submit():
         form.populate_obj(result_item)
         # status_id = get_status(14)
