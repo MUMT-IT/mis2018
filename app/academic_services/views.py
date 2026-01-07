@@ -5143,6 +5143,7 @@ def result_index():
 
 
 @academic_services.route('/customer/result/view/<int:result_id>/<int:result_item_id>', methods=['GET', 'POST'])
+@login_required
 def view_result_item(result_id, result_item_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
