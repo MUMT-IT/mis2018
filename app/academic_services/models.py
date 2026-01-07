@@ -103,7 +103,7 @@ class ServiceSequenceQuotationID(db.Model):
 
     @property
     def number(self):
-        return u'{}'.format(self.count + 1)
+        return self.count + 1
 
 
 class ServiceSequenceReportLanguageID(db.Model):
@@ -642,7 +642,7 @@ class ServiceQuotation(db.Model):
 class ServiceQuotationItem(db.Model):
     __tablename__ = 'service_quotation_items'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    sequence = db.Column('sequence', db.String())
+    sequence = db.Column('sequence', db.Integer())
     quotation_id = db.Column('quotation_id', db.ForeignKey('service_quotations.id'))
     quotation = db.relationship(ServiceQuotation, backref=db.backref('quotation_items', cascade="all, delete-orphan"))
     discount_type = db.Column('discount_type', db.String(), info={'label': 'ประเภทส่วนลด',
