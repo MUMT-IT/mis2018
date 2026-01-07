@@ -4,18 +4,21 @@
 {% block page_content %}
     <section class="section" id="app">
         <div class="container has-text-centered">
-            <div class="box">
+            <div class="box column is-half is-offset-one-quarter">
                 <span class="icon is-large has-text-success">
                     <i class="fas fa-check-circle fa-3x"></i>
                 </span>
                 <h1 class="title is-3 mt-3">นัดหมายส่งตัวอย่างสำเร็จ</h1>
                 <p class="subtitle is-5">ระบบได้บันทึกการนัดหมายส่งตัวอย่างของท่านเรียบร้อยแล้ว</p>
-                <div class="notification is-info is-light mt-4">
-                    ขอความกรุณาดำเนินการนำส่งตัวอย่างตามวัน เวลา และสถานที่ที่ระบุ พร้อมนำใบนำส่งตัวอย่าง ใบอนุญาตนำเข้าหรือผลิต และสูตรตำรับ/สูตร 100% ของตัวอย่างประกอบการส่งมอบ
+                <div class="notification is-info is-light mt-4 has-text-left">
+                    ขอความกรุณาดำเนินการนำส่งตัวอย่างตามวัน เวลา และสถานที่ที่ระบุ พร้อมนำเอกสาร<br>
+                    <strong class="has-text-danger">1. ใบนำส่งตัวอย่าง</strong><br>
+                    <strong class="has-text-danger">2. ใบอนุญาตนำเข้าหรือผลิต และสูตรตำรับ/สูตร 100% ของตัวอย่าง</strong><br>
+                    ประกอบการส่งมอบ
                 </div>
                 <div class="buttons is-centered mt-5" style="text-align: left;">
                     <a @click="printRequest()"
-                            class="button is-rounded is-outlined is-primary"
+                            class="button is-rounded is-warning"
                             style="min-width: 160px;">
                         <span class="icon"><i class="fas fa-print"></i></span>
                         <span>พิมพ์ใบนำส่งตัวอย่าง</span>
@@ -23,7 +26,7 @@
                 </div>
             </div>
             <div class="buttons is-centered mt-5">
-                <a href='{{ url_for('academic_services.sample_index', menu=menu, tab=tab) }}' class="button is-link is-light">
+                <a href='{{ url_for('academic_services.sample_index', menu=menu, tab=tab) }}' class="button is-light">
                     กลับหน้าหลัก
                 </a>
             </div>
