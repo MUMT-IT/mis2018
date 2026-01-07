@@ -3145,7 +3145,7 @@ def test_item_index():
                     if edit_html:
                         edit_html_blocks.append(edit_html)
             item_data['files'] = ''.join(
-                html_blocks) if html_blocks else '<span class="has-text-grey-light is-italic">ไม่มีไฟล์</span>'
+                html_blocks) if html_blocks else ''
             item_data['edit_file'] = ''.join(edit_html_blocks) if edit_html_blocks else ''
             data.append(item_data)
         return jsonify({'data': data,
@@ -3874,7 +3874,7 @@ def result_index():
                 if note_html:
                     note_html_blocks.append(note_html)
             item_data['files'] = ''.join(
-                html_blocks) if html_blocks else '<span class="has-text-grey-light is-italic">ไม่มีไฟล์</span>'
+                html_blocks) if html_blocks else ''
             item_data['edit_file'] = ''.join(edit_html_blocks) if edit_html_blocks else ''
             item_data['note'] = ''.join(note_html_blocks) if note_html_blocks else ''
             data.append(item_data)
