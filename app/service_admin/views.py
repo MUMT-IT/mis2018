@@ -4506,7 +4506,7 @@ def approve_invoice(invoice_id):
                 message += f'''ในนาม : {invoice.name}\n'''
                 message += f'''อ้างอิงจาก : \n'''
                 message += f'''- ใบคำขอรับบริการเลขที่ : {invoice.quotation.request.request_no}\n'''
-                message += f'''- ใบเสนอราคาเลขที ่: {invoice.quotation.quotation_no}\n\n'''
+                message += f'''- ใบเสนอราคาเลขที่ : {invoice.quotation.quotation_no}\n\n'''
                 message += f'''กรุณาดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้ดังกล่าวเข้าสู่ระบบ e-Office เพื่อให้คณบดีลงนามและออกเลข อว. ต่อไป '''
                 message += f'''หลังจากดำเนินการแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้กลับเข้าสู่ระบบบริการวิชาการ\n'''
                 message += f'''สามารถพิมพ์ใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'''
@@ -4521,7 +4521,6 @@ def approve_invoice(invoice_id):
                         'แจ้งแอดมินส่วนกลางดำเนินการพิมพ์และนำเข้าใบแจ้งหนี้เลขที่ {}\n\n'
                         'เรียน แอดมินส่วนกลาง\n\n'
                         'ตามที่มีการออกใบแจ้งหนี้เลขที่ : {}\n'
-
                         'ลูกค้า : {}\n'
                         'ในนาม : {}\n'
                         'อ้างอิงจาก : \n'
@@ -5747,11 +5746,11 @@ def create_quotation_for_admin(quotation_id):
                     message += f'''ใบเสนอราคาเลขที่ : {quotation.quotation_no}\n'''
                     message += f'''ลูกค้า : {quotation.customer_name}\n'''
                     message += f'''ในนาม : {quotation.name}\n'''
-                    message += f'''อ้างอิงจากใบคำขอรับบริการเลขที่ : {quotation.request.request_no}'''
+                    message += f'''อ้างอิงจากใบคำขอรับบริการเลขที่ : {quotation.request.request_no}\n'''
                     message += f'''ที่รอการอนุมัติใบเสนอราคา\n'''
                     message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
                     message += f'''{quotation_link}\n\n'''
-                    message += f'''เจ้าหน้าที่ Admin\n'''
+                    message += f'''เจ้าหน้าที่ห้องปฏิบัติการ\n'''
                     message += f'''{quotation.creator.fullname}\n'''
                     message += f'''ระบบงานบริการวิชาการ'''
                     send_mail(email, title, message)
@@ -5763,8 +5762,8 @@ def create_quotation_for_admin(quotation_id):
                            '\nอ้างอิงจากใบคำขอรับบริการเลขที่ : {}'
                            '\nที่รอการอนุมัติใบเสนอราคา' \
                            '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
-                           '\n{}' \
-                           '\nเจ้าหน้าที่ Admin' \
+                           '\n\n{}' \
+                           '\nเจ้าหน้าที่ห้องปฏิบัติการ' \
                            '\n\n{}' \
                            '\nระบบงานบริการวิชาการ'
                            .format(quotation.quotation_no, quotation.quotation_no,
@@ -6279,8 +6278,8 @@ def create_draft_result(result_id=None):
                     message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
                     message += f''' ขณะนี้ได้จัดทำรายงานผลการทดสอบฉบับร่างเรียบร้อยแล้ว'''
                     message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
-                    message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง'''
-                    message += f'''{result_url}'''
+                    message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง\n'''
+                    message += f'''{result_url}\n\n'''
                     message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
                     message += f'''ขอแสดงความนับถือ\n'''
                     message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
