@@ -4617,9 +4617,9 @@ def invoice_index():
         )
     )
     pending_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None, today <= ServiceInvoice.due_date)
-    verify_query = query.join(ServicePayment).filter(ServicePayment.paid_at != None, ServicePayment.verified_at == None,
+    payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at == None,
                                                      ServicePayment.cancelled_at == None)
-    payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at >= expire_time,
+    verify_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None,
                                                       ServicePayment.cancelled_at == None)
     overdue_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None, today > ServiceInvoice.due_date)
         # overdue_query = query.join(ServicePayment).filter(today > ServiceInvoice.due_date, ServicePayment.paid_at == None,
@@ -4627,10 +4627,10 @@ def invoice_index():
     if api == 'true':
         if tab == 'pending':
             query = pending_query
-        elif tab == 'verify':
-            query = verify_query
         elif tab == 'payment':
             query = payment_query
+        elif tab == 'verify':
+            query = verify_query
         elif tab == 'overdue':
             query = overdue_query
 
@@ -4670,8 +4670,8 @@ def invoice_index():
                         })
 
     return render_template('academic_services/invoice_index.html', menu=menu, tab=tab,
-                           pending_count=pending_query.count(), verify_count=verify_query.count(),
-                           payment_count=payment_query.count(), overdue_count=overdue_query.count())
+                           pending_count=pending_query.count(), payment_count=payment_query.count(),
+                           verify_count=verify_query.count(), overdue_count=overdue_query.count())
 
 
 # @academic_services.route('/api/invoice/index')
