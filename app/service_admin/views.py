@@ -6386,7 +6386,7 @@ def edit_draft_result(result_item_id):
             result_item.is_edited = True
             result_item.modified_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(result_item)
-            # db.session.commit()
+            db.session.commit()
         edited_all = all(item.edited_at for item in result_item.result.result_items if item.req_edit_at)
         if edited_all:
             # status_id = get_status(12)
@@ -6394,7 +6394,7 @@ def edit_draft_result(result_item_id):
             # result_item.result.request.status_id = status_id
             result_item.result.is_edited = True
             db.session.add(result_item)
-        db.session.commit()
+            db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
         result_url = url_for('academic_services.view_result_item', result_id=result_item.result_id,
                              result_item_id=result_item_id, menu='report', tab='approve', _external=True,
@@ -6486,7 +6486,6 @@ def create_final_result(result_id=None):
                 item.result.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(item)
                 db.session.commit()
-        # db.session.commit()
         uploaded_all = all(item.final_file for item in result.result_items)
         if uploaded_all:
             scheme = 'http' if current_app.debug else 'https'
