@@ -4499,45 +4499,46 @@ def approve_invoice(invoice_id):
         if admins:
             email = [a.admin.email + '@mahidol.ac.th' for a in admins if a.is_central_admin]
             if email:
-                title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งดาวโหลดใบแจ้งหนี้'
+                title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งดำเนินการใบแจ้งหนี้'
                 message = f'''เรียน แอดมินส่วนกลาง\n\n'''
                 message += f'''ตามที่มีการออกใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
                 message += f'''ลูกค้า : {invoice.customer_name}\n'''
                 message += f'''ในนาม : {invoice.name}\n'''
-                message += f'''อ้างอิงจาก : \n'''
+                message += f'''อ้างอิงเอกสาร : \n'''
                 message += f'''- ใบคำขอรับบริการเลขที่ : {invoice.quotation.request.request_no}\n'''
                 message += f'''- ใบเสนอราคาเลขที่ : {invoice.quotation.quotation_no}\n\n'''
-                message += f'''กรุณาดำเนินการดาวโหลดใบแจ้งหนี้ดังกล่าวเข้าสู่ระบบ e-Office เพื่อให้คณบดีลงนามและออกเลข อว. ต่อไป '''
-                message += f'''หลังจากดำเนินการแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้กลับเข้าสู่ระบบบริการวิชาการ\n'''
-                message += f'''สามารถพิมพ์ใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'''
+                message += f'''ขอความกรุณา แอดมินส่วนกลางดำเนินการดังต่อไปนี้\n\n'''
+                message += f'''1. พิมพ์ใบแจ้งหนี้\n'''
+                message += f'''2. ออกเลขสารบรรณ\n'''
+                message += f'''3. นำเข้าเอกสารเข้าสู่ระบบ e-Office เพื่อเสนอคณบดีลงนาม\n'''
+                message += f'''4. หลังจากดำเนินการเรียบร้อยแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้ที่ลงนามแล้วกลับเข้าสู่ระบบบริการวิชาการ เพื่อให้ระบบดำเนินการแจ้งลูกค้าต่อไป\n\n'''
+                message += f'''สามารถเข้าดำเนินการได้ที่ระบบ\n'''
                 message += f'''{invoice_for_central_admin_url}\n\n'''
-                message += f'''ผู้ประสานงาน\n'''
-                message += f'''{invoice.customer_name}\n'''
-                message += f'''เบอร์โทร {invoice.contact_phone_number}\n'''
-                message += f'''ระบบบริการวิชาการ'''
+                message += f'''หากมีข้อขัดข้องหรือข้อมูลเพิ่มเติมที่ต้องใช้\nสามารถประสานแจ้งกลับได้โดยตรง\n\n'''
+                message += f'''ขอบคุณค่ะ\nฝ่ายระบบสารสนเทศ / MIS'''
                 send_mail(email, title, message)
                 if not current_app.debug:
                     msg = (
-                        'แจ้งแอดมินส่วนกลางดำเนินการดาวโหลดใบแจ้งหนี้เลขที่ {}\n\n'
+                        'แจ้งแอดมินส่วนกลางดำเนินการใบแจ้งหนี้เลขที่ {}\n\n'
                         'เรียน แอดมินส่วนกลาง\n\n'
                         'ตามที่มีการออกใบแจ้งหนี้เลขที่ : {}\n'
                         'ลูกค้า : {}\n'
                         'ในนาม : {}\n'
-                        'อ้างอิงจาก : \n'
+                        'อ้างอิงเอกสาร : \n'
                         '- ใบคำขอรับบริการเลขที่ : {}\n'
                         '- ใบเสนอราคาเลขที่ : {}\n\n'
-                        'กรุณาดำเนินการดาวโหลดใบแจ้งหนี้ดังกล่าวเข้าสู่ระบบ e-Office เพื่อให้คณบดีลงนามและออกเลข อว. ต่อไป'
-                        'หลังจากดำเนินการแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้กลับเข้าสู่ระบบบริการวิชาการ\n\n'
-                        'สามารถพิมพ์ใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'
+                        'ขอความกรุณา แอดมินส่วนกลางดำเนินการดังต่อไปนี้\n\n'
+                        '1. พิมพ์ใบแจ้งหนี้\n'
+                        '2. ออกเลขสารบรรณ\n'
+                        '3. นำเข้าเอกสารเข้าสู่ระบบ e-Office เพื่อเสนอคณบดีลงนาม\n'
+                        '4. หลังจากดำเนินการเรียบร้อยแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้ที่ลงนามแล้วกลับเข้าสู่ระบบบริการวิชาการ เพื่อให้ระบบดำเนินการแจ้งลูกค้าต่อไป\n\n'
+                        'สามารถเข้าดำเนินการได้ที่ระบบ\n'
                         '{}\n\n'
-                        '\ู้ประสานงาน\n'
-                        '{}\n'
-                        'เบอร์โทร {}\n'
-                        'ระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.invoice_no,
-                                                      invoice.quotation.request.request_no,
-                                                      invoice.quotation.quotation_no, invoice.customer_name,
-                                                      invoice.name,
-                                                      invoice_url, invoice.customer_name, invoice.contact_phone_number))
+                        'หากมีข้อขัดข้องหรือข้อมูลเพิ่มเติมที่ต้องใช้\nสามารถประสานแจ้งกลับได้โดยตรง\n\n'
+                        'ขอบคุณค่ะ\n'
+                        'ฝ่ายระบบสารสนเทศ / MIS'.format(invoice.invoice_no, invoice.invoice_no, invoice.customer_name,
+                                                        invoice.name, invoice.quotation.request.request_no,
+                                                        invoice.quotation.quotation_no, invoice_for_central_admin_url))
                     for a in admins:
                         if a.is_central_admin:
                             try:
@@ -4585,10 +4586,10 @@ def approve_invoice(invoice_id):
                            '\n{}' \
                            '\nเบอร์โทร {}' \
                            '\nระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.invoice_no,
+                                                           invoice.customer_name, invoice.name,
                                                            invoice.quotation.request.request_no,
-                                                           invoice.quotation.quotation_no, invoice.customer_name,
-                                                           invoice.name, invoice_url, invoice.customer_name,
-                                                           invoice.contact_phone_number))
+                                                           invoice.quotation.quotation_no, invoice_url,
+                                                           invoice.customer_name, invoice.contact_phone_number))
                     for a in admins:
                         if a.is_assistant:
                             try:
