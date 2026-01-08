@@ -6486,7 +6486,7 @@ def create_final_result(result_id=None):
                 item.result.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(item)
                 db.session.commit()
-        db.session.commit()
+        # db.session.commit()
         uploaded_all = all(item.final_file for item in result.result_items)
         if uploaded_all:
             scheme = 'http' if current_app.debug else 'https'
