@@ -877,7 +877,7 @@ class ServiceInvoice(db.Model):
             'assistant_approved_at': self.assistant_approved_at if self.assistant_approved_at else None,
             'payment_type': self.get_payment().payment_type if self.get_payment() else None,
             'paid_at': self.paid_at,
-            'amount_paid': self.get_payment().amount_paid if self.get_payment() else None,
+            'amount_paid': '{:,.2f}'.format(self.get_payment().amount_paid) if self.get_payment() else None,
             'is_paid': self.is_paid,
             'invoice_file': self.file if self.file else None,
             'receipt_id': [receipt.id for receipt in self.receipts] if self.receipts else None,
@@ -906,8 +906,7 @@ class ServiceInvoice(db.Model):
 
     def get_payment(self):
         payment = self.payments.filter(ServicePayment.created_at != None,
-                                       ServicePayment.cancelled_at == None,
-                                       ServicePayment.amount_paid == self.grand_total).first()
+                                       ServicePayment.cancelled_at == None).first()
         if not payment:
             return None
         if payment.payment_type == 'QR Code Payment':
