@@ -4811,7 +4811,7 @@ def add_payment():
                         except LineBotApiError:
                             pass
                 flash('อัปโหลดหลักฐานการชำระเงินสำเร็จ', 'success')
-                return redirect(url_for('academic_services.invoice_index', menu=menu, tab='verify'))
+                return redirect(url_for('academic_services.invoice_index', menu=menu, tab='payment'))
             else:
                 flash('กรุณากรอกวันที่ชำระเงิน, วิธีการชำระเงิน, จำนวนเงิน และหลักฐานการชำระเงิน', 'danger')
         else:
