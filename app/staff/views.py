@@ -3885,14 +3885,10 @@ def seminar_attends_each_person():
         # seminar_records.append(seminars)
     approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
 
-    current_fee = 0
-    for a in StaffSeminarAttend.query.filter_by(staff_account_id=current_user.id).filter(and_(
-                  StaffSeminarAttend.end_datetime >= START_FISCAL_DATE),
-                  StaffSeminarAttend.start_datetime <= END_FISCAL_DATE).all():
-        if a.budget:
-            current_fee += a.budget
+    START_FISCAL_DATE, _ = get_fiscal_date(datetime.today())
+    yearly_budget = get_seminar_yearly_budget(current_user.id, START_FISCAL_DATE)
     return render_template('staff/seminar_records_each_person.html',
-                           seminar_records=seminar_records, approver=approver, current_fee=current_fee)
+                           seminar_records=seminar_records, approver=approver, yearly_budget=yearly_budget)
 
 
 @staff.route('/seminar/attends-each-person/details/<int:staff_account_id>', methods=['GET', 'POST'])

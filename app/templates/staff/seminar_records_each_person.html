@@ -13,19 +13,26 @@
             <div class="column is-3">
                 <div class="">
                 <span class="subtitle has-text-grey">
-                    วงเงิน(ปีงบประมาณ) <br></span>
+                    วงเงิน(ปีงบปัจจุบัน) <br></span>
                 <span class="is-size-1 has-text-grey">
-                        {% if current_user.personal_info.academic_staff %} 15,000.0
-                        {% else %} 10000.0 {% endif %}
+                        {{ yearly_budget.budget }}
                 </span>
                 </div>
             </div>
             <div class="column is-3">
                 <div class="">
                     <span class="subtitle has-text-grey">
-                    ยอดที่ใช้(ปีงบปัจจุบัน)<br>
+                    ยอดที่ใช้<br>
                     </span>
-                    <span class="is-size-1 has-text-warning">{{ current_fee }}</span>
+                    <span class="is-size-1 has-text-warning">{{ yearly_budget.total_used }}</span>
+                </div>
+            </div>
+            <div class="column is-3">
+                <div class="">
+                    <span class="subtitle has-text-grey">
+                    คงเหลือ<br>
+                    </span>
+                    <span class="is-size-1 has-text-success">{{ yearly_budget.remaining }}</span>
                 </div>
             </div>
         </div>
