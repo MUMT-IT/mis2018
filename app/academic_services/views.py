@@ -4620,7 +4620,6 @@ def invoice_index():
                                                      ServicePayment.cancelled_at == None)
     verify_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None,
                                                       ServicePayment.cancelled_at == None)
-    cancel_query = query.join(ServicePayment).filter(ServicePayment.cancelled_at != None)
     overdue_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None, today > ServiceInvoice.due_date)
         # overdue_query = query.join(ServicePayment).filter(today > ServiceInvoice.due_date, ServicePayment.paid_at == None,
         #                                               ServicePayment.cancelled_at == None)
@@ -4631,8 +4630,6 @@ def invoice_index():
             query = payment_query
         elif tab == 'verify':
             query = verify_query
-        elif tab == 'cancel':
-            query = cancel_query
         elif tab == 'overdue':
             query = overdue_query
 
@@ -4670,7 +4667,6 @@ def invoice_index():
                         'recordTotal': records_total,
                         'draw': request.args.get('draw', type=int)
                         })
-
     return render_template('academic_services/invoice_index.html', menu=menu, tab=tab,
                            pending_count=pending_query.count(), payment_count=payment_query.count(),
                            verify_count=verify_query.count(), overdue_count=overdue_query.count())
