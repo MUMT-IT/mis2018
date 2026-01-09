@@ -22,23 +22,23 @@
                             <h1 class="title is-size-5">ข้อมูลลูกค้า</h1>
                             <hr style="background-color: gainsboro">
                             <div class="field">
-                                <label class="label">
-                                    {% if current_user.customer_info.type and current_user.customer_info.type.type == 'บุคคล' %}
-                                        ชื่อ-นามสกุล
-                                    {% elif current_user.customer_info.type and current_user.customer_info.type.type == 'บริษัทเอกชน' %}
-                                        ชื่อบริษัท
-                                    {% elif current_user.customer_info.type and current_user.customer_info.type.type == 'หน่วยงานรัฐ' %}
-                                        ชื่อหน่วยงาน
-                                    {% else %}
-                                        ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน
-                                    {% endif %}
-                                </label>
+                                <label class="label">ประเภท</label>
                                 <div class="control">
                                     {{ customer.type or 'ไม่ระบุ' }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label id="cus-name-label" class="label">ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน</label>
+                                <label id="cus-name-label" class="label">
+                                    {% if customer.type and customer.type.type == 'บุคคล' %}
+                                        ชื่อ-นามสกุล
+                                    {% elif customer.type and customer.type.type == 'บริษัทเอกชน' %}
+                                        ชื่อบริษัท
+                                    {% elif customer.type and customer.type.type == 'หน่วยงานรัฐ' %}
+                                        ชื่อหน่วยงาน
+                                    {% else %}
+                                        ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน
+                                    {% endif %}
+                                </label>
                                 <div class="control">
                                     {{ customer.cus_name or 'ไม่ระบุ' }}
                                 </div>
