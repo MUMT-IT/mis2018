@@ -19,7 +19,6 @@
             {% else %}
                   hx-post="{{ url_for('service_admin.edit_customer_address', type=type, customer_id=customer_id) }}"
             {% endif %}
-                  hx-indicator="#submit-form"
             >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                 <div class="field">
