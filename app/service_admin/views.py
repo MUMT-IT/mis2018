@@ -2307,7 +2307,6 @@ def create_endotoxin_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
     customer_id = request.args.get('customer_id')
-    print('c', customer_id)
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
@@ -4116,33 +4115,6 @@ def add_tracking_number(result_id):
                            tab=tab, result_id=result_id)
 
 
-# @service_admin.route('/payment/confirm/<int:payment_id>', methods=['GET'])
-# def confirm_payment(payment_id):
-#     payment = ServicePayment.query.get(payment_id)
-#     payment.status = 'ชำระเงินสำเร็จ'
-#     payment.invoice.quotation.request.status = 'ชำระเงินสำเร็จ'
-#     payment.invoice.quotation.request.is_paid = True
-#     payment.verifier_id = current_user.id
-#     db.session.add(payment)
-#     db.session.commit()
-#     flash('อัพเดตสถานะสำเร็จ', 'success')
-#     return redirect(url_for('service_admin.payment_index'))
-#
-#
-# @service_admin.route('/payment/cancel/<int:payment_id>', methods=['GET'])
-# def cancel_payment(payment_id):
-#     payment = ServicePayment.query.get(payment_id)
-#     payment.bill = None
-#     payment.url = None
-#     payment.status = 'ชำระเงินไม่สำเร็จ'
-#     payment.invoice.quotation.request.status = 'ชำระเงินไม่สำเร็จ'
-#     payment.verifier_id = current_user.id
-#     db.session.add(payment)
-#     db.session.commit()
-#     flash('อัพเดตสถานะสำเร็จ', 'success')
-#     return redirect(url_for('service_admin.payment_index'))
-
-
 @service_admin.route('/lab/index/<int:customer_id>')
 @login_required
 def lab_index(customer_id):
@@ -4437,7 +4409,8 @@ def invoice_index_for_central_admin():
 def create_invoice(quotation_id):
     menu = request.args.get('menu')
     quotation = ServiceQuotation.query.get(quotation_id)
-    if not quotation.invoices:
+    invoice = ServiceInvoice.query.filter_by(qiotation_id=quotation_id).first()
+    if not invoice:
         invoice_no = ServiceNumberID.get_number('Invoice', db, lab=quotation.request.sub_lab.ref)
         invoice = ServiceInvoice(invoice_no=invoice_no.number, quotation_id=quotation_id, name=quotation.name,
                                  address=quotation.address,
@@ -6052,14 +6025,14 @@ def generate_quotation_pdf(quotation, sign=False):
                        ]
         items.append(item_record)
 
-    for i in range(n):
-        items.append([
-            Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-        ])
+    # for i in range(n):
+    #     items.append([
+    #         Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
+    #         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+    #         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+    #         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+    #         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+    #     ])
 
     items.append([
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -6369,57 +6342,60 @@ def edit_draft_result(result_item_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     result_item = ServiceResultItem.query.get(result_item_id)
-    form = ServiceResultItemForm(obj=result_item)
-    if form.validate_on_submit():
-        file = request.files.get(f'file_{result_item_id}')
-        if file and allowed_file(file.filename):
-            mime_type = file.mimetype
-            file_name = '{}.{}'.format(result_item.report_language, file.filename.split('.')[-1])
-            file_data = file.stream.read()
-            response = s3.put_object(
-                Bucket=S3_BUCKET_NAME,
-                Key=file_name,
-                Body=file_data,
-                ContentType=mime_type
-            )
-            result_item.draft_file = file_name
-            result_item.edited_at = arrow.now('Asia/Bangkok').datetime
-            result_item.is_edited = True
-            result_item.modified_at = arrow.now('Asia/Bangkok').datetime
-            db.session.add(result_item)
-            db.session.commit()
-        edited_all = all(item.edited_at for item in result_item.result.result_items if item.req_edit_at)
-        if edited_all:
-            # status_id = get_status(12)
-            # result_item.result.status_id = status_id
-            # result_item.result.request.status_id = status_id
-            result_item.result.is_edited = True
-            db.session.add(result_item)
-            db.session.commit()
-        scheme = 'http' if current_app.debug else 'https'
-        result_url = url_for('academic_services.view_result_item', result_id=result_item.result_id,
-                             result_item_id=result_item_id, menu='report', tab='approve', _external=True,
-                             _scheme=scheme)
-        customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
-        # contact_email = result_item.result.request.customer.contact_email if result_item.result.request.customer.contact_email else result_item.result.request.customer.email
-        title_prefix = 'คุณ' if result_item.result.request.customer.customer_info.type.type == 'บุคคล' else ''
-        title = f'''แจ้งแก้ไขรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ [{result_item.result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-        message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-        message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result_item.result.request.request_no}'''
-        message += f''' ขณะนี้ได้แก้ไข{result_item.report_language}ฉบับร่างเรียบร้อยแล้ว'''
-        message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
-        message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง\n'''
-        message += f'''{result_url}\n\n'''
-        message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-        message += f'''ขอแสดงความนับถือ\n'''
-        message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
-        message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-        send_mail([result_item.result.request.customer.email], title, message)
-        flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
-        return redirect(url_for('service_admin.result_index', menu=menu, tab=tab))
+    if result_item.is_edited:
+        return render_template('service_admin/result_edit_notice_page.html', menu=menu, tab=tab)
     else:
-        return render_template('service_admin/edit_draft_result.html', result_item_id=result_item_id,
-                               menu=menu, tab=tab, result_item=result_item, result_id=result_item.result_id)
+        form = ServiceResultItemForm(obj=result_item)
+        if form.validate_on_submit():
+            file = request.files.get(f'file_{result_item_id}')
+            if file and allowed_file(file.filename):
+                mime_type = file.mimetype
+                file_name = '{}.{}'.format(result_item.report_language, file.filename.split('.')[-1])
+                file_data = file.stream.read()
+                response = s3.put_object(
+                    Bucket=S3_BUCKET_NAME,
+                    Key=file_name,
+                    Body=file_data,
+                    ContentType=mime_type
+                )
+                result_item.draft_file = file_name
+                result_item.edited_at = arrow.now('Asia/Bangkok').datetime
+                result_item.is_edited = True
+                result_item.modified_at = arrow.now('Asia/Bangkok').datetime
+                db.session.add(result_item)
+                db.session.commit()
+            edited_all = all(item.edited_at for item in result_item.result.result_items if item.req_edit_at)
+            if edited_all:
+                # status_id = get_status(12)
+                # result_item.result.status_id = status_id
+                # result_item.result.request.status_id = status_id
+                result_item.result.is_edited = True
+                db.session.add(result_item)
+                db.session.commit()
+            scheme = 'http' if current_app.debug else 'https'
+            result_url = url_for('academic_services.view_result_item', result_id=result_item.result_id,
+                                 result_item_id=result_item_id, menu='report', tab='approve', _external=True,
+                                 _scheme=scheme)
+            customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
+            # contact_email = result_item.result.request.customer.contact_email if result_item.result.request.customer.contact_email else result_item.result.request.customer.email
+            title_prefix = 'คุณ' if result_item.result.request.customer.customer_info.type.type == 'บุคคล' else ''
+            title = f'''แจ้งแก้ไขรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ [{result_item.result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+            message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+            message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result_item.result.request.request_no}'''
+            message += f''' ขณะนี้ได้แก้ไข{result_item.report_language}ฉบับร่างเรียบร้อยแล้ว'''
+            message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
+            message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง\n'''
+            message += f'''{result_url}\n\n'''
+            message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+            message += f'''ขอแสดงความนับถือ\n'''
+            message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+            message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+            send_mail([result_item.result.request.customer.email], title, message)
+            flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
+            return redirect(url_for('service_admin.result_index', menu=menu, tab=tab))
+        else:
+            return render_template('service_admin/edit_draft_result.html', result_item_id=result_item_id,
+                                   menu=menu, tab=tab, result_item=result_item, result_id=result_item.result_id)
 
 
 @service_admin.route('/result/draft/delete/<int:item_id>', methods=['GET', 'POST'])
@@ -6442,8 +6418,8 @@ def delete_draft_result(item_id):
 def create_final_result(result_id=None):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
-    request_id = request.args.get('request_id')
-    service_request = ServiceRequest.query.get(request_id)
+    # request_id = request.args.get('request_id')
+    # service_request = ServiceRequest.query.get(request_id)
     # if not result_id:
     #     result = ServiceResult.query.filter_by(request_id=request_id).first()
     #     if not result:
@@ -6619,9 +6595,9 @@ def cancel_payment(invoice_id):
     payment = ServicePayment.query.filter_by(invoice_id=invoice_id, cancelled_at=None).first()
     db.session.delete(payment)
     db.session.commit()
-    scheme = 'http' if current_app.debug else 'https'
     invoice = ServiceInvoice.query.get(invoice_id)
     invoice.quotation.request.status_id = status_id
+    scheme = 'http' if current_app.debug else 'https'
     db.session.add(invoice)
     db.session.commit()
     upload_payment_link = url_for("academic_services.add_payment", invoice_id=invoice_id, tab='pending', menu='invoice',
@@ -6644,6 +6620,33 @@ def cancel_payment(invoice_id):
     send_mail([invoice.quotation.request.customer.email], title, message)
     flash('ยกเลิกการชำระเงินเรียบร้อยแล้ว', 'success')
     return redirect(url_for('service_admin.invoice_payment_index'))
+
+
+# @service_admin.route('/invoice/payment/cancel/<int:invoice_id>', methods=['GET', 'POST'])
+# def cancel_payment(invoice_id):
+#     status_id = get_status(24)
+#     payment = ServicePayment.query.filter_by(invoice_id=invoice_id, cancelled_at=None).first()
+#     payment.canceller_id = current_user.id
+#     payment.cancelled_at = arrow.now('Asia/Bangkok').datetime
+#     payment.invoice.quotation.request.status_id = status_id
+#     db.session.add(payment)
+#     db.session.commit()
+#     customer_name = payment.invoice.quotation.request.customer.customer_name.replace(' ', '_')
+#     # contact_email = invoice.quotation.request.customer.contact_email if invoice.quotation.request.customer.contact_email else invoice.quotation.request.customer.email
+#     title_prefix = 'คุณ' if payment.invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
+#     title = f'''แจ้งยกเลิกการชำระเงินของใบแจ้งหนี้ [{payment.invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+#     message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+#     message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {payment.invoice.quotation.request.request_no}\n'''
+#     message += f'''ขณะนี้ทางคณะฯ ขอแจ้งให้ทราบว่า การชำระเงินสำหรับใบแจ้งหนี้เลขที่่ {payment.invoice.invoice_no} มีความจำเป็นต้องยกเลิกการชำระเงินเดิม\n'''
+#     message += f'''กรุณาติดต่อฝ่ายการเงินของคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล เพื่อสอบถามรายละเอียดเพิ่มเติมและดำเนินการในขั้นตอนถัดไป\n'''
+#     message += f'''ทางคณะฯ ต้องขออภัยในความไม่สะดวกมา ณ ที่นี้\n\n'''
+#     message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+#     message += f'''ขอแสดงความนับถือ\n'''
+#     message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+#     message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+#     send_mail([payment.invoice.quotation.request.customer.email], title, message)
+#     flash('ยกเลิกการชำระเงินเรียบร้อยแล้ว', 'success')
+#     return redirect(url_for('service_admin.invoice_payment_index'))
 
 
 @service_admin.route('/receipt/index', methods=['GET'])
