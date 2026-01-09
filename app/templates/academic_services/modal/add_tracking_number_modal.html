@@ -9,7 +9,6 @@
             </header>
             <section class="modal-card-body">
                 <form hx-post="{{ url_for('academic_services.add_tracking_number', sample_id=sample_id, tab=tab, menu=menu) }}"
-                      hx-indicator="#submit-form"
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                     <div class="field">

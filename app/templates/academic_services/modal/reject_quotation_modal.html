@@ -9,7 +9,6 @@
         </header>
         <section class="modal-card-body">
             <form hx-post="{{ url_for('academic_services.reject_quotation', quotation_id=quotation_id, menu=menu) }}"
-                  hx-indicator="#submit-form"
             >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                 <div class="field">

@@ -14,12 +14,11 @@
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
-            <form {% if address_id %}
-                        hx-post="{{ url_for('academic_services.create_address', address_id=address_id, menu=menu) }}"
+            <form id="form" {% if address_id %}
+                  hx-post="{{ url_for('academic_services.create_address', address_id=address_id, menu=menu) }}"
                   {% else %}
                         hx-post="{{ url_for('academic_services.create_address', type=type, menu=menu) }}"
                   {% endif %}
-                hx-indicator="#submit-form"
             >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                 <div class="field">
