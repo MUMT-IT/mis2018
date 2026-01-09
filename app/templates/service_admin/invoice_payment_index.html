@@ -29,9 +29,10 @@
                         <th>ออกในนาม</th>
                         <th>ผู้ประสานงาน</th>
                         <th>วันครบกำหนด</th>
-                        <th>ยอดรวม</th>
+                        <th>ยอดเรียกเก็บ</th>
                         <th>วิธีการชำระเงิน</th>
                         <th>วันที่ชำระเงิน</th>
+                        <th>ยอดที่ชำระ</th>
                         <th>หลักฐานการชำระเงิน</th>
                         <th>สถานะ</th>
                         <th>ใบแจ้งหนี้</th>
@@ -151,6 +152,16 @@
                         }
                     },
                     {
+                        data: 'amount_paid',
+                        render: function (data) {
+                            if (data != null) {
+                                return data
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
                         data: 'id',
                         render: function (data, type, row) {
                             if (row.slip) {
@@ -213,7 +224,7 @@
                                                 <a class="button is-small is-rounded is-success"
                                                     onclick="vm.warn('${data}')">
                                                     <span class="icon"><i class="fas fa-check"></i></span>
-                                                    <span>อนุมัติ</span>
+                                                    <span>ชำระเงินถูกต้อง</span>
                                                 </a>
                                             </div>
                                         </div>`;

@@ -79,7 +79,7 @@ class ServiceSequenceResultItemID(db.Model):
 
     @property
     def number(self):
-        return u'{}'.format(self.count + 1)
+        return self.count + 1
 
 
 class ServiceSequenceQuotationID(db.Model):
@@ -103,7 +103,7 @@ class ServiceSequenceQuotationID(db.Model):
 
     @property
     def number(self):
-        return u'{}'.format(self.count + 1)
+        return self.count + 1
 
 
 class ServiceSequenceReportLanguageID(db.Model):
@@ -642,7 +642,7 @@ class ServiceQuotation(db.Model):
 class ServiceQuotationItem(db.Model):
     __tablename__ = 'service_quotation_items'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    sequence = db.Column('sequence', db.String())
+    sequence = db.Column('sequence', db.Integer())
     quotation_id = db.Column('quotation_id', db.ForeignKey('service_quotations.id'))
     quotation = db.relationship(ServiceQuotation, backref=db.backref('quotation_items', cascade="all, delete-orphan"))
     discount_type = db.Column('discount_type', db.String(), info={'label': 'ประเภทส่วนลด',
@@ -877,7 +877,7 @@ class ServiceInvoice(db.Model):
             'assistant_approved_at': self.assistant_approved_at if self.assistant_approved_at else None,
             'payment_type': self.get_payment().payment_type if self.get_payment() else None,
             'paid_at': self.paid_at,
-            'amount_paid': self.get_payment().amount_paid if self.get_payment() else None,
+            'amount_paid': '{:,.2f}'.format(self.get_payment().amount_paid) if self.get_payment() else None,
             'is_paid': self.is_paid,
             'invoice_file': self.file if self.file else None,
             'receipt_id': [receipt.id for receipt in self.receipts] if self.receipts else None,
@@ -906,8 +906,7 @@ class ServiceInvoice(db.Model):
 
     def get_payment(self):
         payment = self.payments.filter(ServicePayment.created_at != None,
-                                       ServicePayment.cancelled_at == None,
-                                       ServicePayment.amount_paid == self.grand_total).first()
+                                       ServicePayment.cancelled_at == None).first()
         if not payment:
             return None
         if payment.payment_type == 'QR Code Payment':
@@ -1030,7 +1029,7 @@ class ServiceInvoice(db.Model):
 class ServiceInvoiceItem(db.Model):
     __tablename__ = 'service_invoice_items'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    sequence = db.Column('sequence', db.String())
+    sequence = db.Column('sequence', db.Integer())
     invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
     invoice = db.relationship(ServiceInvoice, backref=db.backref('invoice_items', cascade="all, delete-orphan"))
     discount_type = db.Column('discount_type', db.String())
@@ -1240,7 +1239,7 @@ class ServiceResult(db.Model):
 class ServiceResultItem(db.Model):
     __tablename__ = 'service_result_items'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    sequence = db.Column('sequence', db.String())
+    sequence = db.Column('sequence', db.Integer())
     result_id = db.Column('result_id', db.ForeignKey('service_results.id'))
     result = db.relationship(ServiceResult, backref=db.backref('result_items'))
     report_language = db.Column('report_language', db.String())

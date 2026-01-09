@@ -14,6 +14,12 @@
         .content ul {
             margin-top: 0.15em;
         }
+
+        .address-wrap p {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
     </style>
 {% endblock %}
 {% block page_content %}
@@ -46,7 +52,7 @@
                                                 <span class="icon"><i class="fas fa-receipt"></i></span>
                                                 ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
                                             </p>
-                                            <div style="margin-left: 1.75rem;">
+                                            <div style="margin-left: 1.75rem;" class="address-wrap">
                                                 <p>ออกในนาม : {{ quotation.name }}</p>
                                                 <p>ที่อยู่ : {{ quotation.address }}</p>
                                                 <p>เลขประจำตัวผู้เสียภาษีอากร
@@ -61,7 +67,7 @@
                                                 <span class="icon"><i class="fas fa-map-marker-alt"></i></span>
                                                 ข้อมูลที่อยู่จัดส่งเอกสาร
                                             </p>
-                                            <div style="margin-left: 1.75rem;">
+                                            <div style="margin-left: 1.75rem;" class="address-wrap">
                                                 <p>ถึง : {{ quotation.request.document_address.name }}</p>
                                                 <p>ที่อยู่ : {{ quotation.request.document_address.address }}
                                                     {{ 'แขวง' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'ตำบล' }}{{ quotation.request.document_address.subdistrict }}

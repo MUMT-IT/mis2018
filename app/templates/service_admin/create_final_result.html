@@ -38,7 +38,7 @@
                                         {% if item.final_file %}
                                             {{ item.final_file }}
                                         {% else %}
-                                            ยังไม่อัปโหลดไฟล์
+                                            กรุณาอัปโหลดไฟล์ PDF
                                         {% endif %}
                                     </span>
                                 </label>
@@ -82,7 +82,7 @@
                 if (this.files.length > 0) {
                     span.textContent = this.files[0].name;
                 } else {
-                    span.textContent = 'ยังไม่อัปโหลดไฟล์';
+                    span.textContent = 'กรุณาอัปโหลดไฟล์ PDF';
                 }
             });
         });
