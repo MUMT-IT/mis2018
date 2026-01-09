@@ -117,7 +117,7 @@ def create_receipt():
             scheme = 'http' if current_app.debug else 'https'
             link = url_for('academic_services.receipt_index', menu='receipt', _external=True, _scheme=scheme)
             customer_name = result.request.customer.customer_name.replace(' ', '_')
-            contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
+            # contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
             title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
             title = f'''แจ้งออกใบเสร็จรับเงินของใบแจ้งหนี้ [{invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
             message = f'''เรียน {title_prefix}{customer_name}\n\n'''
@@ -129,7 +129,7 @@ def create_receipt():
             message += f'''ขอแสดงความนับถือ\n'''
             message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-            send_mail([contact_email], title, message)
+            send_mail([result.request.customer.email], title, message)
         flash(u'บันทึกการสร้างใบเสร็จรับเงินสำเร็จ.', 'success')
         return redirect(url_for('receipt_printing.view_receipt_by_list_type'))
     else:
