@@ -3906,16 +3906,16 @@ def generate_quotation_pdf(quotation, sign=False):
                        ]
         items.append(item_record)
 
-    n = len(items)
+    # n = len(items)
 
-    for i in range(n):
-        items.append([
-            Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-        ])
+    # for i in range(n):
+    #     items.append([
+    #         Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
+    #         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+    #         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+    #         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+    #         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+    #     ])
 
     items.append([
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -4606,7 +4606,6 @@ def invoice_index():
     menu = request.args.get('menu')
     api = request.args.get('api', 'false')
     today = arrow.now('Asia/Bangkok').date()
-    expire_time = arrow.now('Asia/Bangkok').shift(days=-1).datetime
     query = (
         ServiceInvoice.query
         .join(ServiceInvoice.quotation)
@@ -4621,6 +4620,7 @@ def invoice_index():
                                                      ServicePayment.cancelled_at == None)
     verify_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None,
                                                       ServicePayment.cancelled_at == None)
+    cancel_query = query.join(ServicePayment).filter(ServicePayment.cancelled_at != None)
     overdue_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None, today > ServiceInvoice.due_date)
         # overdue_query = query.join(ServicePayment).filter(today > ServiceInvoice.due_date, ServicePayment.paid_at == None,
         #                                               ServicePayment.cancelled_at == None)
@@ -4631,6 +4631,8 @@ def invoice_index():
             query = payment_query
         elif tab == 'verify':
             query = verify_query
+        elif tab == 'cancel':
+            query = cancel_query
         elif tab == 'overdue':
             query = overdue_query
 
@@ -5298,10 +5300,9 @@ def confirm_result_item(result_item_id):
     result_item.approver_id = current_user.id
     result_item.approved_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(result_item)
+    db.session.commit()
     approved_all = all(item.approved_at is not None for item in result.result_items)
     tab = 'confirm' if approved_all else 'approve'
-    db.session.add(result_item)
-    db.session.commit()
     if approved_all:
         # status_id = get_status(13)
         # result_item.result.request.status_id = status_id
@@ -5316,8 +5317,8 @@ def confirm_result_item(result_item_id):
             .all()
         )
         title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
-        link = url_for("service_admin.create_invoice", quotation_id=result_item.result.quotation_id, menu='invoice',
-                       tab='draft', _external=True, _scheme=scheme)
+        link = url_for("service_admin.create_final_result", result_id=result_item.result_id, menu='test_item',
+                       tab='all', _external=True, _scheme=scheme)
         customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
         if admins:
             title = f'''[{result_item.result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result_item.result.request.quotation_address.name}) | แจ้งยืนยันใบรายงานผลการทดสอบ'''
@@ -5326,8 +5327,8 @@ def confirm_result_item(result_item_id):
             message += f'''ลูกค้า : {result_item.result.request.customer.customer_name}\n'''
             message += f'''ในนาม : {result_item.result.request.quotation_address.name}\n'''
             message += f'''ได้ดำเนินการยืนยันเรียบร้อยแล้ว\n'''
-            message += f'''กรุณาดำเนินการออกใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง\n'''
-            message += f'''{link}\n\n'''
+            message += f'''กรุณาดำเนินการออกใบรายงานผลฉบับจริงได้ที่ลิงก์ด้านล่าง\n\n'''
+            message += f'''{link}'''
             message += f'''ผู้ประสานงาน\n'''
             message += f'''{result_item.result.request.customer.customer_name}\n'''
             message += f'''เบอร์โทร {result_item.result.request.customer.contact_phone_number}\n\n'''
@@ -5341,7 +5342,7 @@ def confirm_result_item(result_item_id):
                    '\nลูกค้า : {}' \
                    '\nในนาม : {}' \
                    '\nได้ดำเนินการยืนยันเรียบร้อยแล้ว' \
-                   '\nกรุณาดำเนินการออกใบแจ้งหนี้ได้ที่ลิงก์ด้านล่าง' \
+                   '\nกรุณาดำเนินการออกใบรายงานผลฉบับจริงได้ที่ลิงก์ด้านล่าง' \
                    '\n{}' \
                    '\n\nผู้ประสานงาน' \
                    '\n{}' \
@@ -5397,7 +5398,7 @@ def edit_result_item(result_item_id):
             )
             title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
             link = url_for("service_admin.edit_draft_result", result_item_id=result_item_id, menu='test_item',
-                           tab='edit_report', _external=True, _scheme=scheme)
+                           tab='edit', _external=True, _scheme=scheme)
             customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
             if admins:
                 title = f'''[{result_item.result.request.request_no}] ใบรายงานผลการทดสอบ - {title_prefix}{customer_name} ({result_item.result.request.quotation_address.name}) | แจ้งขอแก้ไขใบรายงานผลการทดสอบ'''
