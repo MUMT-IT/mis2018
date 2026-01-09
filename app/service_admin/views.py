@@ -6622,33 +6622,6 @@ def cancel_payment(invoice_id):
     return redirect(url_for('service_admin.invoice_payment_index'))
 
 
-# @service_admin.route('/invoice/payment/cancel/<int:invoice_id>', methods=['GET', 'POST'])
-# def cancel_payment(invoice_id):
-#     status_id = get_status(24)
-#     payment = ServicePayment.query.filter_by(invoice_id=invoice_id, cancelled_at=None).first()
-#     payment.canceller_id = current_user.id
-#     payment.cancelled_at = arrow.now('Asia/Bangkok').datetime
-#     payment.invoice.quotation.request.status_id = status_id
-#     db.session.add(payment)
-#     db.session.commit()
-#     customer_name = payment.invoice.quotation.request.customer.customer_name.replace(' ', '_')
-#     # contact_email = invoice.quotation.request.customer.contact_email if invoice.quotation.request.customer.contact_email else invoice.quotation.request.customer.email
-#     title_prefix = 'คุณ' if payment.invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
-#     title = f'''แจ้งยกเลิกการชำระเงินของใบแจ้งหนี้ [{payment.invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-#     message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-#     message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {payment.invoice.quotation.request.request_no}\n'''
-#     message += f'''ขณะนี้ทางคณะฯ ขอแจ้งให้ทราบว่า การชำระเงินสำหรับใบแจ้งหนี้เลขที่่ {payment.invoice.invoice_no} มีความจำเป็นต้องยกเลิกการชำระเงินเดิม\n'''
-#     message += f'''กรุณาติดต่อฝ่ายการเงินของคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล เพื่อสอบถามรายละเอียดเพิ่มเติมและดำเนินการในขั้นตอนถัดไป\n'''
-#     message += f'''ทางคณะฯ ต้องขออภัยในความไม่สะดวกมา ณ ที่นี้\n\n'''
-#     message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-#     message += f'''ขอแสดงความนับถือ\n'''
-#     message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
-#     message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-#     send_mail([payment.invoice.quotation.request.customer.email], title, message)
-#     flash('ยกเลิกการชำระเงินเรียบร้อยแล้ว', 'success')
-#     return redirect(url_for('service_admin.invoice_payment_index'))
-
-
 @service_admin.route('/receipt/index', methods=['GET'])
 @login_required
 def receipt_index():
