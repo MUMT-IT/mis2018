@@ -50,6 +50,12 @@
                                 <span>ชำระเงินแล้ว</span>
                             </a>
                         </li>
+                        <li {% if tab == 'cancel' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.invoice_index', tab='cancel', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-times"></i></span>
+                                <span>ยกเลิกการชำระเงิน</span>
+                            </a>
+                        </li>
                         <li {% if tab == 'overdue' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('academic_services.invoice_index', tab='overdue', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-circle-exclamation"></i></span>
