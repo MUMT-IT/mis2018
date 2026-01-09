@@ -35,17 +35,17 @@
                                 {% endif %}
                             </a>
                         </li>
-                        <li {% if tab == 'verify' %}class="is-active"{% endif %}>
-                            <a href="{{ url_for('academic_services.invoice_index', tab='verify', menu=menu) }}">
+                        <li {% if tab == 'payment' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.invoice_index', tab='payment', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-clipboard"></i></span>
                                 <span>รอเจ้าหน้าที่ตรวจสอบ</span>
-                                {% if verify_count > 0 %}
-                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ verify_count }}</span>
+                                {% if payment_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ payment_count }}</span>
                                 {% endif %}
                             </a>
                         </li>
-                        <li {% if tab == 'payment' %}class="is-active"{% endif %}>
-                            <a href="{{ url_for('academic_services.invoice_index', tab='payment', menu=menu) }}">
+                        <li {% if tab == 'verify' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('academic_services.invoice_index', tab='verify', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-check"></i></span>
                                 <span>ชำระเงินแล้ว</span>
                             </a>
@@ -72,9 +72,10 @@
                         <th>เลขใบแจ้งหนี้</th>
                         <th>วัน-เวลาที่ออก</th>
                         <th>วันครบกำหนดชำระ</th>
-                        <th>ราคา</th>
+                        <th>ยอดเรียกเก็บ</th>
                         <th>วิธีการชำระเงิน</th>
                         <th>วันที่ชำระเงิน</th>
+                        <th>ยอดที่ชำระ</th>
                         <th>หลักฐานการชำระเงิน</th>
                         <th>สถานะ</th>
                         <th>รายละเอียด</th>
@@ -183,6 +184,16 @@
                             if (data !== null) {
                                 let d = moment(data)
                                 return d.format('lll')
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'amount_paid',
+                        render: function (data) {
+                            if (data != null) {
+                                return data
                             } else {
                                 return ''
                             }

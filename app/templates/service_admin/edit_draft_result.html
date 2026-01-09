@@ -37,8 +37,7 @@
                                         </span>
                                         <span class="file-label">เลือกไฟล์…</span>
                                     </span>
-                                <span class="file-name" id="filename-{{ result_item.id }}">กรุณาแนบไฟล์
-                                    </span>
+                                <span class="file-name" id="filename-{{ result_item.id }}">กรุณาอัปโหลดไฟล์ PDF</span>
                             </label>
                         </div>
                         <div class="field is-grouped is-grouped-centered">
@@ -71,7 +70,7 @@
                 if (this.files.length > 0) {
                     span.textContent = this.files[0].name;
                 } else {
-                    span.textContent = 'ยังไม่อัปโหลดไฟล์';
+                    span.textContent = 'กรุณาอัปโหลดไฟล์ PDF';
                 }
             });
         });

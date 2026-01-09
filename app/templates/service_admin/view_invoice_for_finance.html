@@ -149,8 +149,10 @@
                         {% if not invoice.is_paid %}
                             <a class="button is-success" onclick="vm.warn({{ invoice.id }})">
                                 <span class="icon"><i class="fas fa-check"></i></span>
-                                <span>อนุมัติ</span>
+                                <span>ชำระเงินถูกต้อง</span>
                             </a>
+                        {% endif %}
+                        {% if invoice.paid_at and not invoice.is_paid %}
                             <a class="button is-danger" onclick="vm.danger({{ invoice.id }})">
                                 <span class="icon"><i class="fas fa-times"></i></span>
                                 <span>ยกเลิก</span>

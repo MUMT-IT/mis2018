@@ -191,55 +191,60 @@
                             <div class="field" id="location-field" style="display:none;">
                                 {% set ns = namespace(checked_done=False) %}
                                 <label class="label">สถานที่ส่งตัวอย่าง</label>
-                                <input type="radio" id="salaya_address" name="sample_address" value="salaya_address"
-                                       class="is-hidden"
-                                        {% if form.location.data == "salaya" %}
-                                       checked
-                                        {% elif not ns.checked_done %}
-                                       checked
-                                            {% set ns.checked_done = True %}
-                                        {% else %}
-                                            {% set ns.checked_done = False %}
-                                        {% endif %}
-                                >
-                                <div class="card location-card" data-radio-id="salaya_address" style="cursor: pointer;
-                                    margin-bottom: .7em">
-                                    <div class="card-content">
-                                        <div class="content">
-                                            <p>
-                                                <strong>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล วิทยาเขตศาลายา</strong><br>
-                                                สถานที่ : {{ sample.request.sub_lab.salaya_address }}
-                                                <br/>
-                                                เบอร์โทรศัพท์ : {{ sample.request.sub_lab.salaya_phone_number }}
-                                                {% if sample.request.sub_lab.lab.email %}
+                                {% if sample.request.sub_lab.salaya_address %}
+                                    <input type="radio" id="salaya_address" name="sample_address" value="salaya_address"
+                                           class="is-hidden"
+                                            {% if form.location.data == "salaya" %}
+                                           checked
+                                            {% elif not ns.checked_done %}
+                                           checked
+                                                {% set ns.checked_done = True %}
+                                            {% else %}
+                                                {% set ns.checked_done = False %}
+                                            {% endif %}
+                                    >
+                                    <div class="card location-card" data-radio-id="salaya_address" style="cursor: pointer;
+                                        margin-bottom: .7em">
+                                        <div class="card-content">
+                                            <div class="content">
+                                                <p>
+                                                    <strong>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล วิทยาเขตศาลายา</strong><br>
+                                                    สถานที่ : {{ sample.request.sub_lab.salaya_address }}
                                                     <br/>
-                                                    อีเมล : {{ sample.request.sub_lab.lab.email }}
-                                                {% endif %}
-                                            </p>
+                                                    เบอร์โทรศัพท์ : {{ sample.request.sub_lab.salaya_phone_number }}
+                                                    {% if sample.request.sub_lab.lab.email %}
+                                                        <br/>
+                                                        อีเมล : {{ sample.request.sub_lab.lab.email }}
+                                                    {% endif %}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <input type="radio" id="siriraj_address" name="sample_address" value="siriraj_address"
-                                       class="is-hidden" {% if form.location.data == "siriraj" %} checked {% endif %}
-                                >
-                                <div class="card location-card" data-radio-id="siriraj_address"
-                                     style="cursor: pointer;">
-                                    <div class="card-content">
-                                        <div class="content">
-                                            <p>
-                                                <strong>คณะเทคนิคการแพทย์ โรงพยาบาลศิริราช
-                                                    วิทยาเขตบางกอกน้อย</strong><br>
-                                                สถานที่ : {{ sample.request.sub_lab.siriraj_address }}
-                                                <br/>
-                                                เบอร์โทรศัพท์ : {{ sample.request.sub_lab.siriraj_phone_number }}
-                                                {% if sample.request.sub_lab.lab.email %}
+                                {% endif %}
+                                {% if sample.request.sub_lab.siriraj_address %}
+                                    <input type="radio" id="siriraj_address" name="sample_address" value="siriraj_address"
+                                           class="is-hidden"
+                                            {% if form.location.data == "siriraj" %} checked {% endif %}
+                                    >
+                                    <div class="card location-card" data-radio-id="siriraj_address"
+                                         style="cursor: pointer;">
+                                        <div class="card-content">
+                                            <div class="content">
+                                                <p>
+                                                    <strong>คณะเทคนิคการแพทย์ โรงพยาบาลศิริราช
+                                                        วิทยาเขตบางกอกน้อย</strong><br>
+                                                    สถานที่ : {{ sample.request.sub_lab.siriraj_address }}
                                                     <br/>
-                                                    อีเมล : {{ sample.request.sub_lab.lab.email }}
-                                                {% endif %}
-                                            </p>
+                                                    เบอร์โทรศัพท์ : {{ sample.request.sub_lab.siriraj_phone_number }}
+                                                    {% if sample.request.sub_lab.lab.email %}
+                                                        <br/>
+                                                        อีเมล : {{ sample.request.sub_lab.lab.email }}
+                                                    {% endif %}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                {% endif %}
                             </div>
                             <div class="field is-horizontal" id="appointment-field" style="display: none;">
                                 <div class="field-body">
