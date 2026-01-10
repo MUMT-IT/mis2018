@@ -661,7 +661,8 @@ def menu():
     test_item_count = None
     invoice_count = None
     report_count = None
-
+    invoice_count_for_central_admin = None
+    position = None
     if current_user.is_authenticated:
         admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
         if admins and admins.is_assistant:
@@ -4414,7 +4415,7 @@ def invoice_index_for_central_admin():
 def create_invoice(quotation_id):
     menu = request.args.get('menu')
     quotation = ServiceQuotation.query.get(quotation_id)
-    invoice = ServiceInvoice.query.filter_by(qiotation_id=quotation_id).first()
+    invoice = ServiceInvoice.query.filter_by(quotation_id=quotation_id).first()
     if not invoice:
         invoice_no = ServiceNumberID.get_number('Invoice', db, lab=quotation.request.sub_lab.ref)
         invoice = ServiceInvoice(invoice_no=invoice_no.number, quotation_id=quotation_id, name=quotation.name,
@@ -4494,9 +4495,7 @@ def approve_invoice(invoice_id):
                 message += f'''{invoice_for_central_admin_url}\n\n'''
                 message += f'''หากมีข้อขัดข้องหรือข้อมูลเพิ่มเติมที่ต้องใช้\nสามารถประสานแจ้งกลับได้โดยตรง\n\n'''
                 message += f'''ขอบคุณค่ะ\nฝ่ายระบบสารสนเทศ / MIS'''
-                send_mail(email, title, message)
-                if not current_app.debug:
-                    msg = (
+                msg = (
                         'แจ้งแอดมินส่วนกลางดำเนินการใบแจ้งหนี้เลขที่ {}\n\n'
                         'เรียน แอดมินส่วนกลาง\n\n'
                         'ตามที่มีการออกใบแจ้งหนี้เลขที่ : {}\n'
@@ -4510,13 +4509,13 @@ def approve_invoice(invoice_id):
                         '2. ออกเลขสารบรรณ\n'
                         '3. นำเข้าเอกสารเข้าสู่ระบบ e-Office เพื่อเสนอคณบดีลงนาม\n'
                         '4. หลังจากดำเนินการเรียบร้อยแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้ที่ลงนามแล้วกลับเข้าสู่ระบบบริการวิชาการ เพื่อให้ระบบดำเนินการแจ้งลูกค้าต่อไป\n\n'
-                        'สามารถเข้าดำเนินการได้ที่ระบบ\n'
-                        '{}\n\n'
                         'หากมีข้อขัดข้องหรือข้อมูลเพิ่มเติมที่ต้องใช้\nสามารถประสานแจ้งกลับได้โดยตรง\n\n'
                         'ขอบคุณค่ะ\n'
                         'ฝ่ายระบบสารสนเทศ / MIS'.format(invoice.invoice_no, invoice.invoice_no, invoice.customer_name,
                                                         invoice.name, invoice.quotation.request.request_no,
-                                                        invoice.quotation.quotation_no, invoice_for_central_admin_url))
+                                                        invoice.quotation.quotation_no))
+                if not current_app.debug:
+                    send_mail(email, title, message)
                     for a in admins:
                         if a.is_central_admin:
                             try:
@@ -4524,6 +4523,8 @@ def approve_invoice(invoice_id):
                                                           messages=TextSendMessage(text=msg))
                             except LineBotApiError:
                                 pass
+                else:
+                    print('message_email', message, 'message_line', msg)
     elif admin == 'supervisor':
         status_id = get_status(18)
         invoice.quotation.request.status_id = status_id
@@ -4539,7 +4540,7 @@ def approve_invoice(invoice_id):
                 message += f'''ในนาม : {invoice.name}\n'''
                 message += f'''อ้างอิงจาก : \n'''
                 message += f'''- ใบคำขอรับบริการเลขที่ : {invoice.quotation.request.request_no}\n'''
-                message += f'''- ใบเสนอราคาเลขที ่: {invoice.quotation.quotation_no}\n\n'''
+                message += f'''- ใบเสนอราคาเลขที ่: {invoice.quotation.quotation_no}\n'''
                 message += f'''ที่รอดำเนินการอนุมัติใบแจ้งหนี้\n'''
                 message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
                 message += f'''{invoice_url}\n\n'''
@@ -4547,9 +4548,7 @@ def approve_invoice(invoice_id):
                 message += f'''{invoice.customer_name}\n'''
                 message += f'''เบอร์โทร {invoice.contact_phone_number}\n'''
                 message += f'''ระบบบริการวิชาการ'''
-                send_mail(email, title, message)
-                if not current_app.debug:
-                    msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
+                msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
                            '\n\nเรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ' \
                            '\n\nใบแจ้งหนี้เลขที่ : {}' \
                            '\nลูกค้า : {}' \
@@ -4557,23 +4556,25 @@ def approve_invoice(invoice_id):
                            '\nอ้างอิงจาก : ' \
                            '\n- ใบคำขอรับบริการเลขที่ : {}'
                            '\n- ใบเสนอราคาเลขที่ : {}'
-                           '\n\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
-                           '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
-                           '\n{}' \
+                           '\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
                            '\n\nผู้ประสานงาน' \
                            '\n{}' \
                            '\nเบอร์โทร {}' \
                            '\nระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.invoice_no,
                                                            invoice.customer_name, invoice.name,
                                                            invoice.quotation.request.request_no,
-                                                           invoice.quotation.quotation_no, invoice_url,
+                                                           invoice.quotation.quotation_no,
                                                            invoice.customer_name, invoice.contact_phone_number))
+                if not current_app.debug:
+                    send_mail(email, title, message)
                     for a in admins:
                         if a.is_assistant:
                             try:
                                 line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                             except LineBotApiError:
                                 pass
+                else:
+                    print('message_email', message, 'message_line', msg)
     else:
         status_id = get_status(17)
         invoice.sent_at = arrow.now('Asia/Bangkok').datetime
@@ -4589,7 +4590,7 @@ def approve_invoice(invoice_id):
                 message += f'''ในนาม : {invoice.name}\n'''
                 message += f'''อ้างอิงจาก : \n'''
                 message += f'''- ใบคำขอรับบริการเลขที่ : {invoice.quotation.request.request_no}\n'''
-                message += f'''- ใบเสนอราคาเลขที ่: {invoice.quotation.quotation_no}\n\n'''
+                message += f'''- ใบเสนอราคาเลขที ่: {invoice.quotation.quotation_no}\n'''
                 message += f'''ที่รอดำเนินการอนุมัติใบแจ้งหนี้\n'''
                 message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
                 message += f'''{invoice_url}\n\n'''
@@ -4597,9 +4598,7 @@ def approve_invoice(invoice_id):
                 message += f'''{invoice.customer_name}\n'''
                 message += f'''เบอร์โทร {invoice.contact_phone_number}\n'''
                 message += f'''ระบบบริการวิชาการ'''
-                send_mail(email, title, message)
-                if not current_app.debug:
-                    msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
+                msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
                            '\n\nเรียน หัวหน้าห้องปฏิบัติการ' \
                            '\n\nใบแจ้งหนี้เลขที่ : {}' \
                            '\nลูกค้า : {}' \
@@ -4607,9 +4606,7 @@ def approve_invoice(invoice_id):
                            '\nอ้างอิงจาก : ' \
                            '\n- ใบคำขอรับบริการเลขที่ : {}'
                            '\n- ใบเสนอราคาเลขที่ : {}'
-                           '\n\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
-                           '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
-                           '\n{}' \
+                           '\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
                            '\n\nผู้ประสานงาน' \
                            '\n{}' \
                            '\nเบอร์โทร {}' \
@@ -4617,14 +4614,19 @@ def approve_invoice(invoice_id):
                                                            invoice.customer_name, invoice.name,
                                                            invoice.quotation.request.request_no,
                                                            invoice.quotation.quotation_no,
-                                                           invoice_url, invoice.customer_name,
+                                                           invoice.customer_name,
                                                            invoice.contact_phone_number))
+                send_mail(email, title, message)
+                if not current_app.debug:
+
                     for a in admins:
                         if a.is_supervisor:
                             try:
                                 line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                             except LineBotApiError:
                                 pass
+                else:
+                    print('message_email', message, 'message_line', msg)
     db.session.add(invoice)
     db.session.commit()
     flash('อนุมัติใบแจ้งหนี้สำเร็จ', 'success')
@@ -4676,8 +4678,8 @@ def upload_invoice_file(invoice_id):
                    )
             title = f'''แจ้งออกใบแจ้งหนี้ [{invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
             message = f'''เรียน {title_prefix}{invoice.customer_name}\n\n'''
-            message += f'''ตามที่ท่านใช้บริการจากหน่วยงานตรวจวิเคราะห์ของคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ทางเจ้าหน้าที่ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no}'''
-            message += f''' ของใบคำขอรับบริการเลขที่ {invoice.quotation.request.request_no} และของใบเสนอราคาเลขที่ {invoice.quotation.quotation_no} เรียบร้อยแล้ว กรุณาดำเนินการชำระเงินภายใน 30 วันนับจากวันที่ออกใบแจ้งหนี้\n'''
+            message += f'''ตามที่ท่านใช้บริการจากหน่วยงานตรวจวิเคราะห์ของคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ทางเจ้าหน้าที่ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no}\n'''
+            message += f'''ของใบคำขอรับบริการเลขที่ {invoice.quotation.request.request_no} และของใบเสนอราคาเลขที่ {invoice.quotation.quotation_no} เรียบร้อยแล้ว\nกรุณาดำเนินการชำระเงินภายใน 30 วันนับจากวันที่ออกใบแจ้งหนี้\n'''
             message += f'''ท่านสามารถตรวจสอบรายละเอียดใบแจ้งหนี้ได้จากลิงก์ด้านล่าง\n'''
             message += f'''{invoice_url}\n\n'''
             message += f'''ขอขอบพระคุณที่ใช้บริการจากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n\n'''
@@ -4685,14 +4687,18 @@ def upload_invoice_file(invoice_id):
             message += f'''ขอแสดงความนับถือ\n'''
             message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-            send_mail([invoice.quotation.request.customer.email], title, message)
             if not current_app.debug:
+                send_mail([invoice.quotation.request.customer.email], title, message)
                 try:
                     line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
                 except LineBotApiError:
                     pass
+            else:
+                print('message_email', message, 'message_line', msg)
             flash('บันทึกข้อมูลสำเร็จ', 'success')
             return redirect(url_for('service_admin.invoice_index_for_central_admin', menu=menu, tab='waiting_payment'))
+        else:
+            flash('กรุณาอัปโหลดไฟล์', 'danger')
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
@@ -5098,33 +5104,36 @@ def add_payment():
                 message = f'''เรียน เจ้าหน้าที่การเงิน\n\n'''
                 message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'''
                 message += f'''ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'''
-                message += f'''จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'''
+                message += f'''จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว\n'''
                 message += f'''กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'''
                 message += f'''{link}\n\n'''
                 message += f'''ผู้ประสานงาน\n'''
                 message += f'''{invoice.customer_name}\n'''
                 message += f'''เบอร์โทร {invoice.contact_phone_number}\n\n'''
                 message += f'''ระบบงานบริการวิชาการ'''
-                send_mail([staff.email + '@mahidol.ac.th'], title, message)
                 msg = (f'แจ้งอัพเดตการชำระเงินใบแจ้งหนี้เลขที่ {invoice.invoice_no}\n\n'
                        f'เรียน เจ้าหน้าที่การเงิน\n\n'
                        f'ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'
                        f'ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'
-                       f'จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'
-                       f'กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'
-                       f'{link}\n\n'
+                       f'จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตการชำระเงินเรียบร้อยแล้ว\n'
+                       f'กรุณาตรวจสอบรายละเอียดการชำระเงิน\n\n'
                        f'ผู้ประสานงาน\n'
                        f'{invoice.customer_name}\n'
                        f'เบอร์โทร {invoice.contact_phone_number}\n\n'
                        f'ระบบงานบริการวิชาการ'
                        )
                 if not current_app.debug:
+                    send_mail([staff.email + '@mahidol.ac.th'], title, message)
                     try:
                         line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
                     except LineBotApiError:
                         pass
-            flash('อัปโหลดหลักฐานการชำระเงินสำเร็จ', 'success')
-            return redirect(url_for('service_admin.invoice_index_for_central_admin', menu=menu, tab=tab))
+                else:
+                    print('message_email', message, 'message_line', msg)
+                flash('อัปโหลดหลักฐานการชำระเงินสำเร็จ', 'success')
+                return redirect(url_for('service_admin.invoice_index_for_central_admin', menu=menu, tab=tab))
+            else:
+                flash('กรุณาอัปโหลดไฟล์ให้ถูกต้อง', 'danger')
         else:
             flash('กรุณากรอกวันที่ชำระเงิน, วิธีการชำระเงิน, จำนวนเงิน และหลักฐานการชำระเงิน', 'danger')
     else:
@@ -6238,6 +6247,8 @@ def create_draft_result(result_id=None):
                     item.result.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(item)
                 db.session.commit()
+            else:
+                flash('กรุณาอัปโหลดไฟล์ให้ถูกต้อง', 'danger')
         upload_all = all(item.draft_file for item in result.result_items)
         if action == 'send':
             if upload_all:
@@ -6374,6 +6385,8 @@ def edit_draft_result(result_item_id):
                 result_item.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(result_item)
                 db.session.commit()
+            else:
+                flash('กรุณาอัปโหลดไฟล์ให้ถูกต้อง', 'danger')
             edited_all = all(item.edited_at for item in result_item.result.result_items if item.req_edit_at)
             tab = 'approve' if edited_all else 'edit'
             if edited_all:
@@ -6476,6 +6489,8 @@ def create_final_result(result_id=None):
                 item.result.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(item)
                 db.session.commit()
+            else:
+                flash('กรุณาอัปโหลดไฟล์ให้ถูกต้อง', 'danger')
         uploaded_all = all(item.final_file for item in result.result_items)
         if uploaded_all:
             scheme = 'http' if current_app.debug else 'https'
@@ -6564,6 +6579,7 @@ def get_invoice_payments():
 
 
 @service_admin.route('/finance/invoice/view/<int:invoice_id>', methods=['GET'])
+@login_required
 def view_invoice_for_finance(invoice_id):
     today = arrow.now('Asia/Bangkok').date()
     invoice = ServiceInvoice.query.get(invoice_id)
@@ -6585,21 +6601,26 @@ def confirm_payment(invoice_id):
     status_id = get_status(22)
     payment = ServicePayment.query.filter_by(invoice_id=invoice_id, cancelled_at=None).first()
     if not payment:
+        invoice = ServiceInvoice.query.get(invoice_id)
         payment = ServicePayment(invoice_id=invoice_id, payment_type='เช็คเงินสด',
-                                 amount_paid=payment.invoice.grand_total,
+                                 amount_paid=invoice.grand_total,
                                  paid_at=arrow.now('Asia/Bangkok').datetime,
-                                 customer_id=payment.invoice.quotation.request.customer_id,
+                                 customer_id=invoice.quotation.request.customer_id,
                                  created_at=arrow.now('Asia/Bangkok').datetime,
                                  verified_at=arrow.now('Asia/Bangkok').datetime,
                                  verifier_id=current_user.id
                                  )
+        db.session.add(payment)
+        invoice.quotation.request.status_id = status_id
+        db.session.add(invoice)
+        db.session.commit()
     else:
         payment = ServicePayment.query.filter_by(invoice_id=invoice_id, cancelled_at=None).first()
         payment.verified_at = arrow.now('Asia/Bangkok').datetime
         payment.verifier_id = current_user.id
-    payment.invoice.quotation.request.status_id = status_id
-    db.session.add(payment)
-    db.session.commit()
+        payment.invoice.quotation.request.status_id = status_id
+        db.session.add(payment)
+        db.session.commit()
     flash('ยืนยันการชำระเงินเรียบร้อยแล้ว', 'success')
     return render_template('service_admin/invoice_payment_index.html')
 
@@ -6622,9 +6643,9 @@ def cancel_payment(invoice_id):
     title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
     title = f'''แจ้งยกเลิกการชำระเงินของใบแจ้งหนี้ [{invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
     message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-    message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {invoice.quotation.request.request_no}'''
-    message += f''' ขณะนี้ทางคณะฯ ขอแจ้งให้ทราบว่า การชำระเงินสำหรับใบแจ้งหนี้เลขที่่ {invoice.invoice_no} มีความจำเป็นต้องยกเลิกการชำระเงินเดิม '''
-    message += f'''เนื่องจากยอดชำระไม่ครบถ้วนตามที่กำหนด จึงขอความร่วมมือให้ท่านดำเนินการชำระเงินใหม่ตามจำนวนที่ระบุไว้ในใบแจ้งหนี้ เพื่อความถูกต้องของข้อมูลในระบบ \n'''
+    message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {invoice.quotation.request.request_no}\n'''
+    message += f'''ขณะนี้ทางคณะฯ ขอแจ้งให้ทราบว่า การชำระเงินสำหรับใบแจ้งหนี้เลขที่่ {invoice.invoice_no} มีความจำเป็นต้องยกเลิกการชำระเงินเดิม\n'''
+    message += f'''เนื่องจากยอดชำระไม่ครบถ้วนตามที่กำหนด จึงขอความร่วมมือให้ท่านดำเนินการชำระเงินใหม่ตามจำนวนที่ระบุไว้ในใบแจ้งหนี้ เพื่อความถูกต้องของข้อมูลในระบบ\n'''
     message += f'''กรุณาดำเนินการแนบหลักฐานการชำระเงินใหม่ผ่านลิงก์ด้านล่าง\n'''
     message += f'''{upload_payment_link}\n\n'''
     message += f'''ทางคณะฯ ต้องขออภัยในความไม่สะดวกมา ณ ที่นี้\n\n'''
@@ -6632,7 +6653,10 @@ def cancel_payment(invoice_id):
     message += f'''ขอแสดงความนับถือ\n'''
     message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
     message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-    send_mail([invoice.quotation.request.customer.email], title, message)
+    if not current_app.debug:
+        send_mail([invoice.quotation.request.customer.email], title, message)
+    else:
+        print('message', message)
     flash('ยกเลิกการชำระเงินเรียบร้อยแล้ว', 'success')
     return redirect(url_for('service_admin.invoice_payment_index'))
 
