@@ -728,7 +728,7 @@ def menu():
 @academic_services.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        next_url = request.args.get('next', url_for('academic_services.customer_account'))
+        next_url = request.args.get('next', url_for('academic_services.lab_index', menu='new'))
         if is_safe_url(next_url):
             return redirect(next_url)
         else:
@@ -741,7 +741,7 @@ def login():
             if user.verify_password(pwd):
                 login_user(user)
                 identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
-                next_url = request.args.get('next', url_for('index'))
+                next_url = request.args.get('next', url_for('academic_services.lab_index', menu='new'))
                 if not is_safe_url(next_url):
                     return abort(400)
                 else:
@@ -751,7 +751,7 @@ def login():
                         db.session.add(user)
                         db.session.commit()
                     if current_user.customer_info:
-                        return redirect(url_for('academic_services.lab_index', menu='new'))
+                        return redirect(next_url)
                     else:
                         return redirect(url_for('academic_services.customer_account', menu='view'))
             else:
@@ -855,7 +855,7 @@ def customer_index():
             if user.verify_password(pwd):
                 login_user(user)
                 identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
-                next_url = request.args.get('next', url_for('academic_services.request_index', menu='request'))
+                next_url = request.args.get('next', url_for('academic_services.lab_index', menu='new'))
                 if not is_safe_url(next_url):
                     return abort(400)
                 else:
@@ -864,8 +864,10 @@ def customer_index():
                         user.is_first_login = True
                         db.session.add(user)
                         db.session.commit()
-                    if current_user.customer_info:
-                        return redirect(url_for('academic_services.lab_index', menu='new'))
+                    if next_url:
+                        return redirect(next_url)
+                    elif current_user.customer_info:
+                        return redirect(next_url)
                     else:
                         return redirect(url_for('academic_services.customer_account', menu='view'))
             else:
@@ -3678,7 +3680,6 @@ def request_quotation(request_id):
                '\nลูกค้า : {}' \
                '\nในนาม : {}' \
                '\nที่รอการดำเนินการออกใบเสนอราคา' \
-               '\nกรุณาตรวจสอบและดำเนินการออกใบเสนอราคา' \
                '\n\nผู้ประสานงาน' \
                '\n{}' \
                '\nเบอร์โทร {}' \
