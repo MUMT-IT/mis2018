@@ -58,8 +58,6 @@ def landing():
 def create_receipt():
     invoice_id = request.args.get('invoice_id')
     form = ReceiptDetailForm()
-    form.payer.choices = [(None, 'Add or select payer')] + [(r.id, r.received_money_from)
-                                for r in ElectronicReceiptReceivedMoneyFrom.query.all()]
     receipt_num = ComHealthReceiptID.get_number('MTS', db)
     payer = None
     invoice = ServiceInvoice.query.get(invoice_id) if invoice_id else None
@@ -85,6 +83,8 @@ def create_receipt():
                 form.payment_method.data = 'Other'
             else:
                 form.payment_method.data = 'Bank Transfer'
+    form.payer.choices = [(None, 'Add or select payer')] + [(r.id, r.received_money_from)
+                                                            for r in ElectronicReceiptReceivedMoneyFrom.query.all()]
     if request.method == 'POST':
         if form.payer.data:
             try:
@@ -121,15 +121,18 @@ def create_receipt():
             title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
             title = f'''แจ้งออกใบเสร็จรับเงินของใบแจ้งหนี้ [{invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
             message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-            message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
-            message += f''' ขณะนี้ทางคณะฯ ได้ตรวจการชำระเงิน และออกใบเสร็จรับเงินของใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว\n'''
+            message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}\n'''
+            message += f'''ขณะนี้ทางคณะฯ ได้ตรวจการชำระเงิน และออกใบเสร็จรับเงินของใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว\n'''
             message += f'''ท่านสามารถตรวจสอบรายละเอียดใบเสร็จรับเงินได้จากลิงก์ด้านล่าง\n'''
             message += f'''{link}\n\n'''
             message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
             message += f'''ขอแสดงความนับถือ\n'''
             message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-            send_mail([result.request.customer.email], title, message)
+            if not current_app.debug:
+                send_mail([result.request.customer.email], title, message)
+            else:
+                print('messafe', message)
         flash(u'บันทึกการสร้างใบเสร็จรับเงินสำเร็จ.', 'success')
         return redirect(url_for('receipt_printing.view_receipt_by_list_type'))
     else:
