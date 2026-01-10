@@ -32,8 +32,8 @@
                                 <a class="button is-small is-link is-light is-rounded"
                                    href="{{ url_for('service_admin.download_file', key=result_item.draft_file,
                                    download_filename=result_item.report_language + ' ' + '(ฉบับร่าง)' + '.pdf') }}">
+                                    <span class="icon is-small"><i class="fas fa-file"></i></span>
                                     <span>{{ result_item.report_language + ' ' + '(ฉบับร่าง)' or 'ไม่ระบุภาษา' }}</span>
-                                    <span class="icon is-small"><i class="fas fa-download"></i></span>
                                 </a>
                             </div>
                         </div>

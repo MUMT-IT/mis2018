@@ -4501,7 +4501,10 @@ def create_sample_appointment(sample_id):
                 message += f'''{sample.request.customer.customer_name}\n'''
                 message += f'''เบอร์โทร {sample.request.customer.contact_phone_number}\n'''
                 message += f'''ระบบงานบริการวิชาการ'''
-            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant], title, message)
+            if not current_app.debug:
+                send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant], title, message)
+            else:
+                print('message', message)
         if sample.request.status.status_id == 6:
             status_id = get_status(9)
             sample.request.status_id = status_id
@@ -5334,34 +5337,37 @@ def confirm_result_item(result_item_id):
             message += f'''{result_item.result.request.customer.customer_name}\n'''
             message += f'''เบอร์โทร {result_item.result.request.customer.contact_phone_number}\n\n'''
             message += f'''ระบบงานบริการวิชาการ'''
-            send_mail(
-                [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
-                title, message)
-            msg = ('แจ้งยืนยันใบรายงานผลการทดสอบ' \
-                   '\n\nเรียน เจ้าหน้าที่{}'
-                   '\n\nใบรายงานผลฉบับร่างของใบคำขอรับบริการเลขที่ {}' \
-                   '\nลูกค้า : {}' \
-                   '\nในนาม : {}' \
-                   '\nได้ดำเนินการยืนยันเรียบร้อยแล้ว' \
-                   '\nกรุณาดำเนินการออกใบรายงานผลฉบับจริงได้ที่ลิงก์ด้านล่าง' \
-                   '\n{}' \
-                   '\n\nผู้ประสานงาน' \
-                   '\n{}' \
-                   '\nเบอร์โทร {}' \
-                   '\n\nระบบงานบริการวิชาการ'.format(result_item.result.request.sub_lab.sub_lab,
-                                                     result_item.result.request.request_no,
-                                                     result_item.result.request.customer.customer_name,
-                                                     result_item.result.request.quotation_address.name, link,
-                                                     result_item.result.request.customer.customer_name,
-                                                     result_item.result.request.customer.contact_phone_number)
-                   )
+            # msg = ('แจ้งยืนยันใบรายงานผลการทดสอบ' \
+            #        '\n\nเรียน เจ้าหน้าที่{}'
+            #        '\n\nใบรายงานผลฉบับร่างของใบคำขอรับบริการเลขที่ {}' \
+            #        '\nลูกค้า : {}' \
+            #        '\nในนาม : {}' \
+            #        '\nได้ดำเนินการยืนยันเรียบร้อยแล้ว' \
+            #        '\nกรุณาดำเนินการออกใบรายงานผลฉบับจริงได้ที่ลิงก์ด้านล่าง' \
+            #        '\n{}' \
+            #        '\n\nผู้ประสานงาน' \
+            #        '\n{}' \
+            #        '\nเบอร์โทร {}' \
+            #        '\n\nระบบงานบริการวิชาการ'.format(result_item.result.request.sub_lab.sub_lab,
+            #                                          result_item.result.request.request_no,
+            #                                          result_item.result.request.customer.customer_name,
+            #                                          result_item.result.request.quotation_address.name, link,
+            #                                          result_item.result.request.customer.customer_name,
+            #                                          result_item.result.request.customer.contact_phone_number)
+            #        )
             if not current_app.debug:
-                for a in admins:
-                    if not a.is_central_admin and not a.is_assistant:
-                        try:
-                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                        except LineBotApiError:
-                            pass
+                send_mail(
+                    [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
+                    title, message)
+                # for a in admins:
+                #     if not a.is_central_admin and not a.is_assistant:
+                #         try:
+                #             line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                #         except LineBotApiError:
+                #             pass
+            else:
+                print('message', message)
+
     flash('ยืนยันใบรายงานผลเรียบร้อยแล้ว', 'success')
     return redirect(url_for('academic_services.result_index', menu=menu, tab=tab))
 
@@ -5414,34 +5420,36 @@ def edit_result_item(result_item_id):
                 message += f'''{result_item.result.request.customer.customer_name}\n'''
                 message += f'''เบอร์โทร {result_item.result.request.customer.contact_phone_number}\n\n'''
                 message += f'''ระบบงานบริการวิชาการ'''
-                send_mail(
-                    [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
-                    title, message)
                 msg = ('แจ้งขอแก้ไขใบรายงานผลการทดสอบ' \
                        '\n\nเรียน เจ้าหน้าที่{}'
                        '\n\n{}ฉบับร่างของใบคำขอรับบริการเลขที่ {}' \
                        '\nลูกค้า : {}' \
                        '\nในนาม : {}' \
                        '\nได้ขอดำเนินการแก้ไขรายงานผลการทดสอบเนื่องจาก {}' \
-                       '\nกรุณาดำเนินการแก้ไขรายงานผลการทดสอบได้ที่ลิงก์ด้านล่าง' \
-                       '\n{}' \
+                       '\nกรุณาดำเนินการแก้ไขรายงานผลการทดสอบ' \
                        '\n\nผู้ประสานงาน' \
                        '\n{}' \
                        '\nเบอร์โทร {}' \
                        '\n\nระบบงานบริการวิชาการ'.format(result_item.result.request.sub_lab.sub_lab, result_item.report_language,
                                                          result_item.result.request.request_no,
                                                          result_item.result.request.customer.customer_name,
-                                                         result_item.result.request.quotation_address.name, result_item.note, link,
+                                                         result_item.result.request.quotation_address.name, result_item.note,
                                                          result_item.result.request.customer.customer_name,
                                                          result_item.result.request.customer.contact_phone_number)
                        )
                 if not current_app.debug:
+                    send_mail(
+                        [a.admin.email + '@mahidol.ac.th' for a in admins if
+                         not a.is_central_admin and not a.is_assistant],
+                        title, message)
                     for a in admins:
                         if not a.is_central_admin and not a.is_assistant:
                             try:
                                 line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                             except LineBotApiError:
                                 pass
+                else:
+                    print('message_email', message, 'message_line', msg)
             flash('ส่งคำขอแก้ไขเรียบร้อยแล้ว', 'success')
         else:
             flash('กรุณากรอกรายละเอียดการขอแก้ไขใบรายงานผล', 'danger')
