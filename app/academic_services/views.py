@@ -855,7 +855,7 @@ def customer_index():
             if user.verify_password(pwd):
                 login_user(user)
                 identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
-                next_url = request.args.get('next', url_for('academic_services.customer_index'))
+                next_url = request.args.get('next', url_for('academic_services.request_index', menu='request'))
                 if not is_safe_url(next_url):
                     return abort(400)
                 else:
