@@ -3307,6 +3307,7 @@ def view_request(request_id=None):
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab)
     request_data = request_data_paths[service_request.sub_lab.code]
     datas = request_data(service_request, type='form')
+    result_id = None
     if service_request.results:
         for result in service_request.results:
             result_id = result.id
