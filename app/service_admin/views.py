@@ -26,7 +26,7 @@ from app.service_admin import service_admin
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, session, make_response, jsonify, current_app, \
     send_file
-from flask_login import current_user, login_required
+from flask_login import current_user, login_required, login_user
 from sqlalchemy import or_, update, and_
 from app.service_admin.forms import *
 from app.main import app, get_credential, json_keyfile
@@ -2719,6 +2719,8 @@ def create_customer_detail(request_id):
                 service_request.quotation_phone_number = address.phone_number
                 db.session.add(service_request)
                 db.session.commit()
+        else:
+            flash('กรุณากรอกข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี และที่อยู่จัดส่งเอกสาร', 'danger')
         if request.form.getlist('document_address'):
             for document_address_id in request.form.getlist('document_address'):
                 address = ServiceCustomerAddress.query.get(int(quotation_address_id))
@@ -5708,7 +5710,6 @@ def create_quotation_for_admin(quotation_id):
                 ServiceAdmin.query
                 .join(ServiceSubLab)
                 .filter(ServiceSubLab.code == quotation.request.sub_lab.code)
-                .all()
             )
             quotation_link = url_for("service_admin.approval_quotation_for_supervisor", quotation_id=quotation_id,
                                      tab='pending_approval', _external=True, _scheme=scheme, menu=menu)
@@ -5727,7 +5728,6 @@ def create_quotation_for_admin(quotation_id):
                     message += f'''เจ้าหน้าที่ห้องปฏิบัติการ\n'''
                     message += f'''{quotation.creator.fullname}\n'''
                     message += f'''ระบบงานบริการวิชาการ'''
-                    send_mail(email, title, message)
                     msg = ('แจ้งขออนุมัติใบเสนอราคาเลขที่ {}' \
                            '\n\nเรียน หัวหน้าห้องปฏิบัติการ'
                            '\n\nใบเสนอราคาเลขที่ {}' \
@@ -5735,23 +5735,24 @@ def create_quotation_for_admin(quotation_id):
                            '\nในนาม : {}' \
                            '\nอ้างอิงจากใบคำขอรับบริการเลขที่ : {}'
                            '\nที่รอการอนุมัติใบเสนอราคา' \
-                           '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
-                           '\n\n{}' \
-                           '\nเจ้าหน้าที่ห้องปฏิบัติการ' \
+                           '\n\nเจ้าหน้าที่ห้องปฏิบัติการ' \
                            '\n\n{}' \
                            '\nระบบงานบริการวิชาการ'
                            .format(quotation.quotation_no, quotation.quotation_no,
                                    quotation.request.customer.customer_info.cus_name,
-                                   quotation.name, quotation.request.request_no, quotation_link,
+                                   quotation.name, quotation.request.request_no,
                                    quotation.creator.fullname)
                            )
                     if not current_app.debug:
+                        send_mail(email, title, message)
                         for a in admins:
                             if a.is_supervisor:
                                 try:
                                     line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                                 except LineBotApiError:
                                     pass
+                    else:
+                        print('message_email', message, 'message_line', msg)
             flash('ส่งข้อมูลให้หัวหน้าอนุมัติเรียบร้อยแล้ว กรุณารอดำเนินการ', 'success')
             return redirect(url_for('service_admin.quotation_index', tab='pending_supervisor_approval', menu=menu))
         else:
@@ -5769,7 +5770,6 @@ def approval_quotation_for_supervisor(quotation_id):
     menu = request.args.get('menu')
     tab = request.args.get('tab')
     quotation = ServiceQuotation.query.get(quotation_id)
-    scheme = 'http' if current_app.debug else 'https'
     if not quotation.approved_at:
         if request.method == 'POST':
             status_id = get_status(5)
@@ -5792,6 +5792,7 @@ def approval_quotation_for_supervisor(quotation_id):
                     sign_pdf.seek(0)
                     db.session.add(quotation)
                     db.session.commit()
+                    scheme = 'http' if current_app.debug else 'https'
                     # contact_email = quotation.request.customer.contact_email if quotation.request.customer.contact_email else quotation.request.customer.email
                     quotation_link = url_for("academic_services.view_quotation", quotation_id=quotation_id, menu=menu,
                                              tab='pending', _external=True, _scheme=scheme)
@@ -5800,8 +5801,8 @@ def approval_quotation_for_supervisor(quotation_id):
                     title = f'''โปรดยืนยันใบเสนอราคา [{quotation.quotation_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
                     customer_name = quotation.customer_name.replace(' ', '_')
                     message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-                    message += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบเสนอราคาหมายเลข {quotation.quotation_no}'''
-                    message += f''' ได้รับการอนุมัติเรียบร้อยแล้ว และขณะนี้รอการยืนยันจากท่านเพื่อดำเนินการขั้นตอนต่อไป\n\n'''
+                    message += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบเสนอราคาหมายเลข {quotation.quotation_no}\n'''
+                    message += f'''ได้รับการอนุมัติเรียบร้อยแล้ว และขณะนี้รอการยืนยันจากท่านเพื่อดำเนินการขั้นตอนต่อไป\n\n'''
                     message += f'''รายละเอียดข้อมูล\n'''
                     message += f'''วันที่อนุมัติ : {quotation.approved_at.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
                     message += f'''จำนวนรายการ : {total_items} รายการ\n'''
@@ -5814,7 +5815,6 @@ def approval_quotation_for_supervisor(quotation_id):
                     message += f'''ขอแสดงความนับถือ\n'''
                     message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
                     message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-                    send_mail([quotation.request.customer.email], title, message)
                     admins = (
                         ServiceAdmin.query
                         .join(ServiceSubLab)
@@ -5842,7 +5842,11 @@ def approval_quotation_for_supervisor(quotation_id):
                             message += f'''หัวหน้าห้องปฏิบัติการ\n'''
                             message += f'''{quotation.approver.fullname}\n'''
                             message += f'''ระบบงานบริการวิชาการ'''
+                        if not current_app.debug:
+                            send_mail([quotation.request.customer.email], title, message)
                             send_mail(email, title_for_assistant, message_for_assistant)
+                        else:
+                            print('message_email_for_customer', message, 'message_for_assistant', message_for_assistant)
                     flash(f'อนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} สำเร็จ กรุณารอลูกค้ายืนยันใบเสนอราคา',
                           'success')
                     return redirect(
