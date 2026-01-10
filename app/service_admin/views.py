@@ -2994,19 +2994,22 @@ def sample_verification(sample_id):
             scheme = 'http' if current_app.debug else 'https'
             # contact_email = sample.request.customer.contact_email if sample.request.customer.contact_email else sample.request.customer.email
             title_prefix = 'คุณ' if sample.request.customer.customer_info.type.type == 'บุคคล' else ''
-            link = url_for("academic_services.request_index", menu='request', _external=True, _scheme=scheme)
+            # link = url_for("academic_services.request_index", menu='request', _external=True, _scheme=scheme)
             title = f'''แจ้งตรวจรับตัวอย่างของใบคำขอรับบริการ [{sample.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
             message = f'''เรียน {title_prefix}{sample.request.customer.customer_name}\n\n'''
             message += f'''ตามที่ท่านได้ส่งตัวอย่างเพื่อตรวจวิเคราะห์มายังคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล บัดนี้ทางเจ้าหน้าที่ได้ตรวจรับตัวอย่างของท่านเรียบร้อยแล้ว\n'''
             message += f'''เจ้าหน้าที่จะดำเนินการตรวจวิเคราะห์ตามขั้นตอน และจัดทำรายงานผลการตรวจวิเคราะห์ตามที่ตกลงไว้\n'''
-            message += f'''ท่านสามารถติดตามสถานะการตรวจวิเคราะห์ได้ที่ลิงก์ด้านล่างนี้้\n'''
-            message += f'''{link}\n\n'''
+            # message += f'''ท่านสามารถติดตามสถานะการตรวจวิเคราะห์ได้ที่ลิงก์ด้านล่างนี้้\n'''
+            # message += f'''{link}\n\n'''
             message += f'''ขอขอบพระคุณที่ใช้บริการจากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n\n'''
             message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
             message += f'''ขอแสดงความนับถือ\n'''
             message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-            send_mail([sample.request.customer.email], title, message)
+            if not current_app.debug:
+                send_mail([sample.request.customer.email], title, message)
+            else:
+                print('message', message)
             flash('ผลการตรวจสอบตัวอย่างได้รับการบันทึกเรียบร้อยแล้ว', 'success')
             return redirect(url_for('service_admin.sample_index', menu=menu, tab='received'))
     else:
@@ -6247,23 +6250,26 @@ def create_draft_result(result_id=None):
                 db.session.add(result)
                 db.session.commit()
                 scheme = 'http' if current_app.debug else 'https'
-                result_url = url_for('academic_services.result_index', menu='report', tab='approve', _external=True,
-                                     _scheme=scheme)
+                result_url = url_for('academic_services.view_result_item', result_id=result.id,
+                                     result_item_id=result.result_items[0].id, menu='report', tab='approve',
+                                     _external=True, _scheme=scheme)
                 customer_name = result.request.customer.customer_name.replace(' ', '_')
                 # contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
                 title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
                 title = f'''แจ้งออกรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
                 message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-                message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
-                message += f''' ขณะนี้ได้จัดทำรายงานผลการทดสอบฉบับร่างเรียบร้อยแล้ว'''
-                message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
-                message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง\n'''
+                message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}\n'''
+                message += f'''ขณะนี้ได้จัดทำรายงานผลการทดสอบฉบับร่างเรียบร้อยแล้ว\n'''
+                message += f'''กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
                 message += f'''{result_url}\n\n'''
                 message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
                 message += f'''ขอแสดงความนับถือ\n'''
                 message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
                 message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-                send_mail([result.request.customer.email], title, message)
+                if not current_app.debug:
+                    send_mail([result.request.customer.email], title, message)
+                else:
+                    print('message', message)
                 flash("ส่งข้อมูลเรียบร้อยแล้ว", "success")
                 return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='testing'))
             else:
@@ -6369,6 +6375,7 @@ def edit_draft_result(result_item_id):
                 db.session.add(result_item)
                 db.session.commit()
             edited_all = all(item.edited_at for item in result_item.result.result_items if item.req_edit_at)
+            tab = 'approve' if edited_all else 'edit'
             if edited_all:
                 # status_id = get_status(12)
                 # result_item.result.status_id = status_id
@@ -6378,23 +6385,25 @@ def edit_draft_result(result_item_id):
                 db.session.commit()
             scheme = 'http' if current_app.debug else 'https'
             result_url = url_for('academic_services.view_result_item', result_id=result_item.result_id,
-                                 result_item_id=result_item_id, menu='report', tab='approve', _external=True,
+                                 result_item_id=result_item_id, menu='report', tab=tab, _external=True,
                                  _scheme=scheme)
             customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
             # contact_email = result_item.result.request.customer.contact_email if result_item.result.request.customer.contact_email else result_item.result.request.customer.email
             title_prefix = 'คุณ' if result_item.result.request.customer.customer_info.type.type == 'บุคคล' else ''
             title = f'''แจ้งแก้ไขรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ [{result_item.result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
             message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-            message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result_item.result.request.request_no}'''
-            message += f''' ขณะนี้ได้แก้ไข{result_item.report_language}ฉบับร่างเรียบร้อยแล้ว'''
-            message += f''' กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
-            message += f'''ท่านสามารถยืนยันได้ที่ลิงก์ด้านล่าง\n'''
+            message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result_item.result.request.request_no}\n'''
+            message += f'''ขณะนี้ได้แก้ไข{result_item.report_language}ฉบับร่างเรียบร้อยแล้ว\n'''
+            message += f'''กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
             message += f'''{result_url}\n\n'''
             message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
             message += f'''ขอแสดงความนับถือ\n'''
             message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-            send_mail([result_item.result.request.customer.email], title, message)
+            if not current_app.debug:
+                send_mail([result_item.result.request.customer.email], title, message)
+            else:
+                print('message', message)
             flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
             return redirect(url_for('service_admin.result_index', menu=menu, tab=tab))
         else:
@@ -6477,15 +6486,17 @@ def create_final_result(result_id=None):
             title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
             title = f'''แจ้งออกรายงานผลการทดสอบฉบับจริงของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
             message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-            message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
-            message += f''' ขณะนี้ได้ดำเนินการออกรายงานผลการทดสอบฉบับจริงเรียบร้อยแล้ว\n'''
-            message += f'''ท่านสามารถดูรายละเอียดรายงานผลการทดสอบได้จากลิงก์ด้านล่าง\n'''
+            message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}\n'''
+            message += f'''ขณะนี้ได้ดำเนินการออกรายงานผลการทดสอบฉบับจริงเรียบร้อยแล้ว ท่านสามารถดูรายละเอียดรายงานผลการทดสอบได้จากลิงก์ด้านล่าง\n'''
             message += f'''{result_url}\n\n'''
             message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
             message += f'''ขอแสดงความนับถือ\n'''
             message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-            send_mail([result.request.customer.email], title, message)
+            if not current_app.debug:
+                send_mail([result.request.customer.email], title, message)
+            else:
+                print('message', message)
         flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
         return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='all'))
     return render_template('service_admin/create_final_result.html', result_id=result_id, menu=menu,
