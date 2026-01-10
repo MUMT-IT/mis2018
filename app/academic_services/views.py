@@ -4084,15 +4084,16 @@ def confirm_quotation(quotation_id):
         message += f'''ลูกค้า : {quotation.customer_name}\n'''
         message += f'''ในนาม : {quotation.name}\n'''
         message += f'''อ้างอิงจากใบคำขอรับบริการเลขที่ : {quotation.request.request_no}\n'''
-        message += f'''ได้รับการยืนยันจากลูกค้าแล้ว\n'''
-        message += f'''ท่านสามารถดูรายละเอียดได้ที่ลิงก์ด้านล่าง\n'''
-        message += f'''{link}\n\n'''
+        message += f'''ได้รับการยืนยันจากลูกค้าแล้ว กรุณารอลูกค้าดำเนินการนัดหมายส่งตัวอย่าง\n\n'''
         message += f'''ผู้ประสานงาน\n'''
         message += f'''{quotation.customer_name}\n'''
         message += f'''เบอร์โทร {quotation.request.customer.contact_phone_number}\n'''
         message += f'''ระบบบริการวิชาการ'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
-                  title, message)
+        if not current_app.debug:
+            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
+                      title, message)
+        else:
+            print('message', message)
     return redirect(url_for('academic_services.confirm_quotation_page', menu=menu, sample_id=sample.id))
 
 
@@ -4140,11 +4141,14 @@ def reject_quotation(quotation_id):
             message += f'''{quotation.customer_name}\n'''
             message += f'''เบอร์โทร {quotation.request.customer.contact_phone_number}\n'''
             message += f'''ระบบบริการวิชาการ'''
-            send_mail(
-                [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
-                title, message)
+            if not current_app.debug:
+                send_mail(
+                    [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
+                    title, message)
+            else:
+                print('message', message)
         resp = make_response()
-        resp.headers['HX-Redirect'] = url_for('academic_services.quotation_index', menu=menu)
+        resp.headers['HX-Redirect'] = url_for('academic_services.quotation_index', menu=menu, tab='cancel')
         return resp
     else:
         for field, error in form.errors.items():
