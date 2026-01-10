@@ -3672,47 +3672,47 @@ def request_quotation(request_id):
         message += f'''{service_request.customer.customer_name}\n'''
         message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n\n'''
         message += f'''ระบบงานบริการวิชาการ'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if
-                   not a.is_supervisor and not a.is_central_admin and not a.is_assistant],
-                  title, message)
         msg = ('แจ้งขอใบเสนอราคา' \
                '\n\nเรียน เจ้าหน้าที่{}'
                '\n\nใบคำขอบริการเลขที่ {}' \
                '\nลูกค้า : {}' \
                '\nในนาม : {}' \
                '\nที่รอการดำเนินการออกใบเสนอราคา' \
-               '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
-               '\n{}' \
+               '\nกรุณาตรวจสอบและดำเนินการออกใบเสนอราคา' \
                '\n\nผู้ประสานงาน' \
                '\n{}' \
                '\nเบอร์โทร {}' \
                '\n\nระบบงานบริการวิชาการ'.format(service_request.sub_lab.sub_lab, service_request.request_no,
                                                  service_request.customer.customer_name,
-                                                 service_request.quotation_address.name, link,
+                                                 service_request.quotation_address.name,
                                                  service_request.customer.customer_name,
                                                  service_request.customer.contact_phone_number)
                )
         if not current_app.debug:
+            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if
+                       not a.is_supervisor and not a.is_central_admin and not a.is_assistant], title, message)
             for a in admins:
                 if not a.is_supervisor and not a.is_central_admin and not a.is_assistant:
                     try:
                         line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                     except LineBotApiError:
                         pass
-    request_link = url_for("academic_services.view_request", request_id=request_id, menu='request',
-                           _external=True, _scheme=scheme)
+        else:
+            print('message_email', message, 'message_line', msg)
+
     title_for_customer = f'''แจ้งรับใบคำขอรับบริการ [{service_request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
     message_for_customer = f'''เรียน {title_prefix}{current_user.customer_info.cus_name}\n\n'''
-    message_for_customer += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ขณะนี้ทางเจ้าหน้าที่ได้รับข้อมูลคำขอรับบริการเลขที่ {service_request.request_no}เป็นที่เรียบร้อยแล้ว'''
-    message_for_customer += f'''ทางเจ้าหน้าที่จะพิจารณารายละเอียดและจัดทำใบเสนอราคาอย่างเป็นทางการต่อไป เมื่อใบเสนอราคาออกเรียบร้อยแล้ว ท่านจะได้รับอีเมลแจ้งอีกครั้งหนึ่ง พร้อมลิงก์สำหรับตรวจสอบและยืนยันใบเสนอราคา\n'''
-    message_for_customer += f'''ท่านสามารถดูรายละเอียดใบคำขอรับบริการได้ที่ลิงก์ด้างล่างนี้\n'''
-    message_for_customer += f'''{request_link}\n\n'''
+    message_for_customer += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\nขณะนี้ทางเจ้าหน้าที่ได้รับข้อมูลคำขอรับบริการเลขที่ {service_request.request_no}เป็นที่เรียบร้อยแล้ว\n'''
+    message_for_customer += f'''ทางเจ้าหน้าที่จะพิจารณารายละเอียดและจัดทำใบเสนอราคาอย่างเป็นทางการต่อไป\nเมื่อใบเสนอราคาออกเรียบร้อยแล้ว ท่านจะได้รับอีเมลแจ้งอีกครั้งหนึ่ง\nพร้อมลิงก์สำหรับตรวจสอบและยืนยันใบเสนอราคา\n'''
     message_for_customer += f'''ขอขอบพระคุณที่ใช้บริการจากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n\n'''
     message_for_customer += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
     message_for_customer += f'''ขอแสดงความนับถือ\n'''
     message_for_customer += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
     message_for_customer += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-    send_mail([current_user.email], title_for_customer, message_for_customer)
+    if not current_app.debug:
+        send_mail([current_user.email], title_for_customer, message_for_customer)
+    else:
+        print('message', message_for_customer)
     flash('ส่งใบคำขอรับบริการสำเร็จ', 'send_request')
     return redirect(url_for('academic_services.request_index', menu=menu))
 
