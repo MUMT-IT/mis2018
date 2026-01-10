@@ -2722,6 +2722,8 @@ def create_customer_detail(request_id):
                 db.session.commit()
         else:
             flash('กรุณากรอกข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี และที่อยู่จัดส่งเอกสาร', 'danger')
+            return redirect(url_for('service_admin.create_customer_detail', request_id=request_id, menu=menu,
+                                    code=code))
         if request.form.getlist('document_address'):
             for document_address_id in request.form.getlist('document_address'):
                 address = ServiceCustomerAddress.query.get(int(quotation_address_id))

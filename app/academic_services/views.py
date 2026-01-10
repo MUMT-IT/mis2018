@@ -864,9 +864,7 @@ def customer_index():
                         user.is_first_login = True
                         db.session.add(user)
                         db.session.commit()
-                    if next_url:
-                        return redirect(next_url)
-                    elif current_user.customer_info:
+                    if current_user.customer_info:
                         return redirect(next_url)
                     else:
                         return redirect(url_for('academic_services.customer_account', menu='view'))
@@ -2941,6 +2939,10 @@ def create_customer_detail(request_id):
                 service_request.quotation_phone_number = address.phone_number
                 db.session.add(service_request)
                 db.session.commit()
+        else:
+            flash('กรุณากรอกข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี และที่อยู่จัดส่งเอกสาร', 'danger')
+            return redirect(url_for('academic_services.create_customer_detail', request_id=request_id, menu=menu,
+                                    code=code))
         if request.form.getlist('document_address'):
             for document_address_id in request.form.getlist('document_address'):
                 address = ServiceCustomerAddress.query.get(int(quotation_address_id))
