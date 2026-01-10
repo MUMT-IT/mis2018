@@ -4745,6 +4745,7 @@ def invoice_index():
 
 
 @academic_services.route('/customer/payment/add', methods=['GET', 'POST'])
+@login_required
 def add_payment():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
@@ -4798,26 +4799,29 @@ def add_payment():
                     message += f'''{invoice.customer_name}\n'''
                     message += f'''เบอร์โทร {invoice.contact_phone_number}\n\n'''
                     message += f'''ระบบงานบริการวิชาการ'''
-                    send_mail([staff.email + '@mahidol.ac.th'], title, message)
                     msg = (f'แจ้งอัพเดตการชำระเงินใบแจ้งหนี้เลขที่ {invoice.invoice_no}\n\n'
                            f'เรียน เจ้าหน้าที่การเงิน\n\n'
                            f'ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'
                            f'ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'
-                           f'จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'
-                           f'กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'
-                           f'{link}\n\n'
+                           f'จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตการชำระเงินเรียบร้อยแล้ว\n'
+                           f'กรุณาตรวจสอบรายละเอียดการชำระเงิน\n\n'
                            f'ผู้ประสานงาน\n'
                            f'{invoice.customer_name}\n'
                            f'เบอร์โทร {invoice.contact_phone_number}\n\n'
                            f'ระบบงานบริการวิชาการ'
                            )
                     if not current_app.debug:
+                        send_mail([staff.email + '@mahidol.ac.th'], title, message)
                         try:
                             line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
                         except LineBotApiError:
                             pass
-                flash('อัปโหลดหลักฐานการชำระเงินสำเร็จ', 'success')
-                return redirect(url_for('academic_services.invoice_index', menu=menu, tab='payment'))
+                    else:
+                        print('message_email', message, 'message_line', msg)
+                    flash('อัปโหลดหลักฐานการชำระเงินสำเร็จ', 'success')
+                    return redirect(url_for('academic_services.invoice_index', menu=menu, tab='payment'))
+                else:
+                    flash('กรุณาอัปโหลดไฟล์ให้ถูกต้อง', 'danger')
             else:
                 flash('กรุณากรอกวันที่ชำระเงิน, วิธีการชำระเงิน, จำนวนเงิน และหลักฐานการชำระเงิน', 'danger')
         else:
