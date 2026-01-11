@@ -3676,20 +3676,13 @@ def request_quotation(request_id):
         message += f'''{service_request.customer.customer_name}\n'''
         message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n\n'''
         message += f'''ระบบงานบริการวิชาการ'''
-        msg = ('แจ้งขอใบเสนอราคา' \
-               '\n\nเรียน เจ้าหน้าที่{}'
-               '\n\nใบคำขอบริการเลขที่ {}' \
-               '\nลูกค้า : {}' \
-               '\nในนาม : {}' \
-               '\nที่รอการดำเนินการออกใบเสนอราคา' \
-               '\n\nผู้ประสานงาน' \
-               '\n{}' \
-               '\nเบอร์โทร {}' \
-               '\n\nระบบงานบริการวิชาการ'.format(service_request.sub_lab.sub_lab, service_request.request_no,
-                                                 service_request.customer.customer_name,
-                                                 service_request.quotation_address.name,
-                                                 service_request.customer.customer_name,
-                                                 service_request.customer.contact_phone_number)
+        msg = ('ใบคำขอบริการเลขที่ {}\n'\
+               'ออกในนาม {}\n' \
+               'ณ วันที่ {} รอดำเนินการออกใบเสนอราคา\n' \
+               'กรุณาดำเนินการออกใบเสนอราคาในระบบ'.format(service_request.request_no,
+                                                          service_request.quotation_address.name,
+                                                          service_request.created_at.astimezone(localtz).strftime('%d/%m/%Y')
+                                                          )
                )
         if not current_app.debug:
             send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if
@@ -4801,17 +4794,11 @@ def add_payment():
                     message += f'''{invoice.customer_name}\n'''
                     message += f'''เบอร์โทร {invoice.contact_phone_number}\n\n'''
                     message += f'''ระบบงานบริการวิชาการ'''
-                    msg = (f'แจ้งอัพเดตการชำระเงินใบแจ้งหนี้เลขที่ {invoice.invoice_no}\n\n'
-                           f'เรียน เจ้าหน้าที่การเงิน\n\n'
-                           f'ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'
-                           f'ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'
-                           f'จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตการชำระเงินเรียบร้อยแล้ว\n'
-                           f'กรุณาตรวจสอบรายละเอียดการชำระเงิน\n\n'
-                           f'ผู้ประสานงาน\n'
-                           f'{invoice.customer_name}\n'
-                           f'เบอร์โทร {invoice.contact_phone_number}\n\n'
-                           f'ระบบงานบริการวิชาการ'
-                           )
+                    msg  = ('ใบแจ้งหนี้เลขที่ {}\n'\
+                           'ออกในนาม {}\n' \
+                           'ณ วันที่ {} รอดำเนินการตรวจสอบการชำระเงิน\n' \
+                           'กรุณาดำเนินการตรวจสอบในระบบ'.format(invoice.invoice_no, invoice.name,
+                                                                invoice.paid_at.astimezone(localtz).strftime('%d/%m/%Y')))
                     if not current_app.debug:
                         send_mail([staff.email + '@mahidol.ac.th'], title, message)
                         try:
@@ -5427,22 +5414,14 @@ def edit_result_item(result_item_id):
                 message += f'''{result_item.result.request.customer.customer_name}\n'''
                 message += f'''เบอร์โทร {result_item.result.request.customer.contact_phone_number}\n\n'''
                 message += f'''ระบบงานบริการวิชาการ'''
-                msg = ('แจ้งขอแก้ไขใบรายงานผลการทดสอบ' \
-                       '\n\nเรียน เจ้าหน้าที่{}'
-                       '\n\n{}ฉบับร่างของใบคำขอรับบริการเลขที่ {}' \
-                       '\nลูกค้า : {}' \
-                       '\nในนาม : {}' \
-                       '\nได้ขอดำเนินการแก้ไขรายงานผลการทดสอบเนื่องจาก {}' \
-                       '\nกรุณาดำเนินการแก้ไขรายงานผลการทดสอบ' \
-                       '\n\nผู้ประสานงาน' \
-                       '\n{}' \
-                       '\nเบอร์โทร {}' \
-                       '\n\nระบบงานบริการวิชาการ'.format(result_item.result.request.sub_lab.sub_lab, result_item.report_language,
-                                                         result_item.result.request.request_no,
-                                                         result_item.result.request.customer.customer_name,
-                                                         result_item.result.request.quotation_address.name, result_item.note,
-                                                         result_item.result.request.customer.customer_name,
-                                                         result_item.result.request.customer.contact_phone_number)
+                msg = ('ใบคำขอรับบริการเลขที่ {}\n' \
+                       'ออกในนาม {}\n'
+                       'ณ วันที่ {} รอดำเนินการแก้ไข{}ฉบับร่าง\n' \
+                       'กรุณาดำเนินการแก้ไขในระบบ'.format(result_item.result.request.request_no,
+                                                                            result_item.result.request.quotation_address.name,
+                                                                            result_item.req_edit_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                                                            result_item.report_language
+                                                                            )
                        )
                 if not current_app.debug:
                     send_mail(
