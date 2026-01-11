@@ -222,7 +222,7 @@
                                 </p>
                                 <ul class="menu-list">
                                     <li>
-                                        {% if not service_request.results %}
+                                        {% if not service_request.get_result() %}
                                             ยังไม่ดำเนินการทดสอบ
                                         {% else %}
                                             {% for result in service_request.results %}
@@ -244,8 +244,6 @@
                                                             <span class="icon is-small"><i
                                                                     class="fas fa-download"></i></span>
                                                         </a>
-                                                    {% else %}
-                                                        กำลังดำเนินการทดสอบ
                                                     {% endif %}
                                                 {% endfor %}
                                             {% endfor %}
