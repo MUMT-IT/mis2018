@@ -5059,14 +5059,11 @@ def add_payment():
                 # invoice.paid_at = arrow.now('Asia/Bangkok').datetime
                 invoice.quotation.request.status_id = status_id
                 db.session.add(invoice)
-                result = ServiceResult.query.filter_by(request_id=invoice.quotation.request_id).first()
-                result.status_id = status_id
-                db.session.add(result)
                 db.session.commit()
                 scheme = 'http' if current_app.debug else 'https'
                 org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
                 staff = StaffAccount.get_account_by_email(org.head)
-                title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
+                title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
                 link = url_for("service_admin.view_invoice_for_finance", invoice_id=invoice_id, _external=True,
                                _scheme=scheme)
                 customer_name = invoice.customer_name.replace(' ', '_')
@@ -5103,8 +5100,8 @@ def add_payment():
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-        return render_template('service_admin/add_payment.html', menu=menu, form=form, invoice=invoice,
-                               tab=tab)
+    return render_template('service_admin/add_payment.html', menu=menu, form=form, invoice=invoice,
+                           tab=tab)
 
 
 @service_admin.route('/quotation/index')
