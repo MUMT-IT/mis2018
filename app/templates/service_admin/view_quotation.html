@@ -154,6 +154,19 @@
                             </ul>
                             <hr>
                             <p class="menu-label">
+                                วันที่อนุมัติ
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {% if quotation.approved_at %}
+                                        {{ quotation.approved_at|localdate }}
+                                    {% else %}
+                                        ยังไม่ดำเนินการอนุมัติ
+                                    {% endif %}
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
                                 สถานะ
                             </p>
                             <ul class="menu-list">
