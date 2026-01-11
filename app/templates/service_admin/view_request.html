@@ -228,13 +228,9 @@
                                             {% for result in service_request.results %}
                                                 {% for item in result.result_items %}
                                                     {% if item.final_file %}
-                                                        <a {% if result.status.status_id == 22 %}
-                                                            class="button is-small is-link is-light is-rounded is-fullwidth mb-2"
+                                                        <a class="button is-small is-link is-light is-rounded is-fullwidth mb-2"
                                                             href="{{ url_for('service_admin.download_file', key=item.final_file,
                                                                         download_filename=item.report_language + ' ' + '(ฉบับจริง)' + '.pdf') }}"
-                                                        {% else %}
-                                                            class="button is-small is-link is-light is-rounded is-fullwidth mb-2 Warn"
-                                                        {% endif %}
                                                         >
                                                             <span>{{ item.report_language + ' ' + '(ฉบับจริง)' or 'ไม่ระบุภาษา' }}</span>
                                                             <span class="icon is-small"><i
