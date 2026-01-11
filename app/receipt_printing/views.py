@@ -80,9 +80,9 @@ def create_receipt():
             elif payment.payment_type == 'โอนเงิน':
                 form.payment_method.data = 'Bank Transfer'
             elif payment.payment_type == 'เช็คเงินสด':
-                form.payment_method.data = 'Other'
+                form.payment_method.data = 'Cheque'
             else:
-                form.payment_method.data = 'Bank Transfer'
+                form.payment_method.data = 'Other'
     form.payer.choices = [(None, 'Add or select payer')] + [(r.id, r.received_money_from)
                                                             for r in ElectronicReceiptReceivedMoneyFrom.query.all()]
     if request.method == 'POST':
