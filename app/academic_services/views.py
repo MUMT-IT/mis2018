@@ -5394,6 +5394,7 @@ def edit_result_item(result_item_id):
         form.populate_obj(result_item)
         # status_id = get_status(14)
         if form.note.data:
+            result_item.edited_at = None
             result_item.is_edited = False
             result_item.edit_requester_id = current_user.id
             result_item.req_edit_at = arrow.now('Asia/Bangkok').datetime
