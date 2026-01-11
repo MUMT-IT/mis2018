@@ -4127,9 +4127,9 @@ def reject_quotation(quotation_id):
             message += f'''ลูกค้า : {quotation.customer_name}\n'''
             message += f'''ในนาม : {quotation.name}\n'''
             message += f'''อ้างอิงจากใบคำขอรับบริการเลขที่ : {quotation.request.request_no}\n'''
-            message += f'''เหตุผลที่ปฏิเสธ : {quotation.reason or ''}'''
+            message += f'''เหตุผลที่ปฏิเสธ : {quotation.reason or ''}\n'''
             if quotation.other:
-                message += f'''รายละเอียดเพิ่มเติม : {quotation.other}'''
+                message += f'''รายละเอียดเพิ่มเติม : {quotation.other}\n'''
             message += f'''ได้รับการปฏิเสธจากลูกค้า\n'''
             message += f'''กรุณาตรวจสอบและดำเนินขั้นตอนที่เหมาะสมต่อไป\n\n'''
             message += f'''ผู้ประสานงาน\n'''
