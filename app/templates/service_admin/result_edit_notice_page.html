@@ -8,12 +8,12 @@
                 <span class="icon is-large has-text-success">
                     <i class="fas fa-check-circle fa-3x"></i>
                 </span>
-                <h1 class="title is-3 mt-3">ตรวจสอบและรับตัวอย่างเรียบร้อยแล้ว</h1>
+                <h1 class="title is-3 mt-3">แก้ไขใบรายงานผลฉบับร่างแล้ว</h1>
                 <div class="notification is-info is-light mt-4">
-                    ใบคำขอรับบริการเลขที่ {{ request_no }} ได้ผ่านการตรวจสอบและรับตัวอย่างเรียบร้อยแล้ว กรุณาดำเนินการในขั้นตอนถัดไป
+                    ใบรายงานผลฉบับร่างนี้ได้รับการแก้ไขเรียบร้อยแล้ว กรุณารอการยืนยันจากลูกค้า
                 </div>
                 <div class="buttons is-centered mt-5">
-                    <a href='{{ url_for('service_admin.sample_index', menu=menu, tab=tab) }}'
+                    <a href='{{ url_for('service_admin.result_index', menu=menu, tab=tab) }}'
                        class="button is-link is-light"
                     >
                         กลับหน้าหลัก

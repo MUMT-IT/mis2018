@@ -10,7 +10,6 @@
             <section class="modal-card-body">
                 <form hx-post="{{ url_for('academic_services.edit_result_item', result_item_id=result_item_id, menu=menu,
                         tab=tab) }}"
-                      hx-indicator="#submit-form"
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                     <div class="field">

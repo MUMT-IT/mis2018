@@ -230,7 +230,7 @@
                                                     {% if item.final_file %}
                                                         <a {% if result.status.status_id == 22 %}
                                                             class="button is-small is-link is-light is-rounded is-fullwidth mb-2"
-                                                            href="{{ url_for('academic_services.download_file', key=item.final_file,
+                                                            href="{{ url_for('service_admin.download_file', key=item.final_file,
                                                                         download_filename=item.report_language + ' ' + '(ฉบับจริง)' + '.pdf') }}"
                                                         {% else %}
                                                             class="button is-small is-link is-light is-rounded is-fullwidth mb-2 Warn"
@@ -242,7 +242,7 @@
                                                         </a>
                                                     {% elif item.draft_file %}
                                                         <a class="button is-small is-link is-light is-rounded is-fullwidth mb-2"
-                                                           href="{{ url_for('academic_services.download_file', key=item.draft_file,
+                                                           href="{{ url_for('service_admin.download_file', key=item.draft_file,
                                                                                download_filename=item.report_language + ' ' + '(ฉบับร่าง)' + '.pdf') }}">
                                                             <span>{{ item.report_language + ' ' + '(ฉบับร่าง)' or 'ไม่ระบุภาษา' }}</span>
                                                             <span class="icon is-small"><i
@@ -340,7 +340,7 @@
                                        href="{{ url_for('service_admin.export_request_pdf', request_id=service_request.id) }}"
                                     >
                                         <span class="icon"><i class="fas fa-clipboard-list"></i></span>
-                                        <span>พิมพ์ใบคำขอรับบริการ</span>
+                                        <span>ดาวน์โหลดใบคำขอรับบริการ</span>
                                     </a>
                                 </li>
                                 {% if service_request.quotations %}
@@ -350,7 +350,7 @@
                                                href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation.id) }}"
                                             >
                                                 <span class="icon"><i class="fas fa-file-invoice"></i></span>
-                                                <span>พิมพ์ใบเสนอราคา</span>
+                                                <span>ดาวน์โหลดใบเสนอราคา</span>
                                             </a>
                                         </li>
                                         {% for invoice in quotation.invoices %}
@@ -362,7 +362,7 @@
                                                     >
                                                         <span class="icon"><i
                                                                 class="fas fa-file-invoice-dollar"></i></span>
-                                                        <span>พิมพ์ใบแจ้งหนี้</span>
+                                                        <span>ดาวน์โหลดใบแจ้งหนี้</span>
                                                     </a>
                                                 </li>
                                                 {% if invoice.receipts %}
@@ -373,7 +373,7 @@
                                                             >
                                                                 <span class="icon"><i
                                                                         class="fas fa-file-invoice-dollar"></i></span>
-                                                                <span>พิมพ์ใบเสร็จรับเงิน</span>
+                                                                <span>ดาวน์โหลดใบเสร็จรับเงิน</span>
                                                             </a>
                                                         </li>
                                                     {% endfor %}

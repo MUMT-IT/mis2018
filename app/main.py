@@ -184,6 +184,9 @@ def index():
         else:
             central_admin = False
             assistant = False
+    else:
+        central_admin = False
+        assistant = False
     return render_template('index.html', central_admin=central_admin, assistant=assistant,
                            now=datetime.now(tz=timezone('Asia/Bangkok')))
 
