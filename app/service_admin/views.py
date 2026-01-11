@@ -4498,25 +4498,13 @@ def approve_invoice(invoice_id):
                 message += f'''{invoice_for_central_admin_url}\n\n'''
                 message += f'''หากมีข้อขัดข้องหรือข้อมูลเพิ่มเติมที่ต้องใช้\nสามารถประสานแจ้งกลับได้โดยตรง\n\n'''
                 message += f'''ขอบคุณค่ะ\nฝ่ายระบบสารสนเทศ / MIS'''
-                msg = (
-                        'แจ้งแอดมินส่วนกลางดำเนินการใบแจ้งหนี้เลขที่ {}\n\n'
-                        'เรียน แอดมินส่วนกลาง\n\n'
-                        'ตามที่มีการออกใบแจ้งหนี้เลขที่ : {}\n'
-                        'ลูกค้า : {}\n'
-                        'ในนาม : {}\n'
-                        'อ้างอิงเอกสาร : \n'
-                        '- ใบคำขอรับบริการเลขที่ : {}\n'
-                        '- ใบเสนอราคาเลขที่ : {}\n\n'
-                        'ขอความกรุณา แอดมินส่วนกลางดำเนินการดังต่อไปนี้\n\n'
-                        '1. พิมพ์ใบแจ้งหนี้\n'
-                        '2. ออกเลขสารบรรณ\n'
-                        '3. นำเข้าเอกสารเข้าสู่ระบบ e-Office เพื่อเสนอคณบดีลงนาม\n'
-                        '4. หลังจากดำเนินการเรียบร้อยแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้ที่ลงนามแล้วกลับเข้าสู่ระบบบริการวิชาการ เพื่อให้ระบบดำเนินการแจ้งลูกค้าต่อไป\n\n'
-                        'หากมีข้อขัดข้องหรือข้อมูลเพิ่มเติมที่ต้องใช้\nสามารถประสานแจ้งกลับได้โดยตรง\n\n'
-                        'ขอบคุณค่ะ\n'
-                        'ฝ่ายระบบสารสนเทศ / MIS'.format(invoice.invoice_no, invoice.invoice_no, invoice.customer_name,
-                                                        invoice.name, invoice.quotation.request.request_no,
-                                                        invoice.quotation.quotation_no))
+                msg = ('ใบแจ้งหนี้เลขที่ {}\n'\
+                        'ออกในนาม {}\n' \
+                        'ณ วันที่ {} รอดำเนินการอัปโหลดใบแจ้งหนี้ฉบับลงนามคณบดี\n' \
+                        'กรุณาดำเนินการอัปโหลดในระบบ'.format(invoice.invoice_no, invoice.name,
+                                                             invoice.assistant_approved_at.astimezone(localtz).strftime('%d/%m/%Y')
+                                                             )
+                       )
                 if not current_app.debug:
                     send_mail(email, title, message)
                     for a in admins:
@@ -4551,23 +4539,13 @@ def approve_invoice(invoice_id):
                 message += f'''{invoice.customer_name}\n'''
                 message += f'''เบอร์โทร {invoice.contact_phone_number}\n'''
                 message += f'''ระบบบริการวิชาการ'''
-                msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
-                           '\n\nเรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ' \
-                           '\n\nใบแจ้งหนี้เลขที่ : {}' \
-                           '\nลูกค้า : {}' \
-                           '\nในนาม : {}' \
-                           '\nอ้างอิงจาก : ' \
-                           '\n- ใบคำขอรับบริการเลขที่ : {}'
-                           '\n- ใบเสนอราคาเลขที่ : {}'
-                           '\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
-                           '\n\nผู้ประสานงาน' \
-                           '\n{}' \
-                           '\nเบอร์โทร {}' \
-                           '\nระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.invoice_no,
-                                                           invoice.customer_name, invoice.name,
-                                                           invoice.quotation.request.request_no,
-                                                           invoice.quotation.quotation_no,
-                                                           invoice.customer_name, invoice.contact_phone_number))
+                msg = ('ใบแจ้งหนี้เลขที่ {}\n'\
+                        'ออกในนาม {}\n' \
+                        'ณ วันที่ {} รอดำเนินการอนุมัติใบแจ้งหนี้\n' \
+                        'กรุณาดำเนินการอนุมัติในระบบ'.format(invoice.invoice_no, invoice.name,
+                                                           invoice.head_approved_at.astimezone(localtz).strftime('%d/%m/%Y')
+                                                             )
+                       )
                 if not current_app.debug:
                     send_mail(email, title, message)
                     for a in admins:
@@ -4601,24 +4579,13 @@ def approve_invoice(invoice_id):
                 message += f'''{invoice.customer_name}\n'''
                 message += f'''เบอร์โทร {invoice.contact_phone_number}\n'''
                 message += f'''ระบบบริการวิชาการ'''
-                msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
-                           '\n\nเรียน หัวหน้าห้องปฏิบัติการ' \
-                           '\n\nใบแจ้งหนี้เลขที่ : {}' \
-                           '\nลูกค้า : {}' \
-                           '\nในนาม : {}' \
-                           '\nอ้างอิงจาก : ' \
-                           '\n- ใบคำขอรับบริการเลขที่ : {}'
-                           '\n- ใบเสนอราคาเลขที่ : {}'
-                           '\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
-                           '\n\nผู้ประสานงาน' \
-                           '\n{}' \
-                           '\nเบอร์โทร {}' \
-                           '\nระบบงานบริการวิชาการ'.format(invoice.invoice_no, invoice.invoice_no,
-                                                           invoice.customer_name, invoice.name,
-                                                           invoice.quotation.request.request_no,
-                                                           invoice.quotation.quotation_no,
-                                                           invoice.customer_name,
-                                                           invoice.contact_phone_number))
+                msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
+                       'ออกในนาม {}\n' \
+                       'ณ วันที่ {} รอดำเนินการอนุมัติใบแจ้งหนี้\n' \
+                       'กรุณาดำเนินการอนุมัติในระบบ'.format(invoice.invoice_no, invoice.name,
+                                                            invoice.sent_at.astimezone(localtz).strftime('%d/%m/%Y')
+                                                            )
+                       )
                 send_mail(email, title, message)
                 if not current_app.debug:
 
@@ -5114,17 +5081,11 @@ def add_payment():
                 message += f'''{invoice.customer_name}\n'''
                 message += f'''เบอร์โทร {invoice.contact_phone_number}\n\n'''
                 message += f'''ระบบงานบริการวิชาการ'''
-                msg = (f'แจ้งอัพเดตการชำระเงินใบแจ้งหนี้เลขที่ {invoice.invoice_no}\n\n'
-                       f'เรียน เจ้าหน้าที่การเงิน\n\n'
-                       f'ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'
-                       f'ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'
-                       f'จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตการชำระเงินเรียบร้อยแล้ว\n'
-                       f'กรุณาตรวจสอบรายละเอียดการชำระเงิน\n\n'
-                       f'ผู้ประสานงาน\n'
-                       f'{invoice.customer_name}\n'
-                       f'เบอร์โทร {invoice.contact_phone_number}\n\n'
-                       f'ระบบงานบริการวิชาการ'
-                       )
+                msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
+                       'ออกในนาม {}\n' \
+                       'ณ วันที่ {} รอดำเนินการตรวจสอบการชำระเงิน\n' \
+                       'กรุณาดำเนินการตรวจสอบในระบบ'.format(invoice.invoice_no, invoice.name,
+                                                            invoice.paid_at.astimezone(localtz).strftime('%d/%m/%Y')))
                 if not current_app.debug:
                     send_mail([staff.email + '@mahidol.ac.th'], title, message)
                     try:
@@ -5743,20 +5704,12 @@ def create_quotation_for_admin(quotation_id):
                     message += f'''เจ้าหน้าที่ห้องปฏิบัติการ\n'''
                     message += f'''{quotation.creator.fullname}\n'''
                     message += f'''ระบบงานบริการวิชาการ'''
-                    msg = ('แจ้งขออนุมัติใบเสนอราคาเลขที่ {}' \
-                           '\n\nเรียน หัวหน้าห้องปฏิบัติการ'
-                           '\n\nใบเสนอราคาเลขที่ {}' \
-                           '\nลูกค้า : {}' \
-                           '\nในนาม : {}' \
-                           '\nอ้างอิงจากใบคำขอรับบริการเลขที่ : {}'
-                           '\nที่รอการอนุมัติใบเสนอราคา' \
-                           '\n\nเจ้าหน้าที่ห้องปฏิบัติการ' \
-                           '\n{}' \
-                           '\n\nระบบงานบริการวิชาการ'
-                           .format(quotation.quotation_no, quotation.quotation_no,
-                                   quotation.request.customer.customer_info.cus_name,
-                                   quotation.name, quotation.request.request_no,
-                                   quotation.creator.fullname)
+                    msg = ('ใบเสนอราคาเลขที่ {}\n'\
+                           'ออกในนาม {}\n' \
+                           'ณ วันที่ {} รอดำเนินการอนุมัติใบเสนอราคา\n' \
+                           'กรุณาดำเนินการอนุมัติในระบบ'
+                           .format(quotation.quotation_no, quotation.name, quotation.sent_at.astimezone(localtz).strftime('%d/%m/%Y')
+                                   )
                            )
                     if not current_app.debug:
                         send_mail(email, title, message)
