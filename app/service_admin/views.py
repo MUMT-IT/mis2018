@@ -5751,8 +5751,8 @@ def create_quotation_for_admin(quotation_id):
                            '\nอ้างอิงจากใบคำขอรับบริการเลขที่ : {}'
                            '\nที่รอการอนุมัติใบเสนอราคา' \
                            '\n\nเจ้าหน้าที่ห้องปฏิบัติการ' \
-                           '\n\n{}' \
-                           '\nระบบงานบริการวิชาการ'
+                           '\n{}' \
+                           '\n\nระบบงานบริการวิชาการ'
                            .format(quotation.quotation_no, quotation.quotation_no,
                                    quotation.request.customer.customer_info.cus_name,
                                    quotation.name, quotation.request.request_no,
@@ -6250,8 +6250,6 @@ def create_draft_result(result_id=None):
                     item.result.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(item)
                 db.session.commit()
-            else:
-                flash('กรุณาอัปโหลดไฟล์ให้ถูกต้อง', 'danger')
         upload_all = all(item.draft_file for item in result.result_items)
         if action == 'send':
             if upload_all:
@@ -6388,8 +6386,6 @@ def edit_draft_result(result_item_id):
                 result_item.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(result_item)
                 db.session.commit()
-            else:
-                flash('กรุณาอัปโหลดไฟล์ให้ถูกต้อง', 'danger')
             edited_all = all(item.edited_at for item in result_item.result.result_items if item.req_edit_at)
             tab = 'approve' if edited_all else 'edit'
             if edited_all:
@@ -6492,8 +6488,6 @@ def create_final_result(result_id=None):
                 item.result.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(item)
                 db.session.commit()
-            else:
-                flash('กรุณาอัปโหลดไฟล์ให้ถูกต้อง', 'danger')
         uploaded_all = all(item.final_file for item in result.result_items)
         if uploaded_all:
             scheme = 'http' if current_app.debug else 'https'
