@@ -4794,11 +4794,18 @@ def add_payment():
                     message += f'''{invoice.customer_name}\n'''
                     message += f'''เบอร์โทร {invoice.contact_phone_number}\n\n'''
                     message += f'''ระบบงานบริการวิชาการ'''
-                    msg  = ('ใบแจ้งหนี้เลขที่ {}\n'\
-                           'ออกในนาม {}\n' \
-                           'ณ วันที่ {} รอดำเนินการตรวจสอบการชำระเงิน\n' \
-                           'กรุณาดำเนินการตรวจสอบในระบบ'.format(invoice.invoice_no, invoice.name,
-                                                                invoice.paid_at.astimezone(localtz).strftime('%d/%m/%Y')))
+                    if invoice.paid_at:
+                        msg = ('ใบแจ้งหนี้เลขที่ {}\n'\
+                               'ออกในนาม {}\n' \
+                               'ณ วันที่ {} รอดำเนินการตรวจสอบการชำระเงิน\n' \
+                               'กรุณาดำเนินการตรวจสอบในระบบ'.format(invoice.invoice_no, invoice.name,
+                                                                    invoice.paid_at.astimezone(localtz).strftime('%d/%m/%Y')))
+                    else:
+                        msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
+                               'ออกในนาม {}\n' \
+                               'รอดำเนินการตรวจสอบการชำระเงิน\n' \
+                               'กรุณาดำเนินการตรวจสอบในระบบ'.format(invoice.invoice_no, invoice.name)
+                               )
                     if not current_app.debug:
                         send_mail([staff.email + '@mahidol.ac.th'], title, message)
                         try:
