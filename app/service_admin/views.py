@@ -6241,7 +6241,7 @@ def create_draft_result(result_id=None):
                 else:
                     print('message', message)
                 flash("ส่งข้อมูลเรียบร้อยแล้ว", "success")
-                return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='testing'))
+                return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='waiting_confirm'))
             else:
                 flash("กรุณาแนบไฟล์ให้ครบถ้วน", "danger")
         else:
