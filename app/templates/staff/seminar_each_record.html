@@ -81,7 +81,23 @@
                                 <label class="label">ดำเนินการภายใต้</label>
                             </td>
                             <td>{% for obj in attend.objectives %}
-                                {{ obj.objective }}
+                                    {{ obj.objective }}
+                                    {% if "IDP" in obj.objective %}
+                                        <table>
+                                            <thead>
+                                            <th>สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</th>
+                                            <th>วิธีการพัฒนา</th>
+                                            </thead>
+                                            {% for item in attend.idp_items %}
+                                             <tr>
+
+                                                    <td>{{ item.plan }}</td>
+                                                    <td>{{ item.learning_type }}</td>
+
+                                             </tr>
+                                             {% endfor %}
+                                        </table>
+                                    {% endif %}
                                 {% endfor %}
                             </td>
                         </tr>
@@ -285,7 +301,7 @@
             width: 73,
             alignment: 'center'
         }
-                            , {text: '\n\n'+{{ org_name|tojson|safe }}+' คณะเทคนิคการแพทย์\nโทร. i+42+' + "{{ telephone }}",
+                            , {text: '\n\n'+{{ org_name|tojson|safe }}+' คณะเทคนิคการแพทย์\nโทร. 02-441-4371',
                                 fontSize:17, alignment: 'right'},''],
                         ],
                     }
@@ -321,7 +337,7 @@
                                 'ค่าลงทะเบียน จำนวน '+"{{ registration_fee }}"+ ' บาท '+"{{ transaction_fee }}"+"{{ accommodation_cost }}"
                                 +"{{ flight_ticket_cost }}"+"{{ train_ticket_cost }}"+"{{ taxi_cost }}"+"{{ fuel_cost }}"
                                 + 'รวมทั้งสิ้น '+"{{ budget }}"+ ' บาท',
-                                'รายละเอียดการเข้าร่วม'+"{{ seminar_attend.seminar.topic_type }}"+' ดำเนินการภายใต้\n'+"{{ seminar_attend.objective_list|join(", ") }}"+
+                                'รายละเอียดการเข้าร่วม'+"{{ seminar_attend.seminar.topic_type }}"+' ดำเนินการภายใต้\n'+"{{ seminar_attend.objective_list|join(", ") }}"+"{{ idp_pre_item }}"+"{{ idp_item }}"+
                                 '{{ idp_value }}',
                                 'เป็นการเข้าร่วม'+"{{ seminar_attend.seminar.topic_type }}"
                                 +' เพื่อพัฒนาในด้าน\n'+"{{ seminar_attend.mission_list|join(", ") }}",

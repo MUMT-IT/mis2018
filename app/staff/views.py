@@ -3363,15 +3363,19 @@ def seminar_create_record(seminar_id):
                 position_id=request.form.get('position')
             )
             db.session.add(document_approver)
-            from app.PA.models import IDPItem
-            for item in request.form.getlist('idps'):
-                idp_item = IDPItem.query.get(item)
             if "IDP" in request.form.get('objective'):
                 yearly_budget = get_seminar_yearly_budget(current_user.id, seminar.start_datetime)
                 if attend.budget:
                     yearly_budget.total_used = yearly_budget.total_used + attend.budget
                     yearly_budget.remaining = yearly_budget.remaining - attend.budget
                     db.session.add(yearly_budget)
+                idp_items = request.form.getlist('idps')
+                if idp_items:
+                    from app.PA.models import IDPItem
+                    for idp_item in idp_items:
+                        item = IDPItem.query.get(idp_item)
+                        if item:
+                            attend.idp_items.append(item)
             db.session.commit()
             # req_title = u'ทดสอบแจ้งการขออนุมัติ' + attend.seminar.topic_type
             # req_msg = u'{} ขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
@@ -3818,6 +3822,12 @@ def show_seminar_info_each_person(record_id):
         for obj in seminar_attend.objectives:
             if "IDP" in obj.objective:
                 idp_value = f'\\nวงเงิน {yearly_budget.budget} บาท ยอดที่ใช้(รวมครั้งนี้) {yearly_budget.total_used} บาท คงเหลือ {yearly_budget.remaining} บาท'
+                idp_pre_item = ': '
+                idp_item = ''
+                for item in seminar_attend.idp_items:
+                    if idp_item:
+                        idp_item += ", "
+                    idp_item += f'{item.plan}'
     return render_template('staff/seminar_each_record.html', attend=attend, approval=approval,
                            proposal=proposal, is_hr=is_hr, upload_file_url=upload_file_url,
                            registration_fee=registration_fee, seminar_attend=seminar_attend,
@@ -3825,7 +3835,8 @@ def show_seminar_info_each_person(record_id):
                            flight_ticket_cost=flight_ticket_cost, train_ticket_cost=train_ticket_cost,
                            taxi_cost=taxi_cost, fuel_cost=fuel_cost, org_name=org_name, attend_online=attend_online,
                            prefix_position=prefix_position, telephone=telephone,
-                           approver=approver, approver_position=approver_position, idp_value=idp_value)
+                           approver=approver, approver_position=approver_position, idp_value=idp_value,
+                           idp_pre_item=idp_pre_item, idp_item=idp_item)
 
 
 @staff.route('/seminar/edit-seminar/<int:seminar_id>', methods=['GET', 'POST'])
