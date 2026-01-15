@@ -12,8 +12,6 @@
         <div class="columns">
             <div class="column">
                 {% include 'complaint_tracker/title.html' %}
-                {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
-                    {{ user_evaluate('complaint') }}
                 {% if not current_user.is_authenticated %}
                     <div class="notification is-light is-info">หากท่านเป็นบุคลากรของคณะเทคนิคการแพทย์ โปรด login เพื่อสามารถติดตามการดำเนินการได้ <a href="{{ url_for('auth.login', next=request.url) }}">ที่นี่</a></div>
                 {% else %}
@@ -164,7 +162,7 @@
                                 {{ form.desc(class="textarea is-danger") }}
                             </div>
                         </div>
-                         <div class="field">
+                        <div class="field">
                              <label class="label">แนบไฟล์หลักฐาน</label>
                             <div class="file">
                                 <label class="file-label">

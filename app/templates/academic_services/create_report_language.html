@@ -1,0 +1,122 @@
+{% extends "academic_services/service_base.html" %}
+{% block head %}
+    {{ super() }}
+    <style>
+        .locked-checkbox {
+            accent-color: #808080;
+        }
+    </style>
+{% endblock %}
+{% block page_content %}
+    {% include "academic_services/customer_nav.html" %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">
+                        ฟอร์ม{{ service_request.sub_lab.sub_lab }}
+                    </h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-10 is-offset-1">
+                    <div class="box">
+                        <form method="post">
+                            <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                            <div class="field">
+                                <label class="label">ใบรายงานผล</label>
+                            </div>
+                            {% for language, reports in report_languages|sort(attribute='group_id')|groupby('group_id') %}
+                                <div class="field">
+                                    <div class="control">
+                                        <label class="label">{{ loop.index }}. {{ reports[0].thai_language }}</label>
+                                    </div>
+                                </div>
+                                <div class="field ml-4" id="{{ reports[0].eng_language }}-options">
+                                    <div class="control">
+                                        {% for r in reports|sort(attribute='no') %}
+                                            <label {% if r.category == 'copy' %}class="checkbox mb-2 ml-4"
+                                                   {% else %}class="checkbox mb-2"{% endif %}>
+                                                <input id="{{ r.category }}" type="checkbox"
+                                                       name="check_report_language"
+                                                       value="{{ r.id }}"
+                                                        {% if r.id in req_report_language_id %}
+                                                       checked
+                                                        {% endif %}
+                                                >
+                                                {{ r.item }}
+                                                {% if r.price > 0 %}
+                                                    ราคา {{ "{:,.2f}".format(r.price) }} บาท
+                                                {% endif %}
+                                            </label>
+                                            <br/>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                            <div class="field">
+                                <div class="buttons is-centered">
+                                    <button class="button is-success" type="submit" value="submit">
+                                        บันทึกและดำเนินการต่อ
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        function updateDisableThaiCopy() {
+            const thaiOriginals = document.querySelectorAll('#thai-options input[id^="original"]');
+            const thaiCopy = document.querySelector('#thai-options input#copy');
+            const anyChecked = Array.from(thaiOriginals).some(cb => cb.checked);
+            thaiCopy.disabled = !anyChecked;
+            if (!anyChecked) thaiCopy.checked = false;
+        }
+
+        updateDisableThaiCopy();
+
+        document.querySelectorAll('#thai-options input[id^="original"]').forEach(function (checkbox) {
+            checkbox.addEventListener("change", updateDisableThaiCopy);
+        });
+
+        function updateDisableEngCopy() {
+            const engOriginals = document.querySelectorAll('#eng-options input[id^="original"]');
+            const engCopy = document.querySelector('#eng-options input#copy');
+            const anyChecked = Array.from(engOriginals).some(cb => cb.checked);
+            engCopy.disabled = !anyChecked;
+            if (!anyChecked) engCopy.checked = false;
+        }
+
+        updateDisableEngCopy();
+        document.querySelectorAll('#eng-options input[id^="original"]').forEach(function (checkbox) {
+            checkbox.addEventListener("change", updateDisableEngCopy);
+        });
+    </script>
+    <script>
+        function lockCheckbox(checkbox) {
+            checkbox.checked = true;
+            checkbox.classList.add('locked-checkbox');
+            checkbox.addEventListener('click', function (e) {
+                e.preventDefault();
+                this.checked = true;
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const thaiElectronic = document.querySelector('#thai-options input[id^="electronic"]');
+            const engElectronic = document.querySelector('#eng-options input[id^="electronic"]');
+
+            if (thaiElectronic) {
+                lockCheckbox(thaiElectronic);
+            } else if (engElectronic) {
+                lockCheckbox(engElectronic);
+            }
+        });
+    </script>
+{% endblock %}

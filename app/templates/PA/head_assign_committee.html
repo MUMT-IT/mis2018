@@ -5,15 +5,15 @@
     <section class="section">
         <div class="container">
             {% include "messages.html" %}
+            <h1 class="title has-text-centered">2.เลือกคณะกรรมการ</h1>
             <div class="columns">
                 <div class="column has-text-centered">
-                    <h1 class="subtitle is-size-4">รอบการประเมิน {{ pa.round.desc }} ({{ pa.round }})
-                    <h1 class="subtitle is-size-4">ผู้รับการประเมิน {{ pa.staff.personal_info.fullname }}</h1>
+                    <h1 class="subtitle is-size-4">รอบการประเมิน {{ pa.round.desc }} ({{ pa.round }})</h1><br>
+                    <h1 class="title is-size-4">ผู้รับการประเมิน {{ pa.staff.personal_info.fullname }}</h1>
                 </div>
             </div>
             <div class="columns">
                 <div class="column is-half box is-offset-one-quarter">
-                    <h1 class="title has-text-centered">1.เลือกคณะกรรมการ</h1>
                     <form method="post" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                         <div class="columns">
@@ -42,9 +42,9 @@
                 <div class="column is-half is-offset-one-quarter">
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
-                        <a href="{{ url_for('pa.create_scoresheet', pa_id=pa.id) }}"
+                        <a href="{{ url_for('pa.confirm_send_scoresheet_for_committee', pa_id=pa.id) }}"
                             class="button is-warning is-light">
-                            ขั้นตอนต่อไป:<span>2.ประเมิน PA</span>
+                            ขั้นตอนต่อไป:<span>3.ส่งแบบประเมิน PA ไปยังกรรมการ</span>
                             <span class="icon">
                                 <i class="fa-solid fa-chevron-right"></i>
                                 <i class="fa-solid fa-chevron-right"></i>

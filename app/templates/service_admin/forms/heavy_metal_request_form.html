@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <style>
+        table {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        th, td {
+            padding: 5px;
+        }
+    </style>
+{% endblock %}
+{% block page_content %}
+    {% include "service_admin/admin_nav.html" %}
+    {% include 'messages.html' %}
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-12">
+                    <h1 class="title is-3 has-text-centered has-text-grey-dark">ฟอร์ม{{ sub_lab.sub_lab }}</h1>
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="box">
+                            <h5 class="title is-size-5">ข้อมูลผลิตภัณฑ์</h5>
+                            <hr style="background-color: gainsboro">
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.objective.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.objective(
+                                        **{'hx-get': url_for("service_admin.get_objective",
+                                                request_id=request_id),
+                                            'hx-target': '#objective-other-container',
+                                            'hx-swap': 'innerHTML',
+                                            'hx-trigger': 'change, load',
+                                            'hx-include': '[name="objective"]'
+                                            }) }}
+                                </div>
+                            </div>
+                            <div id="objective-other-container">
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.temp_at_received.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.temp_at_received() }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.standard_limitation.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.standard_limitation(
+                                        **{'hx-get': url_for("service_admin.get_standard_limitation",
+                                                request_id=request_id),
+                                            'hx-target': '#standard-limitation-other-container',
+                                            'hx-swap': 'innerHTML',
+                                            'hx-trigger': 'change, load',
+                                            'hx-include': '[name="standard_limitation"]'
+                                        }) }}
+                                </div>
+                            </div>
+                            <div id="standard-limitation-other-container"></div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.duration_of_report.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.duration_of_report() }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.other_service.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.other_service(
+                                        **{'hx-get': url_for("service_admin.get_other_service",
+                                                request_id=request_id),
+                                            'hx-target': '#other-service-note-container',
+                                            'hx-swap': 'innerHTML',
+                                            'hx-trigger': 'change, load',
+                                            'hx-include': '[name="other_service"]'
+                                        }) }}
+                                </div>
+                            </div>
+                            <div id="other-service-note-container"></div>
+                        </div>
+                        <div class="box">
+                            <h5 class="title is-size-5">รายการทดสอบ</h5>
+                            <hr style="background-color: gainsboro">
+                            <div id="condition-field" class="field">
+                                {% for item_form in form.heavy_metal_condition_field %}
+                                    <div id="{{ item_form.id }}">
+                                        <p class="mt-4 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
+                                        <table class="table is-fullwidth ">
+                                            <thead>
+                                            <th style="border: none">
+                                                {{ item_form.no.label }}
+                                                <span class="has-text-danger">*</span>
+                                            </th>
+                                            <th style="border: none">
+                                                {{ item_form.sample_name.label }}
+                                                <span class="has-text-danger">*</span>
+                                            </th>
+                                            <th style="border: none">
+                                                {{ item_form.quantity.label }}
+                                                <span class="has-text-danger">*</span>
+                                            </th>
+                                            <th style="border: none">
+                                                {{ item_form.parameter_test.label }}
+                                                <span class="has-text-danger">*</span>
+                                            </th>
+                                            </thead>
+                                            <tbody>
+                                            <td style="border: none"
+                                                class="control">{{ item_form.no(class='input') }}</td>
+                                            <td style="border: none"
+                                                class="control">{{ item_form.sample_name(class='input') }}</td>
+                                            <td style="border: none"
+                                                class="control">{{ item_form.quantity(class='input') }}</td>
+                                            <td style="border: none" class="control">
+                                                {{ item_form.parameter_test() }}
+                                                <div class="mt-2 ml-4">
+                                                    <label class="label">{{ item_form.parameter_test_other.label }}</label>
+                                                    {{ item_form.parameter_test_other(class='input') }}
+                                                </div>
+                                            </td>
+                                            </tbody>
+                                        </table>
+                                        {% if not loop.last %}
+                                            <hr style="background-color: #F3F3F3">
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="field has-addons">
+                                <div class="control">
+                                    <a class="button is-info is-small is-light is-rounded"
+                                       hx-post="{{ url_for('service_admin.add_heavy_metal_condition_item') }}"
+                                       hx-target="#condition-field" hx-swap="beforeend">
+                                        <span class="icon">
+                                            <i class="fas fa-plus"></i>
+                                        </span>
+                                        <span>เพิ่ม</span>
+                                    </a>
+                                </div>
+                                <div class="control">
+                                    <a class="button is-danger is-small is-light is-rounded"
+                                       hx-delete="{{ url_for('service_admin.remove_heavy_metal_condition_item') }}"
+                                       hx-target="#condition-field" hx-swap="innerHTML">
+                                            <span class="icon">
+                                                <i class="far fa-trash-alt"></i>
+                                            </span>
+                                        <span class="">ลบ</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-justify-content-center">
+                            <div class="control">
+                                <input type="submit" value="บันทึกและดำเนินการต่อ" class="button is-success">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            const objectiveInput = $('input[id^="objective"]');
+            const tempAtReceivedInput = $('input[id^="temp_at_received"]');
+            const standardLimitationInput = $('input[id^="standard_limitation"]');
+            const durationOfReportInput = $('input[id^="duration_of_report"]');
+
+            objectiveInput.prop('required', true)
+                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกวัตถุประสงค์')");
+
+            objectiveInput.on('change', function () {
+                objectiveInput.each(function () {
+                    this.setCustomValidity('');
+                });
+            });
+
+            tempAtReceivedInput.prop('required', true)
+                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกอุณหภูมิขณะรับตัวอย่าง')");
+
+            tempAtReceivedInput.on('change', function () {
+                tempAtReceivedInput.each(function () {
+                    this.setCustomValidity('');
+                });
+            });
+
+            standardLimitationInput.prop('required', true)
+                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกระบุค่ามาตรฐาน')");
+
+            standardLimitationInput.on('change', function () {
+                standardLimitationInput.each(function () {
+                    this.setCustomValidity('');
+                });
+            });
+
+            durationOfReportInput.prop('required', true)
+                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกระยะเวลาในการรายงานผล')");
+
+            durationOfReportInput.on('change', function () {
+                durationOfReportInput.each(function () {
+                    this.setCustomValidity('');
+                });
+            });
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            $('#condition-field div[id]').each(function () {
+                const parameterTest = $('input[type="checkbox"][name$="parameter_test"]');
+
+                function validateParameterTestInput() {
+                    const checkedCount = parameterTest.filter(':checked').length;
+
+                    if (checkedCount === 0) {
+                        parameterTest.prop('required', true);
+                        parameterTest.each(function () {
+                            this.setCustomValidity('กรุณาเลือกสารทดสอบอย่างน้อย 1 รายการ');
+                        });
+                    } else {
+                        parameterTest.prop('required', false);
+                        parameterTest.each(function () {
+                            this.setCustomValidity('');
+                        });
+                    }
+                }
+
+                validateParameterTestInput();
+                parameterTest.on('change',  validateParameterTestInput);
+            });
+        });
+    </script>
+{% endblock %}

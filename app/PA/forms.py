@@ -57,6 +57,7 @@ class PAKPIItemJobPositionForm(ModelForm):
 
 
 class PAItemForm(FlaskForm):
+    #number = TextAreaField('ภาระงาน')
     task = TextAreaField('ภาระงาน')
     percentage = FloatField('ร้อยละ')
     report = TextAreaField('ผลการดำเนินการ')
@@ -85,7 +86,7 @@ class PACommitteeForm(ModelForm):
                              get_label='fullname',
                              allow_blank=False,
                              query_factory=lambda: StaffAccount.query.filter(
-                                 StaffAccount.personal_info.has(retired=False)).all())
+                             StaffAccount.personal_info.has(retired=False)).all())
 
     subordinate = QuerySelectField('ผู้รับการประเมิน(ระบุกรณีอยู่ในทีมบริหาร)',
                                    get_label='fullname',
@@ -93,6 +94,26 @@ class PACommitteeForm(ModelForm):
                                    query_factory=lambda: StaffAccount.query.filter(
                                        StaffAccount.personal_info.has(retired=False)).all())
 
+
+class PACommitteeEditForm(ModelForm):
+    class Meta:
+        model = PACommittee
+
+    org = QuerySelectField('ประเมินหน่วยงาน',
+                           get_label='name',
+                           allow_blank=False,
+                           query_factory=lambda: Org.query.all())
+
+    staff = QuerySelectField('ผู้ประเมิน',
+                                     get_label='fullname',
+                                     allow_blank=False,
+                                     query_factory=lambda: StaffAccount.query.filter(
+                                         StaffAccount.personal_info.has(retired=False)).all())
+    subordinate = QuerySelectField('ผู้รับการประเมิน(ระบุกรณีอยู่ในทีมบริหาร)',
+                                   get_label='fullname',
+                                   allow_blank=True,
+                                   query_factory=lambda: StaffAccount.query.filter(
+                                       StaffAccount.personal_info.has(retired=False)).all())
 
 class PAChangeCommitteeForm(ModelForm):
     class Meta:

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "academic_services/service_base.html" %}
 {% include "academic_services/customer_nav.html" %}
 {% block head %}
     {{ super() }}
@@ -74,9 +74,9 @@
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
                                 <a class="button" href="{{ url_for('academic_services.lab_index', menu='new') }}">
-                                    Back
+                                    ย้อนกลับ
                                 </a>
-                                <input type="submit" class="button is-success"/>
+                                <input type="submit" class="button is-success" value="บันทึก">
                             </div>
                         </div>
                     </form>

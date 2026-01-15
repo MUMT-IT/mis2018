@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
-
+import os
+import boto3
 from sqlalchemy import func
-
 from ..main import db, ma
 from werkzeug.security import generate_password_hash, check_password_hash
 from dateutil.relativedelta import relativedelta
@@ -9,6 +9,18 @@ from pytz import timezone
 from marshmallow import fields
 from app.models import Org, OrgSchema, OrgStructure, KPI, StrategyActivity, KPICascade
 from datetime import datetime
+
+AWS_ACCESS_KEY_ID = os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+AWS_REGION = os.getenv('BUCKETEER_AWS_REGION')
+S3_BUCKET_NAME = os.getenv('BUCKETEER_BUCKET_NAME')
+
+s3 = boto3.client(
+    's3',
+    region_name=AWS_REGION,
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+)
 
 today = datetime.today()
 
@@ -451,6 +463,15 @@ class StaffHeadPosition(db.Model):
     staff = db.relationship('StaffAccount', backref=db.backref('head_position_staff'))
 
 
+class StaffResignation(db.Model):
+    __tablename__ = 'staff_resignations'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship('StaffAccount', backref=db.backref('resignation'))
+    hire_date = db.Column('hire_date', db.Date())
+    resign_date = db.Column('resign_date', db.Date())
+
+
 class StaffLeaveType(db.Model):
     __tablename__ = 'staff_leave_types'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -764,6 +785,7 @@ class StaffSeminarMission(db.Model):
     __tablename__ = 'staff_seminar_missions'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     mission = db.Column('mission', db.String())
+    is_active = db.Column('is_active', db.Boolean(), default=True)
 
 
 class StaffSeminarObjective(db.Model):
@@ -844,6 +866,17 @@ class StaffSeminarAttend(db.Model):
     @property
     def objective_list(self):
         return [o.objective for o in self.objectives]
+
+
+class StaffSeminarDocumentApprover(db.Model):
+    __tablename__ = 'staff_seminar_document_approvers'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    seminar_attend_id = db.Column('seminar_attend_id', db.ForeignKey('staff_seminar_attends.id'))
+    seminar_attend = db.relationship('StaffSeminarAttend', foreign_keys=[seminar_attend_id],
+                                     backref=db.backref('document_approver', lazy='dynamic'))
+    position_id = db.Column('position_id', db.ForeignKey('staff_head_positions.id'))
+    position = db.relationship('StaffHeadPosition', foreign_keys=[position_id],
+                                    backref=db.backref('position_document_approver'))
 
 
 class StaffSeminarProposal(db.Model):
@@ -1003,11 +1036,29 @@ class StaffGroupDetail(db.Model):
     responsibility = db.Column('responsibility', db.Text(), info={'label': 'หน้าที่ความรับผิดชอบ'})
     public = db.Column('public', db.Boolean(), default=False, info={'label': 'เปิดเผย'})
     official = db.Column('official', db.Boolean(), default=False, info={'label': 'ไม่เปิดเผย'})
+    file = db.Column('file', db.String())
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('group_committee'))
 
     def buddhist_year(self):
         return u'{}'.format(self.appointment_date.year + 543)
+
+    @property
+    def to_link(self):
+        return self.generate_presigned_url(s3, S3_BUCKET_NAME)
+
+    def generate_presigned_url(self):
+        if self.url:
+            try:
+                return s3.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': S3_BUCKET_NAME, 'Key': self.url},
+                    ExpiresIn=3600
+                )
+            except Exception as e:
+                print(f"Error generating presigned URL: {e}")
+                return None
+        return None
 
     def __str__(self):
         return f'{self.activity_name}'

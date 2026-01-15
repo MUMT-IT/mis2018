@@ -92,6 +92,14 @@
                                     <span>{{ event.comment }}</span>
                                     </p>
                                 {% endif %}
+                                {% if event.note %}
+                                    <p>
+                                    <span class="icon">
+                                        <i class="fa-regular fa-notes-medical"></i>
+                                    </span>
+                                    <span>{{ event.note }}</span>
+                                    </p>
+                                {% endif %}
                             </div>
                         </div>
                         <footer class="card-footer">

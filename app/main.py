@@ -1,7 +1,6 @@
 
 
 import click
-import arrow
 import pandas
 import pandas as pd
 import requests
@@ -19,7 +18,6 @@ from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from flask_qrcode import QRcode
-from psycopg2._range import DateTimeRange
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 from flask_mail import Mail
@@ -176,7 +174,21 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
-    return render_template('index.html',
+    central_admin = False
+    assistant = False
+    if current_user.is_authenticated:
+        admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
+        if admins and admins.is_central_admin:
+            central_admin = True
+        elif admins and admins.is_assistant:
+            assistant = True
+        else:
+            central_admin = False
+            assistant = False
+    else:
+        central_admin = False
+        assistant = False
+    return render_template('index.html', central_admin=central_admin, assistant=assistant,
                            now=datetime.now(tz=timezone('Asia/Bangkok')))
 
 
@@ -207,10 +219,13 @@ admin.add_views(ModelView(ComplaintPriority, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintRecord, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintActionRecord, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintAssignee, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintHandler, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintPerformanceReport, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintInvestigator, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintCoordinator, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintAdminTypeAssociation, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintRepairApproval, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintCommittee, db.session, category='Complaint'))
 
 
 class KPIAdminModel(ModelView):
@@ -230,19 +245,6 @@ admin.add_views(KPIAdminModel(models.KPI, db.session, category='KPI'))
 from app.studs import studbp as stud_blueprint
 
 app.register_blueprint(stud_blueprint, url_prefix='/stud')
-
-# from app.food import foodbp as food_blueprint
-#
-# app.register_blueprint(food_blueprint, url_prefix='/food')
-# from app.food.models import (Person, Farm, Produce, PesticideTest,
-#                              BactTest, ParasiteTest)
-#
-# admin.add_views(ModelView(Person, db.session, category='Food'))
-# admin.add_views(ModelView(Farm, db.session, category='Food'))
-# admin.add_views(ModelView(Produce, db.session, category='Food'))
-# admin.add_views(ModelView(PesticideTest, db.session, category='Food'))
-# admin.add_views(ModelView(BactTest, db.session, category='Food'))
-# admin.add_views(ModelView(ParasiteTest, db.session, category='Food'))
 
 from app.research import researchbp as research_blueprint
 
@@ -340,6 +342,7 @@ admin.add_view(ModelView(StrategyActivity, db.session, category='Strategy'))
 admin.add_views(ModelView(Role, db.session, category='Permission'))
 admin.add_views(MyStaffAccountModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
+admin.add_views(ModelView(StaffResignation, db.session, category='Staff'))
 admin.add_views(ModelView(StaffEduDegree, db.session, category='Staff'))
 admin.add_views(ModelView(StaffAcademicPosition, db.session, category='Staff'))
 admin.add_views(ModelView(StaffAcademicPositionRecord, db.session, category='Staff'))
@@ -441,9 +444,11 @@ app.register_blueprint(vehicle_blueprint, url_prefix='/vehicle')
 from app.vehicle_scheduler.models import *
 
 from app.user_eval import user_eval
+
 app.register_blueprint(user_eval)
 
 from app.user_eval.models import *
+
 admin.add_views(ModelView(EvaluationRecord, db.session, category='UserEvaluation'))
 
 
@@ -467,7 +472,7 @@ from app.roles import admin_permission
 
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
-from app.models import (Org, OrgStructure, Mission, Holidays, Dashboard, Student)
+from app.models import (Org, OrgStructure, Mission, Holidays, Dashboard, Province, District, Subdistrict, Zipcode)
 
 admin.add_view(ModelView(Holidays, db.session, category='Holidays'))
 
@@ -490,6 +495,10 @@ admin.add_view(MyOrgModelView(Org, db.session, category='Organization'))
 admin.add_view(ModelView(Mission, db.session, category='Organization'))
 admin.add_view(ModelView(Dashboard, db.session, category='Organization'))
 admin.add_view(ModelView(OrgStructure, db.session, category='Organization'))
+admin.add_views(ModelView(Province, db.session, category='Region'))
+admin.add_views(ModelView(District, db.session, category='Region'))
+admin.add_views(ModelView(Subdistrict, db.session, category='Region'))
+admin.add_views(ModelView(Zipcode, db.session, category='Region'))
 
 from app.asset import assetbp as asset_blueprint
 
@@ -516,6 +525,15 @@ class CostCenterAdminModel(ModelView):
 
 
 admin.add_view(CostCenterAdminModel(models.CostCenter, db.session, category='Finance'))
+
+
+class ProductCodeAdminModel(ModelView):
+    can_create = True
+    form_columns = ('id', 'name', 'branch')
+    column_list = ('id', 'name', 'branch')
+
+
+admin.add_views(ProductCodeAdminModel(models.ProductCode, db.session, category='Finance'))
 
 from app.lisedu import lisedu as lis_blueprint
 
@@ -772,27 +790,36 @@ app.register_blueprint(academic_services_blueprint)
 from app.academic_services.models import *
 
 admin.add_views(ModelView(ServiceNumberID, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceSequenceQuotationID, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerAccount, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerInfo, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerContact, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerAddress, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceLab, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceSubLab, db.session, category='Academic Service'))
-admin.add_views(ModelView(ServiceItem, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceStatus, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceReportLanguage, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceAdmin, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerType, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerContactType, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceRequest, db.session, category='Academic Service'))
-admin.add_views(ModelView(ServiceSample, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceReqReportLanguageAssoc, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceQuotation, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceQuotationItem, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceSample, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceTestItem, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceInvoice, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceInvoiceItem, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServicePayment, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceResult, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceResultItem, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceReceipt, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceReceiptItem, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceOrder, db.session, category='Academic Service'))
+
+from app.academic_service_payment import academic_service_payment as academic_service_payment_blueprint
+
+app.register_blueprint(academic_service_payment_blueprint)
 
 from app.software_request import software_request as software_request_blueprint
 
@@ -1591,6 +1618,8 @@ def import_seminar_data():
                 end_datetime=tz.localize(end_date),
                 created_at=tz.localize(datetime.today())
             )
+            if location == 'รูปแบบออนไลน์':
+                seminar.is_online = True
             db.session.add(seminar)
         else:
             topic_type = row['topic_type']
@@ -1612,27 +1641,30 @@ def import_seminar_attend_data():
         seminar = StaffSeminar.query.filter_by(topic=row['seminar']).first()
         role = row['role']
         budget_type = row['budget_type']
-        budget = row['budget']
+        budget = row['budget'] if row['budget'] else 0
         objective = StaffSeminarObjective.query.filter_by(objective=row['objective']).first()
         mission = StaffSeminarMission.query.filter_by(mission=row['mission']).first()
         start_date = pandas.to_datetime(row['start_date'], format='%d/%m/%Y')
         end_date = pandas.to_datetime(row['end_date'], format='%d/%m/%Y')
         if staff_account:
-            attend = StaffSeminarAttend(
-                seminar_id=seminar.id,
-                staff_account_id=staff_account.id,
-                start_datetime=tz.localize(start_date),
-                end_datetime=tz.localize(end_date),
-                created_at=tz.localize(datetime.today()),
-                role=role,
-                budget_type=budget_type,
-                budget=budget
-            )
-            db.session.add(attend)
-            if objective:
-                objective.objective_attends.append(attend)
-            if mission:
-                mission.mission_attends.append(attend)
+            if seminar.id:
+                attend = StaffSeminarAttend(
+                    seminar_id=seminar.id,
+                    staff_account_id=staff_account.id,
+                    start_datetime=tz.localize(start_date),
+                    end_datetime=tz.localize(end_date),
+                    created_at=tz.localize(datetime.today()),
+                    role=role,
+                    budget_type=budget_type,
+                    budget=budget
+                )
+                db.session.add(attend)
+                if objective:
+                    objective.objective_attends.append(attend)
+                if mission:
+                    mission.mission_attends.append(attend)
+            else:
+                print('Not found seminar topic of {} {}'.format(staff_account.email, tz.localize(start_date)))
         else:
             print(u'Cannot save data of email: {} start date: {}'.format(row['seminar'], start_date))
     db.session.commit()

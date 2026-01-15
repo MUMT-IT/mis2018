@@ -186,6 +186,12 @@
                                 </div>
                                 <p class="help">รายชื่อกลุ่มคณะกรรมการที่ต้องการเพิ่มเป็นผู้เข้าร่วม</p>
                             </div>
+                            <a href="{{ url_for('staff.create_group_detail') }}" target="_blank" class="button is-info">
+                                    <span class="icon">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </span>
+                                    <span>เพิ่มกลุ่ม</span>
+                                </a>
                         </div>
                     </div>
                     <div class="field is-horizontal">
@@ -208,7 +214,7 @@
                             <div class="field">
                                 <label class="label">
                                     {{ form.notify_participants() }}
-                                    แจ้งเตือนทางอีเมล
+                                    แจ้งเตือนผู้เข้าร่วมทางอีเมล
                                 </label>
                             </div>
                         </div>
@@ -237,9 +243,9 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    {{ form.note(class="textarea", placeholder="หากต้องการอาหารว่างกรุณาติดต่อเพื่อยืนยันกับหน่วยอาคารและสถานที่ โทร 2116") }}
+                                    {{ form.note(class="textarea", placeholder="หากมีอาหารว่าง กรุณาส่งรายชื่อผู้เข้าร่วมตามจำนวนอาหารแก่หน่วยอาคารฯ หลังจบกิจกรรม") }}
                                 </div>
-                                <p class="help is-danger">หากต้องการอาหารว่างกรุณาติดต่อหน่วยอาคารและสถานที่ โทร 2116</p>
+                                <p class="help is-danger">หากมีอาหารว่าง กรุณาส่งรายชื่อผู้เข้าร่วมตามจำนวนอาหารแก่หน่วยอาคารฯ หลังจบกิจกรรม (โทร 2116)</p>
                             </div>
                         </div>
                     </div>

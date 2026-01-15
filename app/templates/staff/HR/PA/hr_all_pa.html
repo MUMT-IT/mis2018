@@ -133,6 +133,14 @@
                             {% endfor %}
                         </td>
                         <td>
+                            {% for s in pa.pa_score_sheet %}
+                                {% for a in s.approved_score_sheet %}
+                                    {% if not a.approved_at %}
+                                        <span class="is-size-6">{{ a.committee.staff.fullname }}</span>
+                                        <span class="is-size-7">:ยังไม่อนุมัติคะแนนสรุป <br></span>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
                             {% if pa.evaluated_at %}
                                     <span class="tag is-success is-rounded">
                                         <span class="icon">

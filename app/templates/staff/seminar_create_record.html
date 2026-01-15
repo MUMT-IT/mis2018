@@ -19,7 +19,6 @@
             <hr>
             {% include "messages.html" %}
             <form method="post">
-
                 <div class="columns">
                     <div class="column is-half is-offset-3">
                         {{ form.hidden_tag() }}
@@ -81,11 +80,18 @@
                             </label>
                         </div>
                         <br>
-                        <div class="field" v-if="status === 'wanttogo'">
-                            <p class="title is-size-4">{{ form.objectives.label }}</p>
-                            <div class="control">
-                                {{ form.objectives() }}
-                            </div>
+                        <b-field label="รายละเอียด">
+                            <b-select placeholder="เลือก" name="objective" id="objective"
+                                 hx-get="{{ url_for('staff.get_idp_for_seminar', seminar_id=seminar.id) }}"
+                                 hx-target="#related-idp"
+                                 hx-swap="innerHTML"
+                                 hx-trigger="change">
+                                <option value="แผนพัฒนาบุคลากรรายบุคคล (IDP)">แผนพัฒนาบุคลากรรายบุคคล (IDP)</option>
+                                <option value="พัฒนาศักยภาพตามความสนใจ">พัฒนาศักยภาพตามความสนใจ</option>
+                            </b-select>
+                        </b-field>
+                        <div class="field">
+                            <div id="related-idp"></div>
                         </div>
                         <br>
                         <div class="field" v-if="status === 'wanttogo'">
@@ -228,34 +234,44 @@
                         </b-field>
                         <hr>
                         <br>
-                        <div class="field">
-                            <div class="field">
-                                <p class="title is-size-4">ต้องการดาวน์โหลดแบบฟอร์มขออนุมัติอบรม</p>
-                            </div>
-                            <div class="block">
-                                <b-radio native-value="want" v-model="wantdocument" name="wantdocument">ต้องการ
-                                </b-radio>
-                                <b-radio native-value="dontwant" v-model="wantdocument" name="wantdocument">ไม่ต้องการ
-                                </b-radio>
-                            </div>
-                        </div>
-                        <br>
+{#                        <div class="field">#}
+{#                            <div class="field">#}
+{#                                <p class="title is-size-4">ต้องการดาวน์โหลดแบบฟอร์มขออนุมัติอบรม</p>#}
+{#                            </div>#}
+{#                            <div class="block">#}
+{#                                <b-radio native-value="want" v-model="wantdocument" name="wantdocument">ต้องการ#}
+{#                                </b-radio>#}
+{#                                <b-radio native-value="dontwant" v-model="wantdocument" name="wantdocument">ไม่ต้องการ#}
+{#                                </b-radio>#}
+{#                            </div>#}
+{#                        </div>#}
+{#                        <br>#}
                         <div class="field" v-if="wantdocument === 'want'">
                             <div class="field is-horizontal">
                                 <div class="field is-normal">
-                                    <label class="label">ผู้บังคับบัญชาชั้นต้น</label>
+                                    <label class="label">ผู้บังคับบัญชา (ชื่อจะปรากฎบนเอกสาร)</label>
                                 </div>
-                                <div class="field-body">
-                                    <div class="control">
-                                        <div class="field">
-                                            <div class="select">
-                                                {{ form.approver() }}
-                                            </div>
-                                        </div>
-                                    </div>
+{#                                <div class="field-body">#}
+{#                                    <div class="control">#}
+{#                                        <div class="field">#}
+{#                                            <div class="select">#}
+{#                                                {{ form.approver() }}#}
+{#                                            </div>#}
+{#                                        </div>#}
+{#                                    </div>#}
+{#                                </div>#}
+                            </div>
+                            <div>
+                                <label>ผู้อนุมัติ</label>
+                                <div class="select">
+                                {{ form.approver(**{'hx-get': url_for('staff.get_positions'),
+                                'hx-target': '#related-position', 'hx-swap': 'innerHTML', 'hx-trigger': 'change, load'}) }}
                                 </div>
                             </div>
-                        </div>
+                             <div class="field">
+                                    <div id="related-position"></div>
+                            </div>
+
                         {#<b-field label="เบอร์โทรฯ ภายใน" v-if="wantdocument === 'want'">
                                 <b-input type="text"
                                          name="contact_no"
@@ -264,20 +280,20 @@
                                          required>
                                 </b-input>
                             </b-field>#}
-                        <div class="columns">
-                            <div class="column">
-                                <div class="notification is-warning is-light">
-                                        <span>
-                                            หมายเหตุ: รองคณบดีจะยังไม่ได้รับการแจ้งเตือนการขออนุมัติไปอบรม<br>
-                                            จนกว่าผู้บังคับบัญชาชั้นต้นจะอนุมัติเรียบร้อยแล้ว
-                                        </span>
-                                    <br>
-                                </div>
-                            </div>
+{#                        <div class="columns">#}
+{#                            <div class="column">#}
+{#                                <div class="notification is-warning is-light">#}
+{#                                        <span>#}
+{#                                            หมายเหตุ: รองคณบดีจะยังไม่ได้รับการแจ้งเตือนการขออนุมัติไปอบรม<br>#}
+{#                                            จนกว่าผู้บังคับบัญชาชั้นต้นจะอนุมัติเรียบร้อยแล้ว#}
+{#                                        </span>#}
+{#                                    <br>#}
+{#                                </div>#}
+{#                            </div>#}
+{#                        </div>#}
                         </div>
                     </div>
                 </div>
-
                 <div class="columns">
                     <div class="column is-half is-offset-one-quarter">
                         <div class="field is-grouped is-grouped-centered">
@@ -291,7 +307,6 @@
                         </div>
                     </div>
                 </div>
-
             </form>
         </div>
     </section>
@@ -352,6 +367,8 @@
                     $('#other_objective').hide()
                 }
             })
+            htmx.trigger(htmx.find('#approver'), 'change')
         })
+
     </script>
 {% endblock %}

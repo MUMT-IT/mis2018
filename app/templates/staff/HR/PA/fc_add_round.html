@@ -68,7 +68,7 @@
                         <th>ปิดรอบ</th>
                         </thead>
                         <tbody>
-                        {% for r in fc_round %}
+                        {% for r in fc_round|sort(attribute='id', reverse=True) %}
                             <tr>
                                 <td>
                                     {{ r.desc }}

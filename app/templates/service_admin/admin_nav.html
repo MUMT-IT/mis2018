@@ -1,6 +1,8 @@
-<nav class="navbar is-info">
+<nav class="navbar is-warning">
     <div class="container">
         <div class="navbar-brand">
+
+            <p class="navbar-item">{{ position }}</p>
             <span class="navbar-burger burger" data-target="navbarMenuHeroA">
                 <span></span>
                 <span></span>
@@ -53,14 +55,14 @@
                                     รายชื่อลูกค้า
                                 </span>
                             </a>
-                         </div>
+                        </div>
                     </div>
                 {% else %}
                     <a class="navbar-item" href="{{ url_for('auth.account') }}">
                         <span class="icon">
                            <i class="fas fa-user"></i>
                        </span>
-                       <span>
+                        <span>
                            {{ current_user.personal_info.fullname }}
                        </span>
                     </a>
@@ -98,7 +100,7 @@
                                     รายชื่อลูกค้า
                                 </span>
                             </a>
-                         </div>
+                        </div>
                     </div>
                     <a class="navbar-item" href="{{ url_for('auth.logout') }}">
                         <span class="icon">
@@ -109,7 +111,7 @@
                         </span>
                     </a>
                 {% endif %}
-                <a class="navbar-item" href="{{ url_for('service_admin.index') }}">
+                <a class="navbar-item" href="{{ url_for('service_admin.request_index', menu='request') }}">
                     <span class="icon">
                         <i class="far fa-times-circle"></i>
                     </span>

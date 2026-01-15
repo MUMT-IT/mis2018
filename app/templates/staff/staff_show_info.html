@@ -186,6 +186,29 @@
                             </a>
                         </div>
                     {% endif %}
+                    {% if staff_resign %}
+                    <div class="box">
+                        <label class="label">ข้อมูลกรณีเคยลาออก และกลับเข้ามาทำงานอีกครั้ง</label>
+                        <table class="table is-fullwidth">
+                            <thead>
+                                <th>วันที่เริ่มทำงานเดิม</th>
+                                <th>วันที่ลาออก</th>
+                            </thead>
+                            <tbody>
+                            {% for resign in staff_resign %}
+                                <tr>
+                                    <td>
+                                       {{ resign.hire_date }}
+                                    </td>
+                                    <td>
+                                        {{ resign.resign_date }}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
                     <br>
                     <div class="field is-grouped is-grouped-centered">
                         <a class="button is-rounded is-primary" href="{{ url_for('pa.all_pa') }}">

@@ -3,6 +3,7 @@
 {% block page_content %}
 <section class="section">
     <div class="container" id="app">
+        {% include "messages.html" %}
         <div class="columns">
             <div class="column">
                 <h1 class="title has-text-centered">กลุ่มผู้ประเมิน</h1>
@@ -41,6 +42,7 @@
                     <th>หน่วยงานที่ถูกประเมิน</th>
                     <th>บุคลากรในหน่วยงาน</th>
                     <th>ผู้ถูกประเมิน</th>
+                    <th></th>
                     </thead>
                     <tbody>
                     {% for committee in committee_list %}
@@ -69,6 +71,14 @@
                             {% if committee.subordinate %}
                             {{ committee.subordinate.personal_info.fullname }}
                             {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('pa.edit_committee', committee_id=committee.id) }}" class="tag is-info is-light">
+                                <span class="icon">
+                                    <i class="fa-solid fa-pencil"></i>
+                                </span>
+                                <span>แก้ไข</span>
+                            </a>
                         </td>
                     </tr>
                     {% endfor %}

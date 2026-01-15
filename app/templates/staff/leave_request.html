@@ -47,6 +47,17 @@
                     </div>
                     <div class="field">
                         <div class="control">
+                            <div v-if="destination === 'international'">
+                                <article class="message is-danger">
+                                    <div class="message-header">
+                                        <p>กรณีลาไปต่างประเทศ</p>
+                                    </div>
+                                    <div class="message-body">
+                                    <strong>กรุณาทำหนังสือถึงคณบดี เพื่อพิจารณาอนุมัติก่อนการเดินทาง</strong> ตามระเบียบการลาไปต่างประเทศ
+                                    </div>
+                                </article>
+                                <br>
+                            </div>
                             <b-field label="ช่วงเวลาที่เดินทางไป-กลับ" v-if="destination === 'international'">
                                 <b-datepicker
                                         required

@@ -2,10 +2,16 @@
     <div class="modal-background"></div>
     <div class="modal-card">
         <header class="modal-card-head">
-            <p class="modal-card-title">ประวัติการเข้าร่วม</p>
+            <p class="modal-card-title">ประวัติการเข้าร่วม ตามรอบ PA</p>
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
+            <span>เข้าร่วมทั้งหมด {{ total_seminars }} ครั้ง
+            ({% if speaker_count %}วิทยากร {{ speaker_count }} ครั้ง{% endif %}
+            {% if consultant_count %}ที่ปรึกษา {{ consultant_count }} ครั้ง{% endif %}
+            {% if teacher_count %}อาจารย์พิเศษ {{ teacher_count }} ครั้ง{% endif %}
+            {% if committee_count %}กรรมการ {{ committee_count }} ครั้ง{% endif %}
+            ผู้เข้าร่วม {{ participant_count }} ครั้ง)</span>
             <table class="table is-fullwidth is-bordered">
                 <thead>
                     <th>เรื่อง</th>

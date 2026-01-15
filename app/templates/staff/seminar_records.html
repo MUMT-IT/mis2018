@@ -26,6 +26,7 @@
                 <table class="table is-striped" id="seminarTable">
                     <thead>
                         <th>ประเภทกิจกรรม</th>
+                        <th>ด้าน</th>
                         <th>ชื่อกิจกรรม</th>
                         <th>วันที่เริ่มต้น</th>
                         <th>วันที่สิ้นสุด</th>
@@ -38,6 +39,10 @@
                     <tr>
                         <td>
                             {{ record["topic_type"] }}
+                        </td>
+                        <td>{% if record["missions"] %}
+                                {{ record["missions"] | join(' ') }}
+                            {% endif %}
                         </td>
                         <td>
                             <a href="{{ url_for('staff.seminar_attend_info_for_hr', seminar_id=record['id']) }}">
@@ -87,7 +92,7 @@
                 <form method="post">
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                     <div class="control">
-                        <h4 class="title">Downloadรายการอบรม</h4>
+                        <h4 class="title">Downloadผู้เข้าร่วมการอบรมตามช่วงเวลา</h4>
                         <b-field label="เลือกช่วงวันที่ต้องการ">
                             <b-datepicker
                                 required

@@ -301,6 +301,11 @@
                 <nav class="panel is-info">
                     <p class="panel-heading">Services</p>
                     <a href="{{ url_for('comhealth.landing') }}" class="panel-block">
+                        </a>
+                    </nav>
+                    <nav class="panel is-info">
+                        <p class="panel-heading">Services</p>
+                        <a href="{{ url_for('comhealth.landing') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-heartbeat"></i>
                         </span>
@@ -329,6 +334,8 @@
                         </span>
                     </a>
                     <a href="{{ url_for('vehicle.index') }}" class="panel-block">
+                        </a>
+                        <a href="{{ url_for('vehicle.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-car"></i>
                         </span>
@@ -381,6 +388,135 @@
                         <span class="is-size-5">ระบบงานบริการวิชาการ</span>
                     </a>
                     <a href="{{ url_for('meeting_planner.index') }}" class="panel-block">
+                        </a>
+                        <!--                    <a href="{{ url_for('vehicle.trip') }}" class="panel-block">-->
+                        <!--                        <span class="panel-icon">-->
+                        <!--                            <i class="fas fa-car"></i>-->
+                        <!--                        </span>-->
+                        <!--                        <span class="is-size-5">-->
+                        <!--                            ป้อนข้อมูลการเดินทาง (สำหรับพขร.)-->
+                        <!--                        </span>-->
+                        <!--                    </a>-->
+{#                        <a href="http://10.4.101.32/Repair/StatusList.aspx" class="panel-block">#}
+{#                        <span class="panel-icon">#}
+{#                            <i class="fas fa-cogs"></i>#}
+{#                        </span>#}
+{#                            <span class="is-size-5">#}
+{#                            ระบบซ่อมบำรุงและครุภัณฑ์ (Intranet only)#}
+{#                        </span>#}
+{#                        </a>#}
+                        <a href="{{ url_for('smartclass_scheduler.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="far fa-calendar-alt"></i>
+                        </span>
+                            <span class="is-size-5">
+                            ระบบลงทะเบียนใช้งาน Smart Classroom/ Online Learning <br> (Zoom, Swival, Kahoot)
+                        </span>
+                        </a>
+                        <a href="{{ url_for('procurement.main_procurement_page') }}" class="panel-block">
+                            <span class="panel-icon">
+                               <i class="fas fa-cog"></i>
+                            </span>
+                            <span class="is-size-5">ระบบงานคลังและพัสดุ</span>
+                        </a>
+                        <a href="{{ url_for('comp_tracker.index') }}" class="panel-block">
+                            <span class="panel-icon">
+                                <i class="fas fa-clipboard-list"></i>
+                            </span>
+                            <span class="is-size-5">ระบบรับแจ้งและติดตามข้อร้องเรียนและปัญหา</span>
+                        </a>
+                    </nav>
+                    <nav class="panel is-info">
+                        <p class="panel-heading">Analytics</p>
+                        <a class="panel-block"
+                            href="{{ url_for('data_bp.orgs') }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-tasks"></i>
+                        </span>
+                        <span class="is-size-5">
+                            ระบบฐานข้อมูลตัวชี้วัดและกระบวนการการทำงาน
+                        </span>
+                        </a>
+                        <a href="{{ url_for('research.dashboard') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </span>
+                            <span class="is-size-5">
+                            ระบบวิเคราะห์ผลงานวิจัย
+                        </span>
+                        </a>
+{#                        <a href="{{ url_for('kpi_blueprint.main') }}" class="panel-block">#}
+{#                        <span class="panel-icon">#}
+{#                            <i class="fas fa-tachometer-alt"></i>#}
+{#                        </span>#}
+{#                            <span class="is-size-5">#}
+{#                            ระบบฐานข้อมูลตัวชี้วัดองค์กร#}
+{#                        </span>#}
+{#                        </a>#}
+                        <a href="{{ url_for('kpi_blueprint.dashboard_index') }}"
+                           class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </span>
+                            <span class="is-size-5">
+                            Dashboard รายงานข้อมูลเพื่อการตัดสินใจ
+                        </span>
+                        </a>
+                        <a href="{{ url_for('chemdb.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-flask"></i>
+                        </span>
+                            <span class="is-size-5">
+                            ระบบฐานข้อมูลสารเคมี
+                        </span>
+                        </a>
+{#                        <a href="{{ url_for('food.index') }}" class="panel-block">#}
+{#                        <span class="panel-icon">#}
+{#                            <i class="fab fa-pagelines"></i>#}
+{#                        </span>#}
+{#                            <span class="is-size-5">#}
+{#                            ฐานข้อมูลโครงการเกษตรและอาหารปลอดภัย#}
+{#                        </span>#}
+{#                        </a>#}
+                    </nav>
+                    <nav class="panel is-info">
+                        <p class="panel-heading">ระบบมหาวิทยาลัย</p>
+                        <a href="https://eoffice.mahidol.ac.th/" class="panel-block">
+                            <span class="panel-icon">
+                                <i class="fa fa-circle-notch"></i>
+                            </span>
+                            <span class="is-size-5">สารบรรณอิเล็กทรอนิกส์ (eoffice)</span>
+                        </a>
+                    </nav>
+                    <nav class="panel is-info">
+                        <p class="panel-heading">Education</p>
+{#                        <a href="{{ url_for('studs.index') }}" class="panel-block">#}
+{#                        <span class="panel-icon">#}
+{#                            <i class="fas fa-user-graduate"></i>#}
+{#                        </span><span class="is-size-5">นักศึกษา</span>#}
+{#                        </a>#}
+                        <a href="{{ url_for('eduqa.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-university"></i>
+                        </span><span class="is-size-5">ระบบประกันคุณภาพการศึกษา</span>
+                        </a>
+                    </nav>
+                    <nav class="panel is-danger">
+                        <p class="panel-heading">Services (กำลังพัฒนาและทดลอง)</p>
+                        <a {% if central_admin %}
+                                href="{{ url_for('service_admin.invoice_index_for_central_admin', menu='invoice', tab='all') }}"
+                           {% elif assistant %}
+                                href="{{ url_for('service_admin.quotation_index', menu='quotation', tab='all') }}"
+                           {% else %}
+                                href="{{ url_for('service_admin.request_index', menu='request') }}"
+                           {% endif %}
+                           class="panel-block">
+                            <span class="panel-icon">
+                                <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                            </span>
+                            <span class="is-size-5">ระบบงานบริการวิชาการ</span>
+                        </a>
+                        <a href="{{ url_for('meeting_planner.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fa fa-exclamation-triangle has-text-warning"></i>
                         </span>
@@ -485,6 +621,24 @@
                 <nav class="panel is-light">
                     <p class="panel-heading">Administrator</p>
                     <a href="{{ url_for('comp_tracker.admin_index', tab='new') }}" class="panel-block">
+                            <span class="is-size-5">ระบบจัดการข้อมูลส่วนบุคคล</span>
+                        </a>
+                        <a href="{{ url_for('software_request.index') }}" class="panel-block">
+                            <span class="panel-icon">
+                                <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                            </span>
+                            <span class="is-size-5">ระบบขอรับบริการพัฒนา Software</span>
+                        </a>
+{#                        <a href="{{ url_for('service_admin.add_meeting') }}"  class="panel-block">#}
+{#                            <span class="panel-icon">#}
+{#                                <i class="fa fa-exclamation-triangle has-text-warning"></i>#}
+{#                            </span>#}
+{#                            <span class="is-size-5">ระบบนัดหมายประชุมกรรมการพัสดุ</span>#}
+{#                        </a>#}
+                    </nav>
+                    <nav class="panel is-light">
+                        <p class="panel-heading">Administrator</p>
+                        <a href="{{ url_for('comp_tracker.admin_index', tab='new') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-user-clock"></i>
                         </span>

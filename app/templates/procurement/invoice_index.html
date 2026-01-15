@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายการใบแจ้งหนี้</title>
+    <!-- ใช้ Tailwind CSS สำหรับการจัดสไตล์ -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- ตั้งค่า Font Inter สำหรับการแสดงผลที่สวยงาม -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        /* กำหนดสไตล์สำหรับภาพ QR Code */
+        .qr-code {
+            max-width: 150px;
+            width: 100%;
+            height: auto;
+            border-radius: 0.5rem;
+        }
+        /* Custom modal styles */
+        .modal {
+            display: none; /* ซ่อน modal ตามค่าเริ่มต้น */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0,0,0);
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            width: 90%;
+            max-width: 400px;
+            position: relative;
+        }
+        .close-button {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #aaa;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        /* Style for the "Update Status" button */
+        .status-button {
+            background-color: #4338ca; /* Indigo-600 */
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            transition: background-color 0.2s;
+        }
+        .status-button:hover {
+            background-color: #3730a3; /* Indigo-700 */
+        }
+    </style>
+</head>
+<body class="p-4">
+
+    <!-- Container หลักของหน้ารายการ -->
+    <div class="max-w-6xl mx-auto my-8 bg-white rounded-xl shadow-lg overflow-hidden">
+        <!-- ส่วนหัวของรายการ -->
+        <header class="p-8 bg-gray-100 flex items-center justify-between">
+            <h1 class="text-3xl font-bold text-gray-800">รายการใบแจ้งหนี้</h1>
+            <!-- ปุ่มเพิ่มใบแจ้งหนี้ (Placeholder) -->
+        </header>
+
+        <!-- ตารางแสดงรายการใบแจ้งหนี้ -->
+        <section class="p-8">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left table-auto border-collapse">
+                    <thead class="bg-gray-50 text-gray-700 uppercase text-sm">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200">เลขที่ใบแจ้งหนี้</th>
+                            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200">ลูกค้า</th>
+                            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 text-center">วันที่ออก</th>
+                            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 text-right">ยอดรวม</th>
+                            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 text-center">สถานะ</th>
+                            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 text-center">สลิป</th>
+                            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 text-center">รายละเอียด</th>
+                            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 text-center">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoiceTableBody" class="divide-y divide-gray-200">
+                        <!-- รายการจะถูกสร้างด้วย JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ส่วนท้ายของรายการ -->
+        <footer class="p-8 text-center text-gray-500 text-sm">
+            <p>&copy; 2023 Acme Corp. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- Modal สำหรับแสดงสลิปชำระเงิน (เริ่มต้นซ่อนไว้) -->
+    <div id="slipModal" class="modal">
+        <div class="modal-content text-center">
+            <span class="close-button" onclick="closeSlipModal()">&times;</span>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">สลิปชำระเงิน</h2>
+            <p class="text-gray-600 mb-6">สแกน QR Code เพื่อชำระเงิน</p>
+
+            <!-- Placeholder สำหรับ QR Code -->
+            <div class="flex justify-center mb-6">
+                <img src="https://placehold.co/200x200/22c55e/ffffff?text=QR+Code" alt="QR Code" class="qr-code">
+            </div>
+
+            <div class="text-center space-y-2">
+                <p class="text-gray-700 font-semibold">ธนาคาร: Acme Bank</p>
+                <p class="text-gray-700 font-semibold">ชื่อบัญชี: Acme Corp.</p>
+                <p class="text-gray-700 font-semibold">เลขที่บัญชี: 123-4-56789-0</p>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-gray-200">
+                <p class="text-lg font-bold text-center text-blue-600">
+                    ยอดเงินที่ต้องชำระ: <span id="slipAmount">฿ 0.00</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript สำหรับจัดการการแสดงผลและการอัปเดต -->
+    <script>
+        // ข้อมูลตัวอย่างใบแจ้งหนี้
+        let invoices = [
+            { id: 'INV-2023-01234', customer: 'คุณสมชาย ใจดี', date: '24 ส.ค. 2568', total: '33,170.00', status: 'ชำระแล้ว' },
+            { id: 'INV-2023-01235', customer: 'คุณนารี มีสุข', date: '23 ส.ค. 2568', total: '15,500.00', status: 'รอดำเนินการ' },
+            { id: 'INV-2023-01236', customer: 'คุณชัยชนะ ยืนยง', date: '20 ส.ค. 2568', total: '8,900.00', status: 'เกินกำหนด' }
+        ];
+
+        // ฟังก์ชันสำหรับกำหนดสีของสถานะ
+        function getStatusColor(status) {
+            switch (status) {
+                case 'ชำระแล้ว':
+                    return 'bg-green-100 text-green-800';
+                case 'รอดำเนินการ':
+                    return 'bg-yellow-100 text-yellow-800';
+                case 'เกินกำหนด':
+                    return 'bg-red-100 text-red-800';
+                default:
+                    return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        // ฟังก์ชันสำหรับแสดงผลตารางใบแจ้งหนี้
+        function renderTable() {
+            const tableBody = document.getElementById('invoiceTableBody');
+            tableBody.innerHTML = ''; // ล้างตารางเดิม
+
+            invoices.forEach(invoice => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+
+                // สร้าง HTML สำหรับปุ่มจัดการ
+                let actionButtonHtml = '';
+
+                // เพิ่มปุ่ม "เปลี่ยนสถานะ" เฉพาะถ้าสถานะเป็น "รอดำเนินการ"
+                if (invoice.status === 'รอดำเนินการ') {
+                    actionButtonHtml += `<button onclick="updateStatus('${invoice.id}')" class="status-button">เปลี่ยนสถานะ</button>`;
+                } else if (invoice.status === 'เกินกำหนด') {
+                    actionButtonHtml += `<button onclick="updateStatus('${invoice.id}')" class="status-button">เปลี่ยนสถานะ</button>`;
+                }
+
+                row.innerHTML = `
+                    <td class="px-6 py-4">${invoice.id}</td>
+                    <td class="px-6 py-4">${invoice.customer}</td>
+                    <td class="px-6 py-4 text-center">${invoice.date}</td>
+                    <td class="px-6 py-4 text-right">฿ ${invoice.total}</td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(invoice.status)}">
+                            ${invoice.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <a href="#" onclick="viewSlip('${invoice.id}')" class="text-blue-600 hover:text-blue-800 font-medium">ดูสลิป</a>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <a href="{{ url_for('receipt_printing.view_invoice') }}"  class="text-blue-600 hover:text-blue-800 font-medium">ดูรายละเอียด</a>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        ${actionButtonHtml}
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // ฟังก์ชันสำหรับเปิด modal ดูสลิป
+        function viewSlip(invoiceId) {
+            const invoice = invoices.find(inv => inv.id === invoiceId);
+            if (invoice) {
+                document.getElementById('slipAmount').innerText = `฿ ${invoice.total}`;
+                document.getElementById('slipModal').style.display = 'flex';
+            }
+        }
+
+        // ฟังก์ชันสำหรับดูรายละเอียด
+        function viewDetails(invoiceId) {
+            const invoice = invoices.find(inv => inv.id === invoiceId);
+            if (invoice) {
+                // ตัวอย่างการแสดงรายละเอียดด้วย alert
+                alert(`รายละเอียดใบแจ้งหนี้\n\nเลขที่: ${invoice.id}\nลูกค้า: ${invoice.customer}\nวันที่: ${invoice.date}\nยอดรวม: ฿ ${invoice.total}\nสถานะ: ${invoice.status}`);
+            }
+        }
+
+        // ฟังก์ชันสำหรับปิด modal ดูสลิป
+        function closeSlipModal() {
+            document.getElementById('slipModal').style.display = 'none';
+        }
+
+        // ฟังก์ชันสำหรับอัปเดตสถานะใบแจ้งหนี้
+        function updateStatus(invoiceId) {
+            const invoice = invoices.find(inv => inv.id === invoiceId);
+            if (invoice && (invoice.status === 'รอดำเนินการ' || invoice.status === 'เกินกำหนด')) {
+                invoice.status = 'ชำระแล้ว';
+            }
+            renderTable(); // เรียกฟังก์ชันแสดงผลอีกครั้งเพื่ออัปเดตตาราง
+        }
+
+        // เรียกฟังก์ชันแสดงผลเมื่อหน้าเว็บโหลดเสร็จ
+        window.onload = renderTable;
+    </script>
+
+</body>
+</html>

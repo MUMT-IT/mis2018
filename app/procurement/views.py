@@ -20,7 +20,9 @@ from app.auth.views import line_bot_api
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from sqlalchemy import cast, Date, or_
+from sqlalchemy import cast, Date, or_, String
+from sqlalchemy.orm import aliased
+from sqlalchemy.sql import func
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
 from .forms import *
@@ -100,15 +102,19 @@ def allowed_file(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def convert_date(date_str):
+def convert_date(date_data):
+    if isna(date_data):
+        return None
+    if isinstance(date_data, datetime):
+        return date_data.date() # Extract date part if it's already a datetime object
     try:
-        day, month, year = map(int, date_str.split('/'))
-    except Exception as e:
-        if isna(date_str) or isinstance(e, ValueError):
-            date_ = None
-    else:
-        date_ = date(year, month, day)
-    return date_
+        # Attempt to parse as 'DD/MM/YYYY' for string inputs
+        return datetime.strptime(str(date_data), '%d/%m/%Y').date()
+    except (ValueError, TypeError):
+        # Handle cases where conversion fails or if it's an unexpected type
+        return None
+
+bangkok = timezone('Asia/Bangkok')
 
 @procurement.route('/new/add/upload', methods=['GET', 'POST'])
 @login_required
@@ -117,91 +123,163 @@ def add_procurement_upload():
         if 'file' not in request.files:
             flash('No file alert')
             return redirect(request.url)
+
         file = request.files['file']
         if file.filename == '':
             flash('No file selected')
             return redirect(request.url)
+
         if file and allowed_file(file.filename):
-            df = read_excel(file, dtype='object')
+            try:
+                df = read_excel(file, dtype='object')
+            except Exception as e:
+                flash(f'เกิดข้อผิดพลาดในการอ่านไฟล์ Excel: {e}', 'error')
+                return redirect(request.url)
+
+            error_messages = []
+            success_count = 0
+
+            allowed_bought_by_choices = {
+                'ประกาศเชิญชวนทั่วไป(E-Bidding)',
+                'วิธีคัดเลือก',
+                'วิธีเฉพาะเจาะจง',
+                'รับบริจาค/รับโอน',
+                'สำรวจเจอ/แจ้งขึ้นทะเบียน'
+            }
+
             for idx, rec in df.iterrows():
-                no, cost_center, erp_code, procurement_no,sub_number, name, category, bought_by, document_no, serial_no, model, \
-                size, maker, guarantee, received_date, start_guarantee_date, end_guarantee_date, budget_year, purchasing_type, price, \
-                curr_acq_value, org, comment, staff_responsible, location, available, status = rec
-                procurementdetail = ProcurementDetail.query.filter_by(erp_code=erp_code).first()
-                if not procurementdetail:
-                    category_ = ProcurementCategory.query.filter_by(category=category).first()
-                    org_ = Org.query.filter_by(name=org).first()
+                row_num = idx + 2
+                try:
+                    (no, cost_center, erp_code, procurement_no, sub_number, name, category,
+                     bought_by, document_no, serial_no, model, size, maker, guarantee,
+                     received_date, start_guarantee_date, end_guarantee_date, budget_year,
+                     purchasing_type, price, curr_acq_value, org, comment, staff_responsible,
+                     location, available, status) = rec.values
+                except ValueError as e:
+                    error_messages.append(f'แถวที่ {row_num}: ข้อมูลไม่ครบ ({e})')
+                    continue
 
-                    if not isna(staff_responsible):
-                        staff_responsible = staff_responsible.split()
-                        staff_ = StaffPersonalInfo.query.filter_by(th_firstname=staff_responsible[0], th_lastname=staff_responsible[1]).first()
-                    else:
-                        staff_ = None
+                category_ = ProcurementCategory.query.filter_by(category=category).first()
+                if not category_:
+                    error_messages.append(f'แถวที่ {row_num}: ไม่พบหมวดหมู่ "{category}"')
+                    continue
 
-                    purchasing_ = ProcurementPurchasingType.query.filter_by(purchasing_type=purchasing_type).first()
+                org_ = Org.query.filter_by(name=org).first()
+                if not org_:
+                    error_messages.append(f'แถวที่ {row_num}: ไม่พบภาควิชา "{org}"')
+                    continue
 
-                    if isna(model):
-                        model = None
-                    if isna(size):
-                        size = None
-                    if isna(maker):
-                        maker = None
-                    if isna(price):
-                        price = None
-                    if isna(guarantee):
-                        guarantee = None
-                    if isna(curr_acq_value):
-                        curr_acq_value = None
+                staff_ = None
+                if not isna(staff_responsible) and str(staff_responsible).strip():
+                    parts = staff_responsible.split()
+                    if len(parts) >= 2:
+                        staff_ = StaffPersonalInfo.query.filter_by(th_firstname=parts[0], th_lastname=parts[1]).first()
+                    if not staff_:
+                        error_messages.append(f'แถวที่ {row_num}: ไม่พบผู้ดูแล "{staff_responsible}"')
 
-                    new_procurement = ProcurementDetail(
-                        cost_center = cost_center,
-                        erp_code = erp_code,
-                        procurement_no = procurement_no,
-                        sub_number = sub_number,
-                        name = name,
-                        bought_by = bought_by,
-                        document_no = document_no,
-                        serial_no = serial_no,
-                        model = model,
-                        size = size,
-                        maker = maker,
-                        guarantee = guarantee,
-                        budget_year = budget_year,
-                        purchasing_type_id = purchasing_.id,
-                        category_id = category_.id,
-                        received_date = convert_date(received_date),
-                        start_guarantee_date = convert_date(start_guarantee_date),
-                        end_guarantee_date = convert_date(end_guarantee_date),
-                        price = price,
-                        curr_acq_value = curr_acq_value,
-                        org_id = org_.id,
-                        available = available
-                    )
-                    db.session.add(new_procurement)
-                    db.session.commit()
-                    location = location.split()
-                    procurementdetail = ProcurementDetail.query.filter_by(erp_code=erp_code).first()
-                    procurementstatus = ProcurementStatus.query.filter_by(status=status).first()
-                    room_ = RoomResource.query.filter_by(location=location[1],number=location[0]).first()
-                    recode = ProcurementRecord(
-                        item_id = procurementdetail.id,
-                        updated_at = datetime.now(tz=bangkok),
-                        updater = current_user,
-                        staff_responsible_id = staff_.id if staff_ else None,
-                        status_id = procurementstatus.id,
-                        location_id = room_.id
-                    )
+                purchasing_ = ProcurementPurchasingType.query.filter_by(purchasing_type=purchasing_type).first()
+                if not purchasing_:
+                    error_messages.append(f'แถวที่ {row_num}: ไม่พบประเภทการจัดซื้อ "{purchasing_type}"')
+                    continue
+
+                status_ = ProcurementStatus.query.filter_by(status=status).first()
+                if not status_:
+                    error_messages.append(f'แถวที่ {row_num}: ไม่พบสถานะ "{status}"')
+                    continue
+
+                room_ = None
+                if not isna(location) and str(location).strip():
+                    loc_parts = location.split()
+                    if len(loc_parts) >= 2:
+                        room_ = RoomResource.query.filter_by(number=loc_parts[0], location=loc_parts[1]).first()
+                    if not room_:
+                        error_messages.append(f'แถวที่ {row_num}: ไม่พบสถานที่ "{location}"')
+                        continue
+
+                if bought_by not in allowed_bought_by_choices:
+                    error_messages.append(f'แถวที่ {row_num}: วิธีจัดซื้อ "{bought_by}" ไม่ถูกต้อง')
+                    continue
+
+                model = None if isna(model) else model
+                size = None if isna(size) else size
+                maker = None if isna(maker) else maker
+                guarantee = None if isna(guarantee) else guarantee
+                price = None if isna(price) else price
+                curr_acq_value = None if isna(curr_acq_value) else curr_acq_value
+
+                received_date_conv = convert_date(received_date)
+                start_date_conv = convert_date(start_guarantee_date)
+                end_date_conv = convert_date(end_guarantee_date)
+
+                if received_date and not received_date_conv:
+                    error_messages.append(f'แถวที่ {row_num}: วันที่ได้รับไม่ถูกต้อง')
+                    continue
+                if start_guarantee_date and not start_date_conv:
+                    error_messages.append(f'แถวที่ {row_num}: วันที่เริ่มประกันไม่ถูกต้อง')
+                    continue
+                if end_guarantee_date and not end_date_conv:
+                    error_messages.append(f'แถวที่ {row_num}: วันที่สิ้นสุดประกันไม่ถูกต้อง')
+                    continue
+
+                try:
+                    procurement = ProcurementDetail.query.filter_by(erp_code=erp_code).first()
+                    if not procurement:
+                        procurement = ProcurementDetail(erp_code=erp_code)
+                        db.session.add(procurement)
+
+                    procurement.cost_center = cost_center
+                    procurement.procurement_no = procurement_no
+                    procurement.sub_number = sub_number
+                    procurement.name = name
+                    procurement.bought_by = bought_by
+                    procurement.document_no = document_no
+                    procurement.serial_no = serial_no
+                    procurement.model = model
+                    procurement.size = size
+                    procurement.maker = maker
+                    procurement.guarantee = guarantee
+                    procurement.budget_year = budget_year
+                    procurement.purchasing_type_id = purchasing_.id
+                    procurement.category_id = category_.id
+                    procurement.received_date = received_date_conv
+                    procurement.start_guarantee_date = start_date_conv
+                    procurement.end_guarantee_date = end_date_conv
+                    procurement.price = price
+                    procurement.curr_acq_value = curr_acq_value
+                    procurement.org_id = org_.id
+                    procurement.available = available
+
                     erpcode_impcopy = request.form.get('erpcode_imgcopy')
                     if erpcode_impcopy:
-                        procurement = ProcurementDetail.query.filter_by(erp_code=erpcode_impcopy).first()
-                        if procurement:
-                            procurementdetail.image = procurement.image
-                            db.session.add(procurementdetail)
+                        imgcopy = ProcurementDetail.query.filter_by(erp_code=erpcode_impcopy).first()
+                        if imgcopy and imgcopy.image_url:
+                            procurement.image_url = imgcopy.image_url
+
+                    recode = ProcurementRecord(
+                        item_id=procurement.id,
+                        updated_at=datetime.now(tz=bangkok),
+                        updater=current_user,
+                        staff_responsible_id=staff_.id if staff_ else None,
+                        status_id=status_.id,
+                        location_id=room_.id if room_ else None
+                    )
                     db.session.add(recode)
+
                     db.session.commit()
-            return render_template('procurement/landing.html')
+                    success_count += 1
+                except Exception as e:
+                    db.session.rollback()
+                    error_messages.append(f'แถวที่ {row_num}: บันทึกข้อมูลไม่สำเร็จ: {e}')
+
+            if success_count:
+                flash(f'อัปโหลดข้อมูลสำเร็จ {success_count} รายการ', 'success')
+            for msg in error_messages:
+                flash(msg, 'warning')
+
+        return render_template('procurement/new_procurement_upload.html')
 
     return render_template('procurement/new_procurement_upload.html')
+
 
 @procurement.route('/main')
 @login_required
@@ -418,7 +496,6 @@ def get_procurement_data():
                     'draw': request.args.get('draw', type=int),
                     })
 
-
 @procurement.route('/information/updated')
 @login_required
 def view_procurement_updated():
@@ -634,9 +711,13 @@ def list_qrcode():
         data = []
         for item_id in request.form.getlist('selected_items'):
             item = ProcurementDetail.query.get(int(item_id))
-            if not item.qrcode:
-                item.generate_qrcode()
-            img_ = io.BytesIO(b64decode(str.encode(item.qrcode)))
+
+            base64_qr = item.generate_qrcode()
+            img_ = io.BytesIO(b64decode(base64_qr))
+
+            item.qrcode = 'GENERATE'
+            db.session.commit()
+
             im = Image(img_, 50 * mm, 30 * mm, kind='bound')
             data.append(im)
             data.append(Paragraph('<para align=center leading=12><font size=12>{}</font></para>'
@@ -727,21 +808,28 @@ def export_qrcode_pdf(procurement_id):
     doc = SimpleDocTemplate("app/qrcode.pdf",
                             rightMargin=7,
                             leftMargin=5,
-                            topMargin=35,
+                            topMargin=32,
                             bottomMargin=0,
                             pagesize=(170, 150)
                             )
     data = []
-    if not procurement.qrcode:
-        procurement.generate_qrcode()
 
-    img_ = io.BytesIO(b64decode(str.encode(procurement.qrcode)))
+    base64_qr = procurement.generate_qrcode()
+
+    img_ = io.BytesIO(b64decode(base64_qr))
     im = Image(img_, 50 * mm, 30 * mm, kind='bound')
     data.append(im)
-    data.append(Paragraph('<para align=center leading=10><font size=13>{}</font></para>'
+    data.append(Paragraph('<para align=center leading=12><font size=12>{}</font></para>'
                           .format(procurement.erp_code),
                           style=style_sheet['ThaiStyle']))
+    data.append(Paragraph('<para align=center leading=1><font size=10>{}</font></para>'
+                          .format(procurement.procurement_no),
+                          style=style_sheet['ThaiStyle']))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+
+    procurement.qrcode = 'GENERATE'
+    db.session.commit()
+
     return send_file('qrcode.pdf')
 
 
@@ -1940,3 +2028,144 @@ def edit_location_procurement(procurement_id=None, procurement_no=None):
 @csrf.exempt
 def scan_qr_code_procurement_transfer():
     return render_template('procurement/qr_code_scan_to_transfer.html')
+
+@procurement.route('/guarantee/list')
+@login_required
+def guarantee_list():
+    return render_template('procurement/guarantee_items.html')
+
+@procurement.route('/procurement_no/info/<int:procurement_id>')
+def view_procurement_info(procurement_id):
+    item = ProcurementDetail.query.get(procurement_id)
+    next_url = request.args.get('url_next', url_for('procurement.guarantee_list'))
+    return render_template('procurement/view_data_procurement.html', item=item,
+                           procurement_no=item.procurement_no, url_next=next_url)
+
+@procurement.route('/api/data_guarantee')
+def get_procurement_data_guarantee():
+    # Subquery หาค่า max id ของแต่ละ item_id
+    latest_record_subq = db.session.query(
+        ProcurementRecord.item_id,
+        func.max(ProcurementRecord.id).label('max_id')
+    ).group_by(ProcurementRecord.item_id).subquery()
+
+    RecordAlias = aliased(ProcurementRecord)
+
+    query = ProcurementDetail.query \
+        .outerjoin(latest_record_subq, ProcurementDetail.id == latest_record_subq.c.item_id) \
+        .outerjoin(RecordAlias, RecordAlias.id == latest_record_subq.c.max_id) \
+        .outerjoin(RoomResource, RoomResource.id == RecordAlias.location_id)
+
+    # ค้นหาข้อมูลตาม search box ด้านบน (global search)
+
+
+    # ค้นหาแยกแต่ละคอลัมน์ (column search)
+    col_idx = 0
+    while True:
+        col_data = request.args.get(f'columns[{col_idx}][data]')
+        col_search = request.args.get(f'columns[{col_idx}][search][value]')
+        if col_data is None:
+            break
+        if col_search:
+            if col_data == 'name':
+                query = query.filter(ProcurementDetail.name.ilike(f"%{col_search}%"))
+            elif col_data == 'procurement_no':
+                query = query.filter(ProcurementDetail.procurement_no.ilike(f"%{col_search}%"))
+            elif col_data == 'erp_code':
+                query = query.filter(ProcurementDetail.erp_code.ilike(f"%{col_search}%"))
+            elif col_data == 'budget_year':
+                query = query.filter(cast(ProcurementDetail.budget_year, String).ilike(f"%{col_search}%"))
+            elif col_data == 'received_date':
+                try:
+                    search_date = datetime.strptime(col_search, '%d/%m/%Y').date()
+                    query = query.filter(func.date(ProcurementDetail.received_date) == search_date)
+                except ValueError:
+                    pass
+            elif col_data == 'start_guarantee_date':
+                try:
+                    search_date = datetime.strptime(col_search, '%d/%m/%Y').date()
+                    query = query.filter(func.date(ProcurementDetail.start_guarantee_date) == search_date)
+                except ValueError:
+                    pass
+            elif col_data == 'end_guarantee_date':
+                try:
+                    search_date = datetime.strptime(col_search, '%d/%m/%Y').date()
+                    query = query.filter(func.date(ProcurementDetail.end_guarantee_date) == search_date)
+                except ValueError:
+                    pass
+            elif col_data == 'location':
+                parts = col_search.strip().split(' ', 1)  # แยกแค่ 2 ส่วน (number กับ location)
+                if len(parts) == 2:
+                    number_part = parts[0]
+                    location_part = parts[1]
+
+                    query = query.filter(
+                        RoomResource.number.ilike(f'%{number_part}%'),
+                        RoomResource.location.ilike(f'%{location_part}%')
+                    )
+                else:
+                    # กรณีพิมพ์แค่คำเดียว อาจจะค้นทั้งสองฟิลด์เลย
+                    query = query.filter(or_(
+                        RoomResource.number.ilike(f'%{col_search}%'),
+                        RoomResource.location.ilike(f'%{col_search}%')
+                    ))
+        col_idx += 1
+
+    # กรองข้อมูลตามสถานะประกัน (active/all)
+    bangkok_tz = pytz.timezone('Asia/Bangkok')
+    today = datetime.now(bangkok_tz).date()
+    guarantee_status = request.args.get('guarantee_status', 'active')
+    if guarantee_status == 'active':
+        query = query.filter(ProcurementDetail.end_guarantee_date >= today)
+
+    # จัดเรียงข้อมูล (order)
+    direction = request.args.get('order[0][dir]')
+    col_idx = request.args.get('order[0][column]')
+    col_name = request.args.get(f'columns[{col_idx}][data]') if col_idx else None
+
+    try:
+        column = getattr(ProcurementDetail, col_name)
+    except (AttributeError, TypeError):
+        column = ProcurementDetail.received_date
+
+    if direction == 'desc':
+        column = column.desc()
+
+    query = query.order_by(column)
+
+    # Pagination
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+
+    items = query.all()
+
+    data = []
+    for item in items:
+        current_record = item.records.order_by(ProcurementRecord.id.desc()).first()
+        if current_record and current_record.location:
+            loc = current_record.location
+            location_name = f"{loc.number} {loc.location}" if loc.number else loc.location
+        else:
+            location_name = ''
+
+        item_data = {
+            'id': item.id,
+            'procurement_no': item.procurement_no,
+            'name': item.name,
+            'erp_code': item.erp_code,
+            'budget_year': item.budget_year,
+            'received_date': item.received_date.strftime('%d/%m/%Y') if item.received_date else '',
+            'start_guarantee_date': item.start_guarantee_date.strftime('%d/%m/%Y') if item.start_guarantee_date else '',
+            'end_guarantee_date': item.end_guarantee_date.strftime('%d/%m/%Y') if item.end_guarantee_date else '',
+            'location': location_name,
+            'view': f'<a href="{url_for("procurement.view_procurement_info", procurement_id=item.id)}"><i class="fas fa-eye"></i></a>'
+        }
+        data.append(item_data)
+
+    return jsonify({
+        'data': data,
+        'recordsFiltered': total_filtered,
+        'recordsTotal': ProcurementDetail.query.count(),
+    })

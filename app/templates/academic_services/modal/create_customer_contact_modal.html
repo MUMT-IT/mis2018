@@ -22,9 +22,9 @@
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                     <div class="field">
-                        <label class="label">ชื่อ-นามสกุล</label>
+                        <label class="label">{{ form.contact_name.label }}</label>
                         <div class="control has-icons-left is-expanded">
-                            {{ form.name(class="input", placeholder='Name') }}
+                            {{ form.contact_name(class="input", placeholder='Name') }}
                             <span class="icon is-small is-left">
                                 <i class="fas fa-user"></i>
                             </span>

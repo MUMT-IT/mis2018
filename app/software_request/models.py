@@ -1,3 +1,5 @@
+from pygments.lexer import default
+
 from app.main import db
 from app.models import Process, StrategyActivity
 from app.room_scheduler.models import RoomResource
@@ -88,15 +90,27 @@ class SoftwareRequestDetail(db.Model):
     def __str__(self):
         return f'{self.title}'
 
+    @property
+    def num_open_issues(self):
+        return len([issue for issue in self.issues.all() if issue.status != 'Closed'])
+
+    @property
+    def num_timelines(self):
+        return len([timeline for timeline in self.timelines if timeline.status != 'ยกเลิกการพัฒนา' or timeline.status != 'เสร็จสิ้น'])
+
     def to_dict(self):
         return {
             'id': self.id,
+            'title': self.title,
             'type': self.type,
             'description': self.description,
+            'has_timeline': True if self.timelines else False,
             'created_by': self.created_by.fullname if self.created_by else None,
             'org': self.created_by.personal_info.org.name if self.created_by else None,
             'created_date': self.created_date,
             'status': self.status,
+            'open_issues': self.num_open_issues,
+            'num_timelines': self.num_timelines
         }
 
 
@@ -108,18 +122,15 @@ class SoftwareRequestTimeline(db.Model):
     start = db.Column('start', db.Date(), nullable=False, info={'label': 'วันที่เริ่มต้น'})
     estimate = db.Column('estimate', db.Date(), nullable=False, info={'label': 'วันที่คาดว่าจะแล้วเสร็จ'})
     phase = db.Column('phase', db.String(), nullable=False, info={'label': 'Phase',
-                                                                  'choices': [('None', 'กรุณาเลือกเฟส'),
-                                                                              ('1', '1'),
+                                                                  'choices': [('1', '1'),
                                                                               ('2', '2'),
                                                                               ('3', '3'),
                                                                               ('4', '4')
                                                                               ]})
     status = db.Column('status', db.String(), nullable=False,  info={'label': 'สถานะ',
-                                                                     'choices': [('None', 'กรุณาเลือกสถานะ'),
-                                                                                 ('รอดำเนินการ', 'รอดำเนินการ'),
-                                                                                 ('กำลังดำเนินการ', 'กำลังดำเนินการ'),
+                                                                     'choices': [('รอดำเนินการ', 'รอดำเนินการ'),
                                                                                  ('เสร็จสิ้น', 'เสร็จสิ้น'),
-                                                                                 ('ยกเลิการพัฒนา', 'ยกเลิการพัฒนา')
+                                                                                 ('ยกเลิกการพัฒนา', 'ยกเลิกการพัฒนา')
                                                                                  ]})
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
@@ -128,4 +139,37 @@ class SoftwareRequestTimeline(db.Model):
     request = db.relationship(SoftwareRequestDetail, backref=db.backref('timelines', cascade='all, delete-orphan'))
 
     def __str__(self):
-        return f'{self.phase}: {self.requirement}'
+        return f'{self.phase}: {self.task}'
+
+
+class SoftwareIssues(db.Model):
+    __tablename__ = 'software_issues'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    software_request_detail_id = db.Column('software_request_detail_id',
+                                           db.ForeignKey('software_request_details.id'))
+    software_request_detail = db.relationship(SoftwareRequestDetail, backref=db.backref('issues', lazy='dynamic'))
+    label = db.Column('label', db.String(), nullable=False, info={
+        'label': 'ประเภท',
+        'choices': [(c,c) for c in ('Bug', 'Request', 'Enhancement')],
+    })
+    issue = db.Column('issue', db.Text(), nullable=False, info={'label': 'Issue'})
+    created_by = db.Column('created_by', db.ForeignKey('staff_account.id'))
+    creator = db.relationship(StaffAccount, foreign_keys=[created_by])
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    updated_by = db.Column('updated_by', db.ForeignKey('staff_account.id'))
+    updater = db.relationship(StaffAccount, foreign_keys=[updated_by])
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    closed_at = db.Column('closed_at', db.DateTime(timezone=True))
+    accepted_at = db.Column('accepted_at', db.DateTime(timezone=True))
+
+    @property
+    def status(self):
+        if self.cancelled_at:
+            return 'Cancelled'
+        elif self.closed_at:
+            return 'Closed'
+        elif self.accepted_at:
+            return 'Working'
+        else:
+            return 'Draft'

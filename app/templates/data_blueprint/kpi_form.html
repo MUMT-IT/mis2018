@@ -15,8 +15,8 @@
             <div class="tabs is-centered is-boxed">
               <ul>
                 <li class="is-active"><a href="#">ข้อมูลทั่วไป</a></li>
-                <li><a href="{{request.path.replace('?section=general', '').replace('?section=report', '')+'?section=target'}}">เป้าหมาย</a></li>
-                <li><a href="{{request.path.replace('?section=target', '').replace('?section=general', '')+'?section=report'}}">รายงาน</a></li>
+                <li><a href="{{ url_for('data_bp.kpi_form', process_id=process_id, section='target', kpi_id=kpi_id) }}">เป้าหมาย</a></li>
+                <li><a href="{{ url_for('data_bp.kpi_form', process_id=process_id, section='report', kpi_id=kpi_id) }}">รายงาน</a></li>
               </ul>
             </div>
             <div class="columns">

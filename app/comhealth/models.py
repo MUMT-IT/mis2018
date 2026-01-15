@@ -10,6 +10,7 @@ from marshmallow import fields
 from dateutil.relativedelta import relativedelta
 from datetime import date, datetime
 import pytz
+import arrow
 
 
 bangkok = pytz.timezone('Asia/Bangkok')
@@ -473,7 +474,7 @@ class ComHealthReceiptID(db.Model):
         return u'{:06}'.format(self.count + 1)
 
     @classmethod
-    def get_number(cls, code, db, date=today()):
+    def get_number(cls, code, db, date = arrow.now('Asia/Bangkok').date()):
         fiscal_year = convert_to_fiscal_year(date)
         number = cls.query.filter_by(code=code, buddhist_year=fiscal_year + 543).first()
         if not number:
@@ -490,7 +491,7 @@ class ComHealthReceiptID(db.Model):
 class ComHealthReceipt(db.Model):
     __tablename__ = 'comhealth_test_receipts'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
-    code = db.Column('code', db.String())
+    code = db.Column('code', db.String(), unique=True)
     copy_number = db.Column('copy_number', db.Integer, default=1)
     book_number = db.Column('book_number', db.String(16))
     created_datetime = db.Column('checkin_datetime', db.DateTime(timezone=True))

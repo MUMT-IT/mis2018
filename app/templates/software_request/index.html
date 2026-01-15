@@ -18,6 +18,7 @@
                     </div>
                     <table id="detail" class="table is-fullwidth">
                         <thead>
+                            <th>โครงการ/ระบบ</th>
                             <th>ประเภทคำขอ</th>
                             <th>รายละเอียด</th>
                             <th>วันที่ส่งคำขอ</th>
@@ -25,13 +26,12 @@
                             <th>รายละเอียด</th>
                         </thead>
                         <tbody>
-                            {% for detail in details %}
+                            {% for detail in details|sort(attribute='created_date', reverse = True) %}
                                 <tr>
+                                    <td>{{ detail.title }}</td>
                                     <td>{{ detail.type }}</td>
                                     <td>{{ detail.description }}</td>
-                                    <td data-order="{{ detail.created_date }}">
-                                        {{ detail.created_date|localdatetime }}
-                                    </td>
+                                    <td>{{ detail.created_date|localdatetime }}</td>
                                     <td>
                                         <span {% if detail.status == 'ส่งคำขอแล้ว' %}
                                                 class="tag is-info"
@@ -39,6 +39,8 @@
                                                 class="tag is-warning"
                                               {% elif detail.status == 'อนุมัติ' %}
                                                 class="tag is-success"
+                                              {% elif detail.status == 'เสร็จสิ้น' %}
+                                                class="tag is-info"
                                               {% elif detail.status == 'ไม่อนุมัติ' %}
                                                 class="tag is-danger"
                                               {% elif detail.status == 'ยกเลิก' %}
@@ -69,7 +71,7 @@
     <script>
         $(document).ready(function () {
             $('#detail').DataTable({
-                order: [[2, 'desc']]
+                order: [[3, 'desc']]
             });
         });
     </script>
