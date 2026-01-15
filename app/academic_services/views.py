@@ -5330,7 +5330,7 @@ def confirm_result_item(result_item_id):
             message += f'''ใบรายงานผลฉบับร่างของใบคำขอรับบริการเลขที่ : {result_item.result.request.request_no}\n'''
             message += f'''ลูกค้า : {result_item.result.request.customer.customer_name}\n'''
             message += f'''ในนาม : {result_item.result.request.quotation_address.name}\n'''
-            message += f'''ได้ดำเนินการยืนยันเรียบร้อยแล้ว\n'''
+            message += f'''ลูกค้าได้ดำเนินการยืนยันเรียบร้อยแล้ว\n'''
             message += f'''กรุณาดำเนินการออกใบรายงานผลฉบับจริงได้ที่ลิงก์ด้านล่าง\n'''
             message += f'''{link}\n\n'''
             message += f'''ผู้ประสานงาน\n'''

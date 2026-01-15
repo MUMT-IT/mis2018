@@ -4565,7 +4565,7 @@ def approve_invoice(invoice_id):
             email = [a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor]
             if email:
                 title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอนุมัติใบแจ้งหนี้'
-                message = f'''เรียน หัวหน้าห้องปฏิบัติการ\n\n'''
+                message = f'''เรียน หัวหน้าห้องปฏิบัติการ{invoice.quotation.request.sub_lab.sub_lab}\n\n'''
                 message += f'''ใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
                 message += f'''ลูกค้า : {invoice.customer_name}\n'''
                 message += f'''ในนาม : {invoice.name}\n'''
@@ -5800,7 +5800,7 @@ def approval_quotation_for_supervisor(quotation_id):
                     if admins:
                         email = [a.admin.email + '@mahidol.ac.th' for a in admins if a.is_assistant]
                         if email:
-                            title_for_assistant = f'''รายการอนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} อนุมัติโดย คุณ{quotation.approver.fullname}'''
+                            title_for_assistant = f'''แจ้งเพื่อทราบรายการอนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} อนุมัติโดย คุณ{quotation.approver.fullname}'''
                             message_for_assistant = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n'''
                             message_for_assistant += f'''แจ้งรายการอนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
                             message_for_assistant += f'''ในนามลูกค้า {title_prefix}{customer_name}\n'''
@@ -6241,7 +6241,7 @@ def create_draft_result(result_id=None):
                 else:
                     print('message', message)
                 flash("ส่งข้อมูลเรียบร้อยแล้ว", "success")
-                return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='testing'))
+                return redirect(url_for('service_admin.test_item_index', menu='test_item', tab='waiting_confirm'))
             else:
                 flash("กรุณาแนบไฟล์ให้ครบถ้วน", "danger")
         else:
