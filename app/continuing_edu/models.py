@@ -536,6 +536,12 @@ class RegisterPayment(db.Model):
     transaction_id = db.Column(db.String(255), unique=True, nullable=True,
                                comment="Reference ID from payment gateway")
 
+    payment_method = db.Column(
+        db.String(50),
+        nullable=True,
+        comment="Chosen payment channel (e.g. promptpay, credit_card, counter)"
+    )
+
     # New field for payment proof file URL
     payment_proof_url = db.Column(db.String(500), nullable=True, comment="URL ของไฟล์หลักฐานการชำระเงิน")
     # Link to invoice (optional)

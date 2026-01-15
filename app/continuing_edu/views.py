@@ -33,7 +33,7 @@ from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
 from werkzeug.exceptions import NotFound
 
-from app.main import mail
+from app.main import mail, csrf
 from flask_mail import Message
 try:
     from weasyprint import HTML
@@ -44,7 +44,7 @@ import os, secrets, time
 import re
 from urllib.parse import urljoin
 from requests_oauthlib import OAuth2Session
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from werkzeug.utils import secure_filename
 from textwrap import shorten
@@ -208,6 +208,42 @@ def get_current_user():
     return None
 
 
+def _sync_member_legacy_address_fields(member: Member) -> None:
+    """Keep legacy Member.address/province/zip_code/country in sync.
+
+    The codebase still reads these fields in several places (invoice, exports, etc).
+    Prefer billing address, then current, then first available.
+    """
+    if not member:
+        return
+
+    addresses = list(getattr(member, 'addresses', []) or [])
+    if not addresses:
+        member.address = None
+        member.province = None
+        member.zip_code = None
+        member.country = None
+        return
+
+    preferred = None
+    for addr in addresses:
+        if (addr.address_type or '').lower() == 'billing':
+            preferred = addr
+            break
+    if preferred is None:
+        for addr in addresses:
+            if (addr.address_type or '').lower() == 'current':
+                preferred = addr
+                break
+    if preferred is None:
+        preferred = addresses[0]
+
+    member.address = preferred.line1
+    member.province = preferred.state
+    member.zip_code = preferred.postal_code
+    member.country = preferred.country_name
+
+
 def is_early_bird_active(event: EventEntity):
     import datetime as _dt
     now = _dt.datetime.now(_dt.timezone.utc)
@@ -238,6 +274,8 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
+
+        print( f"Login attempt: email={email}, password={'*' * len(password)}" )
         
         if not email or not password:
             flash('กรุณากรอกอีเมลและรหัสผ่าน' if lang == 'th' else 'Please enter email and password', 'error')
@@ -247,15 +285,36 @@ def login():
         member = Member.query.filter_by(email=email).first()
         
         if not member:
-            flash('อีเมลหรือรหัสผ่านไม่ถูกต้อง' if lang == 'th' else 'Invalid email or password', 'error')
+            # Track failed login attempts
+            failed_attempts = session.get('failed_login_attempts', 0) + 1
+            session['failed_login_attempts'] = failed_attempts
+            
+            if failed_attempts >= 3:
+                flash('คุณพยายามเข้าระบบโดยใช้รหัสผ่านไม่ถูกต้อง กรุณากดลืมรหัสผ่านเพื่อตั้งรหัสใหม่' if lang == 'th' 
+                      else 'You have attempted to login with an incorrect password. Please click Forgot Password to reset your password.', 
+                      'login_failed_limit')
+                session['failed_login_attempts'] = 0  # Reset counter
+            else:
+                flash('อีเมลหรือรหัสผ่านไม่ถูกต้อง' if lang == 'th' else 'Invalid email or password', 'error')
             return render_template('continueing_edu/login.html', texts=texts, current_lang=lang, logged_in_user=get_current_user(), next=next_url)
         
         # Check password
         if not check_password_hash(member.password_hash, password):
-            flash('อีเมลหรือรหัสผ่านไม่ถูกต้อง' if lang == 'th' else 'Invalid email or password', 'error')
+            # Track failed login attempts
+            failed_attempts = session.get('failed_login_attempts', 0) + 1
+            session['failed_login_attempts'] = failed_attempts
+            
+            if failed_attempts >= 3:
+                flash('คุณพยายามเข้าระบบโดยใช้รหัสผ่านไม่ถูกต้อง กรุณากดลืมรหัสผ่านเพื่อตั้งรหัสใหม่' if lang == 'th' 
+                      else 'You have attempted to login with an incorrect password. Please click Forgot Password to reset your password.', 
+                      'login_failed_limit')
+                session['failed_login_attempts'] = 0  # Reset counter
+            else:
+                flash('อีเมลหรือรหัสผ่านไม่ถูกต้อง' if lang == 'th' else 'Invalid email or password', 'error')
             return render_template('continueing_edu/login.html', texts=texts, current_lang=lang, logged_in_user=get_current_user(), next=next_url)
         
-        # Login successful
+        # Login successful - reset failed attempts counter
+        session.pop('failed_login_attempts', None)
         session['member_id'] = member.id
         user = get_current_user()
         
@@ -1117,12 +1176,37 @@ def complete_profile():
         member.occupation_id = request.form.get('occupation_id') or None
         member.country = request.form.get('country') or None
         
-        # Handle address
-        address_line1 = request.form.get('address_line1')
+        # Handle address (persist to MemberAddress; also sync legacy fields)
+        address_line1 = (request.form.get('address_line1') or '').strip()
+        address_province = (request.form.get('address_province') or '').strip() or None
+        address_zipcode = (request.form.get('address_zipcode') or '').strip() or None
+        country_name = (request.form.get('country') or '').strip() or None
         if address_line1:
-            member.address = address_line1
-            member.province = request.form.get('address_province')
-            member.zip_code = request.form.get('address_zipcode')
+            # Upsert a "current" address as the primary one for simple flows.
+            current_addr = (MemberAddress.query
+                            .filter_by(member_id=member.id, address_type='current')
+                            .order_by(MemberAddress.id.asc())
+                            .first())
+            if not current_addr:
+                current_addr = MemberAddress(
+                    member=member,
+                    address_type='current',
+                    label=None,
+                    line1=address_line1,
+                    line2=None,
+                    city=None,
+                    state=address_province,
+                    postal_code=address_zipcode,
+                    country_code=None,
+                    country_name=country_name,
+                )
+                db.session.add(current_addr)
+            else:
+                current_addr.line1 = address_line1
+                current_addr.state = address_province
+                current_addr.postal_code = address_zipcode
+                current_addr.country_name = country_name
+            _sync_member_legacy_address_fields(member)
         
         db.session.commit()
         session.pop('needs_profile_completion', None)
@@ -1184,7 +1268,34 @@ def account_settings():
     if not user:
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
-    return render_template('continueing_edu/account_settings.html', user=user, texts=texts, current_lang=lang)
+
+    # Backward-compat: older accounts may have legacy address fields but no MemberAddress rows.
+    # Create a starter "current" address so multi-address management works immediately.
+    if (not user.addresses or len(user.addresses) == 0) and (user.address or user.province or user.zip_code or user.country):
+        line1 = (user.address or '').strip()
+        if line1:
+            starter = MemberAddress(
+                member=user,
+                address_type='current',
+                label=None,
+                line1=line1,
+                line2=None,
+                city=None,
+                state=(user.province or None),
+                postal_code=(user.zip_code or None),
+                country_code=None,
+                country_name=(user.country or None),
+            )
+            db.session.add(starter)
+            db.session.commit()
+    return render_template(
+        'continueing_edu/account_settings.html',
+        user=user,
+        logged_in_user=user,
+        texts=texts,
+        current_lang=lang,
+        addresses=list(user.addresses or []),
+    )
 
 
 @ce_bp.route('/account/profile', methods=['POST'])
@@ -1195,13 +1306,196 @@ def account_update_profile():
     if not user:
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
-    # Basic editable fields
-    for field in ['email','full_name_en','full_name_th','phone_no','address','province','zip_code','country','title_name_en','title_name_th']:
+    # Basic editable fields (legacy keys)
+    for field in ['email','full_name_en','full_name_th','phone_no','country','title_name_en','title_name_th']:
         if field in request.form:
             setattr(user, field, request.form.get(field))
     db.session.add(user)
     db.session.commit()
     flash(texts.get('profile_updated', 'Profile updated.'), 'success')
+    return redirect(url_for('continuing_edu.account_settings', lang=lang))
+
+
+@ce_bp.route('/account/addresses/new', methods=['GET', 'POST'])
+def account_address_new():
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+
+    if request.method == 'POST':
+        address_type = (request.form.get('address_type') or 'current').strip() or 'current'
+        label = (request.form.get('label') or '').strip() or None
+        line1 = (request.form.get('line1') or '').strip()
+        line2 = (request.form.get('line2') or '').strip() or None
+
+        # Thai address autocomplete fields (same keys as register_modern)
+        subdistrict = (request.form.get('address_subdistrict[]') or request.form.get('address_subdistrict') or '').strip() or None
+        district = (request.form.get('address_district[]') or request.form.get('address_district') or '').strip() or None
+        province = (request.form.get('address_province[]') or request.form.get('address_province') or request.form.get('state') or '').strip() or None
+        zipcode = (request.form.get('address_zipcode[]') or request.form.get('address_zipcode') or request.form.get('postal_code') or '').strip() or None
+
+        city = district
+        state = province
+        postal_code = zipcode
+        if not line2 and subdistrict:
+            line2 = subdistrict
+
+        if not line1:
+            flash(texts.get('address_required_message', 'Please provide at least one address.'), 'danger')
+            return render_template(
+                'continueing_edu/account_address_form.html',
+                texts=texts,
+                current_lang=lang,
+                mode='new',
+                address=None,
+                form_values=request.form,
+                country_options=COUNTRY_OPTIONS,
+            )
+
+        country_code = (request.form.get('country_code') or request.form.get('address_country') or '').strip() or None
+        country_other = (request.form.get('country_other') or request.form.get('address_country_other') or '').strip() or None
+        if country_code == 'OTHER' and country_other:
+            country_name = country_other
+            country_code_value = None
+        elif country_code:
+            country_name = next((item['name'] for item in COUNTRY_OPTIONS if item['code'] == country_code), country_code)
+            country_code_value = country_code
+        else:
+            country_name = (request.form.get('country_name') or '').strip() or None
+            country_code_value = None
+
+        addr = MemberAddress(
+            member=user,
+            address_type=address_type,
+            label=label,
+            line1=line1,
+            line2=line2,
+            city=city,
+            state=state,
+            postal_code=postal_code,
+            country_code=country_code_value,
+            country_name=country_name,
+        )
+        db.session.add(addr)
+        _sync_member_legacy_address_fields(user)
+        db.session.commit()
+        flash(texts.get('profile_updated', 'Saved.'), 'success')
+        return redirect(url_for('continuing_edu.account_settings', lang=lang))
+
+    return render_template(
+        'continueing_edu/account_address_form.html',
+        texts=texts,
+        current_lang=lang,
+        mode='new',
+        address=None,
+        form_values=None,
+        country_options=COUNTRY_OPTIONS,
+    )
+
+
+@ce_bp.route('/account/addresses/<int:address_id>/edit', methods=['GET', 'POST'])
+def account_address_edit(address_id: int):
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+
+    addr = MemberAddress.query.filter_by(id=address_id, member_id=user.id).first()
+    if not addr:
+        raise NotFound()
+
+    if request.method == 'POST':
+        address_type = (request.form.get('address_type') or addr.address_type or 'current').strip() or 'current'
+        label = (request.form.get('label') or '').strip() or None
+        line1 = (request.form.get('line1') or '').strip()
+        line2 = (request.form.get('line2') or '').strip() or None
+
+        # Thai address autocomplete fields (same keys as register_modern)
+        subdistrict = (request.form.get('address_subdistrict[]') or request.form.get('address_subdistrict') or '').strip() or None
+        district = (request.form.get('address_district[]') or request.form.get('address_district') or '').strip() or None
+        province = (request.form.get('address_province[]') or request.form.get('address_province') or request.form.get('state') or '').strip() or None
+        zipcode = (request.form.get('address_zipcode[]') or request.form.get('address_zipcode') or request.form.get('postal_code') or '').strip() or None
+
+        city = district
+        state = province
+        postal_code = zipcode
+        if not line2 and subdistrict:
+            line2 = subdistrict
+
+        if not line1:
+            flash(texts.get('address_required_message', 'Please provide at least one address.'), 'danger')
+            return render_template(
+                'continueing_edu/account_address_form.html',
+                texts=texts,
+                current_lang=lang,
+                mode='edit',
+                address=addr,
+                form_values=request.form,
+                country_options=COUNTRY_OPTIONS,
+            )
+
+        country_code = (request.form.get('country_code') or request.form.get('address_country') or '').strip() or None
+        country_other = (request.form.get('country_other') or request.form.get('address_country_other') or '').strip() or None
+        if country_code == 'OTHER' and country_other:
+            country_name = country_other
+            country_code_value = None
+        elif country_code:
+            country_name = next((item['name'] for item in COUNTRY_OPTIONS if item['code'] == country_code), country_code)
+            country_code_value = country_code
+        else:
+            country_name = (request.form.get('country_name') or '').strip() or None
+            country_code_value = None
+
+        addr.address_type = address_type
+        addr.label = label
+        addr.line1 = line1
+        addr.line2 = line2
+        addr.city = city
+        addr.state = state
+        addr.postal_code = postal_code
+        addr.country_code = country_code_value
+        addr.country_name = country_name
+
+        _sync_member_legacy_address_fields(user)
+        db.session.add(addr)
+        db.session.commit()
+        flash(texts.get('profile_updated', 'Saved.'), 'success')
+        return redirect(url_for('continuing_edu.account_settings', lang=lang))
+
+    return render_template(
+        'continueing_edu/account_address_form.html',
+        texts=texts,
+        current_lang=lang,
+        mode='edit',
+        address=addr,
+        form_values=None,
+        country_options=COUNTRY_OPTIONS,
+    )
+
+
+@ce_bp.route('/account/addresses/<int:address_id>/delete', methods=['POST'])
+def account_address_delete(address_id: int):
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+
+    addr = MemberAddress.query.filter_by(id=address_id, member_id=user.id).first()
+    if not addr:
+        raise NotFound()
+
+    db.session.delete(addr)
+    db.session.flush()
+    _sync_member_legacy_address_fields(user)
+    db.session.commit()
+    flash(texts.get('profile_updated', 'Deleted.'), 'success')
     return redirect(url_for('continuing_edu.account_settings', lang=lang))
 
 
@@ -1685,6 +1979,7 @@ def confirm_registration(event_id):
             payment_status_id=pending.id if pending else 1,
             payment_amount=price,
             invoice_id=inv.id if inv else None,
+            payment_method=payment_method,
         )
         db.session.add(pay)
         db.session.commit()
@@ -1724,6 +2019,56 @@ def confirm_registration(event_id):
                         promptpay_id = os.environ.get('PROMPTPAY_ID')
                         bank_info = os.environ.get('BANK_INFO')
                         payment_instructions = os.environ.get('PAYMENT_INSTRUCTIONS')
+                        # Build invoice context for PDF (seller info + VAT breakdown)
+                        invoice = getattr(pay, 'invoice', None)
+                        invoice_no = None
+                        if invoice and getattr(invoice, 'invoice_no', None):
+                            invoice_no = invoice.invoice_no
+                        else:
+                            fallback_id = (invoice.id if invoice else pay.id)
+                            invoice_no = f"INV{int(fallback_id):06d}"
+                        vat_rate_raw = os.getenv('INVOICE_VAT_RATE', os.getenv('VAT_RATE', '0'))
+                        try:
+                            vat_rate = float(vat_rate_raw) if vat_rate_raw not in (None, '') else 0.0
+                        except Exception:
+                            vat_rate = 0.0
+                        vat_included = (os.getenv('INVOICE_VAT_INCLUDED', 'false').strip().lower() in ('1', 'true', 'yes', 'y'))
+                        amount_total = float(getattr(pay, 'payment_amount', 0) or 0)
+                        if vat_rate > 0:
+                            if vat_included:
+                                subtotal = amount_total / (1.0 + vat_rate)
+                                vat_amount = amount_total - subtotal
+                                total = amount_total
+                            else:
+                                subtotal = amount_total
+                                vat_amount = subtotal * vat_rate
+                                total = subtotal + vat_amount
+                        else:
+                            subtotal = amount_total
+                            vat_amount = 0.0
+                            total = amount_total
+                        invoice_meta = {
+                            'invoice_no': invoice_no,
+                            'invoice_date': (invoice.created_at if invoice and getattr(invoice, 'created_at', None) else pay.payment_date),
+                            'due_date': (invoice.created_at if invoice and getattr(invoice, 'created_at', None) else pay.payment_date),
+                            'due_days': 0,
+                            'vat_rate': vat_rate,
+                            'vat_included': vat_included,
+                            'subtotal': round(subtotal, 2),
+                            'vat_amount': round(vat_amount, 2),
+                            'total': round(total, 2),
+                        }
+                        seller = {
+                            'name_th': os.getenv('INVOICE_SELLER_NAME_TH', ''),
+                            'name_en': os.getenv('INVOICE_SELLER_NAME_EN', ''),
+                            'address_th': os.getenv('INVOICE_SELLER_ADDRESS_TH', ''),
+                            'address_en': os.getenv('INVOICE_SELLER_ADDRESS_EN', ''),
+                            'tax_id': os.getenv('INVOICE_SELLER_TAX_ID', ''),
+                            'branch': os.getenv('INVOICE_SELLER_BRANCH', ''),
+                            'phone': os.getenv('INVOICE_SELLER_PHONE', ''),
+                            'email': os.getenv('INVOICE_SELLER_EMAIL', ''),
+                        }
+
                         html = render_template(
                             'continueing_edu/invoice.html',
                             payment=pay,
@@ -1735,9 +2080,11 @@ def confirm_registration(event_id):
                             bank_info=bank_info,
                             payment_instructions=payment_instructions,
                             pdf_available=True,
+                            invoice_meta=invoice_meta,
+                            seller=seller,
                         )
                         pdf_bytes = HTML(string=html, base_url=request.host_url).write_pdf()
-                        msg.attach(f"invoice_INV-{pay.id}.pdf", 'application/pdf', pdf_bytes)
+                        msg.attach(f"invoice_{invoice_no}.pdf", 'application/pdf', pdf_bytes)
                     except Exception:
                         pass
                 mail.send(msg)
@@ -1749,99 +2096,6 @@ def confirm_registration(event_id):
         return redirect(url_for('continuing_edu.payment_process', payment_id=pay.id, payment_method=payment_method, lang=lang))
 
     return render_template('continueing_edu/register_event.html', event=event, member=member, fee=fee, price=price, texts=texts, current_lang=lang)
-
-@ce_bp.route('/payment/<int:payment_id>')
-def payment_page(payment_id):
-    """Display payment options page for a registration"""
-    lang = request.args.get('lang', 'en')
-    texts = tr.get(lang, tr['en'])
-    
-    # Get current user
-    member = get_current_user()
-    if not member:
-        flash(texts.get('login_required', 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' if lang == 'th' else 'Please login to continue.'), 'danger')
-        return redirect(url_for('continuing_edu.login', lang=lang))
-    
-    # Get payment record
-    payment = RegisterPayment.query.get_or_404(payment_id)
-    
-    # Verify ownership
-    if payment.member_id != member.id:
-        flash(texts.get('not_allowed', 'คุณไม่ได้รับอนุญาตให้เข้าถึงหน้านี้' if lang == 'th' else 'You are not allowed to access this page.'), 'danger')
-        return redirect(url_for('continuing_edu.index', lang=lang))
-    
-    # Get event details
-    event = payment.event_entity
-    
-    # Get payment configuration from environment
-    payment_qr_url = os.environ.get('PAYMENT_QR_URL')
-    promptpay_id = os.environ.get('PROMPTPAY_ID')
-    bank_info = os.environ.get('BANK_INFO')
-    payment_instructions = os.environ.get('PAYMENT_INSTRUCTIONS')
-    payment_gateway_url = os.environ.get('PAYMENT_GATEWAY_URL')
-    # defaults for SCB QR variables
-    scb_qr_image = None
-    scb_ref1 = None
-    scb_ref2 = None
-
-    # If SCB gateway configured and user chose PromptPay, try to generate QR code (lazy import)
-    try:
-        if os.environ.get('PAYMENT_GATEWAY') == 'scb' and payment_method == 'promptpay':
-            try:
-                from app.scb_payment_service.views import generate_qrcode
-                # Use invoice number as ref1 and event id as ref2
-                invoice = getattr(payment, 'invoice', None)
-                if not invoice and payment.invoice_id:
-                    from .models import ContinuingInvoice as _CI
-                    invoice = _CI.query.get(payment.invoice_id)
-                scb_ref1 = invoice.invoice_no if invoice and invoice.invoice_no else (f"INV{(invoice.id if invoice else payment.id):06d}")
-                scb_ref2 = f"{event.id}"
-                # service/ref3: prefer env setting but default to MUMTEDU
-                ref3 = os.environ.get('SCB_REF3') or 'MUMTEDU'
-                # expiry: now (Asia/Bangkok) + 1 hour
-                expire_dt = arrow.utcnow().to('Asia/Bangkok').shift(hours=+1).format('YYYY-MM-DD HH:mm:ss')
-                # amount may be Decimal or string; ensure numeric-friendly
-                amount = float(payment.payment_amount) if payment.payment_amount is not None else 0.0
-                data = generate_qrcode(amount, ref1=scb_ref1, ref2=scb_ref2, ref3=ref3, expired_at=expire_dt)
-                if isinstance(data, dict) and data.get('qrImage'):
-                    scb_qr_image = data.get('qrImage')
-            except Exception:
-                # don't fail the whole page if SCB call fails; leave scb_qr_image None
-                scb_qr_image = None
-    except Exception:
-        scb_qr_image = None
-    payment_gateway = os.environ.get('PAYMENT_GATEWAY', '').lower()
-
-    # If using SCB gateway and promptpay selected, attempt to generate QR via SCB
-    scb_qr_image = None
-    scb_ref1 = None
-    scb_ref2 = None
-    if payment_method == 'promptpay' and payment_gateway == 'scb':
-        try:
-            # Build refs so SCB can return them in webhook (ref2 maps to our payment id)
-            scb_ref1 = f"EV{event.id}"
-            scb_ref2 = f"RP{payment.id}"
-            # Lazy import to avoid circular imports at module load
-            from app.scb_payment_service.views import generate_qrcode
-
-            data = generate_qrcode(amount=payment.payment_amount, ref1=scb_ref1, ref2=scb_ref2, ref3=os.environ.get('SCB_REF3') or os.environ.get('REF3'))
-            if isinstance(data, dict) and 'qrImage' in data:
-                scb_qr_image = data.get('qrImage')
-        except Exception as e:
-            print(f"[PAYMENT_PROCESS] SCB QR generation error: {e}")
-    
-    return render_template('continueing_edu/payment_page.html',
-                         payment=payment,
-                         event=event,
-                         member=member,
-                         texts=texts,
-                         current_lang=lang,
-                         payment_qr_url=payment_qr_url,
-                         promptpay_id=promptpay_id,
-                         bank_info=bank_info,
-                         payment_instructions=payment_instructions,
-                         payment_gateway_url=payment_gateway_url,
-                         logged_in_user=member)
 
 
 @ce_bp.route('/payment/<int:payment_id>/process')
@@ -1867,39 +2121,75 @@ def payment_process(payment_id):
     
     # Get event details
     event = payment.event_entity
-    
-    # Get payment configuration from environment
-    payment_qr_url = os.environ.get('PAYMENT_QR_URL')
-    promptpay_id = os.environ.get('PROMPTPAY_ID')
-    bank_info = os.environ.get('BANK_INFO')
-    payment_instructions = os.environ.get('PAYMENT_INSTRUCTIONS')
-    payment_gateway_url = os.environ.get('PAYMENT_GATEWAY_URL')
-    # Prepare SCB QR defaults so template variables always exist
+
+ 
+    # SCB gateway configuration (if enabled)
+    BILLERID = os.environ.get('BILLERID')
+    REF3 = os.environ.get('SCB_REF3')
+    SCB_INQUIRY_LAST_AT = os.environ.get('QR30_INQUIRY')
+
+    # payment_gateway = (os.environ.get('PAYMENT_GATEWAY') or '').lower()
+   
+    # Fallback QR generator (non-SCB): should be an IMAGE/QR generator URL
+    payment_qr_url = os.environ.get('QR30_INQUIRY')
+
+    # Prepare defaults so template variables always exist
     scb_qr_image = None
     scb_ref1 = None
     scb_ref2 = None
+    qr_error = None
 
-    # Attempt SCB QR generation when configured and PromptPay selected
-    try:
-        if os.environ.get('PAYMENT_GATEWAY') == 'scb' and payment_method == 'promptpay':
-            try:
-                from app.scb_payment_service.views import generate_qrcode
-                invoice = getattr(payment, 'invoice', None)
-                if not invoice and payment.invoice_id:
-                    from .models import ContinuingInvoice as _CI
-                    invoice = _CI.query.get(payment.invoice_id)
-                scb_ref1 = invoice.invoice_no if invoice and invoice.invoice_no else (f"INV{(invoice.id if invoice else payment.id):06d}")
-                scb_ref2 = f"{event.id}"
-                ref3 = os.environ.get('SCB_REF3') or 'MUMTEDU'
-                expire_dt = arrow.utcnow().to('Asia/Bangkok').shift(hours=+1).format('YYYY-MM-DD HH:mm:ss')
-                amount = float(payment.payment_amount) if payment.payment_amount is not None else 0.0
-                data = generate_qrcode(amount, ref1=scb_ref1, ref2=scb_ref2, ref3=ref3, expired_at=expire_dt)
-                if isinstance(data, dict) and data.get('qrImage'):
-                    scb_qr_image = data.get('qrImage')
-            except Exception:
-                scb_qr_image = None
-    except Exception:
-        scb_qr_image = None
+    def _ensure_scb_record(ref1: str, ref2: str, amount: float):
+        try:
+            from app.scb_payment_service.models import ScbPaymentRecord
+            record = ScbPaymentRecord.query.filter_by(bill_payment_ref1=ref1, bill_payment_ref2=ref2).first()
+            if not record:
+                record = ScbPaymentRecord(
+                    bill_payment_ref1=ref1,
+                    bill_payment_ref2=ref2,
+                    bill_payment_ref3=(REF3 or os.environ.get('SCB_REF3') or os.environ.get('REF3')),
+                    service='Training',
+                    customer1=str(member.id),
+                    customer2=str(payment.id),
+                    amount=amount,
+                )
+                db.session.add(record)
+                db.session.commit()
+            # allow to payment
+
+            else:
+                if record.transcation_date_time:
+                     flash(f'คุณได้ชำระเงินแล้ว' if lang == 'th' 
+                      else f'[PAYMENT_PROCESS] SCB Payment Record already paid: Ref1={ref1}, Ref2={ref2}, Amount={record.amount}, Transaction DateTime={record.transcation_date_time}', 
+                      'info')    
+           
+        except Exception as e:
+            print(f"[PAYMENT_PROCESS] Failed to ensure ScbPaymentRecord: {e}")
+
+    # Attempt SCB QR generation only when SCB gateway is enabled
+    if payment_method == 'promptpay':
+        try:
+            from app.scb_payment_service.views import generate_qrcode
+            invoice = getattr(payment, 'invoice', None)
+            if not invoice and payment.invoice_id:
+                from .models import ContinuingInvoice as _CI
+                invoice = _CI.query.get(payment.invoice_id)
+            scb_ref1 = invoice.invoice_no if invoice and invoice.invoice_no else (f"INV{(invoice.id if invoice else payment.id):06d}")
+            scb_ref2 = "TRAINING"
+            ref3 = REF3 or 'MUMTEDU'
+            expire_dt = arrow.utcnow().to('Asia/Bangkok').shift(hours=+1).format('YYYY-MM-DD HH:mm:ss')
+            amount = float(payment.payment_amount) if payment.payment_amount is not None else 0.0
+
+            _ensure_scb_record(scb_ref1, scb_ref2, amount)
+
+            qrcode_data = generate_qrcode(amount, ref1=scb_ref1, ref2=scb_ref2, ref3=ref3, expired_at=expire_dt)
+            print(f"[PAYMENT_PROCESS] SCB QR Return Data: {qrcode_data}")
+            if qrcode_data:
+                scb_qr_image = qrcode_data['qrImage']
+            else:
+                qr_error = f"SCB QR API error: {qrcode_data}"
+        except Exception as e:
+            qr_error = f"SCB QR generation exception: {e}"
 
     return render_template('continueing_edu/payment_process.html',
                          payment=payment,
@@ -1909,14 +2199,145 @@ def payment_process(payment_id):
                          texts=texts,
                          current_lang=lang,
                          payment_qr_url=payment_qr_url,
-                         promptpay_id=promptpay_id,
-                         bank_info=bank_info,
-                         payment_instructions=payment_instructions,
-                         payment_gateway_url=payment_gateway_url,
+                         promptpay_id=BILLERID,
+                       
                          scb_qr_image=scb_qr_image,
                          scb_ref1=scb_ref1,
                          scb_ref2=scb_ref2,
+                         qr_error=qr_error,
                          logged_in_user=member)
+
+
+_SCB_INQUIRY_LAST_AT = {}
+
+
+
+def _is_paid_status(payment: 'RegisterPayment') -> bool:
+    st = getattr(payment, 'payment_status_ref', None)
+    code = (getattr(st, 'register_payment_status_code', None) or getattr(st, 'name_en', None) or '').lower()
+    return code in ('paid', 'approved')
+
+
+@ce_bp.route('/payment/<int:payment_id>/status', methods=['GET'])
+def payment_status_api(payment_id):
+    """Return current payment status for frontend polling.
+
+    If SCB gateway is enabled and webhook hasn't arrived, may perform an inquiry after a threshold.
+    """
+    member = get_current_user()
+    if not member:
+        return jsonify({'message': 'login required'}), 403
+
+    payment = RegisterPayment.query.get_or_404(payment_id)
+    if payment.member_id != member.id:
+        return jsonify({'message': 'not allowed'}), 403
+
+    payment_gateway = (os.environ.get('PAYMENT_GATEWAY') or '').lower()
+    allow_inquiry = request.args.get('allow_inquiry', '1') in ('1', 'true', 'yes')
+    inquiry_after = int(os.environ.get('PAYMENT_INQUIRY_AFTER_SECONDS') or 45)
+    inquiry_min_interval = int(os.environ.get('PAYMENT_INQUIRY_MIN_INTERVAL_SECONDS') or 15)
+
+    def _maybe_inquire_scb():
+        if not allow_inquiry or payment_gateway != 'scb':
+            return
+        if _is_paid_status(payment):
+            return
+        payment_dt = getattr(payment, 'payment_date', None)
+        if not payment_dt:
+            return
+        age_seconds = (datetime.now(payment_dt.tzinfo) - payment_dt).total_seconds() if getattr(payment_dt, 'tzinfo', None) else (datetime.now() - payment_dt).total_seconds()
+        if age_seconds < inquiry_after:
+            return
+        last_at = _SCB_INQUIRY_LAST_AT.get(payment.id)
+        if last_at and (datetime.now() - last_at).total_seconds() < inquiry_min_interval:
+            return
+
+        # Determine refs consistent with QR generation
+        invoice = getattr(payment, 'invoice', None)
+        if not invoice and payment.invoice_id:
+            from .models import ContinuingInvoice as _CI
+            invoice = _CI.query.get(payment.invoice_id)
+        ref1 = invoice.invoice_no if invoice and invoice.invoice_no else (f"INV{(invoice.id if invoice else payment.id):06d}")
+        ref2 = f"RP{payment.id}"
+
+        try:
+            from app.scb_payment_service.models import ScbPaymentRecord
+            rec = ScbPaymentRecord.query.filter_by(bill_payment_ref1=ref1, bill_payment_ref2=ref2).first()
+            if not rec:
+                rec = ScbPaymentRecord(bill_payment_ref1=ref1, bill_payment_ref2=ref2, service='continuing_edu', amount=float(payment.payment_amount or 0.0))
+                db.session.add(rec)
+                db.session.commit()
+
+            # Call SCB inquiry API
+            auth_url = os.environ.get('SCB_AUTH_URL')
+            inquiry_url = os.environ.get('QR30_INQUIRY')
+            app_key = os.environ.get('SCB_APP_KEY')
+            app_secret = os.environ.get('SCB_APP_SECRET')
+            biller_id = os.environ.get('BILLERID')
+            if not (auth_url and inquiry_url and app_key and app_secret and biller_id):
+                return
+
+            import uuid
+            import requests
+
+            headers = {
+                'Content-Type': 'application/json',
+                'requestUId': str(uuid.uuid4()),
+                'resourceOwnerId': app_key,
+            }
+            token_resp = requests.post(auth_url, headers=headers, json={'applicationKey': app_key, 'applicationSecret': app_secret}, timeout=15)
+            token_resp.raise_for_status()
+            access_token = token_resp.json().get('data', {}).get('accessToken')
+            if not access_token:
+                return
+            headers['authorization'] = f'Bearer {access_token}'
+
+            tx_date = (getattr(rec, 'created_datetime', None) or payment_dt).strftime('%Y-%m-%d')
+            resp = requests.get(
+                inquiry_url,
+                params={'billerId': biller_id, 'reference1': ref1, 'transactionDate': tx_date, 'eventCode': '00300100'},
+                headers=headers,
+                timeout=15,
+            )
+            data = resp.json() if resp is not None else {}
+            payload = data.get('data') if isinstance(data, dict) else None
+            if payload:
+                # Best-effort: set a transaction_id if inquiry returns one
+                txn_id = None
+                if isinstance(payload, dict):
+                    txn_id = payload.get('transactionId') or payload.get('transaction_id') or payload.get('txnId')
+                    trans_date = payload.get('transDate')
+                    trans_time = payload.get('transTime')
+                    if not txn_id and trans_date and trans_time:
+                        txn_id = f"INQ-{ref2}-{trans_date}{trans_time}"
+
+                if txn_id and not payment.transaction_id:
+                    payment.transaction_id = txn_id
+                if not _is_paid_status(payment):
+                    _mark_payment_paid_and_notify(payment.id, lang=request.args.get('lang', 'en'))
+        except Exception as e:
+            print(f"[PAYMENT_STATUS] SCB inquiry failed: {e}")
+        finally:
+            _SCB_INQUIRY_LAST_AT[payment.id] = datetime.now()
+
+    _maybe_inquire_scb()
+    # reload status after inquiry
+    payment = RegisterPayment.query.get(payment_id) or payment
+
+    st = getattr(payment, 'payment_status_ref', None)
+    status_code = (getattr(st, 'register_payment_status_code', None) or getattr(st, 'name_en', None) or '').lower()
+    status_name = getattr(st, 'name_en', None) or getattr(st, 'name_th', None) or status_code or 'unknown'
+    is_paid = _is_paid_status(payment)
+
+    return jsonify({
+        'payment_id': payment.id,
+        'status_code': status_code,
+        'status_name': status_name,
+        'is_paid': is_paid,
+        'transaction_id': payment.transaction_id,
+        'paid_at': payment.payment_date.isoformat() if (is_paid and getattr(payment, 'payment_date', None)) else None,
+        'next_url': url_for('continuing_edu.my_payments', lang=request.args.get('lang', 'en')) if is_paid else None,
+    })
 
 
 @ce_bp.route('/payment/<int:payment_id>/upload-slip', methods=['POST'])
@@ -2036,6 +2457,8 @@ def _mark_payment_paid_and_notify(payment_id, lang='en'):
     """Helper to mark a RegisterPayment as paid and send notification email.
     Intended for internal use by mock webhook and admin test page.
     """
+    """Mark payment as paid and send notification email to member."""
+
     texts = tr.get(lang, tr['en'])
     payment = RegisterPayment.query.get(payment_id)
     if not payment:
@@ -2046,7 +2469,7 @@ def _mark_payment_paid_and_notify(payment_id, lang='en'):
     ).first()
     if paid_status:
         payment.payment_status_id = paid_status.id
-    payment.paid_at = datetime.now()
+    payment.payment_date = datetime.now()
     db.session.add(payment)
     db.session.commit()
 
@@ -2087,41 +2510,6 @@ def _mark_payment_paid_and_notify(payment_id, lang='en'):
                 pass
         mail.send(msg)
 
-
-@ce_bp.route('/payment/<int:payment_id>/generate-scb-qrcode', methods=['POST'])
-def generate_scb_qrcode(payment_id):
-    """Generate SCB PromptPay QR for an existing RegisterPayment (dev helper).
-    Returns JSON: {qrImage: <base64>, ref1:..., ref2:...}
-    """
-    lang = request.args.get('lang', 'en')
-    member = get_current_user()
-    if not member:
-        return jsonify({'message': 'login required'}), 403
-    payment = RegisterPayment.query.get_or_404(payment_id)
-    if payment.member_id != member.id:
-        return jsonify({'message': 'not allowed'}), 403
-
-    if os.environ.get('PAYMENT_GATEWAY') != 'scb':
-        return jsonify({'message': 'scb gateway not enabled'}), 400
-
-    try:
-        from app.scb_payment_service.views import generate_qrcode
-        # Use invoice.invoice_no as ref1 and event id as ref2
-        invoice = getattr(payment, 'invoice', None)
-        if not invoice and payment.invoice_id:
-            from .models import ContinuingInvoice as _CI
-            invoice = _CI.query.get(payment.invoice_id)
-        scb_ref1 = invoice.invoice_no if invoice and invoice.invoice_no else (f"INV{(invoice.id if invoice else payment.id):06d}")
-        scb_ref2 = f"{payment.event_entity_id or getattr(payment.event_entity, 'id', 0)}"
-        ref3 = os.environ.get('SCB_REF3') or 'MUMTEDU'
-        expire_dt = arrow.utcnow().to('Asia/Bangkok').shift(hours=+1).format('YYYY-MM-DD HH:mm:ss')
-        amount = float(payment.payment_amount) if payment.payment_amount is not None else 0.0
-        data = generate_qrcode(amount, ref1=scb_ref1, ref2=scb_ref2, ref3=ref3, expired_at=expire_dt)
-        if isinstance(data, dict) and data.get('qrImage'):
-            return jsonify({'qrImage': data.get('qrImage'), 'ref1': scb_ref1, 'ref2': scb_ref2})
-        return jsonify({'error': data}), 500
-    except Exception as e:
-        return jsonify({'message': str(e)}), 500
 
 
 @ce_bp.route('/admin/test-payment', methods=['GET', 'POST'])
@@ -2216,7 +2604,7 @@ def process_credit_card(payment_id):
         
         if paid_status:
             payment.payment_status_id = paid_status.id
-            payment.paid_at = datetime.now()
+            payment.payment_date = datetime.now()
             db.session.commit()
             # Send payment success email with invoice/receipt
             try:
@@ -2348,6 +2736,7 @@ def member_dashboard():
 
     return render_template(
         'continueing_edu/dashboard.html',
+        logged_in_user=user,
         texts=texts,
         current_lang=lang,
         in_progress_regs=in_progress_regs,
@@ -2385,8 +2774,72 @@ def my_payments():
         return redirect(url_for('continuing_edu.login', lang=lang))
     pays = RegisterPayment.query.filter_by(member_id=user.id).order_by(RegisterPayment.id.desc()).all()
     payment_gateway_url = os.environ.get('PAYMENT_GATEWAY_URL')
-    return render_template('continueing_edu/my_payments.html', payments=pays, texts=texts, current_lang=lang,
-                           payment_gateway_url=payment_gateway_url)
+    return render_template(
+        'continueing_edu/my_payments.html',
+        payments=pays,
+        texts=texts,
+        current_lang=lang,
+        payment_gateway_url=payment_gateway_url,
+        member=user,
+        logged_in_user=user,
+    )
+
+
+@ce_bp.route('/payment/<int:payment_id>/cancel', methods=['POST'])
+def cancel_payment(payment_id):
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+
+    pay = RegisterPayment.query.get_or_404(payment_id)
+    if pay.member_id != user.id:
+        flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
+        return redirect(url_for('continuing_edu.my_payments', lang=lang))
+
+    st = getattr(pay, 'payment_status_ref', None)
+    status_code = (getattr(st, 'register_payment_status_code', None) or getattr(st, 'name_en', None) or '').lower()
+    if status_code == 'paid':
+        flash(texts.get('cannot_cancel_paid', 'Paid payments cannot be cancelled.'), 'warning')
+        return redirect(url_for('continuing_edu.my_payments', lang=lang))
+
+    cancelled = RegisterPaymentStatus.query.filter(
+        (RegisterPaymentStatus.register_payment_status_code.in_(['cancelled', 'canceled'])) |
+        (RegisterPaymentStatus.name_en.in_(['cancelled', 'canceled']))
+    ).first()
+    if not cancelled:
+        flash(texts.get('cancel_status_missing', 'Cancel status not configured.'), 'danger')
+        return redirect(url_for('continuing_edu.my_payments', lang=lang))
+
+    try:
+        # cancel invoice (if exists)
+        inv = None
+        if getattr(pay, 'invoice', None) is not None:
+            inv = pay.invoice
+        elif getattr(pay, 'invoice_id', None):
+            inv = ContinuingInvoice.query.get(pay.invoice_id)
+        if inv is not None:
+            inv.status = 'cancelled'
+            db.session.add(inv)
+
+        # cancel payment
+        pay.payment_status_id = cancelled.id
+        db.session.add(pay)
+
+        # clear registration record for this event
+        reg = MemberRegistration.query.filter_by(member_id=user.id, event_entity_id=pay.event_entity_id).first()
+        if reg:
+            db.session.delete(reg)
+
+        db.session.commit()
+        flash(texts.get('payment_cancelled', 'Payment cancelled.'), 'success')
+    except Exception:
+        db.session.rollback()
+        flash(texts.get('payment_cancel_failed', 'Failed to cancel payment.'), 'danger')
+
+    return redirect(url_for('continuing_edu.my_payments', lang=lang))
 
 
 @ce_bp.route('/payment/<int:payment_id>/submit_proof', methods=['POST'])
@@ -2492,6 +2945,77 @@ def view_invoice(payment_id):
     if pay.member_id != user.id:
         flash(texts.get('not_allowed', 'You are not allowed to view this invoice.'), 'danger')
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
+    def _build_invoice_context(payment):
+        invoice = getattr(payment, 'invoice', None)
+        invoice_no = None
+        if invoice and getattr(invoice, 'invoice_no', None):
+            invoice_no = invoice.invoice_no
+        else:
+            fallback_id = (invoice.id if invoice else payment.id)
+            invoice_no = f"INV{int(fallback_id):06d}"
+
+        invoice_date = None
+        if invoice and getattr(invoice, 'created_at', None):
+            invoice_date = invoice.created_at
+        elif getattr(payment, 'payment_date', None):
+            invoice_date = payment.payment_date
+        else:
+            invoice_date = datetime.now(timezone.utc)
+
+        due_days_raw = os.getenv('INVOICE_DUE_DAYS')
+        try:
+            due_days = int(due_days_raw) if due_days_raw is not None and due_days_raw != '' else 0
+        except Exception:
+            due_days = 0
+        due_date = invoice_date + timedelta(days=due_days)
+
+        vat_rate_raw = os.getenv('INVOICE_VAT_RATE', os.getenv('VAT_RATE', '0'))
+        try:
+            vat_rate = float(vat_rate_raw) if vat_rate_raw not in (None, '') else 0.0
+        except Exception:
+            vat_rate = 0.0
+        vat_included = (os.getenv('INVOICE_VAT_INCLUDED', 'false').strip().lower() in ('1', 'true', 'yes', 'y'))
+
+        amount_total = float(getattr(payment, 'payment_amount', 0) or 0)
+        if vat_rate > 0:
+            if vat_included:
+                subtotal = amount_total / (1.0 + vat_rate)
+                vat_amount = amount_total - subtotal
+                total = amount_total
+            else:
+                subtotal = amount_total
+                vat_amount = subtotal * vat_rate
+                total = subtotal + vat_amount
+        else:
+            subtotal = amount_total
+            vat_amount = 0.0
+            total = amount_total
+
+        invoice_meta = {
+            'invoice_no': invoice_no,
+            'invoice_date': invoice_date,
+            'due_date': due_date,
+            'due_days': due_days,
+            'vat_rate': vat_rate,
+            'vat_included': vat_included,
+            'subtotal': round(subtotal, 2),
+            'vat_amount': round(vat_amount, 2),
+            'total': round(total, 2),
+        }
+        seller = {
+            'name_th': os.getenv('INVOICE_SELLER_NAME_TH', ''),
+            'name_en': os.getenv('INVOICE_SELLER_NAME_EN', ''),
+            'address_th': os.getenv('INVOICE_SELLER_ADDRESS_TH', ''),
+            'address_en': os.getenv('INVOICE_SELLER_ADDRESS_EN', ''),
+            'tax_id': os.getenv('INVOICE_SELLER_TAX_ID', ''),
+            'branch': os.getenv('INVOICE_SELLER_BRANCH', ''),
+            'phone': os.getenv('INVOICE_SELLER_PHONE', ''),
+            'email': os.getenv('INVOICE_SELLER_EMAIL', ''),
+        }
+        return invoice_meta, seller
+
+    invoice_meta, seller = _build_invoice_context(pay)
+
     payment_qr_url = os.environ.get('PAYMENT_QR_URL')
     promptpay_id = os.environ.get('PROMPTPAY_ID')
     bank_info = os.environ.get('BANK_INFO')
@@ -2500,7 +3024,7 @@ def view_invoice(payment_id):
     return render_template('continueing_edu/invoice.html', payment=pay, member=user, texts=texts, current_lang=lang,
                            payment_qr_url=payment_qr_url, promptpay_id=promptpay_id, bank_info=bank_info,
                            payment_instructions=payment_instructions, payment_gateway_url=payment_gateway_url,
-                           pdf_available=(HTML is not None))
+                           pdf_available=(HTML is not None), invoice_meta=invoice_meta, seller=seller)
 
 
 @ce_bp.route('/payment/<int:payment_id>/invoice.pdf')
@@ -2519,6 +3043,77 @@ def download_invoice_pdf(payment_id):
     if HTML is None:
         flash(texts.get('pdf_unavailable', 'PDF generation is currently unavailable.'), 'warning')
         return redirect(url_for('continuing_edu.view_invoice', payment_id=payment_id, lang=lang))
+    def _build_invoice_context(payment):
+        invoice = getattr(payment, 'invoice', None)
+        invoice_no = None
+        if invoice and getattr(invoice, 'invoice_no', None):
+            invoice_no = invoice.invoice_no
+        else:
+            fallback_id = (invoice.id if invoice else payment.id)
+            invoice_no = f"INV{int(fallback_id):06d}"
+
+        invoice_date = None
+        if invoice and getattr(invoice, 'created_at', None):
+            invoice_date = invoice.created_at
+        elif getattr(payment, 'payment_date', None):
+            invoice_date = payment.payment_date
+        else:
+            invoice_date = datetime.now(timezone.utc)
+
+        due_days_raw = os.getenv('INVOICE_DUE_DAYS')
+        try:
+            due_days = int(due_days_raw) if due_days_raw is not None and due_days_raw != '' else 0
+        except Exception:
+            due_days = 0
+        due_date = invoice_date + timedelta(days=due_days)
+
+        vat_rate_raw = os.getenv('INVOICE_VAT_RATE', os.getenv('VAT_RATE', '0'))
+        try:
+            vat_rate = float(vat_rate_raw) if vat_rate_raw not in (None, '') else 0.0
+        except Exception:
+            vat_rate = 0.0
+        vat_included = (os.getenv('INVOICE_VAT_INCLUDED', 'false').strip().lower() in ('1', 'true', 'yes', 'y'))
+
+        amount_total = float(getattr(payment, 'payment_amount', 0) or 0)
+        if vat_rate > 0:
+            if vat_included:
+                subtotal = amount_total / (1.0 + vat_rate)
+                vat_amount = amount_total - subtotal
+                total = amount_total
+            else:
+                subtotal = amount_total
+                vat_amount = subtotal * vat_rate
+                total = subtotal + vat_amount
+        else:
+            subtotal = amount_total
+            vat_amount = 0.0
+            total = amount_total
+
+        invoice_meta = {
+            'invoice_no': invoice_no,
+            'invoice_date': invoice_date,
+            'due_date': due_date,
+            'due_days': due_days,
+            'vat_rate': vat_rate,
+            'vat_included': vat_included,
+            'subtotal': round(subtotal, 2),
+            'vat_amount': round(vat_amount, 2),
+            'total': round(total, 2),
+        }
+        seller = {
+            'name_th': os.getenv('INVOICE_SELLER_NAME_TH', ''),
+            'name_en': os.getenv('INVOICE_SELLER_NAME_EN', ''),
+            'address_th': os.getenv('INVOICE_SELLER_ADDRESS_TH', ''),
+            'address_en': os.getenv('INVOICE_SELLER_ADDRESS_EN', ''),
+            'tax_id': os.getenv('INVOICE_SELLER_TAX_ID', ''),
+            'branch': os.getenv('INVOICE_SELLER_BRANCH', ''),
+            'phone': os.getenv('INVOICE_SELLER_PHONE', ''),
+            'email': os.getenv('INVOICE_SELLER_EMAIL', ''),
+        }
+        return invoice_meta, seller
+
+    invoice_meta, seller = _build_invoice_context(pay)
+
     payment_qr_url = os.environ.get('PAYMENT_QR_URL')
     promptpay_id = os.environ.get('PROMPTPAY_ID')
     bank_info = os.environ.get('BANK_INFO')
@@ -2535,11 +3130,13 @@ def download_invoice_pdf(payment_id):
         payment_instructions=payment_instructions,
         payment_gateway_url=os.environ.get('PAYMENT_GATEWAY_URL'),
         pdf_available=True,
+        invoice_meta=invoice_meta,
+        seller=seller,
     )
     pdf_bytes = HTML(string=html, base_url=request.host_url).write_pdf()
     resp = make_response(pdf_bytes)
     resp.headers['Content-Type'] = 'application/pdf'
-    resp.headers['Content-Disposition'] = f'attachment; filename="invoice_INV-{pay.id}.pdf"'
+    resp.headers['Content-Disposition'] = f'attachment; filename="invoice_{invoice_meta.get("invoice_no", "INV%06d" % pay.id)}.pdf"'
     return resp
 
 

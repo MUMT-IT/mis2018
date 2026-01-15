@@ -601,7 +601,7 @@
     <div class="container" style="max-width: 900px;">
         <!-- Google Sign-in Section -->
         <div class="modern-card animate-in">
-            <div class="google-signin-section">
+            <!-- <div class="google-signin-section">
                 <div class="google-signin-title">
                     <i class="fab fa-google"></i>
                     {{ texts.get('google_signin_title', 'ลงทะเบียนด้วย Google' if
@@ -625,7 +625,7 @@
             <div class="divider">
                 <span>{{ texts.get('or_text', 'หรือ' if current_lang == 'th' else 'OR')
                     }}</span>
-            </div>
+            </div> -->
 
             <!-- Manual Registration Form -->
             <form method="POST" action="{{ url_for('continuing_edu.register', lang=current_lang) }}">

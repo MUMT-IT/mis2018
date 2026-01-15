@@ -1,203 +1,39 @@
-# GitHub Copilot Instructions for MIS2018
+## GitHub Copilot instructions (MIS2018)
 
-## Project Overview
-**MIS2018** is a comprehensive Flask-based Management Information System for Mahidol University Faculty of Medical Technology. It's a **multi-tenant, modular monolith** with 30+ distinct service modules handling everything from staff management and KPIs to procurement, academic services, and continuing education.
+### Big picture
+- Flask “modular monolith”: each folder under `app/` is a service-style module (e.g. `app/staff/`, `app/procurement/`, `app/continuing_edu/`) with its own `models.py`/`views.py`/`forms.py` patterns.
+- Main entrypoint is `app/main.py`: creates the app (`create_app()`), initializes extensions (SQLAlchemy/Migrate/Login/JWT/Admin/CSRF/etc), then registers many blueprints and Flask-Admin views.
 
-## Architecture & Structure
+### Local run / Docker
+- Docker is the intended dev workflow: `docker-compose.yml` runs `web` + Postgres (`pg`) and exposes Flask at `http://localhost:3330`.
+- `docker-compose.yml` references `web_variables.env` but it is NOT committed — you must create it locally with required env vars.
+- Production uses `Procfile`: `web` runs `gunicorn app.main:app`; `clock` runs `python app/jobs.py` (APScheduler hitting `/linebot/...` endpoints).
 
-### Modular Blueprint System
-- **Main app**: `app/main.py` - central Flask app factory and blueprint registration (1877 lines)
-- **Modules**: Each directory under `app/` is an independent service module (e.g., `staff/`, `procurement/`, `continuing_edu/`, `alumni/`)
-- **Blueprint pattern**: Each module has `__init__.py` (blueprint definition), `views.py` (routes), `models.py` (SQLAlchemy models), `forms.py` (Flask-WTF forms)
-- **URL structure**: All modules registered with prefix, e.g., `/staff/*`, `/procurement/*`, `/continuing_edu/*`
-- **Critical**: Blueprints are registered AFTER models are imported in `app/main.py` to ensure Flask-Admin views work correctly
+### Config gotchas (important for agents)
+- `create_app()` requires `DATABASE_URL` and immediately does `os.environ.get('DATABASE_URL').replace('://', 'ql://', 1)`; if `DATABASE_URL` is missing, importing `app.main` will crash.
+- `app/main.py` fetches Google service-account credentials at import time: `json_keyfile = requests.get(os.environ.get('JSON_KEYFILE')).json()`; set `JSON_KEYFILE` (URL returning JSON) before imports.
 
-Example from `app/main.py`:
-```python
-from app.staff import staffbp as staff_blueprint
-app.register_blueprint(staff_blueprint, url_prefix='/staff')
-```
+### Data layer & migrations
+- ORM is Flask-SQLAlchemy; shared/core models live in `app/models.py` (e.g. `Org`, `Strategy*`, address tables).
+- Alembic/Flask-Migrate is configured in `migrations/`; typical flow is `FLASK_APP=app.main:app flask db upgrade/migrate`.
+- There are many one-off import/maintenance commands in the `dbutils` CLI group inside `app/main.py` (e.g. `flask dbutils import-leave-data`).
 
-### Database Architecture
-- **ORM**: SQLAlchemy with Flask-SQLAlchemy extension
-- **Migrations**: Alembic via Flask-Migrate (commands: `flask db migrate`, `flask db upgrade`)
-- **Database**: PostgreSQL in production (see `docker-compose.yml`), configured via `DATABASE_URL` env var
-- **CRITICAL URL FIX**: Heroku-style `postgres://` URLs must be converted to `postgresql://` for SQLAlchemy:
-```python
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL').replace('://', 'ql://', 1)
-```
-- **Shared models**: Core models (`Org`, `Strategy`, `StrategyTactic`, `StrategyTheme`, `StrategyActivity`) live in `app/models.py` and are shared across modules
-- **Hierarchical org structure**: `Org` model uses self-referential foreign key (`parent_id`) for organizational hierarchy
+### Auth/permissions conventions
+- Flask-Login `user_loader` is blueprint-aware: `academic_services` loads a different account model than the default `StaffAccount` (see `app/main.py`).
+- Role/permission checks are via Flask-Principal; `admin_permission` lives in `app/roles.py` and gates `/admin` (see `MyAdminIndexView` in `app/main.py`).
 
-### Authentication & Authorization
-- **Flask-Login**: Main authentication system using `StaffAccount` model
-- **Multiple login contexts**: Blueprint-aware authentication - different blueprints use different user models
-- **User loader**: Context-aware user loading in `app/main.py`:
-```python
-@login.user_loader
-def load_user(user_id):
-    if request.blueprint == 'academic_services':
-        return ServiceCustomerAccount.query.get(int(user_id))
-    else:
-        return StaffAccount.query.get(int(user_id))
-```
-- **Login view mapping**: Different blueprints have different login pages via `login.blueprint_login_views`
-- **Flask-Principal**: Role-based permissions defined in `app/roles.py`
-- **Permissions**: Loaded from database `Role` model at app startup with error handling for missing tables
-- **Permission checking**: Use `admin_permission.require()` decorator or `.can()` method from `app.roles`
-- **Permission types**: `admin_permission`, `hr_permission`, `finance_permission`, `procurement_permission`, `secretary_permission`, etc.
+### Frontend conventions
+- Templates use Bulma/Buefy and are rooted at `app/templates/` (base shell: `app/templates/base.html`).
+- Continuing education templates are under the misspelled folder `app/templates/continueing_edu/` (note the extra “e”).
 
-## Code Conventions
+### Integrations you’ll run into
+- Email: Flask-Mail (Gmail SMTP) configured in `create_app()`.
+- LINE: `/linebot` blueprint for notifications and login flows.
+- S3 storage: boto3 client configured from Bucketeer env vars (`BUCKETEER_*`) in `app/main.py`; continuing education uses it for certificates/materials.
+- PDFs: some flows optionally use WeasyPrint (guarded import in `app/continuing_edu/views.py`).
 
-### Python Style
-- **Standard**: PEP 8, snake_case for functions/variables, PascalCase for classes
-- **Encoding**: ALWAYS include UTF-8 encoding header for Thai language support:
-```python
-# -*- coding:utf-8 -*-
-```
-- **Imports**: Group by standard lib → third-party → local
-- **Timezone**: ALWAYS use Asia/Bangkok timezone from pytz (NEVER use naive datetimes):
-```python
-from pytz import timezone
-tz = timezone('Asia/Bangkok')
-# Localize naive datetime
-aware_dt = tz.localize(datetime.now())
-```
-
-### Models (SQLAlchemy)
-- Inherit from `db.Model` (imported from `app.main`)
-- Use `server_default=func.now()` for timestamps (NOT `default=datetime.now()`)
-- **Relationship pattern**: Use `back_populates` for bidirectional clarity OR `backref` for cascade deletion:
-```python
-org = db.relationship('Org', backref=db.backref('strategies', cascade='all, delete-orphan'))
-```
-- Add `__repr__` and `__str__` methods for debugging and Flask-Admin display
-- Association tables use `db.Table()` for many-to-many relationships
-- **Column naming**: Use descriptive names with underscore separators
-
-Example pattern:
-```python
-from app.main import db
-from sqlalchemy.sql import func
-
-class ModelName(db.Model):
-    __tablename__ = 'table_name'
-    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
-    created_at = db.Column(db.DateTime(), server_default=func.now())
-    org_id = db.Column(db.Integer(), db.ForeignKey('orgs.id'))
-    org = db.relationship('Org', backref=db.backref('related_items', cascade='all, delete-orphan'))
-    
-    def __str__(self):
-        return self.name
-```
-
-### Forms (Flask-WTF)
-- Inherit from `FlaskForm`
-- Define validators inline: `validators=[DataRequired(), Email()]`
-- CSRF protection enabled by default (configured in `app/main.py`)
-- Forms live in `forms.py` within each module
-
-### Views (Flask Blueprints)
-- Blueprint naming: `<module>bp` or `<module>_bp`, e.g., `staffbp`, `procurement_blueprint`
-- Import from module's `__init__.py`
-- Route decorators: Use explicit `methods=['GET', 'POST']`
-- **POST-Redirect-GET pattern**: Always redirect after POST to prevent double submissions
-- Flash messages: Use `flash()` for user feedback with Thai messages
-- Template context: Pass data as explicit keyword arguments to `render_template()`
-- **Large view files**: Some modules (e.g., `staff/views.py` ~4880 lines, `continuing_edu/views.py` ~2000 lines) - be cautious with large edits
-
-### Templates (Jinja2)
-- **CSS Framework**: Uses **Bulma CSS exclusively** (not Bootstrap/Tailwind)
-- Base template: `app/templates/base.html` - includes Bulma, FontAwesome, DataTables, SweetAlert2
-- Template structure: Modules have templates in `app/templates/<module_name>/`
-- **Blocks**: `{% block title %}`, `{% block content %}`, `{% block scripts %}`
-- **Icons**: FontAwesome classes: `<i class="fas fa-icon-name"></i>`
-- **Thai/English support**: Many templates support bilingual content via context variables or translations dictionaries (see `continuing_edu/__init__.py`)
-
-### Frontend Stack
-- **Bulma CSS**: Primary styling framework (v0.9.23+ with Buefy components)
-- **JavaScript libraries**: Vue.js (Buefy), jQuery, DataTables, SweetAlert2, HTMX, Shepherd.js, FullCalendar Scheduler
-- **HTMX**: Used for dynamic updates without page reload
-- **DataTables**: Standard for table listings with Bulma theme
-- **Template filters**: Custom Jinja2 filters in `app/main.py` for date formatting (`localdate`, `localdatetime`, `humanizedt`), money formatting, Thai language support
-
-## Development Workflow
-
-### Running Locally
-1. **Environment setup**: Check `web_variables.env` for required environment variables (no `.env.example` exists)
-2. **Install dependencies**: `pip install -r requirements.txt` (Python 3.9)
-3. **Database setup**: Ensure PostgreSQL running, then `flask db upgrade`
-4. **Run app**: `python app/main.py` or `gunicorn app.main:app`
-5. **Worker process**: `python app/jobs.py` for scheduled tasks (APScheduler)
-
-### Docker Development
-- **Compose file**: `docker-compose.yml` defines `web`, `pg`, `nginx`, `traefik` services
-- **Build**: `docker-compose build`
-- **Run**: `docker-compose up`
-- **Ports**: 
-  - 3330: Flask app direct (mapped to container port 5000)
-  - 3331: Nginx proxy
-  - 3332/3333: Traefik HTTP/HTTPS
-  - 3334: Traefik dashboard
-  - 3335: PostgreSQL
-- **Volumes**: Source code mounted for development (`./app:/mis2018/app`)
-- **Dockerfile**: Uses Python 3.9 base, gunicorn with 5 workers and 12 threads
-
-### Production Deployment
-- **Heroku**: Uses `Procfile` with two processes:
-  - `web`: gunicorn app.main:app --max-requests 1000
-  - `clock`: python app/jobs.py (APScheduler for notifications)
-- **Max requests**: Configured to restart workers after 1000 requests to prevent memory leaks
-
-### Database Migrations
-```bash
-# Create migration
-flask db migrate -m "Description of changes"
-
-# Review migration file in migrations/versions/
-# Apply migration
-flask db upgrade
-```
-
-### Custom CLI Commands
-- **Database utilities**: `flask dbutils <command>` - extensive custom commands in `app/main.py`
-  - `import-leave-data`, `import-procurement-data`, `calculate-leave-quota`, `update-staff-leave-info`
-  - `add-update-staff-gsheet` - Google Sheets integration
-  - Many data import/migration commands for historical data
-- **Population commands**: `flask populate-provinces`, `flask populate-districts`, `flask populate-subdistricts`
-
-### Admin Interface
-- **Flask-Admin**: Available at `/admin` (requires `admin_permission` from `app.roles`)
-- **Custom index view**: `MyAdminIndexView` checks authentication and admin permission
-- **Model registration**: Extensive model registration in `app/main.py` after blueprint imports (grouped by category)
-- **Custom model views**: Many modules define custom `ModelView` subclasses for form customization
-```python
-class MyProcurementModelView(ModelView):
-    form_excluded_columns = ('qrcode', 'records', 'repair_records')
-
-admin.add_views(MyProcurementModelView(ProcurementDetail, db.session, category='Procurement'))
-```
-
-## Integration Points
-
-### External Services
-- **Email**: Flask-Mail with SMTP Gmail (configure `MAIL_USERNAME`, `MAIL_PASSWORD`)
-  - Default sender: `('MUMT-MIS', MAIL_USERNAME)`
-  - Used for notifications, password resets, approvals
-- **LINE Bot**: LINE messaging API for notifications and authentication
-  - Config: `LINE_CLIENT_ID`, `LINE_CLIENT_SECRET`, `LINE_MESSAGE_API_ACCESS_TOKEN`, `LINE_MESSAGE_API_CLIENT_SECRET`
-  - Used in staff module for leave approval notifications
-  - Error handling: Catches `LineBotApiError` and shows warning flash message
-- **Google Drive**: PyDrive for file uploads (requires `JSON_KEYFILE` env var pointing to credentials JSON URL)
-  - Service account authentication pattern used throughout
-  - Used in staff module for document storage
-- **S3-compatible storage**: Boto3 for file storage
-  - Config: `S3_BUCKET_NAME`, AWS credentials
-  - Used in `continuing_edu` for payment proofs and certificates
-  - Pattern: `s3.put_object(Bucket=S3_BUCKET_NAME, Key=key, Body=data, ContentType=content_type)`
-- **Payment**: SCB payment service integration in `app/scb_payment_service/`
-  - JWT-based API authentication
-  - Custom user lookup callback for API clients
+### Module-specific instructions
+- Continuing education has deep, module-specific guidance in `app/continuing_edu/.github/copilot-instructions.md` — consult that when working in `app/continuing_edu/` or `app/templates/continueing_edu/`.
 
 ### Google Sheets Integration
 - Uses gspread with service account credentials

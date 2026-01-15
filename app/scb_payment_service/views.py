@@ -131,6 +131,29 @@ def confirm_payment():
     record.assign_data_from_request(data)
     db.session.add(record)
     db.session.commit()
+
+    # If this QR belongs to Continuing Education, mark the RegisterPayment as paid.
+    try:
+        import re
+        ref2 = str(data.get('billPaymentRef2') or '')
+        m = re.search(r'^RP(\d+)$', ref2)
+        if m:
+            payment_id = int(m.group(1))
+            from app.continuing_edu.models import RegisterPayment, RegisterPaymentStatus
+            pay = RegisterPayment.query.get(payment_id)
+            if pay and not pay.transaction_id:
+                pay.transaction_id = data.get('transactionId')
+            paid_status = RegisterPaymentStatus.query.filter(
+                (RegisterPaymentStatus.register_payment_status_code == 'paid') |
+                (RegisterPaymentStatus.name_en == 'paid')
+            ).first()
+            if pay and paid_status:
+                pay.payment_status_id = paid_status.id
+                pay.payment_date = datetime.datetime.now()
+                db.session.add(pay)
+                db.session.commit()
+    except Exception as e:
+        print(f"[SCB_CONFIRM_PAYMENT] Failed to mark RegisterPayment paid: {e}")
     title = 'แจ้งเตือน QR Payment บริการอัตโนมัติแจ้งเตือนการทำธุรกรรมของคุณ {}'.format(record.payer_name)
     message = 'เรียน คุณพิชญาสินี\n\n แจ้งเตือนชื่อผู้จ่าย {} ผู้รับ {} จำนวน {} ref1: {} ref2: {} transaction id: {}' \
         .format(record.payer_name, record.payee_name, record.amount, record.bill_payment_ref1, record.bill_payment_ref2, record.transaction_id)

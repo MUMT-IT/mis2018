@@ -6,12 +6,20 @@
 <section class="section">
   <div class="container">
     <h1 class="title is-3">{{ texts.my_payments_page_title }}</h1>
+    {% if member %}
+    <p class="subtitle is-6" style="margin-top:-0.5rem;">
+      {{ member.full_name_en or member.full_name_th or member.username }}
+      {% if member.email %}<span class="has-text-grey">({{ member.email }})</span>{% endif %}
+    </p>
+    {% endif %}
     {% set TH = (current_lang == 'th') %}
     {% if payments %}
     <table class="table is-fullwidth is-striped">
       <thead>
         <tr>
           <th>{{ texts.label_event }}</th>
+          <th>{{ texts.get('label_invoice_no', 'เลขที่ใบแจ้งหนี้' if TH else 'Invoice No.') }}</th>
+          <th>{{ texts.get('label_payment_method', 'ช่องทางชำระเงิน' if TH else 'Payment Method') }}</th>
           <th>{{ texts.label_amount }}</th>
           <th>{{ texts.label_status }}</th>
           <th>{{ texts.label_proof }}</th>
@@ -25,6 +33,29 @@
           {% set event_title = entity.title_th if TH and entity and entity.title_th else (entity.title_en if entity
           and entity.title_en else (entity.title_th if entity and entity.title_th else texts.label_none)) %}
           <td>{{ event_title }}</td>
+          <td>
+            {% if p.invoice and p.invoice.invoice_no %}
+            {{ p.invoice.invoice_no }}
+            {% elif p.invoice_id %}
+            INV-{{ p.id }}
+            {% else %}
+            <em>{{ texts.label_none }}</em>
+            {% endif %}
+          </td>
+          <td>
+            {% set pm = (p.payment_method or '')|lower %}
+            {% if pm == 'promptpay' %}
+            PromptPay
+            {% elif pm == 'credit_card' %}
+            {{ 'บัตรเครดิต/เดบิต' if TH else 'Credit/Debit Card' }}
+            {% elif pm == 'counter' %}
+            {{ 'ชำระที่เคาน์เตอร์' if TH else 'Counter Service' }}
+            {% elif pm %}
+            {{ pm }}
+            {% else %}
+            <em>{{ texts.label_none }}</em>
+            {% endif %}
+          </td>
           <td>{{ '%.2f'|format(p.payment_amount or 0) }} {{ texts.currency_thb }}</td>
           <td>
             {% set badge = p.payment_status_ref.css_badge if p.payment_status_ref and p.payment_status_ref.css_badge
@@ -72,6 +103,19 @@
                 href="{{ url_for('continuing_edu.view_invoice', payment_id=p.id, lang=current_lang) }}">{{
                 texts.button_view_invoice }}</a>
             </div>
+
+            {% set can_cancel = status_code in ['pending','submitted','rejected','verifying',''] %}
+            {% if can_cancel %}
+            <div class="mt-2">
+              <form method="post"
+                action="{{ url_for('continuing_edu.cancel_payment', payment_id=p.id, lang=current_lang) }}"
+                onsubmit="return confirm('{{ texts.get('confirm_cancel_payment', 'ยืนยันการยกเลิกการชำระเงิน?' if TH else 'Cancel this payment?') }}');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button class="button is-small is-danger is-light" type="submit">{{ texts.get('button_cancel', 'ยกเลิก'
+                  if TH else 'Cancel') }}</button>
+              </form>
+            </div>
+            {% endif %}
             {% if payment_gateway_url %}
             <div class="mt-2">
               <a class="button is-small is-primary" href="{{ payment_gateway_url }}" target="_blank">{{

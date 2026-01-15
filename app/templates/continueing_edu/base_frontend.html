@@ -12,6 +12,10 @@
                     rel="stylesheet">
           <!-- FontAwesome for icons -->
           <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+          <!-- Toastr CSS -->
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+          <!-- SweetAlert2 CSS -->
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
           {% block extra_css %}
           <style>
                     /* Animate On Scroll custom overrides */
@@ -519,21 +523,6 @@
                     </nav>
           </header>
 
-          {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-          <div class="container mt-4">
-                    <div class="notification is-light is-marginless-top">
-                              <button class="delete"></button>
-                              {% for category, message in messages %}
-                              <p
-                                        class="has-text-{{ 'danger' if category == 'error' else 'success' if category == 'success' else 'info' }}">
-                                        {{ message }}</p>
-                              {% endfor %}
-                    </div>
-          </div>
-          {% endif %}
-          {% endwith %}
-
           <div style="height:80px;"></div> <!-- Spacer for fixed navbar -->
 
           {% block content %}
@@ -576,12 +565,67 @@
                     </div>
           </footer>
 
+          <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+          <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
           <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
           <script>
                     AOS.init({
                               duration: 800,
                               once: true
                     });
+
+                    // Configure Toastr
+                    toastr.options = {
+                              "closeButton": true,
+                              "debug": false,
+                              "newestOnTop": true,
+                              "progressBar": true,
+                              "positionClass": "toast-top-right",
+                              "preventDuplicates": false,
+                              "onclick": null,
+                              "showDuration": "300",
+                              "hideDuration": "1000",
+                              "timeOut": "5000",
+                              "extendedTimeOut": "1000",
+                              "showEasing": "swing",
+                              "hideEasing": "linear",
+                              "showMethod": "fadeIn",
+                              "hideMethod": "fadeOut"
+                    };
+
+                    // Display flash messages as Toastr notifications or SweetAlert
+                    {% with messages = get_flashed_messages(with_categories = true) %}
+                    {% if messages %}
+                    {% for category, message in messages %}
+                    {% if category == 'login_failed_limit' %}
+                    // Show SweetAlert for login failed limit
+                    Swal.fire({
+                              icon: 'error',
+                              title: '{{ "รหัสผ่านไม่ถูกต้อง" if current_lang == "th" else "Incorrect Password" }}',
+                              html: '{{ message|safe }}',
+                              confirmButtonText: '{{ "ลืมรหัสผ่าน" if current_lang == "th" else "Forgot Password" }}',
+                              showCancelButton: true,
+                              cancelButtonText: '{{ "ปิด" if current_lang == "th" else "Close" }}',
+                              confirmButtonColor: '#667eea',
+                              cancelButtonColor: '#6c757d'
+                    }).then((result) => {
+                              if (result.isConfirmed) {
+                                        window.location.href = "{{ url_for('continuing_edu.forgot_password', lang=current_lang) }}";
+                              }
+                    });
+                    {% elif category == 'error' or category == 'danger' %}
+                    toastr.error('{{ message|safe }}');
+                    {% elif category == 'success' %}
+                    toastr.success('{{ message|safe }}');
+                    {% elif category == 'warning' %}
+                    toastr.warning('{{ message|safe }}');
+                    {% else %}
+                    toastr.info('{{ message|safe }}');
+                    {% endif %}
+                    {% endfor %}
+                    {% endif %}
+                    {% endwith %}
           </script>
 
           <script>
@@ -603,7 +647,7 @@
                                                   });
                                         });
                               }
-                              // Close flash messages
+                              // Notification delete handler (no longer needed with Toastr, but kept for compatibility)
                               (document.querySelectorAll('.notification .delete') || []).forEach(($delete) => {
                                         const $notification = $delete.parentNode;
                                         $delete.addEventListener('click', () => {

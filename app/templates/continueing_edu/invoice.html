@@ -1,106 +1,419 @@
-{% extends 'continueing_edu/base.html' %}
-{% block title %}{{ texts['invoice_title'] }}{% endblock %}
+{% extends 'continueing_edu/base_frontend.html' %}
+
+{% block title %}{{ texts.get('invoice_title', 'Invoice' if current_lang == 'en' else 'ใบแจ้งหนี้') }}{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<style>
+  .invoice-paper {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .invoice-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .invoice-row {
+    margin-bottom: 14px;
+  }
+
+  .invoice-row:last-child {
+    margin-bottom: 0;
+  }
+
+  .invoice-logo-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .invoice-title-row {
+    text-align: center;
+  }
+
+  .invoice-seller-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr minmax(280px, 360px);
+    gap: 16px;
+    align-items: start;
+  }
+
+  @media (max-width: 768px) {
+    .invoice-seller-meta-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .invoice-title {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    margin: 0;
+  }
+
+  .invoice-meta {
+    width: 100%;
+    max-width: 360px;
+    /* border: 1px solid #e5e7eb; */
+    border-radius: 10px;
+    padding: 12px;
+    background: #f9fafb;
+  }
+
+  .invoice-meta table {
+    width: 100%;
+    font-size: 0.95rem;
+  }
+
+  .invoice-meta th {
+    text-align: left;
+    font-weight: 700;
+    color: #374151;
+    padding: 4px 0;
+    width: 45%;
+  }
+
+  .invoice-meta td {
+    padding: 4px 0;
+    color: #111827;
+  }
+
+  .invoice-block {
+    /* border: 1px solid #e5e7eb; */
+    border-radius: 10px;
+    padding: 12px;
+    background: #fff;
+  }
+
+  .invoice-block__title {
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 6px;
+  }
+
+  .invoice-lines th {
+    background: #f3f4f6;
+    font-weight: 800;
+  }
+
+  .invoice-totals {
+    width: 100%;
+    max-width: 420px;
+    margin-left: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .invoice-totals table {
+    width: 100%;
+  }
+
+  .invoice-totals td,
+  .invoice-totals th {
+    padding: 10px 12px;
+  }
+
+  .invoice-totals tr:nth-child(odd) {
+    background: #fafafa;
+  }
+
+  .invoice-totals .grand {
+    background: #eef2ff;
+    font-weight: 900;
+    font-size: 1.05rem;
+  }
+
+  .signature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .signature-box {
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    padding: 10px;
+    min-height: 92px;
+  }
+
+  .signature-box__title {
+    font-weight: 800;
+    color: #334155;
+    margin-bottom: 8px;
+  }
+
+  @media print {
+    body {
+      background: #fff !important;
+    }
+
+    header,
+    footer,
+    .no-print {
+      display: none !important;
+    }
+
+    .invoice-paper {
+      border: none;
+      border-radius: 0;
+      padding: 0;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container">
-  <h1 class="title">{{ texts['invoice_title'] }}</h1>
-  <div class="box">
-    <div class="level" style="margin-bottom: 1rem;">
-      <div class="level-left">
-        <div>
-          <div class="title is-4" style="margin-bottom: 0;">{{ texts['invoice_title'] }}</div>
-          <div class="is-size-7 has-text-grey">INV-{{ payment.id }}</div>
-        </div>
+{% set TH = (current_lang == 'th') %}
+{% set inv = (invoice_meta if invoice_meta is defined and invoice_meta else {}) %}
+{% set seller_info = (seller if seller is defined and seller else {}) %}
+{% set invoice_no = (inv.get('invoice_no') if inv.get('invoice_no') else (payment.invoice.invoice_no if payment.invoice
+and payment.invoice.invoice_no else ('INV%06d' % payment.id))) %}
+{% set invoice_date = inv.get('invoice_date') %}
+{% set due_date = inv.get('due_date') %}
+{% set due_days = inv.get('due_days') %}
+{% set vat_rate = inv.get('vat_rate', 0) %}
+{% set vat_included = inv.get('vat_included', false) %}
+{% set subtotal = inv.get('subtotal', (payment.payment_amount or 0)) %}
+{% set vat_amount = inv.get('vat_amount', 0) %}
+{% set total = inv.get('total', (payment.payment_amount or 0)) %}
+
+<div class="container" style="max-width: 980px;">
+  <div class="invoice-paper">
+
+    <div class="invoice-toolbar no-print">
+      <div>
+        <a class="button" href="{{ url_for('continuing_edu.my_payments', lang=current_lang) }}">{{
+          texts.get('invoice_go_to_my_payments', 'Go to My payments') }}</a>
       </div>
-      <div class="level-right">
-        <div class="buttons">
-          {% if pdf_available %}
-          <a class="button is-link is-light" href="{{ url_for('continuing_edu.download_invoice_pdf', payment_id=payment.id, lang=current_lang) }}">{{ texts['invoice_download_pdf'] }}</a>
-          {% else %}
-          <button class="button is-link is-light" disabled>{{ texts['invoice_pdf_unavailable'] }}</button>
-          {% endif %}
+      <div class="buttons" style="margin: 0;">
+        {% if pdf_available %}
+        <a class="button is-link is-light"
+          href="{{ url_for('continuing_edu.download_invoice_pdf', payment_id=payment.id, lang=current_lang) }}">{{
+          texts.get('invoice_download_pdf', 'Download PDF') }}</a>
+        {% else %}
+        <button class="button is-link is-light" disabled>{{ texts.get('invoice_pdf_unavailable', 'PDF unavailable')
+          }}</button>
+        {% endif %}
+        <button class="button is-light" type="button" onclick="window.print()">{{ texts.get('print', 'พิมพ์' if TH
+          else 'Print') }}</button>
+      </div>
+    </div>
+
+    {# row 1: logo centered #}
+    <div class="invoice-row invoice-logo-row">
+      <img src="{{ url_for('static', filename='img/LOGO_MT-Mahidol.png') }}" alt="Logo"
+        style="height:56px; width:auto;">
+    </div>
+
+    {# row 2: invoice title #}
+    <div class="invoice-row invoice-title-row">
+      <div class="invoice-title">{{ 'INVOICE / ใบแจ้งหนี้' if TH else 'INVOICE' }}</div>
+    </div>
+
+    {# row 3: seller #}
+    <div class="invoice-row">
+      <div class="invoice-block">
+        <div class="invoice-block__title">{{ 'ผู้ขาย (Seller)' if TH else 'Seller' }}</div>
+        <div style="font-weight:800;">
+          {{ (seller_info.get('name_th') if TH else seller_info.get('name_en')) or seller_info.get('name_th') or
+          seller_info.get('name_en') or texts.get('university_name', 'Mahidol University') }}
+        </div>
+        {% set seller_addr = (seller_info.get('address_th') if TH else seller_info.get('address_en')) or
+        seller_info.get('address_th') or seller_info.get('address_en') %}
+        {% if seller_addr %}
+        <div style="white-space: pre-line; color:#374151;">{{ seller_addr }}</div>
+        {% endif %}
+        <div style="margin-top:6px; color:#374151;">
+          {% if seller_info.get('tax_id') %}<div><strong>{{ 'เลขประจำตัวผู้เสียภาษี' if TH else 'Tax ID' }}:</strong>
+            {{ seller_info.get('tax_id') }}</div>{% endif %}
+          {% if seller_info.get('branch') %}<div><strong>{{ 'สาขา' if TH else 'Branch' }}:</strong> {{
+            seller_info.get('branch') }}</div>{% endif %}
+          {% if seller_info.get('phone') %}<div><strong>{{ 'โทร' if TH else 'Phone' }}:</strong> {{
+            seller_info.get('phone') }}</div>{% endif %}
+          {% if seller_info.get('email') %}<div><strong>{{ 'อีเมล' if TH else 'Email' }}:</strong> {{
+            seller_info.get('email') }}</div>{% endif %}
         </div>
       </div>
     </div>
-    <hr>
-    <div class="columns">
-      <div class="column is-two-thirds">
-        <h2 class="title is-5">{{ texts['course_detail_title'] }}</h2>
-        <p class="mb-3">{{ payment.event_entity.title_en or payment.event_entity.title_th }}</p>
 
-        <h2 class="title is-5">{{ texts['invoice_billed_to'] }}</h2>
-        <p class="mb-3">
-          {{ member.full_name_en or member.full_name_th or member.username }}<br>
-          {{ member.email }}
-        </p>
+    {# row 4: buyer (left) + invoice-meta (right) #}
+    <div class="invoice-row invoice-seller-meta-grid">
+      <div class="invoice-block">
+        <div class="invoice-block__title">{{ 'ผู้ซื้อ (Bill To)' if TH else 'Bill To' }}</div>
+        <div style="font-weight:800;">{{ member.full_name_th if TH and member.full_name_th else (member.full_name_en
+          or member.full_name_th or member.username) }}</div>
+        {% if member.address %}<div style="white-space: pre-line;">{{ member.address }}</div>{% endif %}
+        <div style="color:#374151; margin-top:6px;">
+          {% if member.province %}<div><strong>{{ 'จังหวัด' if TH else 'Province' }}:</strong> {{ member.province }}
+          </div>{% endif %}
+          {% if member.zip_code %}<div><strong>{{ 'รหัสไปรษณีย์' if TH else 'ZIP' }}:</strong> {{ member.zip_code }}
+          </div>{% endif %}
+          {% if member.country %}<div><strong>{{ 'ประเทศ' if TH else 'Country' }}:</strong> {{ member.country }}</div>
+          {% endif %}
+          {% if member.phone_no %}<div><strong>{{ 'โทร' if TH else 'Phone' }}:</strong> {{ member.phone_no }}</div>{%
+          endif %}
+          {% if member.email %}<div><strong>{{ 'อีเมล' if TH else 'Email' }}:</strong> {{ member.email }}</div>{%
+          endif %}
+        </div>
+      </div>
 
-        <h2 class="title is-5">{{ texts['invoice_details'] }}</h2>
-        <table class="table is-fullwidth is-bordered">
+      <div class="invoice-meta">
+        <table>
           <tbody>
             <tr>
-              <th>{{ texts['invoice_no'] }}</th>
-              <td>INV-{{ payment.id }}</td>
+              <th>{{ texts.get('invoice_no', 'เลขที่ใบแจ้งหนี้' if TH else 'Invoice No.') }}</th>
+              <td>{{ invoice_no }}</td>
             </tr>
             <tr>
-              <th>{{ texts['invoice_amount'] }}</th>
-              <td>{{ '%.2f' % (payment.payment_amount or 0) }} THB</td>
+              <th>{{ texts.get('payment_ref', 'เลขอ้างอิงการชำระเงิน' if TH else 'Payment Ref.') }}</th>
+              <td>{{ payment.id }}</td>
             </tr>
             <tr>
-              <th>{{ texts['invoice_status'] }}</th>
+              <th>{{ texts.get('invoice_created', 'วันที่ออก' if TH else 'Issue Date') }}</th>
               <td>
-                {% set st = payment.payment_status_ref.name_en if payment.payment_status_ref else 'pending' %}
-                <span class="tag {% if st=='approved' %}is-success{% elif st=='submitted' %}is-info{% elif st=='rejected' %}is-danger{% else %}is-warning{% endif %}">{{ st|capitalize }}</span>
+                {% if invoice_date %}{{ invoice_date.strftime('%d/%m/%Y') if TH else invoice_date.strftime('%Y-%m-%d')
+                }}{% else %}{{ '-' }}{% endif %}
               </td>
             </tr>
+            {% if due_days and due_days|int > 0 %}
             <tr>
-              <th>{{ texts['invoice_created'] }}</th>
-              <td>{{ payment.payment_date }}</td>
+              <th>{{ texts.get('invoice_due', 'ครบกำหนดชำระ' if TH else 'Due Date') }}</th>
+              <td>
+                {% if due_date %}{{ due_date.strftime('%d/%m/%Y') if TH else due_date.strftime('%Y-%m-%d') }}{% else
+                %}{{ '-' }}{% endif %}
+              </td>
+            </tr>
+            {% endif %}
+            <tr>
+              <th>{{ texts.get('invoice_status', 'สถานะ' if TH else 'Status') }}</th>
+              <td>
+                {% set invoice_status = (payment.invoice.status if payment.invoice and payment.invoice.status else '')
+                %}
+                {% set st = (invoice_status if invoice_status in ['cancelled','canceled'] else
+                (payment.payment_status_ref.name_en if payment.payment_status_ref else 'pending')) %}
+                <span
+                  class="tag {% if st in ['paid','approved'] %}is-success{% elif st=='submitted' %}is-info{% elif st=='rejected' %}is-danger{% elif st in ['cancelled','canceled'] %}is-dark{% else %}is-warning{% endif %}">{{
+                  st|capitalize }}</span>
+              </td>
+            </tr>
+            {% if payment.receipt %}
+            <tr>
+              <th>{{ texts.get('receipt_no', 'เลขที่ใบเสร็จ' if TH else 'Receipt No.') }}</th>
+              <td>{{ payment.receipt.receipt_number }}</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {# row 5: items #}
+    <div class="invoice-row">
+      <div class="invoice-block">
+        <div class="invoice-block__title">{{ 'รายละเอียดรายการ (Items)' if TH else 'Items' }}</div>
+        <table class="table is-fullwidth is-bordered invoice-lines">
+          <thead>
+            <tr>
+              <th style="width:60px;">#</th>
+              <th>{{ 'รายละเอียด' if TH else 'Description' }}</th>
+              <th style="width:90px;" class="has-text-right">{{ 'จำนวน' if TH else 'Qty' }}</th>
+              <th style="width:160px;" class="has-text-right">{{ 'ราคาต่อหน่วย' if TH else 'Unit Price' }}</th>
+              <th style="width:160px;" class="has-text-right">{{ 'จำนวนเงิน' if TH else 'Amount' }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% set entity = payment.event_entity %}
+            {% set event_title = (entity.title_th if TH and entity and entity.title_th else (entity.title_en if entity
+            and entity.title_en else (entity.title_th if entity and entity.title_th else '-'))) %}
+            <tr>
+              <td>1</td>
+              <td>
+                <div style="font-weight:800;">{{ event_title }}</div>
+                <div style="color:#6b7280; font-size:0.9rem;">
+                  {{ ('รหัสกิจกรรม' if TH else 'Event Ref.') }}: {{ entity.id if entity and entity.id is defined else
+                  '-' }}
+                  {% if entity and (entity.start_time is defined) and entity.start_time %}
+                  &nbsp;·&nbsp;
+                  {{ ('วันที่' if TH else 'Date') }}: {{ entity.start_time.strftime('%d/%m/%Y') if TH else
+                  entity.start_time.strftime('%Y-%m-%d') }}
+                  {% endif %}
+                </div>
+              </td>
+              <td class="has-text-right">1</td>
+              <td class="has-text-right">{{ '%.2f' % (subtotal or 0) }}</td>
+              <td class="has-text-right">{{ '%.2f' % (subtotal or 0) }}</td>
             </tr>
           </tbody>
         </table>
 
-        <div class="content">
-          <h3 class="title is-6">{{ texts['invoice_how_to_pay'] }}</h3>
+        <div class="invoice-totals" style="margin-top: 12px;">
+          <table>
+            <tbody>
+              <tr>
+                <th style="text-align:left;">{{ 'ยอดก่อนภาษี' if TH else 'Subtotal' }}</th>
+                <td style="text-align:right;">{{ '%.2f' % (subtotal or 0) }} {{ texts.get('currency_thb', 'THB') }}
+                </td>
+              </tr>
+              {% if vat_rate and vat_rate|float > 0 %}
+              <tr>
+                <th style="text-align:left;">{{ 'ภาษีมูลค่าเพิ่ม' if TH else 'VAT' }} ({{ (vat_rate * 100)|round(2)
+                  }}%) {% if vat_included %}<span style="color:#6b7280; font-weight:700;">{{ '(รวมในราคา)' if TH else
+                    '(included)' }}</span>{% endif %}</th>
+                <td style="text-align:right;">{{ '%.2f' % (vat_amount or 0) }} {{ texts.get('currency_thb', 'THB') }}
+                </td>
+              </tr>
+              {% endif %}
+              <tr class="grand">
+                <th style="text-align:left;">{{ 'ยอดรวมสุทธิ' if TH else 'Total' }}</th>
+                <td style="text-align:right;">{{ '%.2f' % (total or 0) }} {{ texts.get('currency_thb', 'THB') }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="margin-top: 12px; color:#374151;">
+          <div style="font-weight:800;">{{ texts.get('invoice_how_to_pay', 'วิธีชำระเงิน' if TH else 'How to pay') }}
+          </div>
           {% if payment_instructions %}
-          <p style="white-space: pre-line;">{{ payment_instructions }}</p>
+          <div style="white-space: pre-line;">{{ payment_instructions }}</div>
           {% else %}
-          <p>
-            - Transfer the amount to the designated account and upload proof on My Payments page.<br>
-            - Or reply to this email with your proof of payment.
-          </p>
+          <div>
+            - {{ 'โอนเงินตามรายละเอียดบัญชี และอัปโหลดหลักฐานที่หน้า My Payments' if TH else 'Transfer to the account
+            and upload proof on My Payments.' }}<br>
+            - {{ 'หรือส่งหลักฐานกลับทางอีเมล' if TH else 'Or reply to email with proof of payment.' }}
+          </div>
           {% endif %}
           {% if bank_info %}
-          <article class="message is-info">
-            <div class="message-header"><p>{{ texts['invoice_bank_info'] }}</p></div>
-            <div class="message-body" style="white-space: pre-line;">{{ bank_info }}</div>
-          </article>
+          <div style="margin-top: 10px;">
+            <div style="font-weight:800;">{{ texts.get('invoice_bank_info', 'ข้อมูลบัญชีธนาคาร' if TH else 'Bank
+              info') }}</div>
+            <div style="white-space: pre-line;">{{ bank_info }}</div>
+          </div>
           {% endif %}
+        </div>
+
+
+
+        <div style="margin-top: 12px; font-size: 0.85rem; color:#6b7280;">
+          {{ 'เอกสารนี้ออกโดยระบบอัตโนมัติ ใช้เป็นใบแจ้งหนี้สำหรับการชำระเงินและการออกใบเสร็จ' if TH else 'This
+          document is system-generated for billing and receipt issuance reference.' }}
         </div>
       </div>
-      <div class="column">
-        <div class="box has-text-centered">
-          <div class="title is-5">{{ texts['invoice_total_due'] }}</div>
-          <div class="title is-3">{{ '%.2f' % (payment.payment_amount or 0) }} THB</div>
-          {% if payment_gateway_url %}
-          <a class="button is-primary is-fullwidth" href="{{ payment_gateway_url }}" target="_blank">{{ texts['invoice_pay_online'] }}</a>
-          <div class="is-size-7 has-text-grey mt-1">&nbsp;</div>
-          {% endif %}
-          <a class="button is-link is-fullwidth mt-2" href="{{ url_for('continuing_edu.my_payments', lang=current_lang) }}">{{ texts['invoice_go_to_my_payments'] }}</a>
-        </div>
-        {% if payment_qr_url or promptpay_id %}
-        <div class="box has-text-centered">
-          <div class="title is-6">{{ texts['invoice_pay_via_qr'] }}</div>
-          {% if payment_qr_url %}
-          <figure class="image is-square" style="max-width:260px;margin:0 auto;">
-            <img src="{{ payment_qr_url }}" alt="QR code for payment">
-          </figure>
-          {% endif %}
-          {% if promptpay_id %}
-          <p class="mt-2"><strong>{{ texts['invoice_promptpay_id'] }}:</strong> {{ promptpay_id }}</p>
-          {% endif %}
-        </div>
-        {% endif %}
-      </div>
+
     </div>
   </div>
+
 </div>
+
 {% endblock %}

@@ -705,9 +705,45 @@
                                                                                           </span>
                                                                                 </label>
 
+                                                                                <label
+                                                                                          class="radio is-block mb-2 p-3 payment-method-option">
+                                                                                          <input type="radio"
+                                                                                                    name="payment_method"
+                                                                                                    value="credit_card">
+                                                                                          <span class="ml-2">
+                                                                                                    <i
+                                                                                                              class="fas fa-credit-card has-text-link mr-2"></i>
+                                                                                                    <strong>{{ texts.get('credit_card',
+                                                                                                              'Credit/Debit
+                                                                                                              Card'
+                                                                                                              if
+                                                                                                              current_lang
+                                                                                                              ==
+                                                                                                              'en' else
+                                                                                                              'บัตรเครดิต/เดบิต')
+                                                                                                              }}</strong>
+                                                                                          </span>
+                                                                                </label>
 
-
-
+                                                                                <label
+                                                                                          class="radio is-block p-3 payment-method-option">
+                                                                                          <input type="radio"
+                                                                                                    name="payment_method"
+                                                                                                    value="counter">
+                                                                                          <span class="ml-2">
+                                                                                                    <i
+                                                                                                              class="fas fa-store has-text-warning mr-2"></i>
+                                                                                                    <strong>{{ texts.get('counter_service',
+                                                                                                              'Counter
+                                                                                                              Service'
+                                                                                                              if
+                                                                                                              current_lang
+                                                                                                              == 'en'
+                                                                                                              else
+                                                                                                              'ชำระที่เคาน์เตอร์')
+                                                                                                              }}</strong>
+                                                                                          </span>
+                                                                                </label>
                                                                       </div>
                                                             </div>
 
@@ -816,7 +852,106 @@
                                                                       </ol>
                                                             </div>
 
+                                                            <div id="payment-steps-credit" class="payment-steps">
+                                                                      <h4>
+                                                                                <i class="fas fa-list-ol"></i>
+                                                                                {{ texts.get('payment_steps', 'Payment
+                                                                                Steps' if current_lang == 'en' else
+                                                                                'ขั้นตอนการชำระเงิน') }}
+                                                                      </h4>
+                                                                      <ol>
+                                                                                <li><strong>{{ texts.get('step1', 'Step
+                                                                                                    1' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 1')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('credit_step1',
+                                                                                          'Enter card information' if
+                                                                                          current_lang == 'en' else
+                                                                                          'กรอกข้อมูลบัตร') }}</li>
+                                                                                <li><strong>{{ texts.get('step2', 'Step
+                                                                                                    2' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 2')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('credit_step2',
+                                                                                          'Verify with OTP' if
+                                                                                          current_lang == 'en' else
+                                                                                          'ยืนยันด้วย OTP') }}</li>
+                                                                                <li><strong>{{ texts.get('step3', 'Step
+                                                                                                    3' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 3')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('credit_step3',
+                                                                                          'Payment processed instantly'
+                                                                                          if current_lang == 'en' else
+                                                                                          'ระบบประมวลผลการชำระเงินทันที')
+                                                                                          }}</li>
+                                                                                <li><strong>{{ texts.get('step4', 'Step
+                                                                                                    4' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 4')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('credit_step4',
+                                                                                          'Receive receipt immediately'
+                                                                                          if current_lang == 'en' else
+                                                                                          'รับใบเสร็จทันที') }}</li>
+                                                                      </ol>
+                                                            </div>
 
+                                                            <div id="payment-steps-counter" class="payment-steps">
+                                                                      <h4>
+                                                                                <i class="fas fa-list-ol"></i>
+                                                                                {{ texts.get('payment_steps', 'Payment
+                                                                                Steps' if current_lang == 'en' else
+                                                                                'ขั้นตอนการชำระเงิน') }}
+                                                                      </h4>
+                                                                      <ol>
+                                                                                <li><strong>{{ texts.get('step1', 'Step
+                                                                                                    1' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 1')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('counter_step1',
+                                                                                          'Print payment notification'
+                                                                                          if current_lang == 'en' else
+                                                                                          'พิมพ์ใบแจ้งชำระเงิน') }}</li>
+                                                                                <li><strong>{{ texts.get('step2', 'Step
+                                                                                                    2' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 2')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('counter_step2',
+                                                                                          'Pay at counter (7-Eleven,
+                                                                                          FamilyMart, etc.)' if
+                                                                                          current_lang == 'en' else
+                                                                                          'ชำระเงินที่เคาน์เตอร์
+                                                                                          (7-Eleven, FamilyMart ฯลฯ)')
+                                                                                          }}</li>
+                                                                                <li><strong>{{ texts.get('step3', 'Step
+                                                                                                    3' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 3')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('counter_step3',
+                                                                                          'Upload payment receipt' if
+                                                                                          current_lang == 'en' else
+                                                                                          'อัปโหลดใบเสร็จการชำระเงิน')
+                                                                                          }}</li>
+                                                                                <li><strong>{{ texts.get('step4', 'Step
+                                                                                                    4' if current_lang
+                                                                                                    == 'en' else
+                                                                                                    'ขั้นตอนที่ 4')
+                                                                                                    }}:</strong> {{
+                                                                                          texts.get('counter_step4',
+                                                                                          'Wait for verification (1-2
+                                                                                          business days)' if
+                                                                                          current_lang == 'en' else
+                                                                                          'รอตรวจสอบและยืนยัน (1-2
+                                                                                          วันทำการ)') }}</li>
+                                                                      </ol>
+                                                            </div>
 
                                                             <!-- Terms and Conditions -->
                                                             <div class="checkbox-wrapper" style="margin-top: 1.5rem;">

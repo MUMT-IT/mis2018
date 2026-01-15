@@ -1,11 +1,310 @@
 {% extends "continueing_edu/base_frontend.html" %}
 
-{% block title %}My Account{% endblock %}
+{% block title %}{{ texts.get('account_page_title', 'บัญชีของฉัน' if current_lang == 'th' else 'My Account') }}{%
+endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<style>
+  .password-toggle-wrapper {
+    position: relative;
+  }
+
+  .password-toggle-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #9ca3af;
+    transition: color 0.2s ease;
+    z-index: 10;
+    padding: 8px;
+  }
+
+  .password-toggle-icon:hover {
+    color: #4f46e5;
+  }
+
+  .password-toggle-wrapper input {
+    padding-right: 45px;
+  }
+
+  .password-strength-container {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  .password-strength-bar {
+    height: 6px;
+    background: #e0e7ff;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+
+  .password-strength-fill {
+    height: 100%;
+    width: 0%;
+    transition: all 0.3s ease;
+    border-radius: 3px;
+  }
+
+  .password-strength-fill.weak {
+    width: 25%;
+    background: linear-gradient(90deg, #f14668, #ff6b9d);
+  }
+
+  .password-strength-fill.fair {
+    width: 50%;
+    background: linear-gradient(90deg, #ffdd57, #ffa500);
+  }
+
+  .password-strength-fill.good {
+    width: 75%;
+    background: linear-gradient(90deg, #48c774, #2ecc71);
+  }
+
+  .password-strength-fill.strong {
+    width: 100%;
+    background: linear-gradient(90deg, #00d1b2, #00b89c);
+  }
+
+  .password-strength-text {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .password-strength-text.weak {
+    color: #f14668;
+  }
+
+  .password-strength-text.fair {
+    color: #ffa500;
+  }
+
+  .password-strength-text.good {
+    color: #48c774;
+  }
+
+  .password-strength-text.strong {
+    color: #00d1b2;
+  }
+
+  .password-requirements {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .password-requirements ul {
+    list-style: none;
+    padding-left: 0;
+  }
+
+  .requirement-item {
+    color: #7a7a7a;
+    margin-bottom: 0.25rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+  }
+
+  .requirement-item.met {
+    color: #48c774;
+  }
+
+  .requirement-item.met i {
+    color: #48c774;
+  }
+
+  .requirement-item i {
+    color: #e0e7ff;
+    font-size: 0.75rem;
+    margin-right: 0.5rem;
+    min-width: 14px;
+  }
+
+  .help-text {
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    color: #7a7a7a;
+  }
+
+  .help-text.is-danger {
+    color: #f14668;
+  }
+
+  .help-text.is-success {
+    color: #48c774;
+  }
+
+  .field-success {
+    border-color: #48c774;
+  }
+
+  .field-error {
+    border-color: #f14668;
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const passwordInput = document.getElementById('acct-password-input');
+    const confirmPasswordInput = document.getElementById('acct-confirm-password-input');
+    const passwordMatchMessage = document.getElementById('acct-password-match-message');
+    const strengthFill = document.getElementById('acct-password-strength-fill');
+    const strengthText = document.getElementById('acct-password-strength-text');
+
+    const reqLength = document.getElementById('acct-req-length');
+    const reqUppercase = document.getElementById('acct-req-uppercase');
+    const reqLowercase = document.getElementById('acct-req-lowercase');
+    const reqNumber = document.getElementById('acct-req-number');
+    const reqSpecial = document.getElementById('acct-req-special');
+
+    function updateRequirement(element, isMet) {
+      if (!element) return;
+
+      if (isMet) {
+        element.classList.add('met');
+        const icon = element.querySelector('i');
+        if (icon) icon.className = 'fas fa-check-circle';
+      } else {
+        element.classList.remove('met');
+        const icon = element.querySelector('i');
+        if (icon) icon.className = 'fas fa-circle';
+      }
+    }
+
+    function checkPasswordStrength(password) {
+      let strength = 0;
+      const requirements = {
+        length: password.length >= 8,
+        uppercase: /[A-Z]/.test(password),
+        lowercase: /[a-z]/.test(password),
+        number: /\d/.test(password),
+        special: /[@$!%*?&]/.test(password)
+      };
+
+      updateRequirement(reqLength, requirements.length);
+      updateRequirement(reqUppercase, requirements.uppercase);
+      updateRequirement(reqLowercase, requirements.lowercase);
+      updateRequirement(reqNumber, requirements.number);
+      updateRequirement(reqSpecial, requirements.special);
+
+      Object.values(requirements).forEach(met => {
+        if (met) strength++;
+      });
+
+      const strengthLevels = {
+        0: { class: '', text: '' },
+        1: { class: 'weak', text: '{{ texts.get("password_weak", "อ่อนแอ" if current_lang == "th" else "Weak") }}' },
+        2: { class: 'weak', text: '{{ texts.get("password_weak", "อ่อนแอ" if current_lang == "th" else "Weak") }}' },
+        3: { class: 'fair', text: '{{ texts.get("password_fair", "พอใช้" if current_lang == "th" else "Fair") }}' },
+        4: { class: 'good', text: '{{ texts.get("password_good", "ดี" if current_lang == "th" else "Good") }}' },
+        5: { class: 'strong', text: '{{ texts.get("password_strong", "แข็งแรง" if current_lang == "th" else "Strong") }}' }
+      };
+
+      const level = strengthLevels[strength];
+
+      if (strengthFill && strengthText) {
+        strengthFill.className = 'password-strength-fill';
+        strengthText.className = 'password-strength-text';
+
+        if (password.length > 0) {
+          strengthFill.classList.add(level.class);
+          strengthText.classList.add(level.class);
+          strengthText.textContent = level.text;
+        } else {
+          strengthText.textContent = '';
+        }
+      }
+
+      return strength === 5;
+    }
+
+    function validatePasswordMatch() {
+      if (!passwordInput || !confirmPasswordInput || !passwordMatchMessage) return;
+
+      const password = passwordInput.value;
+      const confirmPassword = confirmPasswordInput.value;
+
+      if (confirmPassword.length === 0) {
+        passwordMatchMessage.textContent = '';
+        passwordMatchMessage.className = 'help-text';
+        confirmPasswordInput.classList.remove('field-success', 'field-error');
+        return;
+      }
+
+      if (password === confirmPassword) {
+        passwordMatchMessage.textContent = '✓ {{ texts.get("password_match", "รหัสผ่านตรงกัน" if current_lang == "th" else "Passwords match") }}';
+        passwordMatchMessage.className = 'help-text is-success';
+        confirmPasswordInput.classList.remove('field-error');
+        confirmPasswordInput.classList.add('field-success');
+      } else {
+        passwordMatchMessage.textContent = '✗ {{ texts.get("password_no_match", "รหัสผ่านไม่ตรงกัน" if current_lang == "th" else "Passwords do not match") }}';
+        passwordMatchMessage.className = 'help-text is-danger';
+        confirmPasswordInput.classList.remove('field-success');
+        confirmPasswordInput.classList.add('field-error');
+      }
+    }
+
+    if (passwordInput) {
+      passwordInput.addEventListener('input', function () {
+        checkPasswordStrength(this.value);
+        if (confirmPasswordInput && confirmPasswordInput.value.length > 0) {
+          validatePasswordMatch();
+        }
+      });
+    }
+
+    if (confirmPasswordInput) {
+      confirmPasswordInput.addEventListener('input', validatePasswordMatch);
+      confirmPasswordInput.addEventListener('blur', validatePasswordMatch);
+    }
+
+    function bindToggle(toggleId, inputId) {
+      const toggle = document.getElementById(toggleId);
+      const input = document.getElementById(inputId);
+      if (!toggle || !input) return;
+
+      toggle.addEventListener('click', function () {
+        const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+        input.setAttribute('type', type);
+
+        if (type === 'text') {
+          this.classList.remove('fa-eye');
+          this.classList.add('fa-eye-slash');
+          this.setAttribute('title', '{{ texts.get("hide_password", "ซ่อนรหัสผ่าน" if current_lang == "th" else "Hide password") }}');
+        } else {
+          this.classList.remove('fa-eye-slash');
+          this.classList.add('fa-eye');
+          this.setAttribute('title', '{{ texts.get("show_password", "แสดงรหัสผ่าน" if current_lang == "th" else "Show password") }}');
+        }
+      });
+    }
+
+    bindToggle('acct-toggle-current-password', 'acct-current-password');
+    bindToggle('acct-toggle-password', 'acct-password-input');
+    bindToggle('acct-toggle-confirm-password', 'acct-confirm-password-input');
+  });
+</script>
+{% endblock %}
 
 {% block content %}
 <section class="section">
   <div class="container">
-    <h1 class="title is-3">My Account</h1>
+    {% set TH = (current_lang == 'th') %}
+    <h1 class="title is-3">{{ texts.get('account_page_title', 'บัญชีของฉัน' if TH else 'My Account') }}</h1>
+    {% if user %}
+    <p class="subtitle is-6" style="margin-top:-0.5rem;">
+      {{ (user.full_name_th if TH and user.full_name_th else (user.full_name_en or user.full_name_th or user.username))
+      }}
+      {% if user.email %}<span class="has-text-grey">({{ user.email }})</span>{% endif %}
+    </p>
+    {% endif %}
     <div class="columns">
       <div class="column is-half">
         <div class="box">
@@ -24,17 +323,11 @@
                 value="{{ user.full_name_th or '' }}"></div>
             <div class="field"><label class="label">Phone</label><input class="input" name="phone_no"
                 value="{{ user.phone_no or '' }}"></div>
-            <div class="field"><label class="label">Address</label><input class="input" name="address"
-                value="{{ user.address or '' }}"></div>
             <div class="columns">
-              <div class="column"><label class="label">Province</label><input class="input" name="province"
-                  value="{{ user.province or '' }}"></div>
-              <div class="column"><label class="label">Zip</label><input class="input" name="zip_code"
-                  value="{{ user.zip_code or '' }}"></div>
-            </div>
-            <div class="columns">
-              <div class="column"><label class="label">Country</label><input class="input" name="country"
-                  value="{{ user.country or '' }}"></div>
+              <div class="column">
+                <label class="label">{{ texts.get('country', 'ประเทศ' if TH else 'Country') }}</label>
+                <input class="input" name="country" value="{{ user.country or 'Thailand' }}">
+              </div>
 
 
             </div>
@@ -43,18 +336,165 @@
             <button class="button is-link" type="submit">Save Profile</button>
           </form>
         </div>
+
+        <div class="box">
+          <div class="is-flex is-justify-content-space-between is-align-items-center"
+            style="gap: 1rem; flex-wrap: wrap;">
+            <h2 class="title is-5" style="margin-bottom: 0;">{{ texts.get('addresses', 'ที่อยู่' if TH else 'Addresses')
+              }}</h2>
+            <a class="button is-link is-light"
+              href="{{ url_for('continuing_edu.account_address_new', lang=current_lang) }}">
+              <span class="icon"><i class="fas fa-plus"></i></span>
+              <span>{{ texts.get('add_address', 'เพิ่มที่อยู่' if TH else 'Add address') }}</span>
+            </a>
+          </div>
+
+          <p class="help" style="margin-top: 0.5rem;">
+            {{ texts.get('addresses_help', 'สามารถเพิ่มได้หลายรายการ (ระบบจะใช้ที่อยู่ประเภท billing ก่อน หากมี)' if TH
+            else 'You can add multiple addresses (billing is preferred when available).') }}
+          </p>
+
+          {% set addr_list = (addresses if addresses is defined and addresses else (user.addresses if user and
+          user.addresses else [])) %}
+          {% if addr_list and (addr_list|length) > 0 %}
+          <div class="table-container" style="margin-top: 1rem;">
+            <table class="table is-fullwidth is-striped">
+              <thead>
+                <tr>
+                  <th style="width: 130px;">{{ texts.get('address_type', 'ประเภท' if TH else 'Type') }}</th>
+                  <th style="width: 180px;">{{ texts.get('address_label', 'ชื่อเรียก' if TH else 'Label') }}</th>
+                  <th>{{ texts.get('address_details', 'รายละเอียด' if TH else 'Details') }}</th>
+                  <th style="width: 190px;"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for a in addr_list %}
+                <tr>
+                  <td>
+                    <span class="tag is-info is-light">{{ a.address_type or '-' }}</span>
+                  </td>
+                  <td>{{ a.label or '-' }}</td>
+                  <td>
+                    <div>
+                      <div><strong>{{ a.line1 }}</strong></div>
+                      {% if a.line2 %}<div>{{ a.line2 }}</div>{% endif %}
+                      <div class="has-text-grey">
+                        {% set parts = [] %}
+                        {% if a.city %}{% set _ = parts.append(a.city) %}{% endif %}
+                        {% if a.state %}{% set _ = parts.append(a.state) %}{% endif %}
+                        {% if a.postal_code %}{% set _ = parts.append(a.postal_code) %}{% endif %}
+                        {% if a.country_name %}{% set _ = parts.append(a.country_name) %}{% endif %}
+                        {{ parts|join(', ') }}
+                      </div>
+                    </div>
+                  </td>
+                  <td class="has-text-right">
+                    <a class="button is-small"
+                      href="{{ url_for('continuing_edu.account_address_edit', address_id=a.id, lang=current_lang) }}">
+                      <span class="icon"><i class="fas fa-pen"></i></span>
+                      <span>{{ texts.get('edit', 'แก้ไข' if TH else 'Edit') }}</span>
+                    </a>
+                    <form method="post"
+                      action="{{ url_for('continuing_edu.account_address_delete', address_id=a.id, lang=current_lang) }}"
+                      style="display:inline;"
+                      data-confirm="{{ texts.get('confirm_delete_address', 'ลบที่อยู่นี้ใช่หรือไม่?' if TH else 'Delete this address?')|e }}"
+                      onsubmit="return confirm(this.dataset.confirm);">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button class="button is-small is-danger is-light" type="submit">
+                        <span class="icon"><i class="fas fa-trash"></i></span>
+                        <span>{{ texts.get('delete', 'ลบ' if TH else 'Delete') }}</span>
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="notification is-warning is-light" style="margin-top: 1rem;">
+            {{ texts.get('no_addresses_yet', 'ยังไม่มีที่อยู่ กรุณาเพิ่มอย่างน้อย 1 รายการ' if TH else 'No addresses
+            yet. Please add at least one address.') }}
+          </div>
+          {% endif %}
+        </div>
       </div>
       <div class="column is-half">
         <div class="box">
           <h2 class="title is-5">Change Password</h2>
           <form method="post" action="{{ url_for('continuing_edu.account_change_password', lang=current_lang) }}">
-            <div class="field"><label class="label">Current Password</label><input class="input" type="password"
-                name="current_password" required></div>
-            <div class="field"><label class="label">New Password</label><input class="input" type="password"
-                name="new_password" required></div>
-            <div class="field"><label class="label">Confirm New Password</label><input class="input" type="password"
-                name="confirm_password" required></div>
-            <button class="button is-primary" type="submit">Change Password</button>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="field">
+              <label class="label">{{ texts.get('current_password', 'รหัสผ่านปัจจุบัน' if TH else 'Current Password')
+                }}</label>
+              <div class="control password-toggle-wrapper">
+                <input class="input" type="password" name="current_password" id="acct-current-password" required>
+                <i class="fas fa-eye password-toggle-icon" id="acct-toggle-current-password"
+                  title="{{ texts.get('show_password', 'แสดงรหัสผ่าน' if TH else 'Show password') }}"></i>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label">{{ texts.get('new_password', 'รหัสผ่านใหม่' if TH else 'New Password') }}</label>
+              <div class="control password-toggle-wrapper">
+                <input class="input" type="password" name="new_password" id="acct-password-input" required minlength="8"
+                  pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
+                  placeholder="{{ texts.get('password_placeholder', 'อย่างน้อย 8 ตัวอักษร' if TH else 'At least 8 characters') }}">
+                <i class="fas fa-eye password-toggle-icon" id="acct-toggle-password"
+                  title="{{ texts.get('show_password', 'แสดงรหัสผ่าน' if TH else 'Show password') }}"></i>
+              </div>
+
+              <div class="password-strength-container">
+                <div class="password-strength-bar">
+                  <div class="password-strength-fill" id="acct-password-strength-fill"></div>
+                </div>
+                <p class="password-strength-text" id="acct-password-strength-text"></p>
+              </div>
+
+              <div class="password-requirements">
+                <p style="font-weight: 600; color: #4f46e5; margin-bottom: 0.5rem;">
+                  {{ texts.get('password_requirements', 'รหัสผ่านต้องมี:' if TH else 'Password must have:') }}
+                </p>
+                <ul>
+                  <li id="acct-req-length" class="requirement-item"><i class="fas fa-circle"></i>
+                    <span>{{ texts.get('req_length', 'อย่างน้อย 8 ตัวอักษร' if TH else 'At least 8 characters')
+                      }}</span>
+                  </li>
+                  <li id="acct-req-uppercase" class="requirement-item"><i class="fas fa-circle"></i>
+                    <span>{{ texts.get('req_uppercase', 'ตัวพิมพ์ใหญ่อย่างน้อย 1 ตัว (A-Z)' if TH else 'At least 1
+                      uppercase letter (A-Z)') }}</span>
+                  </li>
+                  <li id="acct-req-lowercase" class="requirement-item"><i class="fas fa-circle"></i>
+                    <span>{{ texts.get('req_lowercase', 'ตัวพิมพ์เล็กอย่างน้อย 1 ตัว (a-z)' if TH else 'At least 1
+                      lowercase letter (a-z)') }}</span>
+                  </li>
+                  <li id="acct-req-number" class="requirement-item"><i class="fas fa-circle"></i>
+                    <span>{{ texts.get('req_number', 'ตัวเลขอย่างน้อย 1 ตัว (0-9)' if TH else 'At least 1 number (0-9)')
+                      }}</span>
+                  </li>
+                  <li id="acct-req-special" class="requirement-item"><i class="fas fa-circle"></i>
+                    <span>{{ texts.get('req_special', 'อักขระพิเศษอย่างน้อย 1 ตัว (@$!%*?&)' if TH else 'At least 1
+                      special character (@$!%*?&)') }}</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label">{{ texts.get('confirm_password', 'ยืนยันรหัสผ่าน' if TH else 'Confirm Password')
+                }}</label>
+              <div class="control password-toggle-wrapper">
+                <input class="input" type="password" name="confirm_password" id="acct-confirm-password-input" required
+                  placeholder="{{ texts.get('confirm_password_placeholder', 'พิมพ์รหัสผ่านอีกครั้ง' if TH else 'Re-enter password') }}">
+                <i class="fas fa-eye password-toggle-icon" id="acct-toggle-confirm-password"
+                  title="{{ texts.get('show_password', 'แสดงรหัสผ่าน' if TH else 'Show password') }}"></i>
+              </div>
+              <p class="help-text" id="acct-password-match-message"></p>
+            </div>
+
+            <button class="button is-primary" type="submit">{{ texts.get('change_password', 'เปลี่ยนรหัสผ่าน' if TH else
+              'Change Password') }}</button>
           </form>
         </div>
         <div class="box">
