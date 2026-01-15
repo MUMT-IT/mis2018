@@ -1,0 +1,27 @@
+{% extends "continueing_edu/base.html" %}
+{% block title %}Admin Test Payment{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:720px; margin:2rem auto;">
+          <h2>Admin: Trigger Mock Payment</h2>
+          <p>Enter a RegisterPayment id (numeric) or RP&lt;id&gt; (e.g. RP123) to simulate payment callback.</p>
+          <form method="post">
+                    <div class="field">
+                              <label class="label">Payment Reference</label>
+                              <div class="control">
+                                        <input class="input" name="payment_ref" placeholder="RP123 or 123" required />
+                              </div>
+                    </div>
+                    <div class="field">
+                              <div class="control">
+                                        <button class="button is-primary" type="submit">Trigger</button>
+                              </div>
+                    </div>
+          </form>
+          {% if result %}
+          <div style="margin-top:1rem;">
+                    <pre>{{ result }}</pre>
+          </div>
+          {% endif %}
+</div>
+{% endblock %}

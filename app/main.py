@@ -1,4 +1,3 @@
-# -*- coding:utf-8 -*-
 
 
 import click
@@ -31,6 +30,8 @@ import re
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 import base64
+
+
 
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 
@@ -844,7 +845,35 @@ admin.add_views(ModelView(CertificateFile, db.session, category='E-sign'))
 
 app.register_blueprint(esign_blueprint)
 
+from app.continuing_edu import ce_bp
 
+from app.continuing_edu.models import *
+app.register_blueprint(ce_bp)
+
+admin.add_views(ModelView(MemberType, db.session, category='Continuing Education'))
+admin.add_views(ModelView(Gender, db.session, category='Continuing Education'))
+admin.add_views(ModelView(AgeRange, db.session, category='Continuing Education'))
+admin.add_views(ModelView(RegistrationStatus, db.session, category='Continuing Education'))
+admin.add_views(ModelView(RegisterPaymentStatus, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CertificateType, db.session, category='Continuing Education'))
+admin.add_views(ModelView(MemberCertificateStatus, db.session, category='Continuing Education'))
+
+admin.add_views(ModelView(Member, db.session, category='Continuing Education'))
+
+admin.add_views(ModelView(MemberRegistration, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EntityCategory, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EventEntity, db.session, category='Continuing Education'))
+admin.add_views(ModelView(RegisterPaymentReceipt, db.session, category='Continuing Education'))
+admin.add_views(ModelView(RegisterPayment, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EventSpeaker, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EventAgenda, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EventMaterial, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EventRegistrationFee, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EventEditor, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EventRegistrationReviewer, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EventPaymentApprover, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EventReceiptIssuer, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EventCertificateManager, db.session, category='Continuing Education'))
 # Commands
 
 @app.cli.command()
@@ -1863,5 +1892,17 @@ def run_job_files_to_cloud(budget_year):
 #     return render_template('academic_services/request_form.html')
 
 
+# Register admin blueprint (custom admin panel, not Flask-Admin)
+from app.continuing_edu.admin.views import admin_bp as continuing_edu_admin_bp
+from app.continuing_edu.admin.certifications import cert_bp as continuing_edu_admin_cert_bp
+app.register_blueprint(continuing_edu_admin_bp)
+app.register_blueprint(continuing_edu_admin_cert_bp)
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000, host="0.0.0.0")
+    import os
+    cert_file = os.path.join(os.path.dirname(__file__), '..', '..', 'cert.pem')
+    key_file = os.path.join(os.path.dirname(__file__), '..', '..', 'key.pem')
+    if os.path.exists(cert_file) and os.path.exists(key_file):
+        app.run(debug=True, port=5005, host="0.0.0.0", ssl_context=(cert_file, key_file))
+    else:
+        app.run(debug=True, port=5005, host="0.0.0.0")

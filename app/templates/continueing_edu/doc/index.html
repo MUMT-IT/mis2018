@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="th" class="has-navbar-fixed-top">
+
+<head>
+          <meta charset="UTF-8" />
+          <title>คู่มือการใช้งาน – Continuing Education Platform | MUMT</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&family=Inter:wght@400;600&display=swap"
+                    rel="stylesheet">
+
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css" />
+
+          <style>
+                    :root {
+                              --primary-color: #4F46E5;
+                              /* Indigo 600 */
+                              --primary-light: #EEF2FF;
+                              --text-main: #1E293B;
+                              --text-light: #64748B;
+                              --bg-color: #F8FAFC;
+                              --card-radius: 20px;
+                    }
+
+                    html {
+                              scroll-behavior: smooth;
+                    }
+
+                    body {
+                              font-family: 'Prompt', sans-serif;
+                              background-color: var(--bg-color);
+                              color: var(--text-main);
+                              line-height: 1.6;
+                    }
+
+                    h1,
+                    h2,
+                    h3,
+                    h4,
+                    h5,
+                    h6 {
+                              font-weight: 600;
+                    }
+
+                    /* --- Modern Hero --- */
+                    .modern-hero {
+                              background: linear-gradient(135deg, #ffffff 0%, #f0f4ff 100%);
+                              position: relative;
+                              overflow: hidden;
+                              padding: 6rem 1.5rem 5rem;
+                    }
+
+                    .modern-hero::before {
+                              content: '';
+                              position: absolute;
+                              top: -10%;
+                              right: -10%;
+                              width: 600px;
+                              height: 600px;
+                              background: radial-gradient(circle, rgba(79, 70, 229, 0.08) 0%, rgba(255, 255, 255, 0) 70%);
+                              border-radius: 50%;
+                              z-index: 0;
+                    }
+
+                    .hero-chip {
+                              background: white;
+                              border: 1px solid #e2e8f0;
+                              padding: 0.5rem 1rem;
+                              border-radius: 50px;
+                              font-size: 0.85rem;
+                              color: var(--primary-color);
+                              font-weight: 500;
+                              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+                              display: inline-flex;
+                              align-items: center;
+                              gap: 0.5rem;
+                              margin-bottom: 1.5rem;
+                    }
+
+                    /* --- Feature Link Cards --- */
+                    .feature-card {
+                              display: block;
+                              /* Make anchor behave like block div */
+                              background: white;
+                              border-radius: var(--card-radius);
+                              padding: 2rem;
+                              height: 100%;
+                              border: 1px solid #f1f5f9;
+                              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+                              transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                              position: relative;
+                              overflow: hidden;
+                              text-decoration: none;
+                              /* Remove underline */
+                              color: inherit;
+                    }
+
+                    .feature-card:hover {
+                              transform: translateY(-5px);
+                              box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+                              border-color: var(--primary-color);
+                              color: inherit;
+                    }
+
+                    .card-icon-wrapper {
+                              width: 50px;
+                              height: 50px;
+                              border-radius: 14px;
+                              display: flex;
+                              align-items: center;
+                              justify-content: center;
+                              font-size: 1.5rem;
+                              margin-bottom: 1.5rem;
+                              transition: transform 0.3s ease;
+                    }
+
+                    .feature-card:hover .card-icon-wrapper {
+                              transform: scale(1.1);
+                    }
+
+                    .icon-member {
+                              background-color: #eff6ff;
+                              color: #3b82f6;
+                    }
+
+                    .icon-admin {
+                              background-color: #fef2f2;
+                              color: #ef4444;
+                    }
+
+                    .step-number {
+                              position: absolute;
+                              top: 1.5rem;
+                              right: 1.5rem;
+                              font-size: 3rem;
+                              font-weight: 700;
+                              color: #f1f5f9;
+                              line-height: 1;
+                              z-index: 0;
+                    }
+
+                    .card-content-wrapper {
+                              position: relative;
+                              z-index: 1;
+                    }
+
+                    .read-more-link {
+                              font-size: 0.85rem;
+                              font-weight: 500;
+                              color: var(--primary-color);
+                              margin-top: 1rem;
+                              display: inline-flex;
+                              align-items: center;
+                              opacity: 0.8;
+                              transition: opacity 0.2s;
+                    }
+
+                    .feature-card:hover .read-more-link {
+                              opacity: 1;
+                    }
+
+                    /* --- Navbar --- */
+                    .navbar {
+                              backdrop-filter: blur(10px);
+                              background-color: rgba(255, 255, 255, 0.9);
+                              border-bottom: 1px solid #f1f5f9;
+                    }
+
+                    /* --- List Styling --- */
+                    .check-list li {
+                              position: relative;
+                              padding-left: 1.5rem;
+                              margin-bottom: 0.5rem;
+                              color: var(--text-light);
+                              font-size: 0.9rem;
+                    }
+
+                    .check-list li::before {
+                              content: '\f00c';
+                              font-family: 'Font Awesome 6 Free';
+                              font-weight: 900;
+                              position: absolute;
+                              left: 0;
+                              top: 4px;
+                              color: #10b981;
+                              font-size: 0.8rem;
+                    }
+
+                    @media screen and (max-width: 768px) {
+                              .modern-hero {
+                                        padding-top: 5rem;
+                              }
+                    }
+          </style>
+</head>
+
+<body>
+
+          <nav class="navbar is-fixed-top" role="navigation" aria-label="main navigation">
+                    <div class="container">
+                              <div class="navbar-brand">
+                                        <a class="navbar-item has-text-weight-bold has-text-primary is-size-5" href="#">
+                                                  <i class="fas fa-graduation-cap mr-2"></i> MUMT CE
+                                        </a>
+                              </div>
+                              <div class="navbar-menu">
+                                        <div class="navbar-end">
+                                                  <a href="#member-guide" class="navbar-item">สำหรับผู้ใช้งาน</a>
+                                                  <a href="#admin-guide" class="navbar-item">สำหรับผู้ดูแล</a>
+                                        </div>
+                              </div>
+                    </div>
+          </nav>
+
+
+          <section class="modern-hero">
+                    <div class="container">
+                              <div class="columns is-vcentered">
+                                        <div class="column is-6">
+                                                  <div class="hero-chip">
+                                                            <i class="fas fa-rocket"></i> เวอร์ชันใหม่ 1.0
+                                                  </div>
+                                                  <h1 class="title is-1 is-size-2-mobile mb-4" style="color: #0f172a;">
+                                                            คู่มือการใช้งานระบบ<br>
+                                                            <span
+                                                                      style="color: var(--primary-color);">การศึกษาต่อเนื่อง</span>
+                                                  </h1>
+                                                  <p class="subtitle is-5 has-text-grey mb-6" style="line-height: 1.8;">
+                                                            แพลตฟอร์มบริหารจัดการคอร์สเรียนและกิจกรรมวิชาการครบวงจร
+                                                            สำหรับคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล
+                                                            (Registration, Payment & Certification)
+                                                  </p>
+                                                  <div class="buttons">
+                                                            <a href="#member-guide"
+                                                                      class="button is-primary is-rounded is-medium shadow-md">
+                                                                      <span>เริ่มต้นใช้งาน</span>
+                                                                      <span class="icon is-small ml-1"><i
+                                                                                          class="fas fa-arrow-right"></i></span>
+                                                            </a>
+                                                            <a href="#" class="button is-white is-rounded is-medium"
+                                                                      style="border: 1px solid #e2e8f0;">
+                                                                      <span class="icon"><i
+                                                                                          class="fab fa-youtube"></i></span>
+                                                                      <span>ดูวิดีโอแนะนำ</span>
+                                                            </a>
+                                                  </div>
+
+                                                  <div class="mt-5 is-flex is-align-items-center">
+                                                            <span class="is-size-7 has-text-grey mr-3">Supported
+                                                                      by:</span>
+                                                            <span class="tag is-light ml-1"><i
+                                                                                class="fab fa-google mr-1"></i>
+                                                                      OAuth</span>
+                                                            <span class="tag is-light ml-1"><i
+                                                                                class="fab fa-aws mr-1"></i> S3
+                                                                      Cloud</span>
+                                                            <span class="tag is-light ml-1"><i
+                                                                                class="fas fa-shield-alt mr-1"></i>
+                                                                      Secure</span>
+                                                  </div>
+                                        </div>
+
+                                        <div class="column is-6">
+                                                  <figure class="image">
+                                                            <div
+                                                                      style="background: white; border-radius: 20px; box-shadow: 0 20px 50px rgba(79, 70, 229, 0.15); padding: 2rem; border: 1px solid rgba(255,255,255,0.5);">
+                                                                      <div class="level mb-4">
+                                                                                <div class="level-left">
+                                                                                          <div>
+                                                                                                    <p class="heading">
+                                                                                                              System
+                                                                                                              Status</p>
+                                                                                                    <p
+                                                                                                              class="title is-6 has-text-success">
+                                                                                                              <i
+                                                                                                                        class="fas fa-circle is-size-7 mr-1"></i>
+                                                                                                              Online
+                                                                                                    </p>
+                                                                                          </div>
+                                                                                </div>
+                                                                                <div class="level-right">
+                                                                                          <span
+                                                                                                    class="icon has-text-grey-light"><i
+                                                                                                              class="fas fa-ellipsis-h"></i></span>
+                                                                                </div>
+                                                                      </div>
+                                                                      <div
+                                                                                style="background: #f8fafc; border-radius: 12px; padding: 1rem; margin-bottom: 1rem; display: flex; align-items: center;">
+                                                                                <div
+                                                                                          style="width: 40px; height: 40px; background: #e0e7ff; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #4338ca; margin-right: 1rem;">
+                                                                                          <i
+                                                                                                    class="fas fa-user-plus"></i>
+                                                                                </div>
+                                                                                <div>
+                                                                                          <p
+                                                                                                    class="has-text-weight-bold is-size-7">
+                                                                                                    New Registration</p>
+                                                                                          <p
+                                                                                                    class="is-size-7 has-text-grey">
+                                                                                                    Dr. Somchai
+                                                                                                    registered for
+                                                                                                    Immunology</p>
+                                                                                </div>
+                                                                      </div>
+                                                                      <div
+                                                                                style="background: #f8fafc; border-radius: 12px; padding: 1rem; display: flex; align-items: center;">
+                                                                                <div
+                                                                                          style="width: 40px; height: 40px; background: #dcfce7; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #15803d; margin-right: 1rem;">
+                                                                                          <i
+                                                                                                    class="fas fa-certificate"></i>
+                                                                                </div>
+                                                                                <div>
+                                                                                          <p
+                                                                                                    class="has-text-weight-bold is-size-7">
+                                                                                                    Certificate Issued
+                                                                                          </p>
+                                                                                          <p
+                                                                                                    class="is-size-7 has-text-grey">
+                                                                                                    Auto-generated for
+                                                                                                    150 attendees</p>
+                                                                                </div>
+                                                                      </div>
+                                                            </div>
+                                                  </figure>
+                                        </div>
+                              </div>
+                    </div>
+          </section>
+
+          <section id="member-guide" class="section">
+                    <div class="container">
+                              <div class="has-text-centered mb-6">
+                                        <span class="tag is-rounded is-light mb-2">User Guide</span>
+                                        <h2 class="title is-3">คู่มือผู้ใช้งานทั่วไป (Members)</h2>
+                                        <p class="subtitle is-6 has-text-grey">
+                                                  คลิกที่หัวข้อเพื่อดูรายละเอียดขั้นตอนการทำงาน</p>
+                              </div>
+
+                              <div class="columns is-multiline">
+                                        <div class="column is-4">
+                                                  <a href="member-registration.html" class="feature-card">
+                                                            <span class="step-number">01</span>
+                                                            <div class="card-content-wrapper">
+                                                                      <div class="card-icon-wrapper icon-member">
+                                                                                <i class="fas fa-id-card"></i>
+                                                                      </div>
+                                                                      <h3 class="title is-5">สมัครสมาชิก & เข้าสู่ระบบ
+                                                                      </h3>
+                                                                      <p class="has-text-grey is-size-6 mb-3">
+                                                                                การสร้างบัญชีผู้ใช้ใหม่
+                                                                                หรือการใช้งานผ่าน Google Account
+                                                                                (One-Tap)
+                                                                      </p>
+                                                                      <ul class="check-list">
+                                                                                <li>เข้าสู่ระบบด้วย Google</li>
+                                                                                <li>ยืนยันตัวตนผ่าน Email</li>
+                                                                      </ul>
+                                                                      <div class="read-more-link">
+                                                                                ดูขั้นตอนละเอียด <i
+                                                                                          class="fas fa-arrow-right ml-1"></i>
+                                                                      </div>
+                                                            </div>
+                                                  </a>
+                                        </div>
+
+                                        <div class="column is-4">
+                                                  <a href="#" class="feature-card">
+                                                            <span class="step-number">02</span>
+                                                            <div class="card-content-wrapper">
+                                                                      <div class="card-icon-wrapper icon-member">
+                                                                                <i class="fas fa-user-pen"></i>
+                                                                      </div>
+                                                                      <h3 class="title is-5">จัดการโปรไฟล์ & ที่อยู่
+                                                                      </h3>
+                                                                      <p class="has-text-grey is-size-6 mb-3">
+                                                                                การบันทึกข้อมูลส่วนตัวและจัดการที่อยู่สำหรับการออกใบเสร็จ
+                                                                      </p>
+                                                                      <ul class="check-list">
+                                                                                <li>ระบบค้นหาที่อยู่ไทยอัตโนมัติ</li>
+                                                                                <li>เพิ่ม/ลบที่อยู่จัดส่งเอกสาร</li>
+                                                                      </ul>
+                                                                      <div class="read-more-link">
+                                                                                ดูขั้นตอนละเอียด <i
+                                                                                          class="fas fa-arrow-right ml-1"></i>
+                                                                      </div>
+                                                            </div>
+                                                  </a>
+                                        </div>
+
+                                        <div class="column is-4">
+                                                  <a href="#" class="feature-card">
+                                                            <span class="step-number">03</span>
+                                                            <div class="card-content-wrapper">
+                                                                      <div class="card-icon-wrapper icon-member">
+                                                                                <i class="fas fa-magnifying-glass"></i>
+                                                                      </div>
+                                                                      <h3 class="title is-5">ค้นหาคอร์สและกิจกรรม</h3>
+                                                                      <p class="has-text-grey is-size-6 mb-3">
+                                                                                วิธีการค้นหาและตรวจสอบรายละเอียดกิจกรรมวิชาการที่น่าสนใจ
+                                                                      </p>
+                                                                      <ul class="check-list">
+                                                                                <li>การใช้ตัวกรอง (Filter)</li>
+                                                                                <li>ดูรายละเอียดคะแนน CE</li>
+                                                                      </ul>
+                                                                      <div class="read-more-link">
+                                                                                ดูขั้นตอนละเอียด <i
+                                                                                          class="fas fa-arrow-right ml-1"></i>
+                                                                      </div>
+                                                            </div>
+                                                  </a>
+                                        </div>
+
+                                        <div class="column is-6">
+                                                  <a href="#" class="feature-card">
+                                                            <span class="step-number">04</span>
+                                                            <div class="card-content-wrapper">
+                                                                      <div class="card-icon-wrapper icon-member">
+                                                                                <i class="fas fa-credit-card"></i>
+                                                                      </div>
+                                                                      <h3 class="title is-5">ลงทะเบียน & ชำระเงิน</h3>
+                                                                      <p class="has-text-grey is-size-6 mb-3">
+                                                                                ขั้นตอนการลงทะเบียนเรียน แนบสลิปโอนเงิน
+                                                                                และตรวจสอบสถานะ
+                                                                      </p>
+                                                                      <div class="read-more-link">
+                                                                                ดูขั้นตอนละเอียด <i
+                                                                                          class="fas fa-arrow-right ml-1"></i>
+                                                                      </div>
+                                                            </div>
+                                                  </a>
+                                        </div>
+
+                                        <div class="column is-6">
+                                                  <a href="#" class="feature-card">
+                                                            <span class="step-number">05</span>
+                                                            <div class="card-content-wrapper">
+                                                                      <div class="card-icon-wrapper icon-member">
+                                                                                <i class="fas fa-file-pdf"></i>
+                                                                      </div>
+                                                                      <h3 class="title is-5">ดาวน์โหลดใบประกาศนียบัตร
+                                                                      </h3>
+                                                                      <p class="has-text-grey is-size-6 mb-3">
+                                                                                วิธีการดาวน์โหลด E-Certificate
+                                                                                และเอกสารประกอบการเรียน
+                                                                      </p>
+                                                                      <div class="read-more-link">
+                                                                                ดูขั้นตอนละเอียด <i
+                                                                                          class="fas fa-arrow-right ml-1"></i>
+                                                                      </div>
+                                                            </div>
+                                                  </a>
+                                        </div>
+                              </div>
+                    </div>
+          </section>
+
+          <section id="admin-guide" class="section has-background-white-ter">
+                    <div class="container">
+                              <div class="has-text-centered mb-6">
+                                        <span class="tag is-rounded is-danger is-light mb-2">Admin Zone</span>
+                                        <h2 class="title is-3">คู่มือผู้ดูแลระบบ</h2>
+                              </div>
+                              <div class="has-text-centered">
+                                        <a href="#" class="button is-text">ดูรายการคู่มือสำหรับ Admin ทั้งหมด <i
+                                                            class="fas fa-arrow-right ml-1"></i></a>
+                              </div>
+                    </div>
+          </section>
+
+          <footer class="footer">
+                    <div class="content has-text-centered is-size-7 has-text-grey">
+                              <p>MUMT Continuing Education Platform Documentation</p>
+                    </div>
+          </footer>
+
+</body>
+
+</html>

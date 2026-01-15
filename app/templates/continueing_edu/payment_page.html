@@ -1,0 +1,798 @@
+{% extends "continueing_edu/base_frontend.html" %}
+
+{% block title %}{{ texts.get('university_name', 'มหาวิทยาลัยมหิดล') }} - Payment{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+          body {
+                    font-family: 'Inter', sans-serif;
+                    background-color: #f8fafc;
+          }
+
+          .page-title {
+                    font-size: 2rem;
+                    font-weight: 700;
+                    color: #1f2937;
+                    margin-bottom: 2rem;
+                    padding-bottom: 1rem;
+                    border-bottom: 2px solid #e5e7eb;
+          }
+
+          .payment-card {
+                    background: white;
+                    border-radius: 0.75rem;
+                    padding: 2rem;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                    margin-bottom: 1.5rem;
+          }
+
+          .payment-option {
+                    background: white;
+                    border: 2px solid #e5e7eb;
+                    border-radius: 0.75rem;
+                    padding: 1.5rem;
+                    margin-bottom: 1rem;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+          }
+
+          .payment-option:hover {
+                    border-color: #4338ca;
+                    box-shadow: 0 4px 12px rgba(67, 56, 202, 0.15);
+                    transform: translateY(-2px);
+          }
+
+          .payment-option.selected {
+                    border-color: #4338ca;
+                    background-color: #eef2ff;
+          }
+
+          .payment-option-header {
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 0.75rem;
+          }
+
+          .payment-option-icon {
+                    font-size: 2rem;
+                    margin-right: 1rem;
+                    color: #4338ca;
+          }
+
+          .payment-option-title {
+                    font-size: 1.25rem;
+                    font-weight: 600;
+                    color: #1f2937;
+          }
+
+          .payment-option-description {
+                    color: #6b7280;
+                    font-size: 0.875rem;
+                    margin-left: 3rem;
+          }
+
+          .order-summary {
+                    background: #f9fafb;
+                    border-radius: 0.75rem;
+                    padding: 1.5rem;
+                    margin-top: 1.5rem;
+          }
+
+          .summary-row {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 0.75rem 0;
+                    border-bottom: 1px solid #e5e7eb;
+          }
+
+          .summary-row:last-child {
+                    border-bottom: none;
+                    font-weight: 700;
+                    font-size: 1.25rem;
+                    color: #4338ca;
+                    padding-top: 1rem;
+          }
+
+          .qr-code-container {
+                    text-align: center;
+                    padding: 2rem;
+                    background: white;
+                    border-radius: 0.75rem;
+                    margin-top: 1rem;
+          }
+
+          .qr-code-container img {
+                    max-width: 300px;
+                    margin: 0 auto;
+          }
+
+          .bank-details {
+                    background: #f9fafb;
+                    border-left: 4px solid #4338ca;
+                    padding: 1.5rem;
+                    border-radius: 0.5rem;
+                    margin-top: 1rem;
+          }
+
+          .bank-details-row {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 0.5rem 0;
+          }
+
+          .bank-details-label {
+                    font-weight: 600;
+                    color: #4b5563;
+          }
+
+          .bank-details-value {
+                    color: #1f2937;
+                    font-family: 'Courier New', monospace;
+          }
+
+          .action-button {
+                    width: 100%;
+                    padding: 1rem;
+                    font-size: 1.125rem;
+                    font-weight: 600;
+                    border-radius: 0.5rem;
+                    border: none;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    margin-top: 1rem;
+          }
+
+          .btn-primary {
+                    background: linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
+                    color: white;
+          }
+
+          .btn-primary:hover {
+                    background: linear-gradient(135deg, #3730a3 0%, #4f46e5 100%);
+                    transform: translateY(-2px);
+                    box-shadow: 0 10px 20px rgba(67, 56, 202, 0.3);
+          }
+
+          .btn-secondary {
+                    background: white;
+                    color: #4338ca;
+                    border: 2px solid #4338ca;
+          }
+
+          .btn-secondary:hover {
+                    background: #eef2ff;
+          }
+
+          .payment-detail-section {
+                    display: none;
+                    margin-top: 1.5rem;
+                    padding-top: 1.5rem;
+                    border-top: 2px solid #e5e7eb;
+          }
+
+          .payment-detail-section.active {
+                    display: block;
+                    animation: fadeIn 0.3s ease-in;
+          }
+
+          @keyframes fadeIn {
+                    from {
+                              opacity: 0;
+                              transform: translateY(-10px);
+                    }
+
+                    to {
+                              opacity: 1;
+                              transform: translateY(0);
+                    }
+          }
+
+          .upload-area {
+                    border: 2px dashed #d1d5db;
+                    border-radius: 0.5rem;
+                    padding: 2rem;
+                    text-align: center;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    margin-top: 1rem;
+          }
+
+          .upload-area:hover {
+                    border-color: #4338ca;
+                    background-color: #f9fafb;
+          }
+
+          .upload-area.dragover {
+                    border-color: #4338ca;
+                    background-color: #eef2ff;
+          }
+
+          .alert {
+                    padding: 1rem;
+                    border-radius: 0.5rem;
+                    margin-bottom: 1rem;
+          }
+
+          .alert-info {
+                    background-color: #dbeafe;
+                    color: #1e40af;
+                    border-left: 4px solid #3b82f6;
+          }
+
+          .alert-warning {
+                    background-color: #fef3c7;
+                    color: #92400e;
+                    border-left: 4px solid #f59e0b;
+          }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section">
+          <div class="container">
+                    <!-- Page Title -->
+                    <h1 class="page-title">
+                              <i class="fas fa-credit-card mr-2"></i>
+                              {{ texts.get('payment_title', 'Payment' if current_lang == 'en' else 'ชำระเงิน') }}
+                    </h1>
+
+                    <div class="columns">
+                              <!-- Payment Options -->
+                              <div class="column is-8">
+                                        <div class="payment-card">
+                                                  <h2 class="title is-4 mb-4">
+                                                            {{ texts.get('select_payment_method', 'Select Payment
+                                                            Method' if current_lang == 'en' else 'เลือกวิธีการชำระเงิน')
+                                                            }}
+                                                  </h2>
+
+                                                  <!-- Alert for pending payment -->
+                                                  {% if payment.payment_status_ref.register_payment_status_code ==
+                                                  'pending' %}
+                                                  <div class="alert alert-info">
+                                                            <i class="fas fa-info-circle mr-2"></i>
+                                                            {{ texts.get('payment_pending_message', 'Your registration
+                                                            is pending payment. Please complete payment to confirm your
+                                                            registration.' if current_lang == 'en' else
+                                                            'การลงทะเบียนของคุณรอการชำระเงิน
+                                                            กรุณาชำระเงินเพื่อยืนยันการลงทะเบียน') }}
+                                                  </div>
+                                                  {% endif %}
+
+                                                  <!-- Payment Options -->
+                                                  <div id="paymentOptions">
+                                                            <!-- Option 1: QR Code Payment (PromptPay) -->
+                                                            {% if promptpay_id %}
+                                                            <div class="payment-option" data-method="qrcode"
+                                                                      onclick="selectPaymentMethod('qrcode')">
+                                                                      <div class="payment-option-header">
+                                                                                <i
+                                                                                          class="fas fa-qrcode payment-option-icon"></i>
+                                                                                <div>
+                                                                                          <div
+                                                                                                    class="payment-option-title">
+                                                                                                    {{
+                                                                                                    texts.get('qr_payment',
+                                                                                                    'QR Code Payment
+                                                                                                    (PromptPay)' if
+                                                                                                    current_lang == 'en'
+                                                                                                    else 'ชำระเงินผ่าน
+                                                                                                    QR Code
+                                                                                                    (พร้อมเพย์)') }}
+                                                                                          </div>
+                                                                                          <div
+                                                                                                    class="payment-option-description">
+                                                                                                    {{
+                                                                                                    texts.get('qr_payment_desc',
+                                                                                                    'Scan QR code with
+                                                                                                    mobile banking app'
+                                                                                                    if current_lang ==
+                                                                                                    'en' else 'สแกน QR
+                                                                                                    Code
+                                                                                                    ด้วยแอปธนาคารมือถือของคุณ')
+                                                                                                    }}
+                                                                                          </div>
+                                                                                </div>
+                                                                      </div>
+                                                            </div>
+                                                            {% endif %}
+
+                                                            <!-- Option 2: Bank Transfer -->
+                                                            {% if bank_info %}
+                                                            <div class="payment-option" data-method="transfer"
+                                                                      onclick="selectPaymentMethod('transfer')">
+                                                                      <div class="payment-option-header">
+                                                                                <i
+                                                                                          class="fas fa-university payment-option-icon"></i>
+                                                                                <div>
+                                                                                          <div
+                                                                                                    class="payment-option-title">
+                                                                                                    {{
+                                                                                                    texts.get('bank_transfer',
+                                                                                                    'Bank Transfer' if
+                                                                                                    current_lang == 'en'
+                                                                                                    else
+                                                                                                    'โอนเงินผ่านธนาคาร')
+                                                                                                    }}
+                                                                                          </div>
+                                                                                          <div
+                                                                                                    class="payment-option-description">
+                                                                                                    {{
+                                                                                                    texts.get('bank_transfer_desc',
+                                                                                                    'Transfer directly
+                                                                                                    to our bank account'
+                                                                                                    if current_lang ==
+                                                                                                    'en' else
+                                                                                                    'โอนเงินโดยตรงเข้าบัญชีธนาคารของเรา')
+                                                                                                    }}
+                                                                                          </div>
+                                                                                </div>
+                                                                      </div>
+                                                            </div>
+                                                            {% endif %}
+
+                                                            <!-- Option 3: Online Payment Gateway -->
+                                                            {% if payment_gateway_url %}
+                                                            <div class="payment-option" data-method="gateway"
+                                                                      onclick="selectPaymentMethod('gateway')">
+                                                                      <div class="payment-option-header">
+                                                                                <i
+                                                                                          class="fas fa-credit-card payment-option-icon"></i>
+                                                                                <div>
+                                                                                          <div
+                                                                                                    class="payment-option-title">
+                                                                                                    {{
+                                                                                                    texts.get('online_payment',
+                                                                                                    'Online Payment' if
+                                                                                                    current_lang == 'en'
+                                                                                                    else
+                                                                                                    'ชำระเงินออนไลน์')
+                                                                                                    }}
+                                                                                          </div>
+                                                                                          <div
+                                                                                                    class="payment-option-description">
+                                                                                                    {{
+                                                                                                    texts.get('online_payment_desc',
+                                                                                                    'Pay with
+                                                                                                    credit/debit card'
+                                                                                                    if current_lang ==
+                                                                                                    'en' else
+                                                                                                    'ชำระด้วยบัตรเครดิต/เดบิต')
+                                                                                                    }}
+                                                                                          </div>
+                                                                                </div>
+                                                                      </div>
+                                                            </div>
+                                                            {% endif %}
+
+                                                            <!-- Option 4: Download Invoice -->
+                                                            <div class="payment-option" data-method="invoice"
+                                                                      onclick="selectPaymentMethod('invoice')">
+                                                                      <div class="payment-option-header">
+                                                                                <i
+                                                                                          class="fas fa-file-invoice payment-option-icon"></i>
+                                                                                <div>
+                                                                                          <div
+                                                                                                    class="payment-option-title">
+                                                                                                    {{
+                                                                                                    texts.get('download_invoice',
+                                                                                                    'Download Invoice'
+                                                                                                    if current_lang ==
+                                                                                                    'en' else
+                                                                                                    'ดาวน์โหลดใบแจ้งหนี้')
+                                                                                                    }}
+                                                                                          </div>
+                                                                                          <div
+                                                                                                    class="payment-option-description">
+                                                                                                    {{
+                                                                                                    texts.get('download_invoice_desc',
+                                                                                                    'Download invoice
+                                                                                                    for payment later'
+                                                                                                    if current_lang ==
+                                                                                                    'en' else
+                                                                                                    'ดาวน์โหลดใบแจ้งหนี้เพื่อชำระในภายหลัง')
+                                                                                                    }}
+                                                                                          </div>
+                                                                                </div>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+
+                                                  <!-- Payment Details Sections -->
+                                                  <!-- QR Code Section -->
+                                                  {% if promptpay_id %}
+                                                  <div id="qrcode-details" class="payment-detail-section">
+                                                            <h3 class="title is-5">
+                                                                      {{ texts.get('qr_scan_instruction', 'Scan QR Code
+                                                                      to Pay' if current_lang == 'en' else 'สแกน QR Code
+                                                                      เพื่อชำระเงิน') }}
+                                                            </h3>
+                                                            <div class="qr-code-container">
+                                                                      {% if payment_qr_url %}
+                                                                      <img src="{{ payment_qr_url }}"
+                                                                                alt="QR Code Payment" class="image">
+                                                                      {% else %}
+                                                                      <div class="notification is-warning">
+                                                                                {{ texts.get('qr_unavailable', 'QR Code
+                                                                                is currently unavailable' if
+                                                                                current_lang == 'en' else 'QR Code
+                                                                                ไม่พร้อมใช้งานขณะนี้') }}
+                                                                      </div>
+                                                                      {% endif %}
+                                                                      <p class="mt-4 has-text-grey">
+                                                                                {{ texts.get('qr_amount_info', 'Amount:
+                                                                                ' if current_lang == 'en' else
+                                                                                'จำนวนเงิน: ') }}
+                                                                                <strong
+                                                                                          class="has-text-primary is-size-4">{{
+                                                                                          "{:,.2f}".format(payment.payment_amount)
+                                                                                          }} THB</strong>
+                                                                      </p>
+                                                                      <p class="mt-2 has-text-grey-light is-size-7">
+                                                                                {{ texts.get('promptpay_id', 'PromptPay
+                                                                                ID: ' if current_lang == 'en' else
+                                                                                'หมายเลขพร้อมเพย์: ') }} {{ promptpay_id
+                                                                                }}
+                                                                      </p>
+                                                            </div>
+                                                            <div class="alert alert-warning mt-4">
+                                                                      <i class="fas fa-exclamation-triangle mr-2"></i>
+                                                                      {{ texts.get('upload_proof_reminder', 'After
+                                                                      payment, please upload payment proof below' if
+                                                                      current_lang == 'en' else 'หลังจากชำระเงินแล้ว
+                                                                      กรุณาอัปโหลดหลักฐานการชำระเงินด้านล่าง') }}
+                                                            </div>
+
+                                                            <!-- Upload Proof Form -->
+                                                            <form action="{{ url_for('continuing_edu.upload_proof', payment_id=payment.id, lang=current_lang) }}"
+                                                                      method="POST" enctype="multipart/form-data"
+                                                                      id="uploadProofForm">
+                                                                      <div class="upload-area" id="uploadArea">
+                                                                                <i
+                                                                                          class="fas fa-cloud-upload-alt fa-3x has-text-grey-light mb-3"></i>
+                                                                                <p class="has-text-weight-semibold">
+                                                                                          {{ texts.get('click_or_drag',
+                                                                                          'Click to upload or drag and
+                                                                                          drop' if current_lang == 'en'
+                                                                                          else
+                                                                                          'คลิกเพื่ออัปโหลดหรือลากไฟล์มาวาง')
+                                                                                          }}
+                                                                                </p>
+                                                                                <p class="is-size-7 has-text-grey">{{
+                                                                                          texts.get('supported_formats',
+                                                                                          'Supported: JPG, PNG, PDF (max
+                                                                                          5MB)' if current_lang == 'en'
+                                                                                          else 'รองรับ: JPG, PNG, PDF
+                                                                                          (ไม่เกิน 5MB)') }}</p>
+                                                                                <input type="file" name="proof_file"
+                                                                                          id="proofFile"
+                                                                                          accept="image/*,.pdf"
+                                                                                          style="display: none;"
+                                                                                          required>
+                                                                      </div>
+                                                                      <div id="fileInfo" class="mt-3"
+                                                                                style="display: none;">
+                                                                                <p class="has-text-success">
+                                                                                          <i
+                                                                                                    class="fas fa-check-circle mr-2"></i>
+                                                                                          <span id="fileName"></span>
+                                                                                </p>
+                                                                      </div>
+                                                                      <button type="submit"
+                                                                                class="action-button btn-primary">
+                                                                                <i class="fas fa-upload mr-2"></i>
+                                                                                {{ texts.get('upload_proof', 'Upload
+                                                                                Payment Proof' if current_lang == 'en'
+                                                                                else 'อัปโหลดหลักฐานการชำระเงิน') }}
+                                                                      </button>
+                                                            </form>
+                                                  </div>
+                                                  {% endif %}
+
+                                                  <!-- Bank Transfer Section -->
+                                                  {% if bank_info %}
+                                                  <div id="transfer-details" class="payment-detail-section">
+                                                            <h3 class="title is-5">
+                                                                      {{ texts.get('bank_transfer_details', 'Bank
+                                                                      Account Details' if current_lang == 'en' else
+                                                                      'รายละเอียดบัญชีธนาคาร') }}
+                                                            </h3>
+                                                            <div class="bank-details">
+                                                                      {{ bank_info | safe }}
+                                                            </div>
+                                                            {% if payment_instructions %}
+                                                            <div class="notification is-info is-light mt-4">
+                                                                      <strong>{{ texts.get('instructions',
+                                                                                'Instructions:' if current_lang == 'en'
+                                                                                else 'คำแนะนำ:') }}</strong>
+                                                                      <div class="content mt-2">
+                                                                                {{ payment_instructions | safe }}
+                                                                      </div>
+                                                            </div>
+                                                            {% endif %}
+
+                                                            <!-- Upload Proof Form -->
+                                                            <form action="{{ url_for('continuing_edu.upload_proof', payment_id=payment.id, lang=current_lang) }}"
+                                                                      method="POST" enctype="multipart/form-data">
+                                                                      <div class="upload-area" id="uploadAreaTransfer">
+                                                                                <i
+                                                                                          class="fas fa-cloud-upload-alt fa-3x has-text-grey-light mb-3"></i>
+                                                                                <p class="has-text-weight-semibold">
+                                                                                          {{
+                                                                                          texts.get('upload_transfer_slip',
+                                                                                          'Upload Transfer Slip' if
+                                                                                          current_lang == 'en' else
+                                                                                          'อัปโหลดสลิปโอนเงิน') }}
+                                                                                </p>
+                                                                                <p class="is-size-7 has-text-grey">{{
+                                                                                          texts.get('supported_formats',
+                                                                                          'Supported: JPG, PNG, PDF (max
+                                                                                          5MB)' if current_lang == 'en'
+                                                                                          else 'รองรับ: JPG, PNG, PDF
+                                                                                          (ไม่เกิน 5MB)') }}</p>
+                                                                                <input type="file" name="proof_file"
+                                                                                          accept="image/*,.pdf"
+                                                                                          style="display: none;"
+                                                                                          required>
+                                                                      </div>
+                                                                      <button type="submit"
+                                                                                class="action-button btn-primary">
+                                                                                <i class="fas fa-upload mr-2"></i>
+                                                                                {{ texts.get('upload_proof', 'Upload
+                                                                                Payment Proof' if current_lang == 'en'
+                                                                                else 'อัปโหลดหลักฐานการชำระเงิน') }}
+                                                                      </button>
+                                                            </form>
+                                                  </div>
+                                                  {% endif %}
+
+                                                  <!-- Online Payment Gateway Section -->
+                                                  {% if payment_gateway_url %}
+                                                  <div id="gateway-details" class="payment-detail-section">
+                                                            <h3 class="title is-5">
+                                                                      {{ texts.get('online_payment_gateway', 'Online
+                                                                      Payment Gateway' if current_lang == 'en' else
+                                                                      'ช่องทางชำระเงินออนไลน์') }}
+                                                            </h3>
+                                                            <p class="mb-4">
+                                                                      {{ texts.get('gateway_instruction', 'You will be
+                                                                      redirected to secure payment gateway to complete
+                                                                      your payment.' if current_lang == 'en' else
+                                                                      'คุณจะถูกนำไปยังช่องทางชำระเงินที่ปลอดภัยเพื่อดำเนินการชำระเงิน')
+                                                                      }}
+                                                            </p>
+                                                            <a href="{{ payment_gateway_url }}?payment_id={{ payment.id }}&amount={{ payment.payment_amount }}"
+                                                                      class="action-button btn-primary" target="_blank">
+                                                                      <i class="fas fa-external-link-alt mr-2"></i>
+                                                                      {{ texts.get('proceed_to_gateway', 'Proceed to
+                                                                      Payment Gateway' if current_lang == 'en' else
+                                                                      'ไปยังหน้าชำระเงิน') }}
+                                                            </a>
+                                                  </div>
+                                                  {% endif %}
+
+                                                  <!-- Download Invoice Section -->
+                                                  <div id="invoice-details" class="payment-detail-section">
+                                                            <h3 class="title is-5">
+                                                                      {{ texts.get('invoice_download', 'Download
+                                                                      Invoice' if current_lang == 'en' else
+                                                                      'ดาวน์โหลดใบแจ้งหนี้') }}
+                                                            </h3>
+                                                            <p class="mb-4">
+                                                                      {{ texts.get('invoice_instruction', 'Download
+                                                                      invoice for payment reference. You can pay later
+                                                                      and upload payment proof.' if current_lang == 'en'
+                                                                      else 'ดาวน์โหลดใบแจ้งหนี้เพื่อใช้อ้างอิง
+                                                                      คุณสามารถชำระในภายหลังและอัปโหลดหลักฐานการชำระเงิน')
+                                                                      }}
+                                                            </p>
+                                                            <a href="{{ url_for('continuing_edu.view_invoice', payment_id=payment.id, lang=current_lang) }}"
+                                                                      class="action-button btn-secondary"
+                                                                      target="_blank">
+                                                                      <i class="fas fa-eye mr-2"></i>
+                                                                      {{ texts.get('view_invoice', 'View Invoice' if
+                                                                      current_lang == 'en' else 'ดูใบแจ้งหนี้') }}
+                                                            </a>
+                                                            <a href="{{ url_for('continuing_edu.download_invoice_pdf', payment_id=payment.id, lang=current_lang) }}"
+                                                                      class="action-button btn-primary">
+                                                                      <i class="fas fa-download mr-2"></i>
+                                                                      {{ texts.get('download_pdf', 'Download PDF' if
+                                                                      current_lang == 'en' else 'ดาวน์โหลด PDF') }}
+                                                            </a>
+                                                  </div>
+                                        </div>
+                              </div>
+
+                              <!-- Order Summary -->
+                              <div class="column is-4">
+                                        <div class="payment-card">
+                                                  <h3 class="title is-5 mb-4">
+                                                            {{ texts.get('order_summary', 'Order Summary' if
+                                                            current_lang == 'en' else 'สรุปการสั่งซื้อ') }}
+                                                  </h3>
+
+                                                  <!-- Course/Event Info -->
+                                                  <div class="mb-4">
+                                                            <p class="has-text-weight-semibold">{{ event.title_th if
+                                                                      current_lang == 'th' else event.title_en }}</p>
+                                                            {% if event.event_type %}
+                                                            <p class="is-size-7 has-text-grey">
+                                                                      <i class="fas fa-tag mr-1"></i>
+                                                                      {{ event.event_type.upper() if current_lang ==
+                                                                      'en' else ('หลักสูตร' if event.event_type ==
+                                                                      'course' else 'สัมมนา') }}
+                                                            </p>
+                                                            {% endif %}
+                                                  </div>
+
+                                                  <!-- Member Info -->
+                                                  <div class="mb-4 pb-4" style="border-bottom: 1px solid #e5e7eb;">
+                                                            <p class="is-size-7 has-text-grey mb-1">
+                                                                      {{ texts.get('registered_by', 'Registered by:' if
+                                                                      current_lang == 'en' else 'ลงทะเบียนโดย:') }}
+                                                            </p>
+                                                            <p class="has-text-weight-semibold">{{ member.first_name_en
+                                                                      }} {{ member.last_name_en }}</p>
+                                                            <p class="is-size-7">{{ member.email }}</p>
+                                                  </div>
+
+                                                  <!-- Payment Summary -->
+                                                  <div class="order-summary">
+                                                            <div class="summary-row">
+                                                                      <span>{{ texts.get('registration_fee',
+                                                                                'Registration Fee:' if current_lang ==
+                                                                                'en' else 'ค่าลงทะเบียน:') }}</span>
+                                                                      <span>{{ "{:,.2f}".format(payment.payment_amount)
+                                                                                }} THB</span>
+                                                            </div>
+                                                            <div class="summary-row">
+                                                                      <span>{{ texts.get('total_amount', 'Total Amount:'
+                                                                                if current_lang == 'en' else
+                                                                                'ยอดรวมทั้งหมด:') }}</span>
+                                                                      <span>{{ "{:,.2f}".format(payment.payment_amount)
+                                                                                }} THB</span>
+                                                            </div>
+                                                  </div>
+
+                                                  <!-- Payment Status -->
+                                                  <div class="mt-4">
+                                                            <p class="is-size-7 has-text-grey mb-2">
+                                                                      {{ texts.get('payment_status', 'Payment Status:'
+                                                                      if current_lang == 'en' else 'สถานะการชำระเงิน:')
+                                                                      }}
+                                                            </p>
+                                                            <span class="tag is-warning is-medium">
+                                                                      <i class="fas fa-clock mr-2"></i>
+                                                                      {{ payment.payment_status_ref.name_th if
+                                                                      current_lang == 'th' else
+                                                                      payment.payment_status_ref.name_en }}
+                                                            </span>
+                                                  </div>
+
+                                                  <!-- Additional Actions -->
+                                                  <div class="mt-4 pt-4" style="border-top: 1px solid #e5e7eb;">
+                                                            <a href="{{ url_for('continuing_edu.my_payments', lang=current_lang) }}"
+                                                                      class="button is-light is-fullwidth">
+                                                                      <i class="fas fa-list mr-2"></i>
+                                                                      {{ texts.get('view_all_payments', 'View All
+                                                                      Payments' if current_lang == 'en' else
+                                                                      'ดูการชำระเงินทั้งหมด') }}
+                                                            </a>
+                                                  </div>
+                                        </div>
+                              </div>
+                    </div>
+          </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+          // Payment method selection
+          let selectedMethod = null;
+
+          function selectPaymentMethod(method) {
+                    // Remove selected class from all options
+                    document.querySelectorAll('.payment-option').forEach(option => {
+                              option.classList.remove('selected');
+                    });
+
+                    // Hide all detail sections
+                    document.querySelectorAll('.payment-detail-section').forEach(section => {
+                              section.classList.remove('active');
+                    });
+
+                    // Add selected class to clicked option
+                    const selectedOption = document.querySelector(`[data-method="${method}"]`);
+                    if (selectedOption) {
+                              selectedOption.classList.add('selected');
+                    }
+
+                    // Show corresponding detail section
+                    const detailSection = document.getElementById(`${method}-details`);
+                    if (detailSection) {
+                              detailSection.classList.add('active');
+                    }
+
+                    selectedMethod = method;
+          }
+
+          // File upload handling
+          document.addEventListener('DOMContentLoaded', function () {
+                    // Handle upload area clicks
+                    const uploadAreas = document.querySelectorAll('.upload-area');
+                    uploadAreas.forEach(area => {
+                              area.addEventListener('click', function () {
+                                        const fileInput = this.querySelector('input[type="file"]');
+                                        if (fileInput) {
+                                                  fileInput.click();
+                                        }
+                              });
+
+                              // Handle drag and drop
+                              area.addEventListener('dragover', function (e) {
+                                        e.preventDefault();
+                                        this.classList.add('dragover');
+                              });
+
+                              area.addEventListener('dragleave', function () {
+                                        this.classList.remove('dragover');
+                              });
+
+                              area.addEventListener('drop', function (e) {
+                                        e.preventDefault();
+                                        this.classList.remove('dragover');
+                                        const fileInput = this.querySelector('input[type="file"]');
+                                        if (fileInput && e.dataTransfer.files.length > 0) {
+                                                  fileInput.files = e.dataTransfer.files;
+                                                  handleFileSelect(fileInput);
+                                        }
+                              });
+                    });
+
+                    // Handle file selection
+                    const fileInputs = document.querySelectorAll('input[type="file"]');
+                    fileInputs.forEach(input => {
+                              input.addEventListener('change', function () {
+                                        handleFileSelect(this);
+                              });
+                    });
+          });
+
+          function handleFileSelect(input) {
+                    const file = input.files[0];
+                    if (file) {
+                              const fileInfo = document.getElementById('fileInfo');
+                              const fileName = document.getElementById('fileName');
+                              if (fileInfo && fileName) {
+                                        fileName.textContent = file.name;
+                                        fileInfo.style.display = 'block';
+                              }
+
+                              // Validate file size (5MB max)
+                              if (file.size > 5 * 1024 * 1024) {
+                                        alert('{{ texts.get("file_too_large", "File size exceeds 5MB limit" if current_lang == "en" else "ขนาดไฟล์เกิน 5MB") }}');
+                                        input.value = '';
+                                        if (fileInfo) {
+                                                  fileInfo.style.display = 'none';
+                                        }
+                              }
+                    }
+          }
+
+          // Navbar burger toggle
+          const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+          if ($navbarBurgers.length > 0) {
+                    $navbarBurgers.forEach(el => {
+                              el.addEventListener('click', () => {
+                                        const target = el.dataset.target;
+                                        const $target = document.getElementById(target);
+                                        el.classList.toggle('is-active');
+                                        $target.classList.toggle('is-active');
+                              });
+                    });
+          }
+</script>
+{% endblock %}

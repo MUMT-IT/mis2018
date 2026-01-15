@@ -1,0 +1,238 @@
+{% extends "continuing_edu/base_frontend.html" %}
+
+{% block title %}{{ texts.university_name }} - {{ texts.login_page_title }}{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+    }
+
+    .modern-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: var(--card-shadow);
+        max-width: 520px;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .card-body {
+        padding: 2rem 2.5rem;
+    }
+
+    .modern-input {
+        border: 2px solid #e0e7ff;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: white;
+        width: 100%;
+    }
+
+    .modern-input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        outline: none;
+    }
+
+    .modern-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .password-toggle-wrapper {
+        position: relative;
+    }
+
+    .password-toggle-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #9ca3af;
+        z-index: 10;
+        padding: 8px;
+    }
+
+    .btn-primary {
+        background: var(--primary-gradient);
+        border: none;
+        color: white;
+        padding: 0.875rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        width: 100%;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+    }
+
+    .hero {
+        background: var(--primary-gradient);
+        padding: 1.25rem 1.25rem;
+        text-align: center;
+        color: white;
+    }
+
+    .hero-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section py-16">
+    <div class="container is-max-desktop">
+        <!-- <h1 class="title is-2 has-text-centered mb-6 has-text-gray-800 rounded-md">{{ texts.login_page_title }}</h1> -->
+
+        <div class="modern-card mx-auto animate-in">
+            <div class="hero">
+                <div class="hero-title">{{ texts.login_page_title }}</div>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('continuing_edu.login', lang=current_lang) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    {% if next %}
+                    <input type="hidden" name="next" value="{{ next }}" />
+                    {% endif %}
+                    <div class="field" style="margin-bottom:1rem;">
+                        <label class="modern-label">
+                            <i class="fas fa-envelope field-icon"></i>
+                            {{ 'อีเมล' if current_lang == 'th' else 'Email' }}
+                        </label>
+                        <input type="email" id="email" name="email" class="modern-input"
+                            placeholder="{{ 'your.email@example.com' if current_lang == 'en' else 'อีเมลของคุณ' }}"
+                            required />
+                    </div>
+
+                    <div class="field" style="margin-bottom:1.25rem;">
+                        <label class="modern-label">
+                            <i class="fas fa-lock field-icon"></i>
+                            {{ texts.password_label }}
+                        </label>
+                        <div class="password-toggle-wrapper">
+                            <input type="password" id="password" name="password" class="modern-input"
+                                placeholder="{{ texts.password_label }}" required />
+                            <i class="fas fa-eye password-toggle-icon" id="toggle-password"
+                                title="{{ texts.get('show_password', 'แสดงรหัสผ่าน' if current_lang == 'th' else 'Show password') }}"></i>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-sign-in-alt" style="margin-right:0.5rem"></i> {{ texts.login_btn }}
+                        </button>
+                    </div>
+
+
+                </form>
+                <p class="has-text-centered" style="margin-top:1rem">
+                    {{ texts.no_account_yet }} <a href="{{ url_for('continuing_edu.register', lang=current_lang) }}"
+                        class="has-text-indigo-700">{{ texts.register_btn }}</a>
+                </p>
+                <p class="has-text-centered" style="margin-top:0.5rem">
+                    <a href="{{ url_for('continuing_edu.forgot_password', lang=current_lang) }}"
+                        class="has-text-grey-dark">
+                        <i class="fas fa-key" style="margin-right:0.35rem"></i> {{ 'ลืมรหัสผ่าน?' if current_lang=='th'
+                        else 'Forgot your password?' }}
+                    </a>
+                </p>
+                <!-- 
+                <div style="display: flex; align-items: center; margin: 1.5rem 0;">
+                    <div style="flex: 1; border-bottom: 1px solid #e5e7eb;"></div>
+                    <span style="padding: 0 1rem; color: #6b7280; font-size: 0.875rem;">{{ 'หรือ' if current_lang ==
+                        'th' else 'OR' }}</span>
+                    <div style="flex: 1; border-bottom: 1px solid #e5e7eb;"></div>
+                </div> -->
+
+                <!-- <div class="has-text-centered mt-3">
+                    <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline"
+                        data-text="continue_with" data-size="large" data-logo_alignment="center"
+                        data-client_id="206836986017-1dctro1ehrqta2r91e5appn5j78spn9h.apps.googleusercontent.com"
+                        data-ux_mode="popup" data-callback="handleCredentialResponse">
+                    </div>
+                </div> -->
+            </div>
+        </div>
+    </div>
+</section>
+
+<div id="g_id_onload" data-client_id="206836986017-1dctro1ehrqta2r91e5appn5j78spn9h.apps.googleusercontent.com"
+    data-context="signin" data-ux_mode="popup" data-callback="handleCredentialResponse" data-auto_prompt="false">
+</div>
+{% endblock %}
+
+{% block extra_js %}
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+    function triggerOneTap() {
+        google.accounts.id.initialize({
+            client_id: "206836986017-1dctro1ehrqta2r91e5appn5j78spn9h.apps.googleusercontent.com",
+            callback: handleCredentialResponse
+        });
+        google.accounts.id.prompt();
+    }
+
+    function handleCredentialResponse(response) {
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = "{{ url_for('continuing_edu.callback', lang=current_lang) }}";
+        form.innerHTML = `<input type="hidden" name="lang" value="${current_lang}">`;
+
+
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "credential";
+        input.value = response.credential;
+
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const togglePassword = document.getElementById('toggle-password');
+        const passwordInput = document.getElementById('password');
+        if (togglePassword && passwordInput) {
+            togglePassword.addEventListener('click', function () {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                if (type === 'text') {
+                    this.classList.remove('fa-eye');
+                    this.classList.add('fa-eye-slash');
+                    this.setAttribute('title', '{{ texts.get("hide_password", "ซ่อนรหัสผ่าน" if current_lang == "th" else "Hide password") }}');
+                } else {
+                    this.classList.remove('fa-eye-slash');
+                    this.classList.add('fa-eye');
+                    this.setAttribute('title', '{{ texts.get("show_password", "แสดงรหัสผ่าน" if current_lang == "th" else "Show password") }}');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

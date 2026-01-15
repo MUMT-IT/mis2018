@@ -25,6 +25,8 @@ with app.app_context():
         secretary_role = Role.query.filter_by(role_need='secretary', action_need=None, resource_id=None).first()
         center_standardization_product_validation_role = Role.query.filter_by(role_need='center_standardization_product_validation',
                                                                               action_need=None, resource_id=None).first()
+        continuing_edu_admin_role = Role.query.filter_by(role_need='continuing_edu_admin', 
+                                                          action_need=None, resource_id=None).first()
     except ProgrammingError:
         executive_role = None
         education_role = None
@@ -39,6 +41,7 @@ with app.app_context():
         manager_role = None
         secretary_role = None
         center_standardization_product_validation_role = None
+        continuing_edu_admin_role = None
 
     executive_permission = Permission() if not executive_role else Permission(executive_role.to_tuple())
     admin_permission = Permission() if not admin_role else Permission(admin_role.to_tuple())
@@ -57,3 +60,5 @@ with app.app_context():
         center_standardization_product_validation_role else \
         Permission(center_standardization_product_validation_role.to_tuple())
     education_permission = Permission() if not education_role else Permission(education_role.to_tuple())
+    continuing_edu_admin_permission = Permission() if not continuing_edu_admin_role else \
+        Permission(continuing_edu_admin_role.to_tuple())
