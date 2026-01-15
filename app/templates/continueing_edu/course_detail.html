@@ -873,6 +873,12 @@
                             course.id)|map(attribute='completed_at')|list|first) or '-' }}</p>
                         <div class="buttons mt-2">
                             {% if approved_payment %}
+                            <a class="button is-small is-link is-light"
+                                href="{{ url_for('continuing_edu.course_learn', course_id=course.id, lang=current_lang) }}">
+                                <span class="icon"><i class="fas fa-book-open"></i></span>
+                                <span>{{ texts.get('button_go_to_learning', 'ไปหน้าเรียน' if current_lang == 'th' else
+                                    'Go to learning') }}</span>
+                            </a>
                             <form method="post"
                                 action="{{ url_for('continuing_edu.start_progress', event_id=course.id, lang=current_lang) }}">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />

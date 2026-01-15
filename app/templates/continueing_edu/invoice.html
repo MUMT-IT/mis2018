@@ -193,8 +193,9 @@ and payment.invoice.invoice_no else ('INV%06d' % payment.id))) %}
 
     <div class="invoice-toolbar no-print">
       <div>
-        <a class="button" href="{{ url_for('continuing_edu.my_payments', lang=current_lang) }}">{{
-          texts.get('invoice_go_to_my_payments', 'Go to My payments') }}</a>
+        {% set back_href = back_url if back_url else url_for('continuing_edu.my_payments', lang=current_lang) %}
+        <a class="button" href="{{ back_href }}">{{
+          texts.get('invoice_go_back', 'กลับ' if TH else 'Back') }}</a>
       </div>
       <div class="buttons" style="margin: 0;">
         {% if pdf_available %}

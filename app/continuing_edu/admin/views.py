@@ -11,6 +11,7 @@ from app.continuing_edu.admin.decorators import (
     admin_required,
     get_current_staff,
     require_event_role,
+    require_payment_role,
     can_manage_registrations,
     can_manage_payments,
     can_issue_receipts,
@@ -1738,7 +1739,7 @@ def _set_payment_status(pay: RegisterPayment, status_en: str, staff_id: int):
 
 @admin_bp.route('/payments/<int:payment_id>/approve', methods=['POST'])
 @login_required
-@require_event_role('payment_approver')
+@require_payment_role('payment_approver')
 def payment_approve(payment_id):
     staff = get_current_staff()
     pay = RegisterPayment.query.get_or_404(payment_id)
@@ -1749,7 +1750,7 @@ def payment_approve(payment_id):
 
 @admin_bp.route('/payments/<int:payment_id>/reject', methods=['POST'])
 @login_required
-@require_event_role('payment_approver')
+@require_payment_role('payment_approver')
 def payment_reject(payment_id):
     staff = get_current_staff()
     pay = RegisterPayment.query.get_or_404(payment_id)

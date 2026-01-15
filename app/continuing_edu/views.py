@@ -42,7 +42,7 @@ except Exception:
 
 import os, secrets, time
 import re
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 from requests_oauthlib import OAuth2Session
 from datetime import datetime, timezone, timedelta
 
@@ -180,14 +180,19 @@ def _collect_address_entries_from_form(form):
         # Get subdistrict and district (Thai address fields)
         subdistrict = subdistrict_list[idx] if idx < len(subdistrict_list) else ''
         district = district_list[idx] if idx < len(district_list) else ''
+
+        line2 = line2_list[idx] if idx < len(line2_list) else ''
+        city = city_list[idx] if idx < len(city_list) else ''
+        final_line2 = line2 or subdistrict
+        final_city = city or district
         
         entries.append({
             'type': address_types[idx] if idx < len(address_types) else '',
             'type_other': address_type_custom[idx] if idx < len(address_type_custom) else '',
             'label': final_label,
             'line1': line1_list[idx] if idx < len(line1_list) else '',
-            'line2': line2_list[idx] if idx < len(line2_list) else '',
-            'city': city_list[idx] if idx < len(city_list) else '',
+            'line2': final_line2,
+            'city': final_city,
             'state': final_state,
             'province': final_state,
             'postal': final_postal,
@@ -1824,12 +1829,59 @@ def course_detail(course_id):
             from app.continuing_edu.models import RegisterPaymentStatus, RegisterPayment
             ap = RegisterPayment.query \
                 .join(RegisterPaymentStatus, RegisterPayment.payment_status_ref) \
-                .filter(RegisterPayment.member_id == user.id,
-                        RegisterPayment.event_entity_id == course.id,
-                        ((RegisterPaymentStatus.register_payment_status_code == 'approved') | (RegisterPaymentStatus.name_en == 'approved'))).first()
+                .filter(
+                    RegisterPayment.member_id == user.id,
+                    RegisterPayment.event_entity_id == course.id,
+                    (
+                        (RegisterPaymentStatus.register_payment_status_code.in_(['approved', 'paid'])) |
+                        (RegisterPaymentStatus.name_en.in_(['approved', 'paid']))
+                    )
+                ).order_by(RegisterPayment.id.desc()).first()
             approved_payment = ap is not None
     return render_template('continueing_edu/course_detail.html', course=course, texts=texts, current_lang=lang,
                            logged_in_user=user, already_registered=already_registered, approved_payment=approved_payment)
+
+
+@ce_bp.route('/course/<int:course_id>/learn')
+def course_learn(course_id):
+    """Member-only learning view: requires registration + approved/paid payment."""
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    course = EventEntity.query.filter_by(id=course_id, event_type='course').first_or_404()
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang, next=request.full_path))
+
+    reg = MemberRegistration.query.filter_by(member_id=user.id, event_entity_id=course.id).first()
+    if not reg:
+        flash(texts.get('not_registered', 'You are not registered for this course.'), 'warning')
+        return redirect(url_for('continuing_edu.course_detail', course_id=course.id, lang=lang))
+
+    from app.continuing_edu.models import RegisterPaymentStatus, RegisterPayment
+    ap = RegisterPayment.query \
+        .join(RegisterPaymentStatus, RegisterPayment.payment_status_ref) \
+        .filter(
+            RegisterPayment.member_id == user.id,
+            RegisterPayment.event_entity_id == course.id,
+            (
+                (RegisterPaymentStatus.register_payment_status_code.in_(['approved', 'paid'])) |
+                (RegisterPaymentStatus.name_en.in_(['approved', 'paid']))
+            )
+        ).order_by(RegisterPayment.id.desc()).first()
+    if not ap:
+        flash(texts.get('payment_not_approved', 'This page requires an approved payment.'), 'warning')
+        return redirect(url_for('continuing_edu.course_detail', course_id=course.id, lang=lang))
+
+    return render_template(
+        'continueing_edu/course_learn.html',
+        course=course,
+        registration=reg,
+        texts=texts,
+        current_lang=lang,
+        logged_in_user=user,
+        member=user,
+    )
 
 @ce_bp.route('/webinar_detail/<int:webinar_id>')
 def webinar_detail(webinar_id):
@@ -2756,12 +2808,14 @@ def my_registrations():
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
     regs = MemberRegistration.query.filter_by(member_id=user.id).order_by(MemberRegistration.registration_date.desc()).all()
-    payments = RegisterPayment.query.filter_by(member_id=user.id).order_by(RegisterPayment.id.desc()).all()
-    pay_map = {}
-    for p in payments:
-        if p.event_entity_id not in pay_map:
-            pay_map[p.event_entity_id] = p
-    return render_template('continueing_edu/my_registrations.html', registrations=regs, payments_map=pay_map, texts=texts, current_lang=lang)
+    return render_template(
+        'continueing_edu/my_registrations.html',
+        registrations=regs,
+        texts=texts,
+        current_lang=lang,
+        logged_in_user=user,
+        member=user,
+    )
 
 
 @ce_bp.route('/my-payments', methods=['GET'])
@@ -2945,6 +2999,36 @@ def view_invoice(payment_id):
     if pay.member_id != user.id:
         flash(texts.get('not_allowed', 'You are not allowed to view this invoice.'), 'danger')
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
+
+    def _safe_back_url(raw: str | None) -> str | None:
+        if not raw:
+            return None
+        try:
+            parsed = urlparse(raw)
+        except Exception:
+            return None
+
+        # Allow relative paths only. If it's an absolute URL, accept only same-host
+        # then convert it to a relative URL (path + query).
+        if parsed.scheme or parsed.netloc:
+            try:
+                if parsed.netloc and parsed.netloc != request.host:
+                    return None
+            except Exception:
+                return None
+            rel = parsed.path or '/'
+            if parsed.query:
+                rel = f"{rel}?{parsed.query}"
+            return rel
+
+        # Relative URL provided.
+        if raw.startswith('/'):
+            return raw
+        return None
+
+    back_url = _safe_back_url(request.args.get('next'))
+    if not back_url:
+        back_url = _safe_back_url(request.referrer)
     def _build_invoice_context(payment):
         invoice = getattr(payment, 'invoice', None)
         invoice_no = None
@@ -3021,10 +3105,23 @@ def view_invoice(payment_id):
     bank_info = os.environ.get('BANK_INFO')
     payment_instructions = os.environ.get('PAYMENT_INSTRUCTIONS')
     payment_gateway_url = os.environ.get('PAYMENT_GATEWAY_URL')
-    return render_template('continueing_edu/invoice.html', payment=pay, member=user, texts=texts, current_lang=lang,
-                           payment_qr_url=payment_qr_url, promptpay_id=promptpay_id, bank_info=bank_info,
-                           payment_instructions=payment_instructions, payment_gateway_url=payment_gateway_url,
-                           pdf_available=(HTML is not None), invoice_meta=invoice_meta, seller=seller)
+    return render_template(
+        'continueing_edu/invoice.html',
+        payment=pay,
+        member=user,
+        logged_in_user=user,
+        back_url=back_url,
+        texts=texts,
+        current_lang=lang,
+        payment_qr_url=payment_qr_url,
+        promptpay_id=promptpay_id,
+        bank_info=bank_info,
+        payment_instructions=payment_instructions,
+        payment_gateway_url=payment_gateway_url,
+        pdf_available=(HTML is not None),
+        invoice_meta=invoice_meta,
+        seller=seller,
+    )
 
 
 @ce_bp.route('/payment/<int:payment_id>/invoice.pdf')
@@ -3122,6 +3219,7 @@ def download_invoice_pdf(payment_id):
         'continueing_edu/invoice.html',
         payment=pay,
         member=user,
+        logged_in_user=user,
         texts=texts,
         current_lang=lang,
         payment_qr_url=payment_qr_url,
