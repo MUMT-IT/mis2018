@@ -17,8 +17,7 @@ from app.main import mail, StaffEmployment, StaffLeaveUsedQuota, StaffSeminarAtt
 
 tz = pytz.timezone('Asia/Bangkok')
 
-from flask import render_template, flash, redirect, url_for, request, make_response, current_app, jsonify, \
-    send_from_directory, Markup
+from flask import render_template, flash, redirect, url_for, request, make_response, current_app, jsonify, send_from_directory, Markup
 from flask_login import login_required, current_user
 from flask_mail import Message
 from dateutil.relativedelta import relativedelta
