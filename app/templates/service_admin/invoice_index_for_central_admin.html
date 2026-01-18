@@ -17,7 +17,7 @@
                 <div class="tabs">
                     <ul>
                         <li {% if tab == 'draft' %}class="is-active"{% endif %}>
-                            <a href="{{ url_for('service_admin.invoice_index', tab='draft', menu=menu) }}">
+                            <a href="{{ url_for('service_admin.invoice_index_for_central_admin', tab='draft', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-clipboard"></i></span>
                                 <span>ร่างใบแจ้งหนี้</span>
                                 {% if draft_count > 0 %}
@@ -26,7 +26,7 @@
                             </a>
                         </li>
                         <li {% if tab == 'pending_supervisor' %}class="is-active"{% endif %}>
-                            <a href="{{ url_for('service_admin.invoice_index', tab='pending_supervisor', menu=menu) }}">
+                            <a href="{{ url_for('service_admin.invoice_index_for_central_admin', tab='pending_supervisor', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
                                 <span>รอหัวหน้าอนุมัติ</span>
                                 {% if pending_supervisor_count > 0 %}
@@ -35,7 +35,7 @@
                             </a>
                         </li>
                         <li {% if tab == 'pending_assistant' %}class="is-active"{% endif %}>
-                            <a href="{{ url_for('service_admin.invoice_index', tab='pending_assistant', menu=menu) }}">
+                            <a href="{{ url_for('service_admin.invoice_index_for_central_admin', tab='pending_assistant', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-clock"></i></span>
                                 <span>รอผู้ช่วยคณบดีอนุมัติ</span>
                                 {% if pending_assistant_count > 0 %}
@@ -44,7 +44,7 @@
                             </a>
                         </li>
                         <li {% if tab == 'pending_dean' %}class="is-active"{% endif %}>
-                            <a href="{{ url_for('service_admin.invoice_index', tab='pending_dean', menu=menu) }}">
+                            <a href="{{ url_for('service_admin.invoice_index_for_central_admin', tab='pending_dean', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-file-signature"></i></span>
                                 <span>รออัปโหลดใบแจ้งหนี้ฉบับสมบูรณ์</span>
                                 {% if pending_dean_count > 0 %}
@@ -53,7 +53,7 @@
                             </a>
                         </li>
                         <li {% if tab == 'waiting_payment' %}class="is-active"{% endif %}>
-                            <a href="{{ url_for('service_admin.invoice_index', tab='waiting_payment', menu=menu) }}">
+                            <a href="{{ url_for('service_admin.invoice_index_for_central_admin', tab='waiting_payment', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
                                 <span>รอชำระเงิน/รอตรวจสอบ</span>
                                 {% if waiting_payment_count > 0 %}
@@ -62,7 +62,7 @@
                             </a>
                         </li>
                         <li {% if tab == 'payment' %}class="is-active"{% endif %}>
-                            <a href="{{ url_for('service_admin.invoice_index', tab='payment', menu=menu) }}">
+                            <a href="{{ url_for('service_admin.invoice_index_for_central_admin', tab='payment', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-check"></i></span>
                                 <span>ชำระเงินแล้ว</span>
                                 {% if payment_count > 0 %}
@@ -71,7 +71,7 @@
                             </a>
                         </li>
                         <li {% if tab == 'all' %}class="is-active"{% endif %}>
-                            <a href="{{ url_for('service_admin.invoice_index', tab='all', menu=menu) }}">
+                            <a href="{{ url_for('service_admin.invoice_index_for_central_admin', tab='all', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
                                 <span>ทั้งหมด</span>
                             </a>
