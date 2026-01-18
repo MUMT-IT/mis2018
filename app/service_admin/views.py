@@ -4277,7 +4277,7 @@ def invoice_index():
             item_data = item.to_dict()
             if item.payments:
                 for payment in item.payments:
-                    if payment.slip and payment.cancelled_at:
+                    if payment.slip:
                         item_data['slip'] = generate_url(payment.slip)
                     else:
                         item_data['slip'] = None
@@ -4345,7 +4345,7 @@ def invoice_index_for_central_admin():
             item_data = item.to_dict()
             if item.payments:
                 for payment in item.payments:
-                    if payment.slip and payment.cancelled_at:
+                    if payment.slip:
                         item_data['slip'] = generate_url(payment.slip)
                     else:
                         item_data['slip'] = None
