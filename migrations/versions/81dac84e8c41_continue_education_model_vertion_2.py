@@ -99,10 +99,29 @@ def upgrade():
     sa.Column('creating_institution', sa.String(length=255), nullable=False, comment='สถาบันที่สร้างกิจกรรมนี้'),
     sa.Column('department_or_unit', sa.String(length=255), nullable=True, comment='ภาควิชา หรือหน่วยงานที่รับผิดชอบกิจกรรม'),
     sa.Column('continue_education_score', sa.Numeric(precision=10, scale=2), nullable=False, comment='คะแนนการศึกษาต่อเนื่อง (ทศนิยม 2 ตำแหน่ง)'),
+    sa.Column('course_code', sa.String(length=100), nullable=True),
+    sa.Column('image_url', sa.Text(), nullable=True),
+    sa.Column('long_description_en', sa.Text(), nullable=True),
+    sa.Column('long_description_th', sa.Text(), nullable=True),
+    sa.Column('duration_en', sa.String(length=50), nullable=True),
+    sa.Column('duration_th', sa.String(length=50), nullable=True),
+    sa.Column('format_en', sa.String(length=100), nullable=True),
+    sa.Column('format_th', sa.String(length=100), nullable=True),
+    sa.Column('certification_en', sa.String(length=50), nullable=True),
+    sa.Column('certification_th', sa.String(length=50), nullable=True),
+    sa.Column('location_en', sa.String(length=255), nullable=True),
+    sa.Column('location_th', sa.String(length=255), nullable=True),
+    sa.Column('degree_en', sa.String(length=50), nullable=True),
+    sa.Column('degree_th', sa.String(length=50), nullable=True),
+    sa.Column('department_owner', sa.String(length=50), nullable=True),
+    sa.Column('created_by', sa.String(length=50), nullable=True),
+    sa.Column('certificate_name_th', sa.String(length=255), nullable=True, comment='ชื่อใบรับรองภาษาไทย'),
+    sa.Column('certificate_name_en', sa.String(length=255), nullable=True, comment='English certificate name'),
     sa.ForeignKeyConstraint(['category_id'], ['entity_categories.id'], ),
     sa.ForeignKeyConstraint(['certificate_type_id'], ['certificate_types.id'], ),
     sa.ForeignKeyConstraint(['staff_id'], ['staff_account.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('course_code')
     )
     op.create_table('event_agendas',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -428,7 +447,7 @@ def downgrade():
     op.drop_table('register_payments')
     with op.batch_alter_table('member_registrations', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_member_registrations_member_id'))
-        batch_op.drop_index(batch_op.f('ix_member_registrations_event_entity_id'))
+        # batch_op.drop_index(batch_op.f('ix_member_registrations_event_entity_id'))
 
     op.drop_table('member_registrations')
     op.drop_table('event_speakers')

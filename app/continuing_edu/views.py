@@ -9,24 +9,24 @@ from flask import  render_template, request, jsonify, flash, redirect, url_for, 
 
 from . import ce_bp
 from .models import (
-    CertificateType,
+    CECertificateType,
     db,
-    Member,
-    EventEntity,
-    EntityCategory,
-    MemberRegistration,
-    EventRegistrationFee,
-    RegisterPayment,
-    ContinuingInvoice,
-    RegisterPaymentStatus,
-    Organization,
-    OrganizationType,
-    Occupation,
-    MemberAddress,
-    MemberType,
-    Gender,
-    AgeRange,
-    SpeakerProfile,
+    CEMember,
+    CEEventEntity,
+    CEEntityCategory,
+    CEMemberRegistration,
+    CEEventRegistrationFee,
+    CERegisterPayment,
+    CEContinuingInvoice,
+    CERegisterPaymentStatus,
+    CEOrganization,
+    CEOrganizationType,
+    CEOccupation,
+    CEMemberAddress,
+    CEMemberType,
+    CEGender,
+    CEAgeRange,
+    CESpeakerProfile,
 )
 from app.comhealth.models import ComHealthOrg
 from sqlalchemy import or_, and_, func
@@ -204,11 +204,11 @@ def _collect_address_entries_from_form(form):
 def get_current_user():
     user_id = session.get('member_id')
     if user_id:
-        return Member.query.filter_by(id=user_id).first()
+        return CEMember.query.filter_by(id=user_id).first()
     return None
 
 
-def _sync_member_legacy_address_fields(member: Member) -> None:
+def _sync_member_legacy_address_fields(member: CEMember) -> None:
     """Keep legacy Member.address/province/zip_code/country in sync.
 
     The codebase still reads these fields in several places (invoice, exports, etc).
@@ -244,7 +244,7 @@ def _sync_member_legacy_address_fields(member: Member) -> None:
     member.country = preferred.country_name
 
 
-def is_early_bird_active(event: EventEntity):
+def is_early_bird_active(event: CEEventEntity):
     import datetime as _dt
     now = _dt.datetime.now(_dt.timezone.utc)
     if event.early_bird_end and now > event.early_bird_end:
@@ -254,10 +254,10 @@ def is_early_bird_active(event: EventEntity):
     return bool(event.early_bird_start or event.early_bird_end)
 
 
-def _price_for_member(event: EventEntity, member: Member):
+def _price_for_member(event: CEEventEntity, member: CEMember):
     fee = None
     if member and member.member_type_id:
-        fee = EventRegistrationFee.query.filter_by(event_entity_id=event.id, member_type_id=member.member_type_id).first()
+        fee = CEEventRegistrationFee.query.filter_by(event_entity_id=event.id, member_type_id=member.member_type_id).first()
     if not fee:
         return None, None
     eb_active = is_early_bird_active(event)
@@ -282,7 +282,7 @@ def login():
             return render_template('continueing_edu/login.html', texts=texts, current_lang=lang, logged_in_user=get_current_user(), next=next_url)
         
         # Find member by email
-        member = Member.query.filter_by(email=email).first()
+        member = CEMember.query.filter_by(email=email).first()
         
         if not member:
             # Track failed login attempts
@@ -365,12 +365,12 @@ def register():
     if not address_entries:
         address_entries = _default_address_entries()
 
-    organization_types = OrganizationType.query.order_by(OrganizationType.name_en.asc()).all()
-    occupations = Occupation.query.order_by(Occupation.name_en.asc()).all()
-    organizations = Organization.query.order_by(Organization.name.asc()).limit(50).all()
-    member_types = MemberType.query.order_by(MemberType.name_en.asc()).all()
-    genders = Gender.query.order_by(Gender.id.asc()).all()
-    age_ranges = AgeRange.query.order_by(AgeRange.id.asc()).all()
+    organization_types = CEOrganizationType.query.order_by(CEOrganizationType.name_en.asc()).all()
+    occupations = CEOccupation.query.order_by(CEOccupation.name_en.asc()).all()
+    organizations = CEOrganization.query.order_by(CEOrganization.name.asc()).limit(50).all()
+    member_types = CEMemberType.query.order_by(CEMemberType.name_en.asc()).all()
+    genders = CEGender.query.order_by(CEGender.id.asc()).all()
+    age_ranges = CEAgeRange.query.order_by(CEAgeRange.id.asc()).all()
     google_client_id = os.getenv('GOOGLE_CLIENT_ID', '206836986017-1dctro1ehrqta2r91e5appn5j78spn9h.apps.googleusercontent.com')
 
     if request.method == 'POST':
@@ -445,9 +445,9 @@ def register():
         if not meaningful_addresses:
             errors.append(texts.get('address_required_message', 'Please provide at least one address.'))
 
-        if username and Member.query.filter_by(username=username).first():
+        if username and CEMember.query.filter_by(username=username).first():
             errors.append(texts.get('register_error_exists', 'Username already exists.'))
-        if email and Member.query.filter_by(email=email).first():
+        if email and CEMember.query.filter_by(email=email).first():
             return render_template(
                 'continueing_edu/email_already_registered.html',
                 email=email,
@@ -474,15 +474,15 @@ def register():
         if organization_type_choice:
             if organization_type_choice == 'other' and organization_type_other:
                 lookup = organization_type_other.lower()
-                organization_type = (OrganizationType.query
-                                     .filter(func.lower(OrganizationType.name_en) == lookup)
+                organization_type = (CEOrganizationType.query
+                                     .filter(func.lower(CEOrganizationType.name_en) == lookup)
                                      .first())
                 if not organization_type:
-                    organization_type = (OrganizationType.query
-                                         .filter(func.lower(OrganizationType.name_th) == lookup)
+                    organization_type = (CEOrganizationType.query
+                                         .filter(func.lower(CEOrganizationType.name_th) == lookup)
                                          .first())
                 if not organization_type:
-                    organization_type = OrganizationType(
+                    organization_type = CEOrganizationType(
                         name_en=organization_type_other,
                         name_th=organization_type_other,
                         is_user_defined=True,
@@ -491,7 +491,7 @@ def register():
                     db.session.flush()
             else:
                 try:
-                    organization_type = OrganizationType.query.get(int(organization_type_choice))
+                    organization_type = CEOrganizationType.query.get(int(organization_type_choice))
                 except (ValueError, TypeError):
                     organization_type = None
 
@@ -499,15 +499,15 @@ def register():
         if occupation_choice:
             if occupation_choice == 'other' and occupation_other:
                 lookup = occupation_other.lower()
-                occupation = (Occupation.query
-                              .filter(func.lower(Occupation.name_en) == lookup)
+                occupation = (CEOccupation.query
+                              .filter(func.lower(CEOccupation.name_en) == lookup)
                               .first())
                 if not occupation:
-                    occupation = (Occupation.query
-                                  .filter(func.lower(Occupation.name_th) == lookup)
+                    occupation = (CEOccupation.query
+                                  .filter(func.lower(CEOccupation.name_th) == lookup)
                                   .first())
                 if not occupation:
-                    occupation = Occupation(
+                    occupation = CEOccupation(
                         name_en=occupation_other,
                         name_th=occupation_other,
                         is_user_defined=True,
@@ -516,7 +516,7 @@ def register():
                     db.session.flush()
             else:
                 try:
-                    occupation = Occupation.query.get(int(occupation_choice))
+                    occupation = CEOccupation.query.get(int(occupation_choice))
                 except (ValueError, TypeError):
                     occupation = None
 
@@ -533,11 +533,11 @@ def register():
 
         organization = None
         if organization_name:
-            organization = (Organization.query
-                            .filter(func.lower(Organization.name) == organization_name.lower())
+            organization = (CEOrganization.query
+                            .filter(func.lower(CEOrganization.name) == organization_name.lower())
                             .first())
             if not organization:
-                organization = Organization(
+                organization = CEOrganization(
                     name=organization_name,
                     organization_type=organization_type,
                     country=organization_country_name,
@@ -565,7 +565,7 @@ def register():
         except (ValueError, TypeError):
             g_id = None
 
-        member = Member(
+        member = CEMember(
             username=username,
             email=email,
             password_hash=generate_password_hash(password),
@@ -604,7 +604,7 @@ def register():
                 country_name = None
                 country_code_value = None
 
-            address = MemberAddress(
+            address = CEMemberAddress(
                 member=member,
                 address_type=address_type_value or 'other',
                 label=entry.get('label') or None,
@@ -718,9 +718,9 @@ def comeback_options():
     action = request.form.get('action')
     if action == 'otp':
         # Send OTP to email for verification (reuse OTP logic or implement as needed)
-        from .models import Member
+        from .models import CEMember
         import random
-        member = Member.query.filter_by(email=email).first()
+        member = CEMember.query.filter_by(email=email).first()
         if member:
             otp_code = '{:06d}'.format(random.randint(0, 999999))
             session['otp_code'] = otp_code
@@ -756,8 +756,8 @@ def otp_verify():
         return redirect(url_for('continuing_edu.register', lang=lang))
     if input_otp == otp_code:
         # Mark user as verified (add a field in Member if needed)
-        from .models import Member
-        member = Member.query.filter_by(username=username).first()
+        from .models import CEMember
+        member = CEMember.query.filter_by(username=username).first()
         if member:
             member.is_verified = True  # You must add this field in your model/migration
             db.session.commit()
@@ -799,8 +799,8 @@ def forgot_password():
         if not email:
             flash('กรุณากรอกอีเมล' if lang == 'th' else 'Please enter your email.', 'danger')
             return render_template('continueing_edu/forgot_password.html', current_lang=lang, texts=texts)
-        from .models import Member
-        user = Member.query.filter_by(email=email).first()
+        from .models import CEMember
+        user = CEMember.query.filter_by(email=email).first()
         if not user:
             # Don't reveal if email exists (security)
             flash('หากอีเมลนี้มีในระบบ คุณจะได้รับรหัส OTP' if lang == 'th' else 'If this email exists, you will receive an OTP code.', 'success')
@@ -915,9 +915,9 @@ def set_new_password():
             return render_template('continueing_edu/set_new_password.html', current_lang=lang, texts=texts, reset_token=token)
         
         # Update password
-        from .models import Member
+        from .models import CEMember
         username = session.get('reset_username')
-        user = Member.query.filter_by(username=username).first()
+        user = CEMember.query.filter_by(username=username).first()
         
         if not user:
             flash('ไม่พบบัญชี' if lang == 'th' else 'Account not found.', 'danger')
@@ -970,8 +970,8 @@ def reset_password():
             flash('รหัสผ่านใหม่ไม่ตรงกัน' if lang == 'th' else 'New passwords do not match.', 'danger')
             return render_template('continueing_edu/reset_password.html', current_lang=lang, texts=texts, username=username)
         # Update password
-        from .models import Member
-        user = Member.query.filter_by(username=username).first()
+        from .models import CEMember
+        user = CEMember.query.filter_by(username=username).first()
         if not user:
             flash('ไม่พบบัญชี' if lang == 'th' else 'Account not found.', 'danger')
             return redirect(url_for('continuing_edu.forgot_password', lang=lang))
@@ -1037,17 +1037,17 @@ def google_callback():
         flash(f'Google login error: {e}', 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
 
-    user = Member.query.filter_by(google_sub=sub).first()
+    user = CEMember.query.filter_by(google_sub=sub).first()
     if not user and email:
-        user = Member.query.filter_by(email=email).first()
+        user = CEMember.query.filter_by(email=email).first()
         if user and not user.google_sub:
             user.google_sub = sub
     if not user:
         pwd = secrets.token_urlsafe(12)
-        user = Member(username=email.split('@')[0] if email else f'user_{sub[:6]}',
-                      email=email,
-                      password_hash=generate_password_hash(pwd),
-                      full_name_en=name)
+        user = CEMember(username=email.split('@')[0] if email else f'user_{sub[:6]}',
+                        email=email,
+                        password_hash=generate_password_hash(pwd),
+                        full_name_en=name)
         user.google_sub = sub
 
         user.google_connected_at = datetime.now(timezone.utc)
@@ -1097,8 +1097,8 @@ def google_signup_callback():
             return redirect(url_for('continuing_edu.register', lang=lang))
         
         # Check if user already exists
-        existing_user = Member.query.filter(
-            or_(Member.google_sub == google_sub, Member.email == email)
+        existing_user = CEMember.query.filter(
+            or_(CEMember.google_sub == google_sub, CEMember.email == email)
         ).first()
         
         if existing_user:
@@ -1117,12 +1117,12 @@ def google_signup_callback():
         # Check if username exists, make it unique
         base_username = username
         counter = 1
-        while Member.query.filter_by(username=username).first():
+        while CEMember.query.filter_by(username=username).first():
             username = f'{base_username}{counter}'
             counter += 1
         
         pwd = secrets.token_urlsafe(16)
-        new_member = Member(
+        new_member = CEMember(
             username=username,
             email=email,
             password_hash=generate_password_hash(pwd),
@@ -1159,7 +1159,7 @@ def complete_profile():
         flash(texts.get('login_required', 'กรุณาเข้าสู่ระบบ' if lang == 'th' else 'Please log in'), 'warning')
         return redirect(url_for('continuing_edu.login', lang=lang))
     
-    member = Member.query.get(member_id)
+    member = CEMember.query.get(member_id)
     if not member:
         session.pop('member_id', None)
         flash(texts.get('member_not_found', 'ไม่พบข้อมูลสมาชิก' if lang == 'th' else 'Member not found'), 'danger')
@@ -1183,12 +1183,12 @@ def complete_profile():
         country_name = (request.form.get('country') or '').strip() or None
         if address_line1:
             # Upsert a "current" address as the primary one for simple flows.
-            current_addr = (MemberAddress.query
+            current_addr = (CEMemberAddress.query
                             .filter_by(member_id=member.id, address_type='current')
-                            .order_by(MemberAddress.id.asc())
+                            .order_by(CEMemberAddress.id.asc())
                             .first())
             if not current_addr:
-                current_addr = MemberAddress(
+                current_addr = CEMemberAddress(
                     member=member,
                     address_type='current',
                     label=None,
@@ -1215,11 +1215,11 @@ def complete_profile():
         return redirect(url_for('continuing_edu.index', lang=lang))
     
     # GET request - show form
-    member_types = MemberType.query.order_by(MemberType.name_en.asc()).all()
-    genders = Gender.query.order_by(Gender.id.asc()).all()
-    age_ranges = AgeRange.query.order_by(AgeRange.id.asc()).all()
-    organizations = Organization.query.order_by(Organization.name.asc()).limit(50).all()
-    occupations = Occupation.query.order_by(Occupation.name_en.asc()).all()
+    member_types = CEMemberType.query.order_by(CEMemberType.name_en.asc()).all()
+    genders = CEGender.query.order_by(CEGender.id.asc()).all()
+    age_ranges = CEAgeRange.query.order_by(CEAgeRange.id.asc()).all()
+    organizations = CEOrganization.query.order_by(CEOrganization.name.asc()).limit(50).all()
+    occupations = CEOccupation.query.order_by(CEOccupation.name_en.asc()).all()
     
     return render_template(
         'continueing_edu/complete_profile.html',
@@ -1274,7 +1274,7 @@ def account_settings():
     if (not user.addresses or len(user.addresses) == 0) and (user.address or user.province or user.zip_code or user.country):
         line1 = (user.address or '').strip()
         if line1:
-            starter = MemberAddress(
+            starter = CEMemberAddress(
                 member=user,
                 address_type='current',
                 label=None,
@@ -1367,7 +1367,7 @@ def account_address_new():
             country_name = (request.form.get('country_name') or '').strip() or None
             country_code_value = None
 
-        addr = MemberAddress(
+        addr = CEMemberAddress(
             member=user,
             address_type=address_type,
             label=label,
@@ -1405,7 +1405,7 @@ def account_address_edit(address_id: int):
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
 
-    addr = MemberAddress.query.filter_by(id=address_id, member_id=user.id).first()
+    addr = CEMemberAddress.query.filter_by(id=address_id, member_id=user.id).first()
     if not addr:
         raise NotFound()
 
@@ -1487,7 +1487,7 @@ def account_address_delete(address_id: int):
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
 
-    addr = MemberAddress.query.filter_by(id=address_id, member_id=user.id).first()
+    addr = CEMemberAddress.query.filter_by(id=address_id, member_id=user.id).first()
     if not addr:
         raise NotFound()
 
@@ -1610,7 +1610,7 @@ def get_organizations_by_type(org_type_id):
             result = [{'id': org.id, 'name': org.name, 'source': 'client'} for org in orgs]
         else:
             # Fetch from regular organizations with matching type
-            orgs = Organization.query.filter_by(organization_type_id=org_type_id).order_by(Organization.name.asc()).all()
+            orgs = CEOrganization.query.filter_by(organization_type_id=org_type_id).order_by(CEOrganization.name.asc()).all()
             result = [{'id': org.id, 'name': org.name, 'source': 'regular'} for org in orgs]
         
         return jsonify({'success': True, 'organizations': result})
@@ -1628,12 +1628,12 @@ def why_register():
 @ce_bp.route('/all-events')
 def all_events():
     """Landing page: List all event entities."""
-    events = EventEntity.query.order_by(EventEntity.created_at.desc()).all()
+    events = CEEventEntity.query.order_by(CEEventEntity.created_at.desc()).all()
     texts = tr[current_lang]
     user = get_current_user()
     registered_ids = set()
     if user:
-        regs = MemberRegistration.query.with_entities(MemberRegistration.event_entity_id).filter_by(member_id=user.id).all()
+        regs = CEMemberRegistration.query.with_entities(CEMemberRegistration.event_entity_id).filter_by(member_id=user.id).all()
         registered_ids = {r[0] for r in regs}
     return render_template('continueing_edu/all_events.html', events=events, active_menu='All Events', texts=texts, lang=current_lang, logged_in_user=user, registered_ids=registered_ids)
 
@@ -1643,10 +1643,10 @@ def dashboard():
     """Landing page: List all event entities (replaces course/webinar lists)."""
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
-    events = EventEntity.query.order_by(EventEntity.created_at.desc()).all()
+    events = CEEventEntity.query.order_by(CEEventEntity.created_at.desc()).all()
     if not events:
         # Add sample data if no events exist
-        sample1 = EventEntity(
+        sample1 = CEEventEntity(
             event_type='course',
             title_en='Sample Course',
             title_th='ตัวอย่างหลักสูตร',
@@ -1670,7 +1670,7 @@ def dashboard():
             format= {'en': 'Online', 'th': 'ออนไลน์'},
 
         )
-        sample2 = EventEntity(
+        sample2 = CEEventEntity(
             event_type='webinar',
             title_en='Sample Webinar',
             title_th='ตัวอย่างสัมมนา',
@@ -1688,23 +1688,23 @@ def dashboard():
         )
         db.session.add_all([sample1, sample2])
         db.session.commit()
-        events = EventEntity.query.order_by(EventEntity.created_at.desc()).all()
+        events = CEEventEntity.query.order_by(CEEventEntity.created_at.desc()).all()
     user = get_current_user()
     registered_ids = set()
     if user:
-        regs = MemberRegistration.query.with_entities(MemberRegistration.event_entity_id).filter_by(member_id=user.id).all()
+        regs = CEMemberRegistration.query.with_entities(CEMemberRegistration.event_entity_id).filter_by(member_id=user.id).all()
         registered_ids = {r[0] for r in regs}
     # Optional filter: show only events the user registered for
     registered_only = request.args.get('registered_only') in ('1', 'true', 'yes')
     if registered_only and user:
         events = [e for e in events if e.id in registered_ids]
 
-    hero_query = EventEntity.query
-    is_active_column = getattr(EventEntity, 'is_active', None)
+    hero_query = CEEventEntity.query
+    is_active_column = getattr(CEEventEntity, 'is_active', None)
     if is_active_column is not None:
         hero_query = hero_query.filter(is_active_column.is_(True))
     hero_events = (hero_query
-                   .order_by(EventEntity.created_at.desc())
+                   .order_by(CEEventEntity.created_at.desc())
                    .limit(5)
                    .all())
     if not hero_events:
@@ -1789,7 +1789,7 @@ def courses_list():
     """Renders the courses list page."""
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
-    courses = EventEntity.query.filter_by(event_type='course').all()
+    courses = CEEventEntity.query.filter_by(event_type='course').all()
     return render_template('continueing_edu/courses.html',
                            active_menu='Courses List',
                            courses=courses,
@@ -1802,7 +1802,7 @@ def webinars_list():
     """Renders the webinars list page."""
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
-    webinars = EventEntity.query.filter_by(event_type='webinar').all()
+    webinars = CEEventEntity.query.filter_by(event_type='webinar').all()
     return render_template('continueing_edu/webinars.html',
                            active_menu='Webinar List',
                            webinars=webinars,
@@ -1813,20 +1813,20 @@ def webinars_list():
 def course_detail(course_id):
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
-    course = EventEntity.query.filter_by(id=course_id, event_type='course').first_or_404()
+    course = CEEventEntity.query.filter_by(id=course_id, event_type='course').first_or_404()
     user = get_current_user()
     already_registered = False
     approved_payment = False
     if user:
-        reg = MemberRegistration.query.filter_by(member_id=user.id, event_entity_id=course.id).first()
+        reg = CEMemberRegistration.query.filter_by(member_id=user.id, event_entity_id=course.id).first()
         already_registered = reg is not None
         if reg:
-            from app.continuing_edu.models import RegisterPaymentStatus, RegisterPayment
-            ap = RegisterPayment.query \
-                .join(RegisterPaymentStatus, RegisterPayment.payment_status_ref) \
-                .filter(RegisterPayment.member_id == user.id,
-                        RegisterPayment.event_entity_id == course.id,
-                        ((RegisterPaymentStatus.register_payment_status_code == 'approved') | (RegisterPaymentStatus.name_en == 'approved'))).first()
+            from app.continuing_edu.models import CERegisterPaymentStatus, CERegisterPayment
+            ap = CERegisterPayment.query \
+                .join(CERegisterPaymentStatus, CERegisterPayment.payment_status_ref) \
+                .filter(CERegisterPayment.member_id == user.id,
+                        CERegisterPayment.event_entity_id == course.id,
+                        ((CERegisterPaymentStatus.register_payment_status_code == 'approved') | (CERegisterPaymentStatus.name_en == 'approved'))).first()
             approved_payment = ap is not None
     return render_template('continueing_edu/course_detail.html', course=course, texts=texts, current_lang=lang,
                            logged_in_user=user, already_registered=already_registered, approved_payment=approved_payment)
@@ -1835,20 +1835,20 @@ def course_detail(course_id):
 def webinar_detail(webinar_id):
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
-    webinar = EventEntity.query.filter_by(id=webinar_id, event_type='webinar').first_or_404()
+    webinar = CEEventEntity.query.filter_by(id=webinar_id, event_type='webinar').first_or_404()
     user = get_current_user()
     already_registered = False
     approved_payment = False
     if user:
-        reg = MemberRegistration.query.filter_by(member_id=user.id, event_entity_id=webinar.id).first()
+        reg = CEMemberRegistration.query.filter_by(member_id=user.id, event_entity_id=webinar.id).first()
         already_registered = reg is not None
         if reg:
-            from app.continuing_edu.models import RegisterPaymentStatus, RegisterPayment
-            ap = RegisterPayment.query \
-                .join(RegisterPaymentStatus, RegisterPayment.payment_status_ref) \
-                .filter(RegisterPayment.member_id == user.id,
-                        RegisterPayment.event_entity_id == webinar.id,
-                        ((RegisterPaymentStatus.register_payment_status_code == 'approved') | (RegisterPaymentStatus.name_en == 'approved'))).first()
+            from app.continuing_edu.models import CERegisterPaymentStatus, CERegisterPayment
+            ap = CERegisterPayment.query \
+                .join(CERegisterPaymentStatus, CERegisterPayment.payment_status_ref) \
+                .filter(CERegisterPayment.member_id == user.id,
+                        CERegisterPayment.event_entity_id == webinar.id,
+                        ((CERegisterPaymentStatus.register_payment_status_code == 'approved') | (CERegisterPaymentStatus.name_en == 'approved'))).first()
             approved_payment = ap is not None
     return render_template('continueing_edu/webinar_detail.html', webinar=webinar, texts=texts, current_lang=lang,
                            logged_in_user=user, already_registered=already_registered, approved_payment=approved_payment)
@@ -1860,7 +1860,7 @@ def register_event(event_id):
     """Show registration confirmation page before actual registration"""
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
-    event = EventEntity.query.get_or_404(event_id)
+    event = CEEventEntity.query.get_or_404(event_id)
     member = get_current_user()
 
     print(f"[REGISTER_EVENT] Event ID: {event_id}, Member ID: {member.id if member else 'None'}")
@@ -1879,7 +1879,7 @@ def register_event(event_id):
         return redirect(url_for('continuing_edu.complete_profile', lang=lang, next=url_for('continuing_edu.register_event', event_id=event_id, lang=lang)))
     
     # Already registered?
-    existing = MemberRegistration.query.filter_by(member_id=member.id, event_entity_id=event.id).first()
+    existing = CEMemberRegistration.query.filter_by(member_id=member.id, event_entity_id=event.id).first()
     if existing:
         print(f"[REGISTER_EVENT] Already registered - Registration ID: {existing.id}")
         flash(texts.get('already_registered', 'You are already registered for this event.'), 'info')
@@ -1915,7 +1915,7 @@ def confirm_registration(event_id):
     """Process the actual registration after confirmation"""
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
-    event = EventEntity.query.get_or_404(event_id)
+    event = CEEventEntity.query.get_or_404(event_id)
     member = get_current_user()
     
     print(f"[CONFIRM_REGISTRATION] Event ID: {event_id}, Member: {member.id if member else 'None'}")
@@ -1925,7 +1925,7 @@ def confirm_registration(event_id):
         return redirect(url_for('continuing_edu.login', lang=lang))
     
     # Check if already registered
-    existing = MemberRegistration.query.filter_by(member_id=member.id, event_entity_id=event.id).first()
+    existing = CEMemberRegistration.query.filter_by(member_id=member.id, event_entity_id=event.id).first()
     if existing:
         print(f"[CONFIRM_REGISTRATION] Already registered - Registration ID: {existing.id}")
         flash(texts.get('already_registered', 'คุณได้ลงทะเบียนแล้ว' if lang == 'th' else 'You are already registered for this event.'), 'info')
@@ -1955,13 +1955,13 @@ def confirm_registration(event_id):
         # Create registration and pending payment
         registered_status = get_registration_status('registered', 'registered', 'ลงทะเบียนแล้ว', 'is-info')
         pending_cert = get_certificate_status('pending', 'รอดำเนินการ', 'is-info')
-        reg = MemberRegistration(member_id=member.id, event_entity_id=event.id,
-                                 status_id=registered_status.id,
-                                 certificate_status_id=pending_cert.id)
+        reg = CEMemberRegistration(member_id=member.id, event_entity_id=event.id,
+                                   status_id=registered_status.id,
+                                   certificate_status_id=pending_cert.id)
         db.session.add(reg)
         # create invoice record to be used across payment methods
         try:
-            inv = ContinuingInvoice(member_id=member.id, event_entity_id=event.id, amount=price, status='pending')
+            inv = CEContinuingInvoice(member_id=member.id, event_entity_id=event.id, amount=price, status='pending')
             db.session.add(inv)
             db.session.commit()
             # set invoice number after we have id
@@ -1972,8 +1972,8 @@ def confirm_registration(event_id):
             inv = None
 
         # payment status pending (id may be 1); try lookup by name_en
-        pending = RegisterPaymentStatus.query.filter((RegisterPaymentStatus.register_payment_status_code=='pending') | (RegisterPaymentStatus.name_en=='pending')).first()
-        pay = RegisterPayment(
+        pending = CERegisterPaymentStatus.query.filter((CERegisterPaymentStatus.register_payment_status_code == 'pending') | (CERegisterPaymentStatus.name_en == 'pending')).first()
+        pay = CERegisterPayment(
             member_id=member.id,
             event_entity_id=event.id,
             payment_status_id=pending.id if pending else 1,
@@ -2112,7 +2112,7 @@ def payment_process(payment_id):
         return redirect(url_for('continuing_edu.login', lang=lang))
     
     # Get payment record
-    payment = RegisterPayment.query.get_or_404(payment_id)
+    payment = CERegisterPayment.query.get_or_404(payment_id)
     
     # Verify ownership
     if payment.member_id != member.id:
@@ -2172,7 +2172,7 @@ def payment_process(payment_id):
             from app.scb_payment_service.views import generate_qrcode
             invoice = getattr(payment, 'invoice', None)
             if not invoice and payment.invoice_id:
-                from .models import ContinuingInvoice as _CI
+                from .models import CEContinuingInvoice as _CI
                 invoice = _CI.query.get(payment.invoice_id)
             scb_ref1 = invoice.invoice_no if invoice and invoice.invoice_no else (f"INV{(invoice.id if invoice else payment.id):06d}")
             scb_ref2 = "TRAINING"
@@ -2212,7 +2212,7 @@ _SCB_INQUIRY_LAST_AT = {}
 
 
 
-def _is_paid_status(payment: 'RegisterPayment') -> bool:
+def _is_paid_status(payment: 'CERegisterPayment') -> bool:
     st = getattr(payment, 'payment_status_ref', None)
     code = (getattr(st, 'register_payment_status_code', None) or getattr(st, 'name_en', None) or '').lower()
     return code in ('paid', 'approved')
@@ -2228,7 +2228,7 @@ def payment_status_api(payment_id):
     if not member:
         return jsonify({'message': 'login required'}), 403
 
-    payment = RegisterPayment.query.get_or_404(payment_id)
+    payment = CERegisterPayment.query.get_or_404(payment_id)
     if payment.member_id != member.id:
         return jsonify({'message': 'not allowed'}), 403
 
@@ -2255,7 +2255,7 @@ def payment_status_api(payment_id):
         # Determine refs consistent with QR generation
         invoice = getattr(payment, 'invoice', None)
         if not invoice and payment.invoice_id:
-            from .models import ContinuingInvoice as _CI
+            from .models import CEContinuingInvoice as _CI
             invoice = _CI.query.get(payment.invoice_id)
         ref1 = invoice.invoice_no if invoice and invoice.invoice_no else (f"INV{(invoice.id if invoice else payment.id):06d}")
         ref2 = f"RP{payment.id}"
@@ -2322,7 +2322,7 @@ def payment_status_api(payment_id):
 
     _maybe_inquire_scb()
     # reload status after inquiry
-    payment = RegisterPayment.query.get(payment_id) or payment
+    payment = CERegisterPayment.query.get(payment_id) or payment
 
     st = getattr(payment, 'payment_status_ref', None)
     status_code = (getattr(st, 'register_payment_status_code', None) or getattr(st, 'name_en', None) or '').lower()
@@ -2353,7 +2353,7 @@ def upload_payment_slip(payment_id):
         return redirect(url_for('continuing_edu.login', lang=lang))
     
     # Get payment record
-    payment = RegisterPayment.query.get_or_404(payment_id)
+    payment = CERegisterPayment.query.get_or_404(payment_id)
     
     # Verify ownership
     if payment.member_id != member.id:
@@ -2378,9 +2378,9 @@ def upload_payment_slip(payment_id):
         # file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         
         # Update payment status to pending verification
-        verifying_status = RegisterPaymentStatus.query.filter(
-            (RegisterPaymentStatus.register_payment_status_code=='verifying') | 
-            (RegisterPaymentStatus.name_en=='verifying')
+        verifying_status = CERegisterPaymentStatus.query.filter(
+            (CERegisterPaymentStatus.register_payment_status_code == 'verifying') |
+            (CERegisterPaymentStatus.name_en == 'verifying')
         ).first()
         
         if verifying_status:
@@ -2427,19 +2427,19 @@ def mock_payment_webhook():
     m_inv = re.search(r'INV(\d+)', str(ref2))
     if m_inv:
         inv_id = int(m_inv.group(1))
-        invoice = ContinuingInvoice.query.get(inv_id)
+        invoice = CEContinuingInvoice.query.get(inv_id)
         if not invoice:
             return jsonify({'message': 'invoice not found'}), 404
-        payment = RegisterPayment.query.filter_by(invoice_id=invoice.id).first()
+        payment = CERegisterPayment.query.filter_by(invoice_id=invoice.id).first()
     else:
         m = re.search(r'RP(\d+)', str(ref2))
         if m:
             payment_id = int(m.group(1))
-            payment = RegisterPayment.query.get(payment_id)
+            payment = CERegisterPayment.query.get(payment_id)
         else:
             try:
                 payment_id = int(str(ref2))
-                payment = RegisterPayment.query.get(payment_id)
+                payment = CERegisterPayment.query.get(payment_id)
             except Exception:
                 return jsonify({'message': 'invalid payment reference format'}), 400
     if not payment:
@@ -2460,12 +2460,12 @@ def _mark_payment_paid_and_notify(payment_id, lang='en'):
     """Mark payment as paid and send notification email to member."""
 
     texts = tr.get(lang, tr['en'])
-    payment = RegisterPayment.query.get(payment_id)
+    payment = CERegisterPayment.query.get(payment_id)
     if not payment:
         raise ValueError('payment not found')
-    paid_status = RegisterPaymentStatus.query.filter(
-        (RegisterPaymentStatus.register_payment_status_code == 'paid') |
-        (RegisterPaymentStatus.name_en == 'paid')
+    paid_status = CERegisterPaymentStatus.query.filter(
+        (CERegisterPaymentStatus.register_payment_status_code == 'paid') |
+        (CERegisterPaymentStatus.name_en == 'paid')
     ).first()
     if paid_status:
         payment.payment_status_id = paid_status.id
@@ -2474,7 +2474,7 @@ def _mark_payment_paid_and_notify(payment_id, lang='en'):
     db.session.commit()
 
     # send notification
-    member = Member.query.get(payment.member_id)
+    member = CEMember.query.get(payment.member_id)
     subj = texts.get('payment_success', 'Payment successful!')
     invoice_link = url_for('continuing_edu.view_invoice', payment_id=payment.id, lang=lang, _external=True)
     payments_link = url_for('continuing_edu.my_payments', lang=lang, _external=True)
@@ -2542,10 +2542,10 @@ def admin_test_payment():
         try:
             if m_inv:
                 inv_id = int(m_inv.group(1))
-                inv = ContinuingInvoice.query.get(inv_id)
+                inv = CEContinuingInvoice.query.get(inv_id)
                 if not inv:
                     raise ValueError('invoice not found')
-                payment_obj = RegisterPayment.query.filter_by(invoice_id=inv.id).first()
+                payment_obj = CERegisterPayment.query.filter_by(invoice_id=inv.id).first()
                 if not payment_obj:
                     raise ValueError('payment for invoice not found')
                 pid = payment_obj.id
@@ -2574,7 +2574,7 @@ def process_credit_card(payment_id):
         return redirect(url_for('continuing_edu.login', lang=lang))
     
     # Get payment record
-    payment = RegisterPayment.query.get_or_404(payment_id)
+    payment = CERegisterPayment.query.get_or_404(payment_id)
     
     # Verify ownership
     if payment.member_id != member.id:
@@ -2597,9 +2597,9 @@ def process_credit_card(payment_id):
         # For now, just simulate success and update status
         
         # Update payment status to paid
-        paid_status = RegisterPaymentStatus.query.filter(
-            (RegisterPaymentStatus.register_payment_status_code=='paid') | 
-            (RegisterPaymentStatus.name_en=='paid')
+        paid_status = CERegisterPaymentStatus.query.filter(
+            (CERegisterPaymentStatus.register_payment_status_code == 'paid') |
+            (CERegisterPaymentStatus.name_en == 'paid')
         ).first()
         
         if paid_status:
@@ -2659,7 +2659,7 @@ def members_list():
     """Renders the members list page."""
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
-    members = Member.query.all()
+    members = CEMember.query.all()
     return render_template('continueing_edu/members.html',
                            active_menu='Members',
                            members=members,
@@ -2672,7 +2672,7 @@ def instructors_speakers():
     """Renders the instructors and speakers list page."""
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
-    speakers = SpeakerProfile.query.all()
+    speakers = CESpeakerProfile.query.all()
     return render_template('continueing_edu/instructors_speakers.html',
                            active_menu='Instructors & Speaker',
                            speakers=speakers,
@@ -2685,7 +2685,7 @@ def registrations_list():
     """Renders the registrations list page."""
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
-    all_events = EventEntity.query.all()
+    all_events = CEEventEntity.query.all()
     return render_template('continueing_edu/registrations.html',
                            active_menu='Registrations',
                            all_events=all_events,
@@ -2698,7 +2698,7 @@ def payments_list():
     """Renders the payments list page."""
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
-    all_events = EventEntity.query.all()
+    all_events = CEEventEntity.query.all()
     all_payment_statuses = PaymentStatus.query.all()
     return render_template('continueing_edu/payments.html',
                            active_menu='Payments',
@@ -2717,16 +2717,16 @@ def member_dashboard():
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
 
-    regs = (MemberRegistration.query
+    regs = (CEMemberRegistration.query
             .filter_by(member_id=user.id)
-            .order_by(MemberRegistration.registration_date.desc())
+            .order_by(CEMemberRegistration.registration_date.desc())
             .all())
     in_progress_regs = [r for r in regs if r.started_at and not r.completed_at]
     completed_regs = [r for r in regs if r.completed_at]
 
-    payments = (RegisterPayment.query
+    payments = (CERegisterPayment.query
                 .filter_by(member_id=user.id)
-                .order_by(RegisterPayment.id.desc())
+                .order_by(CERegisterPayment.id.desc())
                 .all())
     latest_payment_by_event = {}
     for payment in payments:
@@ -2755,8 +2755,8 @@ def my_registrations():
     if not user:
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
-    regs = MemberRegistration.query.filter_by(member_id=user.id).order_by(MemberRegistration.registration_date.desc()).all()
-    payments = RegisterPayment.query.filter_by(member_id=user.id).order_by(RegisterPayment.id.desc()).all()
+    regs = CEMemberRegistration.query.filter_by(member_id=user.id).order_by(CEMemberRegistration.registration_date.desc()).all()
+    payments = CERegisterPayment.query.filter_by(member_id=user.id).order_by(CERegisterPayment.id.desc()).all()
     pay_map = {}
     for p in payments:
         if p.event_entity_id not in pay_map:
@@ -2772,7 +2772,7 @@ def my_payments():
     if not user:
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
-    pays = RegisterPayment.query.filter_by(member_id=user.id).order_by(RegisterPayment.id.desc()).all()
+    pays = CERegisterPayment.query.filter_by(member_id=user.id).order_by(CERegisterPayment.id.desc()).all()
     payment_gateway_url = os.environ.get('PAYMENT_GATEWAY_URL')
     return render_template(
         'continueing_edu/my_payments.html',
@@ -2794,7 +2794,7 @@ def cancel_payment(payment_id):
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
 
-    pay = RegisterPayment.query.get_or_404(payment_id)
+    pay = CERegisterPayment.query.get_or_404(payment_id)
     if pay.member_id != user.id:
         flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
@@ -2805,9 +2805,9 @@ def cancel_payment(payment_id):
         flash(texts.get('cannot_cancel_paid', 'Paid payments cannot be cancelled.'), 'warning')
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
 
-    cancelled = RegisterPaymentStatus.query.filter(
-        (RegisterPaymentStatus.register_payment_status_code.in_(['cancelled', 'canceled'])) |
-        (RegisterPaymentStatus.name_en.in_(['cancelled', 'canceled']))
+    cancelled = CERegisterPaymentStatus.query.filter(
+        (CERegisterPaymentStatus.register_payment_status_code.in_(['cancelled', 'canceled'])) |
+        (CERegisterPaymentStatus.name_en.in_(['cancelled', 'canceled']))
     ).first()
     if not cancelled:
         flash(texts.get('cancel_status_missing', 'Cancel status not configured.'), 'danger')
@@ -2819,7 +2819,7 @@ def cancel_payment(payment_id):
         if getattr(pay, 'invoice', None) is not None:
             inv = pay.invoice
         elif getattr(pay, 'invoice_id', None):
-            inv = ContinuingInvoice.query.get(pay.invoice_id)
+            inv = CEContinuingInvoice.query.get(pay.invoice_id)
         if inv is not None:
             inv.status = 'cancelled'
             db.session.add(inv)
@@ -2829,7 +2829,7 @@ def cancel_payment(payment_id):
         db.session.add(pay)
 
         # clear registration record for this event
-        reg = MemberRegistration.query.filter_by(member_id=user.id, event_entity_id=pay.event_entity_id).first()
+        reg = CEMemberRegistration.query.filter_by(member_id=user.id, event_entity_id=pay.event_entity_id).first()
         if reg:
             db.session.delete(reg)
 
@@ -2850,7 +2850,7 @@ def submit_payment_proof(payment_id):
     if not user:
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
-    pay = RegisterPayment.query.get_or_404(payment_id)
+    pay = CERegisterPayment.query.get_or_404(payment_id)
     if pay.member_id != user.id:
         flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
@@ -2870,7 +2870,7 @@ def submit_payment_proof(payment_id):
         pass
     pay.payment_proof_url = proof_url
     # Optionally move to 'submitted' if such status exists
-    submitted = RegisterPaymentStatus.query.filter((RegisterPaymentStatus.register_payment_status_code=='submitted') | (RegisterPaymentStatus.name_en=='submitted')).first()
+    submitted = CERegisterPaymentStatus.query.filter((CERegisterPaymentStatus.register_payment_status_code == 'submitted') | (CERegisterPaymentStatus.name_en == 'submitted')).first()
     if submitted:
         pay.payment_status_id = submitted.id
     db.session.add(pay)
@@ -2887,7 +2887,7 @@ def upload_payment_proof(payment_id):
     if not user:
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
-    pay = RegisterPayment.query.get_or_404(payment_id)
+    pay = CERegisterPayment.query.get_or_404(payment_id)
     if pay.member_id != user.id:
         flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
@@ -2923,7 +2923,7 @@ def upload_payment_proof(payment_id):
     except Exception:
         flash(texts.get('proof_required', 'Please provide a payment proof file.'), 'danger')
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
-    submitted = RegisterPaymentStatus.query.filter((RegisterPaymentStatus.register_payment_status_code=='submitted') | (RegisterPaymentStatus.name_en=='submitted')).first()
+    submitted = CERegisterPaymentStatus.query.filter((CERegisterPaymentStatus.register_payment_status_code == 'submitted') | (CERegisterPaymentStatus.name_en == 'submitted')).first()
     if submitted:
         pay.payment_status_id = submitted.id
     db.session.add(pay)
@@ -2941,7 +2941,7 @@ def view_invoice(payment_id):
     if not user:
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
-    pay = RegisterPayment.query.get_or_404(payment_id)
+    pay = CERegisterPayment.query.get_or_404(payment_id)
     if pay.member_id != user.id:
         flash(texts.get('not_allowed', 'You are not allowed to view this invoice.'), 'danger')
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
@@ -3036,7 +3036,7 @@ def download_invoice_pdf(payment_id):
     if not user:
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
-    pay = RegisterPayment.query.get_or_404(payment_id)
+    pay = CERegisterPayment.query.get_or_404(payment_id)
     if pay.member_id != user.id:
         flash(texts.get('not_allowed', 'You are not allowed to view this invoice.'), 'danger')
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
@@ -3148,8 +3148,8 @@ def view_receipt(receipt_id):
     if not user:
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
-    from .models import RegisterPaymentReceipt
-    rc = RegisterPaymentReceipt.query.get_or_404(receipt_id)
+    from .models import CERegisterPaymentReceipt
+    rc = CERegisterPaymentReceipt.query.get_or_404(receipt_id)
     pay = rc.payment
     if pay.member_id != user.id:
         flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
@@ -3165,8 +3165,8 @@ def view_receipt_pdf(receipt_id):
     if not user:
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
-    from .models import RegisterPaymentReceipt
-    rc = RegisterPaymentReceipt.query.get_or_404(receipt_id)
+    from .models import CERegisterPaymentReceipt
+    rc = CERegisterPaymentReceipt.query.get_or_404(receipt_id)
     pay = rc.payment
     if pay.member_id != user.id:
         flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
@@ -3185,7 +3185,7 @@ def view_receipt_pdf(receipt_id):
 # Member progress + certificates
 # -----------------------------
 def _get_registration_or_404(event_id, member_id):
-    reg = MemberRegistration.query.filter_by(event_entity_id=event_id, member_id=member_id).first()
+    reg = CEMemberRegistration.query.filter_by(event_entity_id=event_id, member_id=member_id).first()
     if not reg:
         raise NotFound('Registration not found for this event')
     return reg
@@ -3256,7 +3256,7 @@ def certificate_pdf(reg_id):
     if not user:
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
-    reg = MemberRegistration.query.get_or_404(reg_id)
+    reg = CEMemberRegistration.query.get_or_404(reg_id)
     if reg.member_id != user.id:
         flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
         return redirect(url_for('continuing_edu.my_registrations', lang=lang))
@@ -3284,7 +3284,7 @@ def certificate_view(reg_id):
     if not user:
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
-    reg = MemberRegistration.query.get_or_404(reg_id)
+    reg = CEMemberRegistration.query.get_or_404(reg_id)
     if reg.member_id != user.id:
         flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
         return redirect(url_for('continuing_edu.my_registrations', lang=lang))
@@ -3314,7 +3314,7 @@ def get_events_table_data():
     per_page = 10
 
     # Build the query
-    query = EventEntity.query
+    query = CEEventEntity.query
 
     # Apply type filter if provided
     if event_type_filter:
@@ -3324,15 +3324,15 @@ def get_events_table_data():
     if search_query:
         search_pattern = f'%{search_query}%'
         query = query.filter(or_(
-            EventEntity.title_en.like(search_pattern),
-            EventEntity.title_th.like(search_pattern),
-            EventEntity.course_code.like(search_pattern),
-            EventEntity.location_en.like(search_pattern),
-            EventEntity.speaker_en.like(search_pattern)
+            CEEventEntity.title_en.like(search_pattern),
+            CEEventEntity.title_th.like(search_pattern),
+            CEEventEntity.course_code.like(search_pattern),
+            CEEventEntity.location_en.like(search_pattern),
+            CEEventEntity.speaker_en.like(search_pattern)
         ))
 
     # Paginate the results
-    pagination = query.order_by(EventEntity.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    pagination = query.order_by(CEEventEntity.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
 
     return render_template('continueing_edu/event_table_partial.html',
                            events=pagination.items,
@@ -3416,7 +3416,7 @@ def add_event():
 
     staff_accounts = StaffAccount.query.all()
     categories = request.form.get('category_id') or ""
-    certificate_types = CertificateType.query.all()
+    certificate_types = CECertificateType.query.all()
     return render_template('continueing_edu/event_form.html',
                            active_menu='Event Management',
                            form_title='Add New Event',
@@ -3435,52 +3435,52 @@ def edit_event(event_id):
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
 
-    event = EventEntity.query.get_or_404(event_id)
+    event = CEEventEntity.query.get_or_404(event_id)
     if request.method == 'POST':
         try:
-            EventEntity.title_en = request.form.get('title_en')
-            EventEntity.title_th = request.form.get('title_th')
-            EventEntity.description_en = request.form.get('description_en')
-            EventEntity.description_th = request.form.get('description_th')
-            EventEntity.staff_id = request.form.get('staff_id') or None  # Set to None if empty
-            EventEntity.category_id = request.form.get('category_id') or None
-            EventEntity.certificate_type_id = request.form.get('certificate_type_id') or None
-            EventEntity.creating_institution = request.form.get('creating_institution')
-            EventEntity.department_or_unit = request.form.get('department_or_unit')
-            EventEntity.continue_education_score = request.form.get('continue_education_score', type=float)
+            CEEventEntity.title_en = request.form.get('title_en')
+            CEEventEntity.title_th = request.form.get('title_th')
+            CEEventEntity.description_en = request.form.get('description_en')
+            CEEventEntity.description_th = request.form.get('description_th')
+            CEEventEntity.staff_id = request.form.get('staff_id') or None  # Set to None if empty
+            CEEventEntity.category_id = request.form.get('category_id') or None
+            CEEventEntity.certificate_type_id = request.form.get('certificate_type_id') or None
+            CEEventEntity.creating_institution = request.form.get('creating_institution')
+            CEEventEntity.department_or_unit = request.form.get('department_or_unit')
+            CEEventEntity.continue_education_score = request.form.get('continue_education_score', type=float)
 
-            if EventEntity.event_type == 'course':
-                EventEntity.course_code = request.form.get('course_code')
-                EventEntity.image_url = request.form.get('image_url')
-                EventEntity.long_description_en = request.form.get('long_description_en')
-                EventEntity.long_description_th = request.form.get('long_description_th')
-                EventEntity.duration_en = request.form.get('duration_en')
-                EventEntity.duration_th = request.form.get('duration_th')
-                EventEntity.format_en = request.form.get('format_en')
-                EventEntity.format_th = request.form.get('format_th')
-                EventEntity.certification_en = request.form.get('certification_en')
-                EventEntity.certification_th = request.form.get('certification_th')
-                EventEntity.location_en = request.form.get('location_en')
-                EventEntity.location_th = request.form.get('location_th')
-                EventEntity.degree_en = request.form.get('degree_en')
-                EventEntity.degree_th = request.form.get('degree_th')
-                EventEntity.department_owner = request.form.get('department_owner')
-                EventEntity.created_by = request.form.get('created_by')
-                EventEntity.certificate_name_th = request.form.get('certificate_name_th')
-                EventEntity.certificate_name_en = request.form.get('certificate_name_en')
-            elif EventEntity.event_type == 'webinar':
-                EventEntity.long_description_en = request.form.get('long_description_en')
-                EventEntity.long_description_th = request.form.get('long_description_th')
-                EventEntity.date_en = request.form.get('date_en')
-                EventEntity.date_th = request.form.get('date_th')
-                EventEntity.time_en = request.form.get('time_en')
-                EventEntity.time_th = request.form.get('time_th')
-                EventEntity.speaker_en = request.form.get('speaker_en')
-                EventEntity.speaker_th = request.form.get('speaker_th')
-                EventEntity.location_en = request.form.get('location_en')
-                EventEntity.location_th = request.form.get('location_th')
-                EventEntity.certificate_name_th = request.form.get('certificate_name_th')
-                EventEntity.certificate_name_en = request.form.get('certificate_name_en')
+            if CEEventEntity.event_type == 'course':
+                CEEventEntity.course_code = request.form.get('course_code')
+                CEEventEntity.image_url = request.form.get('image_url')
+                CEEventEntity.long_description_en = request.form.get('long_description_en')
+                CEEventEntity.long_description_th = request.form.get('long_description_th')
+                CEEventEntity.duration_en = request.form.get('duration_en')
+                CEEventEntity.duration_th = request.form.get('duration_th')
+                CEEventEntity.format_en = request.form.get('format_en')
+                CEEventEntity.format_th = request.form.get('format_th')
+                CEEventEntity.certification_en = request.form.get('certification_en')
+                CEEventEntity.certification_th = request.form.get('certification_th')
+                CEEventEntity.location_en = request.form.get('location_en')
+                CEEventEntity.location_th = request.form.get('location_th')
+                CEEventEntity.degree_en = request.form.get('degree_en')
+                CEEventEntity.degree_th = request.form.get('degree_th')
+                CEEventEntity.department_owner = request.form.get('department_owner')
+                CEEventEntity.created_by = request.form.get('created_by')
+                CEEventEntity.certificate_name_th = request.form.get('certificate_name_th')
+                CEEventEntity.certificate_name_en = request.form.get('certificate_name_en')
+            elif CEEventEntity.event_type == 'webinar':
+                CEEventEntity.long_description_en = request.form.get('long_description_en')
+                CEEventEntity.long_description_th = request.form.get('long_description_th')
+                CEEventEntity.date_en = request.form.get('date_en')
+                CEEventEntity.date_th = request.form.get('date_th')
+                CEEventEntity.time_en = request.form.get('time_en')
+                CEEventEntity.time_th = request.form.get('time_th')
+                CEEventEntity.speaker_en = request.form.get('speaker_en')
+                CEEventEntity.speaker_th = request.form.get('speaker_th')
+                CEEventEntity.location_en = request.form.get('location_en')
+                CEEventEntity.location_th = request.form.get('location_th')
+                CEEventEntity.certificate_name_th = request.form.get('certificate_name_th')
+                CEEventEntity.certificate_name_en = request.form.get('certificate_name_en')
 
             db.session.commit()
             flash('Event updated successfully!', 'success')
@@ -3490,11 +3490,11 @@ def edit_event(event_id):
             flash(f'Error updating event: {e}', 'danger')
 
     staff_accounts = StaffAccount.query.all()
-    categories = EventEntity.event_type # EventCategory.query.all()
-    certificate_types = CertificateType.query.all()
+    categories = CEEventEntity.event_type # EventCategory.query.all()
+    certificate_types = CECertificateType.query.all()
     return render_template('continueing_edu/event_form.html',
                            active_menu='Event Management',
-                           form_title=f'Edit Event: {EventEntity.title_en}',
+                           form_title=f'Edit Event: {CEEventEntity.title_en}',
                            event=event,
                            staff_accounts=staff_accounts,
                            categories=categories,
@@ -3510,7 +3510,7 @@ def delete_event(event_id):
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
 
-    event = EventEntity.query.get_or_404(event_id)
+    event = CEEventEntity.query.get_or_404(event_id)
     try:
         db.session.delete(event)
         db.session.commit()
@@ -3532,7 +3532,7 @@ def get_registrations_data():
     event_id = request.args.get('event_id', type=int)
     search_query = request.args.get('search', '').strip()
 
-    query = Registration.query.join(Member).join(Event).join(Payment, isouter=True)
+    query = Registration.query.join(CEMember).join(Event).join(Payment, isouter=True)
 
     if event_id:
         query = query.filter(Registration.event_id == event_id)
@@ -3540,10 +3540,10 @@ def get_registrations_data():
     if search_query:
         search_pattern = f'%{search_query}%'
         query = query.filter(or_(
-            Member.username.like(search_pattern),
-            Member.email.like(search_pattern),
-            EventEntity.title_en.like(search_pattern),
-            EventEntity.title_th.like(search_pattern)
+            CEMember.username.like(search_pattern),
+            CEMember.email.like(search_pattern),
+            CEEventEntity.title_en.like(search_pattern),
+            CEEventEntity.title_th.like(search_pattern)
         ))
 
     pagination = query.order_by(Registration.registration_date.desc()).paginate(page=page, per_page=per_page,
@@ -3566,14 +3566,14 @@ def get_registrations_data():
             'id': reg.id,
             'member_username': reg.member.username,
             'member_email': reg.member.email,
-            'event_title_en': reg.EventEntity.title_en,
-            'event_type': reg.EventEntity.event_type,
+            'event_title_en': reg.CEEventEntity.title_en,
+            'event_type': reg.CEEventEntity.event_type,
             'registration_date': reg.registration_date.strftime('%Y-%m-%d %H:%M:%S'),
             'status_en': reg.registration_status_ref.name_en if reg.registration_status_ref else 'N/A',
             'status_badge_css': reg.registration_status_ref.name_en.lower() if reg.registration_status_ref else 'is-light',
             'payment_status_en': payment_status_name,
             'payment_status_badge_css': payment_badge_css,
-            'ce_score': reg.EventEntity.continue_education_score,
+            'ce_score': reg.CEEventEntity.continue_education_score,
             'actions': '...'
         })
 
@@ -3596,7 +3596,7 @@ def get_payments_data():
     payment_status_id = request.args.get('payment_status_id', type=int)
     search_query = request.args.get('search', '').strip()
 
-    query = Payment.query.join(Registration).join(Member).join(Event).join(PaymentStatus)
+    query = Payment.query.join(Registration).join(CEMember).join(Event).join(PaymentStatus)
 
     if event_id:
         query = query.filter(Registration.event_id == event_id)
@@ -3606,10 +3606,10 @@ def get_payments_data():
     if search_query:
         search_pattern = f'%{search_query}%'
         query = query.filter(or_(
-            Member.username.like(search_pattern),
-            Member.email.like(search_pattern),
-            EventEntity.title_en.like(search_pattern),
-            EventEntity.title_th.like(search_pattern),
+            CEMember.username.like(search_pattern),
+            CEMember.email.like(search_pattern),
+            CEEventEntity.title_en.like(search_pattern),
+            CEEventEntity.title_th.like(search_pattern),
             Payment.transaction_id.like(search_pattern),
             Payment.receipt_number.like(search_pattern)
         ))
@@ -3632,7 +3632,7 @@ def get_payments_data():
             'id': pay.id,
             'member_username': pay.registration.member.username,
             'member_email': pay.registration.member.email,
-            'event_title_en': pay.registration.EventEntity.title_en,
+            'event_title_en': pay.registration.CEEventEntity.title_en,
             'payment_amount': pay.payment_amount,
             'payment_date': pay.payment_date.strftime('%Y-%m-%d %H:%M:%S'),
             'payment_status_en': payment_status_name,
@@ -3657,11 +3657,11 @@ def get_payments_data():
 def event_details(event_id):
     """Renders the detailed page for a specific EventEntity."""
     try:
-        event = EventEntity.query.get_or_404(event_id)
+        event = CEEventEntity.query.get_or_404(event_id)
         # Check if the event is a course or a webinar
-        if EventEntity.event_type == 'course':
+        if CEEventEntity.event_type == 'course':
             template_name = 'continueing_edu/course_details.html'
-        elif EventEntity.event_type == 'webinar':
+        elif CEEventEntity.event_type == 'webinar':
             template_name = 'continueing_edu/webinar_details.html'
         else:
             # Handle unknown event type
@@ -3678,7 +3678,7 @@ def admin_events():
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
     print("Admin Events")
-    events = EventEntity.query.order_by(EventEntity.created_at.desc()).all()
+    events = CEEventEntity.query.order_by(CEEventEntity.created_at.desc()).all()
     return render_template('continueing_edu/events_list.html', events=events, texts=texts)
 
 @ce_bp.route('/event/add', methods=['GET', 'POST'])
@@ -3691,7 +3691,7 @@ def admin_add_event():
 
 @ce_bp.route('/event/edit/<int:event_id>', methods=['GET', 'POST'])
 def admin_edit_event(event_id):
-    event = EventEntity.query.get_or_404(event_id)
+    event = CEEventEntity.query.get_or_404(event_id)
     if request.method == 'POST':
         # TODO: Add form processing logic
         flash('Event updated (stub)', 'success')
@@ -3700,7 +3700,7 @@ def admin_edit_event(event_id):
 
 @ce_bp.route('/event/delete/<int:event_id>', methods=['POST'])
 def admin_delete_event(event_id):
-    event = EventEntity.query.get_or_404(event_id)
+    event = CEEventEntity.query.get_or_404(event_id)
     db.session.delete(event)
     db.session.commit()
     flash('Event deleted', 'success')

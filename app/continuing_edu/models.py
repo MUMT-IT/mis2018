@@ -11,7 +11,7 @@ import boto3
 
 
 
-class OrganizationType(db.Model):
+class CEOrganizationType(db.Model):
     """Lookup for organization categories (e.g., hospital, lab)."""
     __tablename__ = 'organization_types'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -19,13 +19,13 @@ class OrganizationType(db.Model):
     name_th = db.Column(db.String(150), nullable=True)
     is_user_defined = db.Column(db.Boolean, default=False, nullable=False)
 
-    organizations = relationship("Organization", back_populates="organization_type", lazy=True)
+    organizations = relationship("CEOrganization", back_populates="organization_type", lazy=True)
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<OrganizationType {self.name_en}>"
 
 
-class Organization(db.Model):
+class CEOrganization(db.Model):
     """Stores organizations/institutions for members."""
     __tablename__ = 'organizations'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -35,14 +35,14 @@ class Organization(db.Model):
     is_user_defined = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
 
-    organization_type = relationship("OrganizationType", back_populates="organizations")
-    members = relationship("Member", back_populates="organization", lazy=True)
+    organization_type = relationship("CEOrganizationType", back_populates="organizations")
+    members = relationship("CEMember", back_populates="organization", lazy=True)
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Organization {self.name}>"
 
 
-class Occupation(db.Model):
+class CEOccupation(db.Model):
     """Lookup table for occupations."""
     __tablename__ = 'occupations'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -50,13 +50,13 @@ class Occupation(db.Model):
     name_th = db.Column(db.String(150), nullable=True)
     is_user_defined = db.Column(db.Boolean, default=False, nullable=False)
 
-    members = relationship("Member", back_populates="occupation", lazy=True)
+    members = relationship("CEMember", back_populates="occupation", lazy=True)
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Occupation {self.name_en}>"
 
 
-class MemberType(db.Model):
+class CEMemberType(db.Model):
     """Lookup table for member types."""
     __tablename__ = 'member_types'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -65,14 +65,14 @@ class MemberType(db.Model):
     member_type_code = db.Column(db.String(50), unique=True, nullable=True, comment="Stable code for logic")
 
     # Relationship to Member model
-    members = relationship("Member", back_populates="member_type_ref", lazy=True)
-    event_registration_fees = relationship("EventRegistrationFee", back_populates="member_type_ref", lazy=True)
+    members = relationship("CEMember", back_populates="member_type_ref", lazy=True)
+    event_registration_fees = relationship("CEEventRegistrationFee", back_populates="member_type_ref", lazy=True)
 
     def __repr__(self) -> str:
         return f"<MemberType {self.name_en}>"
 
 
-class Gender(db.Model):
+class CEGender(db.Model):
     """Lookup table for genders."""
     __tablename__ = 'genders'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -80,13 +80,13 @@ class Gender(db.Model):
     name_en = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "male"
 
     # Relationship to Member model
-    members = relationship("Member", back_populates="gender_ref", lazy=True)
+    members = relationship("CEMember", back_populates="gender_ref", lazy=True)
 
     def __repr__(self) -> str:
         return f"<Gender {self.name_en}>"
 
 
-class AgeRange(db.Model):
+class CEAgeRange(db.Model):
     """Lookup table for age ranges."""
     __tablename__ = 'age_ranges'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -94,13 +94,13 @@ class AgeRange(db.Model):
     name_en = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "under_18"
 
     # Relationship to Member model
-    members = relationship("Member", back_populates="age_range_ref", lazy=True)
+    members = relationship("CEMember", back_populates="age_range_ref", lazy=True)
 
     def __repr__(self) -> str:
         return f"<AgeRange {self.name_en}>"
 
 
-class RegistrationStatus(db.Model):
+class CERegistrationStatus(db.Model):
     """Lookup table for registration statuses."""
     __tablename__ = 'registration_statuses'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -110,13 +110,13 @@ class RegistrationStatus(db.Model):
     css_badge = db.Column(db.String(100), nullable=True, comment="CSS class for badge styling")  # New field
 
     # Relationship to MemberRegistration model
-    member_registrations = relationship("MemberRegistration", back_populates="status_ref", lazy=True)
+    member_registrations = relationship("CEMemberRegistration", back_populates="status_ref", lazy=True)
 
     def __repr__(self) -> str:
         return f"<RegistrationStatus {self.name_en}>"
 
 
-class RegisterPaymentStatus(db.Model):
+class CERegisterPaymentStatus(db.Model):
     """Lookup table for payment statuses."""
     __tablename__ = 'register_payment_statuses'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -126,13 +126,13 @@ class RegisterPaymentStatus(db.Model):
     css_badge = db.Column(db.String(100), nullable=True, comment="CSS class for badge styling")  # New field
 
     # Relationship to RegisterPayment model
-    register_payments = relationship("RegisterPayment", back_populates="payment_status_ref", lazy=True)
+    register_payments = relationship("CERegisterPayment", back_populates="payment_status_ref", lazy=True)
 
     def __repr__(self) -> str:
         return f"<RegisterPaymentStatus {self.name_en}>"
 
 
-class CertificateType(db.Model):
+class CECertificateType(db.Model):
     """Lookup table for certificate types."""
     __tablename__ = 'certificate_types'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -140,13 +140,13 @@ class CertificateType(db.Model):
     name_en = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "participation"
 
     # Relationship to EventEntity model
-    event_entities = relationship("EventEntity", back_populates="certificate_type_ref", lazy=True)
+    event_entities = relationship("CEEventEntity", back_populates="certificate_type_ref", lazy=True)
 
     def __repr__(self) -> str:
         return f"<CertificateType {self.name_en}>"
 
 
-class MemberCertificateStatus(db.Model):
+class CEMemberCertificateStatus(db.Model):
     """Lookup table for member certificate statuses."""
     __tablename__ = 'member_certificate_statuses'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -155,7 +155,7 @@ class MemberCertificateStatus(db.Model):
     css_badge = db.Column(db.String(100), nullable=True, comment="CSS class for badge styling")  # New field
 
     # Relationship to MemberRegistration model
-    member_registrations = relationship("MemberRegistration", back_populates="certificate_status_ref", lazy=True)
+    member_registrations = relationship("CEMemberRegistration", back_populates="certificate_status_ref", lazy=True)
 
     def __repr__(self) -> str:
         return f"<MemberCertificateStatus {self.name_en}>"
@@ -164,7 +164,7 @@ class MemberCertificateStatus(db.Model):
 # --------------------------------------------------
 # Core Models
 # --------------------------------------------------
-class EntityCategory(db.Model):
+class CEEntityCategory(db.Model):
     """Defines categories for various entities (e.g., courses, webinars)."""
     __tablename__ = 'entity_categories'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -174,13 +174,13 @@ class EntityCategory(db.Model):
     entity_category_code = db.Column(db.String(50), unique=True, nullable=True, comment="Stable code for logic")
 
     # Relationship to EventEntity (one-to-many)
-    events = relationship("EventEntity", back_populates="category", lazy=True)
+    events = relationship("CEEventEntity", back_populates="category", lazy=True)
 
     def __str__(self):
         return self.name_en
 
 
-class Member(db.Model):
+class CEMember(db.Model):
     """System user / learner profile"""
 
     __tablename__ = "members"
@@ -196,13 +196,13 @@ class Member(db.Model):
 
     # Changed from String to Integer FK
     member_type_id = db.Column(db.Integer, ForeignKey('member_types.id'), nullable=True)
-    member_type_ref = relationship("MemberType", back_populates="members")
+    member_type_ref = relationship("CEMemberType", back_populates="members")
 
     gender_id = db.Column(db.Integer, ForeignKey('genders.id'), nullable=True)
-    gender_ref = relationship("Gender", back_populates="members")
+    gender_ref = relationship("CEGender", back_populates="members")
 
     age_range_id = db.Column(db.Integer, ForeignKey('age_ranges.id'), nullable=True)
-    age_range_ref = relationship("AgeRange", back_populates="members")
+    age_range_ref = relationship("CEAgeRange", back_populates="members")
 
     country = db.Column(db.String(100))
     title_name_th = db.Column(db.String(100))
@@ -231,11 +231,11 @@ class Member(db.Model):
                                                comment="คะแนนการศึกษาต่อเนื่องรวมของสมาชิก")
 
     # Relationships
-    registrations = relationship("MemberRegistration", back_populates="member", lazy=True)
-    payments = relationship("RegisterPayment", back_populates="member", lazy=True)
-    addresses = relationship("MemberAddress", back_populates="member", cascade="all, delete-orphan", lazy=True)
-    organization = relationship("Organization", back_populates="members")
-    occupation = relationship("Occupation", back_populates="members")
+    registrations = relationship("CEMemberRegistration", back_populates="member", lazy=True)
+    payments = relationship("CERegisterPayment", back_populates="member", lazy=True)
+    addresses = relationship("CEMemberAddress", back_populates="member", cascade="all, delete-orphan", lazy=True)
+    organization = relationship("CEOrganization", back_populates="members")
+    occupation = relationship("CEOccupation", back_populates="members")
 
     # is_admin = db.Column(db.Boolean, default=False, nullable=False, comment="Is the member an admin user")
 
@@ -267,7 +267,7 @@ class Member(db.Model):
 
 
 # Redesigned EventEntity: merged Course and Webinar fields into one table
-class EventEntity(db.Model):
+class CEEventEntity(db.Model):
     """
     Represents an academic event (Course, Webinar, etc.) in a single table.
     """
@@ -287,9 +287,9 @@ class EventEntity(db.Model):
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
     staff = db.relationship(StaffAccount, backref=db.backref('events_managed', lazy=True))
     category_id = db.Column(db.Integer, ForeignKey('entity_categories.id'), nullable=True)
-    category = relationship("EntityCategory", back_populates="events")
+    category = relationship("CEEntityCategory", back_populates="events")
     certificate_type_id = db.Column(db.Integer, ForeignKey('certificate_types.id'), nullable=True)
-    certificate_type_ref = relationship("CertificateType", back_populates="event_entities")
+    certificate_type_ref = relationship("CECertificateType", back_populates="event_entities")
     creating_institution = db.Column(db.String(255), nullable=False, default="เทคนิคการแพทย์ ม.มหิดล", comment="สถาบันที่สร้างกิจกรรมนี้")
     department_or_unit = db.Column(db.String(255), nullable=True, comment="ภาควิชา หรือหน่วยงานที่รับผิดชอบกิจกรรม")
     continue_education_score = db.Column(db.Numeric(precision=10, scale=2), default=0.00, nullable=False, comment="คะแนนการศึกษาต่อเนื่อง (ทศนิยม 2 ตำแหน่ง)")
@@ -320,17 +320,17 @@ class EventEntity(db.Model):
     early_bird_end = db.Column(db.DateTime(timezone=True), nullable=True, comment="Early bird end datetime")
 
     # Relationships
-    payments = relationship("RegisterPayment", back_populates="event_entity", lazy=True)
-    registrations = relationship("MemberRegistration", back_populates="event_entity", lazy=True)
-    speakers = relationship("EventSpeaker", back_populates="event_entity", lazy=True)
-    agendas = relationship("EventAgenda", back_populates="event_entity", lazy=True)
-    materials = relationship("EventMaterial", back_populates="event_entity", lazy=True)
-    registration_fees = relationship("EventRegistrationFee", back_populates="event_entity", lazy=True)
-    editors = relationship("EventEditor", back_populates="event_entity", lazy=True)
-    registration_reviewers = relationship("EventRegistrationReviewer", back_populates="event_entity", lazy=True)
-    payment_approvers = relationship("EventPaymentApprover", back_populates="event_entity", lazy=True)
-    receipt_issuers = relationship("EventReceiptIssuer", back_populates="event_entity", lazy=True)
-    certificate_managers = relationship("EventCertificateManager", back_populates="event_entity", lazy=True)
+    payments = relationship("CERegisterPayment", back_populates="event_entity", lazy=True)
+    registrations = relationship("CEMemberRegistration", back_populates="event_entity", lazy=True)
+    speakers = relationship("CEEventSpeaker", back_populates="event_entity", lazy=True)
+    agendas = relationship("CEEventAgenda", back_populates="event_entity", lazy=True)
+    materials = relationship("CEEventMaterial", back_populates="event_entity", lazy=True)
+    registration_fees = relationship("CEEventRegistrationFee", back_populates="event_entity", lazy=True)
+    editors = relationship("CEEventEditor", back_populates="event_entity", lazy=True)
+    registration_reviewers = relationship("CEEventRegistrationReviewer", back_populates="event_entity", lazy=True)
+    payment_approvers = relationship("CEEventPaymentApprover", back_populates="event_entity", lazy=True)
+    receipt_issuers = relationship("CEEventReceiptIssuer", back_populates="event_entity", lazy=True)
+    certificate_managers = relationship("CEEventCertificateManager", back_populates="event_entity", lazy=True)
 
     def __repr__(self) -> str:
         return f"<EventEntity {self.event_type}: {self.title_en}>"
@@ -383,7 +383,7 @@ class EventEntity(db.Model):
 # --------------------------------------------------
 # Association Tables (now a single generic registration table)
 # --------------------------------------------------
-class MemberRegistration(db.Model):
+class CEMemberRegistration(db.Model):
     """
     Links members to any EventEntity they have registered for.
     Replaces CourseRegistration and WebinarRegistration.
@@ -403,7 +403,7 @@ class MemberRegistration(db.Model):
     # Changed from String to Integer FK
     status_id = db.Column(db.Integer, ForeignKey('registration_statuses.id'), nullable=False,
                           default=1)  # Assuming 'registered' is ID 1
-    status_ref = relationship("RegistrationStatus", back_populates="member_registrations")
+    status_ref = relationship("CERegistrationStatus", back_populates="member_registrations")
 
     # New fields for attendance tracking
     attendance_count = db.Column(db.Integer, default=0, nullable=False,
@@ -421,7 +421,7 @@ class MemberRegistration(db.Model):
     # Changed from String to Integer FK
     certificate_status_id = db.Column(db.Integer, ForeignKey('member_certificate_statuses.id'), nullable=False,
                                       default=1)  # Assuming 'not_applicable' is ID 1
-    certificate_status_ref = relationship("MemberCertificateStatus", back_populates="member_registrations")
+    certificate_status_ref = relationship("CEMemberCertificateStatus", back_populates="member_registrations")
 
     certificate_issued_date = db.Column(db.DateTime(timezone=True), nullable=True,
                                         comment="Date when the certificate was issued")
@@ -435,8 +435,8 @@ class MemberRegistration(db.Model):
         UniqueConstraint("member_id", "event_entity_id", name="_member_event_entity_uc"),
     )
 
-    member = relationship("Member", back_populates="registrations")
-    event_entity = relationship("EventEntity", back_populates="registrations")
+    member = relationship("CEMember", back_populates="registrations")
+    event_entity = relationship("CEEventEntity", back_populates="registrations")
 
     def __repr__(self) -> str:  # pragma: no cover
         return (f"<MemberRegistration Member:{self.member_id} Event:{self.event_entity_id} "
@@ -470,7 +470,7 @@ class MemberRegistration(db.Model):
             return value
 
 
-class RegisterPaymentReceipt(db.Model):
+class CERegisterPaymentReceipt(db.Model):
     """
     Stores details of issued receipts for payments.
     """
@@ -486,14 +486,14 @@ class RegisterPaymentReceipt(db.Model):
                                    comment="Staff ผู้ออกใบเสร็จ")
 
     # Relationships
-    payment = relationship("RegisterPayment", back_populates="receipt")
+    payment = relationship("CERegisterPayment", back_populates="receipt")
     issued_by_staff = relationship(StaffAccount, backref=db.backref('receipts_issued', lazy=True))
 
     def __repr__(self) -> str:
         return f"<RegisterPaymentReceipt No:{self.receipt_number} Payment:{self.register_payment_id}>"  # Updated repr
 
 
-class ContinuingInvoice(db.Model):
+class CEContinuingInvoice(db.Model):
     """
     Invoice record used for all payment methods for a registration.
     """
@@ -506,14 +506,14 @@ class ContinuingInvoice(db.Model):
     status = db.Column(db.String(50), nullable=False, default='pending')
     created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
 
-    member = relationship('Member', backref=db.backref('invoices', lazy=True))
-    event_entity = relationship('EventEntity', backref=db.backref('invoices', lazy=True))
+    member = relationship('CEMember', backref=db.backref('invoices', lazy=True))
+    event_entity = relationship('CEEventEntity', backref=db.backref('invoices', lazy=True))
 
     def __repr__(self) -> str:
         return f"<ContinuingInvoice {self.invoice_no or ('id:'+str(self.id))} Member:{self.member_id} Event:{self.event_entity_id} Amount:{self.amount}>"
 
 
-class RegisterPayment(db.Model):
+class CERegisterPayment(db.Model):
     """Tracks payment information for event registrations."""
     __tablename__ = "register_payments"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -531,7 +531,7 @@ class RegisterPayment(db.Model):
     # Changed from String to Integer FK
     payment_status_id = db.Column(db.Integer, ForeignKey('register_payment_statuses.id'), nullable=False,
                                   default=1)  # Assuming 'pending' is ID 1
-    payment_status_ref = relationship("RegisterPaymentStatus", back_populates="register_payments")
+    payment_status_ref = relationship("CERegisterPaymentStatus", back_populates="register_payments")
 
     transaction_id = db.Column(db.String(255), unique=True, nullable=True,
                                comment="Reference ID from payment gateway")
@@ -554,13 +554,13 @@ class RegisterPayment(db.Model):
     approval_date = db.Column(db.DateTime(timezone=True), nullable=True, comment="วันที่อนุมัติการชำระเงิน")
 
     # Relationships
-    member = relationship("Member", back_populates="payments")
-    event_entity = relationship("EventEntity", back_populates="payments")
+    member = relationship("CEMember", back_populates="payments")
+    event_entity = relationship("CEEventEntity", back_populates="payments")
     approved_by_staff = relationship(StaffAccount, backref=db.backref('payments_approved',
                                                                       lazy=True))  # Relationship to StaffAccount for approval
-    receipt = relationship("RegisterPaymentReceipt", back_populates="payment",
+    receipt = relationship("CERegisterPaymentReceipt", back_populates="payment",
                            uselist=False)  # One-to-one relationship with RegisterPaymentReceipt
-    invoice = relationship('ContinuingInvoice', backref=db.backref('payments', lazy=True))
+    invoice = relationship('CEContinuingInvoice', backref=db.backref('payments', lazy=True))
 
     def __repr__(self) -> str:
         return f"<RegisterPayment Member:{self.member_id} Event:{self.event_entity_id} Status:{self.payment_status_ref.name_en if self.payment_status_ref else 'N/A'}>"
@@ -597,7 +597,7 @@ class RegisterPayment(db.Model):
 # --------------------------------------------------
 # New Models for Event Details
 # --------------------------------------------------
-class EventSpeaker(db.Model):
+class CEEventSpeaker(db.Model):
     """
     Stores information about speakers or lecturers for an EventEntity.
     """
@@ -619,13 +619,13 @@ class EventSpeaker(db.Model):
     bio_en = db.Column(db.Text, nullable=True)
 
     # Relationship to EventEntity
-    event_entity = relationship("EventEntity", back_populates="speakers")
+    event_entity = relationship("CEEventEntity", back_populates="speakers")
 
     def __repr__(self) -> str:
         return f"<EventSpeaker {self.name_en} for Event:{self.event_entity_id}>"
 
 
-class SpeakerProfile(db.Model):
+class CESpeakerProfile(db.Model):
     """
     Centralized reusable speaker profile not tied to a specific event.
     """
@@ -652,7 +652,7 @@ class SpeakerProfile(db.Model):
         return f"<SpeakerProfile {self.name_en} ({self.email})>"
 
 
-class EventAgenda(db.Model):
+class CEEventAgenda(db.Model):
     """
     Stores agenda items for an EventEntity.
     """
@@ -669,13 +669,13 @@ class EventAgenda(db.Model):
     order = db.Column(db.Integer, nullable=False, comment="Order of the agenda item")
 
     # Relationship to EventEntity
-    event_entity = relationship("EventEntity", back_populates="agendas")
+    event_entity = relationship("CEEventEntity", back_populates="agendas")
 
     def __repr__(self) -> str:
         return f"<EventAgenda {self.title_en} for Event:{self.event_entity_id} from {self.start_time.strftime('%H:%M')} to {self.end_time.strftime('%H:%M')}>"
 
 
-class EventMaterial(db.Model):
+class CEEventMaterial(db.Model):
     """
     Stores downloadable materials associated with an EventEntity.
     """
@@ -691,13 +691,13 @@ class EventMaterial(db.Model):
     uploaded_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
 
     # Relationship to EventEntity
-    event_entity = relationship("EventEntity", back_populates="materials")
+    event_entity = relationship("CEEventEntity", back_populates="materials")
 
     def __repr__(self) -> str:
         return f"<EventMaterial {self.title_en} for Event:{self.event_entity_id}>"
 
 
-class EventRegistrationFee(db.Model):
+class CEEventRegistrationFee(db.Model):
     """
     Stores registration fees for an EventEntity, differentiated by MemberTypeEnum.
     """
@@ -706,7 +706,7 @@ class EventRegistrationFee(db.Model):
     event_entity_id = db.Column(db.Integer, ForeignKey('event_entities.id', ondelete='CASCADE'), nullable=False)
     # Changed from String to Integer FK
     member_type_id = db.Column(db.Integer, ForeignKey('member_types.id'), nullable=False)
-    member_type_ref = relationship("MemberType", back_populates="event_registration_fees")
+    member_type_ref = relationship("CEMemberType", back_populates="event_registration_fees")
 
     price = db.Column(db.Float, nullable=False)
     early_bird_price = db.Column(db.Float, nullable=True, comment="Discounted price during early bird period")
@@ -718,7 +718,7 @@ class EventRegistrationFee(db.Model):
     )
 
     # Relationship to EventEntity
-    event_entity = relationship("EventEntity", back_populates="registration_fees")
+    event_entity = relationship("CEEventEntity", back_populates="registration_fees")
 
     def __repr__(self) -> str:
         return f"<EventRegistrationFee Event:{self.event_entity_id} MemberType:{self.member_type_ref.name_en if self.member_type_ref else 'N/A'} Price:{self.price}>"
@@ -727,7 +727,7 @@ class EventRegistrationFee(db.Model):
 # --------------------------------------------------
 # New Models for Assigned Staff Roles
 # --------------------------------------------------
-class EventEditor(db.Model):
+class CEEventEditor(db.Model):
     """
     Assigns staff members as editors for a specific EventEntity.
     """
@@ -741,14 +741,14 @@ class EventEditor(db.Model):
         UniqueConstraint("event_entity_id", "staff_id", name="_event_editor_uc"),
     )
 
-    event_entity = relationship("EventEntity", back_populates="editors")
+    event_entity = relationship("CEEventEntity", back_populates="editors")
     staff = relationship(StaffAccount, backref=db.backref('events_edited', lazy=True))
 
     def __repr__(self) -> str:
         return f"<EventEditor Event:{self.event_entity_id} Staff:{self.staff_id}>"
 
 
-class EventRegistrationReviewer(db.Model):
+class CEEventRegistrationReviewer(db.Model):
     """
     Assigns staff members responsible for reviewing registrations for an EventEntity.
     """
@@ -762,14 +762,14 @@ class EventRegistrationReviewer(db.Model):
         UniqueConstraint("event_entity_id", "staff_id", name="_event_registration_reviewer_uc"),
     )
 
-    event_entity = relationship("EventEntity", back_populates="registration_reviewers")
+    event_entity = relationship("CEEventEntity", back_populates="registration_reviewers")
     staff = relationship(StaffAccount, backref=db.backref('registrations_reviewed', lazy=True))
 
     def __repr__(self) -> str:
         return f"<EventRegistrationReviewer Event:{self.event_entity_id} Staff:{self.staff_id}>"
 
 
-class EventPaymentApprover(db.Model):
+class CEEventPaymentApprover(db.Model):
     """
     Assigns staff members responsible for approving payments for an EventEntity.
     """
@@ -783,7 +783,7 @@ class EventPaymentApprover(db.Model):
         UniqueConstraint("event_entity_id", "staff_id", name="_event_payment_approver_uc"),
     )
 
-    event_entity = relationship("EventEntity", back_populates="payment_approvers")
+    event_entity = relationship("CEEventEntity", back_populates="payment_approvers")
     staff = relationship(StaffAccount,
                          backref=db.backref('payments_approved_roles', lazy=True))  # Renamed backref to avoid conflict
 
@@ -791,7 +791,7 @@ class EventPaymentApprover(db.Model):
         return f"<EventPaymentApprover Event:{self.event_entity_id} Staff:{self.staff_id}>"
 
 
-class EventReceiptIssuer(db.Model):
+class CEEventReceiptIssuer(db.Model):
     """
     Assigns staff members responsible for issuing receipts for an EventEntity.
     """
@@ -805,7 +805,7 @@ class EventReceiptIssuer(db.Model):
         UniqueConstraint("event_entity_id", "staff_id", name="_event_receipt_issuer_uc"),
     )
 
-    event_entity = relationship("EventEntity", back_populates="receipt_issuers")
+    event_entity = relationship("CEEventEntity", back_populates="receipt_issuers")
     staff = relationship(StaffAccount,
                          backref=db.backref('receipts_issued_roles', lazy=True))  # Renamed backref to avoid conflict
 
@@ -813,7 +813,7 @@ class EventReceiptIssuer(db.Model):
         return f"<EventReceiptIssuer Event:{self.event_entity_id} Staff:{self.staff_id}>"
 
 
-class EventCertificateManager(db.Model):
+class CEEventCertificateManager(db.Model):
     """
     Assigns staff members responsible for managing certificates for an EventEntity.
     """
@@ -827,13 +827,13 @@ class EventCertificateManager(db.Model):
         UniqueConstraint("event_entity_id", "staff_id", name="_event_certificate_manager_uc"),
     )
 
-    event_entity = relationship("EventEntity", back_populates="certificate_managers")
+    event_entity = relationship("CEEventEntity", back_populates="certificate_managers")
     staff = relationship(StaffAccount, backref=db.backref('certificates_managed', lazy=True))
 
     def __repr__(self) -> str:
         return f"<EventCertificateManager Event:{self.event_entity_id} Staff:{self.staff_id}>"
 
-class MemberAddress(db.Model):
+class CEMemberAddress(db.Model):
     """Stores multiple addresses per member."""
     __tablename__ = 'member_addresses'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -849,7 +849,7 @@ class MemberAddress(db.Model):
     country_name = db.Column(db.String(120), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
 
-    member = relationship("Member", back_populates="addresses")
+    member = relationship("CEMember", back_populates="addresses")
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<MemberAddress {self.address_type} Member:{self.member_id}>"

@@ -133,19 +133,20 @@ def confirm_payment():
     db.session.commit()
 
     # If this QR belongs to Continuing Education, mark the RegisterPayment as paid.
+    #TODO: send a request to update the payment status instead.
     try:
         import re
         ref2 = str(data.get('billPaymentRef2') or '')
         m = re.search(r'^RP(\d+)$', ref2)
         if m:
             payment_id = int(m.group(1))
-            from app.continuing_edu.models import RegisterPayment, RegisterPaymentStatus
-            pay = RegisterPayment.query.get(payment_id)
+            from app.continuing_edu.models import CERegisterPayment, CERegisterPaymentStatus
+            pay = CERegisterPayment.query.get(payment_id)
             if pay and not pay.transaction_id:
                 pay.transaction_id = data.get('transactionId')
-            paid_status = RegisterPaymentStatus.query.filter(
-                (RegisterPaymentStatus.register_payment_status_code == 'paid') |
-                (RegisterPaymentStatus.name_en == 'paid')
+            paid_status = CERegisterPaymentStatus.query.filter(
+                (CERegisterPaymentStatus.register_payment_status_code == 'paid') |
+                (CERegisterPaymentStatus.name_en == 'paid')
             ).first()
             if pay and paid_status:
                 pay.payment_status_id = paid_status.id
