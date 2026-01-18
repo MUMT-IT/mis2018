@@ -9,11 +9,9 @@ import os
 import boto3
 
 
-
-
 class CEOrganizationType(db.Model):
     """Lookup for organization categories (e.g., hospital, lab)."""
-    __tablename__ = 'organization_types'
+    __tablename__ = 'ce_organization_types'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name_en = db.Column(db.String(150), unique=True, nullable=False)
     name_th = db.Column(db.String(150), nullable=True)
@@ -27,10 +25,10 @@ class CEOrganizationType(db.Model):
 
 class CEOrganization(db.Model):
     """Stores organizations/institutions for members."""
-    __tablename__ = 'organizations'
+    __tablename__ = 'ce_organizations'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), unique=True, nullable=False)
-    organization_type_id = db.Column(db.Integer, ForeignKey('organization_types.id'), nullable=True)
+    organization_type_id = db.Column(db.Integer, ForeignKey('ce_organization_types.id'), nullable=True)
     country = db.Column(db.String(100), nullable=True)
     is_user_defined = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
@@ -44,7 +42,7 @@ class CEOrganization(db.Model):
 
 class CEOccupation(db.Model):
     """Lookup table for occupations."""
-    __tablename__ = 'occupations'
+    __tablename__ = 'ce_occupations'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name_en = db.Column(db.String(150), unique=True, nullable=False)
     name_th = db.Column(db.String(150), nullable=True)
@@ -58,7 +56,7 @@ class CEOccupation(db.Model):
 
 class CEMemberType(db.Model):
     """Lookup table for member types."""
-    __tablename__ = 'member_types'
+    __tablename__ = 'ce_member_types'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name_th = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "นักศึกษา ม.มหิดล"
     name_en = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "mahidol_student"
@@ -74,7 +72,7 @@ class CEMemberType(db.Model):
 
 class CEGender(db.Model):
     """Lookup table for genders."""
-    __tablename__ = 'genders'
+    __tablename__ = 'ce_genders'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name_th = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "ชาย"
     name_en = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "male"
@@ -88,7 +86,7 @@ class CEGender(db.Model):
 
 class CEAgeRange(db.Model):
     """Lookup table for age ranges."""
-    __tablename__ = 'age_ranges'
+    __tablename__ = 'ce_age_ranges'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name_th = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "ต่ำกว่า 18 ปี"
     name_en = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "under_18"
@@ -102,7 +100,7 @@ class CEAgeRange(db.Model):
 
 class CERegistrationStatus(db.Model):
     """Lookup table for registration statuses."""
-    __tablename__ = 'registration_statuses'
+    __tablename__ = 'ce_registration_statuses'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name_th = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "ลงทะเบียนแล้ว"
     name_en = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "registered"
@@ -118,7 +116,7 @@ class CERegistrationStatus(db.Model):
 
 class CERegisterPaymentStatus(db.Model):
     """Lookup table for payment statuses."""
-    __tablename__ = 'register_payment_statuses'
+    __tablename__ = 'ce_register_payment_statuses'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name_th = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "รอดำเนินการ"
     name_en = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "pending"
@@ -134,7 +132,7 @@ class CERegisterPaymentStatus(db.Model):
 
 class CECertificateType(db.Model):
     """Lookup table for certificate types."""
-    __tablename__ = 'certificate_types'
+    __tablename__ = 'ce_certificate_types'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name_th = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "เข้าร่วม"
     name_en = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "participation"
@@ -148,7 +146,7 @@ class CECertificateType(db.Model):
 
 class CEMemberCertificateStatus(db.Model):
     """Lookup table for member certificate statuses."""
-    __tablename__ = 'member_certificate_statuses'
+    __tablename__ = 'ce_member_certificate_statuses'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name_th = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "ออกแล้ว"
     name_en = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "issued"
@@ -166,7 +164,7 @@ class CEMemberCertificateStatus(db.Model):
 # --------------------------------------------------
 class CEEntityCategory(db.Model):
     """Defines categories for various entities (e.g., courses, webinars)."""
-    __tablename__ = 'entity_categories'
+    __tablename__ = 'ce_entity_categories'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name_th = db.Column(db.String(), nullable=False)
     name_en = db.Column(db.String(), nullable=False)
@@ -183,7 +181,7 @@ class CEEntityCategory(db.Model):
 class CEMember(db.Model):
     """System user / learner profile"""
 
-    __tablename__ = "members"
+    __tablename__ = "ce_members"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
@@ -195,13 +193,13 @@ class CEMember(db.Model):
     google_connected_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
     # Changed from String to Integer FK
-    member_type_id = db.Column(db.Integer, ForeignKey('member_types.id'), nullable=True)
+    member_type_id = db.Column(db.Integer, ForeignKey('ce_member_types.id'), nullable=True)
     member_type_ref = relationship("CEMemberType", back_populates="members")
 
-    gender_id = db.Column(db.Integer, ForeignKey('genders.id'), nullable=True)
+    gender_id = db.Column(db.Integer, ForeignKey('ce_genders.id'), nullable=True)
     gender_ref = relationship("CEGender", back_populates="members")
 
-    age_range_id = db.Column(db.Integer, ForeignKey('age_ranges.id'), nullable=True)
+    age_range_id = db.Column(db.Integer, ForeignKey('ce_age_ranges.id'), nullable=True)
     age_range_ref = relationship("CEAgeRange", back_populates="members")
 
     country = db.Column(db.String(100))
@@ -219,8 +217,8 @@ class CEMember(db.Model):
     terms_condition_accepted = db.Column(db.Boolean)
     received_news = db.Column(db.Boolean)
 
-    organization_id = db.Column(db.Integer, ForeignKey('organizations.id'), nullable=True)
-    occupation_id = db.Column(db.Integer, ForeignKey('occupations.id'), nullable=True)
+    organization_id = db.Column(db.Integer, ForeignKey('ce_organizations.id'), nullable=True)
+    occupation_id = db.Column(db.Integer, ForeignKey('ce_occupations.id'), nullable=True)
 
 
     is_verified = db.Column(db.Boolean, default=False, nullable=False, comment="ยืนยันอีเมลแล้ว")
@@ -271,7 +269,7 @@ class CEEventEntity(db.Model):
     """
     Represents an academic event (Course, Webinar, etc.) in a single table.
     """
-    __tablename__ = 'event_entities'
+    __tablename__ = 'ce_event_entities'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     event_type = db.Column(db.String(50), nullable=False)  # e.g., 'course', 'webinar', etc.
 
@@ -286,9 +284,9 @@ class CEEventEntity(db.Model):
     # Staff/institution
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
     staff = db.relationship(StaffAccount, backref=db.backref('events_managed', lazy=True))
-    category_id = db.Column(db.Integer, ForeignKey('entity_categories.id'), nullable=True)
+    category_id = db.Column(db.Integer, ForeignKey('ce_entity_categories.id'), nullable=True)
     category = relationship("CEEntityCategory", back_populates="events")
-    certificate_type_id = db.Column(db.Integer, ForeignKey('certificate_types.id'), nullable=True)
+    certificate_type_id = db.Column(db.Integer, ForeignKey('ce_certificate_types.id'), nullable=True)
     certificate_type_ref = relationship("CECertificateType", back_populates="event_entities")
     creating_institution = db.Column(db.String(255), nullable=False, default="เทคนิคการแพทย์ ม.มหิดล", comment="สถาบันที่สร้างกิจกรรมนี้")
     department_or_unit = db.Column(db.String(255), nullable=True, comment="ภาควิชา หรือหน่วยงานที่รับผิดชอบกิจกรรม")
@@ -374,12 +372,6 @@ class CEEventEntity(db.Model):
         return self._cover_presigned_cache
 
 
-
-
-
-
-
-
 # --------------------------------------------------
 # Association Tables (now a single generic registration table)
 # --------------------------------------------------
@@ -388,20 +380,20 @@ class CEMemberRegistration(db.Model):
     Links members to any EventEntity they have registered for.
     Replaces CourseRegistration and WebinarRegistration.
     """
-    __tablename__ = "member_registrations"
+    __tablename__ = "ce_member_registrations"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
     member_id = db.Column(
-        db.Integer, ForeignKey("members.id", ondelete="CASCADE"), nullable=False, index=True
+        db.Integer, ForeignKey("ce_members.id", ondelete="CASCADE"), nullable=False, index=True
     )
     event_entity_id = db.Column(
-        db.Integer, ForeignKey("event_entities.id", ondelete="CASCADE"), nullable=False, index=True
+        db.Integer, ForeignKey("ce_event_entities.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
     registration_date = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
     # Changed from String to Integer FK
-    status_id = db.Column(db.Integer, ForeignKey('registration_statuses.id'), nullable=False,
+    status_id = db.Column(db.Integer, ForeignKey('ce_registration_statuses.id'), nullable=False,
                           default=1)  # Assuming 'registered' is ID 1
     status_ref = relationship("CERegistrationStatus", back_populates="member_registrations")
 
@@ -419,7 +411,7 @@ class CEMemberRegistration(db.Model):
 
     # New fields for certificate tracking
     # Changed from String to Integer FK
-    certificate_status_id = db.Column(db.Integer, ForeignKey('member_certificate_statuses.id'), nullable=False,
+    certificate_status_id = db.Column(db.Integer, ForeignKey('ce_member_certificate_statuses.id'), nullable=False,
                                       default=1)  # Assuming 'not_applicable' is ID 1
     certificate_status_ref = relationship("CEMemberCertificateStatus", back_populates="member_registrations")
 
@@ -474,9 +466,9 @@ class CERegisterPaymentReceipt(db.Model):
     """
     Stores details of issued receipts for payments.
     """
-    __tablename__ = 'register_payment_receipts'  # Updated table name
+    __tablename__ = 'ce_register_payment_receipts'  # Updated table name
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    register_payment_id = db.Column(db.Integer, ForeignKey('register_payments.id', ondelete='CASCADE'), unique=True,
+    register_payment_id = db.Column(db.Integer, ForeignKey('ce_register_payments.id', ondelete='CASCADE'), unique=True,
                                     nullable=False)
     receipt_number = db.Column(db.String(100), unique=True, nullable=False, comment="หมายเลขใบเสร็จรับเงิน")
     issue_date = db.Column(db.DateTime(timezone=True), server_default=db.func.now(), nullable=False,
@@ -497,11 +489,11 @@ class CEContinuingInvoice(db.Model):
     """
     Invoice record used for all payment methods for a registration.
     """
-    __tablename__ = 'continuing_invoices'
+    __tablename__ = 'ce_invoices'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     invoice_no = db.Column(db.String(100), unique=True, nullable=True)
-    member_id = db.Column(db.Integer, ForeignKey('members.id', ondelete='CASCADE'), nullable=False, index=True)
-    event_entity_id = db.Column(db.Integer, ForeignKey('event_entities.id', ondelete='CASCADE'), nullable=False, index=True)
+    member_id = db.Column(db.Integer, ForeignKey('ce_members.id', ondelete='CASCADE'), nullable=False, index=True)
+    event_entity_id = db.Column(db.Integer, ForeignKey('ce_event_entities.id', ondelete='CASCADE'), nullable=False, index=True)
     amount = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(50), nullable=False, default='pending')
     created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
@@ -515,21 +507,21 @@ class CEContinuingInvoice(db.Model):
 
 class CERegisterPayment(db.Model):
     """Tracks payment information for event registrations."""
-    __tablename__ = "register_payments"
+    __tablename__ = "ce_register_payments"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
     member_id = db.Column(
-        db.Integer, ForeignKey("members.id", ondelete="CASCADE"), nullable=False, index=True
+        db.Integer, ForeignKey("ce_members.id", ondelete="CASCADE"), nullable=False, index=True
     )
     # Link to the generic EventEntity, allowing payments for both courses and webinars
     event_entity_id = db.Column(
-        db.Integer, ForeignKey("event_entities.id", ondelete="CASCADE"), nullable=False, index=True
+        db.Integer, ForeignKey("ce_event_entities.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
     payment_amount = db.Column(db.Float, nullable=False)
     payment_date = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
     # Changed from String to Integer FK
-    payment_status_id = db.Column(db.Integer, ForeignKey('register_payment_statuses.id'), nullable=False,
+    payment_status_id = db.Column(db.Integer, ForeignKey('ce_register_payment_statuses.id'), nullable=False,
                                   default=1)  # Assuming 'pending' is ID 1
     payment_status_ref = relationship("CERegisterPaymentStatus", back_populates="register_payments")
 
@@ -545,7 +537,7 @@ class CERegisterPayment(db.Model):
     # New field for payment proof file URL
     payment_proof_url = db.Column(db.String(500), nullable=True, comment="URL ของไฟล์หลักฐานการชำระเงิน")
     # Link to invoice (optional)
-    invoice_id = db.Column(db.Integer, ForeignKey('continuing_invoices.id'), nullable=True)
+    invoice_id = db.Column(db.Integer, ForeignKey('ce_invoices.id'), nullable=True)
 
 
     # New fields for staff approval
@@ -601,9 +593,9 @@ class CEEventSpeaker(db.Model):
     """
     Stores information about speakers or lecturers for an EventEntity.
     """
-    __tablename__ = 'event_speakers'
+    __tablename__ = 'ce_event_speakers'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    event_entity_id = db.Column(db.Integer, ForeignKey('event_entities.id', ondelete='CASCADE'), nullable=False)
+    event_entity_id = db.Column(db.Integer, ForeignKey('ce_event_entities.id', ondelete='CASCADE'), nullable=False)
     title_en = db.Column(db.String(255), nullable=False)
     title_th = db.Column(db.String(255), nullable=False)
     name_th = db.Column(db.String(255), nullable=False)
@@ -629,7 +621,7 @@ class CESpeakerProfile(db.Model):
     """
     Centralized reusable speaker profile not tied to a specific event.
     """
-    __tablename__ = 'speaker_profiles'
+    __tablename__ = 'ce_speaker_profiles'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     title_en = db.Column(db.String(255), nullable=False)
     title_th = db.Column(db.String(255), nullable=False)
@@ -656,9 +648,9 @@ class CEEventAgenda(db.Model):
     """
     Stores agenda items for an EventEntity.
     """
-    __tablename__ = 'event_agendas'
+    __tablename__ = 'ce_event_agendas'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    event_entity_id = db.Column(db.Integer, ForeignKey('event_entities.id', ondelete='CASCADE'), nullable=False)
+    event_entity_id = db.Column(db.Integer, ForeignKey('ce_event_entities.id', ondelete='CASCADE'), nullable=False)
 
     title_th = db.Column(db.String(255), nullable=False)
     title_en = db.Column(db.String(255), nullable=False)
@@ -679,9 +671,9 @@ class CEEventMaterial(db.Model):
     """
     Stores downloadable materials associated with an EventEntity.
     """
-    __tablename__ = 'event_materials'
+    __tablename__ = 'ce_event_materials'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    event_entity_id = db.Column(db.Integer, ForeignKey('event_entities.id', ondelete='CASCADE'), nullable=False)
+    event_entity_id = db.Column(db.Integer, ForeignKey('ce_event_entities.id', ondelete='CASCADE'), nullable=False)
     order = db.Column(db.Integer, nullable=False, comment="Order of the materials item")
     title_th = db.Column(db.String(255), nullable=False)
     title_en = db.Column(db.String(255), nullable=False)
@@ -701,11 +693,11 @@ class CEEventRegistrationFee(db.Model):
     """
     Stores registration fees for an EventEntity, differentiated by MemberTypeEnum.
     """
-    __tablename__ = 'event_registration_fees'
+    __tablename__ = 'ce_event_registration_fees'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    event_entity_id = db.Column(db.Integer, ForeignKey('event_entities.id', ondelete='CASCADE'), nullable=False)
+    event_entity_id = db.Column(db.Integer, ForeignKey('ce_event_entities.id', ondelete='CASCADE'), nullable=False)
     # Changed from String to Integer FK
-    member_type_id = db.Column(db.Integer, ForeignKey('member_types.id'), nullable=False)
+    member_type_id = db.Column(db.Integer, ForeignKey('ce_member_types.id'), nullable=False)
     member_type_ref = relationship("CEMemberType", back_populates="event_registration_fees")
 
     price = db.Column(db.Float, nullable=False)
@@ -731,9 +723,9 @@ class CEEventEditor(db.Model):
     """
     Assigns staff members as editors for a specific EventEntity.
     """
-    __tablename__ = 'event_editors'
+    __tablename__ = 'ce_event_editors'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    event_entity_id = db.Column(db.Integer, ForeignKey('event_entities.id', ondelete='CASCADE'), nullable=False)
+    event_entity_id = db.Column(db.Integer, ForeignKey('ce_event_entities.id', ondelete='CASCADE'), nullable=False)
     staff_id = db.Column(db.Integer, ForeignKey('staff_account.id'), nullable=False)
     assigned_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
 
@@ -752,9 +744,9 @@ class CEEventRegistrationReviewer(db.Model):
     """
     Assigns staff members responsible for reviewing registrations for an EventEntity.
     """
-    __tablename__ = 'event_registration_reviewers'
+    __tablename__ = 'ce_event_registration_reviewers'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    event_entity_id = db.Column(db.Integer, ForeignKey('event_entities.id', ondelete='CASCADE'), nullable=False)
+    event_entity_id = db.Column(db.Integer, ForeignKey('ce_event_entities.id', ondelete='CASCADE'), nullable=False)
     staff_id = db.Column(db.Integer, ForeignKey('staff_account.id'), nullable=False)
     assigned_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
 
@@ -773,9 +765,9 @@ class CEEventPaymentApprover(db.Model):
     """
     Assigns staff members responsible for approving payments for an EventEntity.
     """
-    __tablename__ = 'event_payment_approvers'
+    __tablename__ = 'ce_event_payment_approvers'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    event_entity_id = db.Column(db.Integer, ForeignKey('event_entities.id', ondelete='CASCADE'), nullable=False)
+    event_entity_id = db.Column(db.Integer, ForeignKey('ce_event_entities.id', ondelete='CASCADE'), nullable=False)
     staff_id = db.Column(db.Integer, ForeignKey('staff_account.id'), nullable=False)
     assigned_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
 
@@ -795,9 +787,9 @@ class CEEventReceiptIssuer(db.Model):
     """
     Assigns staff members responsible for issuing receipts for an EventEntity.
     """
-    __tablename__ = 'event_receipt_issuers'
+    __tablename__ = 'ce_event_receipt_issuers'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    event_entity_id = db.Column(db.Integer, ForeignKey('event_entities.id', ondelete='CASCADE'), nullable=False)
+    event_entity_id = db.Column(db.Integer, ForeignKey('ce_event_entities.id', ondelete='CASCADE'), nullable=False)
     staff_id = db.Column(db.Integer, ForeignKey('staff_account.id'), nullable=False)
     assigned_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
 
@@ -817,9 +809,9 @@ class CEEventCertificateManager(db.Model):
     """
     Assigns staff members responsible for managing certificates for an EventEntity.
     """
-    __tablename__ = 'event_certificate_managers'
+    __tablename__ = 'ce_event_certificate_managers'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    event_entity_id = db.Column(db.Integer, ForeignKey('event_entities.id', ondelete='CASCADE'), nullable=False)
+    event_entity_id = db.Column(db.Integer, ForeignKey('ce_event_entities.id', ondelete='CASCADE'), nullable=False)
     staff_id = db.Column(db.Integer, ForeignKey('staff_account.id'), nullable=False)
     assigned_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
 
@@ -835,9 +827,9 @@ class CEEventCertificateManager(db.Model):
 
 class CEMemberAddress(db.Model):
     """Stores multiple addresses per member."""
-    __tablename__ = 'member_addresses'
+    __tablename__ = 'ce_member_addresses'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    member_id = db.Column(db.Integer, ForeignKey('members.id', ondelete='CASCADE'), nullable=False)
+    member_id = db.Column(db.Integer, ForeignKey('ce_members.id', ondelete='CASCADE'), nullable=False)
     address_type = db.Column(db.String(50), nullable=False, comment="e.g., current, billing")
     label = db.Column(db.String(100), nullable=True)
     line1 = db.Column(db.String(255), nullable=False)
