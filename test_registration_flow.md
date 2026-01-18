@@ -135,10 +135,12 @@
 ## Test Scenario 5: Database Verification
 
 ### SQL Queries to Verify:
+
 ```python
 # Check new member
-from app.continuing_edu.models import Member
-member = Member.query.filter_by(username='testuser001').first()
+from app.continuing_edu.models import CEMember
+
+member = CEMember.query.filter_by(username='testuser001').first()
 print(f"ID: {member.id}")
 print(f"Email: {member.email}")
 print(f"Is Verified: {member.is_verified}")
@@ -146,15 +148,16 @@ print(f"Google Sub: {member.google_sub}")
 print(f"Created: {member.created_at}")
 
 # Check address
-from app.continuing_edu.models import MemberAddress
-addresses = MemberAddress.query.filter_by(member_id=member.id).all()
+from app.continuing_edu.models import CEMemberAddress
+
+addresses = CEMemberAddress.query.filter_by(member_id=member.id).all()
 for addr in addresses:
-    print(f"Type: {addr.address_type}, Line1: {addr.line1}")
+   print(f"Type: {addr.address_type}, Line1: {addr.line1}")
 
 # Check Google-linked members
-google_members = Member.query.filter(Member.google_sub.isnot(None)).all()
+google_members = CEMember.query.filter(CEMember.google_sub.isnot(None)).all()
 for gm in google_members:
-    print(f"User: {gm.username}, Google Sub: {gm.google_sub}, Connected: {gm.google_connected_at}")
+   print(f"User: {gm.username}, Google Sub: {gm.google_sub}, Connected: {gm.google_connected_at}")
 ```
 
 ---

@@ -1,6 +1,6 @@
 """Seed script to create OrganizationType and Organization mock data."""
 from app.main import app, db
-from app.continuing_edu.models import OrganizationType, Organization
+from app.continuing_edu.models import CEOrganizationType, CEOrganization
 
 
 TYPES_AND_ORGS = {
@@ -39,15 +39,15 @@ TYPES_AND_ORGS = {
 def seed():
     with app.app_context():
         for (code_en, code_th), names in TYPES_AND_ORGS.items():
-            ot = OrganizationType.query.filter_by(name_en=code_en).first()
+            ot = CEOrganizationType.query.filter_by(name_en=code_en).first()
             if not ot:
-                ot = OrganizationType(name_en=code_en, name_th=code_th, is_user_defined=False)
+                ot = CEOrganizationType(name_en=code_en, name_th=code_th, is_user_defined=False)
                 db.session.add(ot)
                 db.session.commit()
             for n in names:
-                existing = Organization.query.filter_by(name=n).first()
+                existing = CEOrganization.query.filter_by(name=n).first()
                 if not existing:
-                    org = Organization(name=n, organization_type_id=ot.id, is_user_defined=False)
+                    org = CEOrganization(name=n, organization_type_id=ot.id, is_user_defined=False)
                     db.session.add(org)
         db.session.commit()
         print('Seeding complete')

@@ -9,8 +9,8 @@ from sqlalchemy import and_
 from app.continuing_edu.admin import admin_bp
 from app.continuing_edu.admin.decorators import admin_required, get_current_staff, require_event_role
 from app.continuing_edu.models import (
-    EventEntity, EventEditor, EventRegistrationReviewer, 
-    EventPaymentApprover, EventReceiptIssuer, EventCertificateManager
+    CEEventEntity, CEEventEditor, CEEventRegistrationReviewer,
+    CEEventPaymentApprover, CEEventReceiptIssuer, CEEventCertificateManager
 )
 from app.main import db
 from app.staff.models import StaffAccount
@@ -27,7 +27,7 @@ def settings_staff_roles():
     staff = get_current_staff()
     
     # Get all active events
-    events = EventEntity.query.order_by(EventEntity.created_at.desc()).limit(50).all()
+    events = CEEventEntity.query.order_by(CEEventEntity.created_at.desc()).limit(50).all()
     
     # Get all active staff
     all_staff = StaffAccount.get_active_accounts()
@@ -48,14 +48,14 @@ def event_staff_roles(event_id):
     Manage staff role assignments for a specific event.
     """
     staff = get_current_staff()
-    event = EventEntity.query.get_or_404(event_id)
+    event = CEEventEntity.query.get_or_404(event_id)
     
     # Get current role assignments
-    editors = EventEditor.query.filter_by(event_entity_id=event_id).all()
-    registration_reviewers = EventRegistrationReviewer.query.filter_by(event_entity_id=event_id).all()
-    payment_approvers = EventPaymentApprover.query.filter_by(event_entity_id=event_id).all()
-    receipt_issuers = EventReceiptIssuer.query.filter_by(event_entity_id=event_id).all()
-    certificate_managers = EventCertificateManager.query.filter_by(event_entity_id=event_id).all()
+    editors = CEEventEditor.query.filter_by(event_entity_id=event_id).all()
+    registration_reviewers = CEEventRegistrationReviewer.query.filter_by(event_entity_id=event_id).all()
+    payment_approvers = CEEventPaymentApprover.query.filter_by(event_entity_id=event_id).all()
+    receipt_issuers = CEEventReceiptIssuer.query.filter_by(event_entity_id=event_id).all()
+    certificate_managers = CEEventCertificateManager.query.filter_by(event_entity_id=event_id).all()
     
     # Get all active staff for assignment
     all_staff = StaffAccount.get_active_accounts()
@@ -80,7 +80,7 @@ def event_staff_roles_add(event_id):
     """
     Add a staff member to a specific role for an event.
     """
-    event = EventEntity.query.get_or_404(event_id)
+    event = CEEventEntity.query.get_or_404(event_id)
     
     staff_id = request.form.get('staff_id', type=int)
     role_type = request.form.get('role_type')
@@ -93,11 +93,11 @@ def event_staff_roles_add(event_id):
     
     # Check if already has this role
     role_model = {
-        'editor': EventEditor,
-        'registration_reviewer': EventRegistrationReviewer,
-        'payment_approver': EventPaymentApprover,
-        'receipt_issuer': EventReceiptIssuer,
-        'certificate_manager': EventCertificateManager
+        'editor': CEEventEditor,
+        'registration_reviewer': CEEventRegistrationReviewer,
+        'payment_approver': CEEventPaymentApprover,
+        'receipt_issuer': CEEventReceiptIssuer,
+        'certificate_manager': CEEventCertificateManager
     }.get(role_type)
     
     if not role_model:
@@ -140,16 +140,16 @@ def event_staff_roles_remove(event_id, assignment_id):
     """
     Remove a staff member's role assignment for an event.
     """
-    event = EventEntity.query.get_or_404(event_id)
+    event = CEEventEntity.query.get_or_404(event_id)
     
     role_type = request.form.get('role_type')
     
     role_model = {
-        'editor': EventEditor,
-        'registration_reviewer': EventRegistrationReviewer,
-        'payment_approver': EventPaymentApprover,
-        'receipt_issuer': EventReceiptIssuer,
-        'certificate_manager': EventCertificateManager
+        'editor': CEEventEditor,
+        'registration_reviewer': CEEventRegistrationReviewer,
+        'payment_approver': CEEventPaymentApprover,
+        'receipt_issuer': CEEventReceiptIssuer,
+        'certificate_manager': CEEventCertificateManager
     }.get(role_type)
     
     if not role_model:
@@ -160,7 +160,7 @@ def event_staff_roles_remove(event_id, assignment_id):
     
     # Prevent removing last editor
     if role_type == 'editor':
-        editor_count = EventEditor.query.filter_by(event_entity_id=event_id).count()
+        editor_count = CEEventEditor.query.filter_by(event_entity_id=event_id).count()
         if editor_count <= 1:
             flash('ไม่สามารถลบผู้จัดการคนสุดท้ายได้', 'danger')
             return redirect(url_for('continuing_edu_admin.event_staff_roles', event_id=event_id))

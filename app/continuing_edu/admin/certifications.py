@@ -5,13 +5,13 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from app.main import db
 from app.staff.models import StaffAccount
 from ..models import (
-    EventEntity,
-    EventCertificateManager,
-    MemberRegistration,
-    RegisterPayment,
-    RegisterPaymentStatus,
-    RegistrationStatus,
-    MemberCertificateStatus,
+    CEEventEntity,
+    CEEventCertificateManager,
+    CEMemberRegistration,
+    CERegisterPayment,
+    CERegisterPaymentStatus,
+    CERegistrationStatus,
+    CEMemberCertificateStatus,
 )
 from ..certificate_utils import issue_certificate as issue_certificate_util, reset_certificate as reset_certificate_util, can_issue_certificate
 from ..status_utils import get_registration_status, get_certificate_status
@@ -29,7 +29,7 @@ def _ensure_manager(admin: StaffAccount, event_id: int) -> bool:
     allow_all = request.args.get('all', '').lower() in ('1', 'true')
     if allow_all:
         return True
-    managers = EventCertificateManager.query.filter_by(event_entity_id=event_id).all()
+    managers = CEEventCertificateManager.query.filter_by(event_entity_id=event_id).all()
     if not managers:
         return True
     return any(m.staff_id == admin.id for m in managers)
@@ -40,7 +40,7 @@ def index():
     admin = _get_admin()
     if not admin:
         return redirect(url_for('continuing_edu_admin.login'))
-    events = EventEntity.query.order_by(EventEntity.created_at.desc()).all()
+    events = CEEventEntity.query.order_by(CEEventEntity.created_at.desc()).all()
     return render_template('continueing_edu/admin/certificates_index.html', events=events, logged_in_admin=admin)
 
 
@@ -49,24 +49,24 @@ def event(event_id):
     admin = _get_admin()
     if not admin:
         return redirect(url_for('continuing_edu_admin.login'))
-    event = EventEntity.query.get_or_404(event_id)
+    event = CEEventEntity.query.get_or_404(event_id)
     if not _ensure_manager(admin, event_id):
         flash('You do not have access to manage certificates for this event.', 'danger')
         return redirect(url_for('.index'))
-    registrations = MemberRegistration.query.filter_by(event_entity_id=event.id).order_by(MemberRegistration.registration_date.asc()).all()
+    registrations = CEMemberRegistration.query.filter_by(event_entity_id=event.id).order_by(CEMemberRegistration.registration_date.asc()).all()
     payments_map = {}
     member_ids = [r.member_id for r in registrations]
     if member_ids:
-        payments = (RegisterPayment.query
-                    .filter(RegisterPayment.event_entity_id == event.id,
-                            RegisterPayment.member_id.in_(member_ids))
-                    .order_by(RegisterPayment.id.desc())
+        payments = (CERegisterPayment.query
+                    .filter(CERegisterPayment.event_entity_id == event.id,
+                            CERegisterPayment.member_id.in_(member_ids))
+                    .order_by(CERegisterPayment.id.desc())
                     .all())
         for pay in payments:
             if pay.member_id not in payments_map:
                 payments_map[pay.member_id] = pay
-    registration_statuses = RegistrationStatus.query.order_by(RegistrationStatus.name_en.asc()).all()
-    certificate_statuses = MemberCertificateStatus.query.order_by(MemberCertificateStatus.name_en.asc()).all()
+    registration_statuses = CERegistrationStatus.query.order_by(CERegistrationStatus.name_en.asc()).all()
+    certificate_statuses = CEMemberCertificateStatus.query.order_by(CEMemberCertificateStatus.name_en.asc()).all()
     return render_template(
         'continueing_edu/admin/certificates_event.html',
         event=event,
@@ -87,7 +87,7 @@ def update_registration(event_id, reg_id):
     if not _ensure_manager(admin, event_id):
         flash('You do not have access to manage certificates for this event.', 'danger')
         return redirect(url_for('.event', event_id=event_id))
-    reg = MemberRegistration.query.filter_by(id=reg_id, event_entity_id=event_id).first_or_404()
+    reg = CEMemberRegistration.query.filter_by(id=reg_id, event_entity_id=event_id).first_or_404()
     action = request.form.get('action')
     if action == 'issue_certificate':
         force = request.form.get('force') in ('1', 'true', 'on', 'yes')

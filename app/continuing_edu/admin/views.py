@@ -20,26 +20,26 @@ from app.continuing_edu.admin.decorators import (
 )
 
 from app.continuing_edu.models import (
-    EventEntity,
-    Member,
-    RegisterPayment,
-    RegisterPaymentStatus,
-    RegisterPaymentReceipt,
-    MemberRegistration,
-    MemberType,
-    RegistrationStatus,
-    EntityCategory,
-    MemberCertificateStatus,
-    EventSpeaker,
-    SpeakerProfile,
-    EventAgenda,
-    EventMaterial,
-    EventRegistrationFee,
-    EventEditor,
-    EventRegistrationReviewer,
-    EventPaymentApprover,
-    EventReceiptIssuer,
-    EventCertificateManager,
+    CEEventEntity,
+    CEMember,
+    CERegisterPayment,
+    CERegisterPaymentStatus,
+    CERegisterPaymentReceipt,
+    CEMemberRegistration,
+    CEMemberType,
+    CERegistrationStatus,
+    CEEntityCategory,
+    CEMemberCertificateStatus,
+    CEEventSpeaker,
+    CESpeakerProfile,
+    CEEventAgenda,
+    CEEventMaterial,
+    CEEventRegistrationFee,
+    CEEventEditor,
+    CEEventRegistrationReviewer,
+    CEEventPaymentApprover,
+    CEEventReceiptIssuer,
+    CEEventCertificateManager,
 )
 from sqlalchemy import func
 import datetime
@@ -91,16 +91,16 @@ def create_event():
     form = EventCreateStep1Form()
     if form.validate_on_submit():
         # Create EventEntity row with minimal info
-        event = EventEntity(event_type=form.event_type.data, title_en=form.title.data, staff_id=staff.id)
+        event = CEEventEntity(event_type=form.event_type.data, title_en=form.title.data, staff_id=staff.id)
         db.session.add(event)
         db.session.commit()
         
         # Automatically assign creator to ALL roles for this event
-        editor = EventEditor(event_entity_id=event.id, staff_id=staff.id)
-        registration_reviewer = EventRegistrationReviewer(event_entity_id=event.id, staff_id=staff.id)
-        payment_approver = EventPaymentApprover(event_entity_id=event.id, staff_id=staff.id)
-        receipt_issuer = EventReceiptIssuer(event_entity_id=event.id, staff_id=staff.id)
-        certificate_manager = EventCertificateManager(event_entity_id=event.id, staff_id=staff.id)
+        editor = CEEventEditor(event_entity_id=event.id, staff_id=staff.id)
+        registration_reviewer = CEEventRegistrationReviewer(event_entity_id=event.id, staff_id=staff.id)
+        payment_approver = CEEventPaymentApprover(event_entity_id=event.id, staff_id=staff.id)
+        receipt_issuer = CEEventReceiptIssuer(event_entity_id=event.id, staff_id=staff.id)
+        certificate_manager = CEEventCertificateManager(event_entity_id=event.id, staff_id=staff.id)
         
         db.session.add_all([editor, registration_reviewer, payment_approver, receipt_issuer, certificate_manager])
         db.session.commit()
@@ -115,26 +115,26 @@ def create_event():
 @require_event_role('editor')
 def edit_event(event_id):
     staff = get_current_staff()
-    event = EventEntity.query.get_or_404(event_id)
+    event = CEEventEntity.query.get_or_404(event_id)
 
     # Load related data for all tabs
-    speakers = EventSpeaker.query.filter_by(event_entity_id=event.id).all()
-    agendas = EventAgenda.query.filter_by(event_entity_id=event.id).order_by(EventAgenda.order.asc()).all()
-    materials = EventMaterial.query.filter_by(event_entity_id=event.id).order_by(EventMaterial.order.asc()).all()
-    fees = EventRegistrationFee.query.filter_by(event_entity_id=event.id).all()
+    speakers = CEEventSpeaker.query.filter_by(event_entity_id=event.id).all()
+    agendas = CEEventAgenda.query.filter_by(event_entity_id=event.id).order_by(CEEventAgenda.order.asc()).all()
+    materials = CEEventMaterial.query.filter_by(event_entity_id=event.id).order_by(CEEventMaterial.order.asc()).all()
+    fees = CEEventRegistrationFee.query.filter_by(event_entity_id=event.id).all()
     # Staff list for role assignments
     staff_list = StaffAccount.query.all()
-    member_types = MemberType.query.order_by(MemberType.name_en.asc()).all()
+    member_types = CEMemberType.query.order_by(CEMemberType.name_en.asc()).all()
 
     # Current staff role assignments
-    editors = EventEditor.query.filter_by(event_entity_id=event.id).all()
-    registration_reviewers = EventRegistrationReviewer.query.filter_by(event_entity_id=event.id).all()
-    payment_approvers = EventPaymentApprover.query.filter_by(event_entity_id=event.id).all()
-    receipt_issuers = EventReceiptIssuer.query.filter_by(event_entity_id=event.id).all()
-    certificate_managers = EventCertificateManager.query.filter_by(event_entity_id=event.id).all()
+    editors = CEEventEditor.query.filter_by(event_entity_id=event.id).all()
+    registration_reviewers = CEEventRegistrationReviewer.query.filter_by(event_entity_id=event.id).all()
+    payment_approvers = CEEventPaymentApprover.query.filter_by(event_entity_id=event.id).all()
+    receipt_issuers = CEEventReceiptIssuer.query.filter_by(event_entity_id=event.id).all()
+    certificate_managers = CEEventCertificateManager.query.filter_by(event_entity_id=event.id).all()
 
     # Speaker pool (existing speakers from any event) for reuse
-    speakers_pool = SpeakerProfile.query.filter_by(is_active=True).order_by(SpeakerProfile.name_en.asc()).all()
+    speakers_pool = CESpeakerProfile.query.filter_by(is_active=True).order_by(CESpeakerProfile.name_en.asc()).all()
 
     active_tab = request.args.get('tab', 'general')
 
@@ -146,20 +146,20 @@ def edit_event(event_id):
         if not can_manage_certificates(event.id):
             flash('You do not have permission to manage certificates for this event.', 'danger')
             return redirect(url_for('continuing_edu_admin.edit_event', event_id=event.id))
-        registrations = MemberRegistration.query.filter_by(event_entity_id=event.id).order_by(MemberRegistration.registration_date.asc()).all()
+        registrations = CEMemberRegistration.query.filter_by(event_entity_id=event.id).order_by(CEMemberRegistration.registration_date.asc()).all()
         member_ids = [r.member_id for r in registrations]
         if member_ids:
-            payments = (RegisterPayment.query
-                        .filter(RegisterPayment.event_entity_id == event.id,
-                                RegisterPayment.member_id.in_(member_ids))
-                        .order_by(RegisterPayment.id.desc())
+            payments = (CERegisterPayment.query
+                        .filter(CERegisterPayment.event_entity_id == event.id,
+                                CERegisterPayment.member_id.in_(member_ids))
+                        .order_by(CERegisterPayment.id.desc())
                         .all())
             for pay in payments:
                 existing = payments_map.get(pay.member_id)
                 if not existing:
                     payments_map[pay.member_id] = pay
-        registration_statuses = RegistrationStatus.query.order_by(RegistrationStatus.name_en.asc()).all()
-        certificate_statuses = MemberCertificateStatus.query.order_by(MemberCertificateStatus.name_en.asc()).all()
+        registration_statuses = CERegistrationStatus.query.order_by(CERegistrationStatus.name_en.asc()).all()
+        certificate_statuses = CEMemberCertificateStatus.query.order_by(CEMemberCertificateStatus.name_en.asc()).all()
 
     return render_template(
         'continueing_edu/admin/event_edit_tabs.html',
@@ -197,27 +197,27 @@ def dashboard():
     current_date = now_utc.astimezone().strftime('%A %d %B %Y')
 
     # Summary counts & momentum
-    course_count = EventEntity.query.filter_by(event_type='course').count()
-    webinar_count = EventEntity.query.filter_by(event_type='webinar').count()
-    member_count = Member.query.count()
-    registration_count = MemberRegistration.query.count()
-    payment_sum = RegisterPayment.query.with_entities(func.coalesce(func.sum(RegisterPayment.payment_amount), 0)).scalar() or 0
+    course_count = CEEventEntity.query.filter_by(event_type='course').count()
+    webinar_count = CEEventEntity.query.filter_by(event_type='webinar').count()
+    member_count = CEMember.query.count()
+    registration_count = CEMemberRegistration.query.count()
+    payment_sum = CERegisterPayment.query.with_entities(func.coalesce(func.sum(CERegisterPayment.payment_amount), 0)).scalar() or 0
 
     last_30_days = now_utc - datetime.timedelta(days=30)
-    registrations_30d = MemberRegistration.query.filter(MemberRegistration.registration_date >= last_30_days).count()
-    payments_30d = RegisterPayment.query.filter(RegisterPayment.payment_date >= last_30_days).count()
-    new_members_30d = Member.query.filter(Member.created_at >= last_30_days).count()
+    registrations_30d = CEMemberRegistration.query.filter(CEMemberRegistration.registration_date >= last_30_days).count()
+    payments_30d = CERegisterPayment.query.filter(CERegisterPayment.payment_date >= last_30_days).count()
+    new_members_30d = CEMember.query.filter(CEMember.created_at >= last_30_days).count()
 
     # Payment status distribution
     payment_status_rows = (
         db.session.query(
-            RegisterPaymentStatus.name_en,
-            func.count(RegisterPayment.id),
-            func.coalesce(func.sum(RegisterPayment.payment_amount), 0)
+            CERegisterPaymentStatus.name_en,
+            func.count(CERegisterPayment.id),
+            func.coalesce(func.sum(CERegisterPayment.payment_amount), 0)
         )
-        .outerjoin(RegisterPayment, RegisterPayment.payment_status_id == RegisterPaymentStatus.id)
-        .group_by(RegisterPaymentStatus.id)
-        .order_by(RegisterPaymentStatus.name_en.asc())
+        .outerjoin(CERegisterPayment, CERegisterPayment.payment_status_id == CERegisterPaymentStatus.id)
+        .group_by(CERegisterPaymentStatus.id)
+        .order_by(CERegisterPaymentStatus.name_en.asc())
         .all()
     )
     payment_status_summary = [
@@ -232,12 +232,12 @@ def dashboard():
     # Member type breakdown
     member_type_rows = (
         db.session.query(
-            MemberType.name_en,
-            func.count(Member.id)
+            CEMemberType.name_en,
+            func.count(CEMember.id)
         )
-        .outerjoin(Member, Member.member_type_id == MemberType.id)
-        .group_by(MemberType.id)
-        .order_by(func.count(Member.id).desc())
+        .outerjoin(CEMember, CEMember.member_type_id == CEMemberType.id)
+        .group_by(CEMemberType.id)
+        .order_by(func.count(CEMember.id).desc())
         .all()
     )
     member_type_breakdown = [
@@ -248,7 +248,7 @@ def dashboard():
         for row in member_type_rows
     ]
 
-    unspecified_members = Member.query.filter(Member.member_type_id.is_(None)).count()
+    unspecified_members = CEMember.query.filter(CEMember.member_type_id.is_(None)).count()
     if unspecified_members:
         # avoid duplicating label if already present without explicit name
         if not any(item['label'] == 'Unspecified' for item in member_type_breakdown):
@@ -261,14 +261,14 @@ def dashboard():
 
     # Recent activity
     recent_registrations = (
-        MemberRegistration.query
-        .order_by(MemberRegistration.registration_date.desc())
+        CEMemberRegistration.query
+        .order_by(CEMemberRegistration.registration_date.desc())
         .limit(8)
         .all()
     )
     recent_payments = (
-        RegisterPayment.query
-        .order_by(RegisterPayment.payment_date.desc())
+        CERegisterPayment.query
+        .order_by(CERegisterPayment.payment_date.desc())
         .limit(8)
         .all()
     )
@@ -293,9 +293,9 @@ def dashboard():
         monthly_regs[(y, m)] = {'label': label, 'count': 0}
 
     registrations_for_chart = (
-        MemberRegistration.query
-        .filter(MemberRegistration.registration_date >= month_start)
-        .with_entities(MemberRegistration.registration_date)
+        CEMemberRegistration.query
+        .filter(CEMemberRegistration.registration_date >= month_start)
+        .with_entities(CEMemberRegistration.registration_date)
         .all()
     )
     for (reg_date,) in registrations_for_chart:
@@ -314,9 +314,9 @@ def dashboard():
 
     # Average payment approval time
     approval_rows = (
-        RegisterPayment.query
-        .filter(RegisterPayment.approval_date.isnot(None), RegisterPayment.payment_date.isnot(None))
-        .with_entities(RegisterPayment.payment_date, RegisterPayment.approval_date)
+        CERegisterPayment.query
+        .filter(CERegisterPayment.approval_date.isnot(None), CERegisterPayment.payment_date.isnot(None))
+        .with_entities(CERegisterPayment.payment_date, CERegisterPayment.approval_date)
         .all()
     )
     total_seconds = 0
@@ -337,20 +337,20 @@ def dashboard():
     # Popular events (top 5 by registrations)
     registration_counts = dict(
         db.session.query(
-            MemberRegistration.event_entity_id,
-            func.count(MemberRegistration.id)
-        ).group_by(MemberRegistration.event_entity_id).all()
+            CEMemberRegistration.event_entity_id,
+            func.count(CEMemberRegistration.id)
+        ).group_by(CEMemberRegistration.event_entity_id).all()
     )
     top_event_ids = [event_id for event_id, _ in sorted(registration_counts.items(), key=lambda item: item[1], reverse=True)[:5]]
     popular_events = []
     if top_event_ids:
-        events = EventEntity.query.filter(EventEntity.id.in_(top_event_ids)).all()
+        events = CEEventEntity.query.filter(CEEventEntity.id.in_(top_event_ids)).all()
         events_map = {event.id: event for event in events}
         payment_totals = dict(
             db.session.query(
-                RegisterPayment.event_entity_id,
-                func.coalesce(func.sum(RegisterPayment.payment_amount), 0)
-            ).group_by(RegisterPayment.event_entity_id).all()
+                CERegisterPayment.event_entity_id,
+                func.coalesce(func.sum(CERegisterPayment.payment_amount), 0)
+            ).group_by(CERegisterPayment.event_entity_id).all()
         )
         for event_id in top_event_ids:
             event = events_map.get(event_id)
@@ -367,13 +367,13 @@ def dashboard():
     # Popular course categories (top 5)
     category_rows = (
         db.session.query(
-            EntityCategory.name_en,
-            func.count(MemberRegistration.id)
+            CEEntityCategory.name_en,
+            func.count(CEMemberRegistration.id)
         )
-        .join(EventEntity, EventEntity.category_id == EntityCategory.id)
-        .join(MemberRegistration, MemberRegistration.event_entity_id == EventEntity.id)
-        .group_by(EntityCategory.id)
-        .order_by(func.count(MemberRegistration.id).desc())
+        .join(CEEventEntity, CEEventEntity.category_id == CEEntityCategory.id)
+        .join(CEMemberRegistration, CEMemberRegistration.event_entity_id == CEEventEntity.id)
+        .group_by(CEEntityCategory.id)
+        .order_by(func.count(CEMemberRegistration.id).desc())
         .limit(5)
         .all()
     )
@@ -388,14 +388,14 @@ def dashboard():
     # Top engaged members (registrations)
     top_members_rows = (
         db.session.query(
-            Member.id,
-            Member.full_name_en,
-            Member.username,
-            func.count(MemberRegistration.id).label('reg_count')
+            CEMember.id,
+            CEMember.full_name_en,
+            CEMember.username,
+            func.count(CEMemberRegistration.id).label('reg_count')
         )
-        .join(MemberRegistration, MemberRegistration.member_id == Member.id)
-        .group_by(Member.id)
-        .order_by(func.count(MemberRegistration.id).desc())
+        .join(CEMemberRegistration, CEMemberRegistration.member_id == CEMember.id)
+        .group_by(CEMember.id)
+        .order_by(func.count(CEMemberRegistration.id).desc())
         .limit(5)
         .all()
     )
@@ -409,9 +409,9 @@ def dashboard():
 
     # Latest courses for operational overview
     latest_courses = (
-        EventEntity.query
+        CEEventEntity.query
         .filter_by(event_type='course')
-        .order_by(EventEntity.created_at.desc())
+        .order_by(CEEventEntity.created_at.desc())
         .limit(5)
         .all()
     )
@@ -460,76 +460,76 @@ def registrations_report():
 
     filters = []
     if start_dt:
-        filters.append(MemberRegistration.registration_date >= start_dt)
+        filters.append(CEMemberRegistration.registration_date >= start_dt)
     if end_dt:
-        filters.append(MemberRegistration.registration_date < end_dt)
+        filters.append(CEMemberRegistration.registration_date < end_dt)
     if event_type:
-        filters.append(EventEntity.event_type == event_type)
+        filters.append(CEEventEntity.event_type == event_type)
 
     status_id = None
     if status_raw:
         try:
             status_id = int(status_raw)
-            filters.append(MemberRegistration.status_id == status_id)
+            filters.append(CEMemberRegistration.status_id == status_id)
         except ValueError:
             status_id = None
 
     base_query = (
-        MemberRegistration.query
-        .join(Member)
-        .join(EventEntity)
+        CEMemberRegistration.query
+        .join(CEMember)
+        .join(CEEventEntity)
         .options(
-            joinedload(MemberRegistration.member),
-            joinedload(MemberRegistration.event_entity),
-            joinedload(MemberRegistration.status_ref),
-            joinedload(MemberRegistration.certificate_status_ref),
+            joinedload(CEMemberRegistration.member),
+            joinedload(CEMemberRegistration.event_entity),
+            joinedload(CEMemberRegistration.status_ref),
+            joinedload(CEMemberRegistration.certificate_status_ref),
         )
         .filter(*filters)
     )
 
-    pagination = base_query.order_by(MemberRegistration.registration_date.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    pagination = base_query.order_by(CEMemberRegistration.registration_date.desc()).paginate(page=page, per_page=per_page, error_out=False)
     registrations = pagination.items
 
     total_count = base_query.count()
-    unique_members = base_query.with_entities(func.count(func.distinct(MemberRegistration.member_id))).scalar() or 0
+    unique_members = base_query.with_entities(func.count(func.distinct(CEMemberRegistration.member_id))).scalar() or 0
 
     status_breakdown_rows = (
         db.session.query(
-            RegistrationStatus.name_en,
-            func.count(MemberRegistration.id)
+            CERegistrationStatus.name_en,
+            func.count(CEMemberRegistration.id)
         )
-        .join(MemberRegistration)
-        .join(EventEntity)
+        .join(CEMemberRegistration)
+        .join(CEEventEntity)
         .filter(*filters)
-        .group_by(RegistrationStatus.id)
-        .order_by(func.count(MemberRegistration.id).desc())
+        .group_by(CERegistrationStatus.id)
+        .order_by(func.count(CEMemberRegistration.id).desc())
         .all()
     )
     status_breakdown = [{'label': row[0], 'count': row[1]} for row in status_breakdown_rows]
 
     event_breakdown_rows = (
         db.session.query(
-            EventEntity.event_type,
-            func.count(MemberRegistration.id)
+            CEEventEntity.event_type,
+            func.count(CEMemberRegistration.id)
         )
-        .join(MemberRegistration, MemberRegistration.event_entity_id == EventEntity.id)
+        .join(CEMemberRegistration, CEMemberRegistration.event_entity_id == CEEventEntity.id)
         .filter(*filters)
-        .group_by(EventEntity.event_type)
-        .order_by(func.count(MemberRegistration.id).desc())
+        .group_by(CEEventEntity.event_type)
+        .order_by(func.count(CEMemberRegistration.id).desc())
         .all()
     )
     event_breakdown = [{'label': row[0], 'count': row[1]} for row in event_breakdown_rows]
 
     top_events_rows = (
         db.session.query(
-            EventEntity.title_en,
-            EventEntity.title_th,
-            func.count(MemberRegistration.id)
+            CEEventEntity.title_en,
+            CEEventEntity.title_th,
+            func.count(CEMemberRegistration.id)
         )
-        .join(MemberRegistration, MemberRegistration.event_entity_id == EventEntity.id)
+        .join(CEMemberRegistration, CEMemberRegistration.event_entity_id == CEEventEntity.id)
         .filter(*filters)
-        .group_by(EventEntity.id)
-        .order_by(func.count(MemberRegistration.id).desc())
+        .group_by(CEEventEntity.id)
+        .order_by(func.count(CEMemberRegistration.id).desc())
         .limit(5)
         .all()
     )
@@ -541,8 +541,8 @@ def registrations_report():
         for title_en, title_th, count in top_events_rows
     ]
 
-    registration_statuses = RegistrationStatus.query.order_by(RegistrationStatus.name_en.asc()).all()
-    available_event_types = [row[0] for row in db.session.query(EventEntity.event_type).distinct().order_by(EventEntity.event_type).all() if row[0]]
+    registration_statuses = CERegistrationStatus.query.order_by(CERegistrationStatus.name_en.asc()).all()
+    available_event_types = [row[0] for row in db.session.query(CEEventEntity.event_type).distinct().order_by(CEEventEntity.event_type).all() if row[0]]
 
     return render_template(
         'continueing_edu/admin/reports/registrations_report.html',
@@ -581,51 +581,51 @@ def payments_report():
 
     filters = []
     if start_dt:
-        filters.append(RegisterPayment.payment_date >= start_dt)
+        filters.append(CERegisterPayment.payment_date >= start_dt)
     if end_dt:
-        filters.append(RegisterPayment.payment_date < end_dt)
+        filters.append(CERegisterPayment.payment_date < end_dt)
     if event_type:
-        filters.append(EventEntity.event_type == event_type)
+        filters.append(CEEventEntity.event_type == event_type)
 
     status_id = None
     if status_raw:
         try:
             status_id = int(status_raw)
-            filters.append(RegisterPayment.payment_status_id == status_id)
+            filters.append(CERegisterPayment.payment_status_id == status_id)
         except ValueError:
             status_id = None
 
     base_query = (
-        RegisterPayment.query
-        .join(Member)
-        .join(EventEntity)
-        .join(RegisterPaymentStatus)
+        CERegisterPayment.query
+        .join(CEMember)
+        .join(CEEventEntity)
+        .join(CERegisterPaymentStatus)
         .options(
-            joinedload(RegisterPayment.member),
-            joinedload(RegisterPayment.event_entity),
-            joinedload(RegisterPayment.payment_status_ref),
-            joinedload(RegisterPayment.receipt),
+            joinedload(CERegisterPayment.member),
+            joinedload(CERegisterPayment.event_entity),
+            joinedload(CERegisterPayment.payment_status_ref),
+            joinedload(CERegisterPayment.receipt),
         )
         .filter(*filters)
     )
 
-    pagination = base_query.order_by(RegisterPayment.payment_date.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    pagination = base_query.order_by(CERegisterPayment.payment_date.desc()).paginate(page=page, per_page=per_page, error_out=False)
     payments = pagination.items
 
     total_payments = base_query.count()
-    total_amount = base_query.with_entities(func.coalesce(func.sum(RegisterPayment.payment_amount), 0)).scalar() or 0
+    total_amount = base_query.with_entities(func.coalesce(func.sum(CERegisterPayment.payment_amount), 0)).scalar() or 0
 
     status_breakdown_rows = (
         db.session.query(
-            RegisterPaymentStatus.name_en,
-            func.count(RegisterPayment.id),
-            func.coalesce(func.sum(RegisterPayment.payment_amount), 0)
+            CERegisterPaymentStatus.name_en,
+            func.count(CERegisterPayment.id),
+            func.coalesce(func.sum(CERegisterPayment.payment_amount), 0)
         )
-        .join(RegisterPayment)
-        .join(EventEntity)
+        .join(CERegisterPayment)
+        .join(CEEventEntity)
         .filter(*filters)
-        .group_by(RegisterPaymentStatus.id)
-        .order_by(func.count(RegisterPayment.id).desc())
+        .group_by(CERegisterPaymentStatus.id)
+        .order_by(func.count(CERegisterPayment.id).desc())
         .all()
     )
     status_breakdown = [
@@ -639,14 +639,14 @@ def payments_report():
 
     event_breakdown_rows = (
         db.session.query(
-            EventEntity.title_en,
-            EventEntity.title_th,
-            func.coalesce(func.sum(RegisterPayment.payment_amount), 0)
+            CEEventEntity.title_en,
+            CEEventEntity.title_th,
+            func.coalesce(func.sum(CERegisterPayment.payment_amount), 0)
         )
-        .join(RegisterPayment)
+        .join(CERegisterPayment)
         .filter(*filters)
-        .group_by(EventEntity.id)
-        .order_by(func.coalesce(func.sum(RegisterPayment.payment_amount), 0).desc())
+        .group_by(CEEventEntity.id)
+        .order_by(func.coalesce(func.sum(CERegisterPayment.payment_amount), 0).desc())
         .limit(5)
         .all()
     )
@@ -658,8 +658,8 @@ def payments_report():
         for title_en, title_th, amount in event_breakdown_rows
     ]
 
-    payment_statuses = RegisterPaymentStatus.query.order_by(RegisterPaymentStatus.name_en.asc()).all()
-    available_event_types = [row[0] for row in db.session.query(EventEntity.event_type).distinct().order_by(EventEntity.event_type).all() if row[0]]
+    payment_statuses = CERegisterPaymentStatus.query.order_by(CERegisterPaymentStatus.name_en.asc()).all()
+    available_event_types = [row[0] for row in db.session.query(CEEventEntity.event_type).distinct().order_by(CEEventEntity.event_type).all() if row[0]]
 
     average_ticket = float(total_amount / total_payments) if total_payments else 0
 
@@ -700,45 +700,45 @@ def courses_report():
 
     filters = []
     if event_type:
-        filters.append(EventEntity.event_type == event_type)
+        filters.append(CEEventEntity.event_type == event_type)
     if category_raw:
         try:
-            filters.append(EventEntity.category_id == int(category_raw))
+            filters.append(CEEventEntity.category_id == int(category_raw))
         except ValueError:
             category_raw = ''
     if start_dt:
-        filters.append(EventEntity.created_at >= start_dt)
+        filters.append(CEEventEntity.created_at >= start_dt)
     if end_dt:
-        filters.append(EventEntity.created_at < end_dt)
+        filters.append(CEEventEntity.created_at < end_dt)
 
-    events_query = EventEntity.query.filter(*filters)
+    events_query = CEEventEntity.query.filter(*filters)
 
-    pagination = events_query.order_by(EventEntity.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    pagination = events_query.order_by(CEEventEntity.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
     events = pagination.items
 
     # Aggregate metrics for filtered events
     reg_metrics_rows = (
         db.session.query(
-            MemberRegistration.event_entity_id,
-            func.count(MemberRegistration.id),
-            func.count(func.distinct(MemberRegistration.member_id))
+            CEMemberRegistration.event_entity_id,
+            func.count(CEMemberRegistration.id),
+            func.count(func.distinct(CEMemberRegistration.member_id))
         )
-        .join(EventEntity, MemberRegistration.event_entity_id == EventEntity.id)
+        .join(CEEventEntity, CEMemberRegistration.event_entity_id == CEEventEntity.id)
         .filter(*filters)
-        .group_by(MemberRegistration.event_entity_id)
+        .group_by(CEMemberRegistration.event_entity_id)
         .all()
     )
     reg_counts = {row[0]: {'registrations': row[1], 'unique_members': row[2]} for row in reg_metrics_rows}
 
     payment_metrics_rows = (
         db.session.query(
-            RegisterPayment.event_entity_id,
-            func.coalesce(func.sum(RegisterPayment.payment_amount), 0),
-            func.count(RegisterPayment.id)
+            CERegisterPayment.event_entity_id,
+            func.coalesce(func.sum(CERegisterPayment.payment_amount), 0),
+            func.count(CERegisterPayment.id)
         )
-        .join(EventEntity, RegisterPayment.event_entity_id == EventEntity.id)
+        .join(CEEventEntity, CERegisterPayment.event_entity_id == CEEventEntity.id)
         .filter(*filters)
-        .group_by(RegisterPayment.event_entity_id)
+        .group_by(CERegisterPayment.event_entity_id)
         .all()
     )
     payment_totals = {row[0]: {'amount': float(row[1] or 0), 'payments': row[2]} for row in payment_metrics_rows}
@@ -759,8 +759,8 @@ def courses_report():
     total_registrations = sum(item['registrations'] for item in events_data)
     total_amount = sum(item['amount'] for item in events_data)
 
-    categories = EntityCategory.query.order_by(EntityCategory.name_en.asc()).all()
-    available_event_types = [row[0] for row in db.session.query(EventEntity.event_type).distinct().order_by(EventEntity.event_type).all() if row[0]]
+    categories = CEEntityCategory.query.order_by(CEEntityCategory.name_en.asc()).all()
+    available_event_types = [row[0] for row in db.session.query(CEEventEntity.event_type).distinct().order_by(CEEventEntity.event_type).all() if row[0]]
 
     return render_template(
         'continueing_edu/admin/reports/courses_report.html',
@@ -796,28 +796,28 @@ def members_report():
     start_dt = _parse_date_arg(start_raw)
     end_dt = _parse_date_arg(end_raw, end=True)
 
-    members_query = Member.query
+    members_query = CEMember.query
     if q:
         like = f"%{q}%"
         members_query = members_query.filter(
-            (Member.username.ilike(like)) |
-            (Member.email.ilike(like)) |
-            (Member.full_name_en.ilike(like)) |
-            (Member.full_name_th.ilike(like))
+            (CEMember.username.ilike(like)) |
+            (CEMember.email.ilike(like)) |
+            (CEMember.full_name_en.ilike(like)) |
+            (CEMember.full_name_th.ilike(like))
         )
     if member_type_raw:
         try:
-            members_query = members_query.filter(Member.member_type_id == int(member_type_raw))
+            members_query = members_query.filter(CEMember.member_type_id == int(member_type_raw))
         except ValueError:
             member_type_raw = ''
     if verified in ('0', '1'):
-        members_query = members_query.filter(Member.is_verified == (verified == '1'))
+        members_query = members_query.filter(CEMember.is_verified == (verified == '1'))
     if start_dt:
-        members_query = members_query.filter(Member.created_at >= start_dt)
+        members_query = members_query.filter(CEMember.created_at >= start_dt)
     if end_dt:
-        members_query = members_query.filter(Member.created_at < end_dt)
+        members_query = members_query.filter(CEMember.created_at < end_dt)
 
-    pagination = members_query.order_by(Member.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    pagination = members_query.order_by(CEMember.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
     members = pagination.items
 
     member_ids = [m.id for m in members]
@@ -830,38 +830,38 @@ def members_report():
     if member_ids:
         reg_counts = dict(
             db.session.query(
-                MemberRegistration.member_id,
-                func.count(MemberRegistration.id)
+                CEMemberRegistration.member_id,
+                func.count(CEMemberRegistration.id)
             )
-            .filter(MemberRegistration.member_id.in_(member_ids))
-            .group_by(MemberRegistration.member_id)
+            .filter(CEMemberRegistration.member_id.in_(member_ids))
+            .group_by(CEMemberRegistration.member_id)
             .all()
         )
         reg_last = dict(
             db.session.query(
-                MemberRegistration.member_id,
-                func.max(MemberRegistration.registration_date)
+                CEMemberRegistration.member_id,
+                func.max(CEMemberRegistration.registration_date)
             )
-            .filter(MemberRegistration.member_id.in_(member_ids))
-            .group_by(MemberRegistration.member_id)
+            .filter(CEMemberRegistration.member_id.in_(member_ids))
+            .group_by(CEMemberRegistration.member_id)
             .all()
         )
         payment_sums = dict(
             db.session.query(
-                RegisterPayment.member_id,
-                func.coalesce(func.sum(RegisterPayment.payment_amount), 0)
+                CERegisterPayment.member_id,
+                func.coalesce(func.sum(CERegisterPayment.payment_amount), 0)
             )
-            .filter(RegisterPayment.member_id.in_(member_ids))
-            .group_by(RegisterPayment.member_id)
+            .filter(CERegisterPayment.member_id.in_(member_ids))
+            .group_by(CERegisterPayment.member_id)
             .all()
         )
         payment_last = dict(
             db.session.query(
-                RegisterPayment.member_id,
-                func.max(RegisterPayment.payment_date)
+                CERegisterPayment.member_id,
+                func.max(CERegisterPayment.payment_date)
             )
-            .filter(RegisterPayment.member_id.in_(member_ids))
-            .group_by(RegisterPayment.member_id)
+            .filter(CERegisterPayment.member_id.in_(member_ids))
+            .group_by(CERegisterPayment.member_id)
             .all()
         )
 
@@ -879,7 +879,7 @@ def members_report():
     total_registrations = sum(item['registrations'] for item in members_data)
     total_payments = sum(item['payments_total'] for item in members_data)
 
-    member_types = MemberType.query.order_by(MemberType.name_en.asc()).all()
+    member_types = CEMemberType.query.order_by(CEMemberType.name_en.asc()).all()
 
     return render_template(
         'continueing_edu/admin/reports/members_report.html',
@@ -904,7 +904,7 @@ def members_report():
 def certificates_index():
     staff = get_current_staff()
 
-    events = EventEntity.query.order_by(EventEntity.created_at.desc()).all()
+    events = CEEventEntity.query.order_by(CEEventEntity.created_at.desc()).all()
     event_ids = [e.id for e in events]
 
     reg_counts = {}
@@ -913,36 +913,36 @@ def certificates_index():
     if event_ids:
         reg_counts = dict(
             db.session.query(
-                MemberRegistration.event_entity_id,
-                func.count(MemberRegistration.id)
+                CEMemberRegistration.event_entity_id,
+                func.count(CEMemberRegistration.id)
             )
-            .filter(MemberRegistration.event_entity_id.in_(event_ids))
-            .group_by(MemberRegistration.event_entity_id)
+            .filter(CEMemberRegistration.event_entity_id.in_(event_ids))
+            .group_by(CEMemberRegistration.event_entity_id)
             .all()
         )
         issued_counts = dict(
             db.session.query(
-                MemberRegistration.event_entity_id,
-                func.count(MemberRegistration.id)
+                CEMemberRegistration.event_entity_id,
+                func.count(CEMemberRegistration.id)
             )
             .filter(
-                MemberRegistration.event_entity_id.in_(event_ids),
-                MemberRegistration.certificate_issued_date.isnot(None)
+                CEMemberRegistration.event_entity_id.in_(event_ids),
+                CEMemberRegistration.certificate_issued_date.isnot(None)
             )
-            .group_by(MemberRegistration.event_entity_id)
+            .group_by(CEMemberRegistration.event_entity_id)
             .all()
         )
         pending_counts = dict(
             db.session.query(
-                MemberRegistration.event_entity_id,
-                func.count(MemberRegistration.id)
+                CEMemberRegistration.event_entity_id,
+                func.count(CEMemberRegistration.id)
             )
-            .join(MemberRegistration.certificate_status_ref)
+            .join(CEMemberRegistration.certificate_status_ref)
             .filter(
-                MemberRegistration.event_entity_id.in_(event_ids),
-                MemberCertificateStatus.name_en.ilike('%pending%')
+                CEMemberRegistration.event_entity_id.in_(event_ids),
+                CEMemberCertificateStatus.name_en.ilike('%pending%')
             )
-            .group_by(MemberRegistration.event_entity_id)
+            .group_by(CEMemberRegistration.event_entity_id)
             .all()
         )
 
@@ -971,17 +971,17 @@ def certificates_index():
 def certificates_event_detail(event_id):
     staff = get_current_staff()
 
-    event = EventEntity.query.get_or_404(event_id)
+    event = CEEventEntity.query.get_or_404(event_id)
 
     registrations = (
-        MemberRegistration.query
+        CEMemberRegistration.query
         .filter_by(event_entity_id=event_id)
         .options(
-            joinedload(MemberRegistration.member),
-            joinedload(MemberRegistration.status_ref),
-            joinedload(MemberRegistration.certificate_status_ref),
+            joinedload(CEMemberRegistration.member),
+            joinedload(CEMemberRegistration.status_ref),
+            joinedload(CEMemberRegistration.certificate_status_ref),
         )
-        .order_by(MemberRegistration.registration_date.desc())
+        .order_by(CEMemberRegistration.registration_date.desc())
         .all()
     )
 
@@ -989,9 +989,9 @@ def certificates_event_detail(event_id):
     payments_map = {}
     if member_ids:
         payments = (
-            RegisterPayment.query
-            .filter(RegisterPayment.event_entity_id == event_id, RegisterPayment.member_id.in_(member_ids))
-            .order_by(RegisterPayment.payment_date.desc())
+            CERegisterPayment.query
+            .filter(CERegisterPayment.event_entity_id == event_id, CERegisterPayment.member_id.in_(member_ids))
+            .order_by(CERegisterPayment.payment_date.desc())
             .all()
         )
         for payment in payments:
@@ -1013,7 +1013,7 @@ def certificates_event_detail(event_id):
 def certificates_registration_pdf(reg_id):
     staff = get_current_staff()
 
-    reg = MemberRegistration.query.get_or_404(reg_id)
+    reg = CEMemberRegistration.query.get_or_404(reg_id)
     event_id = reg.event_entity_id
     lang = request.args.get('lang', 'en')
 
@@ -1038,7 +1038,7 @@ def certificates_registration_pdf(reg_id):
 @admin_required
 def manage_events():
     staff = get_current_staff()
-    events = EventEntity.query.order_by(EventEntity.created_at.desc()).all()
+    events = CEEventEntity.query.order_by(CEEventEntity.created_at.desc()).all()
     return render_template('continueing_edu/admin/events.html', logged_in_admin=staff, events=events)
 
 
@@ -1047,11 +1047,11 @@ def manage_events():
 @admin_required
 def progress_index():
     staff = get_current_staff()
-    events = EventEntity.query.order_by(EventEntity.created_at.desc()).all()
+    events = CEEventEntity.query.order_by(CEEventEntity.created_at.desc()).all()
     # Build simple stats per event
     stats = {}
     for e in events:
-        regs = MemberRegistration.query.filter_by(event_entity_id=e.id).all()
+        regs = CEMemberRegistration.query.filter_by(event_entity_id=e.id).all()
         started = len([r for r in regs if r.started_at])
         completed = len([r for r in regs if r.completed_at])
         issued = len([r for r in regs if r.certificate_issued_date])
@@ -1069,7 +1069,7 @@ def progress_index():
 @admin_required
 def promotions_index():
     staff = get_current_staff()
-    events = EventEntity.query.order_by(EventEntity.created_at.desc()).all()
+    events = CEEventEntity.query.order_by(CEEventEntity.created_at.desc()).all()
     return render_template('continueing_edu/admin/promotions_index.html', logged_in_admin=staff, events=events)
 
 
@@ -1088,14 +1088,14 @@ def members_index():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
 
-    query = Member.query
+    query = CEMember.query
     if q:
         like = f"%{q}%"
         query = query.filter(
-            (Member.username.ilike(like)) |
-            (Member.email.ilike(like)) |
-            (Member.full_name_en.ilike(like)) |
-            (Member.full_name_th.ilike(like))
+            (CEMember.username.ilike(like)) |
+            (CEMember.email.ilike(like)) |
+            (CEMember.full_name_en.ilike(like)) |
+            (CEMember.full_name_th.ilike(like))
         )
     if member_type_id:
         try:
@@ -1107,9 +1107,9 @@ def members_index():
     if received_news in ('0', '1'):
         query = query.filter_by(received_news=(received_news == '1'))
 
-    pagination = query.order_by(Member.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    pagination = query.order_by(CEMember.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
     members = pagination.items
-    member_types = MemberType.query.order_by(MemberType.name_en.asc()).all()
+    member_types = CEMemberType.query.order_by(CEMemberType.name_en.asc()).all()
     return render_template('continueing_edu/admin/members.html',
                            logged_in_admin=staff,
                            members=members,
@@ -1142,10 +1142,10 @@ def members_create():
         if not username:
             flash('Username is required.', 'danger')
             return redirect(url_for('continuing_edu_admin.members_create'))
-        if Member.query.filter_by(username=username).first():
+        if CEMember.query.filter_by(username=username).first():
             flash('Username already exists.', 'danger')
             return redirect(url_for('continuing_edu_admin.members_create'))
-        if email and Member.query.filter_by(email=email).first():
+        if email and CEMember.query.filter_by(email=email).first():
             flash('Email already exists.', 'danger')
             return redirect(url_for('continuing_edu_admin.members_create'))
         if not password:
@@ -1153,7 +1153,7 @@ def members_create():
             return redirect(url_for('continuing_edu_admin.members_create'))
 
         try:
-            member = Member(
+            member = CEMember(
                 username=username,
                 email=email,
                 password_hash=generate_password_hash(password),
@@ -1173,7 +1173,7 @@ def members_create():
             db.session.rollback()
             flash(f'Error creating member: {e}', 'danger')
 
-    member_types = MemberType.query.order_by(MemberType.name_en.asc()).all()
+    member_types = CEMemberType.query.order_by(CEMemberType.name_en.asc()).all()
     return render_template('continueing_edu/admin/member_form.html',
                            logged_in_admin=staff,
                            member=None,
@@ -1186,7 +1186,7 @@ def members_create():
 @admin_required
 def members_edit(member_id):
     staff = get_current_staff()
-    member = Member.query.get_or_404(member_id)
+    member = CEMember.query.get_or_404(member_id)
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         email = request.form.get('email', '').strip() or None
@@ -1203,10 +1203,10 @@ def members_edit(member_id):
             flash('Username is required.', 'danger')
             return redirect(url_for('continuing_edu_admin.members_edit', member_id=member.id))
         # Ensure username/email uniqueness
-        if username != member.username and Member.query.filter_by(username=username).first():
+        if username != member.username and CEMember.query.filter_by(username=username).first():
             flash('Username already exists.', 'danger')
             return redirect(url_for('continuing_edu_admin.members_edit', member_id=member.id))
-        if email and email != member.email and Member.query.filter_by(email=email).first():
+        if email and email != member.email and CEMember.query.filter_by(email=email).first():
             flash('Email already exists.', 'danger')
             return redirect(url_for('continuing_edu_admin.members_edit', member_id=member.id))
 
@@ -1230,7 +1230,7 @@ def members_edit(member_id):
             db.session.rollback()
             flash(f'Error updating member: {e}', 'danger')
 
-    member_types = MemberType.query.order_by(MemberType.name_en.asc()).all()
+    member_types = CEMemberType.query.order_by(CEMemberType.name_en.asc()).all()
     return render_template('continueing_edu/admin/member_form.html',
                            logged_in_admin=staff,
                            member=member,
@@ -1243,7 +1243,7 @@ def members_edit(member_id):
 @admin_required
 def members_delete(member_id):
     staff = get_current_staff()
-    member = Member.query.get_or_404(member_id)
+    member = CEMember.query.get_or_404(member_id)
     try:
         db.session.delete(member)
         db.session.commit()
@@ -1269,7 +1269,7 @@ def settings_member_types():
         if not name_en or not name_th:
             flash('Both English and Thai names are required.', 'danger')
         else:
-            mt = MemberType(name_en=name_en, name_th=name_th, member_type_code=code)
+            mt = CEMemberType(name_en=name_en, name_th=name_th, member_type_code=code)
             db.session.add(mt)
             try:
                 db.session.commit()
@@ -1278,7 +1278,7 @@ def settings_member_types():
                 db.session.rollback()
                 flash(f'Error: {e}', 'danger')
         return redirect(url_for('continuing_edu_admin.settings_member_types'))
-    mtypes = MemberType.query.order_by(MemberType.name_en.asc()).all()
+    mtypes = CEMemberType.query.order_by(CEMemberType.name_en.asc()).all()
     return render_template('continueing_edu/admin/settings_member_types.html', logged_in_admin=staff, items=mtypes)
 
 
@@ -1287,7 +1287,7 @@ def settings_member_types():
 @admin_required
 def settings_member_types_edit(item_id):
     staff = get_current_staff()
-    mt = MemberType.query.get_or_404(item_id)
+    mt = CEMemberType.query.get_or_404(item_id)
     if request.method == 'POST':
         mt.name_en = request.form.get('name_en', mt.name_en)
         mt.name_th = request.form.get('name_th', mt.name_th)
@@ -1309,7 +1309,7 @@ def settings_member_types_edit(item_id):
 @admin_required
 def settings_member_types_delete(item_id):
     staff = get_current_staff()
-    mt = MemberType.query.get_or_404(item_id)
+    mt = CEMemberType.query.get_or_404(item_id)
     try:
         db.session.delete(mt)
         db.session.commit()
@@ -1336,8 +1336,8 @@ def settings_registration_statuses():
         if not name_en or not name_th:
             flash('Both English and Thai names are required.', 'danger')
         else:
-            st = RegistrationStatus(name_en=name_en, name_th=name_th, css_badge=css_badge,
-                                    registration_status_code=code)
+            st = CERegistrationStatus(name_en=name_en, name_th=name_th, css_badge=css_badge,
+                                      registration_status_code=code)
             db.session.add(st)
             try:
                 db.session.commit()
@@ -1346,7 +1346,7 @@ def settings_registration_statuses():
                 db.session.rollback()
                 flash(f'Error: {e}', 'danger')
         return redirect(url_for('continuing_edu_admin.settings_registration_statuses'))
-    items = RegistrationStatus.query.order_by(RegistrationStatus.name_en.asc()).all()
+    items = CERegistrationStatus.query.order_by(CERegistrationStatus.name_en.asc()).all()
     return render_template('continueing_edu/admin/settings_registration_statuses.html', logged_in_admin=staff, items=items)
 
 
@@ -1355,7 +1355,7 @@ def settings_registration_statuses():
 @admin_required
 def settings_registration_statuses_edit(item_id):
     staff = get_current_staff()
-    st = RegistrationStatus.query.get_or_404(item_id)
+    st = CERegistrationStatus.query.get_or_404(item_id)
     if request.method == 'POST':
         st.name_en = request.form.get('name_en', st.name_en)
         st.name_th = request.form.get('name_th', st.name_th)
@@ -1377,7 +1377,7 @@ def settings_registration_statuses_edit(item_id):
 @admin_required
 def settings_registration_statuses_delete(item_id):
     staff = get_current_staff()
-    st = RegistrationStatus.query.get_or_404(item_id)
+    st = CERegistrationStatus.query.get_or_404(item_id)
     try:
         db.session.delete(st)
         db.session.commit()
@@ -1404,8 +1404,8 @@ def settings_payment_statuses():
         if not name_en or not name_th:
             flash('Both English and Thai names are required.', 'danger')
         else:
-            st = RegisterPaymentStatus(name_en=name_en, name_th=name_th, css_badge=css_badge,
-                                       register_payment_status_code=code)
+            st = CERegisterPaymentStatus(name_en=name_en, name_th=name_th, css_badge=css_badge,
+                                         register_payment_status_code=code)
             db.session.add(st)
             try:
                 db.session.commit()
@@ -1414,7 +1414,7 @@ def settings_payment_statuses():
                 db.session.rollback()
                 flash(f'Error: {e}', 'danger')
         return redirect(url_for('continuing_edu_admin.settings_payment_statuses'))
-    items = RegisterPaymentStatus.query.order_by(RegisterPaymentStatus.name_en.asc()).all()
+    items = CERegisterPaymentStatus.query.order_by(CERegisterPaymentStatus.name_en.asc()).all()
     return render_template('continueing_edu/admin/settings_payment_statuses.html', logged_in_admin=staff, items=items)
 
 
@@ -1423,7 +1423,7 @@ def settings_payment_statuses():
 @admin_required
 def settings_payment_statuses_edit(item_id):
     staff = get_current_staff()
-    st = RegisterPaymentStatus.query.get_or_404(item_id)
+    st = CERegisterPaymentStatus.query.get_or_404(item_id)
     if request.method == 'POST':
         st.name_en = request.form.get('name_en', st.name_en)
         st.name_th = request.form.get('name_th', st.name_th)
@@ -1445,7 +1445,7 @@ def settings_payment_statuses_edit(item_id):
 @admin_required
 def settings_payment_statuses_delete(item_id):
     staff = get_current_staff()
-    st = RegisterPaymentStatus.query.get_or_404(item_id)
+    st = CERegisterPaymentStatus.query.get_or_404(item_id)
     try:
         db.session.delete(st)
         db.session.commit()
@@ -1472,7 +1472,7 @@ def settings_entity_categories():
         if not name_en or not name_th:
             flash('Both English and Thai names are required.', 'danger')
         else:
-            cat = EntityCategory(name_en=name_en, name_th=name_th, description=description, entity_category_code=code)
+            cat = CEEntityCategory(name_en=name_en, name_th=name_th, description=description, entity_category_code=code)
             db.session.add(cat)
             try:
                 db.session.commit()
@@ -1481,7 +1481,7 @@ def settings_entity_categories():
                 db.session.rollback()
                 flash(f'Error: {e}', 'danger')
         return redirect(url_for('continuing_edu_admin.settings_entity_categories'))
-    items = EntityCategory.query.order_by(EntityCategory.name_en.asc()).all()
+    items = CEEntityCategory.query.order_by(CEEntityCategory.name_en.asc()).all()
     return render_template('continueing_edu/admin/settings_entity_categories.html', logged_in_admin=staff, items=items)
 
 
@@ -1490,7 +1490,7 @@ def settings_entity_categories():
 @admin_required
 def settings_entity_categories_edit(item_id):
     staff = get_current_staff()
-    cat = EntityCategory.query.get_or_404(item_id)
+    cat = CEEntityCategory.query.get_or_404(item_id)
     if request.method == 'POST':
         cat.name_en = request.form.get('name_en', cat.name_en)
         cat.name_th = request.form.get('name_th', cat.name_th)
@@ -1512,7 +1512,7 @@ def settings_entity_categories_edit(item_id):
 @admin_required
 def settings_entity_categories_delete(item_id):
     staff = get_current_staff()
-    cat = EntityCategory.query.get_or_404(item_id)
+    cat = CEEntityCategory.query.get_or_404(item_id)
     try:
         db.session.delete(cat)
         db.session.commit()
@@ -1528,13 +1528,13 @@ def settings_entity_categories_delete(item_id):
 @admin_required
 def event_notify(event_id):
     staff = get_current_staff()
-    event = EventEntity.query.get_or_404(event_id)
+    event = CEEventEntity.query.get_or_404(event_id)
     # Audience filters
     only_optin = (request.values.get('only_optin', '1') in ('1','true','yes','on'))
     only_verified = (request.values.get('only_verified', '1') in ('1','true','yes','on'))
     member_type_ids = request.values.getlist('member_type_id')
     # Build recipients query
-    q = Member.query
+    q = CEMember.query
     if only_optin:
         q = q.filter_by(received_news=True)
     if only_verified:
@@ -1542,10 +1542,10 @@ def event_notify(event_id):
     if member_type_ids:
         try:
             ids = [int(i) for i in member_type_ids]
-            q = q.filter(Member.member_type_id.in_(ids))
+            q = q.filter(CEMember.member_type_id.in_(ids))
         except Exception:
             pass
-    q = q.filter(Member.email.isnot(None))
+    q = q.filter(CEMember.email.isnot(None))
     recipients = [m.email for m in q.all()]
 
     # Build event link
@@ -1608,7 +1608,7 @@ def event_notify(event_id):
         )
         return render_template_string(page_tpl, event=event, subject=subject, html_preview=html_preview,
                                       recipients_count=recipients_count, only_optin=only_optin, only_verified=only_verified,
-                                      member_type_ids=member_type_ids, MemberType=MemberType)
+                                      member_type_ids=member_type_ids, MemberType=CEMemberType)
     else:
         subject = request.form.get('subject') or subject_default
         if not recipients:
@@ -1648,37 +1648,37 @@ def payments_index():
     end_date = request.args.get('end_date', '')
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
-    query = RegisterPayment.query
+    query = CERegisterPayment.query
     if status:
         # Prefer code match, fallback to name_en for backward compatibility
-        st = RegisterPaymentStatus.query.filter_by(register_payment_status_code=status).first()
+        st = CERegisterPaymentStatus.query.filter_by(register_payment_status_code=status).first()
         if not st:
-            st = RegisterPaymentStatus.query.filter_by(name_en=status).first()
+            st = CERegisterPaymentStatus.query.filter_by(name_en=status).first()
         if st:
             query = query.filter_by(payment_status_id=st.id)
     if q:
         like = f"%{q}%"
-        query = query.join(Member, RegisterPayment.member).join(EventEntity, RegisterPayment.event_entity).filter(
-            (Member.username.ilike(like)) | (Member.email.ilike(like)) | (EventEntity.title_en.ilike(like))
+        query = query.join(CEMember, CERegisterPayment.member).join(CEEventEntity, CERegisterPayment.event_entity).filter(
+            (CEMember.username.ilike(like)) | (CEMember.email.ilike(like)) | (CEEventEntity.title_en.ilike(like))
         )
     # Date range filter
     from datetime import datetime, timedelta
     if start_date:
         try:
             start_dt = datetime.strptime(start_date, '%Y-%m-%d')
-            query = query.filter(RegisterPayment.payment_date >= start_dt)
+            query = query.filter(CERegisterPayment.payment_date >= start_dt)
         except ValueError:
             pass
     if end_date:
         try:
             end_dt = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1) - timedelta(seconds=1)
-            query = query.filter(RegisterPayment.payment_date <= end_dt)
+            query = query.filter(CERegisterPayment.payment_date <= end_dt)
         except ValueError:
             pass
 
-    pagination = query.order_by(RegisterPayment.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    pagination = query.order_by(CERegisterPayment.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
     payments = pagination.items
-    statuses = RegisterPaymentStatus.query.order_by(RegisterPaymentStatus.name_en.asc()).all()
+    statuses = CERegisterPaymentStatus.query.order_by(CERegisterPaymentStatus.name_en.asc()).all()
     # Totals summary
     total_amount = sum([p.payment_amount or 0 for p in payments])
     total_count = len(payments)
@@ -1708,7 +1708,7 @@ def payments_index():
 @admin_required
 def payment_receipt(payment_id):
     staff = get_current_staff()
-    pay = RegisterPayment.query.get_or_404(payment_id)
+    pay = CERegisterPayment.query.get_or_404(payment_id)
     rc = pay.receipt
     if not rc:
         flash('No receipt issued for this payment.', 'warning')
@@ -1717,11 +1717,11 @@ def payment_receipt(payment_id):
     return render_template('continueing_edu/receipt.html', receipt=rc, payment=pay, member=member, texts={}, current_lang='en')
 
 
-def _set_payment_status(pay: RegisterPayment, status_en: str, staff_id: int):
+def _set_payment_status(pay: CERegisterPayment, status_en: str, staff_id: int):
     # status_en now treated as code; fallback to name_en
-    st = RegisterPaymentStatus.query.filter_by(register_payment_status_code=status_en).first()
+    st = CERegisterPaymentStatus.query.filter_by(register_payment_status_code=status_en).first()
     if not st:
-        st = RegisterPaymentStatus.query.filter_by(name_en=status_en).first()
+        st = CERegisterPaymentStatus.query.filter_by(name_en=status_en).first()
     from datetime import datetime
     if st:
         pay.payment_status_id = st.id
@@ -1731,7 +1731,7 @@ def _set_payment_status(pay: RegisterPayment, status_en: str, staff_id: int):
     # Auto-issue receipt on approval
     if status_en == 'approved' and not pay.receipt:
         number = f"RCPT-{datetime.utcnow().strftime('%Y%m%d')}-{pay.id}"
-        receipt = RegisterPaymentReceipt(register_payment_id=pay.id, receipt_number=number, issued_by_staff_id=staff_id)
+        receipt = CERegisterPaymentReceipt(register_payment_id=pay.id, receipt_number=number, issued_by_staff_id=staff_id)
         db.session.add(receipt)
     db.session.commit()
 
@@ -1741,7 +1741,7 @@ def _set_payment_status(pay: RegisterPayment, status_en: str, staff_id: int):
 @require_event_role('payment_approver')
 def payment_approve(payment_id):
     staff = get_current_staff()
-    pay = RegisterPayment.query.get_or_404(payment_id)
+    pay = CERegisterPayment.query.get_or_404(payment_id)
     _set_payment_status(pay, 'approved', staff.id)
     flash('Payment approved.', 'success')
     return redirect(url_for('continuing_edu_admin.payments_index'))
@@ -1752,7 +1752,7 @@ def payment_approve(payment_id):
 @require_event_role('payment_approver')
 def payment_reject(payment_id):
     staff = get_current_staff()
-    pay = RegisterPayment.query.get_or_404(payment_id)
+    pay = CERegisterPayment.query.get_or_404(payment_id)
     _set_payment_status(pay, 'rejected', staff.id)
     flash('Payment rejected.', 'warning')
     return redirect(url_for('continuing_edu_admin.payments_index'))
@@ -1770,29 +1770,29 @@ def payments_export_csv():
     status = request.args.get('status', '')
     start_date = request.args.get('start_date', '')
     end_date = request.args.get('end_date', '')
-    query = RegisterPayment.query
+    query = CERegisterPayment.query
     if status:
-        st = RegisterPaymentStatus.query.filter_by(name_en=status).first()
+        st = CERegisterPaymentStatus.query.filter_by(name_en=status).first()
         if st:
             query = query.filter_by(payment_status_id=st.id)
     if q:
         like = f"%{q}%"
-        query = query.join(Member, RegisterPayment.member).join(EventEntity, RegisterPayment.event_entity).filter(
-            (Member.username.ilike(like)) | (Member.email.ilike(like)) | (EventEntity.title_en.ilike(like))
+        query = query.join(CEMember, CERegisterPayment.member).join(CEEventEntity, CERegisterPayment.event_entity).filter(
+            (CEMember.username.ilike(like)) | (CEMember.email.ilike(like)) | (CEEventEntity.title_en.ilike(like))
         )
     if start_date:
         try:
             start_dt = datetime.strptime(start_date, '%Y-%m-%d')
-            query = query.filter(RegisterPayment.payment_date >= start_dt)
+            query = query.filter(CERegisterPayment.payment_date >= start_dt)
         except ValueError:
             pass
     if end_date:
         try:
             end_dt = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1) - timedelta(seconds=1)
-            query = query.filter(RegisterPayment.payment_date <= end_dt)
+            query = query.filter(CERegisterPayment.payment_date <= end_dt)
         except ValueError:
             pass
-    rows = query.order_by(RegisterPayment.id.desc()).all()
+    rows = query.order_by(CERegisterPayment.id.desc()).all()
     output = StringIO()
     writer = csv.writer(output)
     writer.writerow(['ID','Member','Email','Event','Amount','Status','Payment Date','Proof URL','Receipt Number'])
@@ -1828,10 +1828,10 @@ def bootstrap_defaults():
         ('approved', 'อนุมัติแล้ว', 'is-success'),
         ('rejected', 'ปฏิเสธ', 'is-danger'),
     ]:
-        s = RegisterPaymentStatus.query.filter_by(name_en=name_en).first()
+        s = CERegisterPaymentStatus.query.filter_by(name_en=name_en).first()
         if not s:
-            s = RegisterPaymentStatus(name_en=name_en, name_th=name_th, css_badge=badge,
-                                      register_payment_status_code=name_en)
+            s = CERegisterPaymentStatus(name_en=name_en, name_th=name_th, css_badge=badge,
+                                        register_payment_status_code=name_en)
             db.session.add(s)
             created.append(f'RegisterPaymentStatus:{name_en}')
         elif not s.register_payment_status_code:
@@ -1844,10 +1844,10 @@ def bootstrap_defaults():
         ('completed', 'สำเร็จแล้ว', 'is-success'),
         ('cancelled', 'ยกเลิก', 'is-light'),
     ]:
-        s = RegistrationStatus.query.filter_by(name_en=name_en).first()
+        s = CERegistrationStatus.query.filter_by(name_en=name_en).first()
         if not s:
-            s = RegistrationStatus(name_en=name_en, name_th=name_th, css_badge=badge,
-                                   registration_status_code=name_en)
+            s = CERegistrationStatus(name_en=name_en, name_th=name_th, css_badge=badge,
+                                     registration_status_code=name_en)
             db.session.add(s)
             created.append(f'RegistrationStatus:{name_en}')
         elif not s.registration_status_code:
@@ -1859,8 +1859,8 @@ def bootstrap_defaults():
         ('not_applicable', 'ไม่เกี่ยวข้อง', 'is-light'),
         ('pending', 'รอดำเนินการ', 'is-info'),
     ]:
-        if not MemberCertificateStatus.query.filter_by(name_en=name_en).first():
-            s = MemberCertificateStatus(name_en=name_en, name_th=name_th, css_badge=badge)
+        if not CEMemberCertificateStatus.query.filter_by(name_en=name_en).first():
+            s = CEMemberCertificateStatus(name_en=name_en, name_th=name_th, css_badge=badge)
             db.session.add(s)
             created.append(f'MemberCertificateStatus:{name_en}')
     db.session.commit()
@@ -1876,7 +1876,7 @@ def bootstrap_defaults():
 @admin_required
 def update_event_general(event_id):
     staff = get_current_staff()
-    event = EventEntity.query.get_or_404(event_id)
+    event = CEEventEntity.query.get_or_404(event_id)
 
     # Basic fields; extend as needed
     title_en = request.form.get('title_en')
@@ -1996,7 +1996,7 @@ def update_event_general(event_id):
 @admin_required
 def add_event_speaker(event_id):
     staff = get_current_staff()
-    event = EventEntity.query.get_or_404(event_id)
+    event = CEEventEntity.query.get_or_404(event_id)
 
     required = ['title_en','title_th','name_th','name_en','email','phone','institution_th','institution_en']
     missing = [f for f in required if not (request.form.get(f) and request.form.get(f).strip())]
@@ -2004,7 +2004,7 @@ def add_event_speaker(event_id):
         flash('Missing required speaker fields: ' + ', '.join(missing), 'danger')
         return redirect(url_for('continuing_edu_admin.edit_event', event_id=event_id, tab='speakers'))
 
-    sp = EventSpeaker(
+    sp = CEEventSpeaker(
         event_entity_id=event.id,
         title_en=request.form.get('title_en', ''),
         title_th=request.form.get('title_th', ''),
@@ -2035,18 +2035,18 @@ def attach_existing_speaker(event_id):
     if not src_id:
         flash('Please select a speaker to attach.', 'danger')
         return redirect(url_for('continuing_edu_admin.edit_event', event_id=event_id, tab='speakers'))
-    src = SpeakerProfile.query.get(src_id)
+    src = CESpeakerProfile.query.get(src_id)
     if not src:
         flash('Speaker not found.', 'danger')
         return redirect(url_for('continuing_edu_admin.edit_event', event_id=event_id, tab='speakers'))
 
     # Prevent duplicate by email within the same event
-    dup = EventSpeaker.query.filter_by(event_entity_id=event_id, email=src.email).first()
+    dup = CEEventSpeaker.query.filter_by(event_entity_id=event_id, email=src.email).first()
     if dup:
         flash('This speaker already exists for the event.', 'warning')
         return redirect(url_for('continuing_edu_admin.edit_event', event_id=event_id, tab='speakers'))
 
-    new_sp = EventSpeaker(
+    new_sp = CEEventSpeaker(
         event_entity_id=event_id,
         title_en=src.title_en,
         title_th=src.title_th,
@@ -2077,17 +2077,17 @@ def attach_existing_speaker(event_id):
 def speakers_index():
     staff = get_current_staff()
     q = request.args.get('q', '').strip()
-    query = SpeakerProfile.query
+    query = CESpeakerProfile.query
     if q:
         like = f"%{q}%"
         query = query.filter(
-            (SpeakerProfile.name_en.ilike(like)) |
-            (SpeakerProfile.name_th.ilike(like)) |
-            (SpeakerProfile.email.ilike(like)) |
-            (SpeakerProfile.institution_en.ilike(like)) |
-            (SpeakerProfile.institution_th.ilike(like))
+            (CESpeakerProfile.name_en.ilike(like)) |
+            (CESpeakerProfile.name_th.ilike(like)) |
+            (CESpeakerProfile.email.ilike(like)) |
+            (CESpeakerProfile.institution_en.ilike(like)) |
+            (CESpeakerProfile.institution_th.ilike(like))
         )
-    profiles = query.order_by(SpeakerProfile.name_en.asc()).all()
+    profiles = query.order_by(CESpeakerProfile.name_en.asc()).all()
     return render_template('continueing_edu/admin/speakers_list.html', profiles=profiles, q=q, logged_in_admin=staff)
 
 
@@ -2096,7 +2096,7 @@ def speakers_index():
 @admin_required
 def speakers_view(profile_id):
     staff = get_current_staff()
-    sp = SpeakerProfile.query.get_or_404(profile_id)
+    sp = CESpeakerProfile.query.get_or_404(profile_id)
     return render_template('continueing_edu/admin/speakers_profile.html', profile=sp, logged_in_admin=staff)
 
 
@@ -2111,11 +2111,11 @@ def speakers_new():
         if missing:
             flash('Missing required fields: ' + ', '.join(missing), 'danger')
             return render_template('continueing_edu/admin/speakers_form.html', mode='new', data=request.form, logged_in_admin=staff)
-        if SpeakerProfile.query.filter_by(email=request.form.get('email')).first():
+        if CESpeakerProfile.query.filter_by(email=request.form.get('email')).first():
             flash('Email already exists in speaker profiles.', 'danger')
             return render_template('continueing_edu/admin/speakers_form.html', mode='new', data=request.form, logged_in_admin=staff)
 
-        sp = SpeakerProfile(
+        sp = CESpeakerProfile(
             title_en=request.form.get('title_en'),
             title_th=request.form.get('title_th'),
             name_en=request.form.get('name_en'),
@@ -2144,14 +2144,14 @@ def speakers_new():
 @admin_required
 def speakers_edit(profile_id):
     staff = get_current_staff()
-    sp = SpeakerProfile.query.get_or_404(profile_id)
+    sp = CESpeakerProfile.query.get_or_404(profile_id)
     if request.method == 'POST':
         # Basic validation
         email = request.form.get('email')
         if not email:
             flash('Email is required.', 'danger')
             return render_template('continueing_edu/admin/speakers_form.html', mode='edit', data=sp, logged_in_admin=staff)
-        exists = SpeakerProfile.query.filter(SpeakerProfile.email == email, SpeakerProfile.id != sp.id).first()
+        exists = CESpeakerProfile.query.filter(CESpeakerProfile.email == email, CESpeakerProfile.id != sp.id).first()
         if exists:
             flash('Another profile already uses this email.', 'danger')
             return render_template('continueing_edu/admin/speakers_form.html', mode='edit', data=sp, logged_in_admin=staff)
@@ -2173,7 +2173,7 @@ def speakers_edit(profile_id):
 @admin_required
 def speakers_delete(profile_id):
     staff = get_current_staff()
-    sp = SpeakerProfile.query.get_or_404(profile_id)
+    sp = CESpeakerProfile.query.get_or_404(profile_id)
     db.session.delete(sp)
     db.session.commit()
     flash('Speaker profile deleted.', 'success')
@@ -2185,7 +2185,7 @@ def speakers_delete(profile_id):
 @admin_required
 def update_event_speaker(event_id, speaker_id):
     staff = get_current_staff()
-    sp = EventSpeaker.query.filter_by(id=speaker_id, event_entity_id=event_id).first_or_404()
+    sp = CEEventSpeaker.query.filter_by(id=speaker_id, event_entity_id=event_id).first_or_404()
     for field in [
         'title_en','title_th','name_th','name_en','email','phone','position_th','position_en',
         'institution_th','institution_en','image_url','bio_th','bio_en']:
@@ -2202,7 +2202,7 @@ def update_event_speaker(event_id, speaker_id):
 @admin_required
 def delete_event_speaker(event_id, speaker_id):
     staff = get_current_staff()
-    sp = EventSpeaker.query.filter_by(id=speaker_id, event_entity_id=event_id).first_or_404()
+    sp = CEEventSpeaker.query.filter_by(id=speaker_id, event_entity_id=event_id).first_or_404()
     db.session.delete(sp)
     db.session.commit()
     flash('Speaker deleted.', 'success')
@@ -2227,7 +2227,7 @@ def _parse_dt(val):
 @admin_required
 def add_event_agenda(event_id):
     staff = get_current_staff()
-    event = EventEntity.query.get_or_404(event_id)
+    event = CEEventEntity.query.get_or_404(event_id)
     title_en = request.form.get('title_en', '')
     title_th = request.form.get('title_th', '')
     st = _parse_dt(request.form.get('start_time'))
@@ -2239,7 +2239,7 @@ def add_event_agenda(event_id):
         flash('Agenda end time must be after start time.', 'danger')
         return redirect(url_for('continuing_edu_admin.edit_event', event_id=event.id, tab='agenda'))
 
-    ag = EventAgenda(
+    ag = CEEventAgenda(
         event_entity_id=event.id,
         title_th=title_th,
         title_en=title_en,
@@ -2262,7 +2262,7 @@ def add_event_agenda(event_id):
 @admin_required
 def update_event_agenda(event_id, agenda_id):
     staff = get_current_staff()
-    ag = EventAgenda.query.filter_by(id=agenda_id, event_entity_id=event_id).first_or_404()
+    ag = CEEventAgenda.query.filter_by(id=agenda_id, event_entity_id=event_id).first_or_404()
     ag.title_th = request.form.get('title_th', ag.title_th)
     ag.title_en = request.form.get('title_en', ag.title_en)
     ag.description_th = request.form.get('description_th')
@@ -2291,7 +2291,7 @@ def update_event_agenda(event_id, agenda_id):
 @admin_required
 def delete_event_agenda(event_id, agenda_id):
     staff = get_current_staff()
-    ag = EventAgenda.query.filter_by(id=agenda_id, event_entity_id=event_id).first_or_404()
+    ag = CEEventAgenda.query.filter_by(id=agenda_id, event_entity_id=event_id).first_or_404()
     db.session.delete(ag)
     db.session.commit()
     flash('Agenda item deleted.', 'success')
@@ -2308,14 +2308,14 @@ def delete_event_agenda(event_id, agenda_id):
 @admin_required
 def add_event_material(event_id):
     staff = get_current_staff()
-    event = EventEntity.query.get_or_404(event_id)
+    event = CEEventEntity.query.get_or_404(event_id)
     title_en = request.form.get('title_en')
     title_th = request.form.get('title_th')
     url = request.form.get('material_url')
     if not title_en or not title_th or not url:
         flash('Material title (EN/TH) and URL are required.', 'danger')
         return redirect(url_for('continuing_edu_admin.edit_event', event_id=event.id, tab='materials'))
-    mt = EventMaterial(
+    mt = CEEventMaterial(
         event_entity_id=event.id,
         order=int(request.form.get('order') or 0),
         title_th=request.form.get('title_th', ''),
@@ -2337,7 +2337,7 @@ def add_event_material(event_id):
 @admin_required
 def update_event_material(event_id, material_id):
     staff = get_current_staff()
-    mt = EventMaterial.query.filter_by(id=material_id, event_entity_id=event_id).first_or_404()
+    mt = CEEventMaterial.query.filter_by(id=material_id, event_entity_id=event_id).first_or_404()
     mt.order = int(request.form.get('order') or mt.order or 0)
     mt.title_th = request.form.get('title_th', mt.title_th)
     mt.title_en = request.form.get('title_en', mt.title_en)
@@ -2357,7 +2357,7 @@ def update_event_material(event_id, material_id):
 @admin_required
 def delete_event_material(event_id, material_id):
     staff = get_current_staff()
-    mt = EventMaterial.query.filter_by(id=material_id, event_entity_id=event_id).first_or_404()
+    mt = CEEventMaterial.query.filter_by(id=material_id, event_entity_id=event_id).first_or_404()
     db.session.delete(mt)
     db.session.commit()
     flash('Material deleted.', 'success')
@@ -2374,7 +2374,7 @@ def delete_event_material(event_id, material_id):
 @admin_required
 def add_event_fee(event_id):
     staff = get_current_staff()
-    event = EventEntity.query.get_or_404(event_id)
+    event = CEEventEntity.query.get_or_404(event_id)
     member_type_id = request.form.get('member_type_id')
     price = request.form.get('price')
     if not member_type_id or not price:
@@ -2397,7 +2397,7 @@ def add_event_fee(event_id):
         except Exception:
             flash('Early bird price must be a positive number.', 'danger')
             return redirect(url_for('continuing_edu_admin.edit_event', event_id=event.id, tab='fees'))
-    fee = EventRegistrationFee(event_entity_id=event.id, member_type_id=int(member_type_id), price=price_val, early_bird_price=early_val)
+    fee = CEEventRegistrationFee(event_entity_id=event.id, member_type_id=int(member_type_id), price=price_val, early_bird_price=early_val)
     db.session.add(fee)
     try:
         db.session.commit()
@@ -2412,14 +2412,14 @@ def add_event_fee(event_id):
 # HTMX Partials and Ordering
 # -----------------------------
 def _render_agenda_partial(event_id):
-    event = EventEntity.query.get_or_404(event_id)
-    agendas = EventAgenda.query.filter_by(event_entity_id=event.id).order_by(EventAgenda.order.asc()).all()
+    event = CEEventEntity.query.get_or_404(event_id)
+    agendas = CEEventAgenda.query.filter_by(event_entity_id=event.id).order_by(CEEventAgenda.order.asc()).all()
     return render_template('continueing_edu/admin/_agenda_list.html', event=event, agendas=agendas)
 
 
 def _render_materials_partial(event_id):
-    event = EventEntity.query.get_or_404(event_id)
-    materials = EventMaterial.query.filter_by(event_entity_id=event.id).order_by(EventMaterial.order.asc()).all()
+    event = CEEventEntity.query.get_or_404(event_id)
+    materials = CEEventMaterial.query.filter_by(event_entity_id=event.id).order_by(CEEventMaterial.order.asc()).all()
     return render_template('continueing_edu/admin/_materials_list.html', event=event, materials=materials)
 
 
@@ -2457,7 +2457,7 @@ def _swap_order(queryset, current, direction):
 @admin_required
 def move_agenda(event_id, agenda_id):
     direction = request.form.get('direction', 'up')
-    agendas = EventAgenda.query.filter_by(event_entity_id=event_id).order_by(EventAgenda.order.asc()).all()
+    agendas = CEEventAgenda.query.filter_by(event_entity_id=event_id).order_by(CEEventAgenda.order.asc()).all()
     ag = next((a for a in agendas if a.id == agenda_id), None)
     if ag:
         _swap_order(agendas, ag, direction)
@@ -2471,7 +2471,7 @@ def move_agenda(event_id, agenda_id):
 @admin_required
 def move_material(event_id, material_id):
     direction = request.form.get('direction', 'up')
-    materials = EventMaterial.query.filter_by(event_entity_id=event_id).order_by(EventMaterial.order.asc()).all()
+    materials = CEEventMaterial.query.filter_by(event_entity_id=event_id).order_by(CEEventMaterial.order.asc()).all()
     mt = next((m for m in materials if m.id == material_id), None)
     if mt:
         _swap_order(materials, mt, direction)
@@ -2496,7 +2496,7 @@ def reorder_agendas(event_id):
     except Exception:
         order_ids = []
 
-    agendas = {a.id: a for a in EventAgenda.query.filter_by(event_entity_id=event_id).all()}
+    agendas = {a.id: a for a in CEEventAgenda.query.filter_by(event_entity_id=event_id).all()}
     order = 1
     for aid in order_ids:
         ag = agendas.get(aid)
@@ -2525,7 +2525,7 @@ def reorder_materials(event_id):
     except Exception:
         order_ids = []
 
-    materials = {m.id: m for m in EventMaterial.query.filter_by(event_entity_id=event_id).all()}
+    materials = {m.id: m for m in CEEventMaterial.query.filter_by(event_entity_id=event_id).all()}
     order = 1
     for mid in order_ids:
         mt = materials.get(mid)
@@ -2544,7 +2544,7 @@ def reorder_materials(event_id):
 @admin_required
 def update_event_fee(event_id, fee_id):
     staff = get_current_staff()
-    fee = EventRegistrationFee.query.filter_by(id=fee_id, event_entity_id=event_id).first_or_404()
+    fee = CEEventRegistrationFee.query.filter_by(id=fee_id, event_entity_id=event_id).first_or_404()
     if 'member_type_id' in request.form:
         fee.member_type_id = int(request.form.get('member_type_id'))
     if 'price' in request.form:
@@ -2563,7 +2563,7 @@ def update_event_fee(event_id, fee_id):
 @admin_required
 def delete_event_fee(event_id, fee_id):
     staff = get_current_staff()
-    fee = EventRegistrationFee.query.filter_by(id=fee_id, event_entity_id=event_id).first_or_404()
+    fee = CEEventRegistrationFee.query.filter_by(id=fee_id, event_entity_id=event_id).first_or_404()
     db.session.delete(fee)
     db.session.commit()
     flash('Registration fee deleted.', 'success')
@@ -2583,7 +2583,7 @@ def _is_certificate_manager(admin: StaffAccount, event_id: int) -> bool:
     allow_all = os.getenv('CE_ALLOW_ALL_ADMINS_CERT', '0').lower() in ('1', 'true', 'yes')
     if allow_all:
         return True
-    managers = EventCertificateManager.query.filter_by(event_entity_id=event_id).all()
+    managers = CEEventCertificateManager.query.filter_by(event_entity_id=event_id).all()
     if not managers:
         return True
     return any(m.staff_id == admin.id for m in managers)
@@ -2606,15 +2606,15 @@ def update_event_roles(event_id):
     if to_add_type and staff_id:
         staff_id = int(staff_id)
         if to_add_type == 'editor':
-            _add_staff_role(EventEditor, event_id, staff_id)
+            _add_staff_role(CEEventEditor, event_id, staff_id)
         elif to_add_type == 'registration_reviewer':
-            _add_staff_role(EventRegistrationReviewer, event_id, staff_id)
+            _add_staff_role(CEEventRegistrationReviewer, event_id, staff_id)
         elif to_add_type == 'payment_approver':
-            _add_staff_role(EventPaymentApprover, event_id, staff_id)
+            _add_staff_role(CEEventPaymentApprover, event_id, staff_id)
         elif to_add_type == 'receipt_issuer':
-            _add_staff_role(EventReceiptIssuer, event_id, staff_id)
+            _add_staff_role(CEEventReceiptIssuer, event_id, staff_id)
         elif to_add_type == 'certificate_manager':
-            _add_staff_role(EventCertificateManager, event_id, staff_id)
+            _add_staff_role(CEEventCertificateManager, event_id, staff_id)
         db.session.commit()
         flash('Role assignment updated.', 'success')
 
@@ -2625,15 +2625,15 @@ def update_event_roles(event_id):
             if len(parts) == 2:
                 role_name, rid = parts[0], int(parts[1])
                 if role_name == 'editor':
-                    _remove_staff_role(EventEditor, rid, event_id)
+                    _remove_staff_role(CEEventEditor, rid, event_id)
                 elif role_name == 'registration_reviewer':
-                    _remove_staff_role(EventRegistrationReviewer, rid, event_id)
+                    _remove_staff_role(CEEventRegistrationReviewer, rid, event_id)
                 elif role_name == 'payment_approver':
-                    _remove_staff_role(EventPaymentApprover, rid, event_id)
+                    _remove_staff_role(CEEventPaymentApprover, rid, event_id)
                 elif role_name == 'receipt_issuer':
-                    _remove_staff_role(EventReceiptIssuer, rid, event_id)
+                    _remove_staff_role(CEEventReceiptIssuer, rid, event_id)
                 elif role_name == 'certificate_manager':
-                    _remove_staff_role(EventCertificateManager, rid, event_id)
+                    _remove_staff_role(CEEventCertificateManager, rid, event_id)
     db.session.commit()
     return redirect(url_for('continuing_edu_admin.edit_event', event_id=event_id, tab='roles'))
 
@@ -2644,7 +2644,7 @@ def update_event_roles(event_id):
 def update_registration_certificate(event_id, reg_id):
     staff = get_current_staff()
 
-    reg = MemberRegistration.query.filter_by(id=reg_id, event_entity_id=event_id).first_or_404()
+    reg = CEMemberRegistration.query.filter_by(id=reg_id, event_entity_id=event_id).first_or_404()
     action = request.form.get('action')
     lang = request.args.get('lang', 'en')
     message = None

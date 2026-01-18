@@ -8,11 +8,11 @@ from flask_login import current_user
 from flask_principal import Permission
 
 from app.continuing_edu.models import (
-    EventEditor, 
-    EventRegistrationReviewer, 
-    EventPaymentApprover,
-    EventReceiptIssuer,
-    EventCertificateManager
+    CEEventEditor,
+    CEEventRegistrationReviewer,
+    CEEventPaymentApprover,
+    CEEventReceiptIssuer,
+    CEEventCertificateManager
 )
 
 # Import the continuing_edu permission from the global roles module
@@ -87,27 +87,27 @@ def has_role_for_event(staff_id, event_id, role_class):
 
 def is_event_editor(staff_id, event_id):
     """Check if staff is an editor for the event."""
-    return has_role_for_event(staff_id, event_id, EventEditor)
+    return has_role_for_event(staff_id, event_id, CEEventEditor)
 
 
 def is_registration_reviewer(staff_id, event_id):
     """Check if staff is a registration reviewer for the event."""
-    return has_role_for_event(staff_id, event_id, EventRegistrationReviewer)
+    return has_role_for_event(staff_id, event_id, CEEventRegistrationReviewer)
 
 
 def is_payment_approver(staff_id, event_id):
     """Check if staff is a payment approver for the event."""
-    return has_role_for_event(staff_id, event_id, EventPaymentApprover)
+    return has_role_for_event(staff_id, event_id, CEEventPaymentApprover)
 
 
 def is_receipt_issuer(staff_id, event_id):
     """Check if staff is a receipt issuer for the event."""
-    return has_role_for_event(staff_id, event_id, EventReceiptIssuer)
+    return has_role_for_event(staff_id, event_id, CEEventReceiptIssuer)
 
 
 def is_certificate_manager(staff_id, event_id):
     """Check if staff is a certificate manager for the event."""
-    return has_role_for_event(staff_id, event_id, EventCertificateManager)
+    return has_role_for_event(staff_id, event_id, CEEventCertificateManager)
 
 
 def has_any_role_for_event(staff_id, event_id):
@@ -215,8 +215,8 @@ def can_manage_registrations(f):
         else:
             # Check if staff has role for any event
             has_permission = (
-                EventRegistrationReviewer.query.filter_by(staff_id=staff.id).first() is not None or
-                EventEditor.query.filter_by(staff_id=staff.id).first() is not None
+                    CEEventRegistrationReviewer.query.filter_by(staff_id=staff.id).first() is not None or
+                    CEEventEditor.query.filter_by(staff_id=staff.id).first() is not None
             )
         
         if not has_permission:
@@ -236,8 +236,8 @@ def check_can_manage_registrations(staff_id, event_id=None):
         return is_registration_reviewer(staff_id, event_id) or is_event_editor(staff_id, event_id)
     
     return (
-        EventRegistrationReviewer.query.filter_by(staff_id=staff_id).first() is not None or
-        EventEditor.query.filter_by(staff_id=staff_id).first() is not None
+            CEEventRegistrationReviewer.query.filter_by(staff_id=staff_id).first() is not None or
+            CEEventEditor.query.filter_by(staff_id=staff_id).first() is not None
     )
 
 
@@ -262,8 +262,8 @@ def can_manage_payments(f):
             )
         else:
             has_permission = (
-                EventPaymentApprover.query.filter_by(staff_id=staff.id).first() is not None or
-                EventEditor.query.filter_by(staff_id=staff.id).first() is not None
+                    CEEventPaymentApprover.query.filter_by(staff_id=staff.id).first() is not None or
+                    CEEventEditor.query.filter_by(staff_id=staff.id).first() is not None
             )
         
         if not has_permission:
@@ -282,8 +282,8 @@ def check_can_manage_payments(staff_id, event_id=None):
         return is_payment_approver(staff_id, event_id) or is_event_editor(staff_id, event_id)
     
     return (
-        EventPaymentApprover.query.filter_by(staff_id=staff_id).first() is not None or
-        EventEditor.query.filter_by(staff_id=staff_id).first() is not None
+            CEEventPaymentApprover.query.filter_by(staff_id=staff_id).first() is not None or
+            CEEventEditor.query.filter_by(staff_id=staff_id).first() is not None
     )
 
 
@@ -295,8 +295,8 @@ def can_issue_receipts(staff_id, event_id=None):
         return is_receipt_issuer(staff_id, event_id) or is_event_editor(staff_id, event_id)
     
     return (
-        EventReceiptIssuer.query.filter_by(staff_id=staff_id).first() is not None or
-        EventEditor.query.filter_by(staff_id=staff_id).first() is not None
+            CEEventReceiptIssuer.query.filter_by(staff_id=staff_id).first() is not None or
+            CEEventEditor.query.filter_by(staff_id=staff_id).first() is not None
     )
 
 
@@ -308,8 +308,8 @@ def can_manage_certificates(staff_id, event_id=None):
         return is_certificate_manager(staff_id, event_id) or is_event_editor(staff_id, event_id)
     
     return (
-        EventCertificateManager.query.filter_by(staff_id=staff_id).first() is not None or
-        EventEditor.query.filter_by(staff_id=staff_id).first() is not None
+            CEEventCertificateManager.query.filter_by(staff_id=staff_id).first() is not None or
+            CEEventEditor.query.filter_by(staff_id=staff_id).first() is not None
     )
 
 
@@ -324,11 +324,11 @@ def get_staff_permissions(staff_id):
         'can_manage_payments': can_manage_payments(staff_id),
         'can_issue_receipts': can_issue_receipts(staff_id),
         'can_manage_certificates': can_manage_certificates(staff_id),
-        'events_as_editor': [e.event_entity_id for e in EventEditor.query.filter_by(staff_id=staff_id).all()],
-        'events_as_registration_reviewer': [e.event_entity_id for e in EventRegistrationReviewer.query.filter_by(staff_id=staff_id).all()],
-        'events_as_payment_approver': [e.event_entity_id for e in EventPaymentApprover.query.filter_by(staff_id=staff_id).all()],
-        'events_as_receipt_issuer': [e.event_entity_id for e in EventReceiptIssuer.query.filter_by(staff_id=staff_id).all()],
-        'events_as_certificate_manager': [e.event_entity_id for e in EventCertificateManager.query.filter_by(staff_id=staff_id).all()],
+        'events_as_editor': [e.event_entity_id for e in CEEventEditor.query.filter_by(staff_id=staff_id).all()],
+        'events_as_registration_reviewer': [e.event_entity_id for e in CEEventRegistrationReviewer.query.filter_by(staff_id=staff_id).all()],
+        'events_as_payment_approver': [e.event_entity_id for e in CEEventPaymentApprover.query.filter_by(staff_id=staff_id).all()],
+        'events_as_receipt_issuer': [e.event_entity_id for e in CEEventReceiptIssuer.query.filter_by(staff_id=staff_id).all()],
+        'events_as_certificate_manager': [e.event_entity_id for e in CEEventCertificateManager.query.filter_by(staff_id=staff_id).all()],
     }
 
 
