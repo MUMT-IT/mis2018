@@ -3076,7 +3076,17 @@ def idp_accept_result(idp_id):
 def idp_all_results():
     all_idp = IDP.query.filter_by(approver=current_user).join(PAFunctionalCompetencyRound).filter(
         PAFunctionalCompetencyRound.is_closed != True).all()
-    return render_template('PA/idp_all_results.html', all_idp=all_idp)
+    rounds = PAFunctionalCompetencyRound.query.all()
+    round_id = request.args.get('roundid', type=int)
+    if round_id:
+        print('round_id')
+        all_idp = IDP.query.filter_by(approver=current_user, round_id=round_id).join(PAFunctionalCompetencyRound).filter(
+            PAFunctionalCompetencyRound.is_closed != True).all()
+
+    return render_template('PA/idp_all_results.html', all_idp=all_idp, round=round_id,
+                           rounds=[{'id': r.id,
+                                    'round': r.desc + ': ' + r.start.strftime('%d/%m/%Y') + '-' + r.end.strftime(
+                                        '%d/%m/%Y')} for r in rounds])
 
 
 @pa.route('/seminar/idp/<int:staff_account_id>')
