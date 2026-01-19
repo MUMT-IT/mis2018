@@ -3817,6 +3817,8 @@ def show_seminar_info_each_person(record_id):
     document_approver = StaffSeminarDocumentApprover.query.filter_by(seminar_attend=seminar_attend).first()
     approver_position = document_approver.position.position if document_approver else ''
     idp_value = ''
+    idp_item = ''
+    idp_pre_item = ''
     if seminar_attend.objectives:
         yearly_budget = get_seminar_yearly_budget(seminar_attend.staff_account_id, seminar_attend.start_datetime)
         for obj in seminar_attend.objectives:
@@ -3828,9 +3830,6 @@ def show_seminar_info_each_person(record_id):
                     if idp_item:
                         idp_item += ", "
                     idp_item += f'{item.plan}'
-    else:
-        idp_item = ''
-        idp_pre_item = ''
     return render_template('staff/seminar_each_record.html', attend=attend, approval=approval,
                            proposal=proposal, is_hr=is_hr, upload_file_url=upload_file_url,
                            registration_fee=registration_fee, seminar_attend=seminar_attend,
