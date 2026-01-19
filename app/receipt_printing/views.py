@@ -10,7 +10,7 @@ from datetime import datetime
 from io import BytesIO
 from app.e_sign_api import e_sign
 from bahttext import bahttext
-from flask import render_template, request, flash, redirect, url_for, send_file, make_response, jsonify
+from flask import render_template, request, flash, redirect, url_for, send_file, make_response, jsonify, current_app
 from flask_login import current_user, login_required
 from pandas import DataFrame
 from reportlab.lib import colors
@@ -25,6 +25,8 @@ from pydrive.auth import GoogleAuth
 from oauth2client.service_account import ServiceAccountCredentials
 from pydrive.drive import GoogleDrive
 from flask_mail import Message
+
+from ..academic_services.models import ServiceResult
 from ..main import mail
 from sqlalchemy import cast, Date, and_
 from . import receipt_printing_bp as receipt_printing
@@ -56,12 +58,10 @@ def landing():
 def create_receipt():
     invoice_id = request.args.get('invoice_id')
     form = ReceiptDetailForm()
-    form.payer.choices = [(None, 'Add or select payer')] + [(r.id, r.received_money_from)
-                                for r in ElectronicReceiptReceivedMoneyFrom.query.all()]
     receipt_num = ComHealthReceiptID.get_number('MTS', db)
     payer = None
+    invoice = ServiceInvoice.query.get(invoice_id) if invoice_id else None
     if invoice_id:
-        invoice = ServiceInvoice.query.get(invoice_id)
         received_money_from = ElectronicReceiptReceivedMoneyFrom.query.filter_by(received_money_from=invoice.name).first()
         if not received_money_from:
             received_money_from = ElectronicReceiptReceivedMoneyFrom(received_money_from=invoice.name, address=invoice.address,
@@ -72,7 +72,7 @@ def create_receipt():
             form.items.append_entry()
         for entry, invoice_item in zip(form.items.entries, invoice.invoice_items):
             entry.item.data = invoice_item.item
-            entry.price.data = invoice_item.net_price()
+            entry.price.data = f"{invoice_item.net_price():.2f}"
         payer = received_money_from
         for payment in invoice.payments:
             if payment.payment_type == 'QR Code Payment':
@@ -80,9 +80,11 @@ def create_receipt():
             elif payment.payment_type == 'โอนเงิน':
                 form.payment_method.data = 'Bank Transfer'
             elif payment.payment_type == 'เช็คเงินสด':
-                form.payment_method.data = 'Other'
+                form.payment_method.data = 'Cheque'
             else:
-                form.payment_method.data = 'Bank Transfer'
+                form.payment_method.data = 'Other'
+    form.payer.choices = [(None, 'Add or select payer')] + [(r.id, r.received_money_from)
+                                                            for r in ElectronicReceiptReceivedMoneyFrom.query.all()]
     if request.method == 'POST':
         if form.payer.data:
             try:
@@ -110,9 +112,29 @@ def create_receipt():
         db.session.add(receipt_detail)
         db.session.add(receipt_num)
         db.session.commit()
+        if invoice_id:
+            result = ServiceResult.query.filter_by(request_id=invoice.quotation.request_id).first()
+            scheme = 'http' if current_app.debug else 'https'
+            link = url_for('academic_services.receipt_index', menu='receipt', _external=True, _scheme=scheme)
+            customer_name = result.request.customer.customer_name.replace(' ', '_')
+            # contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
+            title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
+            title = f'''แจ้งออกใบเสร็จรับเงินของใบแจ้งหนี้ [{invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+            message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+            message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}\n'''
+            message += f'''ขณะนี้ทางคณะฯ ได้ตรวจการชำระเงิน และออกใบเสร็จรับเงินของใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว\n'''
+            message += f'''ท่านสามารถตรวจสอบรายละเอียดใบเสร็จรับเงินได้จากลิงก์ด้านล่าง\n'''
+            message += f'''{link}\n\n'''
+            message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+            message += f'''ขอแสดงความนับถือ\n'''
+            message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+            message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+            if not current_app.debug:
+                send_mail([result.request.customer.email], title, message)
+            else:
+                print('messafe', message)
         flash(u'บันทึกการสร้างใบเสร็จรับเงินสำเร็จ.', 'success')
         return redirect(url_for('receipt_printing.view_receipt_by_list_type'))
-    # Check Error
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
@@ -462,10 +484,12 @@ def list_to_cancel_receipt():
 @receipt_printing.route('/receipts/cancel/<int:receipt_id>', methods=['GET', 'POST'])
 def cancel_receipt(receipt_id):
     receipt = ElectronicReceiptDetail.query.get(receipt_id)
+    invoice_id = receipt.invoice_id if receipt.invoice_id else None
     form = PasswordOfSignDigitalForm()
     if request.method == 'POST':
         receipt.cancelled = True
         receipt.cancel_comment = form.cancel_comment.data
+        receipt.invoice_id = None
         try:
             sign_pdf = e_sign(BytesIO(receipt.pdf_file), form.password.data, 400, 700, 550, 750, include_image=False,
                               sig_field_name='cancel', message=f'ยกเลิก {receipt.number}')
@@ -476,6 +500,22 @@ def cancel_receipt(receipt_id):
             sign_pdf.seek(0)
             db.session.add(receipt)
             db.session.commit()
+            if invoice_id:
+                invoice = ServiceInvoice.query.get(invoice_id)
+                customer_name = invoice.quotation.request.customer.customer_name.replace(' ', '_')
+                contact_email = invoice.quotation.request.customer.contact_email if invoice.quotation.request.customer.contact_email else invoice.quotation.request.customer.email
+                title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
+                title = f'''แจ้งยกเลิกใบเสร็จรับเงินของใบแจ้งหนี้ [{invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+                message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {invoice.quotation.request.request_no}'''
+                message += f''' ขณะนี้ทางคณะฯ ขอแจ้งให้ทราบว่า ใบเสร็จรับเงินเลขที่ {receipt.number} ได้ถูกยกเลิกเรียบร้อยแล้ว เนื่องจากมีความผิดพลาดในการจัดทำเอกสาร '''
+                message += f'''ทั้งนี้ คณะฯ จะดำเนินการออกเอกสารที่ถูกต้องให้ท่านใหม่ \n'''
+                message += f'''ทางคณะฯ ต้องขออภัยในความไม่สะดวกมา ณ ที่นี้\n\n'''
+                message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+                message += f'''ขอแสดงความนับถือ\n'''
+                message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+                message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                send_mail([contact_email], title, message)
     if not receipt.cancelled:
         return render_template('receipt_printing/confirm_cancel_receipt.html', receipt=receipt,
                                callback=request.referrer, form=form)

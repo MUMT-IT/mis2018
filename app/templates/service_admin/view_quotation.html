@@ -103,33 +103,33 @@
                             </p>
                             <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ "{:,.2f}".format(quotation.grand_total()) }}</p>
                         </div>
-                        <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่สำหรับจัดส่งเอกสาร</p>
-                        </div>
-                        <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ถึง</p>
-                            <div style="margin-left: 1.75rem;">
-                                {{ quotation.request.receive_name }}
-                            </div>
-                        </div>
-                        <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>
-                            <div style="margin-left: 1.75rem;">
-                                {{ quotation.request.receive_address }}
-                            </div>
-                        </div>
-                        <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เบอร์โทรศัพท์</p>
-                            <div style="margin-left: 1.75rem;">
-                                {{ quotation.request.receive_phone_number }}
-                            </div>
-                        </div>
-                        <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">อีเมล</p>
-                            <div style="margin-left: 1.75rem;">
-                                {{ quotation.request.customer.contact_email }}
-                            </div>
-                        </div>
+{#                        <div class="mb-4 is-flex is-align-items-center">#}
+{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่สำหรับจัดส่งเอกสาร</p>#}
+{#                        </div>#}
+{#                        <div class="mb-4 is-flex is-align-items-center">#}
+{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ถึง</p>#}
+{#                            <div style="margin-left: 1.75rem;">#}
+{#                                {{ quotation.request.receive_name }}#}
+{#                            </div>#}
+{#                        </div>#}
+{#                        <div class="mb-4 is-flex is-align-items-center">#}
+{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>#}
+{#                            <div style="margin-left: 1.75rem;">#}
+{#                                {{ quotation.request.receive_address }}#}
+{#                            </div>#}
+{#                        </div>#}
+{#                        <div class="mb-4 is-flex is-align-items-center">#}
+{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เบอร์โทรศัพท์</p>#}
+{#                            <div style="margin-left: 1.75rem;">#}
+{#                                {{ quotation.request.receive_phone_number }}#}
+{#                            </div>#}
+{#                        </div>#}
+{#                        <div class="mb-4 is-flex is-align-items-center">#}
+{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">อีเมล</p>#}
+{#                            <div style="margin-left: 1.75rem;">#}
+{#                                {{ quotation.request.customer.contact_email }}#}
+{#                            </div>#}
+{#                        </div>#}
                     </div>
                 </div>
                 <div class="column is-one-quarter ">
@@ -145,27 +145,24 @@
                             </ul>
                             <hr>
                             <p class="menu-label">
-                                วันที่อนุมัติ
-                            </p>
-                            <ul class="menu-list">
-                                <li>
-                                    {% if quotation.approved_at %}
-                                        <span class="icon">
-                                            <i class="fas fa-clock"></i>
-                                        </span>
-                                        {{ quotation.approved_at.strftime('%d/%m/%Y') }}
-                                    {% else %}
-                                        ยังไม่ดำเนินการอนุมัติ
-                                    {% endif %}
-                                </li>
-                            </ul>
-                            <hr>
-                            <p class="menu-label">
                                 ข้อมูลผู้ประสานงาน
                             </p>
                             <ul class="menu-list">
                                 <li>
                                     {{ quotation.customer_name }}
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                วันที่อนุมัติ
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {% if quotation.approved_at %}
+                                        {{ quotation.approved_at|localdate }}
+                                    {% else %}
+                                        ยังไม่ดำเนินการอนุมัติ
+                                    {% endif %}
                                 </li>
                             </ul>
                             <hr>
@@ -184,20 +181,20 @@
                                 การดำเนินการ
                             </p>
                             <ul class="menu-list">
-                                <li>
-                                    <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
-                                       @click="printQuotation()"
-                                    >
-                                        <span class="icon"><i class="fas fa-print"></i></span>
-                                        <span>พิมพ์ใบเสนอราคา</span>
-                                    </a>
-                                </li>
+{#                                <li>#}
+{#                                    <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"#}
+{#                                       @click="printQuotation()"#}
+{#                                    >#}
+{#                                        <span class="icon"><i class="fas fa-print"></i></span>#}
+{#                                        <span>พิมพ์ใบเสนอราคา</span>#}
+{#                                    </a>#}
+{#                                </li>#}
                                 <li>
                                     <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
                                        href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id) }}"
                                     >
                                         <span class="icon"><i class="fas fa-download"></i></span>
-                                        <span>ดาวน์โหลด PDF</span>
+                                        <span>ดาวน์โหลดใบเสนอราคา</span>
                                     </a>
                                 </li>
                             </ul>

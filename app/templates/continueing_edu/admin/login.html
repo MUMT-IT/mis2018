@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+          <meta charset="UTF-8">
+          <title>Admin Login</title>
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+</head>
+
+<body>
+          <section class="section">
+                    <div class="container">
+                              <div class="column is-half is-offset-one-quarter">
+                                        <h1 class="title has-text-centered">Admin Login</h1>
+                                        {% with messages = get_flashed_messages(with_categories=true) %}
+                                        {% if messages %}
+                                        <div class="notification is-light">
+                                                  {% for category, message in messages %}
+                                                  <div
+                                                            class="has-text-{{ 'danger' if category == 'danger' else 'success' }}">
+                                                            {{ message }}</div>
+                                                  {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                        {% endwith %}
+                                        <form method="post">
+                                                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                                  <div class="field">
+                                                            <label class="label">Username</label>
+                                                            <div class="control">
+                                                                      <input class="input" type="text" name="username"
+                                                                                required>
+                                                            </div>
+                                                  </div>
+                                                  <div class="field">
+                                                            <label class="label">Password</label>
+                                                            <div class="control">
+                                                                      <input class="input" type="password"
+                                                                                name="password" required>
+                                                            </div>
+                                                  </div>
+                                                  <div class="field is-grouped is-grouped-centered">
+                                                            <div class="control">
+                                                                      <button class="button is-link"
+                                                                                type="submit">Login</button>
+                                                            </div>
+                                                  </div>
+                                        </form>
+                              </div>
+                    </div>
+          </section>
+</body>
+
+</html>

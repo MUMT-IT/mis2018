@@ -14,13 +14,13 @@
             {{ form.hidden_tag() }}
             <div class="tabs is-centered is-boxed">
               <ul>
-                <li><a href="{{request.path.replace('?section=target', '').replace('?section=report', '')+'?section=general'}}">ข้อมูลทั่วไป</a></li>
-                <li><a href="{{request.path.replace('?section=report', '').replace('?section=general', '')+'?section=target'}}">เป้าหมาย</a></li>
-                <li class="is-active"><a href="#">รายงาน</a></li>
+                  <li><a href="{{ url_for('data_bp.kpi_form', process_id=process_id, kpi_id=kpi_id, section='general') }}">ข้อมูลทั่วไป</a></li>
+                  <li><a href="{{ url_for('data_bp.kpi_form', process_id=process_id, kpi_id=kpi_id, section='target') }}">เป้าหมาย</a></li>
+                  <li class="is-active"><a href="#">รายงาน</a></li>
               </ul>
             </div>
             <div class="columns">
-                <div class="column">
+                <div class="column box mr-4">
                     <div class="field">
                         <label class="label">{{form.account.label}}</label>
                         <div>
@@ -53,7 +53,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="column">
+                <div class="column box">
                     <div class="field">
                         <label class="label">{{form.pfm_account.label}}</label>
                         <div>

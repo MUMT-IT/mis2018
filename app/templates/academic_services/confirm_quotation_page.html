@@ -18,8 +18,8 @@
                     <a href='{{ url_for('academic_services.sample_index', menu=menu) }}' class="button is-link is-light">
                         กลับหน้าหลัก
                     </a>
-                    <a href='{{ url_for('academic_services.create_sample_appointment', menu=menu, sample_id=sample_id) }}'
-                       class="button is-primary"
+                    <a href='{{ url_for('academic_services.create_sample_appointment', menu=menu,tab='schedule',
+                        sample_id=sample_id) }}' class="button is-primary"
                     >
                         นัดหมายส่งตัวอย่าง
                     </a>

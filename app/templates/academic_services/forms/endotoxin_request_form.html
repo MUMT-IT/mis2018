@@ -1,0 +1,180 @@
+{% extends "academic_services/service_base.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+{% endblock %}
+{% block page_content %}
+    {% include "academic_services/customer_nav.html" %}
+    {% include 'messages.html' %}
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-12">
+                    <h1 class="title is-3 has-text-centered has-text-grey-dark">ฟอร์ม{{ sub_lab.sub_lab }}</h1>
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="box">
+                            <h5 class="title is-size-5">ข้อมูลผลิตภัณฑ์</h5>
+                            <hr style="background-color: gainsboro">
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.test_method.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.test_method() }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.note.label }}
+                                </label>
+                                <div class="control">
+                                    {{ form.note(class='input') }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="box">
+                            <h5 class="title is-size-5">รายการทดสอบ</h5>
+                            <hr style="background-color: gainsboro">
+                            <div id="condition-field" class="field">
+                                {% for item_form in form.endotoxin_condition_field %}
+                                    <div id="{{ item_form.id }}">
+                                        <p class="mt-4 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
+                                        <table class="table is-fullwidth ">
+                                            <thead>
+                                                <th style="border: none">
+                                                    {{ item_form.no.label }}
+                                                    <span class="has-text-danger">*</span>
+                                                </th>
+                                                <th style="border: none">
+                                                    {{ item_form.org_name.label }}
+                                                    <span class="has-text-danger">*</span>
+                                                </th>
+                                                <th style="border: none">
+                                                    {{ item_form.sample_name.label }}
+                                                    <span class="has-text-danger">*</span>
+                                                </th>
+                                                <th style="border: none">
+                                                    {{ item_form.sample_type.label }}
+                                                    <span class="has-text-danger">*</span>
+                                                </th>
+                                                <th style="border: none">
+                                                    {{ item_form.received_by.label }}
+                                                    <span class="has-text-danger">*</span>
+                                                </th>
+                                                <th style="border: none">
+                                                    {{ item_form.received_at.label }}
+                                                    <span class="has-text-danger">*</span>
+                                                </th>
+                                            </thead>
+                                            <tbody>
+                                                <td style="border: none" class="control">
+                                                    {{ item_form.no(class='input') }}
+                                                </td>
+                                                <td style="border: none" class="control">
+                                                    {{ item_form.org_name(class='input') }}
+                                                </td>
+                                                <td style="border: none" class="control">
+                                                    {{ item_form.sample_name(class='input') }}
+                                                </td>
+                                                <td style="border: none" class="select">
+                                                    {{ item_form.sample_type() }}
+                                                </td>
+                                                <td style="border: none" class="control">
+                                                    {{ item_form.received_by(class='input') }}
+                                                </td>
+                                                <td style="border: none" class="control">
+                                                    {{ item_form.received_at(class='input') }}
+                                                </td>
+                                            </tbody>
+                                        </table>
+                                        {% if not loop.last %}
+                                            <hr style="background-color: #F3F3F3">
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="field has-addons">
+                                <div class="control">
+                                    <a class="button is-info is-small is-light is-rounded"
+                                       hx-post="{{ url_for('academic_services.add_endotoxin_condition_item') }}"
+                                       hx-target="#condition-field" hx-swap="beforeend">
+                                        <span class="icon">
+                                            <i class="fas fa-plus"></i>
+                                        </span>
+                                        <span>เพิ่ม</span>
+                                    </a>
+                                </div>
+                                <div class="control">
+                                    <a class="button is-danger is-small is-light is-rounded"
+                                       hx-delete="{{ url_for('academic_services.remove_endotoxin_condition_item') }}"
+                                       hx-target="#condition-field" hx-swap="innerHTML">
+                                            <span class="icon">
+                                                <i class="far fa-trash-alt"></i>
+                                            </span>
+                                        <span class="">ลบ</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-justify-content-center">
+                            <div class="control">
+                                <input type="submit" value="บันทึกและดำเนินการต่อ" class="button is-success">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            const testMethodInput = $('input[id^="test_method"]');
+
+            testMethodInput.prop('required', true)
+                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกรายการทดสอบ')");
+
+            testMethodInput.on('change', function () {
+                testMethodInput.each(function () {
+                    this.setCustomValidity('');
+                });
+            });
+        });
+    </script>
+    <script>
+        let activateDateRangePicker = function () {
+            $('input[name$="received_at"]').toArray().forEach((p) => {
+                if ($(p).data('daterangepicker') === undefined) {
+                    $(p).daterangepicker({
+                        singleDatePicker: true,
+                        timePicker: true,
+                        timePickerIncrement: 15,
+                        timePicker24Hour: true,
+                        showDropdowns: true,
+                        autoUpdateInput: true,
+                        startDate: moment(),
+                        locale: {
+                            format: 'YYYY-MM-DD HH:mm:ss',
+                            cancelLabel: 'Clear'
+                        }
+                    });
+                    $(p).on('apply.daterangepicker', function (ev, picker) {
+                        $(this).val(picker.startDate.format('YYYY-MM-DD HH:mm:ss'));
+                    });
+                    $(p).on('cancel.daterangepicker', function () {
+                        $(this).val('');
+                    });
+                }
+            });
+        }
+        $(document).ready(() => {
+            activateDateRangePicker()
+            document.addEventListener('activateDateRangePickerEvent', activateDateRangePicker)
+        });
+    </script>
+{% endblock %}

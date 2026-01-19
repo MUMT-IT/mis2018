@@ -1,0 +1,380 @@
+{% extends "continueing_edu/admin/base.html" %}
+
+{% block title %}จัดการสิทธิ์เจ้าหน้าที่ - {{ event.title_th }}{% endblock %}
+
+{% block content %}
+<section class="section">
+          <div class="container">
+                    <!-- Breadcrumb -->
+                    <nav class="breadcrumb" aria-label="breadcrumbs">
+                              <ul>
+                                        <li><a href="{{ url_for('continuing_edu_admin.dashboard') }}">
+                                                            <span class="icon is-small"><i
+                                                                                class="fas fa-home"></i></span>
+                                                            <span>หน้าหลัก</span>
+                                                  </a></li>
+                                        <li><a href="{{ url_for('continuing_edu_admin.settings_staff_roles') }}">
+                                                            <span class="icon is-small"><i
+                                                                                class="fas fa-users-cog"></i></span>
+                                                            <span>จัดการสิทธิ์เจ้าหน้าที่</span>
+                                                  </a></li>
+                                        <li class="is-active"><a href="#" aria-current="page">{{ event.title_th }}</a>
+                                        </li>
+                              </ul>
+                    </nav>
+
+                    <h1 class="title">
+                              <span class="icon-text">
+                                        <span class="icon"><i class="fas fa-user-cog"></i></span>
+                                        <span>จัดการสิทธิ์เจ้าหน้าที่</span>
+                              </span>
+                    </h1>
+                    <p class="subtitle">{{ event.title_th }}</p>
+
+                    <!-- Add Staff Role Form -->
+                    <div class="box has-background-light mb-5">
+                              <h2 class="title is-5">เพิ่มเจ้าหน้าที่</h2>
+                              <form method="POST"
+                                        action="{{ url_for('continuing_edu_admin.event_staff_roles_add', event_id=event.id) }}">
+                                        <div class="columns">
+                                                  <div class="column is-5">
+                                                            <div class="field">
+                                                                      <label class="label">เลือกเจ้าหน้าที่</label>
+                                                                      <div class="control">
+                                                                                <div class="select is-fullwidth">
+                                                                                          <select name="staff_id"
+                                                                                                    required>
+                                                                                                    <option value="">--
+                                                                                                              เลือกเจ้าหน้าที่
+                                                                                                              --
+                                                                                                    </option>
+                                                                                                    {% for staff in
+                                                                                                    all_staff %}
+                                                                                                    <option
+                                                                                                              value="{{ staff.id }}">
+                                                                                                              {{
+                                                                                                              staff.fullname
+                                                                                                              }} ({{
+                                                                                                              staff.email
+                                                                                                              }})
+                                                                                                    </option>
+                                                                                                    {% endfor %}
+                                                                                          </select>
+                                                                                </div>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                                  <div class="column is-5">
+                                                            <div class="field">
+                                                                      <label class="label">ประเภทสิทธิ์</label>
+                                                                      <div class="control">
+                                                                                <div class="select is-fullwidth">
+                                                                                          <select name="role_type"
+                                                                                                    required>
+                                                                                                    <option value="">--
+                                                                                                              เลือกประเภทสิทธิ์
+                                                                                                              --
+                                                                                                    </option>
+                                                                                                    <option
+                                                                                                              value="editor">
+                                                                                                              จัดการคอร์ส
+                                                                                                              (Editor)
+                                                                                                    </option>
+                                                                                                    <option
+                                                                                                              value="registration_reviewer">
+                                                                                                              ตรวจสอบการลงทะเบียน
+                                                                                                    </option>
+                                                                                                    <option
+                                                                                                              value="payment_approver">
+                                                                                                              อนุมัติการชำระเงิน
+                                                                                                    </option>
+                                                                                                    <option
+                                                                                                              value="receipt_issuer">
+                                                                                                              ออกใบเสร็จ
+                                                                                                    </option>
+                                                                                                    <option
+                                                                                                              value="certificate_manager">
+                                                                                                              จัดการใบประกาศนียบัตร
+                                                                                                    </option>
+                                                                                          </select>
+                                                                                </div>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                                  <div class="column is-2">
+                                                            <div class="field">
+                                                                      <label class="label">&nbsp;</label>
+                                                                      <div class="control">
+                                                                                <button type="submit"
+                                                                                          class="button is-primary is-fullwidth">
+                                                                                          <span class="icon"><i
+                                                                                                              class="fas fa-plus"></i></span>
+                                                                                          <span>เพิ่ม</span>
+                                                                                </button>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                        </div>
+                              </form>
+                    </div>
+
+                    <!-- Editors -->
+                    <div class="box mb-5">
+                              <h2 class="title is-5">
+                                        <span class="icon-text">
+                                                  <span class="icon has-text-info"><i
+                                                                      class="fas fa-user-edit"></i></span>
+                                                  <span>ผู้จัดการคอร์ส (Editors)</span>
+                                        </span>
+                              </h2>
+                              <p class="subtitle is-6 has-text-grey">
+                                        สามารถแก้ไขรายละเอียดคอร์สและกำหนดสิทธิ์ให้คนอื่นได้</p>
+
+                              {% if editors %}
+                              <table class="table is-fullwidth is-striped">
+                                        <thead>
+                                                  <tr>
+                                                            <th>ชื่อ-นามสกุล</th>
+                                                            <th>อีเมล</th>
+                                                            <th>หน่วยงาน</th>
+                                                            <th class="has-text-centered">จัดการ</th>
+                                                  </tr>
+                                        </thead>
+                                        <tbody>
+                                                  {% for assignment in editors %}
+                                                  <tr>
+                                                            <td>{{ assignment.staff.fullname }}</td>
+                                                            <td><small>{{ assignment.staff.email }}</small></td>
+                                                            <td>
+                                                                      {% if assignment.staff.personal_info %}
+                                                                      {{ assignment.staff.personal_info.org_name or '-'
+                                                                      }}
+                                                                      {% else %}
+                                                                      -
+                                                                      {% endif %}
+                                                            </td>
+                                                            <td class="has-text-centered">
+                                                                      <form method="POST"
+                                                                                action="{{ url_for('continuing_edu_admin.event_staff_roles_remove', event_id=event.id, assignment_id=assignment.id) }}"
+                                                                                onsubmit="return confirm('ยืนยันการลบสิทธิ์?');">
+                                                                                <input type="hidden" name="role_type"
+                                                                                          value="editor">
+                                                                                <button type="submit"
+                                                                                          class="button is-small is-danger is-outlined"
+                                                                                          {% if editors|length <=1
+                                                                                          %}disabled
+                                                                                          title="ไม่สามารถลบผู้จัดการคนสุดท้ายได้"
+                                                                                          {% endif %}>
+                                                                                          <span class="icon is-small"><i
+                                                                                                              class="fas fa-trash"></i></span>
+                                                                                          <span>ลบ</span>
+                                                                                </button>
+                                                                      </form>
+                                                            </td>
+                                                  </tr>
+                                                  {% endfor %}
+                                        </tbody>
+                              </table>
+                              {% else %}
+                              <div class="notification is-warning is-light">ยังไม่มีผู้จัดการคอร์ส</div>
+                              {% endif %}
+                    </div>
+
+                    <!-- Registration Reviewers -->
+                    <div class="box mb-5">
+                              <h2 class="title is-5">
+                                        <span class="icon-text">
+                                                  <span class="icon has-text-success"><i
+                                                                      class="fas fa-user-check"></i></span>
+                                                  <span>ผู้ตรวจสอบการลงทะเบียน</span>
+                                        </span>
+                              </h2>
+
+                              {% if registration_reviewers %}
+                              <table class="table is-fullwidth is-striped">
+                                        <thead>
+                                                  <tr>
+                                                            <th>ชื่อ-นามสกุล</th>
+                                                            <th>อีเมล</th>
+                                                            <th class="has-text-centered">จัดการ</th>
+                                                  </tr>
+                                        </thead>
+                                        <tbody>
+                                                  {% for assignment in registration_reviewers %}
+                                                  <tr>
+                                                            <td>{{ assignment.staff.fullname }}</td>
+                                                            <td><small>{{ assignment.staff.email }}</small></td>
+                                                            <td class="has-text-centered">
+                                                                      <form method="POST"
+                                                                                action="{{ url_for('continuing_edu_admin.event_staff_roles_remove', event_id=event.id, assignment_id=assignment.id) }}"
+                                                                                onsubmit="return confirm('ยืนยันการลบสิทธิ์?');">
+                                                                                <input type="hidden" name="role_type"
+                                                                                          value="registration_reviewer">
+                                                                                <button type="submit"
+                                                                                          class="button is-small is-danger is-outlined">
+                                                                                          <span class="icon is-small"><i
+                                                                                                              class="fas fa-trash"></i></span>
+                                                                                          <span>ลบ</span>
+                                                                                </button>
+                                                                      </form>
+                                                            </td>
+                                                  </tr>
+                                                  {% endfor %}
+                                        </tbody>
+                              </table>
+                              {% else %}
+                              <div class="notification is-light">ยังไม่มีผู้ตรวจสอบการลงทะเบียน</div>
+                              {% endif %}
+                    </div>
+
+                    <!-- Payment Approvers -->
+                    <div class="box mb-5">
+                              <h2 class="title is-5">
+                                        <span class="icon-text">
+                                                  <span class="icon has-text-warning"><i
+                                                                      class="fas fa-money-check-alt"></i></span>
+                                                  <span>ผู้อนุมัติการชำระเงิน</span>
+                                        </span>
+                              </h2>
+
+                              {% if payment_approvers %}
+                              <table class="table is-fullwidth is-striped">
+                                        <thead>
+                                                  <tr>
+                                                            <th>ชื่อ-นามสกุล</th>
+                                                            <th>อีเมล</th>
+                                                            <th class="has-text-centered">จัดการ</th>
+                                                  </tr>
+                                        </thead>
+                                        <tbody>
+                                                  {% for assignment in payment_approvers %}
+                                                  <tr>
+                                                            <td>{{ assignment.staff.fullname }}</td>
+                                                            <td><small>{{ assignment.staff.email }}</small></td>
+                                                            <td class="has-text-centered">
+                                                                      <form method="POST"
+                                                                                action="{{ url_for('continuing_edu_admin.event_staff_roles_remove', event_id=event.id, assignment_id=assignment.id) }}"
+                                                                                onsubmit="return confirm('ยืนยันการลบสิทธิ์?');">
+                                                                                <input type="hidden" name="role_type"
+                                                                                          value="payment_approver">
+                                                                                <button type="submit"
+                                                                                          class="button is-small is-danger is-outlined">
+                                                                                          <span class="icon is-small"><i
+                                                                                                              class="fas fa-trash"></i></span>
+                                                                                          <span>ลบ</span>
+                                                                                </button>
+                                                                      </form>
+                                                            </td>
+                                                  </tr>
+                                                  {% endfor %}
+                                        </tbody>
+                              </table>
+                              {% else %}
+                              <div class="notification is-light">ยังไม่มีผู้อนุมัติการชำระเงิน</div>
+                              {% endif %}
+                    </div>
+
+                    <!-- Receipt Issuers -->
+                    <div class="box mb-5">
+                              <h2 class="title is-5">
+                                        <span class="icon-text">
+                                                  <span class="icon has-text-link"><i class="fas fa-receipt"></i></span>
+                                                  <span>ผู้ออกใบเสร็จ</span>
+                                        </span>
+                              </h2>
+
+                              {% if receipt_issuers %}
+                              <table class="table is-fullwidth is-striped">
+                                        <thead>
+                                                  <tr>
+                                                            <th>ชื่อ-นามสกุล</th>
+                                                            <th>อีเมล</th>
+                                                            <th class="has-text-centered">จัดการ</th>
+                                                  </tr>
+                                        </thead>
+                                        <tbody>
+                                                  {% for assignment in receipt_issuers %}
+                                                  <tr>
+                                                            <td>{{ assignment.staff.fullname }}</td>
+                                                            <td><small>{{ assignment.staff.email }}</small></td>
+                                                            <td class="has-text-centered">
+                                                                      <form method="POST"
+                                                                                action="{{ url_for('continuing_edu_admin.event_staff_roles_remove', event_id=event.id, assignment_id=assignment.id) }}"
+                                                                                onsubmit="return confirm('ยืนยันการลบสิทธิ์?');">
+                                                                                <input type="hidden" name="role_type"
+                                                                                          value="receipt_issuer">
+                                                                                <button type="submit"
+                                                                                          class="button is-small is-danger is-outlined">
+                                                                                          <span class="icon is-small"><i
+                                                                                                              class="fas fa-trash"></i></span>
+                                                                                          <span>ลบ</span>
+                                                                                </button>
+                                                                      </form>
+                                                            </td>
+                                                  </tr>
+                                                  {% endfor %}
+                                        </tbody>
+                              </table>
+                              {% else %}
+                              <div class="notification is-light">ยังไม่มีผู้ออกใบเสร็จ</div>
+                              {% endif %}
+                    </div>
+
+                    <!-- Certificate Managers -->
+                    <div class="box mb-5">
+                              <h2 class="title is-5">
+                                        <span class="icon-text">
+                                                  <span class="icon has-text-primary"><i
+                                                                      class="fas fa-certificate"></i></span>
+                                                  <span>ผู้จัดการใบประกาศนียบัตร</span>
+                                        </span>
+                              </h2>
+
+                              {% if certificate_managers %}
+                              <table class="table is-fullwidth is-striped">
+                                        <thead>
+                                                  <tr>
+                                                            <th>ชื่อ-นามสกุล</th>
+                                                            <th>อีเมล</th>
+                                                            <th class="has-text-centered">จัดการ</th>
+                                                  </tr>
+                                        </thead>
+                                        <tbody>
+                                                  {% for assignment in certificate_managers %}
+                                                  <tr>
+                                                            <td>{{ assignment.staff.fullname }}</td>
+                                                            <td><small>{{ assignment.staff.email }}</small></td>
+                                                            <td class="has-text-centered">
+                                                                      <form method="POST"
+                                                                                action="{{ url_for('continuing_edu_admin.event_staff_roles_remove', event_id=event.id, assignment_id=assignment.id) }}"
+                                                                                onsubmit="return confirm('ยืนยันการลบสิทธิ์?');">
+                                                                                <input type="hidden" name="role_type"
+                                                                                          value="certificate_manager">
+                                                                                <button type="submit"
+                                                                                          class="button is-small is-danger is-outlined">
+                                                                                          <span class="icon is-small"><i
+                                                                                                              class="fas fa-trash"></i></span>
+                                                                                          <span>ลบ</span>
+                                                                                </button>
+                                                                      </form>
+                                                            </td>
+                                                  </tr>
+                                                  {% endfor %}
+                                        </tbody>
+                              </table>
+                              {% else %}
+                              <div class="notification is-light">ยังไม่มีผู้จัดการใบประกาศนียบัตร</div>
+                              {% endif %}
+                    </div>
+
+                    <!-- Back Button -->
+                    <div class="buttons">
+                              <a href="{{ url_for('continuing_edu_admin.settings_staff_roles') }}" class="button">
+                                        <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                                        <span>กลับ</span>
+                              </a>
+                    </div>
+
+          </div>
+</section>
+{% endblock %}

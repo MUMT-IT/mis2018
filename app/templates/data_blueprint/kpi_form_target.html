@@ -14,9 +14,9 @@
             {{ form.hidden_tag() }}
             <div class="tabs is-centered is-boxed">
               <ul>
-                <li><a href="{{request.path.replace('?section=target', '').replace('?section=report', '')+'?section=general'}}">ข้อมูลทั่วไป</a></li>
-                <li class="is-active"><a href="#">เป้าหมาย</a></li>
-                <li><a href="{{request.path.replace('?section=target', '').replace('?section=general', '')+'?section=report'}}">รายงาน</a></li>
+                  <li><a href="{{ url_for('data_bp.kpi_form', process_id=process_id, kpi_id=kpi_id, section='general') }}">ข้อมูลทั่วไป</a></li>
+                  <li class="is-active"><a href="#">เป้าหมาย</a></li>
+                  <li><a href="{{ url_for('data_bp.kpi_form', process_id=process_id, kpi_id=kpi_id, section='report') }}">รายงาน</a></li>
               </ul>
             </div>
             <div class="columns">
@@ -24,7 +24,7 @@
                     <div class="field">
                         <label class="label">{{form.target.label}}</label>
                         <div class="control">
-                            {{form.target(class="input")}}
+                            {{form.target(class="input is-danger")}}
                         </div>
                     </div>
                     <div class="field">
@@ -34,19 +34,19 @@
                         </div>
                     </div>
                     <div class="field">
-                        <label class="label">{{form.target_account.label}}</label>
+                        <label class="label">{{form.target_account.label}}*</label>
                         <div class="control">
                             {{form.target_account(class="js-example-basic-single", style="width: 100%")}}
                         </div>
                     </div>
                     <div class="field">
-                        <label class="label">{{form.target_reporter.label}}</label>
+                        <label class="label">{{form.target_reporter.label}}*</label>
                         <div>
                             {{form.target_reporter(class="js-example-basic-single", style="width: 100%")}}
                         </div>
                     </div>
                     <div class="field">
-                        <label class="label">{{form.target_setter.label}}</label>
+                        <label class="label">{{form.target_setter.label}}*</label>
                         <div>
                             {{form.target_setter(class="js-example-basic-single", style="width: 100%")}}
                         </div>
@@ -59,8 +59,6 @@
                             <input class="button is-success" type="submit" value="บันทึก"/>
                         </div>
                     </div>
-                </div>
-                <div class="column box">
                 </div>
             </div>
         </form>

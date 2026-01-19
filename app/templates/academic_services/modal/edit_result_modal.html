@@ -8,19 +8,19 @@
                 <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
             </header>
             <section class="modal-card-body">
-                <form hx-post="{{ url_for('academic_services.edit_result', result_id=result_id, menu=menu) }}"
-                      hx-indicator="#submit-form"
+                <form hx-post="{{ url_for('academic_services.edit_result_item', result_item_id=result_item_id, menu=menu,
+                        tab=tab) }}"
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                     <div class="field">
-                        <label class="label">เหตุผลที่ขอแก้ไข</label>
+                        <label class="label">รายละเอียด</label>
                         <div class="control">
                             {{ form.note(class='textarea') }}
                         </div>
                     </div>
                     <div class="field ">
                         <div class="buttons is-centered">
-                            <a href="{{ url_for('academic_services.result_index', menu=menu) }}"
+                            <a href="{{ url_for('academic_services.result_index', menu=menu, tab=tab) }}"
                                class="button"
                             >
                                 ยกเลิก

@@ -7,6 +7,7 @@
     {% include "service_admin/admin_nav.html" %}
     <section class="section">
         <div class="container">
+            {% include 'messages.html' %}
             <div class="columns">
                 <div class="column has-text-centered">
                     <h1 class="title">
@@ -22,9 +23,15 @@
                             <h1 class="title is-size-5">ข้อมูลลูกค้า</h1>
                             <hr style="background-color: gainsboro">
                             <div class="field">
-                                <label class="label">
+                                <label class="label">ประเภท</label>
+                                <div class="control">
+                                    {{ customer.type or 'ไม่ระบุ' }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label id="cus-name-label" class="label">
                                     {% if customer.type and customer.type.type == 'บุคคล' %}
-                                            ชื่อ-นามสกุล
+                                        ชื่อ-นามสกุล
                                     {% elif customer.type and customer.type.type == 'บริษัทเอกชน' %}
                                         ชื่อบริษัท
                                     {% elif customer.type and customer.type.type == 'หน่วยงานรัฐ' %}
@@ -33,12 +40,6 @@
                                         ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน
                                     {% endif %}
                                 </label>
-                                <div class="control">
-                                    {{ customer.type or 'ไม่ระบุ' }}
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label id="cus-name-label" class="label">ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน</label>
                                 <div class="control">
                                     {{ customer.cus_name or 'ไม่ระบุ' }}
                                 </div>

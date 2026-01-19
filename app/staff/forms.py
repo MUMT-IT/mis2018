@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 
 from flask_wtf import FlaskForm
-from wtforms import widgets, FieldList, FormField
+from wtforms import widgets, FieldList, FormField, FileField
 from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMultipleField)
 from .models import (StaffSeminar, StaffSeminarMission, StaffSeminarAttend, StaffSeminarObjective, StaffLeaveApprover
 , StaffAccount, StaffGroupPosition, StaffGroupDetail, StaffGroupAssociation)
@@ -79,4 +79,5 @@ class StaffGroupDetailForm(ModelForm):
     class Meta:
         model = StaffGroupDetail
 
+    file_upload = FileField('File Upload')
     group_members = FieldList(FormField(StaffPositionForm, default=StaffGroupAssociation), min_entries=0)

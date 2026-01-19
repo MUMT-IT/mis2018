@@ -14,12 +14,11 @@
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
-            <form {% if address_id %}
-                        hx-post="{{ url_for('academic_services.create_address', address_id=address_id, menu=menu) }}"
+            <form id="form" {% if address_id %}
+                    hx-post="{{ url_for('academic_services.create_address', address_id=address_id, menu=menu) }}"
                   {% else %}
-                        hx-post="{{ url_for('academic_services.create_address', type=type, menu=menu) }}"
+                    hx-post="{{ url_for('academic_services.create_address', type=type, menu=menu) }}"
                   {% endif %}
-                hx-indicator="#submit-form"
             >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                 <div class="field">
@@ -71,8 +70,15 @@
                             {{ form.province.label }}
                             <span class="has-text-danger">*</span>
                         </label>
-                        <div class="control">
-                            {{ form.province(class='js-example-basic-single', onchange="updateDistricts()") }}
+                        <div class="select">
+                            {{ form.province(
+                                **{'hx-include': 'closest form',
+                                   'hx-trigger': 'change',
+                                   'hx-target': '#province',
+                                   'hx-swap': 'outerHTML',
+                                   'hx-post': url_for('academic_services.get_items')
+                                })
+                            }}
                         </div>
                     </div>
                     <div class="field">
@@ -80,8 +86,14 @@
                             {{ form.district.label }}
                             <span class="has-text-danger">*</span>
                         </label>
-                        <div class="control">
-                            {{ form.district(class='js-example-basic-single', onchange="updateSubdistricts()") }}
+                        <div class="select">
+                            {{ form.district(
+                                **{'hx-trigger': 'change',
+                                   'hx-target': '#province',
+                                   'hx-swap': 'outerHTML',
+                                   'hx-post': url_for('academic_services.get_items')
+                                })
+                            }}
                         </div>
                     </div>
                     <div class="field">
@@ -89,8 +101,14 @@
                             {{ form.subdistrict.label }}
                             <span class="has-text-danger">*</span>
                         </label>
-                        <div class="control">
-                            {{ form.subdistrict(class='js-example-basic-single', onchange="updateZipcode()") }}
+                        <div class="select">
+                            {{ form.subdistrict(
+                               **{'hx-trigger': 'change',
+                                  'hx-target': '#province',
+                                  'hx-swap': 'outerHTML',
+                                  'hx-post': url_for('academic_services.get_items')
+                               })
+                            }}
                         </div>
                     </div>
                 </div>
@@ -99,8 +117,14 @@
                         รหัสไปรษณีย์
                         <span class="has-text-danger">*</span>
                     </label>
-                    <div class="control">
-                        {{ form.zipcode(class='input') }}
+                    <div class="control" id="zipcode">
+                        {{ form.zipcode(class='input',
+                            **{'hx-trigger': 'change',
+                               'hx-target': '#province',
+                               'hx-swap': 'outerHTML',
+                               'hx-post': url_for('academic_services.get_items')
+                            })
+                        }}
                     </div>
                 </div>
                 <div class="field">
@@ -151,41 +175,38 @@
         });
     });
 
-    function updateDistricts() {
-        const provinceId = document.getElementById('province').value;
-        fetch('/academic_services/api/get_districts?province_id=' + provinceId)
-            .then(res => res.json())
-            .then(data => {
-                const districtSelect = document.getElementById('district');
-                districtSelect.innerHTML = '<option value="">กรุณาเลือกอำเภอ</option>';
-                data.forEach(d => {
-                    districtSelect.innerHTML += `<option value="${d.id}">${d.name}</option>`;
-                });
-                document.getElementById('subdistrict').innerHTML = '<option value="">กรุณาเลือกตำบล</option>';
-                document.getElementById('zipcode').value = '';
-            });
-    }
-
-    function updateSubdistricts() {
-        const districtId = document.getElementById('district').value;
-        fetch('/academic_services/api/get_subdistricts?district_id=' + districtId)
-            .then(res => res.json())
-            .then(data => {
-                const subSelect = document.getElementById('subdistrict');
-                subSelect.innerHTML = '<option value="">กรุณาเลือกตำบล</option>';
-                data.forEach(s => {
-                    subSelect.innerHTML += `<option value="${s.id}">${s.name}</option>`;
-                });
-                document.getElementById('zipcode').value = '';
-            });
-    }
-
-    function updateZipcode() {
-        const subdistrictId = document.getElementById('subdistrict').value;
-        fetch('/academic_services/api/get_zipcode?subdistrict_id=' + subdistrictId)
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('zipcode').value = data.zipcode || '';
-            });
-    }
+    {#function updateDistricts() {#}
+    {#    const provinceId = document.getElementById('province').value;#}
+    {#    fetch('/academic_services/api/get_districts?province_id=' + provinceId)#}
+    {#        .then(res => res.json())#}
+    {#        .then(data => {#}
+    {#            const districtSelect = document.getElementById('district');#}
+    {#            districtSelect.innerHTML = '<option value="">กรุณาเลือกอำเภอ</option>';#}
+    {#            data.forEach(d => {#}
+    {#                districtSelect.innerHTML += `<option value="${d.id}">${d.name}</option>`;#}
+    {#            });#}
+    {#            document.getElementById('subdistrict').innerHTML = '<option value="">กรุณาเลือกตำบล</option>';#}
+    {#            document.getElementById('zipcode').value = '';#}
+    {#        });#}
+    {##}
+    {#function updateSubdistricts() {#}
+    {#    const districtId = document.getElementById('district').value;#}
+    {#    fetch('/academic_services/api/get_subdistricts?district_id=' + districtId)#}
+    {#        .then(res => res.json())#}
+    {#        .then(data => {#}
+    {#            const subSelect = document.getElementById('subdistrict');#}
+    {#            subSelect.innerHTML = '<option value="">กรุณาเลือกตำบล</option>';#}
+    {#            data.forEach(s => {#}
+    {#                subSelect.innerHTML += `<option value="${s.id}">${s.name}</option>`;#}
+    {#            });#}
+    {#            document.getElementById('zipcode').value = '';#}
+    {#        });#}
+    {##}
+    {#function updateZipcode() {#}
+    {#    const subdistrictId = document.getElementById('subdistrict').value;#}
+    {#    fetch('/academic_services/api/get_zipcode?subdistrict_id=' + subdistrictId)#}
+    {#        .then(res => res.json())#}
+    {#        .then(data => {#}
+    {#            document.getElementById('zipcode').value = data.zipcode || '';#}
+    {#        });#}
 </script>

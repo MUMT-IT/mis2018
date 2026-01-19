@@ -1,4 +1,3 @@
-# -*- coding:utf-8 -*-
 
 
 import click
@@ -31,6 +30,8 @@ import re
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 import base64
+
+
 
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 
@@ -173,7 +174,21 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
-    return render_template('index.html',
+    central_admin = False
+    assistant = False
+    if current_user.is_authenticated:
+        admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
+        if admins and admins.is_central_admin:
+            central_admin = True
+        elif admins and admins.is_assistant:
+            assistant = True
+        else:
+            central_admin = False
+            assistant = False
+    else:
+        central_admin = False
+        assistant = False
+    return render_template('index.html', central_admin=central_admin, assistant=assistant,
                            now=datetime.now(tz=timezone('Asia/Bangkok')))
 
 
@@ -430,9 +445,11 @@ app.register_blueprint(vehicle_blueprint, url_prefix='/vehicle')
 from app.vehicle_scheduler.models import *
 
 from app.user_eval import user_eval
+
 app.register_blueprint(user_eval)
 
 from app.user_eval.models import *
+
 admin.add_views(ModelView(EvaluationRecord, db.session, category='UserEvaluation'))
 
 
@@ -518,7 +535,6 @@ class ProductCodeAdminModel(ModelView):
 
 
 admin.add_views(ProductCodeAdminModel(models.ProductCode, db.session, category='Finance'))
-
 
 from app.lisedu import lisedu as lis_blueprint
 
@@ -830,7 +846,35 @@ admin.add_views(ModelView(CertificateFile, db.session, category='E-sign'))
 
 app.register_blueprint(esign_blueprint)
 
+from app.continuing_edu import ce_bp
 
+from app.continuing_edu.models import *
+app.register_blueprint(ce_bp)
+
+admin.add_views(ModelView(CEMemberType, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CEGender, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CEAgeRange, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CERegistrationStatus, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CERegisterPaymentStatus, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CECertificateType, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CEMemberCertificateStatus, db.session, category='Continuing Education'))
+
+admin.add_views(ModelView(CEMember, db.session, category='Continuing Education'))
+
+admin.add_views(ModelView(CEMemberRegistration, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CEEntityCategory, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CEEventEntity, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CERegisterPaymentReceipt, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CERegisterPayment, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CEEventSpeaker, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CEEventAgenda, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CEEventMaterial, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CEEventRegistrationFee, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CEEventEditor, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CEEventRegistrationReviewer, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CEEventPaymentApprover, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CEEventReceiptIssuer, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CEEventCertificateManager, db.session, category='Continuing Education'))
 # Commands
 
 @app.cli.command()
@@ -1849,5 +1893,17 @@ def run_job_files_to_cloud(budget_year):
 #     return render_template('academic_services/request_form.html')
 
 
+# Register admin blueprint (custom admin panel, not Flask-Admin)
+from app.continuing_edu.admin.views import admin_bp as continuing_edu_admin_bp
+from app.continuing_edu.admin.certifications import cert_bp as continuing_edu_admin_cert_bp
+app.register_blueprint(continuing_edu_admin_bp)
+app.register_blueprint(continuing_edu_admin_cert_bp)
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000, host="0.0.0.0")
+    import os
+    cert_file = os.path.join(os.path.dirname(__file__), '..', '..', 'cert.pem')
+    key_file = os.path.join(os.path.dirname(__file__), '..', '..', 'key.pem')
+    if os.path.exists(cert_file) and os.path.exists(key_file):
+        app.run(debug=True, port=5005, host="0.0.0.0", ssl_context=(cert_file, key_file))
+    else:
+        app.run(debug=True, port=5005, host="0.0.0.0")

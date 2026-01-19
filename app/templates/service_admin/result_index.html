@@ -11,16 +11,58 @@
                 <div class="column is-11">
                     <h1 class="title has-text-centered">รายงานผลการทดสอบ</h1>
                 </div>
+                <div class="tabs">
+                    <ul>
+                        <li {% if tab == 'pending' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.result_index', tab='pending', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-clock"></i></span>
+                                <span>รอออกผล</span>
+                                {% if pending_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ pending_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'edit' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.result_index', tab='edit', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-pencil-alt"></i></span>
+                                <span>ขอแก้ไขผล</span>
+                                {% if edit_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ edit_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'approve' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.result_index', tab='approve', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
+                                <span>รอยืนยันผล</span>
+                                {% if approve_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ approve_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'confirm' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.result_index', tab='confirm', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                <span>ยืนยันผลแล้ว</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.result_index', tab='all', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ทั้งหมด</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
                 <table id='results' class="table is-fullwidth">
                     <thead>
                     <th>เลขใบคำร้องขอ</th>
                     <th>หมายเลขติดตามพัสดุ</th>
                     <th>วัน-เวลาที่ออกผล</th>
-                    <th>รายการ</th>
-                    <th>สถานะ</th>
                     <th>ผลการทดสอบ</th>
-                    <th>รายละเอียดการแก้ไข</th>
+                    <th>รายละเอียดการขอแก้ไข</th>
                     <th>ผู้ออก</th>
+                    <th>สถานะ</th>
                     <th></th>
                     </thead>
                     <tbody>
@@ -37,7 +79,7 @@
             $.fn.dataTable.moment('lll');
             $('#results').DataTable({
                 ajax: {
-                    url: {{ url_for('service_admin.get_results')|tojson|safe }},
+                    url: {{ url_for('service_admin.result_index', tab=tab, api='true')|tojson|safe }},
                 },
                 order: [[2, 'desc']],
                 scrollX: true,
@@ -46,7 +88,9 @@
                     {
                         data: 'tracking_number',
                         render: function (data, type, row) {
-                            var tracking_number_url = '/service_admin/result/tracking_number/add/' + row.id + '?menu=' + '{{ menu }}';
+                            var menu ='{{ menu }}'
+                            var tab = '{{ tab }}';
+                            var tracking_number_url = '/service_admin/result/tracking_number/add/' + row.id + '?menu=' + menu + '&tab=' + tab;
                             if (data !== null) {
                                 var edit_tracking_number = '<div class="field has-addons">' +
                                         '<div class="control">' +
@@ -70,9 +114,9 @@
                         }
                     },
                     {
-                        data: 'released_at',
+                        data: 'sent_at',
                         render: function (data) {
-                            if (data !== '') {
+                            if (data !== null) {
                                 let d = moment(data)
                                 return d.format('lll')
                             } else {
@@ -80,7 +124,18 @@
                             }
                         }
                     },
-                    {data: 'product'},
+                    {data: 'files'},
+                    {
+                        data: 'note',
+                        render: function (data) {
+                            if (data !== null) {
+                                return data;
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {data: 'creator' },
                     {
                         data: 'admin_status',
                         render: function (data) {
@@ -91,27 +146,13 @@
                             }
                         }
                     },
-                    {data: 'files'},
-                    {
-                        data: 'note',
-                        render: function (data, type, row) {
-                            if (data !== null) {
-                                var tag = '';
-                                if (row.status_note) {
-                                    tag = `<span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>`;
-                                }
-                                return `${data} ${tag}`;
-                            } else {
-                                return ''
-                            }
-                        }
-                    },
-                    {data: 'creator'},
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.status_id == 13 || row.status_id >= 16) {
-                                var final_result_url = '/service_admin/result/final/edit/' + data + '?request_id=' + row.request_id + '&menu=report';
+                            var menu ='{{ menu }}'
+                            var tab = '{{ tab }}';
+                            if (row.approved_at) {
+                                var final_result_url = '/service_admin/result/final/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-info is-rounded" ' + 'href=' + final_result_url + '>' +
@@ -122,15 +163,9 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if ((10 <= row.status_id <= 12) || (14 <= row.status_id <= 15)) {
-                                if (row.status_id == 10) {
-                                    var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report';
-                                    var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=report';
-                                } else {
-                                    var draft_result_url = '/service_admin/result/draft/edit/' + data + '?request_id=' + row.request_id + '&menu=report';
-                                    var final_result_url = '/service_admin/result/final/edit/' + data + '?request_id=' + row.request_id + '&menu=report';
-                                }
-                                 return '<div class="field has-addons">' +
+                            } else if (row.sent_at == null) {
+                                var draft_result_url = '/service_admin/result/draft/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
+                                return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-primary is-rounded" ' + 'href=' + draft_result_url + '>' +
                                     '<span class="icon">' +
@@ -139,18 +174,13 @@
                                     '<span>อัปโหลดใบรายงานผล (ฉบับร่าง)</span>' +
                                     '</a>' +
                                     '</div>' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + final_result_url + '>' +
-                                    '<span class="icon">' +
-                                    '<i class="fas fa-file-alt"></i>' +
-                                    '</span>' +
-                                    '<span>อัปโหลดใบรายงานผล (ฉบับจริง)</span>' +
-                                    '</a>' +
-                                    '</div>' +
                                     '</div>'
+                            } else if (row.sent_at && row.approved_at == null && (row.result_edit_at == null || row.is_edited != null)) {
+                                return '';
+                            } else if (row.result_edit_at != null && row.is_edited == null) {
+                                return row.edit_file;
                             } else {
-                                var draft_result_url = '/service_admin/result/draft/add?request_id=' + row.request_id + '&menu=report';
-                                var final_result_url = '/service_admin/result/final/add?request_id=' + row.request_id + '&menu=report';
+                                var draft_result_url = '/service_admin/result/draft/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-primary is-rounded" ' + 'href=' + draft_result_url + '>' +
@@ -158,14 +188,6 @@
                                     '<i class="fas fa-file-alt"></i>' +
                                     '</span>' +
                                     '<span>อัปโหลดใบรายงานผล (ฉบับร่าง)</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + final_result_url + '>' +
-                                    '<span class="icon">' +
-                                    '<i class="fas fa-file-alt"></i>' +
-                                    '</span>' +
-                                    '<span>อัปโหลดใบรายงานผล (ฉบับจริง)</span>' +
                                     '</a>' +
                                     '</div>' +
                                     '</div>'

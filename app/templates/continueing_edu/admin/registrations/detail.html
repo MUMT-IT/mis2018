@@ -1,0 +1,399 @@
+{% extends "continueing_edu/admin/base.html" %}
+
+{% block title %}Registration #{{ registration.id }} - Admin{% endblock %}
+
+{% block head %}
+<style>
+          .info-section {
+                    background: white;
+                    padding: 1.5rem;
+                    border-radius: 8px;
+                    margin-bottom: 1.5rem;
+                    border: 1px solid #e5e7eb;
+          }
+
+          .info-row {
+                    display: flex;
+                    padding: 0.75rem 0;
+                    border-bottom: 1px solid #f3f4f6;
+          }
+
+          .info-row:last-child {
+                    border-bottom: none;
+          }
+
+          .info-label {
+                    font-weight: 600;
+                    color: #6b7280;
+                    min-width: 200px;
+          }
+
+          .info-value {
+                    color: #111827;
+          }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container is-fluid">
+          <nav class="breadcrumb" aria-label="breadcrumbs">
+                    <ul>
+                              <li><a href="{{ url_for('continuing_edu_admin.list_registrations') }}">Registrations</a>
+                              </li>
+                              <li class="is-active"><a href="#" aria-current="page">Registration #{{ registration.id
+                                                  }}</a></li>
+                    </ul>
+          </nav>
+
+          <div class="level mb-5">
+                    <div class="level-left">
+                              <div class="level-item">
+                                        <div>
+                                                  <h1 class="title">Registration Details #{{ registration.id }}</h1>
+                                                  <p class="subtitle is-6">Complete information about this registration
+                                                  </p>
+                                        </div>
+                              </div>
+                    </div>
+                    <div class="level-right">
+                              <div class="level-item">
+                                        <div class="buttons">
+                                                  <a href="{{ url_for('continuing_edu_admin.list_registrations') }}"
+                                                            class="button is-light">
+                                                            <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                                                            <span>Back to List</span>
+                                                  </a>
+                                        </div>
+                              </div>
+                    </div>
+          </div>
+
+          <div class="columns">
+                    <!-- Left Column -->
+                    <div class="column is-8">
+                              <!-- Member Information -->
+                              <div class="info-section">
+                                        <h2 class="title is-5 mb-4">
+                                                  <span class="icon"><i class="fas fa-user"></i></span>
+                                                  <span>Member Information</span>
+                                        </h2>
+                                        <div class="info-row">
+                                                  <div class="info-label">Member ID:</div>
+                                                  <div class="info-value">{{ registration.member.id }}</div>
+                                        </div>
+                                        <div class="info-row">
+                                                  <div class="info-label">Username:</div>
+                                                  <div class="info-value">{{ registration.member.username }}</div>
+                                        </div>
+                                        <div class="info-row">
+                                                  <div class="info-label">Full Name (EN):</div>
+                                                  <div class="info-value">{{ registration.member.full_name_en or '-' }}
+                                                  </div>
+                                        </div>
+                                        <div class="info-row">
+                                                  <div class="info-label">Full Name (TH):</div>
+                                                  <div class="info-value">{{ registration.member.full_name_th or '-' }}
+                                                  </div>
+                                        </div>
+                                        <div class="info-row">
+                                                  <div class="info-label">Email:</div>
+                                                  <div class="info-value">{{ registration.member.email or '-' }}</div>
+                                        </div>
+                                        <div class="info-row">
+                                                  <div class="info-label">Phone:</div>
+                                                  <div class="info-value">{{ registration.member.phone_no or '-' }}
+                                                  </div>
+                                        </div>
+                                        <div class="info-row">
+                                                  <div class="info-label">Organization:</div>
+                                                  <div class="info-value">{{ registration.member.organization.name if
+                                                            registration.member.organization else '-' }}</div>
+                                        </div>
+                              </div>
+
+                              <!-- Event Information -->
+                              <div class="info-section">
+                                        <h2 class="title is-5 mb-4">
+                                                  <span class="icon"><i class="fas fa-calendar"></i></span>
+                                                  <span>Event Information</span>
+                                        </h2>
+                                        <div class="info-row">
+                                                  <div class="info-label">Event ID:</div>
+                                                  <div class="info-value">{{ registration.event_entity.id }}</div>
+                                        </div>
+                                        <div class="info-row">
+                                                  <div class="info-label">Event Type:</div>
+                                                  <div class="info-value">
+                                                            <span class="tag is-info">{{
+                                                                      registration.event_entity.event_type.title()
+                                                                      }}</span>
+                                                  </div>
+                                        </div>
+                                        <div class="info-row">
+                                                  <div class="info-label">Title (EN):</div>
+                                                  <div class="info-value">{{ registration.event_entity.title_en }}</div>
+                                        </div>
+                                        {% if registration.event_entity.title_th %}
+                                        <div class="info-row">
+                                                  <div class="info-label">Title (TH):</div>
+                                                  <div class="info-value">{{ registration.event_entity.title_th }}</div>
+                                        </div>
+                                        {% endif %}
+                                        <div class="info-row">
+                                                  <div class="info-label">Category:</div>
+                                                  <div class="info-value">{{ registration.event_entity.category.name_en
+                                                            if registration.event_entity.category else '-' }}</div>
+                                        </div>
+                                        <div class="info-row">
+                                                  <div class="info-label">CE Score:</div>
+                                                  <div class="info-value">{{
+                                                            registration.event_entity.continue_education_score or 0 }}
+                                                            points</div>
+                                        </div>
+                              </div>
+
+                              <!-- Attendance & Test Scores -->
+                              <div class="info-section">
+                                        <h2 class="title is-5 mb-4">
+                                                  <span class="icon"><i class="fas fa-clipboard-check"></i></span>
+                                                  <span>Attendance & Assessment</span>
+                                        </h2>
+
+                                        <form method="POST"
+                                                  action="{{ url_for('continuing_edu_admin.update_attendance', registration_id=registration.id) }}">
+                                                  <div class="columns">
+                                                            <div class="column is-6">
+                                                                      <div class="field">
+                                                                                <label class="label">Attendance
+                                                                                          Count</label>
+                                                                                <div class="control">
+                                                                                          <input class="input"
+                                                                                                    type="number"
+                                                                                                    name="attendance_count"
+                                                                                                    value="{{ registration.attendance_count or 0 }}"
+                                                                                                    min="0">
+                                                                                </div>
+                                                                      </div>
+                                                            </div>
+                                                            <div class="column is-6">
+                                                                      <div class="field">
+                                                                                <label class="label">Total Hours
+                                                                                          Attended</label>
+                                                                                <div class="control">
+                                                                                          <input class="input"
+                                                                                                    type="number"
+                                                                                                    name="total_hours_attended"
+                                                                                                    value="{{ registration.total_hours_attended or 0 }}"
+                                                                                                    step="0.5" min="0">
+                                                                                </div>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                                  <div class="field">
+                                                            <div class="control">
+                                                                      <button type="submit" class="button is-primary">
+                                                                                <span class="icon"><i
+                                                                                                    class="fas fa-save"></i></span>
+                                                                                <span>Update Attendance</span>
+                                                                      </button>
+                                                            </div>
+                                                  </div>
+                                        </form>
+
+                                        <hr>
+
+                                        <form method="POST"
+                                                  action="{{ url_for('continuing_edu_admin.update_test_scores', registration_id=registration.id) }}">
+                                                  <div class="columns">
+                                                            <div class="column is-4">
+                                                                      <div class="field">
+                                                                                <label class="label">Pre-Test
+                                                                                          Score</label>
+                                                                                <div class="control">
+                                                                                          <input class="input"
+                                                                                                    type="number"
+                                                                                                    name="pre_test_score"
+                                                                                                    value="{{ registration.pre_test_score or '' }}"
+                                                                                                    step="0.01" min="0"
+                                                                                                    max="100">
+                                                                                </div>
+                                                                      </div>
+                                                            </div>
+                                                            <div class="column is-4">
+                                                                      <div class="field">
+                                                                                <label class="label">Post-Test
+                                                                                          Score</label>
+                                                                                <div class="control">
+                                                                                          <input class="input"
+                                                                                                    type="number"
+                                                                                                    name="post_test_score"
+                                                                                                    value="{{ registration.post_test_score or '' }}"
+                                                                                                    step="0.01" min="0"
+                                                                                                    max="100">
+                                                                                </div>
+                                                                      </div>
+                                                            </div>
+                                                            <div class="column is-4">
+                                                                      <div class="field">
+                                                                                <label class="label">Assessment
+                                                                                          Passed</label>
+                                                                                <div class="control">
+                                                                                          <label class="radio">
+                                                                                                    <input type="radio"
+                                                                                                              name="assessment_passed"
+                                                                                                              value="true"
+                                                                                                              {% if
+                                                                                                              registration.assessment_passed
+                                                                                                              %}checked{%
+                                                                                                              endif %}>
+                                                                                                    Yes
+                                                                                          </label>
+                                                                                          <label class="radio">
+                                                                                                    <input type="radio"
+                                                                                                              name="assessment_passed"
+                                                                                                              value="false"
+                                                                                                              {% if
+                                                                                                              registration.assessment_passed==False
+                                                                                                              %}checked{%
+                                                                                                              endif %}>
+                                                                                                    No
+                                                                                          </label>
+                                                                                </div>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                                  <div class="field">
+                                                            <div class="control">
+                                                                      <button type="submit" class="button is-primary">
+                                                                                <span class="icon"><i
+                                                                                                    class="fas fa-save"></i></span>
+                                                                                <span>Update Scores</span>
+                                                                      </button>
+                                                            </div>
+                                                  </div>
+                                        </form>
+                              </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="column is-4">
+                              <!-- Status Management -->
+                              <div class="info-section">
+                                        <h2 class="title is-5 mb-4">
+                                                  <span class="icon"><i class="fas fa-flag"></i></span>
+                                                  <span>Status</span>
+                                        </h2>
+                                        <div class="info-row">
+                                                  <div class="info-label">Current Status:</div>
+                                                  <div class="info-value">
+                                                            <span class="tag is-medium is-primary">
+                                                                      {{ registration.status_ref.name_en if
+                                                                      registration.status_ref else 'Unknown' }}
+                                                            </span>
+                                                  </div>
+                                        </div>
+                                        <div class="info-row">
+                                                  <div class="info-label">Registration Date:</div>
+                                                  <div class="info-value">
+                                                            {{ registration.registration_date.strftime('%Y-%m-%d %H:%M')
+                                                            if registration.registration_date else '-' }}
+                                                  </div>
+                                        </div>
+
+                                        <hr>
+
+                                        <form method="POST"
+                                                  action="{{ url_for('continuing_edu_admin.update_registration_status', registration_id=registration.id) }}">
+                                                  <div class="field">
+                                                            <label class="label">Change Status</label>
+                                                            <div class="control">
+                                                                      <div class="select is-fullwidth">
+                                                                                <select name="status_id" required>
+                                                                                          {% for status in statuses %}
+                                                                                          <option value="{{ status.id }}"
+                                                                                                    {% if
+                                                                                                    status.id==registration.status_id
+                                                                                                    %}selected{% endif
+                                                                                                    %}>
+                                                                                                    {{ status.name_en }}
+                                                                                          </option>
+                                                                                          {% endfor %}
+                                                                                </select>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                                  <div class="field">
+                                                            <div class="control">
+                                                                      <button type="submit"
+                                                                                class="button is-primary is-fullwidth">
+                                                                                <span class="icon"><i
+                                                                                                    class="fas fa-check"></i></span>
+                                                                                <span>Update Status</span>
+                                                                      </button>
+                                                            </div>
+                                                  </div>
+                                        </form>
+                              </div>
+
+                              <!-- Certificate Status -->
+                              <div class="info-section">
+                                        <h2 class="title is-5 mb-4">
+                                                  <span class="icon"><i class="fas fa-certificate"></i></span>
+                                                  <span>Certificate</span>
+                                        </h2>
+                                        <div class="info-row">
+                                                  <div class="info-label">Certificate Status:</div>
+                                                  <div class="info-value">
+                                                            <span class="tag">
+                                                                      {{ registration.certificate_status_ref.name_en if
+                                                                      registration.certificate_status_ref else 'Not Set'
+                                                                      }}
+                                                            </span>
+                                                  </div>
+                                        </div>
+                                        {% if registration.certificate_issued_at %}
+                                        <div class="info-row">
+                                                  <div class="info-label">Issued At:</div>
+                                                  <div class="info-value">
+                                                            {{ registration.certificate_issued_at.strftime('%Y-%m-%d
+                                                            %H:%M') }}
+                                                  </div>
+                                        </div>
+                                        {% endif %}
+                                        {% if registration.certificate_pdf_url %}
+                                        <div class="info-row">
+                                                  <div class="info-label">Certificate:</div>
+                                                  <div class="info-value">
+                                                            <a href="{{ registration.certificate_pdf_url }}"
+                                                                      target="_blank" class="button is-small is-info">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-file-pdf"></i></span>
+                                                                      <span>View Certificate</span>
+                                                            </a>
+                                                  </div>
+                                        </div>
+                                        {% endif %}
+                              </div>
+
+                              <!-- Actions -->
+                              <div class="info-section">
+                                        <h2 class="title is-5 mb-4">
+                                                  <span class="icon"><i class="fas fa-cog"></i></span>
+                                                  <span>Actions</span>
+                                        </h2>
+                                        <div class="buttons is-centered">
+                                                  <form method="POST"
+                                                            action="{{ url_for('continuing_edu_admin.delete_registration', registration_id=registration.id) }}"
+                                                            onsubmit="return confirm('Are you sure you want to delete this registration? This action cannot be undone.');">
+                                                            <button type="submit" class="button is-danger">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-trash"></i></span>
+                                                                      <span>Delete Registration</span>
+                                                            </button>
+                                                  </form>
+                                        </div>
+                              </div>
+                    </div>
+          </div>
+</div>
+{% endblock %}

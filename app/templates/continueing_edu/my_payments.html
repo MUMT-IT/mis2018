@@ -1,0 +1,189 @@
+{% extends "continueing_edu/base_frontend.html" %}
+
+{% block title %}{{ texts.my_payments_page_title }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <h1 class="title is-3">{{ texts.my_payments_page_title }}</h1>
+    {% if member %}
+    <p class="subtitle is-6" style="margin-top:-0.5rem;">
+      {{ member.full_name_en or member.full_name_th or member.username }}
+      {% if member.email %}<span class="has-text-grey">({{ member.email }})</span>{% endif %}
+    </p>
+    {% endif %}
+    {% set TH = (current_lang == 'th') %}
+    {% if payments %}
+    <table class="table is-fullwidth is-striped">
+      <thead>
+        <tr>
+          <th>{{ texts.label_event }}</th>
+          <th>{{ texts.get('label_invoice_no', 'เลขที่ใบแจ้งหนี้' if TH else 'Invoice No.') }}</th>
+          <th>{{ texts.get('label_payment_method', 'ช่องทางชำระเงิน' if TH else 'Payment Method') }}</th>
+          <th>{{ texts.label_amount }}</th>
+          <th>{{ texts.label_status }}</th>
+          <th>{{ texts.label_proof }}</th>
+          <th>{{ texts.label_actions }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in payments %}
+        <tr>
+          {% set entity = p.event_entity %}
+          {% set event_title = entity.title_th if TH and entity and entity.title_th else (entity.title_en if entity
+          and entity.title_en else (entity.title_th if entity and entity.title_th else texts.label_none)) %}
+          <td>{{ event_title }}</td>
+          <td>
+            {% if p.invoice and p.invoice.invoice_no %}
+            {{ p.invoice.invoice_no }}
+            {% elif p.invoice_id %}
+            INV-{{ p.id }}
+            {% else %}
+            <em>{{ texts.label_none }}</em>
+            {% endif %}
+          </td>
+          <td>
+            {% set pm = (p.payment_method or '')|lower %}
+            {% if pm == 'promptpay' %}
+            PromptPay
+            {% elif pm == 'credit_card' %}
+            {{ 'บัตรเครดิต/เดบิต' if TH else 'Credit/Debit Card' }}
+            {% elif pm == 'counter' %}
+            {{ 'ชำระที่เคาน์เตอร์' if TH else 'Counter Service' }}
+            {% elif pm %}
+            {{ pm }}
+            {% else %}
+            <em>{{ texts.label_none }}</em>
+            {% endif %}
+          </td>
+          <td>{{ '%.2f'|format(p.payment_amount or 0) }} {{ texts.currency_thb }}</td>
+          <td>
+            {% set badge = p.payment_status_ref.css_badge if p.payment_status_ref and p.payment_status_ref.css_badge
+            else 'is-light' %}
+            <span class="tag {{ badge }}">{{ p.payment_status_ref.name_th if TH and p.payment_status_ref and
+              p.payment_status_ref.name_th else (p.payment_status_ref.name_en if p.payment_status_ref else
+              texts.label_none) }}</span>
+          </td>
+          <td>
+            {% if p.payment_proof_url %}
+            <button class="button is-small is-light" type="button"
+              onclick="openProofModal('{{ p.proof_presigned_url()|e }}')">{{ texts.button_view }}</button>
+            {% else %}
+            <em>{{ texts.label_none }}</em>
+            {% endif %}
+          </td>
+          <td>
+            {% set status_code = p.payment_status_ref.register_payment_status_code if p.payment_status_ref and
+            p.payment_status_ref.register_payment_status_code else (p.payment_status_ref.name_en|lower if
+            p.payment_status_ref else '') %}
+            {% set can_replace = status_code in ['pending','submitted','rejected',''] %}
+            {% if can_replace %}
+            <form method="post"
+              action="{{ url_for('continuing_edu.submit_payment_proof', payment_id=p.id, lang=current_lang) }}"
+              class="is-flex">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <input class="input" type="url" name="payment_proof_url" placeholder="https://..."
+                style="max-width:260px;margin-right:8px;">
+              <button class="button is-small is-link" type="submit">{{ texts.button_replace_url if p.payment_proof_url
+                else texts.button_submit_url }}</button>
+            </form>
+            <form method="post"
+              action="{{ url_for('continuing_edu.upload_payment_proof', payment_id=p.id, lang=current_lang) }}"
+              class="is-flex mt-2" enctype="multipart/form-data">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <input class="input" type="file" name="payment_proof_file" style="max-width:260px;margin-right:8px;">
+              <button class="button is-small" type="submit">{{ texts.button_replace_file if p.payment_proof_url else
+                texts.button_upload_file }}</button>
+            </form>
+            {% else %}
+            <em>{{ texts.message_payments_locked }}</em>
+            {% endif %}
+            <div class="mt-2">
+              <a class="button is-small is-primary is-light"
+                href="{{ url_for('continuing_edu.view_invoice', payment_id=p.id, lang=current_lang) }}">{{
+                texts.button_view_invoice }}</a>
+            </div>
+
+            {% set can_cancel = status_code in ['pending','submitted','rejected','verifying',''] %}
+            {% if can_cancel %}
+            <div class="mt-2">
+              <form method="post"
+                action="{{ url_for('continuing_edu.cancel_payment', payment_id=p.id, lang=current_lang) }}"
+                onsubmit="return confirm('{{ texts.get('confirm_cancel_payment', 'ยืนยันการยกเลิกการชำระเงิน?' if TH else 'Cancel this payment?') }}');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button class="button is-small is-danger is-light" type="submit">{{ texts.get('button_cancel', 'ยกเลิก'
+                  if TH else 'Cancel') }}</button>
+              </form>
+            </div>
+            {% endif %}
+            {% if payment_gateway_url %}
+            <div class="mt-2">
+              <a class="button is-small is-primary" href="{{ payment_gateway_url }}" target="_blank">{{
+                texts.button_pay_online }}</a>
+            </div>
+            {% endif %}
+            {% if p.receipt %}
+            <div class="mt-2">
+              <a class="button is-small is-light"
+                href="{{ url_for('continuing_edu.view_receipt', receipt_id=p.receipt.id, lang=current_lang) }}">{{
+                texts.button_view_receipt }}</a>
+            </div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>{{ texts.message_no_payments }}</p>
+    {% endif %}
+    <a class="button" href="{{ url_for('continuing_edu.index', lang=current_lang) }}">{{ texts.button_back_home }}</a>
+  </div>
+</section>
+
+<!-- Proof Modal -->
+<div id="proof-modal" class="modal">
+  <div class="modal-background" onclick="closeProofModal()"></div>
+  <div class="modal-content">
+    <div class="box">
+      <div id="proof-container" class="content" style="text-align:center"></div>
+    </div>
+  </div>
+  <button class="modal-close is-large" aria-label="close" onclick="closeProofModal()"></button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function isImageUrl(url) {
+    return /\.(png|jpg|jpeg|gif|webp|svg)(\?.*)?$/i.test(url);
+  }
+  function openProofModal(url) {
+    var modal = document.getElementById('proof-modal');
+    var container = document.getElementById('proof-container');
+    container.innerHTML = '';
+    if (isImageUrl(url)) {
+      var img = document.createElement('img');
+      img.src = url;
+      img.alt = '{{ texts.label_proof }}';
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '70vh';
+      container.appendChild(img);
+    } else {
+      var iframe = document.createElement('iframe');
+      iframe.src = url;
+      iframe.style.width = '100%';
+      iframe.style.height = '70vh';
+      iframe.setAttribute('frameborder', '0');
+      container.appendChild(iframe);
+    }
+    modal.classList.add('is-active');
+  }
+  function closeProofModal() {
+    var modal = document.getElementById('proof-modal');
+    var container = document.getElementById('proof-container');
+    modal.classList.remove('is-active');
+    container.innerHTML = '';
+  }
+</script>
+{% endblock %}

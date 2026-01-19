@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>{{ texts.get('registration_success', 'Registration submitted. Payment pending.') }}</title>
+  </head>
+  <body style="font-family: Arial, Helvetica, sans-serif; line-height: 1.5; color: #333;">
+    <div style="max-width: 640px; margin: 0 auto;">
+      <h2 style="margin-bottom: 8px;">{{ texts.get('registration_success', 'Registration submitted. Payment pending.') }}</h2>
+      <p style="margin: 0 0 16px;">{{ texts['email_registered_for'] }}: <strong>{{ event.title_en or event.title_th }}</strong></p>
+      <p style="margin: 0 0 16px;">{{ texts['email_amount'] }}: <strong>{{ '%.2f' % (amount or 0) }} THB</strong></p>
+      <p style="margin: 0 0 24px;">{{ texts['email_status'] }}: <strong>{{ texts['status_pending'] }}</strong></p>
+
+      <div style="margin: 16px 0;">
+        <a href="{{ invoice_link }}" style="display: inline-block; background: #485fc7; color: #fff; text-decoration: none; padding: 10px 16px; border-radius: 4px;">{{ texts['email_invoice'] }}</a>
+        {% if payment_gateway_url %}
+        <a href="{{ payment_gateway_url }}" style="display: inline-block; background: #00c853; color: #fff; text-decoration: none; padding: 10px 16px; border-radius: 4px; margin-left: 8px;">{{ texts['email_pay_online'] }}</a>
+        {% endif %}
+        <a href="{{ payments_link }}" style="display: inline-block; background: #3273dc; color: #fff; text-decoration: none; padding: 10px 16px; border-radius: 4px; margin-left: 8px;">{{ texts['email_my_payments'] }}</a>
+      </div>
+
+      <p style="margin-top: 24px; font-size: 12px; color: #777;">{{ texts['email_buttons_fallback'] }}<br>
+        {{ texts['email_invoice'] }}: <a href="{{ invoice_link }}">{{ invoice_link }}</a><br>
+        {% if payment_gateway_url %}{{ texts['email_pay_online'] }}: <a href="{{ payment_gateway_url }}">{{ payment_gateway_url }}</a><br>{% endif %}
+        {{ texts['email_my_payments'] }}: <a href="{{ payments_link }}">{{ payments_link }}</a>
+      </p>
+    </div>
+  </body>
+  </html>
