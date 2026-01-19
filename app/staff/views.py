@@ -3828,6 +3828,8 @@ def show_seminar_info_each_person(record_id):
                     if idp_item:
                         idp_item += ", "
                     idp_item += f'{item.plan}'
+    else:
+        idp_pre_item = ''
     return render_template('staff/seminar_each_record.html', attend=attend, approval=approval,
                            proposal=proposal, is_hr=is_hr, upload_file_url=upload_file_url,
                            registration_fee=registration_fee, seminar_attend=seminar_attend,
