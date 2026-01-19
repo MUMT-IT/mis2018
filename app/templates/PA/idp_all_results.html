@@ -16,6 +16,14 @@
                     <h1 class="title">ข้อมูลสรุป IDP</h1>
                 </div>
             </div>
+            <div class="field">
+                <label class="label">รอบการประเมิน</label>
+                <div class="select">
+                    <select v-model="round" v-on:change="proceed()">
+                        <option v-for="r in rounds" v-bind:value="r.id" key="r.id"><% r.round %></option>
+                    </select>
+                </div>
+            </div>
             <div class="columns">
                 <div class="column">
                     <table class="table is-striped is-fullwidth" id="idpTable">
@@ -84,5 +92,23 @@
                 order: [[2, 'desc'], [0, 'desc'], [1, 'asc']]
             });
         });
+    </script>
+    <script>
+    new Vue({
+        el : "#app",
+        delimiters : ["<%", "%>"],
+        data(){
+            return {
+                rounds : {{ rounds|tojson|safe }},
+                round : {{ round|tojson|safe }},
+            }
+        }, methods: {
+            proceed: function() {
+                if (this.round !== null){
+                    window.location.href = "/pa/idp/results?roundid="+this.round;
+                }
+            }
+        }
+    })
     </script>
 {% endblock %}
