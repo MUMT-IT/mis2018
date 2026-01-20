@@ -176,6 +176,7 @@ class Student(db.Model):
 class Province(db.Model):
     __tablename__ = 'provinces'
     id = db.Column('id', db.Integer(), primary_key=True)
+    order_id = db.Column('order_id', db.Integer())
     code = db.Column('code', db.String(), nullable=False)
     name = db.Column('name', db.String(40), nullable=False)
     districts = db.relationship("District", order_by="District.name",
@@ -188,6 +189,7 @@ class Province(db.Model):
 class District(db.Model):
     __tablename__ = 'districts'
     id = db.Column('id', db.Integer(), primary_key=True)
+    order_id = db.Column('order_id', db.Integer())
     name = db.Column('name', db.String(40), nullable=False)
     code = db.Column('code', db.String(), nullable=False)
     province_id = db.Column(db.Integer(),
@@ -201,6 +203,7 @@ class District(db.Model):
 class Subdistrict(db.Model):
     __tablename__ = 'subdistricts'
     id = db.Column('id', db.Integer(), primary_key=True)
+    order_id = db.Column('order_id', db.Integer())
     name = db.Column('name', db.String(80), nullable=False)
     code = db.Column('code', db.String(), nullable=False)
     district_id = db.Column(db.Integer(),
