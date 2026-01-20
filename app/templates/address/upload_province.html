@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block page_content %}
+    {% include "nav.html" %}
+    <section class="section">
+        {% include "messages.html" %}
+        <article class="message is-info">
+            <div class="message-header">
+                Upload Province
+            </div>
+            <div class="message-body">
+                <p>
+                    เตรียมข้อมูลในไฟล์ Excel โดยมีชื่อคอลัมน์ดังตัวอย่างในตาราง
+                </p>
+                <table class="table is-narrow is-striped">
+                    <thead>
+                    <th>Order_id</th>
+                    <th>Name</th>
+                    <th>Code</th>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>กรุงเทพมหานคร</td>
+                        <td>10</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+    <section class="section" id="app">
+        <div class="container">
+            <div class="columns">
+                <div class="column box is-one-third has-text-right is-offset-4">
+                    <form method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="field">
+                            <label class="label">ไฟล๋ Excel</label>
+                            <div class="file">
+                                <label class="file-label">
+                                    <input class="file-input" type="file" name="file" id="file">
+                                    <span class="file-cta">
+                                            <span class="file-icon">
+                                                <i class="fas fa-upload"></i>
+                                            </span>
+                                            <span class="file-label">
+                                                เลือกไฟล์…
+                                            </span>
+                                        </span>
+                                    <span class="file-name" id="filename">กรุณาอัปโหลดไฟล์</span>
+                                </label>
+                            </div>
+                        </div>
+                        <input type="submit" id="submit-form" class="button is-success" value="บันทึก">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(() => {
+            $('#filename').text('กรุณาอัปโหลดไฟล์');
+        })
+        $('#file').change(function (e) {
+            let fileName = e.target.files[0].name;
+            $('#filename').text(fileName);
+        });
+    </script>
+{% endblock %}

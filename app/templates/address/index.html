@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-one-third is-offset-4">
+                    {% include "messages.html" %}
+                    <nav class="panel is-info">
+                        <p class="panel-heading">Division</p>
+                        <a class="panel-block"
+                           href="{{ url_for('address.upload_province') }}">
+                            <span class="panel-icon">
+                                <i class="fa-solid fa-users"></i>
+                            </span>
+                            <span class="is-size-5">
+                                จังหวัด
+                            </span>
+                        </a>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
