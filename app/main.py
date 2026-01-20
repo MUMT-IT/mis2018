@@ -778,6 +778,10 @@ admin.add_view(ModelView(IDPItem, db.session, category='IDP'))
 admin.add_view(ModelView(IDPLearningType, db.session, category='IDP'))
 admin.add_view(ModelView(IDPLearningPlan, db.session, category='IDP'))
 
+from app.address import address as address_blueprint
+
+app.register_blueprint(address_blueprint)
+
 from app.service_admin import service_admin as service_admin_blueprint
 
 app.register_blueprint(service_admin_blueprint)
