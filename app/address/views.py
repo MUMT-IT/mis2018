@@ -62,45 +62,47 @@ def upload_province():
 
 
 @address.route('/district/index', methods=['GET', 'POST'])
-def upload_province():
+def upload_district():
     if request.method == 'POST':
-        new_province_count = 0
-        updated_province_count = 0
+        new_district_count = 0
+        updated_district_count = 0
         skipped_row_count = 0
         file = request.files['file']
         if file and allowed_file(file.filename):
             df = read_excel(file, dtype='object')
             for idx, rec in df.iterrows():
                 try:
-                    order_id, name, code = rec
+                    order_id, name, code, province_name = rec
                 except ValueError:
                     skipped_row_count += 1
                     continue
                 str_code = str(code)
-                province = Province.query.filter_by(name=name, code=str_code).first()
-                if not province:
+                district = District.query.filter_by(name=name, code=str_code).first()
+                province = Province.query.filter_by(name=province_name).first()
+                if not district:
                     try:
-                        new_province = Province(order_id=order_id, name=name, code=str_code)
-                        db.session.add(new_province)
+                        new_district = District(order_id=order_id, name=name, code=str_code, province_id=province.id)
+                        db.session.add(new_district)
                         db.session.commit()
-                        new_province_count += 1
+                        new_district_count += 1
                     except Exception as e:
                         db.session.rollback()
                         skipped_row_count += 1
                 else:
                     try:
-                        province.order_id = order_id if order_id is not None else province.order_id
-                        province.name = name if name is not None else province.name
-                        province.code = str_code if str_code is not None else province.code
+                        district.order_id = order_id if order_id is not None else district.order_id
+                        district.name = name if name is not None else district.name
+                        district.code = str_code if str_code is not None else district.code
+                        district.province_id = province.id if province.id else district.province_id
                         db.session.add(province)
                         db.session.commit()
-                        updated_province_count += 1
+                        updated_district_count += 1
                     except Exception as e:
                         db.session.rollback()
                         skipped_row_count += 1
             flash(f"--- สรุปผลการนำเข้าข้อมูล ---", 'info')
-            flash(f"เพิ่มผู้รับบริการ: {new_province_count} คน", 'success')
-            flash(f"อัปเดตข้อมูลผู้รับบริการ: {updated_province_count} คน", 'success')
+            flash(f"เพิ่มผู้รับบริการ: {new_district_count} คน", 'success')
+            flash(f"อัปเดตข้อมูลผู้รับบริการ: {updated_district_count} คน", 'success')
             flash(f"ข้ามการประมวลผล: {skipped_row_count} แถว (โปรดดูรายละเอียดในข้อความแจ้งเตือนด้านบน)", 'warning')
-            return render_template('address/upload_province.html')
-    return render_template('address/upload_province.html')
+            return render_template('address/upload_district.html')
+    return render_template('address/upload_district.html')
