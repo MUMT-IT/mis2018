@@ -218,7 +218,7 @@ class Subdistrict(db.Model):
 class Zipcode(db.Model):
     __tablename__ = 'zip_codes'
     id = db.Column('id', db.Integer(), primary_key=True)
-    code = db.Column('code', db.String(), nullable=False)
+    code = db.Column('code', db.String(), nullable=True)
     zip_code = db.Column('zip_code', db.Integer(), nullable=False)
 
     def __str__(self):
