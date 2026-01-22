@@ -72,21 +72,21 @@
                                 จัดผ่านช่องทาง Online
                             </label>
                         </div>
-                        <div class="columns">
-                            <div class="column">
-                                <b-field class="file">
-                                    <b-upload v-model="file" name="document">
-                                        <a class="button is-primary">
-                                            <b-icon icon="upload"></b-icon>
-                                            <span>Clickเพื่อ แนบfile รายละเอียด</span>
-                                        </a>
-                                    </b-upload>
-                                    <span class="file-name" v-if="file">
-                                        <% file.name %>
-                                    </span>
-                                </b-field>
-                            </div>
-                        </div>
+{#                        <div class="columns">#}
+{#                            <div class="column">#}
+{#                                <b-field class="file">#}
+{#                                    <b-upload v-model="file" name="document">#}
+{#                                        <a class="button is-primary">#}
+{#                                            <b-icon icon="upload"></b-icon>#}
+{#                                            <span>Clickเพื่อ แนบfile รายละเอียด</span>#}
+{#                                        </a>#}
+{#                                    </b-upload>#}
+{#                                    <span class="file-name" v-if="file">#}
+{#                                        <% file.name %>#}
+{#                                    </span>#}
+{#                                </b-field>#}
+{#                            </div>#}
+{#                        </div>#}
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
                                 <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}"
