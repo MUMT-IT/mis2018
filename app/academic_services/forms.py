@@ -32,8 +32,10 @@ class ForgetPasswordForm(FlaskForm):
 
 
 class ResetPasswordForm(FlaskForm):
-    new_password = PasswordField('New Password', validators=[DataRequired()])
-    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('new_password')])
+    new_password = PasswordField('New Password', validators=[DataRequired(), Length(min=8,
+                                                                                    message='รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร')])
+    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('new_password',
+                                                                                             message='รหัสผ่านไม่ตรงกัน')])
     submit = SubmitField('Submit')
 
 
