@@ -2,7 +2,7 @@ from sqlalchemy import desc
 
 from app.main import db
 from app.models import Org, KPI, Process, StrategyActivity
-from app.staff.models import StaffAccount, StaffJobPosition
+from app.staff.models import StaffAccount, StaffJobPosition, StaffSeminarAttend
 
 item_kpi_item_assoc_table = db.Table('item_kpi_item_assoc_assoc',
                                      db.Column('item_id', db.ForeignKey('pa_items.id')),
@@ -20,6 +20,12 @@ pa_round_employment_assoc_table = db.Table('pa_round_employment_assoc',
                                            db.Column('pa_round_id', db.ForeignKey('pa_rounds.id')),
                                            db.Column('employment_id',
                                                      db.ForeignKey('staff_employments.id')),
+                                           )
+
+idp_item_seminar_attend_assoc_table = db.Table('idp_item_seminar_attend_assoc',
+                                           db.Column('idp_item_id', db.ForeignKey('idp_items.id')),
+                                           db.Column('staff_seminar_attend_id',
+                                                     db.ForeignKey('staff_seminar_attends.id')),
                                            )
 
 
@@ -530,6 +536,8 @@ class IDPItem(db.Model):
     learning_type = db.relationship('IDPLearningType', backref=db.backref('learning_type_items'))
     learning_plan = db.Column(db.String())
     approver_comment = db.Column(db.String())
+    seminar_attends = db.relationship(StaffSeminarAttend, secondary=idp_item_seminar_attend_assoc_table,
+                                      backref=db.backref('idp_items'))
 
 
 class IDPLearningType(db.Model):
