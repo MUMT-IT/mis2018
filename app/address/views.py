@@ -62,7 +62,7 @@ def upload_province():
                         skipped_row_count += 1
 
                     messages.append(
-                        {"type": "error", "message": f"แถวที่ {row_number}: {'; '.join(row_messages)}"})
+                        {"type": "danger", "message": f"แถวที่ {row_number}: {'; '.join(row_messages)}"})
             if row_messages:
                 for msg in messages:
                     flash(msg["message"], msg["type"])
@@ -122,7 +122,7 @@ def upload_district():
                         skipped_row_count += 1
 
                     messages.append(
-                        {"type": "error", "message": f"แถวที่ {row_number}: {'; '.join(row_messages)}"})
+                        {"type": "danger", "message": f"แถวที่ {row_number}: {'; '.join(row_messages)}"})
 
             if row_messages:
                 for msg in messages:
@@ -191,7 +191,7 @@ def upload_subdistrict():
                         skipped_row_count += 1
 
                     messages.append(
-                        {"type": "error", "message": f"แถวที่ {row_number}: {'; '.join(row_messages)}"})
+                        {"type": "danger", "message": f"แถวที่ {row_number}: {'; '.join(row_messages)}"})
 
             if row_messages:
                 for msg in messages:
