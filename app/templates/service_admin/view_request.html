@@ -291,7 +291,8 @@
                                             <span>ออกใบเสนอราคา</span>
                                         </a>
                                     </li>
-                                {% elif (not service_request.get_result() or service_request.get_result().sent_at == None) %}
+                                {% elif (not service_request.get_result() and service_request.status.status_id == 10) or
+                                        (service_request.get_result() and service_request.get_result().sent_at == None) %}
                                     <li>
                                         <a class="button is-primary is-rounded is-fullwidth mb-2"
                                            {% if result_id %}
