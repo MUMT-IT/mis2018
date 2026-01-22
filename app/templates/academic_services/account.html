@@ -53,7 +53,11 @@
                     <form method="post">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="field" style="margin-left: 1em; margin-right: 1em; margin-top: .5em">
-                            <label class="label">รหัสผ่านใหม่</label>
+                            <label class="label">
+                                รหัสผ่านใหม่
+                                <i class="fas fa-info-circle ml-2 is-size-7 has-text-info"></i>
+                                <span class="is-size-7 ml-1 has-text-info">รหัสผ่านควรมีอย่างน้อย 8 ตัวอักษร</span>
+                            </label>
                             <div class="control is-expanded has-icons-left">
                                 <input type="password" class="input" name="new_password" placeholder="New password">
                                 <span class="icon is-small is-left">
