@@ -3,6 +3,7 @@
     {% include "nav.html" %}
     <section class="section">
         {% include "messages.html" %}
+        <h1 class="title has-text-centered">Province</h1>
         <article class="message is-info">
             <div class="message-header">
                 Upload Province
@@ -31,7 +32,7 @@
     <section class="section" id="app">
         <div class="container">
             <div class="columns">
-                <div class="column box is-one-third has-text-right is-offset-4">
+                <div class="column box is-one-third is-offset-4">
                     <form method="post" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="field">
@@ -40,18 +41,21 @@
                                 <label class="file-label">
                                     <input class="file-input" type="file" name="file" id="file">
                                     <span class="file-cta">
-                                            <span class="file-icon">
-                                                <i class="fas fa-upload"></i>
-                                            </span>
-                                            <span class="file-label">
-                                                เลือกไฟล์…
-                                            </span>
-                                        </span>
+                                        <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                        <span class="file-label">เลือกไฟล์…</span>
+                                    </span>
                                     <span class="file-name" id="filename">กรุณาอัปโหลดไฟล์</span>
                                 </label>
                             </div>
                         </div>
-                        <input type="submit" id="submit-form" class="button is-success" value="บันทึก">
+                        <div class=" field">
+                            <div class="buttons is-centered">
+                                <a class="button" href="{{ url_for('address.index') }}">
+                                    ย้อนกลับ
+                                </a>
+                                <input type="submit" id="submit-form" class="button is-success" value="บันทึก">
+                            </div>
+                        </div>
                     </form>
                 </div>
             </div>
