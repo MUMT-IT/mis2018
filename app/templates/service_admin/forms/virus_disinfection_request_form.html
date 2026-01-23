@@ -244,8 +244,8 @@
                                                             data-request-id="{{ request_id or '' }}"
                                                             hx-post="{{ url_for('service_admin.remove_condition_form', request_id=request_id) }}"
                                                             hx-vals='{"field": "{{ subform.name }}"}'
-                                                            hx-target=".subform-card"
-                                                            hx-swap="innerHTML"
+                                                            hx-target="closest .subform-card"
+                                                            hx-swap="outerHTML"
                                                     >
                                                         ลบ
                                                     </button>
