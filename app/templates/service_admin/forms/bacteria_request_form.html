@@ -363,7 +363,7 @@
                     card.remove();
                     e.preventDefault();
                 }
-                const subformId = e.target.id.split(/[\s_]+/)[0];
+                const subformId = e.target.id.replace('_condition_field', '');
 
                 let hasOptions = false;
                 for (let i = 0; i < productType.options.length; i++) {
