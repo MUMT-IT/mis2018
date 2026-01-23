@@ -768,7 +768,8 @@ def create_customer(customer_id=None):
         form.populate_obj(customer)
         if customer_id is None:
             customer.creator_id = current_user.id
-            account = ServiceCustomerAccount(email=form.email.data, customer_info=customer)
+            account = ServiceCustomerAccount(email=form.email.data, customer_info=customer,
+                                             verify_datetime=arrow.now('Asia/Bangkok').datetime)
         else:
             for account in customer.accounts:
                 account.email = form.email.data
