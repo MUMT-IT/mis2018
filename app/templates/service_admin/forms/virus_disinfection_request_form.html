@@ -344,22 +344,6 @@
                 removeProductTypeOptions();
             }
         });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const productType = document.getElementById('product_type');
-            const subforms = document.querySelectorAll('.subform-card');
-            for (let i = productType.options.length - 1; i >= 0; i--) {
-                const option = productType.options[i];
-                if (option.value === '') continue;
-                subforms.forEach(subform => {
-                    const subformId = subform.id.split(/[\s_]+/)[0];
-                    if (option.value === subformId) {
-                        option.remove();
-                    }
-                });
-            }
-            productType.selectedIndex = 0;
-        });
     </script>
     <script>
         function validateProductType() {

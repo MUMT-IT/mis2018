@@ -338,7 +338,7 @@
                 const option = productType.options[i];
                 if (option.value === '') continue;
                 subforms.forEach(subform => {
-                    const subformId = subform.id.split(/[\s_]+/)[0];
+                    const subformId = subform.id.replace('_condition_field', '');
                     if (option.value === subformId) {
                         option.remove();
                     }
@@ -355,21 +355,20 @@
             }
         });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const productType = document.getElementById('product_type');
-            const subforms = document.querySelectorAll('.subform-card');
-            for (let i = productType.options.length - 1; i >= 0; i--) {
-                const option = productType.options[i];
-                if (option.value === '') continue;
-                subforms.forEach(subform => {
-                    const subformId = subform.id.split(/[\s_]+/)[0];
-                    if (option.value === subformId) {
-                        option.remove();
-                    }
-                });
-            }
-            productType.selectedIndex = 0;
-        });
+        {#document.addEventListener('DOMContentLoaded', () => {#}
+        {#    const productType = document.getElementById('product_type');#}
+        {#    const subforms = document.querySelectorAll('.subform-card');#}
+        {#    for (let i = productType.options.length - 1; i >= 0; i--) {#}
+        {#        const option = productType.options[i];#}
+        {#        if (option.value === '') continue;#}
+        {#        subforms.forEach(subform => {#}
+        {#            const subformId = subform.id.split(/[\s_]+/)[0];#}
+        {#            if (option.value === subformId) {#}
+        {#                option.remove();#}
+        {#            }#}
+        {#        });#}
+        {#    }#}
+        {#    productType.selectedIndex = 0;#}
     </script>
     <script>
         document.addEventListener('click', function (e) {
