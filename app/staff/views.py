@@ -3441,9 +3441,8 @@ def seminar_create_record(seminar_id):
             #     flash('ส่งคำขอไปยังผู้บังคับบัญชาของท่านเรียบร้อยแล้ว ', 'success')
             # else:
             #     flash('เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
-            flash(
-                'เพิ่มรายชื่อของท่านเรียบร้อยแล้ว สามารถ download เอกสารเพื่อดำเนินการขออนุมัติตามขั้นตอนปกติได้ต่อไป',
-                'success')
+            flash('เพิ่มข้อมูลของท่านเแล้ว กรุณา Download เอกสารและจัดส่งให้ธุรการหน่วยงานเสนอขออนุมัติต่อไป', 'success')
+            return redirect(url_for('staff.show_seminar_info_each_person', record_id=attend.id))
         else:
             flash('มีการลงชื่ออบรมนี้แล้ว', 'success')
         return redirect(url_for('staff.seminar_attend_info', seminar_id=seminar_id))
