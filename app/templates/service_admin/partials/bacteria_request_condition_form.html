@@ -164,15 +164,31 @@
         function validateQualitativeAndQuantitativeTest() {
             const qualitativeChecked = qualitativeTestInput.is(':checked');
             const quantitativeChecked = quantitativeTestInput.is(':checked');
-            const required = !(qualitativeChecked || quantitativeChecked);
 
-            qualitativeTestInput.prop('required', required)
-                .attr('oninvalid', required ? "this.setCustomValidity('กรุณาเลือกวิธีทดสอบเชิงคุณภาพ')" : "")
-                .attr('onchange', "this.setCustomValidity('')");
+            {#qualitativeTestInput.prop('required', required)#}
+            {#    .attr('oninvalid', required ? "this.setCustomValidity('กรุณาเลือกวิธีทดสอบเชิงคุณภาพ')" : "")#}
+            {#    .attr('onchange', "this.setCustomValidity('')");#}
+            {##}
+            {#quantitativeTestInput.prop('required', required)#}
+            {#    .attr('oninvalid', required ? "this.setCustomValidity('กรุณาเลือกวิธีทดสอบเชิงปริมาณ')" : "")#}
+            {#    .attr('onchange', "this.setCustomValidity('')");#}
+            if (qualitativeChecked === false && quantitativeChecked === false)  {
+                 qualitativeTestInput.each(function () {
+                     this.setCustomValidity('กรุณาเลือกวิธีทดสอบเชิงคุณภาพ');
+                 });
 
-            quantitativeTestInput.prop('required', required)
-                .attr('oninvalid', required ? "this.setCustomValidity('กรุณาเลือกวิธีทดสอบเชิงปริมาณ')" : "")
-                .attr('onchange', "this.setCustomValidity('')");
+                quantitativeTestInput.each(function () {
+                    this.setCustomValidity('กรุณาเลือกวิธีทดสอบเชิงปริมาณ');
+                });
+
+            } else {
+                qualitativeTestInput.each(function () {
+                    this.setCustomValidity('');
+                });
+                quantitativeTestInput.each(function () {
+                    this.setCustomValidity('');
+                });
+            }
 
             if (qualitativeChecked) quantitativeTestInput.closest('.field').find('label .has-text-danger').remove();
             if (quantitativeChecked) qualitativeTestInput.closest('.field').find('label .has-text-danger').remove();
