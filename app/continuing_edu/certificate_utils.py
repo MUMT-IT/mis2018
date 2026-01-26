@@ -11,8 +11,8 @@ from flask import render_template, current_app
 
 from .models import (
     db,
-    MemberRegistration,
-    MemberCertificateStatus,
+    CEMemberRegistration,
+    CEMemberCertificateStatus,
 )
 from .status_utils import get_certificate_status
 
@@ -43,7 +43,7 @@ def _resolve_static_base(base_url: Optional[str]) -> str:
     return '/static/'
 
 
-def build_certificate_context(reg: MemberRegistration, lang: str = 'en', base_url: Optional[str] = None) -> dict:
+def build_certificate_context(reg: CEMemberRegistration, lang: str = 'en', base_url: Optional[str] = None) -> dict:
     """Prepare template context for certificate rendering with absolute static asset paths."""
     return {
         'reg': reg,
@@ -54,11 +54,11 @@ def build_certificate_context(reg: MemberRegistration, lang: str = 'en', base_ur
     }
 
 
-def ensure_certificate_status(name_en: str, name_th: Optional[str] = None, css_badge: Optional[str] = None) -> MemberCertificateStatus:
+def ensure_certificate_status(name_en: str, name_th: Optional[str] = None, css_badge: Optional[str] = None) -> CEMemberCertificateStatus:
     return get_certificate_status(name_en=name_en, name_th=name_th, css_badge=css_badge)
 
 
-def can_issue_certificate(reg: MemberRegistration) -> bool:
+def can_issue_certificate(reg: CEMemberRegistration) -> bool:
     """Check if a certificate can be issued (completed, assessment passed, payment approved)."""
     if not reg.completed_at or not reg.assessment_passed:
         return False
@@ -71,7 +71,7 @@ def can_issue_certificate(reg: MemberRegistration) -> bool:
     return False
 
 
-def issue_certificate(reg: MemberRegistration, lang: str = 'en', base_url: Optional[str] = None) -> MemberRegistration:
+def issue_certificate(reg: CEMemberRegistration, lang: str = 'en', base_url: Optional[str] = None) -> CEMemberRegistration:
     """Issue a certificate for the given registration."""
     issued = ensure_certificate_status('issued', 'ออกแล้ว', 'is-success')
     reg.certificate_status_id = issued.id
@@ -105,7 +105,7 @@ def issue_certificate(reg: MemberRegistration, lang: str = 'en', base_url: Optio
     return reg
 
 
-def reset_certificate(reg: MemberRegistration) -> None:
+def reset_certificate(reg: CEMemberRegistration) -> None:
     """Reset certificate data back to pending state."""
     pending = ensure_certificate_status('pending', 'รอดำเนินการ', 'is-info')
     reg.certificate_status_id = pending.id
@@ -116,7 +116,7 @@ def reset_certificate(reg: MemberRegistration) -> None:
     db.session.commit()
 
 
-def _delete_certificate_file(reg: MemberRegistration) -> None:
+def _delete_certificate_file(reg: CEMemberRegistration) -> None:
     value = reg.certificate_url
     if not value:
         return

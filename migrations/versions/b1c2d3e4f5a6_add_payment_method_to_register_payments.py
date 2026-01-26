@@ -1,7 +1,7 @@
 """add payment_method to register_payments
 
 Revision ID: b1c2d3e4f5a6
-Revises: 7a2f52f1e55f, add_continuing_invoices_and_invoice_id
+Revises: 7a2f52f1e55f, 123456abcdef
 Create Date: 2026-01-13
 
 """
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'b1c2d3e4f5a6'
-down_revision = ('7a2f52f1e55f', 'add_continuing_invoices_and_invoice_id')
+down_revision = ('7a2f52f1e55f', '123456abcdef')
 branch_labels = None
 depends_on = None
 

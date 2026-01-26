@@ -30,7 +30,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Import models after db is initialized
-from app.continuing_edu.models import OrganizationType, Organization
+from app.continuing_edu.models import CEOrganizationType, CEOrganization
 from app.comhealth.models import ComHealthOrg
 
 
@@ -59,7 +59,7 @@ def seed_organization_types():
     
     for org_type_data in organization_types:
         try:
-            existing = OrganizationType.query.filter_by(id=org_type_data['id']).first()
+            existing = CEOrganizationType.query.filter_by(id=org_type_data['id']).first()
             
             if existing:
                 # Update existing record
@@ -70,7 +70,7 @@ def seed_organization_types():
                 print(f"  ✏️  Updated: {org_type_data['name_en']} ({org_type_data['name_th']})")
             else:
                 # Create new record
-                org_type = OrganizationType(
+                org_type = CEOrganizationType(
                     id=org_type_data['id'],
                     name_en=org_type_data['name_en'],
                     name_th=org_type_data['name_th'],
@@ -92,7 +92,7 @@ def seed_organization_types():
     print(f"   ➕ Added: {added}")
     print(f"   ✏️  Updated: {updated}")
     print(f"   ⚠️  Skipped: {skipped}")
-    print(f"   📦 Total: {OrganizationType.query.count()}")
+    print(f"   📦 Total: {CEOrganizationType.query.count()}")
 
 
 def seed_client_organizations():
@@ -205,14 +205,14 @@ def seed_sample_regular_organizations():
     
     for org_data in sample_orgs:
         try:
-            existing = Organization.query.filter_by(name=org_data['name']).first()
+            existing = CEOrganization.query.filter_by(name=org_data['name']).first()
             
             if existing:
                 skipped += 1
                 print(f"  ⏭️  Exists: {org_data['name']}")
             else:
                 # Create new record
-                org = Organization(
+                org = CEOrganization(
                     name=org_data['name'],
                     organization_type_id=org_data['type_id'],
                     country='Thailand',
@@ -233,7 +233,7 @@ def seed_sample_regular_organizations():
     print(f"\n📊 Regular Organizations Summary:")
     print(f"   ➕ Added: {added}")
     print(f"   ⏭️  Already exists: {skipped}")
-    print(f"   📦 Total: {Organization.query.count()}")
+    print(f"   📦 Total: {CEOrganization.query.count()}")
 
 
 def main():
@@ -255,9 +255,9 @@ def main():
             
             # Summary
             print("📈 Final Database Statistics:")
-            print(f"   • Organization Types: {OrganizationType.query.count()}")
+            print(f"   • Organization Types: {CEOrganizationType.query.count()}")
             print(f"   • Client Organizations (comhealth_orgs): {ComHealthOrg.query.count()}")
-            print(f"   • Regular Organizations: {Organization.query.count()}")
+            print(f"   • Regular Organizations: {CEOrganization.query.count()}")
             print()
             
         except Exception as e:

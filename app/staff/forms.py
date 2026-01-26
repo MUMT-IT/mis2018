@@ -35,7 +35,7 @@ def create_seminar_attend_form(current_user):
                                               )
         approver = QuerySelectField(u'ผู้บังคับบัญชา',
                                     get_label='approver_name',
-                                    allow_blank=True,
+                                    allow_blank=False,
                                     blank_text=u'กรุณาเลือก',
                                     query_factory=lambda: StaffLeaveApprover.
                                     query.filter_by(staff_account_id=current_user.id, is_active=True).all())

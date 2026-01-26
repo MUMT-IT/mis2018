@@ -1,6 +1,6 @@
 """add continuing_invoices table and invoice_id column
 
-Revision ID: add_continuing_invoices_and_invoice_id
+Revision ID: 123456abcdef
 Revises: 309524de26b6
 Create Date: 2025-12-23 00:00:00.000000
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'add_continuing_invoices_and_invoice_id'
+revision = '123456abcdef'
 down_revision = '309524de26b6'
 branch_labels = None
 depends_on = None
@@ -29,18 +29,18 @@ def upgrade():
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()')),
     )
     # Add foreign keys for member_id and event_entity_id
-    op.create_foreign_key(
-        'fk_continuing_invoices_member_id', 'continuing_invoices', 'members', ['member_id'], ['id'], ondelete='CASCADE'
-    )
-    op.create_foreign_key(
-        'fk_continuing_invoices_event_entity_id', 'continuing_invoices', 'event_entities', ['event_entity_id'], ['id'], ondelete='CASCADE'
-    )
+    # op.create_foreign_key(
+    #     'fk_continuing_invoices_member_id', 'continuing_invoices', 'members', ['member_id'], ['id'], ondelete='CASCADE'
+    # )
+    # op.create_foreign_key(
+    #     'fk_continuing_invoices_event_entity_id', 'continuing_invoices', 'event_entities', ['event_entity_id'], ['id'], ondelete='CASCADE'
+    # )
 
     # Add invoice_id column to register_payments
-    op.add_column('register_payments', sa.Column('invoice_id', sa.Integer(), nullable=True))
-    op.create_foreign_key(
-        'fk_register_payments_invoice_id', 'register_payments', 'continuing_invoices', ['invoice_id'], ['id'], ondelete='CASCADE'
-    )
+    # op.add_column('register_payments', sa.Column('invoice_id', sa.Integer(), nullable=True))
+    # op.create_foreign_key(
+    #     'fk_register_payments_invoice_id', 'register_payments', 'continuing_invoices', ['invoice_id'], ['id'], ondelete='CASCADE'
+    # )
 
 
 def downgrade():

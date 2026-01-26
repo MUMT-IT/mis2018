@@ -4277,7 +4277,7 @@ def invoice_index():
             item_data = item.to_dict()
             if item.payments:
                 for payment in item.payments:
-                    if payment.slip and payment.cancelled_at:
+                    if payment.slip:
                         item_data['slip'] = generate_url(payment.slip)
                     else:
                         item_data['slip'] = None
@@ -4345,7 +4345,7 @@ def invoice_index_for_central_admin():
             item_data = item.to_dict()
             if item.payments:
                 for payment in item.payments:
-                    if payment.slip and payment.cancelled_at:
+                    if payment.slip:
                         item_data['slip'] = generate_url(payment.slip)
                     else:
                         item_data['slip'] = None
@@ -4880,8 +4880,8 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
     remark_table = Table([
         [Paragraph("<font size=14>หมายเหตุ/Remark<br/></font>", style=head_remark_style)],
         [Paragraph(
-            "<font size=12>1. โปรดโอนเงินเข้าบัญชีออมทรัพย์ ในนาม <u>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ธนาคารไทยพาณิชย์ จำกัด (มหาชน) "
-            "สาขาศิริราช เลขที่บัญชี 016-433468-4</u> หรือ บัญชีกระแสรายวัน <u>เลขที่บัญชี 016-300-325-6</u> ชื่อบัญชี <u>มหาวิทยาลัยมหิดล</u> "
+            "<font size=12>1. โปรดโอนเงินเข้าบัญชีออมทรัพย์ ในนาม <u>งานบริการ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล"
+            "เลขที่บัญชี 016-433468-4</u>"
             "หรือ<u> Scan QR Code ด้านล่าง</u> หรือ <u>โปรดสั่งจ่ายเช็คในนาม มหาวิทยาลัยมหิดล</u><br/></font>",
             style=remark_style)],
         [Paragraph(
@@ -4919,7 +4919,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
     qr_payment_img = qrcode.make(url_for('academic_services.add_payment', invoice_id=invoice.id, menu='invoice',
                                  tab='pending', _external=True, _scheme=scheme))
     qr_payment_img.save(qr_payment_buffer, format='PNG')
-    qr_code_payment = Image(qr_payment_buffer, width=95, height=95)
+    qr_code_payment = Image(qr_payment_buffer, width=105, height=102)
 
     sign_style = ParagraphStyle(
         'SignStyle',
@@ -4973,7 +4973,9 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
 
         qr_code_payment_table.setStyle(TableStyle([
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('TOPPADDING', (0, 0), (0, 0), -3),
+            ('TOPPADDING', (0, 1), (0, 1), -3),
         ]))
 
         combined_table = Table(

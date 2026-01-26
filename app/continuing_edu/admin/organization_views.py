@@ -4,7 +4,7 @@ from flask_login import login_required
 from app.continuing_edu.admin import admin_bp
 from app.continuing_edu.admin.decorators import admin_required, get_current_staff
 from app.main import db
-from app.continuing_edu.models import Organization, OrganizationType
+from app.continuing_edu.models import CEOrganization, CEOrganizationType
 
 
 @admin_bp.route('/organizations')
@@ -12,8 +12,8 @@ from app.continuing_edu.models import Organization, OrganizationType
 @admin_required
 def organizations_list():
     staff = get_current_staff()
-    org_types = OrganizationType.query.order_by(OrganizationType.name_en.asc()).all()
-    orgs = Organization.query.order_by(Organization.name.asc()).all()
+    org_types = CEOrganizationType.query.order_by(CEOrganizationType.name_en.asc()).all()
+    orgs = CEOrganization.query.order_by(CEOrganization.name.asc()).all()
     return render_template('continueing_edu/admin/organizations.html', org_types=org_types, orgs=orgs, logged_in_admin=staff)
 
 
@@ -33,13 +33,13 @@ def organizations_create():
                 org_type_id = int(org_type_id)
             except Exception:
                 org_type_id = None
-        org = Organization(name=name.strip(), organization_type_id=org_type_id, is_user_defined=True)
+        org = CEOrganization(name=name.strip(), organization_type_id=org_type_id, is_user_defined=True)
         db.session.add(org)
         db.session.commit()
         flash('Organization created', 'success')
         return redirect(url_for('continuing_edu_admin.organizations_list'))
 
-    org_types = OrganizationType.query.order_by(OrganizationType.name_en.asc()).all()
+    org_types = CEOrganizationType.query.order_by(CEOrganizationType.name_en.asc()).all()
     return render_template('continueing_edu/admin/organization_form.html', org_types=org_types, org=None, logged_in_admin=staff)
 
 
@@ -48,7 +48,7 @@ def organizations_create():
 @admin_required
 def organizations_edit(org_id):
     staff = get_current_staff()
-    org = Organization.query.get_or_404(org_id)
+    org = CEOrganization.query.get_or_404(org_id)
     if request.method == 'POST':
         name = request.form.get('name')
         org_type_id = request.form.get('organization_type_id')
@@ -61,7 +61,7 @@ def organizations_edit(org_id):
         flash('Organization updated', 'success')
         return redirect(url_for('continuing_edu_admin.organizations_list'))
 
-    org_types = OrganizationType.query.order_by(OrganizationType.name_en.asc()).all()
+    org_types = CEOrganizationType.query.order_by(CEOrganizationType.name_en.asc()).all()
     return render_template('continueing_edu/admin/organization_form.html', org_types=org_types, org=org, logged_in_admin=staff)
 
 
@@ -69,7 +69,7 @@ def organizations_edit(org_id):
 @login_required
 @admin_required
 def organizations_delete(org_id):
-    org = Organization.query.get_or_404(org_id)
+    org = CEOrganization.query.get_or_404(org_id)
     db.session.delete(org)
     db.session.commit()
     flash('Organization deleted', 'warning')

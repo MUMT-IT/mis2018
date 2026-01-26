@@ -14,34 +14,34 @@ from flask import current_app
 
 from app.main import app, db
 from app.continuing_edu.models import (
-    EventEntity,
-    EventCertificateManager,
-    MemberRegistration,
-    RegisterPayment,
-    RegisterPaymentStatus,
+    CEEventEntity,
+    CEEventCertificateManager,
+    CEMemberRegistration,
+    CERegisterPayment,
+    CERegisterPaymentStatus,
 )
 from app.continuing_edu.status_utils import get_registration_status, get_certificate_status
 from app.continuing_edu.certificate_utils import issue_certificate, can_issue_certificate, reset_certificate
 
 
-def _ensure_certificate_manager(event: EventEntity) -> None:
-    if EventCertificateManager.query.filter_by(event_entity_id=event.id).count() == 0:
+def _ensure_certificate_manager(event: CEEventEntity) -> None:
+    if CEEventCertificateManager.query.filter_by(event_entity_id=event.id).count() == 0:
         staff = event.staff or event.staff_id and event.staff
         if staff:
-            db.session.add(EventCertificateManager(event_entity_id=event.id, staff_id=staff.id))
+            db.session.add(CEEventCertificateManager(event_entity_id=event.id, staff_id=staff.id))
             db.session.commit()
             current_app.logger.info("Assigned %s as certificate manager", staff.email)
 
 
 def _ensure_payment_approved(member_id: int, event_id: int) -> None:
-    pending = RegisterPaymentStatus.query.filter((RegisterPaymentStatus.register_payment_status_code == 'approved') |
-                                                 (RegisterPaymentStatus.name_en == 'approved')).first()
-    pay = RegisterPayment.query.filter_by(member_id=member_id, event_entity_id=event_id).first()
+    pending = CERegisterPaymentStatus.query.filter((CERegisterPaymentStatus.register_payment_status_code == 'approved') |
+                                                   (CERegisterPaymentStatus.name_en == 'approved')).first()
+    pay = CERegisterPayment.query.filter_by(member_id=member_id, event_entity_id=event_id).first()
     if not pay:
-        pay = RegisterPayment(member_id=member_id,
-                              event_entity_id=event_id,
-                              payment_amount=0,
-                              payment_status_id=pending.id if pending else None)
+        pay = CERegisterPayment(member_id=member_id,
+                                event_entity_id=event_id,
+                                payment_amount=0,
+                                payment_status_id=pending.id if pending else None)
     else:
         if pending:
             pay.payment_status_id = pending.id
@@ -50,7 +50,7 @@ def _ensure_payment_approved(member_id: int, event_id: int) -> None:
 
 
 def verify_workflow(event_id: Optional[int] = None) -> None:
-    event = EventEntity.query.filter_by(event_type='course').first() if event_id is None else EventEntity.query.get(event_id)
+    event = CEEventEntity.query.filter_by(event_type='course').first() if event_id is None else CEEventEntity.query.get(event_id)
     if not event:
         current_app.logger.error('No event found to test with.')
         return
@@ -58,9 +58,9 @@ def verify_workflow(event_id: Optional[int] = None) -> None:
     current_app.logger.info('Using event %s (#%s)', event.title_en, event.id)
     _ensure_certificate_manager(event)
 
-    reg = (MemberRegistration.query
+    reg = (CEMemberRegistration.query
            .filter_by(event_entity_id=event.id)
-           .order_by(MemberRegistration.registration_date.asc())
+           .order_by(CEMemberRegistration.registration_date.asc())
            .first())
     if not reg:
         current_app.logger.error('No registrations for event %s', event.id)

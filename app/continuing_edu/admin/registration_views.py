@@ -12,12 +12,12 @@ from datetime import datetime, timezone
 from app.continuing_edu.admin.views import admin_bp
 from app.continuing_edu.admin.decorators import admin_required, get_current_staff, can_manage_registrations
 from app.continuing_edu.models import (
-    MemberRegistration,
-    Member,
-    EventEntity,
-    RegistrationStatus,
-    MemberType,
-    EventRegistrationFee,
+    CEMemberRegistration,
+    CEMember,
+    CEEventEntity,
+    CERegistrationStatus,
+    CEMemberType,
+    CEEventRegistrationFee,
     db
 )
 
@@ -42,78 +42,78 @@ def list_registrations():
     search_query = request.args.get('q', '')
     
     # Base query with eager loading
-    query = MemberRegistration.query.options(
-        joinedload(MemberRegistration.member),
-        joinedload(MemberRegistration.event_entity),
-        joinedload(MemberRegistration.status_ref)
+    query = CEMemberRegistration.query.options(
+        joinedload(CEMemberRegistration.member),
+        joinedload(CEMemberRegistration.event_entity),
+        joinedload(CEMemberRegistration.status_ref)
     )
     
     # Apply filters
     if status_filter:
-        status = RegistrationStatus.query.filter(
-            func.lower(RegistrationStatus.name_en) == status_filter.lower()
+        status = CERegistrationStatus.query.filter(
+            func.lower(CERegistrationStatus.name_en) == status_filter.lower()
         ).first()
         if status:
-            query = query.filter(MemberRegistration.status_id == status.id)
+            query = query.filter(CEMemberRegistration.status_id == status.id)
     
     if event_id:
-        query = query.filter(MemberRegistration.event_entity_id == event_id)
+        query = query.filter(CEMemberRegistration.event_entity_id == event_id)
     
     if member_id:
-        query = query.filter(MemberRegistration.member_id == member_id)
+        query = query.filter(CEMemberRegistration.member_id == member_id)
     
     if date_from:
         try:
             date_from_dt = datetime.strptime(date_from, '%Y-%m-%d').replace(tzinfo=timezone.utc)
-            query = query.filter(MemberRegistration.registration_date >= date_from_dt)
+            query = query.filter(CEMemberRegistration.registration_date >= date_from_dt)
         except ValueError:
             pass
     
     if date_to:
         try:
             date_to_dt = datetime.strptime(date_to, '%Y-%m-%d').replace(tzinfo=timezone.utc)
-            query = query.filter(MemberRegistration.registration_date <= date_to_dt)
+            query = query.filter(CEMemberRegistration.registration_date <= date_to_dt)
         except ValueError:
             pass
     
     # Search in member name, email, or event title
     if search_query:
         search_pattern = f'%{search_query}%'
-        query = query.join(Member).join(EventEntity).filter(
+        query = query.join(CEMember).join(CEEventEntity).filter(
             or_(
-                Member.full_name_th.ilike(search_pattern),
-                Member.full_name_en.ilike(search_pattern),
-                Member.email.ilike(search_pattern),
-                Member.username.ilike(search_pattern),
-                EventEntity.title_th.ilike(search_pattern),
-                EventEntity.title_en.ilike(search_pattern)
+                CEMember.full_name_th.ilike(search_pattern),
+                CEMember.full_name_en.ilike(search_pattern),
+                CEMember.email.ilike(search_pattern),
+                CEMember.username.ilike(search_pattern),
+                CEEventEntity.title_th.ilike(search_pattern),
+                CEEventEntity.title_en.ilike(search_pattern)
             )
         )
     
     # Order by most recent first
-    query = query.order_by(desc(MemberRegistration.registration_date))
+    query = query.order_by(desc(CEMemberRegistration.registration_date))
     
     # Paginate
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     registrations = pagination.items
     
     # Get all events for filter dropdown
-    events = EventEntity.query.order_by(EventEntity.title_en).all()
+    events = CEEventEntity.query.order_by(CEEventEntity.title_en).all()
     
     # Get all registration statuses
-    statuses = RegistrationStatus.query.all()
+    statuses = CERegistrationStatus.query.all()
     
     # Statistics
     stats = {
-        'total': MemberRegistration.query.count(),
-        'pending': MemberRegistration.query.join(RegistrationStatus).filter(
-            func.lower(RegistrationStatus.name_en) == 'pending'
+        'total': CEMemberRegistration.query.count(),
+        'pending': CEMemberRegistration.query.join(CERegistrationStatus).filter(
+            func.lower(CERegistrationStatus.name_en) == 'pending'
         ).count(),
-        'confirmed': MemberRegistration.query.join(RegistrationStatus).filter(
-            func.lower(RegistrationStatus.name_en) == 'confirmed'
+        'confirmed': CEMemberRegistration.query.join(CERegistrationStatus).filter(
+            func.lower(CERegistrationStatus.name_en) == 'confirmed'
         ).count(),
-        'cancelled': MemberRegistration.query.join(RegistrationStatus).filter(
-            func.lower(RegistrationStatus.name_en) == 'cancelled'
+        'cancelled': CEMemberRegistration.query.join(CERegistrationStatus).filter(
+            func.lower(CERegistrationStatus.name_en) == 'cancelled'
         ).count(),
     }
     
@@ -140,18 +140,18 @@ def list_registrations():
 @admin_required
 def view_registration(registration_id):
     """View detailed information about a specific registration"""
-    registration = MemberRegistration.query.options(
-        joinedload(MemberRegistration.member).joinedload(Member.organization),
-        joinedload(MemberRegistration.member).joinedload(Member.occupation),
-        joinedload(MemberRegistration.member).joinedload(Member.addresses),
-        joinedload(MemberRegistration.event_entity).joinedload(EventEntity.category),
-        joinedload(MemberRegistration.event_entity).joinedload(EventEntity.speakers),
-        joinedload(MemberRegistration.status_ref),
-        joinedload(MemberRegistration.certificate_status_ref)
+    registration = CEMemberRegistration.query.options(
+        joinedload(CEMemberRegistration.member).joinedload(CEMember.organization),
+        joinedload(CEMemberRegistration.member).joinedload(CEMember.occupation),
+        joinedload(CEMemberRegistration.member).joinedload(CEMember.addresses),
+        joinedload(CEMemberRegistration.event_entity).joinedload(CEEventEntity.category),
+        joinedload(CEMemberRegistration.event_entity).joinedload(CEEventEntity.speakers),
+        joinedload(CEMemberRegistration.status_ref),
+        joinedload(CEMemberRegistration.certificate_status_ref)
     ).get_or_404(registration_id)
     
     # Get registration fees for this event
-    fees = EventRegistrationFee.query.filter_by(
+    fees = CEEventRegistrationFee.query.filter_by(
         event_entity_id=registration.event_entity_id
     ).all()
     
@@ -159,7 +159,7 @@ def view_registration(registration_id):
     payments = registration.payments
     
     # Get all registration statuses for dropdown
-    statuses = RegistrationStatus.query.all()
+    statuses = CERegistrationStatus.query.all()
     
     return render_template(
         'continueing_edu/admin/registrations/detail.html',
@@ -176,7 +176,7 @@ def view_registration(registration_id):
 @can_manage_registrations
 def update_registration_status(registration_id):
     """Update registration status"""
-    registration = MemberRegistration.query.get_or_404(registration_id)
+    registration = CEMemberRegistration.query.get_or_404(registration_id)
     
     new_status_id = request.form.get('status_id', type=int)
     notes = request.form.get('notes', '').strip()
@@ -186,7 +186,7 @@ def update_registration_status(registration_id):
         return redirect(url_for('continuing_edu_admin.view_registration', registration_id=registration_id))
     
     # Verify status exists
-    new_status = RegistrationStatus.query.get(new_status_id)
+    new_status = CERegistrationStatus.query.get(new_status_id)
     if not new_status:
         flash('Invalid status selected', 'danger')
         return redirect(url_for('continuing_edu_admin.view_registration', registration_id=registration_id))
@@ -213,7 +213,7 @@ def update_registration_status(registration_id):
 @can_manage_registrations
 def update_attendance(registration_id):
     """Update attendance information"""
-    registration = MemberRegistration.query.get_or_404(registration_id)
+    registration = CEMemberRegistration.query.get_or_404(registration_id)
     
     attendance_count = request.form.get('attendance_count', type=int)
     total_hours = request.form.get('total_hours_attended', type=float)
@@ -236,7 +236,7 @@ def update_attendance(registration_id):
 @can_manage_registrations
 def update_test_scores(registration_id):
     """Update pre/post test scores"""
-    registration = MemberRegistration.query.get_or_404(registration_id)
+    registration = CEMemberRegistration.query.get_or_404(registration_id)
     
     pre_test_score = request.form.get('pre_test_score', type=float)
     post_test_score = request.form.get('post_test_score', type=float)
@@ -261,7 +261,7 @@ def update_test_scores(registration_id):
 @admin_required
 def delete_registration(registration_id):
     """Delete a registration (with confirmation)"""
-    registration = MemberRegistration.query.get_or_404(registration_id)
+    registration = CEMemberRegistration.query.get_or_404(registration_id)
     
     member_name = registration.member.full_name_en or registration.member.username
     event_title = registration.event_entity.title_en
@@ -280,8 +280,8 @@ def delete_registration(registration_id):
 def bulk_actions():
     """Bulk actions page for registrations"""
     # Get events for dropdown
-    events = EventEntity.query.order_by(EventEntity.title_en).all()
-    statuses = RegistrationStatus.query.all()
+    events = CEEventEntity.query.order_by(CEEventEntity.title_en).all()
+    statuses = CERegistrationStatus.query.all()
     
     return render_template(
         'continueing_edu/admin/registrations/bulk.html',
@@ -308,16 +308,16 @@ def bulk_update_status():
         return redirect(url_for('continuing_edu_admin.bulk_actions'))
     
     # Verify status exists
-    new_status = RegistrationStatus.query.get(new_status_id)
+    new_status = CERegistrationStatus.query.get(new_status_id)
     if not new_status:
         flash('Invalid status selected', 'danger')
         return redirect(url_for('continuing_edu_admin.bulk_actions'))
     
     # Update all selected registrations
-    updated_count = MemberRegistration.query.filter(
-        MemberRegistration.id.in_(registration_ids)
+    updated_count = CEMemberRegistration.query.filter(
+        CEMemberRegistration.id.in_(registration_ids)
     ).update(
-        {MemberRegistration.status_id: new_status_id},
+        {CEMemberRegistration.status_id: new_status_id},
         synchronize_session=False
     )
     
@@ -339,37 +339,37 @@ def export_registrations():
     date_to = request.args.get('date_to', '')
     
     # Build query (same as list_registrations but without pagination)
-    query = MemberRegistration.query.options(
-        joinedload(MemberRegistration.member),
-        joinedload(MemberRegistration.event_entity),
-        joinedload(MemberRegistration.status_ref)
+    query = CEMemberRegistration.query.options(
+        joinedload(CEMemberRegistration.member),
+        joinedload(CEMemberRegistration.event_entity),
+        joinedload(CEMemberRegistration.status_ref)
     )
     
     if status_filter:
-        status = RegistrationStatus.query.filter(
-            func.lower(RegistrationStatus.name_en) == status_filter.lower()
+        status = CERegistrationStatus.query.filter(
+            func.lower(CERegistrationStatus.name_en) == status_filter.lower()
         ).first()
         if status:
-            query = query.filter(MemberRegistration.status_id == status.id)
+            query = query.filter(CEMemberRegistration.status_id == status.id)
     
     if event_id:
-        query = query.filter(MemberRegistration.event_entity_id == event_id)
+        query = query.filter(CEMemberRegistration.event_entity_id == event_id)
     
     if date_from:
         try:
             date_from_dt = datetime.strptime(date_from, '%Y-%m-%d').replace(tzinfo=timezone.utc)
-            query = query.filter(MemberRegistration.registration_date >= date_from_dt)
+            query = query.filter(CEMemberRegistration.registration_date >= date_from_dt)
         except ValueError:
             pass
     
     if date_to:
         try:
             date_to_dt = datetime.strptime(date_to, '%Y-%m-%d').replace(tzinfo=timezone.utc)
-            query = query.filter(MemberRegistration.registration_date <= date_to_dt)
+            query = query.filter(CEMemberRegistration.registration_date <= date_to_dt)
         except ValueError:
             pass
     
-    registrations = query.order_by(desc(MemberRegistration.registration_date)).all()
+    registrations = query.order_by(desc(CEMemberRegistration.registration_date)).all()
     
     # Create CSV
     output = io.StringIO()
@@ -434,17 +434,17 @@ def export_registrations():
 @admin_required
 def event_registrations(event_id):
     """List all registrations for a specific event"""
-    event = EventEntity.query.get_or_404(event_id)
+    event = CEEventEntity.query.get_or_404(event_id)
     
     # Pagination
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
     
     # Query registrations for this event
-    query = MemberRegistration.query.filter_by(event_entity_id=event_id).options(
-        joinedload(MemberRegistration.member),
-        joinedload(MemberRegistration.status_ref)
-    ).order_by(desc(MemberRegistration.registration_date))
+    query = CEMemberRegistration.query.filter_by(event_entity_id=event_id).options(
+        joinedload(CEMemberRegistration.member),
+        joinedload(CEMemberRegistration.status_ref)
+    ).order_by(desc(CEMemberRegistration.registration_date))
     
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     registrations = pagination.items
@@ -452,14 +452,14 @@ def event_registrations(event_id):
     # Statistics for this event
     stats = {
         'total': query.count(),
-        'pending': query.join(RegistrationStatus).filter(
-            func.lower(RegistrationStatus.name_en) == 'pending'
+        'pending': query.join(CERegistrationStatus).filter(
+            func.lower(CERegistrationStatus.name_en) == 'pending'
         ).count(),
-        'confirmed': query.join(RegistrationStatus).filter(
-            func.lower(RegistrationStatus.name_en) == 'confirmed'
+        'confirmed': query.join(CERegistrationStatus).filter(
+            func.lower(CERegistrationStatus.name_en) == 'confirmed'
         ).count(),
-        'cancelled': query.join(RegistrationStatus).filter(
-            func.lower(RegistrationStatus.name_en) == 'cancelled'
+        'cancelled': query.join(CERegistrationStatus).filter(
+            func.lower(CERegistrationStatus.name_en) == 'cancelled'
         ).count(),
     }
     

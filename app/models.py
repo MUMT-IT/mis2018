@@ -178,7 +178,7 @@ class Province(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True)
     code = db.Column('code', db.String(), nullable=False)
     name = db.Column('name', db.String(40), nullable=False)
-    districts = db.relationship("District",
+    districts = db.relationship("District", order_by="District.name",
                                 backref=db.backref('parent'))
 
     def __str__(self):
@@ -192,8 +192,7 @@ class District(db.Model):
     code = db.Column('code', db.String(), nullable=False)
     province_id = db.Column(db.Integer(),
                             db.ForeignKey('provinces.id'))
-    subdistricts = db.relationship('Subdistrict',
-                                   backref=db.backref('district'))
+    subdistricts = db.relationship('Subdistrict', order_by="Subdistrict.name", backref=db.backref('district'))
 
     def __str__(self):
         return u'{}'.format(self.name)

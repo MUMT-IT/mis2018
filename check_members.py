@@ -5,14 +5,14 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app.main import app
-from app.continuing_edu.models import Member, db
+from app.continuing_edu.models import CEMember, db
 
 with app.app_context():
     try:
-        count = Member.query.count()
+        count = CEMember.query.count()
         print(f'Total members: {count}')
         
-        recent = Member.query.order_by(Member.created_at.desc()).limit(5).all()
+        recent = CEMember.query.order_by(CEMember.created_at.desc()).limit(5).all()
         print('\nRecent 5 members:')
         for m in recent:
             google_status = "Yes" if m.google_sub else "No"
@@ -21,7 +21,7 @@ with app.app_context():
             
         # Check for test users
         print('\nExisting test users:')
-        test_users = Member.query.filter(Member.username.like('test%')).all()
+        test_users = CEMember.query.filter(CEMember.username.like('test%')).all()
         if test_users:
             for tu in test_users:
                 print(f'  - {tu.username} ({tu.email})')
