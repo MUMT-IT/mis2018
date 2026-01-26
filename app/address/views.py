@@ -180,7 +180,7 @@ def upload_subdistrict():
                         subdistrict.order_id = order_id if order_id is not None else subdistrict.order_id
                         subdistrict.name = name if name is not None else subdistrict.name
                         subdistrict.code = str_code if str_code is not None else subdistrict.code
-                        subdistrict.district_id = district.id if district else subdistrict.province_id
+                        subdistrict.district_id = district.id if district else subdistrict.district_id
                         subdistrict.zip_code_id = zipcode.id if zipcode else subdistrict.zip_pcode_id
                         db.session.add(subdistrict)
                         db.session.commit()
