@@ -3486,7 +3486,7 @@ def get_idp_for_seminar(seminar_id):
                     </table>
                 '''
             yearly_budget = get_seminar_yearly_budget(current_user.id, seminar.start_datetime)
-            html_content += f'''<p class="is-size-5">วงเงิน {yearly_budget.budget} บาท ยอดที่ใช้(ยังไม่รวมครั้งนี้) {yearly_budget.total_used} บาท คงเหลือ {yearly_budget.remaining} บาท</p>'''
+            html_content += f'''<p class="is-size-5">วงเงิน {yearly_budget.budget:,.2f} บาท ยอดที่ใช้(ยังไม่รวมครั้งนี้) {yearly_budget.total_used:,.2f} บาท คงเหลือ {yearly_budget.remaining:,.2f} บาท</p>'''
         resp = make_response(html_content)
         resp.headers['HX-Trigger-After-Swap'] = 'initSelect2'
         return resp
