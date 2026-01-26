@@ -193,7 +193,6 @@ def edit_event(event_id):
 @admin_required
 def dashboard():
     staff = get_current_staff()
-    print(staff)
     now_utc = datetime.datetime.now(datetime.timezone.utc)
     current_date = now_utc.astimezone().strftime('%A %d %B %Y')
 
