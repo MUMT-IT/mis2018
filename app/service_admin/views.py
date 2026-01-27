@@ -253,7 +253,12 @@ def bacteria_request_data(service_request, type):
                 product_header = True
             if field.data:
                 label = field.label.text
-                value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
+                if field.type == 'CheckboxField':
+                    value = ', '.join(field.data)
+                elif field.type == 'BooleanField':
+                    value = 'บอมรับ'
+                else:
+                    value = field.data
                 values.append({'type': 'text', 'data': f"{label} : {value}"})
     return values
 
@@ -305,7 +310,12 @@ def virus_disinfection_request_data(service_request, type):
                 product_header = True
             if field.data:
                 label = field.label.text
-                value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
+                if field.type == 'CheckboxField':
+                    value = ', '.join(field.data)
+                elif field.type == 'BooleanField':
+                    value = 'บอมรับ'
+                else:
+                    value = field.data
                 values.append({'type': 'text', 'data': f"{label} : {value}"})
     return values
 
@@ -357,7 +367,12 @@ def virus_air_disinfection_request_data(service_request, type):
                 product_header = True
             if field.data:
                 label = field.label.text
-                value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
+                if field.type == 'CheckboxField':
+                    value = ', '.join(field.data)
+                elif field.type == 'BooleanField':
+                    value = 'บอมรับ'
+                else:
+                    value = field.data
                 values.append({'type': 'text', 'data': f"{label} : {value}"})
     return values
 
