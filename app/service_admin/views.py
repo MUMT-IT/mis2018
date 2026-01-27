@@ -4919,7 +4919,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
     qr_payment_img = qrcode.make(url_for('academic_services.add_payment', invoice_id=invoice.id, menu='invoice',
                                  tab='pending', _external=True, _scheme=scheme))
     qr_payment_img.save(qr_payment_buffer, format='PNG')
-    qr_code_payment = Image(qr_payment_buffer, width=95, height=95)
+    qr_code_payment = Image(qr_payment_buffer, width=105, height=102)
 
     sign_style = ParagraphStyle(
         'SignStyle',
@@ -4973,7 +4973,9 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
 
         qr_code_payment_table.setStyle(TableStyle([
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('TOPPADDING', (0, 0), (0, 0), -3),
+            ('TOPPADDING', (0, 1), (0, 1), -3),
         ]))
 
         combined_table = Table(
