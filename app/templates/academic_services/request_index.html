@@ -354,7 +354,7 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (!row.is_completed) {
+                            if (!row.is_completed && row.status_id != 23) {
                                 var url = '/academic_services/portal/request?code=' + row.code + '&menu=' +
                                     '{{ menu }}' + '&request_id=' + data;
                                 return '<div class="field has-addons">' +
