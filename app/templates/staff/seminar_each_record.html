@@ -126,10 +126,8 @@
                                <label class="label">ค่าใช้จ่าย</label>
                             </td>
                             <td>{% if attend.budget_type %}
-                                {{ attend.budget_type }} :
+                                แหล่งงบประมาณ/เงินทุน: {{ attend.budget_type }}
                                 {% endif %}
-                                รวมทั้งสิ้น
-                                {{ "{:,.2f}".format(attend.budget) }}
                             </td>
                         </tr>
                         {% endif %}
@@ -186,6 +184,14 @@
                             <td></td>
                             <td>
                                 ค่าธรรมเนียมการโอน: {{ "{:,.2f}".format(attend.transaction_fee) }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if attend.budget %}
+                        <tr>
+                            <td></td>
+                            <td>
+                                รวมทั้งสิ้น {{ "{:,.2f}".format(attend.budget) }}
                             </td>
                         </tr>
                         {% endif %}
