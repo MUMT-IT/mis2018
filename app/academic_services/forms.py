@@ -428,10 +428,13 @@ class BacteriaRequestForm(FlaskForm):
 
 
 virus_liquid_organisms = [
-    'Influenza virus A (H1N1)',
-    'Enterovirus A-71',
+    'Influenza A virus (H1N1)',
+    'Influenza A virus (H3N2)',
+    'Influenza A virus (H5N1)',
     'Respiratory syncytial virus',
-    'SARS-CoV-2'
+    'Enterovirus A-71',
+    'SARS-CoV-2',
+    'Monkeypox virus'
 ]
 
 virus_airborne_organisms = [
