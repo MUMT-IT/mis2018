@@ -3871,12 +3871,12 @@ def generate_quotation_pdf(quotation, sign=False):
                                                                               locale='th-th') if sign else ''
     customer = '''<para><font size=14>
                     วันที่ {issued_date}<br/>
-                    เรื่อง ใบเสนอราคาค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ<br/>
+                    เรื่อง ใบเสนอราคาค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ{lab}<br/>
                     เรียน {customer}<br/>
                     ที่อยู่ {address}<br/>
                     เลขประจำตัวผู้เสียภาษี {taxpayer_identification_no}
                     </font></para>
-                    '''.format(issued_date=issued_date, customer=quotation.name, address=quotation.address,
+                    '''.format(issued_date=issued_date, lab=quotation.sub_lab.lab.lab, customer=quotation.name, address=quotation.address,
                                taxpayer_identification_no=quotation.taxpayer_identification_no if quotation.taxpayer_identification_no else '-')
 
     customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[540, 280])
