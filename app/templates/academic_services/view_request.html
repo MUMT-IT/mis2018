@@ -278,6 +278,14 @@
                                             <span>แก้ไขข้อมูลคำขอ</span>
                                         </a>
                                     </li>
+                                    <li>
+                                        <a class="button is-rounded is-danger is-outlined is-small is-fullwidth mb-2"
+                                           @click="cancel({{ service_request.id }})"
+                                        >
+                                            <span class="icon"><i class="fas fa-ban"></i></span>
+                                            <span>ยกเลิกคำขอรับบริการ</span>
+                                        </a>
+                                    </li>
                                 {% endif %}
                                 <li>
                                     <a class="button is-link is-outlined is-rounded is-small is-fullwidth mb-2"
@@ -352,5 +360,21 @@
                 })
             })
         });
+        vm = new Vue({
+            el: '#request',
+            methods: {
+                cancel: function (request_id) {
+                    var menu = '{{ menu }}';
+                    this.$buefy.dialog.confirm({
+                        message: 'ต้องการยกเลิกใบคำขอรับบริการนี้จริงหรือไม่',
+                        onConfirm: () => {
+                            const url = `/academic_services/customer/request/cancel/${request_id}?menu=${menu}`;
+                            window.location.href = url;
+                        },
+                        type: 'is-danger'
+                    });
+                }
+            }
+        })
     </script>
 {% endblock %}
