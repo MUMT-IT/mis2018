@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import (FormField, BooleanField, TextAreaField, SelectField, SelectMultipleField, HiddenField,
                      PasswordField,
                      SubmitField, widgets, RadioField, FieldList, FileField, FloatField, IntegerField, StringField)
-from wtforms.validators import DataRequired, EqualTo, Length, Optional
+from wtforms.validators import DataRequired, EqualTo, Length, Optional, InputRequired
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from wtforms_components import EmailField
 
@@ -406,6 +406,14 @@ class BacteriaRequestForm(FlaskForm):
                                                     "oninput": "this.setCustomValidity('')"
                                                 })
     collect_sample_during_testing_other = StringField('ระบุ')
+    read_document = BooleanField(
+        'ข้าพเจ้าได้อ่าน ทำความเข้าใจ และยอมรับเงื่อนไขการให้บริการ ในคู่มือการใช้บริการห้องปฏิบัติการไวรัสวิทยา (MN-WI-VI-025-07-01) แล้ว',
+        validators=[DataRequired(message='กรุณายอมรับ')],
+        render_kw={
+            "oninvalid": "this.setCustomValidity('กรุณายอมรับ')",
+            "oninput": "this.setCustomValidity('')"
+        }
+    )
     product_type = SelectField('ประเภทผลิตภัณฑ์', choices=[('', '+ เพิ่มประเภทผลิตภัณฑ์'),
                                                            ('liquid',
                                                             'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดของเหลว หรือชนิดผง ที่ละลายน้้าได้'),
@@ -586,6 +594,14 @@ class VirusDisinfectionRequestForm(FlaskForm):
                                                            ('spray', 'ผลิตภัณฑ์ฆ่าเชื้อชนิดฉีดพ่น'),
                                                            ('coat', 'ผลิตภัณฑ์ฆ่าเชื้อที่เคลือบบนพื้นผิวสำเร็จรูป')],
                                validators=[Optional()])
+    read_document = BooleanField(
+        'ข้าพเจ้าได้อ่าน ทำความเข้าใจ และยอมรับเงื่อนไขการให้บริการ ในคู่มือการใช้บริการห้องปฏิบัติการไวรัสวิทยา (MN-WI-VI-025-07-01) แล้ว',
+        validators=[DataRequired(message='กรุณายอมรับ')],
+        render_kw={
+            "oninvalid": "this.setCustomValidity('กรุณายอมรับ')",
+            "oninput": "this.setCustomValidity('')"
+        }
+    )
     liquid_condition_field = FormField(VirusLiquidConditionForm,
                                        'ผลิตภัณฑ์ฆ่าเชื้อชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้')
     spray_condition_field = FormField(VirusSprayConditionForm, 'ผลิตภัณฑ์ฆ่าเชื้อชนิดฉีดพ่น')
@@ -682,6 +698,14 @@ class VirusAirDisinfectionRequestForm(FlaskForm):
                                             "oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้จัดจำหน่าย')",
                                             "oninput": "this.setCustomValidity('')"
                                         })
+    read_document = BooleanField(
+        'ข้าพเจ้าได้อ่าน ทำความเข้าใจ และยอมรับเงื่อนไขการให้บริการ ในคู่มือการใช้บริการห้องปฏิบัติการไวรัสวิทยา (MN-WI-VI-025-07-01) แล้ว',
+        validators=[DataRequired(message='กรุณายอมรับ')],
+        render_kw={
+            "oninvalid": "this.setCustomValidity('กรุณายอมรับ')",
+            "oninput": "this.setCustomValidity('')"
+        }
+    )
     product_type = SelectField('ประเภทการฆ่า/ทำลายเชื้อ', choices=[('', '+ เพิ่มประเภทการฆ่า/ทำลายเชื้อ'),
                                                                    ('surface', 'การฆ่าเชื้อบนพื้นผิว'),
                                                                    ('airborne', 'การลด/ทำลายเชื้อในอากาศ')],
