@@ -3830,18 +3830,15 @@ def show_seminar_info_each_person(record_id):
         org_name = seminar_attend.staff.personal_info.org.parent.name
     else:
         org_name = seminar_attend.staff.personal_info.org.name
-    registration_fee = seminar_attend.registration_fee if seminar_attend.registration_fee else '-'
+    registration_fee = f'{seminar_attend.registration_fee:,.2f}' if seminar_attend.registration_fee else '-'
     transaction_fee = u'ค่าธรรมเนียมการโอนเงิน(ถ้ามี) {} บาท '.format(
         seminar_attend.transaction_fee) if seminar_attend.transaction_fee else ''
-    budget = seminar_attend.budget if seminar_attend.budget else '-'
-    accommodation_cost = u'ค่าที่พัก {} บาท '.format(
-        seminar_attend.accommodation_cost) if seminar_attend.accommodation_cost else ''
-    flight_ticket_cost = u'ค่าตั๋วเครื่องบิน {} บาท '.format(
-        seminar_attend.flight_ticket_cost) if seminar_attend.flight_ticket_cost else ''
-    train_ticket_cost = u'ค่ารถไฟ {} บาท '.format(
-        seminar_attend.train_ticket_cost) if seminar_attend.train_ticket_cost else ''
-    taxi_cost = u'ค่าแท็กซี่ {} บาท '.format(seminar_attend.taxi_cost) if seminar_attend.taxi_cost else ''
-    fuel_cost = u'ค่าน้ำมัน {} บาท '.format(seminar_attend.fuel_cost) if seminar_attend.fuel_cost else ''
+    budget = f'{seminar_attend.budget:,.2f}' if seminar_attend.budget else '-'
+    accommodation_cost = f'ค่าที่พัก {seminar_attend.accommodation_cost:,.2f} บาท ' if seminar_attend.accommodation_cost else ''
+    flight_ticket_cost = f'ค่าตั๋วเครื่องบิน {seminar_attend.flight_ticket_cost:,.2f} บาท ' if seminar_attend.flight_ticket_cost else ''
+    train_ticket_cost = f'ค่ารถไฟ {seminar_attend.train_ticket_cost:,.2f} บาท ' if seminar_attend.train_ticket_cost else ''
+    taxi_cost = f'ค่าแท็กซี่ {seminar_attend.taxi_cost:,.2f} บาท ' if seminar_attend.taxi_cost else ''
+    fuel_cost = f'ค่าน้ำมัน {seminar_attend.fuel_cost:,.2f} บาท ' if seminar_attend.fuel_cost else ''
     attend_online = u' เข้าร่วมผ่านช่องทางออนไลน์' if seminar_attend.attend_online else ''
     academic_position = StaffAcademicPositionRecord.query.filter_by \
         (personal_info_id=current_user.personal_info.id).first()
@@ -3863,7 +3860,7 @@ def show_seminar_info_each_person(record_id):
         yearly_budget = get_seminar_yearly_budget(seminar_attend.staff_account_id, seminar_attend.start_datetime)
         for obj in seminar_attend.objectives:
             if "IDP" in obj.objective:
-                idp_value = f'\\nวงเงิน {yearly_budget.budget} บาท ยอดที่ใช้(รวมครั้งนี้) {yearly_budget.total_used} บาท คงเหลือ {yearly_budget.remaining} บาท'
+                idp_value = f'\\nวงเงิน {yearly_budget.budget:,.2f} บาท ยอดที่ใช้(รวมครั้งนี้) {yearly_budget.total_used:,.2f} บาท คงเหลือ {yearly_budget.remaining:,.2f} บาท'
                 idp_pre_item = ': '
                 idp_item = ''
                 for item in seminar_attend.idp_items:
