@@ -515,6 +515,7 @@ class ServiceQuotation(db.Model):
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
     reason = db.Column('reason', db.String(), info={'label': 'เหตุผล'})
     other = db.Column('other', db.String(), info={'label': 'รายละเอียดเพิ่มเติม'})
+    note = db.Column('note', db.String(), info={'label': 'รายละเอียด'})
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('quotations'))
@@ -526,7 +527,9 @@ class ServiceQuotation(db.Model):
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
     approver = db.relationship(StaffAccount, backref=db.backref('approved_quotations'), foreign_keys=[approver_id])
-
+    disapproved_at = db.Column('disapproved_at', db.DateTime(timezone=True))
+    disapprover_id = db.Column('disapprover_id', db.ForeignKey('staff_account.id'))
+    disapprover = db.relationship(StaffAccount, backref=db.backref('disapproved_quotations'), foreign_keys=[disapprover_id])
     confirmed_at = db.Column('confirmed_at', db.DateTime(timezone=True))
     confirmer_id = db.Column('confirmer_id', db.ForeignKey('service_customer_accounts.id'))
     confirmer = db.relationship(ServiceCustomerAccount, backref=db.backref('confirmed_quotations'),
