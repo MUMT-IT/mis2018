@@ -464,7 +464,7 @@ class ServiceRequest(db.Model):
             'sample_test_at' : ', '.join(str(result.released_at) for result in self.results if result.released_at)
                 if self.results else None,
             'result_approved_at': self.get_result().approved_at if self.get_result() and self.get_result().approved_at else None,
-            'result_edit_at': self.get_result().result_edit_at if self.get_result() and self.get_result().result_edit_at else None,
+            'req_edit_at': self.get_result().req_edit_at if self.get_result() and self.get_result().req_edit_at else None,
             'result_sent_at': self.get_result().sent_at if self.get_result() and self.get_result().sent_at else None,
             'result_is_edited' : self.get_result().is_edited if self.get_result() and self.get_result().is_edited else None,
             'invoice_sent_at': ', '.join(str(invoice.sent_at) for quotation in self.quotations
@@ -816,7 +816,7 @@ class ServiceTestItem(db.Model):
             'created_at': self.created_at,
             'has_result': True if self.get_result() else None,
             'sent_at': self.get_result().sent_at if self.get_result() and self.get_result().sent_at else None,
-            'result_edit_at': self.get_result().result_edit_at if self.get_result() and self.get_result().result_edit_at else None,
+            'req_edit_at': self.get_result().req_edit_at if self.get_result() and self.get_result().req_edit_at else None,
             'is_edited': self.get_result().is_edited if self.get_result() and self.get_result().is_edited else None,
             'approved_at': self.get_result().approved_at if self.get_result() and self.get_result().approved_at else None,
             'result_id': [result.id for result in self.request.results] if self.request.results else None,
@@ -1163,7 +1163,7 @@ class ServiceResult(db.Model):
             'customer_status': self.customer_status if self.customer_status else None,
             'released_at': self.released_at if self.released_at else None,
             'sent_at': self.sent_at if self.sent_at else None,
-            'result_edit_at': self.result_edit_at if self.result_edit_at else None,
+            'req_edit_at': self.req_edit_at if self.req_edit_at else None,
             'is_edited': self.is_edited if self.is_edited else None,
             'approved_at': self.approved_at if self.approved_at else None,
             'creator': self.creator.fullname if self.creator else None,
@@ -1199,7 +1199,7 @@ class ServiceResult(db.Model):
         if self.approved_at:
             status = 'ยืนยันใบรายงานผลแล้ว'
             color = 'is-success'
-        elif self.result_edit_at and not self.approved_at and not self.is_edited:
+        elif self.req_edit_at and not self.approved_at and not self.is_edited:
             status = 'ขอแก้ไขใบรายงานผล'
             color = 'is-info'
         elif uploaded_all and self.sent_at:
@@ -1225,7 +1225,7 @@ class ServiceResult(db.Model):
         elif self.approved_at:
             status = 'ยืนยันใบรายงานผลแล้ว'
             color = 'is-primary'
-        elif self.result_edit_at and not self.approved_at and not self.is_edited:
+        elif self.req_edit_at and not self.approved_at and not self.is_edited:
             status = 'ส่งคำขอแก้ไขใบรายงานผลแล้ว'
             color = 'is-info'
         elif uploaded_all and self.sent_at:
