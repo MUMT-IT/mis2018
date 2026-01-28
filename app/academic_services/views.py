@@ -5141,9 +5141,9 @@ def result_index():
     )
 
     pending_query = query.filter(ServiceResult.sent_at == None)
-    edit_query = query.filter(ServiceResult.result_edit_at != None, ServiceResult.is_edited == False)
+    edit_query = query.filter(ServiceResult.req_edit_at != None, ServiceResult.is_edited == False)
     approve_query = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
-                                 or_(ServiceResult.result_edit_at == None, ServiceResult.is_edited == True
+                                 or_(ServiceResult.req_edit_at == None, ServiceResult.is_edited == True
                                      )
                                  )
     confirm_query = query.filter(ServiceResult.approved_at != None)
@@ -5408,7 +5408,7 @@ def edit_result_item(result_item_id):
             result_item.edit_requester_id = current_user.id
             result_item.req_edit_at = arrow.now('Asia/Bangkok').datetime
             # result_item.result.request.status_id = status_id
-            result_item.result.result_edit_at = arrow.now('Asia/Bangkok').datetime
+            result_item.result.req_edit_at = arrow.now('Asia/Bangkok').datetime
             result_item.result.is_edited = False
             db.session.add(result_item)
             db.session.commit()
