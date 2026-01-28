@@ -513,10 +513,8 @@ class ServiceQuotation(db.Model):
     name = db.Column('name', db.String())
     address = db.Column('address', db.Text())
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
-    remark = db.Column('remark', db.String())
     reason = db.Column('reason', db.String(), info={'label': 'เหตุผล'})
     other = db.Column('other', db.String(), info={'label': 'รายละเอียดเพิ่มเติม'})
-    cancel_reason = db.Column('cancel_reason', db.Text())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('quotations'))
@@ -528,6 +526,7 @@ class ServiceQuotation(db.Model):
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
     approver = db.relationship(StaffAccount, backref=db.backref('approved_quotations'), foreign_keys=[approver_id])
+
     confirmed_at = db.Column('confirmed_at', db.DateTime(timezone=True))
     confirmer_id = db.Column('confirmer_id', db.ForeignKey('service_customer_accounts.id'))
     confirmer = db.relationship(ServiceCustomerAccount, backref=db.backref('confirmed_quotations'),
