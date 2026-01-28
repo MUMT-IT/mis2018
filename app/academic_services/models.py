@@ -1139,6 +1139,7 @@ class ServiceResult(db.Model):
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     result_edit_at = db.Column('result_edit_at', db.DateTime(timezone=True))
+    req_edit_at = db.Column('req_edit_at', db.DateTime(timezone=True))
     sent_at = db.Column('sent_at', db.DateTime(timezone=True))
     sender_id = db.Column('sender_id', db.ForeignKey('staff_account.id'))
     sender = db.relationship(StaffAccount, backref=db.backref('sended_results'), foreign_keys=[sender_id])
