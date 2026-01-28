@@ -159,7 +159,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.sent_at && row.approved_at == null && (row.result_edit_at == null || row.is_edited != null)) {
+                            } else if (row.sent_at && row.approved_at == null && (row.req_edit_at == null || row.is_edited != null)) {
                                 return `<span class="tag is-warning is-rounded is-light">
                                             <span class="icon">
                                                 <i class="fas fa-hourglass-half"></i>
@@ -168,7 +168,7 @@
                                                 รอยืนยันใบรายงานผล
                                             </span>
                                         </span>`;
-                            } else if (row.result_edit_at != null && row.is_edited == null) {
+                            } else if (row.req_edit_at != null && row.is_edited == null) {
                                 return row.edit_file;
                             } else {
                                 return ''

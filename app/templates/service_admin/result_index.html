@@ -175,9 +175,9 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.sent_at && row.approved_at == null && (row.result_edit_at == null || row.is_edited != null)) {
+                            } else if (row.sent_at && row.approved_at == null && (row.req_edit_at == null || row.is_edited != null)) {
                                 return '';
-                            } else if (row.result_edit_at != null && row.is_edited == null) {
+                            } else if (row.req_edit_at != null && row.is_edited == null) {
                                 return row.edit_file;
                             } else {
                                 var draft_result_url = '/service_admin/result/draft/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
