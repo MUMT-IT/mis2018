@@ -588,6 +588,25 @@ class VirusDisinfectionRequestForm(FlaskForm):
                                              "oninput": "this.setCustomValidity('')"
                                              })
     product_storage_other = StringField('ระบุ')
+    manufacturer = StringField('ผู้ผลิต', validators=[DataRequired()],
+                               render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อผู้ผลิต')",
+                                          "oninput": "this.setCustomValidity('')"
+                                          })
+    manufacturer_address = TextAreaField('ที่อยู่ผู้ผลิต', validators=[DataRequired()],
+                                         render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้ผลิต')",
+                                                    "oninput": "this.setCustomValidity('')"
+                                                    })
+    importer = StringField('ผู้นำเข้า')
+    importer_address = TextAreaField('ที่อยู่ผู้นำเข้า')
+    distributor = StringField('ผู้จัดจำหน่าย', validators=[DataRequired()],
+                              render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อผู้จัดจำหน่าย')",
+                                         "oninput": "this.setCustomValidity('')"
+                                         })
+    distributor_address = TextAreaField('ที่อยู่ผู้จัดจำหน่าย', validators=[DataRequired()],
+                                        render_kw={
+                                            "oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้จัดจำหน่าย')",
+                                            "oninput": "this.setCustomValidity('')"
+                                        })
     product_type = SelectField('ประเภทผลิตภัณฑ์', choices=[('', '+ เพิ่มประเภทผลิตภัณฑ์'),
                                                            ('liquid',
                                                             'ผลิตภัณฑ์ฆ่าเชื้อชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้'),
