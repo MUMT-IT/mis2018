@@ -588,6 +588,11 @@ class VirusDisinfectionRequestForm(FlaskForm):
                                              "oninput": "this.setCustomValidity('')"
                                              })
     product_storage_other = StringField('ระบุ')
+    post_test_product_action = SelectField('ต้องการให้ดำเนินการกับผลิตภัณฑ์ที่เหลือหลังการทดสอบเสร็จสิ้น', choices=[(c, c) for c in [
+        'รับผลิตภัณฑ์คืน (ต้องติดต่อรับผลิตภัณฑ์คืนภายใน 30 วันหลังจากได้รับผลการทดสอบ)', 'ทำลายผลิตภัณฑ์ตามกระบวนการของห้องปฏิบัติการ']],
+                                           render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือกความต้องการให้ดำเนินการกับผลิตภัณฑ์ที่เหลือหลังการทดสอบเสร็จสิ้น')",
+                                             "oninput": "this.setCustomValidity('')"
+                                             })
     manufacturer = StringField('ผู้ผลิต', validators=[DataRequired()],
                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อผู้ผลิต')",
                                           "oninput": "this.setCustomValidity('')"
