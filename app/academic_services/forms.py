@@ -527,7 +527,10 @@ class VirusCoatConditionForm(FlaskForm):
                                render_kw={'class': 'input is-danger'})
     coat_test_method = RadioField('วิธีทดสอบ', choices=[(c, c) for c in ['วิธีทดสอบ Modified ASTM E1053-20']],
                                      validators=[Optional()])
-    coat_specify_surface_type = StringField('ระบุชนิดของพื้นผิว', render_kw={'class': 'input'})
+    coat_surface_type = RadioField('ชนิดพื้นผิว', choices=[('ลามิเนต', 'ลามิเนต'), ('สิ่งทอ', 'สิ่งทอ'),
+                                                             ('พื้นผิวอื่นๆ โปรดระบุ', 'พื้นผิวอื่นๆ โปรดระบุ')],
+                                     validators=[Optional()])
+    coat_surface_type_other = StringField('ระบุ', render_kw={'class': 'input'})
     coat_organism_fields = FieldList(FormField(VirusCoatTestConditionForm), min_entries=len(virus_liquid_organisms))
 
 
