@@ -139,7 +139,10 @@
                             <div class="field">
                                 <div class="field-body">
                                     <div class="field">
-                                        <label class="label">{{ form.product_storage.label }}</label>
+                                        <label class="label">
+                                            {{ form.product_storage.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
                                         <div class="select is-fullwidth">
                                             {{ form.product_storage(
                                                         **{'hx-get': url_for("academic_services.get_product_storage",
@@ -150,6 +153,15 @@
                                         </div>
                                     </div>
                                     <div id="product-storage-other-container" style='width:75%'></div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.post_test_product_action.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="select">
+                                    {{ form.post_test_product_action() }}
                                 </div>
                             </div>
                             <div class="field">
