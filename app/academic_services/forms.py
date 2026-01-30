@@ -613,6 +613,7 @@ class VirusDisinfectionRequestForm(FlaskForm):
                                             "oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้จัดจำหน่าย')",
                                             "oninput": "this.setCustomValidity('')"
                                         })
+    note = TextAreaField('บันนึก/หมายเหตุ สำหรับผู้รับบริการ')
     product_type = SelectField('ประเภทผลิตภัณฑ์', choices=[('', '+ เพิ่มประเภทผลิตภัณฑ์'),
                                                            ('liquid',
                                                             'ผลิตภัณฑ์ฆ่าเชื้อชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้'),
@@ -721,6 +722,7 @@ class VirusAirDisinfectionRequestForm(FlaskForm):
                                             "oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้จัดจำหน่าย')",
                                             "oninput": "this.setCustomValidity('')"
                                         })
+    note = TextAreaField('บันนึก/หมายเหตุ สำหรับผู้รับบริการ')
     read_document = BooleanField(
         'ข้าพเจ้าได้อ่าน ทำความเข้าใจ และยอมรับเงื่อนไขการให้บริการ ในคู่มือการใช้บริการห้องปฏิบัติการไวรัสวิทยา (MN-WI-VI-025-07-01) แล้ว',
         validators=[DataRequired(message='กรุณายอมรับ')],
