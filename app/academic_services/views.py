@@ -3281,7 +3281,7 @@ def generate_request_pdf(service_request):
         'CenterStyle',
         parent=style_sheet['ThaiStyle'],
         fontSize=13,
-        leading=25,
+        leading=30,
         alignment=TA_CENTER
     )
 
@@ -3593,7 +3593,7 @@ def generate_request_pdf(service_request):
             [Paragraph("ผู้ส่งตัวอย่าง/Sent by", center_style), Paragraph('', center_style)],
             [Paragraph("(", center_style), Paragraph(')', center_style)],
             [Paragraph("วันที่/Date", center_style), Paragraph('', center_style)],
-            [Spacer(1, 50)],
+            [Spacer(1, 30)],
             [Paragraph("ผู้รับตัวอย่าง/Received by", center_style), Paragraph('', center_style)],
             [Paragraph("(", center_style), Paragraph(')', center_style)],
             [Paragraph("วันที่/Date", center_style), Paragraph('', center_style)]],
@@ -3630,6 +3630,27 @@ def generate_request_pdf(service_request):
         ]))
         data.append(Spacer(1, 50))
         data.append(footer_table)
+    else:
+        sign_table = Table([
+            [Paragraph("ผู้ส่งตัวอย่าง/Sent by", center_style), Paragraph('', center_style)],
+            [Paragraph("(", center_style), Paragraph(')', center_style)],
+            [Paragraph("วันที่/Date", center_style), Paragraph('', center_style)],
+            [Spacer(1, 30)],
+            [Paragraph("ผู้รับตัวอย่าง/Received by", center_style), Paragraph('', center_style)],
+            [Paragraph("(", center_style), Paragraph(')', center_style)],
+            [Paragraph("วันที่/Date", center_style), Paragraph('', center_style)]],
+            colWidths=[160, 160], hAlign='RIGHT')
+
+        sign_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 15),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 1), (-1, 1), 0),
+        ]))
+        data.append(Spacer(1, 50))
+        data.append(sign_table)
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
     return buffer
