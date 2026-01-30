@@ -1285,9 +1285,9 @@ def create_virus_air_disinfection_request(request_id=None):
     for n, org in enumerate(virus_liquid_organisms):
         surface_entry = form.surface_condition_field.surface_disinfection_organism_fields[n]
         surface_entry.surface_disinfection_organism.choices = [(org, org)]
-    for n, org in enumerate(virus_airborne_organisms):
-        airborne_entry = form.airborne_condition_field.airborne_disinfection_organism_fields[n]
-        airborne_entry.airborne_disinfection_organism.choices = [(org, org)]
+    # for n, org in enumerate(virus_airborne_organisms):
+    #     airborne_entry = form.airborne_condition_field.airborne_disinfection_organism_fields[n]
+    #     airborne_entry.airborne_disinfection_organism.choices = [(org, org)]
     if form.validate_on_submit():
         if request_id:
             service_request.data = format_data(form.data)
@@ -1319,9 +1319,9 @@ def get_virus_air_disinfection_condition_form():
     for n, org in enumerate(virus_liquid_organisms):
         surface_entry = form.surface_condition_field.surface_disinfection_organism_fields[n]
         surface_entry.surface_disinfection_organism.choices = [(org, org)]
-    for n, org in enumerate(virus_airborne_organisms):
-        airborne_entry = form.airborne_condition_field.airborne_disinfection_organism_fields[n]
-        airborne_entry.airborne_disinfection_organism.choices = [(org, org)]
+    # for n, org in enumerate(virus_airborne_organisms):
+    #     airborne_entry = form.airborne_condition_field.airborne_disinfection_organism_fields[n]
+    #     airborne_entry.airborne_disinfection_organism.choices = [(org, org)]
     field_name = f"{product_type}_condition_field"
     fields = getattr(form, field_name)
     return render_template('service_admin/partials/virus_air_disinfection_request_condition_form.html', fields=fields)
