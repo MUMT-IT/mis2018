@@ -6017,7 +6017,7 @@ def generate_quotation_pdf(quotation, sign=False):
     detail_style = ParagraphStyle(
         'DetailStyle',
         parent=style_sheet['ThaiStyle'],
-        leading=17
+        leading=21
     )
 
     issued_date = arrow.get(quotation.approved_at.astimezone(localtz)).format(fmt='DD MMMM YYYY',

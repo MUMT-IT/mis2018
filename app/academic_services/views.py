@@ -4933,7 +4933,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     detail_style = ParagraphStyle(
         'DetailStyle',
         parent=style_sheet['ThaiStyle'],
-        leading=17
+        leading=21
     )
 
     customer = '''<para><font size=14>
