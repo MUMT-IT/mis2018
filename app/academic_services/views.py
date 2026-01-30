@@ -3863,7 +3863,7 @@ def generate_quotation_pdf(quotation, sign=False):
                             )
     data = []
 
-    affiliation = '''<para><font size=10>
+    affiliation = '''<para><font size=11>
                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
                        999 ต.ศาลายา อ.พุทธมณฑล จ.นครปฐม 73170<br/>
                        โทร 0-2441-4371-9 ต่อ 2820 2830<br/>
@@ -3875,7 +3875,7 @@ def generate_quotation_pdf(quotation, sign=False):
     #                         {address}
     #                         </font></para>'''.format(address=lab.address if lab else sub_lab.address)
 
-    quotation_no = '''<br/><br/><font size=10>
+    quotation_no = '''<br/><br/><font size=14>
                     เลขที่/No. {quotation_no}<br/>
                     </font>
                     '''.format(quotation_no=quotation.quotation_no)
@@ -3992,7 +3992,8 @@ def generate_quotation_pdf(quotation, sign=False):
         ('SPAN', (2, -2), (3, -2)),
         ('SPAN', (0, -1), (1, -1)),
         ('SPAN', (2, -1), (3, -1)),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10)
     ]))
 
     # document_address = '''<para><font size=12>ที่อยู่สำหรับจัดส่งเอกสาร<br/>
