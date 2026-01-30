@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import (FormField, BooleanField, TextAreaField, SelectField, SelectMultipleField, HiddenField,
                      PasswordField,
                      SubmitField, widgets, RadioField, FieldList, FileField, FloatField, IntegerField, StringField)
-from wtforms.validators import DataRequired, EqualTo, Length, Optional, InputRequired
+from wtforms.validators import DataRequired, EqualTo, Length, Optional
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from wtforms_components import EmailField
 

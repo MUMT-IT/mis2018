@@ -273,7 +273,7 @@
                                                                     </tbody>
                                                                 </table>
                                                             {% elif field.name.endswith('surface_type') %}
-                                                                <div class="field ml-4">
+                                                                <div class="field ml-4" style="display: none" id="surface_type_field">
                                                                     <label id="surface_type_label"
                                                                            class="label">{{ field.label }}</label>
                                                                     <div class="control">
@@ -578,25 +578,21 @@
         }
 
         function toggleSurfaceTypeInput(subform) {
+            const testMethod = subform.find('input[type="radio"][name$="test_method"]:checked').val();
+            const surfaceTypeField = subform.find('#surface_type_field');
             const surfaceTypeLabel = subform.find('label[id$="surface_type_label"]');
-            const surfaceTypeField = subform.find('input[name$="surface_type"]');
+            const surfaceTypeInput = subform.find('input[name$="surface_type"]');
             const surfaceTypeOtherField = subform.find('input[name$="surface_type_other"]');
-            let isASTMSelected = false;
 
-            subform.find('input[type="checkbox"][name$="test_method"]').each(function () {
-                if (this.checked && this.value.includes('Modified ASTM E1053-20')) {
-                    isASTMSelected = true;
-                }
-            });
+            if (testMethod && testMethod.includes('Modified ASTM E1053-20')) {
+                surfaceTypeField.show()
+                surfaceTypeInput.prop('disabled', false)
 
-            if (isASTMSelected) {
-                surfaceTypeField.prop('disabled', false).attr('required', true);
-
-                surfaceTypeField.prop('required', true)
+                surfaceTypeInput.prop('required', true)
                     .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกชนิดพื้นผิว')");
 
-                surfaceTypeField.on('change', function () {
-                    surfaceTypeField.each(function () {
+                surfaceTypeInput.on('change', function () {
+                    surfaceTypeInput.each(function () {
                         this.setCustomValidity('');
                     });
                 });
@@ -604,14 +600,15 @@
                 surfaceTypeLabel.html('<label class="label">ชนิดพื้นผิว<span class="has-text-danger ml-1">*</span></label>');
 
             } else {
-                surfaceTypeField.each(function () {
+                surfaceTypeInput.each(function () {
                     let name = $(this).attr('name');
                     if (subform.find('input[name="' + name + '"][type="hidden"]').length === 0) {
                         subform.append('<input type="hidden" name="' + name + '" value="">');
                     }
                 });
-                surfaceTypeField.prop('disabled', true);
-                surfaceTypeField.prop('checked', false)
+                surfaceTypeField.hide()
+                surfaceTypeInput.prop('disabled', true);
+                surfaceTypeInput.prop('checked', false)
                 surfaceTypeOtherField.closest('.field').hide();
                 surfaceTypeOtherField.val('');
                 surfaceTypeLabel.html('<label class="label">ชนิดพื้นผิว</label>');
