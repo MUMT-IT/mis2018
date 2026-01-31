@@ -4786,7 +4786,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         alignment=TA_RIGHT
     )
 
-    affiliation = '''<para><font size=12>
+    affiliation = '''<para><font size=11>
                            คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
                            999 ต.ศาลายา อ.พุทธมณฑล จ.นครปฐม 73170<br/>
                            โทร 0-2441-4371-9 ต่อ 2820 2830<br/>
@@ -4798,15 +4798,15 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
     #                     {address}
     #                     </font></para>'''.format(address=lab.address if lab else sub_lab.address)
 
-    invoice_no = '''<br/><font size=12>
-                    เลขที่/No. {invoice_no}
+    invoice_no = '''<br/><br/><font size=14>
+                    เลขที่/No. {invoice_no}<br/>
                     </font>
                     '''.format(invoice_no=invoice.invoice_no)
 
     header_content_ori = [[[],
                            [logo],
                            [],
-                           [Paragraph(affiliation, style=bold_style),
+                           [Paragraph(affiliation, style=style_sheet['ThaiStyleRight']),
                             Paragraph(invoice_no, style=style_sheet['ThaiStyleRight'])]]]
 
     header_styles = TableStyle([
@@ -4815,7 +4815,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         ('ALIGN', (-1, 0), (-1, -1), 'RIGHT'),
     ])
 
-    header_ori = Table(header_content_ori, colWidths=[180, 200, 0, 180])
+    header_ori = Table(header_content_ori, colWidths=[150, 200, 0, 150])
 
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
@@ -4823,7 +4823,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
     detail_style = ParagraphStyle(
         'DetailStyle',
         parent=style_sheet['ThaiStyle'],
-        leading=17
+        leading=20
     )
 
     customer = '''<para><font size=14>
@@ -4911,8 +4911,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         ('SPAN', (0, -1), (1, -1)),
         ('SPAN', (2, -1), (3, -1)),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BOTTOMPADDING', (0, 0), (0, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10)
     ]))
 
     head_remark_style = ParagraphStyle(
@@ -5000,7 +4999,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
     ]))
 
-    data.append(KeepTogether(Spacer(7, 7)))
+    data.append(KeepTogether(Spacer(30, 30)))
     data.append(KeepTogether(header_ori))
     data.append(KeepTogether(Spacer(1, 12)))
     data.append(KeepTogether(customer_table))
@@ -5064,11 +5063,11 @@ def export_invoice_pdf(invoice_id):
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.sub_lab.code).first()
     ref1 = invoice.invoice_no
     ref2 = sub_lab.ref.upper()
-    qrcode_data = generate_qrcode(amount=invoice.grand_total, ref1=ref1, ref2=ref2, ref3=None)
-    if qrcode_data:
-        qr_image_base64 = qrcode_data['qrImage']
-    else:
-        qr_image_base64 = None
+    # qrcode_data = generate_qrcode(amount=invoice.grand_total, ref1=ref1, ref2=ref2, ref3=None)
+    # if qrcode_data:
+    #     qr_image_base64 = qrcode_data['qrImage']
+    # else:
+    qr_image_base64 = None
     buffer = generate_invoice_pdf(invoice, qr_image_base64=qr_image_base64)
     if is_download == 'true' and not invoice.downloaded_at:
         invoice.downloaded_at = arrow.now('Asia/Bangkok').datetime
@@ -5955,7 +5954,7 @@ def view_quotation(quotation_id):
 
 
 def generate_quotation_pdf(quotation, sign=False):
-    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 70, 70)
     approver = quotation.approver.fullname if sign else ''
     digital_sign = 'ลายมือชื่อดิจิทัล/Digital Signature' if sign else (
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
@@ -5979,6 +5978,13 @@ def generate_quotation_pdf(quotation, sign=False):
                             bottomMargin=10,
                             )
     data = []
+
+    bold_style = ParagraphStyle(
+        'BoldStyle',
+        parent=style_sheet['ThaiStyleBold'],
+        leading=15,
+        alignment=TA_RIGHT
+    )
 
     affiliation = '''<para><font size=11>
                    คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
@@ -6017,7 +6023,7 @@ def generate_quotation_pdf(quotation, sign=False):
     detail_style = ParagraphStyle(
         'DetailStyle',
         parent=style_sheet['ThaiStyle'],
-        leading=21
+        leading=20
     )
 
     issued_date = arrow.get(quotation.approved_at.astimezone(localtz)).format(fmt='DD MMMM YYYY',
@@ -6036,11 +6042,17 @@ def generate_quotation_pdf(quotation, sign=False):
     customer_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                                         ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
 
-    items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>จำนวน / Quantity</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>ราคา / Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>จำนวนเงิน / Amount</font>', style=style_sheet['ThaiStyleCenter']),
+    label_style = ParagraphStyle(
+        'LabelStyle',
+        parent=style_sheet['ThaiStyleBold'],
+        alignment=TA_CENTER
+    )
+
+    items = [[Paragraph('<font size=13>ลำดับ<br/>No</font>', style=label_style),
+              Paragraph('<font size=13>รายการ<br/>Description</font>', style=label_style),
+              Paragraph('<font size=13>จำนวน<br/>Quantity</font>', style=label_style),
+              Paragraph('<font size=13>ราคา<br/>Unit Price</font>', style=label_style),
+              Paragraph('<font size=13>จำนวนเงิน<br/>Amount</font>', style=label_style),
               ]]
 
     for n, item in enumerate(sorted(quotation.quotation_items, key=lambda x: x.sequence), start=1):
@@ -6058,26 +6070,26 @@ def generate_quotation_pdf(quotation, sign=False):
     items.append([
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>รวมเป็นเงิน</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>รวมเป็นเงิน</font>', style=style_sheet['ThaiStyleBold']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.subtotal()), style=style_sheet['ThaiStyleNumber']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.subtotal()), style=bold_style),
     ])
 
     items.append([
-        Paragraph('<font size=12>{}</font>'.format(bahttext(quotation.grand_total())),
-                  style=style_sheet['ThaiStyleCenter']),
+        Paragraph('<font size=13>รวมเป็นเงินทั้งสิ้น/Grand Total ({})</font>'.format(bahttext(quotation.grand_total())),
+                  style=label_style),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyleBold']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.discount()), style=style_sheet['ThaiStyleNumber']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.discount()), style=bold_style),
     ])
 
     items.append([
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>รวมเป็นเงินทั้งสิ้น/Grand Total</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>รวมเป็นเงินทั้งสิ้น/Grand Total</font>', style=style_sheet['ThaiStyleBold']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.grand_total()), style=style_sheet['ThaiStyleNumber']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.grand_total()), style=bold_style),
     ])
 
     item_table = Table(items, colWidths=[50, 250, 75, 75])
