@@ -15,7 +15,7 @@
                 <span class="subtitle has-text-grey">
                     วงเงิน(ปีงบปัจจุบัน) <br></span>
                 <span class="is-size-1 has-text-grey">
-                        {{ yearly_budget.budget }}
+                        {{ "{:,.2f}".format(yearly_budget.budget) }}
                 </span>
                 </div>
             </div>
@@ -24,7 +24,7 @@
                     <span class="subtitle has-text-grey">
                     ยอดที่ใช้<br>
                     </span>
-                    <span class="is-size-1 has-text-warning">{{ yearly_budget.total_used }}</span>
+                    <span class="is-size-1 has-text-warning">{{ "{:,.2f}".format(yearly_budget.total_used) }}</span>
                 </div>
             </div>
             <div class="column is-3">
@@ -32,7 +32,7 @@
                     <span class="subtitle has-text-grey">
                     คงเหลือ<br>
                     </span>
-                    <span class="is-size-1 has-text-success">{{ yearly_budget.remaining }}</span>
+                    <span class="is-size-1 has-text-success">{{ "{:,.2f}".format(yearly_budget.remaining) }}</span>
                 </div>
             </div>
         </div>
@@ -202,7 +202,7 @@
                         <td>
                              {% if records.organize_by %}{{ records.organize_by }}{% endif %}
                         </td>
-                        <td>{{ records.budget }}</td>
+                        <td>{% if records.budget %}{{ "{:,.2f}".format(records.budget) }}{% endif %}</td>
                         <td>
                             {% if records.upload_file_url %}
                             <a href="{{ records.upload_file_url }}">คลิกเพื่อดู</a>
