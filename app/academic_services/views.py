@@ -3838,7 +3838,7 @@ def view_quotation(quotation_id):
 
 
 def generate_quotation_pdf(quotation, sign=False):
-    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 70, 70)
     approver = quotation.approver.fullname if sign else ''
     digital_sign = 'ลายมือชื่อดิจิทัล/Digital Signature' if sign else (
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
@@ -3897,10 +3897,17 @@ def generate_quotation_pdf(quotation, sign=False):
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
+    bold_style = ParagraphStyle(
+        'BoldStyle',
+        parent=style_sheet['ThaiStyleBold'],
+        leading=15,
+        alignment=TA_RIGHT
+    )
+
     detail_style = ParagraphStyle(
         'DetailStyle',
         parent=style_sheet['ThaiStyle'],
-        leading=17
+        leading=20
     )
 
     issued_date = arrow.get(quotation.approved_at.astimezone(localtz)).format(fmt='DD MMMM YYYY',
@@ -3919,11 +3926,17 @@ def generate_quotation_pdf(quotation, sign=False):
     customer_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                                         ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
 
-    items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>จำนวน / Quantity</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>ราคา / Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>จำนวนเงิน / Amount</font>', style=style_sheet['ThaiStyleCenter']),
+    label_style = ParagraphStyle(
+        'LabelStyle',
+        parent=style_sheet['ThaiStyleBold'],
+        alignment=TA_CENTER
+    )
+
+    items = [[Paragraph('<font size=13>ลำดับ<br/>No</font>', style=label_style),
+              Paragraph('<font size=13>รายการ<br/>Description</font>', style=label_style),
+              Paragraph('<font size=13>จำนวน<br/>Quantity</font>', style=label_style),
+              Paragraph('<font size=13>ราคา<br/>Unit Price</font>', style=label_style),
+              Paragraph('<font size=13>จำนวนเงิน<br/>Amount</font>', style=label_style),
               ]]
 
     for n, item in enumerate(sorted(quotation.quotation_items, key=lambda x: x.sequence), start=1):
@@ -3938,40 +3951,29 @@ def generate_quotation_pdf(quotation, sign=False):
                        ]
         items.append(item_record)
 
-    # n = len(items)
-
-    # for i in range(n):
-    #     items.append([
-    #         Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
-    #         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-    #         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-    #         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-    #         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-    #     ])
-
     items.append([
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>รวมเป็นเงิน</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>รวมเป็นเงิน</font>', style=style_sheet['ThaiStyleBold']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.subtotal()), style=style_sheet['ThaiStyleNumber']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.subtotal()), style=bold_style),
     ])
 
     items.append([
-        Paragraph('<font size=12>{}</font>'.format(bahttext(quotation.grand_total)),
-                  style=style_sheet['ThaiStyleCenter']),
+        Paragraph('<font size=13>รวมเป็นเงินทั้งสิ้น/Grand Total ({})</font>'.format(bahttext(quotation.grand_total())),
+                  style=label_style),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyleBold']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.discount()), style=style_sheet['ThaiStyleNumber']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.discount()), style=bold_style),
     ])
 
     items.append([
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>รวมเป็นเงินทั้งสิ้น/Grand Total</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>รวมเป็นเงินทั้งสิ้น/Grand Total</font>', style=style_sheet['ThaiStyleBold']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.grand_total), style=style_sheet['ThaiStyleNumber']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.grand_total), style=bold_style),
     ])
 
     item_table = Table(items, colWidths=[50, 250, 75, 75])
