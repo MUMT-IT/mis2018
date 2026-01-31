@@ -1,5 +1,3 @@
-
-
 import click
 import pandas
 import pandas as pd
@@ -198,6 +196,17 @@ def user_support_index():
 
 
 json_keyfile = requests.get(os.environ.get('JSON_KEYFILE')).json()
+
+
+from app.food import foodbp as food_blueprint
+
+app.register_blueprint(food_blueprint)
+from app.food.models import *
+
+
+from app.besttime import besttime_bp as besttime_blueprint
+app.register_blueprint(besttime_blueprint)
+
 
 from app.kpi import kpibp as kpi_blueprint
 

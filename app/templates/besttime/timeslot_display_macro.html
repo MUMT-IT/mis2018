@@ -1,0 +1,11 @@
+{% macro form_display(fields) -%}
+{% for field in fields %}
+<label class="label">{{field.date.data}}</label>
+<div class="field">
+  <div class="control">
+    {{field.date()}}
+    {{field.timeslot()}}
+  </div>
+</div>
+{% endfor %}
+{%- endmacro %}

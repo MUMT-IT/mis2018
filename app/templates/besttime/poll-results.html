@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="section">
+  <table class="table is-striped">
+    <thead>
+    <th>Date Time</th>
+    <th>Count</th>
+    <th>Name</th>
+    </thead>
+    <tbody>
+    {% for slot in votes %}
+    <tr>
+      <td>{{slot}}</td>
+      <td>{{votes[slot]|length}}</td>
+      <td>{{votes[slot]|join(', ')}}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <a class="button is-light" href="{{url_for('index')}}">Back</a>
+</section>
+{% endblock %}

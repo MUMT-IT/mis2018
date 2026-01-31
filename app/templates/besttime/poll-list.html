@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+
+{% block page_content %}
+    <section class="section">
+    <h1 class="title has-text-centered">Best Time App!</h1>
+    <div class="columns">
+        <div class="column is-one-third">
+            <form method="post" action="{{url_for('add_user')}}">
+                <div class="field">
+                    <div class="control">
+                        <input name="username" class="input" placeholder="Username"/>
+                    </div>
+                </div>
+                <div class="field">
+                    <button type="submit" class="button is-small is-primary">Add User</button>
+                </div>
+            </form>
+            <form method="get" action="{{url_for('login')}}">
+                <div class="field">
+                    <label class="label">Users</label>
+                    <div class="select">
+                        <select name="user_id">
+                            {% for user in users %}
+                            <option value="{{user.id}}" {% if user == current_user %} selected {% endif %}>{{user.name}}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="field">
+                    <button type="submit" class="button is-small is-primary">Log In</button>
+                </div>
+            </form>
+        </div>
+        <div class="column">
+            <h2 class="title is-size-6">Features</h2>
+            <ul>
+                <li>สร้างโพลโดยระบุช่วงเวลาได้</li>
+                <li>กำหนดประธานและกรรมการได้</li>
+                <li>แก้ไขโพลได้สำหรับประธานและผู้สร้างโพล</li>
+                <li>ประธานและกรรมการสามารถแก้ไขวันที่เลือกได้จนกว่าจะปิดสำรวจ</li>
+                <li>ดูผลการโหวตได้ตลอดเวลา</li>
+            </ul>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column box">
+            <h1 class="title is-size-4">Admin</h1>
+            <table class="table is-striped">
+                <thead>
+                <th>Title</th>
+                <th>Creator</th>
+                <th>Span</th>
+                <th>Voted</th>
+                <th>Status</th>
+                <th></th>
+                </thead>
+                <tbody>
+                {% for poll in polls %}
+                <tr>
+                    <td>
+                        <a href="{{url_for('view_results', poll_id=poll.id)}}">{{poll}}</a>
+                    </td>
+                    <td>{{poll.creator}}</td>
+                    <td>{{poll.date_span}}</td>
+                    <td>{{poll.voted|length}}</td>
+                    <td>{{'open' if not poll.closed_at else 'closed'}}</td>
+                    <td>
+                        {% if poll.creator == current_user and not poll.closed_at %}
+                        <a class="button is-small is-rounded is-info" href="{{url_for('edit_poll', poll_id=poll.id)}}">edit</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <a href="{{url_for('add_poll')}}" class="button is-light is-rounded">New Poll</a>
+        </div>
+    </div>
+    <div class="columns mt-1">
+        <div class="column box">
+            <h1 class="title is-size-4">Invitations</h1>
+            <span class="help is-info">Click the title to vote.</span>
+            <table class="table is-striped">
+                <thead>
+                <th>Title</th>
+                <th>Creator</th>
+                <th>Voted</th>
+                <th>Progress</th>
+                <th>Span</th>
+                <th>Your Role</th>
+                <th></th>
+                </thead>
+                <tbody>
+                {% for invitation in current_user.votes %}
+                <tr>
+                    <td>
+                        {% if not invitation.poll.closed_at %}
+                        <a href="{{url_for('vote_poll', poll_id=invitation.poll.id)}}">{{invitation.poll.title}}</a>
+                        {% else %}
+                        {{invitation.poll.title}}
+                        {% endif %}
+                    </td>
+                    <td>{{invitation.poll.creator}}</td>
+                    <td>{{invitation.poll.voted|length}}/{{invitation.poll.invitations.count()}}</td>
+                    <td>
+                        <progress class="progress is-success"
+                                  value="{{invitation.poll.voted|length}}"
+                                  max="{{invitation.poll.invitations.count()}}">
+                            {{invitation.poll.voted|length}}/{{invitation.poll.invitations.count()}}
+                        </progress>
+                    </td>
+                    <td>{{invitation.poll.date_span}}</td>
+                    <td>{{invitation.role}}</td>
+                    <td>
+                        {% if invitation.role == 'chairman' and not invitation.poll.closed_at %}
+                        <a class="button is-small is-rounded is-info"
+                           href="{{url_for('edit_poll', poll_id=invitation.poll.id)}}">edit</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}

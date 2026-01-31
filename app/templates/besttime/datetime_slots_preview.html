@@ -1,0 +1,14 @@
+Please uncheck a timeslot that you don't want to display in your poll.
+{% for field in form.datetime_slots %}
+    <tr>
+        <td>
+            {{ field.csrf_token }}
+            <div class="field">
+                <div class="control">
+                    {{field.date(type="text", readonly=True)}}
+                    {{field.time_slots()}}
+                </div>
+            </div>
+        </td>
+    </tr>
+{% endfor %}

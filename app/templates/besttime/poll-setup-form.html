@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="section">
+    <h2 class="title is-size-4">Select A Date Range For A Poll</h2>
+    <form method="post">
+        {{form.hidden_tag()}}
+        <div class="field">
+            <label class="label">{{form.title.label}}</label>
+            <div class="control">
+                {{form.title(class="input is-danger")}}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">{{form.start_date.label}}</label>
+            <div class="control">
+                {{form.start_date(**{'hx-trigger': 'change',
+                'hx-post': url_for('preview_master_datetime_slots', poll_id=poll_id),
+                'hx-target': '#master-datetime-slots',
+                'hx-swap': 'innerHTML',
+                'hx-headers': '{"X-CSRFToken": "{{ csrf_token() }}"}'})}}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">{{form.end_date.label}}</label>
+            <div class="control">
+                {{form.end_date(**{'hx-trigger': 'change',
+                'hx-post': url_for('preview_master_datetime_slots', poll_id=poll_id),
+                'hx-target': '#master-datetime-slots',
+                'hx-swap': 'innerHTML',
+                'hx-headers': '{"X-CSRFToken": "{{ csrf_token() }}"}'})}}
+            </div>
+        </div>
+        <label class="label">Date Time Slots Preview</label>
+        <table class="table is-striped" id="master-datetime-slots">
+            Please choose start and end date.
+        </table>
+        <div class="field">
+            <label class="label">{{form.desc.label}}</label>
+            <div class="control">
+                {{form.desc(class="textarea")}}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">Chairman</label>
+            <div class="select">{{form.chairman()}}</div>
+        </div>
+        <div class="field">
+            <label class="label">Committee</label>
+            <div class="control">{{form.invitees()}}</div>
+        </div>
+        <div class="field is-grouped">
+            <div class="control">
+                <button class="button is-success" type="submit">Submit</button>
+            </div>
+            {% if poll_id %}
+            <div class="control">
+                <a class="button is-danger" href="{{url_for('delete_poll', poll_id=poll_id)}}">Delete</a>
+            </div>
+            <div class="control">
+                <a class="button is-warning" href="{{url_for('close_poll', poll_id=poll_id)}}">Close</a>
+            </div>
+            {% endif %}
+            <div class="control">
+                <a class="button is-light" href="{{url_for('index')}}">Back</a>
+            </div>
+        </div>
+    </form>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+    $(document).ready(function(){
+        htmx.trigger('#start_date', 'change')
+    })
+    </script>
+{% endblock %}
