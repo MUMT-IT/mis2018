@@ -5442,7 +5442,7 @@ def generate_bacteria_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    quotation = ServiceQuotation.query.filter_by(request_id=request_id, cancelled_at=None).first()
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
     if not quotation:
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential(json_keyfile)
@@ -5528,7 +5528,7 @@ def generate_virus_disinfection_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    quotation = ServiceQuotation.query.filter_by(request_id=request_id, cancelled_at=None).first()
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
     if not quotation:
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential(json_keyfile)
@@ -5617,7 +5617,7 @@ def generate_virus_air_disinfection_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    quotation = ServiceQuotation.query.filter_by(request_id=request_id).first()
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
     if not quotation:
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential(json_keyfile)
