@@ -168,6 +168,17 @@
                                 </li>
                             </ul>
                             <hr>
+                            {% if quotation.note %}
+                                <p class="menu-label">
+                                    เหตุผลที่ไม่อนุมัติ
+                                </p>
+                                <ul class="menu-list">
+                                    <li>
+                                        {{ quotation.note }}
+                                    </li>
+                                </ul>
+                                <hr>
+                            {% endif %}
                             <p class="menu-label">
                                 สถานะ
                             </p>
