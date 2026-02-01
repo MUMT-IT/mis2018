@@ -101,12 +101,14 @@ def create_quotation_item_form(is_form=False):
     return ServiceQuotationItemForm
 
 
-class ServiceQuotationForm(ModelForm):
-    class Meta:
-        model = ServiceQuotation
-        exclude = ['digital_signature']
-
-    quotation_items = FieldList(FormField(create_quotation_item_form(is_form=False), default=ServiceQuotationItem))
+def create_quotation_form(is_use=False):
+    class ServiceQuotationForm(ModelForm):
+        class Meta:
+            model = ServiceQuotation
+            exclude = ['digital_signature']
+        if is_use == True:
+            quotation_items = FieldList(FormField(create_quotation_item_form(is_form=False), default=ServiceQuotationItem))
+    return ServiceQuotationForm
 
 
 class ServiceSampleForm(ModelForm):
