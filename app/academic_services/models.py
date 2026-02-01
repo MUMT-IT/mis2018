@@ -448,7 +448,7 @@ class ServiceRequest(db.Model):
             'admin_status': self.status.admin_status if self.status else None,
             'admin_status_color': self.status.admin_status_color if self.status else None,
             'customer_status': self.status.customer_status if self.status else None,
-            'quotation_id': [quotation.id for quotation in self.quotations] if self.quotations else None,
+            'quotation_id': [quotation.id for quotation in self.quotations if quotation.disapproved_at == None] if self.quotations else None,
             'sample_id': [sample.id for sample in self.samples] if self.samples else None,
             'customer_status_color': self.status.customer_status_color if self.status else None,
             'quotation_sent_at': ', '.join(str(quotation.sent_at) for quotation in self.quotations
