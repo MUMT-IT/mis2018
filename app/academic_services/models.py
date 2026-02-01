@@ -515,7 +515,7 @@ class ServiceQuotation(db.Model):
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
     reason = db.Column('reason', db.String(), info={'label': 'เหตุผล'})
     other = db.Column('other', db.String(), info={'label': 'รายละเอียดเพิ่มเติม'})
-    note = db.Column('note', db.String(), info={'label': 'รายละเอียด'})
+    note = db.Column('note', db.Text(), info={'label': 'รายละเอียด'})
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('quotations'))
@@ -558,7 +558,8 @@ class ServiceQuotation(db.Model):
             'request_no': self.request.request_no if self.request else None,
             'request_id': self.request_id if self.request_id else None,
             'reason': self.reason if self.reason else None,
-            'other': self.other if self.other else None
+            'other': self.other if self.other else None,
+            'note': self.note if self.note else None
         }
 
     @property
@@ -603,8 +604,10 @@ class ServiceQuotation(db.Model):
             status = 'ลูกค้ายืนยันใบเสนอราคา'
         elif self.approved_at:
             status = 'รอลูกค้ายืนยันใบเสนอราคา'
-        elif self.sent_at:
-            status = 'รอยืนยันใบเสนอราคา'
+        elif self.sent_at and self.disapproved_at:
+            status = 'ไม่อนุมัติใบเสนอราคา'
+        elif self.sent_at and not self.disapproved_at:
+            status = 'รอหัวหน้าอนุมัติใบเสนอราคา'
         else:
             status = 'ร่างใบเสนอราคา'
         return status
@@ -617,7 +620,9 @@ class ServiceQuotation(db.Model):
             color = 'is-success'
         elif self.approved_at:
             color = 'is-primary'
-        elif self.sent_at:
+        elif self.sent_at and self.disapproved_at:
+            color = 'is-danger'
+        elif self.sent_at and not self.disapproved_at:
             color = 'is-warning'
         else:
             color = 'is-info'
