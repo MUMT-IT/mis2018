@@ -4591,12 +4591,13 @@ def approve_invoice(invoice_id):
                 message += f'''{invoice.customer_name}\n'''
                 message += f'''เบอร์โทร {invoice.contact_phone_number}\n'''
                 message += f'''ระบบบริการวิชาการ'''
-                msg = ('ใบแจ้งหนี้เลขที่ {}\n'\
-                        'ออกในนาม {}\n' \
-                        'ณ วันที่ {} รอดำเนินการอนุมัติใบแจ้งหนี้\n' \
-                        'กรุณาดำเนินการอนุมัติในระบบ'.format(invoice.invoice_no, invoice.name,
-                                                           invoice.head_approved_at.astimezone(localtz).strftime('%d/%m/%Y')
-                                                             )
+                msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
+                       'ออกในนาม {}\n' \
+                       'ณ วันที่ {} รอดำเนินการอนุมัติใบแจ้งหนี้\n' \
+                       'กรุณาดำเนินการอนุมัติในระบบ'.format(invoice.invoice_no, invoice.name,
+                                                            invoice.head_approved_at.astimezone(localtz).strftime(
+                                                                '%d/%m/%Y')
+                                                            )
                        )
                 if not current_app.debug:
                     send_mail(email, title, message)
@@ -4936,7 +4937,8 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
             "หรือ<u> Scan QR Code ด้านล่าง</u> หรือ <u>โปรดสั่งจ่ายเช็คในนาม มหาวิทยาลัยมหิดล</u><br/></font>",
             style=remark_style)],
         [Paragraph(
-            "<font size=12>2. จัดส่งหลักฐานการชำระเงินผ่านทาง <u>Scan QR Code</u> ด้านล่าง<br/></font>", style=remark_style)],
+            "<font size=12>2. จัดส่งหลักฐานการชำระเงินผ่านทาง <u>Scan QR Code</u> ด้านล่าง<br/></font>",
+            style=remark_style)],
         [Paragraph(
             "<font size=12>3. โปรดชำระค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ <u><b>ภายใน 30 วัน</b></u> นับถัดจากวันที่ลงนามใน"
             "หนังสือแจ้งชำระค่าบริการฉบับนี้<br/></font>", style=remark_style)],
@@ -4968,7 +4970,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
     scheme = 'http' if current_app.debug else 'https'
     qr_payment_buffer = BytesIO()
     qr_payment_img = qrcode.make(url_for('academic_services.add_payment', invoice_id=invoice.id, menu='invoice',
-                                 tab='pending', _external=True, _scheme=scheme))
+                                         tab='pending', _external=True, _scheme=scheme))
     qr_payment_img.save(qr_payment_buffer, format='PNG')
     qr_code_payment = Image(qr_payment_buffer, width=105, height=102)
 
@@ -5043,7 +5045,6 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
 
         combined_table.hAlign = 'LEFT'
         combined_table.leftIndent = 200
-
 
         data.append(Spacer(1, 16))
         data.append(KeepTogether(combined_table))
@@ -5186,7 +5187,7 @@ def quotation_index():
     draft_query = query.filter(ServiceQuotation.sent_at == None)
     pending_approval_for_supervisor_query = query.filter(ServiceQuotation.sent_at != None,
                                                          ServiceQuotation.approved_at == None,
-                                                         ServiceQuotation.disapproved_at==None)
+                                                         ServiceQuotation.disapproved_at == None)
     pending_confirm_for_customer_query = query.filter(ServiceQuotation.approved_at != None,
                                                       ServiceQuotation.confirmed_at == None,
                                                       ServiceQuotation.cancelled_at == None)
@@ -5453,7 +5454,6 @@ def generate_bacteria_quotation():
         quote_column_names = {}
         quote_details = {}
         quote_prices = {}
-        count_value = Counter()
         data = service_request.data
         form = BacteriaRequestForm(data=data)
 
@@ -5473,16 +5473,17 @@ def generate_bacteria_quotation():
                 continue
             keys = []
             keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
-            for r in range(1, len(quote_column_names[field.label.text]) + 1):
-                for key in itertools.combinations(keys, r):
-                    sorted_key_ = sorted(''.join([k[1] for k in key]))
-                    p_key = ''.join(sorted_key_).replace(' ', '')
-                    values = ', '.join(
-                        [f"<i>{k[1]}</i>" if "organism" in k[0] and k[1] != "None" else k[1] for k in key])
-                    count_value.update(values.split(', '))
+            for key in list(itertools.combinations(keys, len(quote_column_names[field.label.text]))):
+                sorted_key_ = sorted(''.join([k[1] for k in key]))
+                p_key = ''.join(sorted_key_).replace(' ', '')
+                values = ', '.join(
+                    [f"<i>{k[1]}</i>" if "organism" in k[0] and k[1] != "None" else k[1] for k in key])
 
-                    if p_key in quote_prices:
-                        prices = quote_prices[p_key]
+                if p_key in quote_prices:
+                    prices = quote_prices[p_key]
+                    if p_key in quote_details:
+                        quote_details[p_key]["quantity"] += 1
+                    else:
                         quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
         quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
@@ -5530,86 +5531,86 @@ def generate_virus_disinfection_quotation():
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
     quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
-    if not quotation:
-        sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
-        gc = get_credential(json_keyfile)
-        wksp = gc.open_by_key(sheet_price_id)
-        sheet_price = wksp.worksheet(service_request.sub_lab.code)
-        df_price = pandas.DataFrame(sheet_price.get_all_records())
-        quote_column_names = {}
-        quote_details = {}
-        quote_prices = {}
-        count_value = Counter()
-        data = service_request.data
-        form = VirusDisinfectionRequestForm(data=data)
+    # if not quotation:
+    sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
+    gc = get_credential(json_keyfile)
+    wksp = gc.open_by_key(sheet_price_id)
+    sheet_price = wksp.worksheet(service_request.sub_lab.code)
+    df_price = pandas.DataFrame(sheet_price.get_all_records())
+    quote_column_names = {}
+    quote_details = {}
+    quote_prices = {}
+    data = service_request.data
+    form = VirusDisinfectionRequestForm(data=data)
 
-        for _, row in df_price.iterrows():
-            if row['field_group'] not in quote_column_names:
-                quote_column_names[row['field_group']] = set()
-            for field_name in row['field_name'].split(','):
-                quote_column_names[row['field_group']].add(field_name.strip())
-            sorted_field_group = ''.join(sorted(row['field_group'])).replace(' ', '')
-            key = sorted_field_group + ''.join(sorted(row[4:].str.cat())).replace(' ', '')
-            if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
-                quote_prices[key] = row['government_price']
-            else:
-                quote_prices[key] = row['other_price']
+    for _, row in df_price.iterrows():
+        if row['field_group'] not in quote_column_names:
+            quote_column_names[row['field_group']] = set()
+        for field_name in row['field_name'].split(','):
+            quote_column_names[row['field_group']].add(field_name.strip())
+        sorted_field_group = ''.join(sorted(row['field_group'])).replace(' ', '')
+        key = sorted_field_group + ''.join(sorted(row[4:].str.cat())).replace(' ', '')
+        if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
+            quote_prices[key] = row['government_price']
+        else:
+            quote_prices[key] = row['other_price']
 
-        for field in form:
-            if field.label.text not in quote_column_names:
-                continue
-            keys = []
-            keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
-            for r in range(1, len(quote_column_names[field.label.text]) + 1):
-                for key in itertools.combinations(keys, r):
-                    sorted_field_label = ''.join(sorted(field.label.text)).replace(' ', '')
-                    sorted_key_ = sorted(''.join([k[1] for k in key]))
-                    p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
-                    values = ', '.join(
-                        [f"<i>{k[1]}</i>" if "organism" in k[0] and k[1] != "None" else k[1] for k in key])
-                    count_value.update(values.split(', '))
-
-                    if p_key in quote_prices:
-                        prices = quote_prices[p_key]
-                        quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
-        quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
-        quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
-                                     name=service_request.quotation_name,
-                                     address=service_request.quotation_issue_address,
-                                     taxpayer_identification_no=service_request.taxpayer_identification_no,
-                                     creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
-        db.session.add(quotation)
-        quotation_no.count += 1
-        status_id = get_status(3)
-        service_request.status_id = status_id
-        db.session.add(service_request)
+    for field in form:
+        if field.label.text not in quote_column_names:
+            continue
+        keys = []
+        keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
+        for key in list(itertools.combinations(keys, len(quote_column_names[field.label.text]))):
+            sorted_field_label = ''.join(sorted(field.label.text)).replace(' ', '')
+            print('f', [k[1] for k in key])
+            sorted_key_ = sorted(''.join([k[1] for k in key]))
+            p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
+            values = ', '.join(
+                [f"<i>{k[1]}</i>" if "organism" in k[0] and k[1] != "None" else k[1] for k in key])
+            if p_key in quote_prices:
+                prices = quote_prices[p_key]
+                if p_key in quote_details:
+                    quote_details[p_key]["quantity"] += 1
+                else:
+                    quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
+    quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
+    quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
+                                 name=service_request.quotation_name,
+                                 address=service_request.quotation_issue_address,
+                                 taxpayer_identification_no=service_request.taxpayer_identification_no,
+                                 creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
+    db.session.add(quotation)
+    quotation_no.count += 1
+    status_id = get_status(3)
+    service_request.status_id = status_id
+    db.session.add(service_request)
+    db.session.commit()
+    sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
+    for _, (_, item) in enumerate(quote_details.items()):
+        quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                              item=item['value'],
+                                              quantity=item['quantity'],
+                                              unit_price=item['price'],
+                                              total_price=int(item['quantity']) * item['price'])
+        sequence_no.count += 1
+        db.session.add(quotation_item)
         db.session.commit()
-        sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
-        for _, (_, item) in enumerate(quote_details.items()):
+    if service_request.report_languages:
+        for rl in service_request.report_languages:
             quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
-                                                  item=item['value'],
-                                                  quantity=item['quantity'],
-                                                  unit_price=item['price'],
-                                                  total_price=int(item['quantity']) * item['price'])
+                                                  item=rl.report_language.item,
+                                                  quantity=1,
+                                                  unit_price=rl.report_language.price,
+                                                  total_price=rl.report_language.price)
             sequence_no.count += 1
             db.session.add(quotation_item)
             db.session.commit()
-        if service_request.report_languages:
-            for rl in service_request.report_languages:
-                quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
-                                                      item=rl.report_language.item,
-                                                      quantity=1,
-                                                      unit_price=rl.report_language.price,
-                                                      total_price=rl.report_language.price)
-                sequence_no.count += 1
-                db.session.add(quotation_item)
-                db.session.commit()
-        flash('ร่างใบเสนอราคาสำเร็จ กรุณาดำเนินการตรวจสอบข้อมูล', 'success')
-        return redirect(
-            url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
-    else:
-        return render_template('service_admin/quotation_created_confirmation_page.html',
-                               quotation_id=quotation.id, request_no=service_request.request_no, menu=menu)
+    flash('ร่างใบเสนอราคาสำเร็จ กรุณาดำเนินการตรวจสอบข้อมูล', 'success')
+    return redirect(
+        url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
+# else:
+#     return render_template('service_admin/quotation_created_confirmation_page.html',
+#                            quotation_id=quotation.id, request_no=service_request.request_no, menu=menu)
 
 
 @service_admin.route('/quotation/virus/air_disinfection/generate', methods=['GET', 'POST'])
@@ -5763,11 +5764,12 @@ def create_quotation_for_admin(quotation_id):
                     message += f'''เจ้าหน้าที่ห้องปฏิบัติการ\n'''
                     message += f'''{quotation.creator.fullname}\n'''
                     message += f'''ระบบงานบริการวิชาการ'''
-                    msg = ('ใบเสนอราคาเลขที่ {}\n'\
+                    msg = ('ใบเสนอราคาเลขที่ {}\n' \
                            'ออกในนาม {}\n' \
                            'ณ วันที่ {} รอดำเนินการอนุมัติใบเสนอราคา\n' \
                            'กรุณาดำเนินการอนุมัติในระบบ'
-                           .format(quotation.quotation_no, quotation.name, quotation.sent_at.astimezone(localtz).strftime('%d/%m/%Y')
+                           .format(quotation.quotation_no, quotation.name,
+                                   quotation.sent_at.astimezone(localtz).strftime('%d/%m/%Y')
                                    )
                            )
                     if not current_app.debug:
@@ -5979,7 +5981,8 @@ def disapprove_quotation(quotation_id):
                 message += f'''ระบบงานบริการวิชาการ'''
                 if not current_app.debug:
                     send_mail(
-                        [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant
+                        [a.admin.email + '@mahidol.ac.th' for a in admins if
+                         not a.is_central_admin and not a.is_assistant
                          and not a.is_supervisor],
                         title, message)
                 else:
@@ -6092,7 +6095,8 @@ def generate_quotation_pdf(quotation, sign=False):
                     เลขประจำตัวผู้เสียภาษี {taxpayer_identification_no}
                     </font></para>
                     '''.format(issued_date=issued_date, lab=quotation.request.sub_lab.lab.lab, customer=quotation.name,
-                               address=quotation.address, taxpayer_identification_no=quotation.taxpayer_identification_no if quotation.taxpayer_identification_no else '-')
+                               address=quotation.address,
+                               taxpayer_identification_no=quotation.taxpayer_identification_no if quotation.taxpayer_identification_no else '-')
 
     customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[540, 280])
     customer_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
