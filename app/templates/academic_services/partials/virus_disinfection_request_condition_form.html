@@ -35,8 +35,8 @@
                         {% endfor %}
                         </tbody>
                     </table>
-                {% elif field.name.endswith('surface_type' style="display: none" id="surface_type_field") %}
-                    <div class="field ml-4">
+                {% elif field.name.endswith('surface_type') %}
+                    <div class="field ml-4" style="display: none" id="surface_type_field">
                         <label id="surface_type_label" class="label">
                             {{ field.label }}
                         </label>
