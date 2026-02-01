@@ -21,9 +21,7 @@ from app.auth.views import line_bot_api
 from app.academic_services.forms import *
 from app.e_sign_api import e_sign
 from app.models import Org
-from app.scb_payment_service.views import generate_qrcode
 from app.service_admin import service_admin
-from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, session, make_response, jsonify, current_app, \
     send_file
 from flask_login import current_user, login_required, login_user
@@ -698,7 +696,7 @@ def menu():
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
         .filter(
-            ServiceStatus.status_id.in_([2]),
+            ServiceStatus.status_id.in_([2, 24]),
             ServiceAdmin.admin_id == current_user.id
         )).count()
         quotation_count = (ServiceRequest.query
@@ -822,14 +820,17 @@ def request_index():
             admin = True
         sub_labs.append(a.sub_lab.code)
 
+    ids = list(range(2, 23))
+    ids.append(24)
+
     status_groups = {
         'all': {
-            'id': list(range(2, 23)),
+            'id': ids,
             'name': 'รายการทั้งหมด',
             'icon': '<i class="fas fa-list-ul"></i>'
         },
         'create_quotation': {
-            'id': [2, 3, 4, 5],
+            'id': [2, 3, 4, 5, 24],
             'name': 'รอออก/ยืนยันใบเสนอราคา',
             'color': 'is-info',
             'icon': '<i class="fas fa-file-invoice"></i>'
@@ -5185,7 +5186,7 @@ def quotation_index():
     draft_query = query.filter(ServiceQuotation.sent_at == None)
     pending_approval_for_supervisor_query = query.filter(ServiceQuotation.sent_at != None,
                                                          ServiceQuotation.approved_at == None,
-                                                         )
+                                                         ServiceQuotation.disapproved_at==None)
     pending_confirm_for_customer_query = query.filter(ServiceQuotation.approved_at != None,
                                                       ServiceQuotation.confirmed_at == None,
                                                       ServiceQuotation.cancelled_at == None)
@@ -5725,6 +5726,7 @@ def create_quotation_for_admin(quotation_id):
     request_data = request_data_paths[quotation.request.sub_lab.code]
     datas = request_data(quotation.request, type='form')
     quotation.quotation_items = sorted(quotation.quotation_items, key=lambda x: x.sequence)
+    ServiceQuotationForm = create_quotation_form(is_use=True)
     form = ServiceQuotationForm(obj=quotation)
     if form.validate_on_submit():
         form.populate_obj(quotation)
@@ -5787,6 +5789,56 @@ def create_quotation_for_admin(quotation_id):
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('service_admin/create_quotation_for_admin.html', quotation=quotation, menu=menu,
                            tab=tab, form=form, datas=datas)
+
+
+@service_admin.route('/quotation/item/add/<int:quotation_id>', methods=['GET', 'POST'])
+def add_quotation_item(quotation_id):
+    menu = request.args.get('menu')
+    tab = request.args.get('tab')
+    ServiceQuotationItemForm = create_quotation_item_form(is_form=True)
+    quotation = ServiceQuotation.query.get(quotation_id)
+    form = ServiceQuotationItemForm()
+    if form.validate_on_submit():
+        sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation_id))
+        quotation_item = ServiceQuotationItem()
+        form.populate_obj(quotation_item)
+        quotation_item.sequence = sequence_no.number
+        quotation_item.quotation_id = quotation_id
+        quotation_item.total_price = form.quantity.data * form.unit_price.data
+        db.session.add(quotation_item)
+        sequence_no.count += 1
+        db.session.add(quotation)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template('service_admin/modal/add_quotation_item_modal.html', form=form, tab=tab,
+                           menu=menu, quotation_id=quotation_id)
+
+
+@service_admin.route('/quotation/item/delete/<int:quotation_item_id>', methods=['GET', 'DELETE'])
+def delete_quotation_item(quotation_item_id):
+    menu = request.args.get('menu')
+    tab = request.args.get('tab')
+    quotation_item = ServiceQuotationItem.query.get(quotation_item_id)
+    quotation_id = quotation_item.quotation_id
+    db.session.delete(quotation_item)
+    db.session.commit()
+    items = ServiceQuotationItem.query.filter_by(quotation_id=quotation_id).all()
+    sorted_items = sorted(items, key=sort_quotation_item)
+    for index, item in enumerate(sorted_items, start=1):
+        item.sequence = index
+    db.session.commit()
+    seq_code = f"quotation_{quotation_id}"
+    seq = ServiceSequenceQuotationID.query.filter_by(quotation=seq_code).first()
+    if seq and seq.count > 0:
+        seq.count -= 1
+        db.session.commit()
+    flash('ลบรายการสำเร็จ', 'success')
+    return redirect(url_for('service_admin.create_quotation_for_admin', menu=menu, tab=tab, quotation_id=quotation_id))
 
 
 @service_admin.route('/quotation/supervisor/approve/<int:quotation_id>', methods=['GET', 'POST'])
@@ -5864,9 +5916,9 @@ def approval_quotation_for_supervisor(quotation_id):
                             message_for_assistant += f'''อนุมัติโดย คุณ{quotation.approver.fullname}\n\n'''
                             message_for_assistant += f'''โดยสามารถดูรายละเอียดใบเสนอราคาเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
                             message_for_assistant += f'''{quotation_link_for_assistant}\n\n'''
-                            message += f'''หัวหน้าห้องปฏิบัติการ\n'''
-                            message += f'''{quotation.approver.fullname}\n'''
-                            message += f'''ระบบงานบริการวิชาการ'''
+                            message_for_assistant += f'''หัวหน้าห้องปฏิบัติการ\n'''
+                            message_for_assistant += f'''{quotation.approver.fullname}\n'''
+                            message_for_assistant += f'''ระบบงานบริการวิชาการ'''
                         if not current_app.debug:
                             send_mail([quotation.request.customer.email], title, message)
                             send_mail(email, title_for_assistant, message_for_assistant)
@@ -5884,56 +5936,6 @@ def approval_quotation_for_supervisor(quotation_id):
                                quotaiton_no=quotation.quotation_no, menu=menu, tab='all')
 
 
-@service_admin.route('/quotation/item/add/<int:quotation_id>', methods=['GET', 'POST'])
-def add_quotation_item(quotation_id):
-    menu = request.args.get('menu')
-    tab = request.args.get('tab')
-    ServiceQuotationItemForm = create_quotation_item_form(is_form=True)
-    quotation = ServiceQuotation.query.get(quotation_id)
-    form = ServiceQuotationItemForm()
-    if form.validate_on_submit():
-        sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation_id))
-        quotation_item = ServiceQuotationItem()
-        form.populate_obj(quotation_item)
-        quotation_item.sequence = sequence_no.number
-        quotation_item.quotation_id = quotation_id
-        quotation_item.total_price = form.quantity.data * form.unit_price.data
-        db.session.add(quotation_item)
-        sequence_no.count += 1
-        db.session.add(quotation)
-        db.session.commit()
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
-        return resp
-    else:
-        for er in form.errors:
-            flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('service_admin/modal/add_quotation_item_modal.html', form=form, tab=tab,
-                           menu=menu, quotation_id=quotation_id)
-
-
-@service_admin.route('/quotation/item/delete/<int:quotation_item_id>', methods=['GET', 'DELETE'])
-def delete_quotation_item(quotation_item_id):
-    menu = request.args.get('menu')
-    tab = request.args.get('tab')
-    quotation_item = ServiceQuotationItem.query.get(quotation_item_id)
-    quotation_id = quotation_item.quotation_id
-    db.session.delete(quotation_item)
-    db.session.commit()
-    items = ServiceQuotationItem.query.filter_by(quotation_id=quotation_id).all()
-    sorted_items = sorted(items, key=sort_quotation_item)
-    for index, item in enumerate(sorted_items, start=1):
-        item.sequence = index
-    db.session.commit()
-    seq_code = f"quotation_{quotation_id}"
-    seq = ServiceSequenceQuotationID.query.filter_by(quotation=seq_code).first()
-    if seq and seq.count > 0:
-        seq.count -= 1
-        db.session.commit()
-    flash('ลบรายการสำเร็จ', 'success')
-    return redirect(url_for('service_admin.create_quotation_for_admin', menu=menu, tab=tab, quotation_id=quotation_id))
-
-
 @service_admin.route('/quotation/password/enter/<int:quotation_id>', methods=['GET', 'POST'])
 @login_required
 def enter_password_for_sign_digital(quotation_id):
@@ -5941,6 +5943,60 @@ def enter_password_for_sign_digital(quotation_id):
     form = PasswordOfSignDigitalForm()
     return render_template('service_admin/modal/password_modal.html', form=form, menu=menu,
                            quotation_id=quotation_id)
+
+
+@service_admin.route('/quotation/disapprove/<int:quotation_id>', methods=['GET', 'POST'])
+def disapprove_quotation(quotation_id):
+    menu = request.args.get('menu')
+    quotation = ServiceQuotation.query.get(quotation_id)
+    ServiceQuotationForm = create_quotation_form(is_use=False)
+    form = ServiceQuotationForm(obj=quotation)
+    if form.validate_on_submit():
+        form.populate_obj(quotation)
+        if form.note.data:
+            status_id = get_status(24)
+            quotation.disapprover_id = current_user.id
+            quotation.disapproved_at = arrow.now('Asia/Bangkok').datetime
+            quotation.request.status_id = status_id
+            db.session.add(quotation)
+            db.session.commit()
+            admins = (
+                ServiceAdmin.query
+                .join(ServiceSubLab)
+                .filter(ServiceSubLab.code == quotation.request.sub_lab.code)
+                .all()
+            )
+            title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
+            customer_name = quotation.customer_name.replace(' ', '_')
+            if admins:
+                title = f'''แจ้งผลการไม่อนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no}'''
+                message = f'''เรียน เจ้าหน้าที่{quotation.request.sub_lab.sub_lab}\n\n'''
+                message += f'''ขอแจ้งผลการพิจารณาไม่อนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
+                message += f'''ในนามลูกค้า {title_prefix}{customer_name}\n'''
+                message += f'''เนื่องจาก{quotation.note}\n\n'''
+                message += f'''หัวหน้าห้องปฏิบัติการ\n'''
+                message += f'''{quotation.disapprover.fullname}\n'''
+                message += f'''ระบบงานบริการวิชาการ'''
+                if not current_app.debug:
+                    send_mail(
+                        [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant
+                         and not a.is_supervisor],
+                        title, message)
+                else:
+                    print('message', message)
+            flash('ไม่อนุมัติใบเสนอราคาสำเร็จ', 'success')
+            resp = make_response()
+            resp.headers['HX-Redirect'] = url_for('service_admin.quotation_index', menu=menu, tab='all')
+        else:
+            flash('กรุณากรอกรายละเอียด', 'danger')
+            resp = make_response()
+            resp.headers['HX-Refresh'] = 'true'
+        return resp
+    else:
+        for field, error in form.errors.items():
+            flash(f'{field}: {error}', 'danger')
+    return render_template('service_admin/modal/disapprove_quotation_modal.html', form=form,
+                           quotation_id=quotation_id, menu=menu, tab='pending_approval')
 
 
 @service_admin.route('/quotation/view/<int:quotation_id>')
