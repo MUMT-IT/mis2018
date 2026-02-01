@@ -160,8 +160,10 @@
                                 <li>
                                     {% if quotation.approved_at %}
                                         {{ quotation.approved_at|localdate }}
+                                    {% elif quotation.sent_at and quotation.disapproved_at %}
+                                        <span class="tag has-text-danger is-rounded">ไม่อนุมัติใบเสนอราคา</span>
                                     {% else %}
-                                        ยังไม่ดำเนินการอนุมัติ
+                                        <span class="tag has-text-info is-rounded">ยังไม่ดำเนินการอนุัมติ</span>
                                     {% endif %}
                                 </li>
                             </ul>

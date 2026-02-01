@@ -125,12 +125,11 @@
                             <ul class="menu-list">
                                 <li>
                                     {% if quotation.approved_at %}
-                                         <span class="icon">
-                                             <i class="fas fa-clock"></i>
-                                         </span>
-                                        {{ quotation.approved_at.strftime('%d/%m/%Y') }}
+                                        {{ quotation.approved_at|localdate }}
+                                    {% elif quotation.sent_at and quotation.disapproved_at %}
+                                        <span class="tag has-text-danger is-rounded">ไม่อนุมัติใบเสนอราคา</span>
                                     {% else %}
-                                        ยังไม่ดำเนินการอนุมัติ
+                                        <span class="tag has-text-info is-rounded">ยังไม่ดำเนินการอนุัมติ</span>
                                     {% endif %}
                                 </li>
                             </ul>
