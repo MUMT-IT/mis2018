@@ -261,15 +261,77 @@
                                                                     {% endfor %}
                                                                     </thead>
                                                                     <tbody>
-                                                                    {% for subfield in field %}
+                                                                        {% for subfield in field %}
+                                                                            <tr>
+                                                                                {% for _field in subfield %}
+                                                                                    {% if _field.type != 'CSRFTokenField' %}
+                                                                                        <td style="border: none">{{ _field() }}</td>
+                                                                                    {% endif %}
+                                                                                {% endfor %}
+                                                                                <td style="border: none">
+                                                                                    {% if subform.name == 'liquid_condition_field' %}
+                                                                                        <a class="button is-danger is-outlined"
+                                                                                           hx-delete="{{ url_for('service_admin.remove_virus_liquid_organism_form_entry',
+                                                                                           name=subform.name) }}"
+                                                                                           hx-target="closest tr"
+                                                                                           hx-swap="outerHTML"
+                                                                                        >
+                                                                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                                                        </a>
+                                                                                    {% elif subform.name == 'spray_condition_field' %}
+                                                                                        <a class="button is-danger is-outlined"
+                                                                                           hx-delete="{{ url_for('service_admin.remove_virus_spray_organism_form_entry',
+                                                                                           name=subform.name) }}"
+                                                                                           hx-target="closest tr"
+                                                                                           hx-swap="outerHTML"
+                                                                                        >
+                                                                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                                                        </a>
+                                                                                    {% else %}
+                                                                                        <a class="button is-danger is-outlined"
+                                                                                           hx-delete="{{ url_for('service_admin.remove_virus_coat_organism_form_entry',
+                                                                                           name=subform.name) }}"
+                                                                                           hx-target="closest tr"
+                                                                                           hx-swap="outerHTML"
+                                                                                        >
+                                                                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                                                        </a>
+                                                                                    {% endif %}
+                                                                                </td>
+                                                                            </tr>
+                                                                        {% endfor %}
                                                                         <tr>
-                                                                            {% for _field in subfield %}
-                                                                                {% if _field.type != 'CSRFTokenField' %}
-                                                                                    <td style="border: none">{{ _field() }}</td>
+                                                                            <td style="border: none">
+                                                                                {% if subform.name == 'liquid_condition_field' %}
+                                                                                    <a class="button is-info is-outlined is-rounded"
+                                                                                       hx-post="{{ url_for('service_admin.add_virus_liquid_organism_form_entry') }}"
+                                                                                       hx-target="previous tr"
+                                                                                       hx-swap="afterend"
+                                                                                    >
+                                                                                        <span class="icon"><i class="fas fa-plus"></i></span>
+                                                                                        <span>เพิ่ม</span>
+                                                                                    </a>
+                                                                                {% elif subform.name == 'spray_condition_field' %}
+                                                                                    <a class="button is-info is-outlined is-rounded"
+                                                                                       hx-post="{{ url_for('service_admin.add_virus_spray_organism_form_entry') }}"
+                                                                                       hx-target="previous tr"
+                                                                                       hx-swap="afterend"
+                                                                                    >
+                                                                                        <span class="icon"><i class="fas fa-plus"></i></span>
+                                                                                        <span>เพิ่ม</span>
+                                                                                    </a>
+                                                                                {% else %}
+                                                                                    <a class="button is-info is-outlined is-rounded"
+                                                                                       hx-post="{{ url_for('service_admin.add_virus_coat_organism_form_entry') }}"
+                                                                                       hx-target="previous tr"
+                                                                                       hx-swap="afterend"
+                                                                                    >
+                                                                                        <span class="icon"><i class="fas fa-plus"></i></span>
+                                                                                        <span>เพิ่ม</span>
+                                                                                    </a>
                                                                                 {% endif %}
-                                                                            {% endfor %}
+                                                                            </td>
                                                                         </tr>
-                                                                    {% endfor %}
                                                                     </tbody>
                                                                 </table>
                                                             {% elif field.name.endswith('surface_type') %}
@@ -520,7 +582,6 @@
                     textInputs.each(function () {
                         const name = $(this).attr('name');
                         const isOptional = name.endsWith('ratio') || name.endsWith('per_water');
-                        $(this).prop('readonly', !active);
 
                         if (active && !isOptional) {
                             $(this)
