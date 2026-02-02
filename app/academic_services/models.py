@@ -411,6 +411,9 @@ class ServiceRequest(db.Model):
     quotation_address_id = db.Column('quotation_address_id', db.ForeignKey('service_customer_addresses.id'))
     quotation_address = db.relationship(ServiceCustomerAddress, backref=db.backref("quotation_address_for_requests"),
                                         foreign_keys=[quotation_address_id])
+    report_receive_channel_id = db.Column('report_receive_channel_id', db.ForeignKey('service_report_receive_channels.id'))
+    report_receive_channel = db.relationship(ServiceReportReceiveChannel, backref=db.backref("requests"),
+                                       foreign_keys=[report_receive_channel_id])
     is_completed = db.Column('is_completed', db.Boolean())
     is_downloaded = db.Column('is_downloaded', db.Boolean())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
