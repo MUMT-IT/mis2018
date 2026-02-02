@@ -362,6 +362,19 @@ class ServiceReportLanguage(db.Model):
         return self.item
 
 
+class ServiceReportReceiveChannel(db.Model):
+    __tablename__ = 'service_report_receive_channels'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    no = db.Column('no', db.Integer())
+    item = db.Column('item', db.String())
+    price = db.Column('price', db.Numeric())
+    sub_lab_id = db.Column('sub_lab_id', db.ForeignKey('service_sub_labs.id'))
+    sub_lab = db.relationship(ServiceSubLab, backref=db.backref('report_receive_channels', cascade='all, delete-orphan'))
+
+    def __str__(self):
+        return self.item
+
+
 class ServiceAdmin(db.Model):
     __tablename__ = 'service_admins'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
