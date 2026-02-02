@@ -1260,6 +1260,7 @@ def get_virus_disinfection_condition_form():
     return render_template('service_admin/partials/virus_disinfection_request_condition_form.html',
                            fields=fields, product_type=product_type)
 
+
 @service_admin.route('/request/virus_liquid_organism_form_entry/add', methods=['POST'])
 def add_virus_liquid_organism_form_entry():
     form = VirusDisinfectionRequestForm()
@@ -1271,7 +1272,11 @@ def add_virus_liquid_organism_form_entry():
             <td style="border: none">{}</td>
             <td style="border: none">{}</td>
             <td style="border: none">
-                <a class="button is-danger">
+                <a class="button is-danger"
+                    hx-delete="{}" 
+                    hx-target="closest tr"
+                    hx-swap="outerHTML"
+                >
                     <span>ลบ</span>
                 </a>
             </td>
@@ -1279,7 +1284,8 @@ def add_virus_liquid_organism_form_entry():
     """
     resp = template.format(item_form.liquid_organism(),
                            item_form.liquid_ratio(class_='input'),
-                           item_form.liquid_time_duration(class_='input')
+                           item_form.liquid_time_duration(class_='input'),
+                           url_for('service_admin.remove_virus_liquid_organism_form_entry', name=item_form.name)
                         )
     resp = make_response(resp)
     return resp
@@ -1289,7 +1295,6 @@ def add_virus_liquid_organism_form_entry():
 def remove_virus_liquid_organism_form_entry():
     field_name = request.args.get('name')
     form = VirusDisinfectionRequestForm()
-    # form.liquid_condition_field.liquid_organism_fields.pop_entry()
     temp_entries = []
     for entry in form.liquid_condition_field.liquid_organism_fields:
         if entry.name != field_name:
@@ -1298,6 +1303,55 @@ def remove_virus_liquid_organism_form_entry():
         form.liquid_condition_field.liquid_organism_fields.pop_entry()
     for entry in temp_entries:
         form.liquid_condition_field.liquid_organism_fields.append_entry(entry)
+    return ""
+
+
+@service_admin.route('/request/virus_spray_organism_form_entry/add', methods=['POST'])
+def add_virus_spray_organism_form_entry():
+    form = VirusDisinfectionRequestForm()
+    form.spray_condition_field.spray_organism_fields.append_entry()
+    item_form = form.spray_condition_field.spray_organism_fields[-1]
+    template = """
+        <tr>
+            <td style="border: none">{}</td>
+            <td style="border: none">{}</td>
+            <td style="border: none">{}</td>
+            <td style="border: none">{}</td>
+            <td style="border: none">{}</td>
+            <td style="border: none">
+                <a class="button is-danger"
+                    hx-delete="{}" 
+                    hx-target="closest tr"
+                    hx-swap="outerHTML"
+                >
+                    <span>ลบ</span> 
+                </a>
+            </td>
+        </tr>
+    """
+    resp = template.format(item_form.spray_organism(),
+                           item_form.spray_ratio(class_='input'),
+                           item_form.spray_distance(class_='input'),
+                           item_form.spray_of_time(class_='input'),
+                           item_form.spray_time_duration(class_='input'),
+                           url_for('service_admin.remove_virus_spray_organism_form_entry', name=item_form.name)
+                        )
+    resp = make_response(resp)
+    return resp
+
+
+@service_admin.route('/request/virus_spray_organism_form_entry/remove', methods=['DELETE'])
+def remove_virus_spray_organism_form_entry():
+    field_name = request.args.get('name')
+    form = VirusDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.spray_condition_field.spray_organism_fields:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.spray.condition_field.spray_organism_fields) > 0:
+        form.spray_condition_field.spray_organism_fields.pop_entry()
+    for entry in temp_entries:
+        form.spray_condition_field.spray_organism_fields.append_entry(entry)
     return ""
 
 
