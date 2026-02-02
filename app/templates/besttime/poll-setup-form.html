@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block content %}
+{% block page_content %}
 <section class="section">
     <h2 class="title is-size-4">Select A Date Range For A Poll</h2>
     <form method="post">
@@ -15,7 +15,7 @@
             <label class="label">{{form.start_date.label}}</label>
             <div class="control">
                 {{form.start_date(**{'hx-trigger': 'change',
-                'hx-post': url_for('preview_master_datetime_slots', poll_id=poll_id),
+                'hx-post': url_for('besttime.preview_master_datetime_slots', poll_id=poll_id),
                 'hx-target': '#master-datetime-slots',
                 'hx-swap': 'innerHTML',
                 'hx-headers': '{"X-CSRFToken": "{{ csrf_token() }}"}'})}}
@@ -25,7 +25,7 @@
             <label class="label">{{form.end_date.label}}</label>
             <div class="control">
                 {{form.end_date(**{'hx-trigger': 'change',
-                'hx-post': url_for('preview_master_datetime_slots', poll_id=poll_id),
+                'hx-post': url_for('besttime.preview_master_datetime_slots', poll_id=poll_id),
                 'hx-target': '#master-datetime-slots',
                 'hx-swap': 'innerHTML',
                 'hx-headers': '{"X-CSRFToken": "{{ csrf_token() }}"}'})}}
@@ -55,14 +55,14 @@
             </div>
             {% if poll_id %}
             <div class="control">
-                <a class="button is-danger" href="{{url_for('delete_poll', poll_id=poll_id)}}">Delete</a>
+                <a class="button is-danger" href="{{url_for('besttime.delete_poll', poll_id=poll_id)}}">Delete</a>
             </div>
             <div class="control">
-                <a class="button is-warning" href="{{url_for('close_poll', poll_id=poll_id)}}">Close</a>
+                <a class="button is-warning" href="{{url_for('besttime.close_poll', poll_id=poll_id)}}">Close</a>
             </div>
             {% endif %}
             <div class="control">
-                <a class="button is-light" href="{{url_for('index')}}">Back</a>
+                <a class="button is-light" href="{{url_for('besttime.index')}}">Back</a>
             </div>
         </div>
     </form>

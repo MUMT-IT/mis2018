@@ -5,33 +5,6 @@
     <section class="section">
     <h1 class="title has-text-centered">Best Time App!</h1>
     <div class="columns">
-        <div class="column is-one-third">
-            <form method="post" action="{{url_for('add_user')}}">
-                <div class="field">
-                    <div class="control">
-                        <input name="username" class="input" placeholder="Username"/>
-                    </div>
-                </div>
-                <div class="field">
-                    <button type="submit" class="button is-small is-primary">Add User</button>
-                </div>
-            </form>
-            <form method="get" action="{{url_for('login')}}">
-                <div class="field">
-                    <label class="label">Users</label>
-                    <div class="select">
-                        <select name="user_id">
-                            {% for user in users %}
-                            <option value="{{user.id}}" {% if user == current_user %} selected {% endif %}>{{user.name}}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-                <div class="field">
-                    <button type="submit" class="button is-small is-primary">Log In</button>
-                </div>
-            </form>
-        </div>
         <div class="column">
             <h2 class="title is-size-6">Features</h2>
             <ul>
@@ -59,7 +32,7 @@
                 {% for poll in polls %}
                 <tr>
                     <td>
-                        <a href="{{url_for('view_results', poll_id=poll.id)}}">{{poll}}</a>
+                        <a href="{{url_for('besttime.view_results', poll_id=poll.id)}}">{{poll}}</a>
                     </td>
                     <td>{{poll.creator}}</td>
                     <td>{{poll.date_span}}</td>
@@ -67,14 +40,14 @@
                     <td>{{'open' if not poll.closed_at else 'closed'}}</td>
                     <td>
                         {% if poll.creator == current_user and not poll.closed_at %}
-                        <a class="button is-small is-rounded is-info" href="{{url_for('edit_poll', poll_id=poll.id)}}">edit</a>
+                        <a class="button is-small is-rounded is-info" href="{{url_for('besttime.edit_poll', poll_id=poll.id)}}">edit</a>
                         {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
                 </tbody>
             </table>
-            <a href="{{url_for('add_poll')}}" class="button is-light is-rounded">New Poll</a>
+            <a href="{{url_for('besttime.add_poll')}}" class="button is-success is-rounded">New Poll</a>
         </div>
     </div>
     <div class="columns mt-1">
@@ -96,7 +69,7 @@
                 <tr>
                     <td>
                         {% if not invitation.poll.closed_at %}
-                        <a href="{{url_for('vote_poll', poll_id=invitation.poll.id)}}">{{invitation.poll.title}}</a>
+                        <a href="{{url_for('besttime.vote_poll', poll_id=invitation.poll.id)}}">{{invitation.poll.title}}</a>
                         {% else %}
                         {{invitation.poll.title}}
                         {% endif %}
@@ -115,7 +88,7 @@
                     <td>
                         {% if invitation.role == 'chairman' and not invitation.poll.closed_at %}
                         <a class="button is-small is-rounded is-info"
-                           href="{{url_for('edit_poll', poll_id=invitation.poll.id)}}">edit</a>
+                           href="{{url_for('besttime.edit_poll', poll_id=invitation.poll.id)}}">edit</a>
                         {% endif %}
                     </td>
                 </tr>

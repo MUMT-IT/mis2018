@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block content %}
+{% block page_content %}
 <section class="section">
   <table class="table is-striped">
     <thead>
@@ -18,6 +18,6 @@
     {% endfor %}
     </tbody>
   </table>
-  <a class="button is-light" href="{{url_for('index')}}">Back</a>
+  <a class="button is-light" href="{{url_for('besttime.index')}}">Back</a>
 </section>
 {% endblock %}

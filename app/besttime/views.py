@@ -1,15 +1,16 @@
+from calendar import calendar
 from collections import defaultdict, namedtuple
 
 from flask import render_template, request, redirect, url_for
 from flask_login import login_required, current_user
-import calendar
-import datetime
+import arrow
 
 from app.besttime import besttime_bp
 from app.besttime.forms import BestTimePollMessageForm, BestTimePollForm, BestTimePollVoteForm
 from app.besttime.models import *
 
 from zoneinfo import ZoneInfo
+import datetime
 
 
 VoteHour = namedtuple('VoteHour', ['start', 'end'])
@@ -47,10 +48,10 @@ def leave_message(poll_id):
         message = BestTimePollMessage(poll_id=poll_id)
         form.populate_obj(message)
         message.voter_id = current_user.id
-        message.created_at = datetime.datetime.now().astimezone(tz=BKK_TZ)
+        message.created_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(message)
         db.session.commit()
-        return redirect(url_for('index'))
+        return redirect(url_for('besttime.index'))
     else:
         print(form.errors)
     return render_template('besttime/poll-message-form.html', poll=poll, form=form)
@@ -94,7 +95,7 @@ def add_poll():
             poll.created_at = datetime.datetime.now().astimezone(tz=BKK_TZ)
             db.session.add(poll)
             db.session.commit()
-            return redirect(url_for('index'))
+            return redirect(url_for('besttime.index'))
         else:
             return f'{form.errors}'
     return render_template('besttime/poll-setup-form.html', form=form)
@@ -124,15 +125,21 @@ def preview_master_datetime_slots():
                 choices = [dt for dt in [(_form_field.date.data.strftime('%Y-%m-%d') + '#09:00 - 12:00', '09:00 - 12:00'),
                                          (_form_field.date.data.strftime('%Y-%m-%d') + '#13:00 - 16:00', '13:00 - 16:00')]]
                 _form_field.time_slots.choices = choices
+                # Preselect all choices so that the users will only need to uncheck the choice that is not good for them.
                 for h in vote_hours:
-                    start = datetime.datetime.combine(_form_field.date.data, h.start)
-                    end = datetime.datetime.combine(_form_field.date.data, h.end)
-                    _slot = BestTimeMasterDateTimeSlot.query.filter_by(start=start, end=end, poll_id=poll_id).first()
-                    if _slot:
-                        hour_text = f'#{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
-                        hour_display = f'{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
+                    hour_text = f'#{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
+                    hour_display = f'{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
+                    if poll_id:
+                        start = datetime.datetime.combine(_form_field.date.data, h.start)
+                        end = datetime.datetime.combine(_form_field.date.data, h.end)
+                        _slot = BestTimeMasterDateTimeSlot.query.filter_by(start=start, end=end, poll_id=poll_id).first()
+                        if _slot:
+                            selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))
+                    else:
                         selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))
                 _form_field.time_slots.data = [dt[0] for dt in selected]
+
+        return str(form.datetime_slots)
 
         return render_template('besttime/datetime_slots_preview.html', form=form)
     else:
@@ -173,7 +180,7 @@ def edit_poll(poll_id):
             poll.modified_at = datetime.datetime.now().astimezone(tz=BKK_TZ)
             db.session.add(poll)
             db.session.commit()
-            return redirect(url_for('index'))
+            return redirect(url_for('besttime.index'))
         else:
             return f'{form.errors}'
     return render_template('besttime/poll-setup-form.html', form=form, poll_id=poll_id)
@@ -185,7 +192,7 @@ def delete_poll(poll_id):
     poll = BestTimePoll.query.get(poll_id)
     db.session.delete(poll)
     db.session.commit()
-    return redirect(url_for('index'))
+    return redirect(url_for('besttime.index'))
 
 
 @besttime_bp.route('/close/<int:poll_id>')
@@ -195,7 +202,7 @@ def close_poll(poll_id):
     poll.closed_at = datetime.datetime.now().astimezone(tz=BKK_TZ)
     db.session.add(poll)
     db.session.commit()
-    return redirect(url_for('index'))
+    return redirect(url_for('besttime.index'))
 
 
 @besttime_bp.route('/vote/polls/<int:poll_id>', methods=['GET', 'POST'])
@@ -225,14 +232,12 @@ def vote_poll(poll_id):
         vote.voted_at = datetime.datetime.now().astimezone(tz=BKK_TZ)
         db.session.add(vote)
         db.session.commit()
-        return redirect(url_for('index'))
+        return redirect(url_for('besttime.index'))
 
     if request.method == 'GET':
         if vote:
             voted_time_slots = [t.start.strftime('%Y-%m-%d#%H:%M - ') + t.end.strftime('%H:%M')
                                 for t in vote.datetime_slots]
-        else:
-            voted_time_slots = []
 
         dates = set()
         for slot in poll.active_master_datetime_slots.all():
