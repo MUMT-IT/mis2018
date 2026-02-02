@@ -1185,15 +1185,6 @@ def create_virus_disinfection_request(request_id=None):
         form = VirusDisinfectionRequestForm(data=data)
     else:
         form = VirusDisinfectionRequestForm()
-    for n, org in enumerate(virus_liquid_organisms):
-        liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
-        liquid_entry.liquid_organism.choices = [(org, org)]
-    for n, org in enumerate(virus_liquid_organisms):
-        spray_entry = form.spray_condition_field.spray_organism_fields[n]
-        spray_entry.spray_organism.choices = [(org, org)]
-    for n, org in enumerate(virus_liquid_organisms):
-        coat_entry = form.coat_condition_field.coat_organism_fields[n]
-        coat_entry.coat_organism.choices = [(org, org)]
     if form.validate_on_submit():
         if request_id:
             service_request.data = format_data(form.data)
@@ -1255,19 +1246,59 @@ def get_virus_disinfection_condition_form():
     if not product_type:
         return ''
     form = VirusDisinfectionRequestForm()
-    for n, org in enumerate(virus_liquid_organisms):
-        liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
-        liquid_entry.liquid_organism.choices = [(org, org)]
-    for n, org in enumerate(virus_liquid_organisms):
-        spray_entry = form.spray_condition_field.spray_organism_fields[n]
-        spray_entry.spray_organism.choices = [(org, org)]
-    for n, org in enumerate(virus_liquid_organisms):
-        coat_entry = form.coat_condition_field.coat_organism_fields[n]
-        coat_entry.coat_organism.choices = [(org, org)]
+    # for n, org in enumerate(virus_liquid_organisms):
+    #     liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
+    #     liquid_entry.liquid_organism.choices = [(org, org)]
+    # for n, org in enumerate(virus_liquid_organisms):
+    #     spray_entry = form.spray_condition_field.spray_organism_fields[n]
+    #     spray_entry.spray_organism.choices = [(org, org)]
+    # for n, org in enumerate(virus_liquid_organisms):
+    #     coat_entry = form.coat_condition_field.coat_organism_fields[n]
+    #     coat_entry.coat_organism.choices = [(org, org)]
     field_name = f"{product_type}_condition_field"
     fields = getattr(form, field_name)
     return render_template('service_admin/partials/virus_disinfection_request_condition_form.html',
                            fields=fields, product_type=product_type)
+
+@service_admin.route('/request/virus_liquid_organism_form_entry/add', methods=['POST'])
+def add_virus_liquid_organism_form_entry():
+    form = VirusDisinfectionRequestForm()
+    form.liquid_condition_field.liquid_organism_fields.append_entry()
+    item_form = form.liquid_condition_field.liquid_organism_fields[-1]
+    template = """
+        <tr>
+            <td style="border: none">{}</td>
+            <td style="border: none">{}</td>
+            <td style="border: none">{}</td>
+            <td style="border: none">
+                <a class="button is-danger">
+                    <span>ลบ</span>
+                </a>
+            </td>
+        </tr>
+    """
+    resp = template.format(item_form.liquid_organism(),
+                           item_form.liquid_ratio(class_='input'),
+                           item_form.liquid_time_duration(class_='input')
+                        )
+    resp = make_response(resp)
+    return resp
+
+
+@service_admin.route('/request/virus_liquid_organism_form_entry/remove', methods=['DELETE'])
+def remove_virus_liquid_organism_form_entry():
+    field_name = request.args.get('name')
+    form = VirusDisinfectionRequestForm()
+    # form.liquid_condition_field.liquid_organism_fields.pop_entry()
+    temp_entries = []
+    for entry in form.liquid_condition_field.liquid_organism_fields:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.liquid_condition_field.liquid_organism_fields) > 0:
+        form.liquid_condition_field.liquid_organism_fields.pop_entry()
+    for entry in temp_entries:
+        form.liquid_condition_field.liquid_organism_fields.append_entry(entry)
+    return ""
 
 
 @service_admin.route('/request/virus_air_disinfection/add', methods=['GET', 'POST'])
@@ -3321,7 +3352,7 @@ def confirm_sample(sample_id):
 def view_request(request_id=None):
     menu = request.args.get('menu')
     service_request = ServiceRequest.query.get(request_id)
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab)
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.sub_lab.code)
     request_data = request_data_paths[service_request.sub_lab.code]
     datas = request_data(service_request, type='form')
     result_id = None
