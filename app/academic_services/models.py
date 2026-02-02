@@ -392,6 +392,7 @@ class ServiceRequest(db.Model):
     quotation_issue_address = db.Column('quotation_issue_address', db.String())
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
     quotation_phone_number = db.Column('quotation_phone_number', db.String())
+    result_receive_channel = db.Column('result_receive_channel', db.String())
     document_address_id = db.Column('document_address_id', db.ForeignKey('service_customer_addresses.id'))
     document_address = db.relationship(ServiceCustomerAddress, backref=db.backref("document_address_for_requests"),
                                        foreign_keys=[document_address_id])
