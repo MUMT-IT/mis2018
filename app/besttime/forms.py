@@ -5,7 +5,7 @@ from wtforms_components import DateField
 from sqlalchemy.inspection import inspect as sa_inspect
 
 from app.main import db
-from wtforms import FieldList, FormField, BooleanField
+from wtforms import FieldList, FormField
 
 from app.besttime.models import BestTimePoll, BestTimePollVote, BestTimePollMessage
 from app.staff.models import StaffAccount
@@ -57,17 +57,17 @@ class ModelForm(BaseModelForm):
         return db.session
 
 
-class DateTimeSlotForm(FlaskForm):
+class BestTimeDateTimeSlotForm(FlaskForm):
     date = DateField('Date', validators=[DataRequired()])
     time_slots = CheckboxSelectMultipleField('Time slots')
 
 
-class MasterDateTimeSlotForm(FlaskForm):
+class BestTimeMasterDateTimeSlotForm(FlaskForm):
     date = DateField('Date', validators=[DataRequired()])
     time_slots = CheckboxSelectMultipleField('Time slots')
 
 
-class PollForm(ModelForm):
+class BestTimePollForm(ModelForm):
     class Meta:
         model = BestTimePoll
 
@@ -86,16 +86,16 @@ class PollForm(ModelForm):
                                         get_label="fullname",
                                         widget=ListWidget(prefix_label=False),
                                         option_widget=CheckboxInput())
-    datetime_slots = FieldList(FormField(MasterDateTimeSlotForm), min_entries=0)
+    datetime_slots = FieldList(FormField(BestTimeMasterDateTimeSlotForm), min_entries=0)
 
 
-class PollMessageForm(ModelForm):
+class BestTimePollMessageForm(ModelForm):
     class Meta:
         model = BestTimePollMessage
 
 
-class PollVoteForm(ModelForm):
+class BestTimePollVoteForm(ModelForm):
     class Meta:
         model = BestTimePollVote
 
-    date_time_slots = FieldList(FormField(DateTimeSlotForm), min_entries=0)
+    date_time_slots = FieldList(FormField(BestTimeDateTimeSlotForm), min_entries=0)

@@ -6,6 +6,7 @@ import calendar
 import datetime
 
 from app.besttime import besttime_bp
+from app.besttime.forms import BestTimePollMessageForm, BestTimePollForm, BestTimePollVoteForm
 from app.besttime.models import *
 
 from zoneinfo import ZoneInfo
@@ -24,7 +25,7 @@ vote_hours = [VoteHour(datetime.time(9, 0, 0, tzinfo=BKK_TZ),
 
 @besttime_bp.route('/')
 def index():
-    return render_template('besttime/index.html')
+    return render_template('besttime/poll-list.html')
 
 
 @besttime_bp.route('/view/<int:poll_id>')
@@ -34,7 +35,7 @@ def view_results(poll_id):
     for slot in BestTimeDateTimeSlot.query.filter_by(poll_id=poll_id):
         for vote in slot.poll_votes:
             vote_summary[slot].append(vote.voter.name)
-    return render_template('poll-results.html', votes=vote_summary)
+    return render_template('besttime/poll-results.html', votes=vote_summary)
 
 
 @besttime_bp.route('/messages/<int:poll_id>', methods=["GET", "POST"])
@@ -52,7 +53,7 @@ def leave_message(poll_id):
         return redirect(url_for('index'))
     else:
         print(form.errors)
-    return render_template('poll-message-form.html', poll=poll, form=form)
+    return render_template('besttime/poll-message-form.html', poll=poll, form=form)
 
 
 def add_datetime_slot_choices(form, datetime_slot_field):
@@ -96,7 +97,7 @@ def add_poll():
             return redirect(url_for('index'))
         else:
             return f'{form.errors}'
-    return render_template('poll-setup-form.html', form=form)
+    return render_template('besttime/poll-setup-form.html', form=form)
 
 
 @besttime_bp.route('/api/preview-master-datetime-slots', methods=['POST'])
@@ -128,12 +129,12 @@ def preview_master_datetime_slots():
                     end = datetime.datetime.combine(_form_field.date.data, h.end)
                     _slot = BestTimeMasterDateTimeSlot.query.filter_by(start=start, end=end, poll_id=poll_id).first()
                     if _slot:
-                        hour_text = f'#{h.start.strftime('%H:%M')} - {h.end.strftime('%H:%M')}'
+                        hour_text = f'#{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
                         hour_display = f'{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
                         selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))
                 _form_field.time_slots.data = [dt[0] for dt in selected]
 
-        return render_template('datetime_slots_preview.html', form=form)
+        return render_template('besttime/datetime_slots_preview.html', form=form)
     else:
         return ''
 
@@ -175,7 +176,7 @@ def edit_poll(poll_id):
             return redirect(url_for('index'))
         else:
             return f'{form.errors}'
-    return render_template('poll-setup-form.html', form=form, poll_id=poll_id)
+    return render_template('besttime/poll-setup-form.html', form=form, poll_id=poll_id)
 
 
 @besttime_bp.route('/delete/<int:poll_id>')
@@ -203,7 +204,7 @@ def vote_poll(poll_id):
     poll = BestTimePoll.query.get(poll_id)
     # If the user has already voted this poll
     vote = BestTimePollVote.query.filter_by(poll_id=poll_id, voter=current_user).first()
-    form = PollVoteForm()
+    form = BestTimePollVoteForm()
     if request.method == 'POST':
         if not vote:
             vote = BestTimePollVote(poll=poll, voter=current_user)
@@ -230,6 +231,8 @@ def vote_poll(poll_id):
         if vote:
             voted_time_slots = [t.start.strftime('%Y-%m-%d#%H:%M - ') + t.end.strftime('%H:%M')
                                 for t in vote.datetime_slots]
+        else:
+            voted_time_slots = []
 
         dates = set()
         for slot in poll.active_master_datetime_slots.all():
@@ -252,4 +255,4 @@ def vote_poll(poll_id):
             if vote:
                 _form_field.time_slots.data = [t[0] for t in choices if t[0] in voted_time_slots]
 
-    return render_template('poll-form.html', form=form, poll=poll)
+    return render_template('besttime/poll-form.html', form=form, poll=poll)
