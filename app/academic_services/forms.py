@@ -451,7 +451,7 @@ virus_airborne_organisms = [
 
 
 class VirusLiquidTestConditionForm(FlaskForm):
-    liquid_organism = CheckboxField('เชื้อ', validators=[Optional()])
+    liquid_organism = SelectField('เชื้อ', choices=[(c, c) for c in virus_liquid_organisms], validators=[Optional()])
     liquid_ratio = StringField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
     # liquid_per_water = StringField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
     liquid_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
@@ -477,11 +477,11 @@ class VirusLiquidConditionForm(FlaskForm):
                                                      ('ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน',
                                                       'ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน')],
                                             validators=[Optional()])
-    liquid_organism_fields = FieldList(FormField(VirusLiquidTestConditionForm), min_entries=len(virus_liquid_organisms))
+    liquid_organism_fields = FieldList(FormField(VirusLiquidTestConditionForm), min_entries=1)
 
 
 class VirusSprayTestConditionForm(FlaskForm):
-    spray_organism = CheckboxField('เชื้อ', validators=[Optional()])
+    spray_organism = SelectField('เชื้อ', choices=[(c, c) for c in virus_liquid_organisms], validators=[Optional()])
     spray_ratio = StringField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
     # spray_per_water = StringField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
     spray_distance = StringField('ระยะห่างในการฉีดพ่น (cm)', validators=[Optional()], render_kw={'class': 'input'})
@@ -513,11 +513,11 @@ class VirusSprayConditionForm(FlaskForm):
                                                     ('ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน (แนบขวดสเปรย์มาด้วย)',
                                                      'ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน (แนบขวดสเปรย์มาด้วย)')],
                                            validators=[Optional()])
-    spray_organism_fields = FieldList(FormField(VirusSprayTestConditionForm), min_entries=len(virus_liquid_organisms))
+    spray_organism_fields = FieldList(FormField(VirusSprayTestConditionForm), min_entries=1)
 
 
 class VirusCoatTestConditionForm(FlaskForm):
-    coat_organism = CheckboxField('เชื้อ', validators=[Optional()])
+    coat_organism = SelectField('เชื้อ', choices=[(c, c) for c in virus_liquid_organisms], validators=[Optional()])
     coat_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
                                      render_kw={'class': 'input'})
 
@@ -531,7 +531,7 @@ class VirusCoatConditionForm(FlaskForm):
                                                              ('พื้นผิวอื่นๆ โปรดระบุ', 'พื้นผิวอื่นๆ โปรดระบุ')],
                                      validators=[Optional()])
     coat_surface_type_other = StringField('ระบุ', render_kw={'class': 'input'})
-    coat_organism_fields = FieldList(FormField(VirusCoatTestConditionForm), min_entries=len(virus_liquid_organisms))
+    coat_organism_fields = FieldList(FormField(VirusCoatTestConditionForm), min_entries=1)
 
 
 class VirusDisinfectionRequestForm(FlaskForm):
