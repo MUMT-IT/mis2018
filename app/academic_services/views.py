@@ -1410,15 +1410,7 @@ def create_virus_disinfection_request(request_id=None):
         form = VirusDisinfectionRequestForm(data=data)
     else:
         form = VirusDisinfectionRequestForm()
-    for n, org in enumerate(virus_liquid_organisms):
-        liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
-        liquid_entry.liquid_organism.choices = [(org, org)]
-    for n, org in enumerate(virus_liquid_organisms):
-        spray_entry = form.spray_condition_field.spray_organism_fields[n]
-        spray_entry.spray_organism.choices = [(org, org)]
-    for n, org in enumerate(virus_liquid_organisms):
-        coat_entry = form.coat_condition_field.coat_organism_fields[n]
-        coat_entry.coat_organism.choices = [(org, org)]
+
     if form.validate_on_submit():
         if request_id:
             service_request.data = format_data(form.data)
@@ -1481,19 +1473,147 @@ def get_virus_disinfection_condition_form():
     if not product_type:
         return ''
     form = VirusDisinfectionRequestForm()
-    for n, org in enumerate(virus_liquid_organisms):
-        liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
-        liquid_entry.liquid_organism.choices = [(org, org)]
-    for n, org in enumerate(virus_liquid_organisms):
-        spray_entry = form.spray_condition_field.spray_organism_fields[n]
-        spray_entry.spray_organism.choices = [(org, org)]
-    for n, org in enumerate(virus_liquid_organisms):
-        coat_entry = form.coat_condition_field.coat_organism_fields[n]
-        coat_entry.coat_organism.choices = [(org, org)]
     field_name = f"{product_type}_condition_field"
     fields = getattr(form, field_name)
     return render_template('academic_services/partials/virus_disinfection_request_condition_form.html',
                            fields=fields, product_type=product_type)
+
+
+@academic_services.route('/request/virus_liquid_organism_form_entry/add', methods=['POST'])
+def add_virus_liquid_organism_form_entry():
+    form = VirusDisinfectionRequestForm()
+    form.liquid_condition_field.liquid_organism_fields.append_entry()
+    item_form = form.liquid_condition_field.liquid_organism_fields[-1]
+    template = """
+        <tr>
+            <td style="border: none">{}</td>
+            <td style="border: none">{}</td>
+            <td style="border: none">{}</td>
+            <td style="border: none">
+                <a class="button is-danger is-outlined"
+                    hx-delete="{}" 
+                    hx-target="closest tr"
+                    hx-swap="outerHTML"
+                >
+                    <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                </a>
+            </td>
+        </tr>
+    """
+    resp = template.format(item_form.liquid_organism(),
+                           item_form.liquid_ratio(class_='input'),
+                           item_form.liquid_time_duration(class_='input'),
+                           url_for('academic_services.remove_virus_liquid_organism_form_entry', name=item_form.name)
+                        )
+    resp = make_response(resp)
+    return resp
+
+
+@academic_services.route('/request/virus_liquid_organism_form_entry/remove', methods=['DELETE'])
+def remove_virus_liquid_organism_form_entry():
+    field_name = request.args.get('name')
+    form = VirusDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.liquid_condition_field.liquid_organism_fields:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.liquid_condition_field.liquid_organism_fields) > 0:
+        form.liquid_condition_field.liquid_organism_fields.pop_entry()
+    for entry in temp_entries:
+        form.liquid_condition_field.liquid_organism_fields.append_entry(entry)
+    return ""
+
+
+@academic_services.route('/request/virus_spray_organism_form_entry/add', methods=['POST'])
+def add_virus_spray_organism_form_entry():
+    form = VirusDisinfectionRequestForm()
+    form.spray_condition_field.spray_organism_fields.append_entry()
+    item_form = form.spray_condition_field.spray_organism_fields[-1]
+    template = """
+        <tr>
+            <td style="border: none">{}</td>
+            <td style="border: none">{}</td>
+            <td style="border: none">{}</td>
+            <td style="border: none">{}</td>
+            <td style="border: none">{}</td>
+            <td style="border: none">
+                <a class="button is-danger is-outlined"
+                    hx-delete="{}" 
+                    hx-target="closest tr"
+                    hx-swap="outerHTML"
+                >
+                    <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                </a>
+            </td>
+        </tr>
+    """
+    resp = template.format(item_form.spray_organism(),
+                           item_form.spray_ratio(class_='input'),
+                           item_form.spray_distance(class_='input'),
+                           item_form.spray_of_time(class_='input'),
+                           item_form.spray_time_duration(class_='input'),
+                           url_for('academic_services.remove_virus_spray_organism_form_entry', name=item_form.name)
+                        )
+    resp = make_response(resp)
+    return resp
+
+
+@academic_services.route('/request/virus_spray_organism_form_entry/remove', methods=['DELETE'])
+def remove_virus_spray_organism_form_entry():
+    field_name = request.args.get('name')
+    form = VirusDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.spray_condition_field.spray_organism_fields:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.spray_condition_field.spray_organism_fields) > 0:
+        form.spray_condition_field.spray_organism_fields.pop_entry()
+    for entry in temp_entries:
+        form.spray_condition_field.spray_organism_fields.append_entry(entry)
+    return ""
+
+
+@academic_services.route('/request/virus_coat_organism_form_entry/add', methods=['POST'])
+def add_virus_coat_organism_form_entry():
+    form = VirusDisinfectionRequestForm()
+    form.coat_condition_field.coat_organism_fields.append_entry()
+    item_form = form.coat_condition_field.coat_organism_fields[-1]
+    template = """
+        <tr>
+            <td style="border: none">{}</td>
+            <td style="border: none">{}</td>
+            <td style="border: none">
+                <a class="button is-danger is-outlined"
+                    hx-delete="{}" 
+                    hx-target="closest tr"
+                    hx-swap="outerHTML"
+                >
+                    <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                </a>
+            </td>
+        </tr>
+    """
+    resp = template.format(item_form.coat_organism(),
+                           item_form.coat_time_duration(class_='input'),
+                           url_for('academic_services.remove_virus_coat_organism_form_entry', name=item_form.name)
+                        )
+    resp = make_response(resp)
+    return resp
+
+
+@academic_services.route('/request/virus_coat_organism_form_entry/remove', methods=['DELETE'])
+def remove_virus_coat_organism_form_entry():
+    field_name = request.args.get('name')
+    form = VirusDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.coat_condition_field.coat_organism_fields:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.coat_condition_field.coat_organism_fields) > 0:
+        form.coat_condition_field.coat_organism_fields.pop_entry()
+    for entry in temp_entries:
+        form.coat_condition_field.coat_organism_fields.append_entry(entry)
+    return ""
 
 
 @academic_services.route('/request/virus_air_disinfection/add', methods=['GET', 'POST'])
