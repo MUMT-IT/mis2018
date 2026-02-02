@@ -5562,7 +5562,6 @@ def generate_virus_disinfection_quotation():
             keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
             for key in list(itertools.combinations(keys, len(quote_column_names[field.label.text]))):
                 sorted_field_label = ''.join(sorted(field.label.text)).replace(' ', '')
-                print('f', [k[1] for k in key])
                 sorted_key_ = sorted(''.join([k[1] for k in key]))
                 p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
                 values = ', '.join(
@@ -5660,8 +5659,12 @@ def generate_virus_air_disinfection_quotation():
                         if (organism_rows, period_test_rows) in test_methods:
                             p_key = ''.join(sorted(f"{organism_rows}{period_test_rows}".replace(' ', '')))
                             values = f"<i>{organism_rows}</i> {period_test_rows}"
-                            price = quote_prices.get(p_key, 0)
-                            quote_details[p_key] = {"value": values, "price": price, "quantity": 1}
+                            if p_key in quote_prices:
+                                prices = quote_prices[p_key]
+                                if p_key in quote_details:
+                                    quote_details[p_key]["quantity"] += 1
+                                else:
+                                    quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
             else:
                 for f in airborne_fields:
                     organisms = f.get('airborne_disinfection_organism', '')
