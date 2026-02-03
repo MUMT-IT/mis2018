@@ -1402,12 +1402,7 @@ def create_virus_air_disinfection_request(request_id=None):
         form = VirusAirDisinfectionRequestForm(data=data)
     else:
         form = VirusAirDisinfectionRequestForm()
-    for n, org in enumerate(virus_liquid_organisms):
-        surface_entry = form.surface_condition_field.surface_disinfection_organism_fields[n]
-        surface_entry.surface_disinfection_organism.choices = [(org, org)]
-    # for n, org in enumerate(virus_airborne_organisms):
-    #     airborne_entry = form.airborne_condition_field.airborne_disinfection_organism_fields[n]
-    #     airborne_entry.airborne_disinfection_organism.choices = [(org, org)]
+
     if form.validate_on_submit():
         if request_id:
             service_request.data = format_data(form.data)
@@ -1430,21 +1425,47 @@ def create_virus_air_disinfection_request(request_id=None):
                            form=form, request_id=request_id, menu=menu)
 
 
-@service_admin.route('/request/virus_air_disinfection/condition')
-def get_virus_air_disinfection_condition_form():
-    product_type = request.args.get("product_type")
-    if not product_type:
-        return ''
+@service_admin.route('/request/virus_surface_disinfection_organism_form_entry/add', methods=['POST'])
+def add_virus_surface_disinfection_organism_form_entry():
     form = VirusAirDisinfectionRequestForm()
-    for n, org in enumerate(virus_liquid_organisms):
-        surface_entry = form.surface_condition_field.surface_disinfection_organism_fields[n]
-        surface_entry.surface_disinfection_organism.choices = [(org, org)]
-    # for n, org in enumerate(virus_airborne_organisms):
-    #     airborne_entry = form.airborne_condition_field.airborne_disinfection_organism_fields[n]
-    #     airborne_entry.airborne_disinfection_organism.choices = [(org, org)]
-    field_name = f"{product_type}_condition_field"
-    fields = getattr(form, field_name)
-    return render_template('service_admin/partials/virus_air_disinfection_request_condition_form.html', fields=fields)
+    form.surface_disinfection_condition_field.surface_disinfection_organism_fields.append_entry()
+    item_form = form.surface_disinfection_condition_field.surface_disinfection_organism_fields[-1]
+    template = """
+        <tr>
+            <td style="border: none">{}</td>
+            <td style="border: none">{}</td>
+            <td style="border: none">
+                <a class="button is-danger is-outlined"
+                    hx-delete="{}" 
+                    hx-target="closest tr"
+                    hx-swap="outerHTML"
+                >
+                    <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                </a>
+            </td>
+        </tr>
+    """
+    resp = template.format(item_form.surface_disinfection_organism(),
+                           item_form.surface_disinfection_period_test(class_='input'),
+                           url_for('service_admin.remove_virus_surface_disinfection_organism_form_entry', name=item_form.name)
+                        )
+    resp = make_response(resp)
+    return resp
+
+
+@service_admin.route('/request/virus_surface_disinfection_organism_form_entry/remove', methods=['DELETE'])
+def remove_virus_surface_disinfection_organism_form_entry():
+    field_name = request.args.get('name')
+    form = VirusAirDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.surface_disinfection_condition_field.surface_disinfection_organism_fields:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.surface_disinfection_condition_field.surface_disinfection_organism_fields) > 0:
+        form.surface_disinfection_condition_field.surface_disinfection_organism_fields.pop_entry()
+    for entry in temp_entries:
+        form.surface_disinfection_condition_field.surface_disinfection_organism_fields.append_entry(entry)
+    return ""
 
 
 @service_admin.route('/request/condition/remove', methods=['GET', 'POST'])
