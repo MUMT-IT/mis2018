@@ -192,6 +192,20 @@
                                 </ul>
                             </div>
                         </div>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-file-alt"></i></span> ช่องทางการรับใบรายงานผล
+                            </p>
+                            <div class="content" style="margin-left: 1.75rem;">
+                                <ul>
+                                    {% if service_request.report_receive_channel %}
+                                        <li>{{ service_request.report_receive_channel.item }}</li>
+                                    {% else %}
+                                        ไม่ได้เลือกช่องทางการรับใบรายงานผล
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="column is-one-third">
