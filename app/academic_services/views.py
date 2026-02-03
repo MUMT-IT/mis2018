@@ -1486,7 +1486,9 @@ def add_virus_liquid_organism_form_entry():
     item_form = form.liquid_condition_field.liquid_organism_fields[-1]
     template = """
         <tr>
-            <td style="border: none">{}</td>
+            <td style="border: none">
+                <div class="select">{}</div>
+            </td>
             <td style="border: none">{}</td>
             <td style="border: none">{}</td>
             <td style="border: none">
@@ -1531,7 +1533,9 @@ def add_virus_spray_organism_form_entry():
     item_form = form.spray_condition_field.spray_organism_fields[-1]
     template = """
         <tr>
-            <td style="border: none">{}</td>
+            <td style="border: none">
+                <div class="select">{}</div>
+            </td>
             <td style="border: none">{}</td>
             <td style="border: none">{}</td>
             <td style="border: none">{}</td>
@@ -1580,7 +1584,9 @@ def add_virus_coat_organism_form_entry():
     item_form = form.coat_condition_field.coat_organism_fields[-1]
     template = """
         <tr>
-            <td style="border: none">{}</td>
+            <td style="border: none">
+                <div class="select">{}</div>
+            </td>
             <td style="border: none">{}</td>
             <td style="border: none">
                 <a class="button is-danger is-outlined"
@@ -1660,7 +1666,9 @@ def add_virus_surface_disinfection_organism_form_entry():
     item_form = form.surface_disinfection_condition_field.surface_disinfection_organism_fields[-1]
     template = """
         <tr>
-            <td style="border: none">{}</td>
+            <td style="border: none">
+                <div class="select">{}</div>
+            </td>
             <td style="border: none">{}</td>
             <td style="border: none">
                 <a class="button is-danger is-outlined"
