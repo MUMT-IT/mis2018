@@ -91,7 +91,6 @@
                         <th>รายงานผลการทดสอบ</th>
                         <th>สถานะ</th>
                         <th>รายละเอียด</th>
-                        <th></th>
                     </thead>
                     <tbody>
                     </tbody>
@@ -267,7 +266,7 @@
                                     '<div class="control">' +
                                     '<a class="button is-small is-rounded is-warning" ' + 'href=' + quotation_url + '>' +
                                     '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                    '<span>แก้ไข</span>' +
+                                    '<span>แก้ไขใบเสนอราคา</span>' +
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
@@ -436,26 +435,17 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>';
-                            } else {
-                                return ''
-                            }
-                        }
-                    },
-                    {
-                        data: 'id',
-                        render: function (data, type, row) {
-                            if (!row.is_completed) {
-                                var url = '/service_admin/portal/request?code=' + row.code + '&menu=' +
-                                    '{{ menu }}' + '&request_id=' + data;
+                            } else if (!row.is_completed) {
+                                var url = '/service_admin/portal/request?code=' + row.code + '&menu=' + '{{ menu }}' + '&request_id=' + data;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-rounded is-warning" ' + 'href=' + url + '>' +
                                     '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                    '<span>แก้ไข</span>' +
+                                    '<span>แก้ไขใบคำขอรับบริการ</span>' +
                                     '</a>' +
                                     '</div>' +
-                                    '</div>';
-                            } else {
+                                    '</div>'
+                            }   else {
                                 return ''
                             }
                         }
