@@ -2819,25 +2819,31 @@ def create_report_language(request_id):
     code = request.args.get('code')
     service_request = ServiceRequest.query.get(request_id)
     report_languages = ServiceReportLanguage.query.filter_by(sub_lab_id=service_request.sub_lab_id)
+    report_receive_channels = ServiceReportReceiveChannel.query.filter_by(sub_lab_id=service_request.sub_lab_id)
     req_report_language_id = [rl.report_language_id for rl in service_request.report_languages]
     req_report_language = [rl.report_language.language for rl in sorted(service_request.report_languages,
                                                                         key=lambda rl: rl.report_language.no)]
     if request.method == 'POST':
-        items = request.form.getlist('check_report_language')
-        ServiceReqReportLanguageAssoc.query.filter_by(request_id=request_id).delete()
-        for item_id in items:
-            assoc = ServiceReqReportLanguageAssoc(
-                request_id=request_id,
-                report_language_id=int(item_id)
-            )
-            db.session.add(assoc)
-        db.session.commit()
-        return redirect(url_for('service_admin.create_customer_detail', request_id=request_id, menu=menu,
-                                code=code))
+        report_receive_channel_id = request.form.get('report_receive_channel', type=int)
+        if report_receive_channel_id:
+            service_request.report_receive_channel_id = report_receive_channel_id
+            items = request.form.getlist('check_report_language')
+            ServiceReqReportLanguageAssoc.query.filter_by(request_id=request_id).delete()
+            for item_id in items:
+                assoc = ServiceReqReportLanguageAssoc(
+                    request_id=request_id,
+                    report_language_id=int(item_id)
+                )
+                db.session.add(assoc)
+            db.session.commit()
+            return redirect(url_for('service_admin.create_customer_detail', request_id=request_id, menu=menu,
+                                    code=code))
+        else:
+            flash('กรุณาเลือกช่องทางการรับใบรายงานผล', 'danger')
     return render_template('service_admin/create_report_language.html', menu=menu, code=code,
-                           request_id=request_id, report_languages=report_languages,
-                           req_report_language=req_report_language, service_request=service_request,
-                           req_report_language_id=req_report_language_id)
+                           request_id=request_id, report_languages=report_languages, req_report_language=req_report_language,
+                           service_request=service_request, req_report_language_id=req_report_language_id,
+                           report_receive_channels=report_receive_channels)
 
 
 @service_admin.route('/request/customer/detail/add/<int:request_id>', methods=['GET', 'POST'])
