@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
 {% block page_content %}
 <section class="section">
     <h2 class="title is-size-4">Select A Date Range For A Poll</h2>
@@ -43,11 +48,15 @@
         </div>
         <div class="field">
             <label class="label">Chairman</label>
-            <div class="select">{{form.chairman()}}</div>
+            <div>{{form.chairman(class="js-example-basic-single")}}</div>
         </div>
         <div class="field">
             <label class="label">Committee</label>
-            <div class="control">{{form.invitees()}}</div>
+            <div class="control">{{form.invitees(class='js-example-basic-multiple')}}</div>
+        </div>
+        <div class="field">
+            <label class="label">Admins</label>
+            <div class="control">{{form.admins(class='js-example-basic-multiple')}}</div>
         </div>
         <div class="field is-grouped">
             <div class="control">
@@ -70,9 +79,15 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
-    $(document).ready(function(){
-        htmx.trigger('#start_date', 'change')
-    })
+        $(document).ready(function(){
+            $('.js-example-basic-single').select2();
+            $('.js-example-basic-multiple').select2({
+                width: "100%",
+            })
+            htmx.trigger('#start_date', 'change')
+        })
     </script>
 {% endblock %}

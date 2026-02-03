@@ -5,7 +5,7 @@ from wtforms_components import DateField
 from sqlalchemy.inspection import inspect as sa_inspect
 
 from app.main import db
-from wtforms import FieldList, FormField
+from wtforms import FieldList, FormField, TextAreaField
 
 from app.besttime.models import BestTimePoll, BestTimePollVote, BestTimePollMessage
 from app.staff.models import StaffAccount
@@ -78,14 +78,11 @@ class BestTimePollForm(ModelForm):
         # populate only real model-mapped attributes
         for name, field in self._fields.items():
             if name in model_attrs:
-                print('populating..', name, obj)
                 field.populate_obj(obj, name)
 
     chairman = QuerySelectField(query_factory=lambda: StaffAccount.query.all(), get_label="fullname")
-    invitees = QuerySelectMultipleField(query_factory=lambda: StaffAccount.query.all(),
-                                        get_label="fullname",
-                                        widget=ListWidget(prefix_label=False),
-                                        option_widget=CheckboxInput())
+    invitees = QuerySelectMultipleField(query_factory=lambda: StaffAccount.query.all(), get_label="fullname")
+    admins = QuerySelectMultipleField(query_factory=lambda: StaffAccount.query.all(), get_label="fullname")
     datetime_slots = FieldList(FormField(BestTimeMasterDateTimeSlotForm), min_entries=0)
 
 
@@ -97,5 +94,10 @@ class BestTimePollMessageForm(ModelForm):
 class BestTimePollVoteForm(ModelForm):
     class Meta:
         model = BestTimePollVote
+        date_format = '%d/%m/%Y'
 
     date_time_slots = FieldList(FormField(BestTimeDateTimeSlotForm), min_entries=0)
+
+
+class BestTimeMailForm(FlaskForm):
+    message = TextAreaField('ข้อความ')

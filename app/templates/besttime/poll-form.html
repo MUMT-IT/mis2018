@@ -6,6 +6,7 @@
     <div class="columns">
         <div class="column">
             <form method="post">
+                {{ form.hidden_tag() }}
                 <table class="table is-striped is-bordered">
                     {% for field in form.date_time_slots %}
                     <tr>

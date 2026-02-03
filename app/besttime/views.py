@@ -1,17 +1,18 @@
-from calendar import calendar
+import calendar
 from collections import defaultdict, namedtuple
 
-from flask import render_template, request, redirect, url_for
+from flask import render_template, request, redirect, url_for, current_app, make_response, flash
 from flask_login import login_required, current_user
 import arrow
 
 from app.besttime import besttime_bp
-from app.besttime.forms import BestTimePollMessageForm, BestTimePollForm, BestTimePollVoteForm
+from app.besttime.forms import BestTimePollMessageForm, BestTimePollForm, BestTimePollVoteForm, BestTimeMailForm
 from app.besttime.models import *
 
 from zoneinfo import ZoneInfo
 import datetime
 
+from app.staff.views import send_mail
 
 VoteHour = namedtuple('VoteHour', ['start', 'end'])
 
@@ -24,6 +25,14 @@ vote_hours = [VoteHour(datetime.time(9, 0, 0, tzinfo=BKK_TZ),
               ]
 
 
+def send_mail_to_voters(poll, message, title):
+    recipients = [f'{c.voter.email}@mahidol.ac.th' for c in poll.invitations]
+    if current_app.debug:
+        print(f'Mail sent to {recipients}. Message: {message}')
+    else:
+        send_mail(recp=recipients, title=title, message=message)
+
+
 @besttime_bp.route('/')
 def index():
     return render_template('besttime/poll-list.html')
@@ -32,11 +41,8 @@ def index():
 @besttime_bp.route('/view/<int:poll_id>')
 @login_required
 def view_results(poll_id):
-    vote_summary = defaultdict(list)
-    for slot in BestTimeDateTimeSlot.query.filter_by(poll_id=poll_id):
-        for vote in slot.poll_votes:
-            vote_summary[slot].append(vote.voter.name)
-    return render_template('besttime/poll-results.html', votes=vote_summary)
+    slots = BestTimeDateTimeSlot.query.filter_by(poll_id=poll_id)
+    return render_template('besttime/poll-results.html', slots=slots)
 
 
 @besttime_bp.route('/messages/<int:poll_id>', methods=["GET", "POST"])
@@ -76,9 +82,10 @@ def add_poll():
             form.populate_obj(poll)
             chair_invitation = BestTimePollVote(voter=form.chairman.data, poll=poll, role='chairman')
             db.session.add(chair_invitation)
-            for user in form.invitees.data:
-                invitation = BestTimePollVote(voter=user, poll=poll, role='committee')
-                db.session.add(invitation)
+            for voter in form.invitees.data:
+                if voter != form.chairman.data:
+                    invitation = BestTimePollVote(voter=voter, poll=poll, role='committee')
+                    db.session.add(invitation)
             for _form_field in form.datetime_slots:
                 for t in _form_field.time_slots.data:
                     _start, _end = t.split('#')[1].split(' - ')
@@ -95,6 +102,20 @@ def add_poll():
             poll.created_at = datetime.datetime.now().astimezone(tz=BKK_TZ)
             db.session.add(poll)
             db.session.commit()
+            url = url_for('besttime.vote_poll', poll_id=poll.id, _external=True)
+            title = f'MUMT-MIS: ขอเชิญเลือกวันเพื่อประชุม {poll.title}'
+            message = f'''
+            เรียนกรรมการ
+            
+            ขอเชิญท่านเลืิอกวันที่สะดวกสำหรับร่วมประชุม {poll.title} ภายในวันที่ {poll.date_span} โดยคลิกที่ลิงค์ด้านล่าง
+            
+            {url}
+            
+            ด้วยความเคารพ
+            
+            {poll.creator.fullname}
+            '''
+            send_mail_to_voters(poll=poll, title=title, message=message)
             return redirect(url_for('besttime.index'))
         else:
             return f'{form.errors}'
@@ -150,20 +171,34 @@ def preview_master_datetime_slots():
 @login_required
 def edit_poll(poll_id):
     poll = BestTimePoll.query.get(poll_id)
-    form = BestTimePollForm(obj=poll)
+    if request.method == 'GET':
+        form = BestTimePollForm(obj=poll)
+        form.chairman.data = BestTimePollVote.query.filter_by(poll=poll, role='chairman').first().voter
+        form.invitees.data = [inv.voter for inv in BestTimePollVote.query.filter_by(poll=poll)
+                              if inv.voter != form.chairman.data]
+    else:
+        form = BestTimePollForm()
+
     add_datetime_slot_choices(form, form.datetime_slots)
-    form.chairman.data = BestTimePollVote.query.filter_by(poll=poll, role='chairman').first().voter
-    form.invitees.data = [inv.voter for inv in BestTimePollVote.query.filter_by(poll=poll)]
 
     if request.method == 'POST':
         if form.validate_on_submit():
+            invitations = [i.voter for i in poll.invitations]
+            chairman = poll.get_chairman()
             form.populate_obj(poll)
-            for user in form.invitees.data:
+            for invitee in form.invitees.data:
                 # Check for new invitees.
-                if not BestTimePollVote.query.filter_by(voter=user, poll=poll).first():
-                    invitation = BestTimePollVote(voter=user, poll=poll)
+                if not BestTimePollVote.query.filter_by(voter=invitee, poll=poll).first():
+                    invitation = BestTimePollVote(voter=invitee, poll=poll)
                     db.session.add(invitation)
-            # TODO: send email to notify all invitees.
+            for voter in invitations:
+                # Check for removed voters
+                if voter not in form.invitees.data and voter != chairman:
+                    vote = BestTimePollVote.query.filter_by(voter=voter, poll=poll).first()
+                    if vote:
+                        db.session.delete(vote)
+
+            poll.master_datetime_slots = []
             for _form_field in form.datetime_slots:
                 for t in _form_field.time_slots.data:
                     _start, _end = t.split('#')[1].split(' - ')
@@ -180,6 +215,21 @@ def edit_poll(poll_id):
             poll.modified_at = datetime.datetime.now().astimezone(tz=BKK_TZ)
             db.session.add(poll)
             db.session.commit()
+            url = url_for('besttime.vote_poll', poll_id=poll.id, _external=True)
+            title = f'MUMT-MIS: แจ้งเปลี่ยนแปลงโพลสำรวจวันเพื่อประชุม {poll.title}'
+            message = f'''
+            เรียนกรรมการ
+
+            เนื่องจากมีการเปลี่ยนแปลงโพลสำรวจวันประชุมจึง
+            ขอความกรุณาท่านเลืิอกวันที่สะดวกสำหรับร่วมประชุม {poll.title} ภายในวันที่ {poll.date_span} โดยคลิกที่ลิงค์ด้านล่าง
+
+            {url}
+
+            ด้วยความเคารพ
+
+            {poll.creator.fullname}
+            '''
+            send_mail_to_voters(poll=poll, title=title, message=message)
             return redirect(url_for('besttime.index'))
         else:
             return f'{form.errors}'
@@ -209,6 +259,10 @@ def close_poll(poll_id):
 @login_required
 def vote_poll(poll_id):
     poll = BestTimePoll.query.get(poll_id)
+    today = datetime.datetime.now().astimezone(tz=BKK_TZ).date()
+    if today < poll.start_date or today > poll.end_date:
+        flash('ขณะนี้ไม่อยู่ในช่วงระยะเวลาการโหวตของโพล กรุณาตรวจสอบวันที่เปิดโหวตอีกครั้ง', 'danger')
+        return redirect(url_for('besttime.index'))
     # If the user has already voted this poll
     vote = BestTimePollVote.query.filter_by(poll_id=poll_id, voter=current_user).first()
     form = BestTimePollVoteForm()
@@ -232,6 +286,41 @@ def vote_poll(poll_id):
         vote.voted_at = datetime.datetime.now().astimezone(tz=BKK_TZ)
         db.session.add(vote)
         db.session.commit()
+        if poll.is_completed:
+            url = url_for('besttime.view_results', poll_id=poll.id, _external=True)
+            if poll.has_valid_slots:
+                title = f'MUMT-MIS: แจ้งพิจาณาผลการโหวตเพื่อประชุม {poll.title}'
+                message = f'''
+                เรียนกรรมการ
+
+                บัดนี้กรรมการได้โหวตเพื่อประชุม {poll.title} ครบแล้ว ขอเชิญท่านพิจารณาผลการโหวตเพื่อนัดประชุมต่อไปโดยคลิกที่ลิงค์ด้านล่าง
+
+                {url}
+
+                ด้วยความเคารพ
+
+                {poll.creator.fullname}
+                '''
+                recipients = [f'{poll.creator.email}@mahidol.ac.th']
+            else:
+                title = f'MUMT-MIS: แจ้งพิจาณาผลการโหวตเพื่อประชุม {poll.title}'
+                message = f'''
+                เรียนกรรมการ
+
+                บัดนี้กรรมการได้โหวตเพื่อประชุม {poll.title} ครบแล้ว แต่ไม่มีช่วงเวลาที่เหมาะสม จึงขอเชิญท่านพิจารณาแก้ไขโพลเพื่อโหวตเพิ่มเติม โดยคลิกที่ลิงค์ด้านล่าง
+
+                {url}
+
+                ด้วยความเคารพ
+
+                {poll.creator.fullname}
+                '''
+                recipients = [f'{poll.creator.email}@mahidol.ac.th']
+            if current_app.debug:
+                print(f'Mail sent to {recipients}. Message: {message}')
+            else:
+                send_mail(recp=recipients, title=title, message=message)
+
         return redirect(url_for('besttime.index'))
 
     if request.method == 'GET':
@@ -240,7 +329,7 @@ def vote_poll(poll_id):
                                 for t in vote.datetime_slots]
 
         dates = set()
-        for slot in poll.active_master_datetime_slots.all():
+        for slot in poll.master_datetime_slots:
             if slot.start.date() not in dates:
                 form.date_time_slots.append_entry({'date': slot.start.date()})
                 dates.add(slot.start.date())
@@ -261,3 +350,27 @@ def vote_poll(poll_id):
                 _form_field.time_slots.data = [t[0] for t in choices if t[0] in voted_time_slots]
 
     return render_template('besttime/poll-form.html', form=form, poll=poll)
+
+
+@besttime_bp.route('/vote/<int:slot_id>/mail', methods=['GET', 'POST'])
+def send_mail_to_committee(slot_id):
+    slot = BestTimeDateTimeSlot.query.get(slot_id)
+    form = BestTimeMailForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            old_slot = BestTimeDateTimeSlot.query.filter_by(is_best=True).first()
+            old_slot.is_best = False
+            slot.is_best = True
+            slot.poll.closed_at = datetime.datetime.now().astimezone(tz=BKK_TZ)
+            db.session.add(slot)
+            db.session.add(old_slot)
+            db.session.commit()
+            title = f'แจ้งสรุปวันประชุมจากผลการโหวต {slot.poll.title}'
+            send_mail_to_voters(slot.poll, title, form.message.data)
+            flash(f'ส่งอีเมลเพื่อแจ้งกรรมการเรียบร้อย', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    form.message.data = f'''เรียนกรรมการทุกท่าน\n\nขอแจ้งสรุปวันประชุม {slot.poll.title} เป็นวันที่ {slot}\n\nด้วยความเคารพ'''
+    return render_template('besttime/modals/mail_form.html',
+                           form=form, slot_id=slot_id, poll=slot.poll)
