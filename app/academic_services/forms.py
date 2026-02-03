@@ -635,7 +635,7 @@ class VirusDisinfectionRequestForm(FlaskForm):
 
 
 class VirusSurfaceDisinfectionTestConditionForm(FlaskForm):
-    surface_disinfection_organism = CheckboxField('เชื้อ', validators=[Optional()])
+    surface_disinfection_organism = SelectField('เชื้อ', choices=[(c, c) for c in virus_liquid_organisms], validators=[Optional()])
     surface_disinfection_period_test = StringField('ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (วินาที/นาที)',
                                                    validators=[Optional()],
                                                    render_kw={'class': 'input'})
@@ -654,7 +654,7 @@ class VirusSurfaceDisinfectionConditionForm(FlaskForm):
         ], validators=[Optional()])
     surface_disinfection_clean_type_other = StringField('ระบุ', render_kw={'class': 'input'})
     surface_disinfection_organism_fields = FieldList(FormField(VirusSurfaceDisinfectionTestConditionForm),
-                                                     min_entries=len(virus_liquid_organisms))
+                                                     min_entries=1)
 
 
 class VirusAirborneDisinfectionTestConditionForm(FlaskForm):
@@ -676,7 +676,7 @@ class VirusAirborneDisinfectionConditionForm(FlaskForm):
              'ทดสอบการทำลายเชื้อในอากาศ (เครื่องปล่อยสารหรืออนุภาคทำลายเชื้อ)')
         ], validators=[Optional()])
     airborne_disinfection_organism_fields = FieldList(FormField(VirusAirborneDisinfectionTestConditionForm),
-                                                      min_entries=len(virus_airborne_organisms))
+                                                      min_entries=1)
 
 
 class VirusAirDisinfectionRequestForm(FlaskForm):
@@ -734,7 +734,7 @@ class VirusAirDisinfectionRequestForm(FlaskForm):
     product_type = SelectField('ประเภทการฆ่า/ทำลายเชื้อ', choices=[('', '+ เพิ่มประเภทการฆ่า/ทำลายเชื้อ'),
                                                                    ('surface', 'การฆ่าเชื้อบนพื้นผิว')],
                                validators=[Optional()])
-    surface_condition_field = FormField(VirusSurfaceDisinfectionConditionForm, 'การฆ่าเชื้อบนพื้นผิว')
+    surface_disinfection_condition_field = FormField(VirusSurfaceDisinfectionConditionForm, 'การฆ่าเชื้อบนพื้นผิว')
     # airborne_condition_field = FormField(VirusAirborneDisinfectionConditionForm, 'การลด/ทำลายเชื้อในอากาศ')
 
 
