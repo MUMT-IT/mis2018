@@ -161,11 +161,9 @@
                                                                 {% if loop.first %}
                                                                     {% for _field in subfield %}
                                                                         {% if _field.type != 'CSRFTokenField' %}
-                                                                            <th style="border: none">
+                                                                            <th style="border: none;width: 27em">
                                                                                 {{ _field.label.text }}
-                                                                                {% if _field.label.text != 'อัตราส่วนเจือจางผลิตภัณฑ์' and _field.label.text != 'ต่อน้ำ' %}
-                                                                                    <span class="has-text-danger">*</span>
-                                                                                {% endif %}
+                                                                                <span class="has-text-danger">*</span>
                                                                             </th>
                                                                         {% endif %}
                                                                     {% endfor %}
