@@ -28,7 +28,15 @@
                                 <tr>
                                     {% for _field in subform %}
                                         {% if _field.type != 'CSRFTokenField' %}
-                                            <td style="border: none">{{ _field() }}</td>
+                                            <td style="border: none">
+                                                {% if _field.type == 'SelectField' %}
+                                                    <div class="select">
+                                                        {{ _field() }}
+                                                    </div>
+                                                {% else %}
+                                                    {{ _field() }}
+                                                {% endif %}
+                                            </td>
                                         {% endif %}
                                     {% endfor %}
                                     <td style="border: none">
