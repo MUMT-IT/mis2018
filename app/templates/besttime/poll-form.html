@@ -1,13 +1,14 @@
 {% extends "base.html" %}
 
+{% include "besttime/nav.html" %}
 {% block page_content %}
 <section class="section">
-    <h1 class="title is-size-3">{{poll.title}}</h1>
     <div class="columns">
-        <div class="column">
+        <div class="column is-one-third is-offset-2">
+            <h1 class="title is-size-3">{{poll.title}}</h1>
             <form method="post">
                 {{ form.hidden_tag() }}
-                <table class="table is-striped is-bordered">
+                <table class="table is-striped is-fullwidth is-bordered">
                     {% for field in form.date_time_slots %}
                     <tr>
                         <td>
@@ -32,22 +33,36 @@
                 </div>
             </form>
         </div>
-        <div class="column">
-            {% for message in poll.messages %}
-            <article class="media">
-                <div class="media-content">
-                    <div class="tag is-large is-light is-warning">
-                        {{message.message}}
+        <div class="column is-one-third">
+            <form>
+                {{ message_form.hidden_tag() }}
+                <div class="field">
+                    <label class="label">ฝากข้อความ</label>
+                    <div class="control">
+                        {{ message_form.message(class='input') }}
                     </div>
-                    <br/>
-                    <p>
-                        <strong><small>{{message.voter}}</small></strong> <small>@{{message.created_at}}</small>
-                    </p>
                 </div>
-            </article>
-            {% endfor %}
-            <br>
-            <a class="button is-link" href="{{url_for('besttime.leave_message', poll_id=poll.id)}}">Leave Message</a>
+                <a class="button is-link"
+                   hx-target="#messages"
+                   hx-swap="beforeend"
+                   hx-indicator="this"
+                   hx-post="{{url_for('besttime.leave_message', poll_id=poll.id)}}">Submit</a>
+            </form>
+            <div id="messages">
+                {% for message in poll.messages %}
+                    <article class="media">
+                        <div class="media-content">
+                            <div class="tag is-large is-light is-warning">
+                                {{message.message}}
+                            </div>
+                            <br/>
+                            <p>
+                                <strong><small>{{message.voter.fullname}}</small></strong> <small>@{{message.created_at|localdatetime}}</small>
+                            </p>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
         </div>
     </div>
 </section>

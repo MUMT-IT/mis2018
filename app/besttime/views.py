@@ -57,7 +57,20 @@ def leave_message(poll_id):
         message.created_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(message)
         db.session.commit()
-        return redirect(url_for('besttime.index'))
+        template = f'''
+                    <article class="media">
+                        <div class="media-content">
+                            <div class="tag is-large is-light is-warning">
+                                {message.message}
+                            </div>
+                            <br/>
+                            <p>
+                                <strong><small>{message.voter.fullname}</small></strong> <small>@{message.created_at.strftime('%d/%m/%Y %H:%M:%S')}</small>
+                            </p>
+                        </div>
+                    </article>
+        '''
+        return template
     else:
         print(form.errors)
     return render_template('besttime/poll-message-form.html', poll=poll, form=form)
@@ -266,6 +279,7 @@ def vote_poll(poll_id):
     # If the user has already voted this poll
     vote = BestTimePollVote.query.filter_by(poll_id=poll_id, voter=current_user).first()
     form = BestTimePollVoteForm()
+    message_form = BestTimePollMessageForm()
     if request.method == 'POST':
         if not vote:
             vote = BestTimePollVote(poll=poll, voter=current_user)
@@ -349,7 +363,7 @@ def vote_poll(poll_id):
             if vote:
                 _form_field.time_slots.data = [t[0] for t in choices if t[0] in voted_time_slots]
 
-    return render_template('besttime/poll-form.html', form=form, poll=poll)
+    return render_template('besttime/poll-form.html', form=form, poll=poll, message_form=message_form)
 
 
 @besttime_bp.route('/vote/<int:slot_id>/mail', methods=['GET', 'POST'])
