@@ -613,7 +613,7 @@ class VirusDisinfectionRequestForm(FlaskForm):
                                             "oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้จัดจำหน่าย')",
                                             "oninput": "this.setCustomValidity('')"
                                         })
-    note = TextAreaField('บันนึก/หมายเหตุ สำหรับผู้รับบริการ')
+    note = TextAreaField('บันทึก/หมายเหตุ สำหรับผู้รับบริการ')
     product_type = SelectField('ประเภทผลิตภัณฑ์', choices=[('', '+ เพิ่มประเภทผลิตภัณฑ์'),
                                                            ('liquid',
                                                             'ผลิตภัณฑ์ฆ่าเชื้อชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้'),
