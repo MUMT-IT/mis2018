@@ -407,7 +407,7 @@ class BacteriaRequestForm(FlaskForm):
                                                 })
     collect_sample_during_testing_other = StringField('ระบุ')
     read_document = BooleanField(
-        'ข้าพเจ้าได้อ่าน ทำความเข้าใจ และยอมรับเงื่อนไขการให้บริการ ในคู่มือการใช้บริการห้องปฏิบัติการไวรัสวิทยา (MN-WI-VI-025-07-01) แล้ว',
+        'ข้าพเจ้าได้อ่านและรับทราบคู่มือการใช้บริการห้องปฏิบัติการ (MN-BS-025-07-01) แล้ว',
         validators=[DataRequired(message='กรุณายอมรับ')],
         render_kw={
             "oninvalid": "this.setCustomValidity('กรุณายอมรับ')",
