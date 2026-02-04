@@ -344,8 +344,7 @@
                                                                 </table>
                                                             {% elif field.name.endswith('surface_type') %}
                                                                 <div class="field ml-4" style="display: none" id="surface_type_field">
-                                                                    <label id="surface_type_label"
-                                                                           class="label">{{ field.label }}</label>
+                                                                    <label id="surface_type_label" class="label">{{ field.label }}</label>
                                                                     <div class="control">
                                                                         {{ field() }}
                                                                     </div>
@@ -564,55 +563,6 @@
         });
     </script>
     <script>
-        function toggleTable(subform) {
-            const table = subform.find('table');
-            const checkboxes = table.find('tbody tr input[type="checkbox"]');
-
-            function validateInput() {
-                const count = checkboxes.filter(':checked').length;
-                if (count == 0) {
-                    checkboxes.prop('required', true)
-                    checkboxes.each(function () {
-                        this.setCustomValidity('กรุณาเลือกเชื้ออย่างน้อย 1 รายการ');
-                    });
-                } else {
-                    checkboxes.prop('required', false);
-                    checkboxes.each(function () {
-                        this.setCustomValidity('');
-                    });
-                }
-
-                table.find('tbody tr').each(function () {
-                    const checkbox = $(this).find('input[type="checkbox"]');
-                    const textInputs = $(this).find('input[type="text"]');
-
-                    const active = checkbox.is(':checked');
-                    textInputs.each(function () {
-                        const name = $(this).attr('name');
-                        const isOptional = name.endsWith('ratio') || name.endsWith('per_water');
-
-                        if (active && !isOptional) {
-                            $(this)
-                                .prop('required', true)
-                                .attr('oninvalid', "this.setCustomValidity('กรุณากรอกข้อมูล')")
-                                .attr('oninput', "this.setCustomValidity('')");
-                        } else {
-                            $(this).prop('required', false);
-                            this.setCustomValidity('');
-                        }
-
-                        if (!active) {
-                            $(this).val('');
-                        }
-                    })
-                });
-            }
-
-            validateInput();
-
-            checkboxes.on('change', validateInput);
-        }
-
         function addRequiredField(subform) {
             const testMethodInput = subform.find('input[name$="test_method"]');
             const injectTypeInput = subform.find('input[name$="inject_type"]');
@@ -665,11 +615,8 @@
 
             if (testMethod && testMethod.includes('Modified ASTM E1053-20')) {
                 surfaceTypeField.show()
-                surfaceTypeInput.prop('disabled', false)
-
                 surfaceTypeInput.prop('required', true)
                     .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกชนิดพื้นผิว')");
-
                 surfaceTypeInput.on('change', function () {
                     surfaceTypeInput.each(function () {
                         this.setCustomValidity('');
@@ -711,12 +658,11 @@
 
         $('.subform-card').each(function () {
             const subform = $(this);
-            toggleTable(subform);
             addRequiredField(subform);
             toggleSurfaceTypeInput(subform);
             showSurfaceTypeOtherInput(subform);
 
-            subform.find('input[type="checkbox"][name$="test_method"]').change(function () {
+            subform.find('input[type="radio"][name$="test_method"]').change(function () {
                 toggleSurfaceTypeInput(subform);
                 showSurfaceTypeOtherInput(subform);
             });
