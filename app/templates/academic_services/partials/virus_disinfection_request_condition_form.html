@@ -24,91 +24,92 @@
                         {% endfor %}
                         </thead>
                         <tbody>
-                            {% for subform in field %}
-                                <tr>
-                                    {% for _field in subform %}
-                                        {% if _field.type != 'CSRFTokenField' %}
-                                            <td style="border: none">
-                                                {% if _field.type == 'SelectField' %}
-                                                    <div class="select">
-                                                        {{ _field() }}
-                                                    </div>
-                                                {% else %}
-                                                    {{ _field() }}
-                                                {% endif %}
-                                            </td>
-                                        {% endif %}
-                                    {% endfor %}
-                                    <td style="border: none">
-                                        {% if fields.name == 'liquid_condition_field' %}
-                                            <a class="button is-danger is-outlined"
-                                               hx-delete="{{ url_for('academic_services.remove_virus_liquid_organism_form_entry',
-                                                   name=subform.name) }}"
-                                               hx-target="closest tr"
-                                               hx-swap="outerHTML"
-                                            >
-                                                <span class="icon"><i class="fas fa-trash-alt"></i></span>
-                                            </a>
-                                        {% elif fields.name == 'spray_condition_field' %}
-                                            <a class="button is-danger is-outlined"
-                                               hx-delete="{{ url_for('academic_services.remove_virus_spray_organism_form_entry',
-                                                   name=subform.name) }}"
-                                               hx-target="closest tr"
-                                               hx-swap="outerHTML"
-                                            >
-                                                <span class="icon"><i class="fas fa-trash-alt"></i></span>
-                                            </a>
-                                        {% else %}
-                                            <a class="button is-danger is-outlined"
-                                               hx-delete="{{ url_for('academic_services.remove_virus_coat_organism_form_entry',
-                                                   name=subform.name) }}"
-                                               hx-target="closest tr"
-                                               hx-swap="outerHTML"
-                                            >
-                                                <span class="icon"><i class="fas fa-trash-alt"></i></span>
-                                            </a>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% endfor %}
+                        {% for subform in field %}
                             <tr>
+                                {% for _field in subform %}
+                                    {% if _field.type != 'CSRFTokenField' %}
+                                        <td style="border: none">
+                                            {% if _field.type == 'SelectField' %}
+                                                <div class="select">
+                                                    {{ _field() }}
+                                                </div>
+                                            {% else %}
+                                                {{ _field() }}
+                                            {% endif %}
+                                        </td>
+                                    {% endif %}
+                                {% endfor %}
                                 <td style="border: none">
                                     {% if fields.name == 'liquid_condition_field' %}
-                                        <a class="button is-info is-outlined is-rounded"
-                                           hx-post="{{ url_for('academic_services.add_virus_liquid_organism_form_entry') }}"
-                                           hx-target="previous tr"
-                                           hx-swap="afterend"
+                                        <a class="button is-danger is-outlined"
+                                           hx-delete="{{ url_for('academic_services.remove_virus_liquid_organism_form_entry',
+                                                   name=subform.name) }}"
+                                           hx-target="closest tr"
+                                           hx-swap="outerHTML"
                                         >
-                                            <span class="icon"><i class="fas fa-plus"></i></span>
-                                            <span>เพิ่ม</span>
+                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
                                         </a>
                                     {% elif fields.name == 'spray_condition_field' %}
-                                        <a class="button is-info is-outlined is-rounded"
-                                           hx-post="{{ url_for('academic_services.add_virus_spray_organism_form_entry') }}"
-                                           hx-target="previous tr"
-                                           hx-swap="afterend"
+                                        <a class="button is-danger is-outlined"
+                                           hx-delete="{{ url_for('academic_services.remove_virus_spray_organism_form_entry',
+                                                   name=subform.name) }}"
+                                           hx-target="closest tr"
+                                           hx-swap="outerHTML"
                                         >
-                                            <span class="icon"><i class="fas fa-plus"></i></span>
-                                            <span>เพิ่ม</span>
+                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
                                         </a>
                                     {% else %}
-                                        <a class="button is-info is-outlined is-rounded"
-                                           hx-post="{{ url_for('academic_services.add_virus_coat_organism_form_entry') }}"
-                                           hx-target="previous tr"
-                                           hx-swap="afterend"
+                                        <a class="button is-danger is-outlined"
+                                           hx-delete="{{ url_for('academic_services.remove_virus_coat_organism_form_entry',
+                                                   name=subform.name) }}"
+                                           hx-target="closest tr"
+                                           hx-swap="outerHTML"
                                         >
-                                            <span class="icon"><i class="fas fa-plus"></i></span>
-                                            <span>เพิ่ม</span>
+                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
                                         </a>
                                     {% endif %}
                                 </td>
                             </tr>
+                        {% endfor %}
+                        <tr>
+                            <td style="border: none">
+                                {% if fields.name == 'liquid_condition_field' %}
+                                    <a class="button is-info is-outlined is-rounded"
+                                       hx-post="{{ url_for('academic_services.add_virus_liquid_organism_form_entry') }}"
+                                       hx-target="previous tr"
+                                       hx-swap="afterend"
+                                    >
+                                        <span class="icon"><i class="fas fa-plus"></i></span>
+                                        <span>เพิ่ม</span>
+                                    </a>
+                                {% elif fields.name == 'spray_condition_field' %}
+                                    <a class="button is-info is-outlined is-rounded"
+                                       hx-post="{{ url_for('academic_services.add_virus_spray_organism_form_entry') }}"
+                                       hx-target="previous tr"
+                                       hx-swap="afterend"
+                                    >
+                                        <span class="icon"><i class="fas fa-plus"></i></span>
+                                        <span>เพิ่ม</span>
+                                    </a>
+                                {% else %}
+                                    <a class="button is-info is-outlined is-rounded"
+                                       hx-post="{{ url_for('academic_services.add_virus_coat_organism_form_entry') }}"
+                                       hx-target="previous tr"
+                                       hx-swap="afterend"
+                                    >
+                                        <span class="icon"><i class="fas fa-plus"></i></span>
+                                        <span>เพิ่ม</span>
+                                    </a>
+                                {% endif %}
+                            </td>
+                        </tr>
                         </tbody>
                     </table>
                 {% elif field.name.endswith('surface_type') %}
                     <div class="field ml-4" style="display: none" id="surface_type_field">
-                        <label id="surface_type_label" class="label">
+                        <label class="label">
                             {{ field.label }}
+                            <span class="has-text-danger">*</span>
                         </label>
                         <div class="control">
                             {{ field() }}
@@ -192,7 +193,6 @@
     function toggleSurfaceTypeInput(subform) {
         const testMethod = subform.find('input[type="radio"][name$="test_method"]:checked').val();
         const surfaceTypeField = subform.find('#surface_type_field');
-        const surfaceTypeLabel = subform.find('label[id$="surface_type_label"]');
         const surfaceTypeInput = subform.find('input[name$="surface_type"]');
         const surfaceTypeOtherField = subform.find('input[name$="surface_type_other"]');
 
@@ -206,9 +206,6 @@
                     this.setCustomValidity('');
                 });
             });
-
-            surfaceTypeLabel.html('<label class="label">ชนิดพื้นผิว<span class="has-text-danger ml-1">*</span></label>');
-
         } else {
             surfaceTypeInput.each(function () {
                 let name = $(this).attr('name');
@@ -217,11 +214,9 @@
                 }
             });
             surfaceTypeField.hide()
-            surfaceTypeInput.prop('disabled', true);
+            surfaceTypeInput.prop('required', false)
             surfaceTypeInput.prop('checked', false)
-            surfaceTypeOtherField.closest('.field').hide();
             surfaceTypeOtherField.val('');
-            surfaceTypeLabel.html('<label class="label">ชนิดพื้นผิว</label>');
         }
     }
 
