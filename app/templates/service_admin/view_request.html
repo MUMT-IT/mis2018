@@ -172,6 +172,8 @@
                                 </div>
                                 {% if loop.nextitem and loop.nextitem.type == 'header' %}
                                     <hr>
+                                {% elif loop.last and item.type == 'bool' %}
+                                    <i>{{ item.data }}</i>
                                 {% endif %}
                             {% endfor %}
                         </div>
@@ -347,7 +349,8 @@
                                 {% endif %}
                                 <li>
                                     <a class="button is-link is-outlined is-rounded is-small is-fullwidth mb-2"
-                                       href="{{ url_for('service_admin.export_request_pdf', request_id=service_request.id) }}"
+                                       href="{{ url_for('service_admin.export_request_pdf', request_id=service_request.id,
+                                       code=service_request.sub_lab.code) }}"
                                     >
                                         <span class="icon"><i class="fas fa-clipboard-list"></i></span>
                                         <span>ดาวน์โหลดใบคำขอรับบริการ</span>
@@ -355,14 +358,16 @@
                                 </li>
                                 {% if service_request.quotations %}
                                     {% for quotation in service_request.quotations %}
-                                        <li>
-                                            <a class="button is-link is-outlined is-rounded is-small is-fullwidth mb-2"
-                                               href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation.id) }}"
-                                            >
-                                                <span class="icon"><i class="fas fa-file-invoice"></i></span>
-                                                <span>ดาวน์โหลดใบเสนอราคา</span>
-                                            </a>
-                                        </li>
+                                        {% if quotation.approved_at %}
+                                            <li>
+                                                <a class="button is-link is-outlined is-rounded is-small is-fullwidth mb-2"
+                                                   href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation.id) }}"
+                                                >
+                                                    <span class="icon"><i class="fas fa-file-invoice"></i></span>
+                                                    <span>ดาวน์โหลดใบเสนอราคา</span>
+                                                </a>
+                                            </li>
+                                        {% endif %}
                                         {% for invoice in quotation.invoices %}
                                             {% if invoice.file %}
                                                 <li>

@@ -303,7 +303,8 @@
                                 {% endif %}
                                 <li>
                                     <a class="button is-link is-outlined is-rounded is-small is-fullwidth mb-2"
-                                       href="{{ url_for('academic_services.export_request_pdf', request_id=service_request.id) }}"
+                                       href="{{ url_for('academic_services.export_request_pdf', code=service_request.sub_lab.code,
+                                       request_id=service_request.id) }}"
                                     >
                                         <span class="icon"><i class="fas fa-clipboard-list"></i></span>
                                         <span>ดาวน์โหลดใบคำขอรับบริการ</span>
