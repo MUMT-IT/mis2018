@@ -108,7 +108,7 @@
                 ajax: {
                     url: {{ url_for('service_admin.get_requests')|tojson|safe}},
                 },
-                order: [[1, 'desc']],
+                order: [[0, 'desc']],
                 scrollX: true,
                 autoWidth: false,
                 columns: [
@@ -441,7 +441,7 @@
                                     '<div class="control">' +
                                     '<a class="button is-small is-rounded is-warning" ' + 'href=' + url + '>' +
                                     '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                    '<span>แก้ไขใบคำขอรับบริการ</span>' +
+                                    '<span>แก้ไขคำขอรับบริการ</span>' +
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
