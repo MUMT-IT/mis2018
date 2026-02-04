@@ -566,6 +566,31 @@
         });
     </script>
     <script>
+        function toggleTable(subform) {
+            const table = subform.find('table');
+
+            function validateInput() {
+                table.find('tbody tr').each(function () {
+                    const textInputs = $(this).find('input[type="text"]');
+
+                    textInputs.each(function () {
+                        const name = $(this).attr('name');
+                        const isOptional = name.endsWith('ratio');
+
+                        if (!isOptional) {
+                            $(this)
+                                .prop('required', true)
+                                .attr('oninvalid', "this.setCustomValidity('กรุณากรอกข้อมูล')")
+                                .attr('oninput', "this.setCustomValidity('')");
+                        } else {
+                            $(this).prop('required', false);
+                            this.setCustomValidity('');
+                        }
+                    })
+                });
+            }
+            validateInput();
+        }
         function addRequiredField(subform) {
             const testMethodInput = subform.find('input[name$="test_method"]');
             const injectTypeInput = subform.find('input[name$="inject_type"]');
@@ -656,6 +681,7 @@
 
         $('.subform-card').each(function () {
             const subform = $(this);
+            toggleTable(subform);
             addRequiredField(subform);
             toggleSurfaceTypeInput(subform);
             showSurfaceTypeOtherInput(subform);
