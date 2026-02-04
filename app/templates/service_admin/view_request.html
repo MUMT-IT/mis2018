@@ -172,8 +172,6 @@
                                 </div>
                                 {% if loop.nextitem and loop.nextitem.type == 'header' %}
                                     <hr>
-                                {% elif loop.last and item.type == 'bool' %}
-                                    <i>{{ item.data }}</i>
                                 {% endif %}
                             {% endfor %}
                         </div>
