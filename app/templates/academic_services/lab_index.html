@@ -45,31 +45,46 @@
                                                     >
                                                         เรียนรู้เพิ่มเติม
                                                     </a>
-                                                    {% if current_user.verify_datetime %}
-                                                        {% if lab.sub_labs|length > 1 %}
-                                                            <a href="{{ url_for('academic_services.detail_lab_index', cat='form', code=lab.code) }}"
-                                                               class="button is-info is-small"
-                                                            >
-                                                                ส่งคำขอรับบริการ
-                                                            </a>
-                                                        {% else %}
-                                                            {% for sub_lab in lab.sub_labs %}
-                                                                <a href="{{ url_for('academic_services.create_request',
-                                                                    code=sub_lab.code) }}" class="button is-info is-small"
-                                                                >
-                                                                    ส่งคำขอรับบริการ
-                                                                </a>
-                                                            {% endfor %}
-                                                        {% endif %}
-                                                    {% elif current_user.verify_datetime == None %}
-                                                        <a id="Warn" class="button is-info is-small">ส่งคำขอรับบริการ</a>
-                                                    {% else %}
-                                                        <a href="{{ url_for('academic_services.login') }}"
+                                                    {% if lab.sub_labs|length > 1 %}
+                                                        <a href="{{ url_for('academic_services.detail_lab_index', cat='form', code=lab.code) }}"
                                                            class="button is-info is-small"
                                                         >
                                                             ส่งคำขอรับบริการ
                                                         </a>
+                                                    {% else %}
+                                                        {% for sub_lab in lab.sub_labs %}
+                                                            <a href="{{ url_for('academic_services.create_request',
+                                                                    code=sub_lab.code) }}" class="button is-info is-small"
+                                                            >
+                                                                ส่งคำขอรับบริการ
+                                                            </a>
+                                                        {% endfor %}
                                                     {% endif %}
+{#                                                    {% if current_user.verify_datetime %}#}
+{#                                                        {% if lab.sub_labs|length > 1 %}#}
+{#                                                            <a href="{{ url_for('academic_services.detail_lab_index', cat='form', code=lab.code) }}"#}
+{#                                                               class="button is-info is-small"#}
+{#                                                            >#}
+{#                                                                ส่งคำขอรับบริการ#}
+{#                                                            </a>#}
+{#                                                        {% else %}#}
+{#                                                            {% for sub_lab in lab.sub_labs %}#}
+{#                                                                <a href="{{ url_for('academic_services.create_request',#}
+{#                                                                    code=sub_lab.code) }}" class="button is-info is-small"#}
+{#                                                                >#}
+{#                                                                    ส่งคำขอรับบริการ#}
+{#                                                                </a>#}
+{#                                                            {% endfor %}#}
+{#                                                        {% endif %}#}
+{#                                                    {% elif current_user.verify_datetime == None %}#}
+{#                                                        <a id="Warn" class="button is-info is-small">ส่งคำขอรับบริการ</a>#}
+{#                                                    {% else %}#}
+{#                                                        <a href="{{ url_for('academic_services.login') }}"#}
+{#                                                           class="button is-info is-small"#}
+{#                                                        >#}
+{#                                                            ส่งคำขอรับบริการ#}
+{#                                                        </a>#}
+{#                                                    {% endif %}#}
                                                 </div>
                                             </div>
                                         </div>
