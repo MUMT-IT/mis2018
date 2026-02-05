@@ -663,7 +663,7 @@ request_data_paths = {'bacteria': bacteria_request_data,
                       'metabolomic': metabolomic_request_data,
                       'endotoxin': endotoxin_request_data,
                       'toxicology': toxicology_request_data
-              }
+                      }
 
 
 @academic_services.context_processor
@@ -825,7 +825,7 @@ def forget_password():
             except:
                 flash('ระบบไม่สามารถส่งอีเมลได้กรุณาตรวจสอบอีกครั้ง'.format(form.email.data), 'danger')
             else:
-                flash('โปรดตรวจสอบอีเมลของท่านเพื่อทำการแก้ไขรหัสผ่านภายใน 1 ชั่วโมง', 'success')
+                flash('โปรดตรวจสอบอีเมลของท่านเพื่อทำการแก้ไขรหัสผ่านภายใน 3 ชั่วโมง', 'success')
             return redirect(url_for('academic_services.login'))
         else:
             for er in form.errors:
@@ -838,7 +838,7 @@ def reset_password():
     token = request.args.get('token')
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
     try:
-        token_data = serializer.loads(token, max_age=3600)
+        token_data = serializer.loads(token, max_age=10800)
     except:
         return 'รหัสสำหรับทำการตั้งค่า password หมดอายุหรือไม่ถูกต้อง'
     user = ServiceCustomerAccount.query.filter_by(email=token_data.get('email')).first()
@@ -1039,7 +1039,7 @@ def create_customer_account(customer_id=None):
                             กรุณาคลิกที่ปุ่มด้านล่างเพื่อยืนยันบัญชีอีเมลของท่านเพื่อดำเนินการต่อ
                         </p>
                         <a href="{url}" class="confirm-button">ยืนยันบัญชีอีเมล</a>
-                        <p class="link-validity" >ลิงก์นี้จะสามารถใช้งานได้ภายใน 1 ชั่วโมงหลังจากที่อีเมลนี้ถูกส่งไป</p>
+                        <p class="link-validity" >ลิงก์นี้จะสามารถใช้งานได้ภายใน 3 ชั่วโมงหลังจากที่อีเมลนี้ถูกส่งไป</p>
                     </div>
                     <div class="footer">
                         <p>Copyright &copy; คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ระบบงานบริการตรวจวิเคราะห์</p>
@@ -1079,11 +1079,12 @@ def confirm_email_page():
 @academic_services.route('/email-verification', methods=['GET', 'POST'])
 def verify_email():
     token = request.args.get('token')
+    menu = request.args.get('menu')
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
     try:
-        token_data = serializer.loads(token, max_age=3600)
+        token_data = serializer.loads(token, max_age=10800)
     except:
-        return 'รหัสสำหรับทำการสมัครบัญชีหมดอายุหรือไม่ถูกต้อง'
+        return 'รหัสสำหรับทำการยืนยันอีเมลหมดอายุหรือไม่ถูกต้อง'
     user = ServiceCustomerAccount.query.filter_by(email=token_data.get('email')).first()
     if not user:
         flash('ไม่พบชื่อบัญชีผู้ใช้งาน กรุณาลงทะเบียนใหม่อีกครั้ง', 'danger')
@@ -1096,7 +1097,7 @@ def verify_email():
         db.session.add(user)
         db.session.commit()
         flash('ยืนยันอีเมลเรียบร้อยแล้ว', 'success')
-        return redirect(url_for('academic_services.confirm_email_page'))
+        return redirect(url_for('academic_services.confirm_email_page', menu=menu))
 
 
 @academic_services.route('/customer/account', methods=['GET', 'POST'])
@@ -1514,7 +1515,7 @@ def add_virus_liquid_organism_form_entry():
                            item_form.liquid_ratio(class_='input'),
                            item_form.liquid_time_duration(class_='input'),
                            url_for('academic_services.remove_virus_liquid_organism_form_entry', name=item_form.name)
-                        )
+                           )
     resp = make_response(resp)
     return resp
 
@@ -1565,7 +1566,7 @@ def add_virus_spray_organism_form_entry():
                            item_form.spray_of_time(class_='input'),
                            item_form.spray_time_duration(class_='input'),
                            url_for('academic_services.remove_virus_spray_organism_form_entry', name=item_form.name)
-                        )
+                           )
     resp = make_response(resp)
     return resp
 
@@ -1610,7 +1611,7 @@ def add_virus_coat_organism_form_entry():
     resp = template.format(item_form.coat_organism(),
                            item_form.coat_time_duration(class_='input'),
                            url_for('academic_services.remove_virus_coat_organism_form_entry', name=item_form.name)
-                        )
+                           )
     resp = make_response(resp)
     return resp
 
@@ -1691,8 +1692,9 @@ def add_virus_surface_disinfection_organism_form_entry():
     """
     resp = template.format(item_form.surface_disinfection_organism(),
                            item_form.surface_disinfection_period_test(class_='input'),
-                           url_for('service_admin.remove_virus_surface_disinfection_organism_form_entry', name=item_form.name)
-                        )
+                           url_for('service_admin.remove_virus_surface_disinfection_organism_form_entry',
+                                   name=item_form.name)
+                           )
     resp = make_response(resp)
     return resp
 
@@ -3372,7 +3374,7 @@ def generate_bacteria_request_pdf(service_request):
     doc = SimpleDocTemplate(buffer, pagesize=A4,
                             rightMargin=20,
                             leftMargin=20,
-                            topMargin=40,
+                            topMargin=30,
                             bottomMargin=40
                             )
 
@@ -3972,7 +3974,7 @@ def generate_virus_request_pdf(service_request):
     doc = SimpleDocTemplate(buffer, pagesize=A4,
                             rightMargin=20,
                             leftMargin=20,
-                            topMargin=20,
+                            topMargin=30,
                             bottomMargin=40
                             )
 
@@ -4225,10 +4227,7 @@ def generate_virus_request_pdf(service_request):
                 rows = g['data']
                 for i, row in enumerate(rows):
                     row['Lab no'] = ''
-                    if service_request.sub_lab.code == 'disinfection':
-                        row['สภาพตัวอย่าง'] = 'O ปกติ<br/>O ไม่ปกติ' if i == 0 else ''
-                    else:
-                        row['การทำงานของอุปกรณ์'] = 'O ปกติ<br/>O ไม่ปกติ' if i == 0 else ''
+                    row['สภาพตัวอย่าง'] = 'O ปกติ<br/>O ไม่ปกติ' if i == 0 else ''
                 headers = list(rows[0].keys())
                 raw_widths = []
                 for h in headers:
@@ -4236,10 +4235,10 @@ def generate_virus_request_pdf(service_request):
                     if h == "เชื้อ":
                         w += 100
                     else:
-                        w += 27
+                        w += 26
                     raw_widths.append(w)
                 total_width = sum(raw_widths)
-                max_total = 496
+                max_total = 498
 
                 if total_width > max_total:
                     scale = max_total / total_width
@@ -4257,6 +4256,7 @@ def generate_virus_request_pdf(service_request):
                     ('LEFTPADDING', (0, 0), (-1, -1), 4),
                     ('RIGHTPADDING', (0, 0), (-1, -1), 4),
                     ('SPAN', (-1, 1), (-1, -1)),
+                    ('SPAN', (-2, 1), (-2, -1)),
                     ('ALIGN', (-1, 1), (-1, -1), 'CENTER'),
                     ('VALIGN', (-1, 1), (-1, -1), 'MIDDLE'),
                 ]))
@@ -4290,7 +4290,6 @@ def generate_virus_request_pdf(service_request):
             data.append(KeepTogether(box))
             w, h = box.wrap(doc.width, first_page_limit)
             current_height += h
-
 
     report_header_table = Table(
         [[
@@ -4660,12 +4659,13 @@ def request_quotation(request_id):
         message += f'''{service_request.customer.customer_name}\n'''
         message += f'''เบอร์โทร {service_request.customer.contact_phone_number}\n\n'''
         message += f'''ระบบงานบริการวิชาการ'''
-        msg = ('ใบคำขอบริการเลขที่ {}\n'\
+        msg = ('ใบคำขอบริการเลขที่ {}\n' \
                'ออกในนาม {}\n' \
                'ณ วันที่ {} รอดำเนินการออกใบเสนอราคา\n' \
                'กรุณาดำเนินการออกใบเสนอราคาในระบบ'.format(service_request.request_no,
                                                           service_request.quotation_address.name,
-                                                          service_request.created_at.astimezone(localtz).strftime('%d/%m/%Y')
+                                                          service_request.created_at.astimezone(localtz).strftime(
+                                                              '%d/%m/%Y')
                                                           )
                )
         if not current_app.debug:
@@ -4829,7 +4829,8 @@ def generate_quotation_pdf(quotation, sign=False):
                     ที่อยู่ {address}<br/>
                     เลขประจำตัวผู้เสียภาษี {taxpayer_identification_no}
                     </font></para>
-                    '''.format(issued_date=issued_date, lab=quotation.sub_lab.lab.lab, customer=quotation.name, address=quotation.address,
+                    '''.format(issued_date=issued_date, lab=quotation.sub_lab.lab.lab, customer=quotation.name,
+                               address=quotation.address,
                                taxpayer_identification_no=quotation.taxpayer_identification_no if quotation.taxpayer_identification_no else '-')
 
     customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[540, 280])
@@ -4983,6 +4984,27 @@ def export_quotation_pdf(quotation_id):
     return send_file(buffer, download_name='Quotation.pdf', as_attachment=True)
 
 
+@academic_services.route('/email/send', methods=['GET'])
+def send_email():
+    serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+    token = serializer.dumps({'email': current_user.email})
+    scheme = 'http' if current_app.debug else 'https'
+    url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme, menu='verify')
+    title_prefix = 'คุณ' if current_user.customer_info.type == 'บุคคล' else ''
+    customer_name = current_user.customer_name.replace(' ', '_')
+    title = f'''แจ้งยืนยันอีเมลงานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+    message += '''ตามที่ท่านได้ร้องขอการยืนยันอีเมลในระบบรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
+    message += '''กรุณาคลิกลิงก์ด้านล่างเพื่อยืนยันอีเมลของท่าน โดยลิงก์นี้จะสามารถใช้งานได้ภายใน 3 ชั่วโมง\n\n'''
+    message += f'''{url}\n\n'''
+    message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+    message += f'''ขอแสดงความนับถือ\n'''
+    message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+    message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    send_mail([current_user.email], title, message)
+    return ''
+
+
 @academic_services.route('/customer/quotation/confirm/<int:quotation_id>', methods=['GET', 'POST'])
 def confirm_quotation(quotation_id):
     menu = request.args.get('menu')
@@ -5020,8 +5042,9 @@ def confirm_quotation(quotation_id):
         message += f'''เบอร์โทร {quotation.request.customer.contact_phone_number}\n'''
         message += f'''ระบบบริการวิชาการ'''
         if not current_app.debug:
-            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
-                      title, message)
+            send_mail(
+                [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
+                title, message)
         else:
             print('message', message)
     return redirect(url_for('academic_services.confirm_quotation_page', menu=menu, sample_id=sample.id))
@@ -5409,7 +5432,9 @@ def create_sample_appointment(sample_id):
                 message += f'''เบอร์โทร {sample.request.customer.contact_phone_number}\n'''
                 message += f'''ระบบงานบริการวิชาการ'''
             if not current_app.debug:
-                send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant], title, message)
+                send_mail(
+                    [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
+                    title, message)
             else:
                 print('message', message)
         if sample.request.status.status_id == 6:
@@ -5495,12 +5520,14 @@ def invoice_index():
             ServiceRequest.customer_id == current_user.id
         )
     )
-    pending_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None, today <= ServiceInvoice.due_date)
+    pending_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None,
+                                                           today <= ServiceInvoice.due_date)
     payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at == None,
-                                                     ServicePayment.cancelled_at == None)
-    verify_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None,
                                                       ServicePayment.cancelled_at == None)
-    overdue_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None, today > ServiceInvoice.due_date)
+    verify_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None,
+                                                     ServicePayment.cancelled_at == None)
+    overdue_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None,
+                                                           today > ServiceInvoice.due_date)
     if api == 'true':
         if tab == 'pending':
             query = pending_query
@@ -5606,11 +5633,12 @@ def add_payment():
                     message += f'''เบอร์โทร {invoice.contact_phone_number}\n\n'''
                     message += f'''ระบบงานบริการวิชาการ'''
                     if invoice.paid_at:
-                        msg = ('ใบแจ้งหนี้เลขที่ {}\n'\
+                        msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
                                'ออกในนาม {}\n' \
                                'ณ วันที่ {} รอดำเนินการตรวจสอบการชำระเงิน\n' \
                                'กรุณาดำเนินการตรวจสอบในระบบ'.format(invoice.invoice_no, invoice.name,
-                                                                    invoice.paid_at.astimezone(localtz).strftime('%d/%m/%Y')))
+                                                                    invoice.paid_at.astimezone(localtz).strftime(
+                                                                        '%d/%m/%Y')))
                     else:
                         msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
                                'ออกในนาม {}\n' \
@@ -6089,10 +6117,11 @@ def edit_result_item(result_item_id):
                        'ออกในนาม {}\n'
                        'ณ วันที่ {} รอดำเนินการแก้ไข{}ฉบับร่าง\n' \
                        'กรุณาดำเนินการแก้ไขในระบบ'.format(result_item.result.request.request_no,
-                                                                            result_item.result.request.quotation_address.name,
-                                                                            result_item.req_edit_at.astimezone(localtz).strftime('%d/%m/%Y'),
-                                                                            result_item.report_language
-                                                                            )
+                                                          result_item.result.request.quotation_address.name,
+                                                          result_item.req_edit_at.astimezone(localtz).strftime(
+                                                              '%d/%m/%Y'),
+                                                          result_item.report_language
+                                                          )
                        )
                 if not current_app.debug:
                     send_mail(
