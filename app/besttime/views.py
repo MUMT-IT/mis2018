@@ -299,7 +299,7 @@ def vote_poll(poll_id):
                                                           end=_end_datetime_utc,
                                                           poll_id=poll_id).first()
                 if not ds:
-                    ds = BestTimeDateTimeSlot(start=_start_datetime, end=_end_datetime, poll_id=poll_id)
+                    ds = BestTimeDateTimeSlot(start=_start_datetime_utc, end=_end_datetime_utc, poll_id=poll_id)
                 vote.datetime_slots.append(ds)
                 db.session.add(ds)
         vote.voted_at = datetime.datetime.now().astimezone(tz=UTC_TZ)
