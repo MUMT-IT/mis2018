@@ -13,6 +13,10 @@ poll_admin_assoc_table = db.Table('besttime_poll_admin_assoc_table',
                                  db.Column('staff_account_id', db.ForeignKey('staff_account.id')),
                                  db.Column('poll_id', db.ForeignKey('besttime_polls.id')))
 
+from zoneinfo import ZoneInfo
+
+BKK_TZ = ZoneInfo('Asia/Bangkok')
+
 
 class BestTimeDateTimeSlot(db.Model):
     __tablename__ = 'besttime_datetime_slots'
@@ -26,7 +30,7 @@ class BestTimeDateTimeSlot(db.Model):
     is_best = db.Column(db.Boolean(), nullable=True, default=False)
 
     def __str__(self):
-        return f'{self.start.strftime("%d/%m/%Y %H:%M")} - {self.end.strftime("%H:%M น.")}'
+        return f'{self.start.astimezone(BKK_TZ).strftime("%d/%m/%Y %H:%M")} - {self.end.astimezone(BKK_TZ).strftime("%H:%M น.")}'
 
     @property
     def has_valid_committee(self):
@@ -49,7 +53,7 @@ class BestTimeMasterDateTimeSlot(db.Model):
     is_active = db.Column(db.Boolean, default=True)
 
     def __str__(self):
-        return f'{self.start.strftime("%Y-%m-%d %H:%M")} to {self.end.strftime("%Y-%m-%d %H:%M")}'
+        return f'{self.start.astimezone(BKK_TZ).strftime("%Y-%m-%d %H:%M")} to {self.end.astimezone(BKK_TZ).strftime("%Y-%m-%d %H:%M")}'
 
 class BestTimePoll(db.Model):
     __tablename__ = 'besttime_polls'
@@ -71,7 +75,7 @@ class BestTimePoll(db.Model):
 
     @property
     def date_span(self):
-        return f'{self.start_date.strftime("%d/%m/%Y")} - {self.end_date.strftime("%d/%m/%Y")}'
+        return f'{self.start_date.astimezone(BKK_TZ).strftime("%d/%m/%Y")} - {self.end_date.astimezone(BKK_TZ).strftime("%d/%m/%Y")}'
 
     @property
     def voted(self):
