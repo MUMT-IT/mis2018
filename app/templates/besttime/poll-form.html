@@ -1,4 +1,14 @@
 {% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <style>
+    .has-thin-border {
+      border: 1px solid #dbdbdb; /* Bulma grey */
+      border-radius: 4px;
+      padding: 0.75rem;
+    }
+    </style>
+{% endblock %}
 
 {% include "besttime/nav.html" %}
 {% block page_content %}
@@ -8,21 +18,17 @@
             <h1 class="title is-size-3">{{poll.title}}</h1>
             <form method="post">
                 {{ form.hidden_tag() }}
-                <table class="table is-striped is-fullwidth is-bordered">
-                    {% for field in form.date_time_slots %}
-                    <tr>
-                        <td>
-                            <div class="field">
-                                <div class="control">
-                                    {{ field.date.data.strftime('%-d %a %b %Y') }}
-                                    {{ field.date(type="hidden") }}
-                                    {{field.time_slots()}}
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </table>
+                {% for field in form.date_time_slots %}
+                    <div class="field has-thin-border">
+                        <label class="label">
+                            {{ field.date.data.strftime('%-d %a %b %Y') }}
+                        </label>
+                        <div class="control">
+                            {{ field.date(type="hidden") }}
+                            {{field.time_slots()}}
+                        </div>
+                    </div>
+                {% endfor %}
                 <div class="field is-grouped">
                     <div class="control">
                         <button class="button is-success" type="submit">Submit</button>

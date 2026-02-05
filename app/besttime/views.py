@@ -173,8 +173,6 @@ def preview_master_datetime_slots():
                         selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))
                 _form_field.time_slots.data = [dt[0] for dt in selected]
 
-        return str(form.datetime_slots)
-
         return render_template('besttime/datetime_slots_preview.html', form=form)
     else:
         return ''

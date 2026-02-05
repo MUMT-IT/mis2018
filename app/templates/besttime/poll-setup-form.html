@@ -2,6 +2,13 @@
 
 {% block head %}
     {{ super() }}
+    <style>
+        .has-thin-border {
+            border: 1px solid #dbdbdb; /* Bulma grey */
+            border-radius: 4px;
+            padding: 0.75rem;
+        }
+    </style>
     <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 {% endblock %}
@@ -37,10 +44,8 @@
                 'hx-headers': '{"X-CSRFToken": "{{ csrf_token() }}"}'})}}
             </div>
         </div>
-        <label class="label">Date Time Slots Preview</label>
-        <table class="table is-striped" id="master-datetime-slots">
-            Please choose start and end date.
-        </table>
+        <h1 class="title is-size-6">Date Time Slots Preview</h1>
+        <div id="master-datetime-slots"></div>
         <div class="field">
             <label class="label">{{form.desc.label}}</label>
             <div class="control">
