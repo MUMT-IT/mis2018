@@ -1,6 +1,5 @@
 from sqlalchemy.orm import relationship
 
-from app.besttime.views import UTC_TZ
 from app.main import db
 from app.staff.models import StaffAccount
 
@@ -31,7 +30,7 @@ class BestTimeDateTimeSlot(db.Model):
     is_best = db.Column(db.Boolean(), nullable=True, default=False)
 
     def __str__(self):
-        return f'{self.start.astimezone(UTC_TZ).strftime("%d/%m/%Y %H:%M")} - {self.end.astimezone(UTC_TZ).strftime("%H:%M น.")}'
+        return f'{self.start.astimezone(BKK_TZ).strftime("%d/%m/%Y %H:%M")} - {self.end.astimezone(BKK_TZ).strftime("%H:%M น.")}'
 
     @property
     def has_valid_committee(self):
