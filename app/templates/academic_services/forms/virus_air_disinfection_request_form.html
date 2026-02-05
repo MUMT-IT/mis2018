@@ -310,6 +310,7 @@
                     .attr('oninput', "this.setCustomValidity('')");
             } else {
                 cleanTypeOtherField.hide();
+                cleanTypeOtherInput.prop('required', false)
                 cleanTypeOtherInput.val('');
             }
         }

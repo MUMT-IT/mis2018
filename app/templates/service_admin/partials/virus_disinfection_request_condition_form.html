@@ -258,6 +258,7 @@
                 .attr('oninput', "this.setCustomValidity('')");
         } else {
             surfaceTypeOtherField.hide();
+            surfaceTypeOtherInput.prop('required', false)
             surfaceTypeOtherInput.val('');
         }
     }
