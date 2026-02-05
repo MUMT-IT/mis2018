@@ -4262,7 +4262,7 @@ def generate_virus_request_pdf(service_request):
                     if h == "เชื้อ":
                         w += 100
                     else:
-                        w += 25
+                        w += 27
                     raw_widths.append(w)
                 total_width = sum(raw_widths)
                 max_total = 496
@@ -4334,11 +4334,11 @@ def generate_virus_request_pdf(service_request):
     ]))
 
     report_language = Paragraph(
-        "<br/>".join([f"- {rl.report_language.item}" for rl in service_request.report_languages]),
+        "<br/>".join([f"{rl.report_language.item}" for rl in service_request.report_languages]),
         style=detail_style)
     report_language_table = Table([[report_language]], colWidths=[265])
 
-    report_receive_channel = Paragraph(f"- {service_request.report_receive_channel.item}", style=detail_style)
+    report_receive_channel = Paragraph(f"{service_request.report_receive_channel.item}", style=detail_style)
     report_receive_channel_table = Table([[report_receive_channel]], colWidths=[265])
 
     report_table = Table(
