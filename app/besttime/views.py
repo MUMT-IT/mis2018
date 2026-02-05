@@ -106,11 +106,7 @@ def add_poll():
                     _end = _form_field.date.data.strftime('%Y-%m-%d') + ' ' + _end
                     _start_datetime = datetime.datetime.strptime(_start, '%Y-%m-%d %H:%M').astimezone(tz=BKK_TZ)
                     _end_datetime = datetime.datetime.strptime(_end, '%Y-%m-%d %H:%M').astimezone(tz=BKK_TZ)
-                    ds = BestTimeMasterDateTimeSlot.query.filter_by(start=_start_datetime,
-                                                            end=_end_datetime,
-                                                            poll=poll).first()
-                    if not ds:
-                        ds = BestTimeMasterDateTimeSlot(start=_start_datetime, end=_end_datetime, poll=poll)
+                    ds = BestTimeMasterDateTimeSlot(start=_start_datetime, end=_end_datetime, poll=poll)
                     db.session.add(ds)
             poll.created_at = datetime.datetime.now().astimezone(tz=BKK_TZ)
             db.session.add(poll)
@@ -164,8 +160,8 @@ def preview_master_datetime_slots():
                     hour_text = f'#{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
                     hour_display = f'{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
                     if poll_id:
-                        start = datetime.datetime.combine(_form_field.date.data, h.start)
-                        end = datetime.datetime.combine(_form_field.date.data, h.end)
+                        start = datetime.datetime.combine(_form_field.date.data, h.start, tzinfo=BKK_TZ)
+                        end = datetime.datetime.combine(_form_field.date.data, h.end, tzinfo=BKK_TZ)
                         _slot = BestTimeMasterDateTimeSlot.query.filter_by(start=start, end=end, poll_id=poll_id).first()
                         if _slot:
                             selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))
@@ -349,8 +345,8 @@ def vote_poll(poll_id):
         for _form_field in form.date_time_slots:
             choices = []
             for h in vote_hours:
-                start = datetime.datetime.combine(_form_field.date.data, h.start)
-                end = datetime.datetime.combine(_form_field.date.data, h.end)
+                start = datetime.datetime.combine(_form_field.date.data, h.start, tzinfo=BKK_TZ)
+                end = datetime.datetime.combine(_form_field.date.data, h.end, tzinfo=BKK_TZ)
                 _slot = BestTimeMasterDateTimeSlot.query.filter_by(start=start, end=end, poll_id=poll_id).first()
                 if _slot:
                     hour_text = f'#{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
