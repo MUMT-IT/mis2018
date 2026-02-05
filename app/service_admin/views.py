@@ -4387,7 +4387,7 @@ def generate_virus_request_pdf(service_request):
     if remark_data:
         remark_customer = Paragraph(f"{remark_data}", style=detail_style)
     else:
-        Paragraph('', style=detail_style)
+        remark_customer = Paragraph('', style=detail_style)
     remark_customer_table = Table([[remark_customer]], colWidths=[265])
 
     remark_admin_table = Table([['']], colWidths=[265])
