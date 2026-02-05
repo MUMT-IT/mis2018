@@ -1186,6 +1186,7 @@ class ServiceResult(db.Model):
             'customer_status': self.customer_status if self.customer_status else None,
             'released_at': self.released_at if self.released_at else None,
             'sent_at': self.sent_at if self.sent_at else None,
+            'report_receive_channel': self.request.report_receive_channel.item if self.request else None,
             'req_edit_at': self.req_edit_at if self.req_edit_at else None,
             'is_edited': self.is_edited if self.is_edited else None,
             'approved_at': self.approved_at if self.approved_at else None,
