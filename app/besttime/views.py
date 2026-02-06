@@ -1,17 +1,15 @@
 import calendar
-from collections import defaultdict, namedtuple
+import datetime
+from collections import namedtuple
+from zoneinfo import ZoneInfo
 
+import arrow
 from flask import render_template, request, redirect, url_for, current_app, make_response, flash
 from flask_login import login_required, current_user
-import arrow
 
 from app.besttime import besttime_bp
 from app.besttime.forms import BestTimePollMessageForm, BestTimePollForm, BestTimePollVoteForm, BestTimeMailForm
 from app.besttime.models import *
-
-from zoneinfo import ZoneInfo
-import datetime
-
 from app.staff.views import send_mail
 
 VoteHour = namedtuple('VoteHour', ['start', 'end'])
@@ -159,8 +157,9 @@ def preview_master_datetime_slots():
             current += delta
             for _form_field in form.datetime_slots:
                 selected = []
-                choices = [dt for dt in [(_form_field.date.data.strftime('%Y-%m-%d') + '#09:00 - 12:00', '09:00 - 12:00'),
-                                         (_form_field.date.data.strftime('%Y-%m-%d') + '#13:00 - 16:00', '13:00 - 16:00')]]
+                choices = [dt for dt in
+                           [(_form_field.date.data.strftime('%Y-%m-%d') + '#09:00 - 12:00', '09:00 - 12:00'),
+                            (_form_field.date.data.strftime('%Y-%m-%d') + '#13:00 - 16:00', '13:00 - 16:00')]]
                 _form_field.time_slots.choices = choices
                 # Preselect all choices so that the users will only need to uncheck the choice that is not good for them.
                 for h in vote_hours:
@@ -169,7 +168,7 @@ def preview_master_datetime_slots():
                     if poll_id:
                         start = datetime.datetime.combine(_form_field.date.data, h.start, tzinfo=BKK_TZ)
                         end = datetime.datetime.combine(_form_field.date.data, h.end, tzinfo=BKK_TZ)
-                        _slot = BestTimeMasterDateTimeSlot.query\
+                        _slot = BestTimeMasterDateTimeSlot.query \
                             .filter(BestTimeMasterDateTimeSlot.start == start,
                                     BestTimeMasterDateTimeSlot.end == end,
                                     BestTimeMasterDateTimeSlot.poll_id == poll_id).first()
@@ -225,7 +224,7 @@ def edit_poll(poll_id):
                     _end_datetime = datetime.datetime.strptime(_end, '%Y-%m-%d %H:%M')
                     _start_datetime = _start_datetime.replace(tzinfo=BKK_TZ)
                     _end_datetime = _end_datetime.replace(tzinfo=BKK_TZ)
-                    ds = BestTimeMasterDateTimeSlot.query\
+                    ds = BestTimeMasterDateTimeSlot.query \
                         .filter(BestTimeMasterDateTimeSlot.start == _start_datetime,
                                 BestTimeMasterDateTimeSlot.end == _end_datetime,
                                 BestTimeMasterDateTimeSlot.poll_id == poll.id).first()
@@ -301,7 +300,7 @@ def vote_poll(poll_id):
                 _end_datetime = datetime.datetime.strptime(_end, '%Y-%m-%d %H:%M')
                 _start_datetime = _start_datetime.replace(tzinfo=BKK_TZ)
                 _end_datetime = _end_datetime.replace(tzinfo=BKK_TZ)
-                ds = BestTimeDateTimeSlot.query\
+                ds = BestTimeDateTimeSlot.query \
                     .filter(BestTimeDateTimeSlot.start == _start_datetime,
                             BestTimeDateTimeSlot.end == _end_datetime,
                             BestTimeDateTimeSlot.poll_id == poll_id).first()
@@ -351,13 +350,14 @@ def vote_poll(poll_id):
 
     if request.method == 'GET':
         if vote:
-            voted_time_slots = [t.start.strftime('%Y-%m-%d#%H:%M - ') + t.end.strftime('%H:%M')
+            voted_time_slots = [t.start.astimezone(BKK_TZ).strftime('%Y-%m-%d#%H:%M - ')
+                                + t.end.astimezone(BKK_TZ).strftime('%H:%M')
                                 for t in vote.datetime_slots]
 
         dates = set()
         for slot in poll.master_datetime_slots:
-            if slot.start.date() not in dates:
-                form.date_time_slots.append_entry({'date': slot.start.date()})
+            if slot.start.astimezone(BKK_TZ).date() not in dates:
+                form.date_time_slots.append_entry({'date': slot.start.astimezone(BKK_TZ).date()})
                 dates.add(slot.start.date())
 
         for _form_field in form.date_time_slots:
@@ -365,7 +365,7 @@ def vote_poll(poll_id):
             for h in vote_hours:
                 start = datetime.datetime.combine(_form_field.date.data, h.start, tzinfo=BKK_TZ)
                 end = datetime.datetime.combine(_form_field.date.data, h.end, tzinfo=BKK_TZ)
-                _slot = BestTimeMasterDateTimeSlot.query\
+                _slot = BestTimeMasterDateTimeSlot.query \
                     .filter(BestTimeMasterDateTimeSlot.start == start,
                             BestTimeMasterDateTimeSlot.end == end,
                             BestTimeMasterDateTimeSlot.poll_id == poll_id).first()
