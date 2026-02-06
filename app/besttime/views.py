@@ -391,7 +391,8 @@ def send_mail_to_committee(slot_id):
     if request.method == 'POST':
         if form.validate_on_submit():
             old_slot = BestTimeDateTimeSlot.query.filter_by(is_best=True).first()
-            old_slot.is_best = False
+            if old_slot:
+                old_slot.is_best = False
             slot.is_best = True
             slot.poll.closed_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(slot)
