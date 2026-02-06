@@ -12,12 +12,16 @@
                             {% if loop.first %}
                                 {% for _field in subform %}
                                     {% if _field.type != 'CSRFTokenField' %}
-                                        <th style="border: none">
-                                            {{ _field.label.text }}
-                                            {% if _field.label.text != 'อัตราส่วนเจือจางผลิตภัณฑ์' and _field.label.text != 'ต่อน้ำ' %}
-                                                <span class="has-text-danger">*</span>
-                                            {% endif %}
-                                        </th>
+                                        {% if _field.type == 'SelectField' %}
+                                            <th style="border: none; width: 16.5em">
+                                                {% else %}
+                                            <th style="border: none">
+                                        {% endif %}
+                                        {{ _field.label.text }}
+                                        {% if _field.label.text != 'อัตราส่วนเจือจางผลิตภัณฑ์' and _field.label.text != 'ต่อน้ำ' %}
+                                            <span class="has-text-danger">*</span>
+                                        {% endif %}
+                                    </th>
                                     {% endif %}
                                 {% endfor %}
                             {% endif %}
