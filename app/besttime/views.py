@@ -393,10 +393,10 @@ def send_mail_to_committee(slot_id):
             old_slot = BestTimeDateTimeSlot.query.filter_by(is_best=True).first()
             if old_slot:
                 old_slot.is_best = False
+                db.session.add(old_slot)
             slot.is_best = True
             slot.poll.closed_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(slot)
-            db.session.add(old_slot)
             db.session.commit()
             title = f'แจ้งสรุปวันประชุมจากผลการโหวต {slot.poll.title}'
             send_mail_to_voters(slot.poll, title, form.message.data)
