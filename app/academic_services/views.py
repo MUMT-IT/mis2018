@@ -756,6 +756,8 @@ def login():
             return redirect(next_url)
         else:
             return abort(400)
+        if not current_user.verify_datetime:
+            flash('ท่านยังไม่ดำเนินการยืนยันอีเมล กรุณาดำเนินการยืนยันอีเมลเพื่อให้สามารถดำเนินการต่อได้', 'danger')
     form = LoginForm()
     if form.validate_on_submit():
         user = db.session.query(ServiceCustomerAccount).filter_by(email=form.email.data).first()
@@ -909,6 +911,8 @@ def customer_index():
 def lab_index():
     menu = request.args.get('menu')
     labs = ServiceLab.query.all()
+    if not current_user.verify_datetime:
+        flash('กรุณาดำเนินการยืนยันอีเมลเพื่อให้สามารดำเนินการต่อได้', 'danger')
     return render_template('academic_services/lab_index.html', menu=menu, labs=labs)
 
 
@@ -1076,10 +1080,36 @@ def confirm_email_page():
     return render_template('academic_services/confirm_email_page.html')
 
 
+@academic_services.route('/email/send/<int:quotation_id>', methods=['GET'])
+def send_email(quotation_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+    token = serializer.dumps({'email': current_user.email})
+    scheme = 'http' if current_app.debug else 'https'
+    url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme, tab=tab,
+                  menu=menu, quotation_id=quotation_id)
+    title_prefix = 'คุณ' if current_user.customer_info.type == 'บุคคล' else ''
+    customer_name = current_user.customer_name.replace(' ', '_')
+    title = f'''แจ้งยืนยันอีเมลงานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+    message += '''ตามที่ท่านได้ร้องขอการยืนยันอีเมลในระบบรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
+    message += '''กรุณาคลิกลิงก์ด้านล่างเพื่อยืนยันอีเมลของท่าน โดยลิงก์นี้จะสามารถใช้งานได้ภายใน 3 ชั่วโมง\n\n'''
+    message += f'''{url}\n\n'''
+    message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+    message += f'''ขอแสดงความนับถือ\n'''
+    message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+    message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    send_mail([current_user.email], title, message)
+    return redirect(url_for('academic_services.view_quotation', quotation_id=quotation_id, menu=menu, tab=tab))
+
+
 @academic_services.route('/email-verification', methods=['GET', 'POST'])
 def verify_email():
     token = request.args.get('token')
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
+    quotation_id = request.args.get('quotation_id')
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
     try:
         token_data = serializer.loads(token, max_age=10800)
@@ -1097,7 +1127,11 @@ def verify_email():
         db.session.add(user)
         db.session.commit()
         flash('ยืนยันอีเมลเรียบร้อยแล้ว', 'success')
-        return redirect(url_for('academic_services.confirm_email_page', menu=menu))
+        if quotation_id:
+            return redirect(url_for('academic_services.view_quotation', quotation_id=quotation_id, menu=menu,
+                                    tab=tab, notify=True))
+        else:
+            return redirect(url_for('academic_services.confirm_email_page'))
 
 
 @academic_services.route('/customer/account', methods=['GET', 'POST'])
@@ -1138,7 +1172,7 @@ def customer_account():
             db.session.add(account)
         db.session.add(customer)
         db.session.commit()
-        flash('บันทึกข้อมูลสำเร็จ', 'customer_updated')
+        flash('บันทึกข้อมูลเรียบร้อยแล้ว กรุณาเลือกแล็บ', 'success')
         return redirect(url_for('academic_services.lab_index', menu='new'))
     if not current_user.customer_info:
         flash('กรุณากรอกข้อมูลลูกค้าและข้อมูลผู้ประสานงานให้ครบถ้วนก่อนดำเนินการต่อ', 'warning')
@@ -4748,7 +4782,10 @@ def quotation_index():
 def view_quotation(quotation_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
+    notify = request.args.get('notify')
     quotation = ServiceQuotation.query.get(quotation_id)
+    if notify:
+        flash('ยืนยันอีเมลสำเร็จ!', 'success')
     return render_template('academic_services/view_quotation.html', quotation_id=quotation_id, menu=menu,
                            quotation=quotation, tab=tab)
 
@@ -4982,27 +5019,6 @@ def export_quotation_pdf(quotation_id):
     quotation = ServiceQuotation.query.get(quotation_id)
     buffer = generate_quotation_pdf(quotation)
     return send_file(buffer, download_name='Quotation.pdf', as_attachment=True)
-
-
-@academic_services.route('/email/send', methods=['GET'])
-def send_email():
-    serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
-    token = serializer.dumps({'email': current_user.email})
-    scheme = 'http' if current_app.debug else 'https'
-    url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme, menu='verify')
-    title_prefix = 'คุณ' if current_user.customer_info.type == 'บุคคล' else ''
-    customer_name = current_user.customer_name.replace(' ', '_')
-    title = f'''แจ้งยืนยันอีเมลงานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-    message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-    message += '''ตามที่ท่านได้ร้องขอการยืนยันอีเมลในระบบรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
-    message += '''กรุณาคลิกลิงก์ด้านล่างเพื่อยืนยันอีเมลของท่าน โดยลิงก์นี้จะสามารถใช้งานได้ภายใน 3 ชั่วโมง\n\n'''
-    message += f'''{url}\n\n'''
-    message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-    message += f'''ขอแสดงความนับถือ\n'''
-    message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
-    message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-    send_mail([current_user.email], title, message)
-    return ''
 
 
 @academic_services.route('/customer/quotation/confirm/<int:quotation_id>', methods=['GET', 'POST'])
