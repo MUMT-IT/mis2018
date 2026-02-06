@@ -51,29 +51,34 @@ def view_results(poll_id):
 def leave_message(poll_id):
     poll = BestTimePoll.query.get(poll_id)
     form = BestTimePollMessageForm()
-    if form.validate_on_submit():
-        message = BestTimePollMessage(poll_id=poll_id)
-        form.populate_obj(message)
-        message.voter_id = current_user.id
-        message.created_at = arrow.now('UTC').datetime
-        db.session.add(message)
-        db.session.commit()
-        template = f'''
-                    <article class="media">
-                        <div class="media-content">
-                            <div class="tag is-large is-light is-warning">
-                                {message.message}
+    if request.method == "POST":
+        if form.validate_on_submit():
+            message = BestTimePollMessage(poll_id=poll_id)
+            form.populate_obj(message)
+            message.voter_id = current_user.id
+            message.created_at = arrow.now('UTC').datetime
+            db.session.add(message)
+            db.session.commit()
+            template = f'''
+                        <article class="media">
+                            <div class="media-content">
+                                <div class="tag is-large is-light is-warning">
+                                    {message.message}
+                                </div>
+                                <br/>
+                                <p>
+                                    <strong><small>{message.voter.fullname}</small></strong> <small>@{message.created_at.strftime('%d/%m/%Y %H:%M:%S')}</small>
+                                </p>
                             </div>
-                            <br/>
-                            <p>
-                                <strong><small>{message.voter.fullname}</small></strong> <small>@{message.created_at.strftime('%d/%m/%Y %H:%M:%S')}</small>
-                            </p>
-                        </div>
-                    </article>
-        '''
-        return template
-    else:
-        print(form.errors)
+                        </article>
+            '''
+            return template
+        else:
+            print(form.errors)
+            resp = make_response()
+            resp.headers["HX-Swap"] = "none"
+            return resp
+
     return render_template('besttime/poll-message-form.html', poll=poll, form=form)
 
 
@@ -164,9 +169,9 @@ def preview_master_datetime_slots():
                         start = datetime.datetime.combine(_form_field.date.data, h.start, tzinfo=BKK_TZ)
                         end = datetime.datetime.combine(_form_field.date.data, h.end, tzinfo=BKK_TZ)
                         _slot = BestTimeMasterDateTimeSlot.query\
-                            .filter(func.timezone(BestTimeMasterDateTimeSlot.start) == start,
-                                    func.timezone(BestTimeMasterDateTimeSlot.end) == end,
-                                    BestTimeMasterDateTimeSlot.poll == poll_id).first()
+                            .filter(func.timezone('Asia/Bangkok', BestTimeMasterDateTimeSlot.start) == start,
+                                    func.timezone('Asia/Bangkok', BestTimeMasterDateTimeSlot.end) == end,
+                                    BestTimeMasterDateTimeSlot.poll_id == poll_id).first()
                         if _slot:
                             selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))
                     else:
@@ -292,9 +297,9 @@ def vote_poll(poll_id):
                 _start_datetime = datetime.datetime.strptime(_start, '%Y-%m-%d %H:%M').astimezone(tz=BKK_TZ)
                 _end_datetime = datetime.datetime.strptime(_end, '%Y-%m-%d %H:%M').astimezone(tz=BKK_TZ)
                 ds = BestTimeDateTimeSlot.query\
-                    .filter(func.timezone(BestTimeMasterDateTimeSlot.start) == _start_datetime,
-                            func.timezone(BestTimeMasterDateTimeSlot.end) == _end_datetime,
-                            BestTimeMasterDateTimeSlot.poll_id == poll_id).first()
+                    .filter(func.timezone('Asia/Bangkok', BestTimeDateTimeSlot.start) == _start_datetime,
+                            func.timezone('Asia/Bangkok', BestTimeDateTimeSlot.end) == _end_datetime,
+                            BestTimeDateTimeSlot.poll_id == poll_id).first()
                 if not ds:
                     ds = BestTimeDateTimeSlot(start=_start_datetime, end=_end_datetime, poll_id=poll_id)
                 vote.datetime_slots.append(ds)
@@ -355,11 +360,10 @@ def vote_poll(poll_id):
             for h in vote_hours:
                 start = datetime.datetime.combine(_form_field.date.data, h.start, tzinfo=BKK_TZ)
                 end = datetime.datetime.combine(_form_field.date.data, h.end, tzinfo=BKK_TZ)
-                start_utc = start.astimezone(BKK_TZ)
-                end_utc = end.astimezone(BKK_TZ)
-                _slot = BestTimeMasterDateTimeSlot.query.filter_by(start=start_utc,
-                                                                   end=end_utc,
-                                                                   poll_id=poll_id).first()
+                _slot = BestTimeMasterDateTimeSlot.query\
+                    .filter(func.timezone('Asia/Bangkok', BestTimeMasterDateTimeSlot.start) == start,
+                            func.timezone('Asia/Bangkok', BestTimeMasterDateTimeSlot.end) == end,
+                            BestTimeMasterDateTimeSlot.poll_id == poll_id).first()
                 if _slot:
                     hour_text = f'#{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
                     hour_display = f'{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'

@@ -14,7 +14,19 @@
 {% block page_content %}
 <section class="section">
     <div class="columns">
-        <div class="column is-one-third is-offset-2">
+        <div class="column">
+            <div class="notification is-light is-warning">
+                <span class="icon">
+                    <i class="fa-solid fa-circle-info"></i>
+                </span>
+                <span>
+                    สามารถโหวตใหม่ได้จนกว่าจะปิดการโหวต
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-one-third box is-offset-2">
             <h1 class="title is-size-3">{{poll.title}}</h1>
             <form method="post">
                 {{ form.hidden_tag() }}
@@ -31,10 +43,10 @@
                 {% endfor %}
                 <div class="field is-grouped">
                     <div class="control">
-                        <button class="button is-success" type="submit">Submit</button>
+                        <button class="button is-success" type="submit">บันทึก</button>
                     </div>
                     <div class="control">
-                        <a class="button is-light" href="{{url_for('besttime.index')}}">Back</a>
+                        <a class="button is-light" href="{{url_for('besttime.index')}}">ยกเลิก</a>
                     </div>
                 </div>
             </form>
@@ -46,13 +58,17 @@
                     <label class="label">ฝากข้อความ</label>
                     <div class="control">
                         {{ message_form.message(class='input') }}
+                        <p class="help is-info">
+                            ข้อความจะแสดงให้ทุกคนที่เป็นกรรมการเห็น
+                        </p>
                     </div>
                 </div>
                 <a class="button is-link"
                    hx-target="#messages"
                    hx-swap="beforeend"
+                   hx-confirm="ท่านแน่ใจว่าต้องการส่งข้อความนี้"
                    hx-indicator="this"
-                   hx-post="{{url_for('besttime.leave_message', poll_id=poll.id)}}">Submit</a>
+                   hx-post="{{url_for('besttime.leave_message', poll_id=poll.id)}}">ส่ง</a>
             </form>
             <div id="messages">
                 {% for message in poll.messages %}

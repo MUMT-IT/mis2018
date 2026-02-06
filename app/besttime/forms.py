@@ -89,6 +89,7 @@ class BestTimePollForm(ModelForm):
 class BestTimePollMessageForm(ModelForm):
     class Meta:
         model = BestTimePollMessage
+        field_args = {'message': {'validators': [DataRequired()]}}
 
 
 class BestTimePollVoteForm(ModelForm):
