@@ -4,6 +4,7 @@ from collections import defaultdict, namedtuple
 from flask import render_template, request, redirect, url_for, current_app, make_response, flash
 from flask_login import login_required, current_user
 import arrow
+from sqlalchemy import func
 
 from app.besttime import besttime_bp
 from app.besttime.forms import BestTimePollMessageForm, BestTimePollForm, BestTimePollVoteForm, BestTimeMailForm
@@ -17,7 +18,6 @@ from app.staff.views import send_mail
 VoteHour = namedtuple('VoteHour', ['start', 'end'])
 
 BKK_TZ = ZoneInfo('Asia/Bangkok')
-UTC_TZ = ZoneInfo('UTC')
 
 vote_hours = [VoteHour(datetime.time(9, 0, 0, tzinfo=BKK_TZ),
                        datetime.time(12, 0, 0, tzinfo=BKK_TZ)),
@@ -107,10 +107,9 @@ def add_poll():
                     _end = _form_field.date.data.strftime('%Y-%m-%d') + ' ' + _end
                     _start_datetime = datetime.datetime.strptime(_start, '%Y-%m-%d %H:%M').astimezone(tz=BKK_TZ)
                     _end_datetime = datetime.datetime.strptime(_end, '%Y-%m-%d %H:%M').astimezone(tz=BKK_TZ)
-                    ds = BestTimeMasterDateTimeSlot(start=_start_datetime.astimezone(UTC_TZ),
-                                                    end=_end_datetime.astimezone(UTC_TZ), poll=poll)
+                    ds = BestTimeMasterDateTimeSlot(start=_start_datetime, end=_end_datetime, poll=poll)
                     db.session.add(ds)
-            poll.created_at = datetime.datetime.now().astimezone(tz=UTC_TZ)
+            poll.created_at = datetime.datetime.now().astimezone(tz=BKK_TZ)
             db.session.add(poll)
             db.session.commit()
             url = url_for('besttime.vote_poll', poll_id=poll.id, _external=True)
@@ -164,9 +163,10 @@ def preview_master_datetime_slots():
                     if poll_id:
                         start = datetime.datetime.combine(_form_field.date.data, h.start, tzinfo=BKK_TZ)
                         end = datetime.datetime.combine(_form_field.date.data, h.end, tzinfo=BKK_TZ)
-                        start_utc = start.astimezone(UTC_TZ)
-                        end_utc = end.astimezone(UTC_TZ)
-                        _slot = BestTimeMasterDateTimeSlot.query.filter_by(start=start_utc, end=end_utc, poll_id=poll_id).first()
+                        _slot = BestTimeMasterDateTimeSlot.query\
+                            .filter(func.timezone(BestTimeMasterDateTimeSlot.start) == start,
+                                    func.timezone(BestTimeMasterDateTimeSlot.end) == end,
+                                    poll_id=poll_id).first()
                         if _slot:
                             selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))
                     else:
@@ -217,16 +217,14 @@ def edit_poll(poll_id):
                     _end = _form_field.date.data.strftime('%Y-%m-%d') + ' ' + _end
                     _start_datetime = datetime.datetime.strptime(_start, '%Y-%m-%d %H:%M').astimezone(tz=BKK_TZ)
                     _end_datetime = datetime.datetime.strptime(_end, '%Y-%m-%d %H:%M').astimezone(tz=BKK_TZ)
-                    _start_datetime_utc = _start_datetime.astimezone(tz=UTC_TZ)
-                    _end_datetime_utc = _end_datetime.astimezone(tz=UTC_TZ)
-                    ds = BestTimeMasterDateTimeSlot.query.filter_by(start=_start_datetime_utc,
-                                                            end=_end_datetime_utc,
-                                                            poll=poll).first()
+                    ds = BestTimeMasterDateTimeSlot.query\
+                        .filter(func.timezone('Asia/Bangkok', BestTimeMasterDateTimeSlot.start) == _start_datetime,
+                                func.timezone('Asia/Bangkok', BestTimeMasterDateTimeSlot.end) == _end_datetime,
+                                poll=poll).first()
                     if not ds:
-                        ds = BestTimeMasterDateTimeSlot(start=_start_datetime.astimezone(UTC_TZ),
-                                                        end=_end_datetime.astimezone(UTC_TZ), poll=poll)
+                        ds = BestTimeMasterDateTimeSlot(start=_start_datetime, end=_end_datetime, poll=poll)
                     db.session.add(ds)
-            poll.modified_at = datetime.datetime.now().astimezone(UTC_TZ)
+            poll.modified_at = datetime.datetime.now().astimezone(BKK_TZ)
             db.session.add(poll)
             db.session.commit()
             url = url_for('besttime.vote_poll', poll_id=poll.id, _external=True)
@@ -263,7 +261,7 @@ def delete_poll(poll_id):
 @login_required
 def close_poll(poll_id):
     poll = BestTimePoll.query.get(poll_id)
-    poll.closed_at = datetime.datetime.now().astimezone(UTC_TZ)
+    poll.closed_at = datetime.datetime.now().astimezone(BKK_TZ)
     db.session.add(poll)
     db.session.commit()
     return redirect(url_for('besttime.index'))
@@ -273,7 +271,7 @@ def close_poll(poll_id):
 @login_required
 def vote_poll(poll_id):
     poll = BestTimePoll.query.get(poll_id)
-    today = datetime.datetime.now().astimezone(UTC_TZ).date()
+    today = datetime.datetime.now().astimezone(BKK_TZ).date()
     if today < poll.start_date or today > poll.end_date:
         flash('ขณะนี้ไม่อยู่ในช่วงระยะเวลาการโหวตของโพล กรุณาตรวจสอบวันที่เปิดโหวตอีกครั้ง', 'danger')
         return redirect(url_for('besttime.index'))
@@ -293,16 +291,15 @@ def vote_poll(poll_id):
                 _end = _form_field.date.data.strftime('%Y-%m-%d') + ' ' + _end
                 _start_datetime = datetime.datetime.strptime(_start, '%Y-%m-%d %H:%M').astimezone(tz=BKK_TZ)
                 _end_datetime = datetime.datetime.strptime(_end, '%Y-%m-%d %H:%M').astimezone(tz=BKK_TZ)
-                _start_datetime_utc = _start_datetime.astimezone(tz=UTC_TZ)
-                _end_datetime_utc = _end_datetime.astimezone(tz=UTC_TZ)
-                ds = BestTimeDateTimeSlot.query.filter_by(start=_start_datetime_utc,
-                                                          end=_end_datetime_utc,
-                                                          poll_id=poll_id).first()
+                ds = BestTimeDateTimeSlot.query\
+                    .filter(func.timezone(BestTimeMasterDateTimeSlot.start) == _start_datetime,
+                            func.timezone(BestTimeMasterDateTimeSlot.end) == _end_datetime,
+                            poll_id=poll_id).first()
                 if not ds:
-                    ds = BestTimeDateTimeSlot(start=_start_datetime_utc, end=_end_datetime_utc, poll_id=poll_id)
+                    ds = BestTimeDateTimeSlot(start=_start_datetime, end=_end_datetime, poll_id=poll_id)
                 vote.datetime_slots.append(ds)
                 db.session.add(ds)
-        vote.voted_at = datetime.datetime.now().astimezone(tz=UTC_TZ)
+        vote.voted_at = datetime.datetime.now().astimezone(tz=BKK_TZ)
         db.session.add(vote)
         db.session.commit()
         if poll.is_completed:
@@ -358,8 +355,8 @@ def vote_poll(poll_id):
             for h in vote_hours:
                 start = datetime.datetime.combine(_form_field.date.data, h.start, tzinfo=BKK_TZ)
                 end = datetime.datetime.combine(_form_field.date.data, h.end, tzinfo=BKK_TZ)
-                start_utc = start.astimezone(UTC_TZ)
-                end_utc = end.astimezone(UTC_TZ)
+                start_utc = start.astimezone(BKK_TZ)
+                end_utc = end.astimezone(BKK_TZ)
                 _slot = BestTimeMasterDateTimeSlot.query.filter_by(start=start_utc,
                                                                    end=end_utc,
                                                                    poll_id=poll_id).first()
@@ -384,7 +381,7 @@ def send_mail_to_committee(slot_id):
             old_slot = BestTimeDateTimeSlot.query.filter_by(is_best=True).first()
             old_slot.is_best = False
             slot.is_best = True
-            slot.poll.closed_at = datetime.datetime.now().astimezone(tz=UTC_TZ)
+            slot.poll.closed_at = datetime.datetime.now().astimezone(tz=BKK_TZ)
             db.session.add(slot)
             db.session.add(old_slot)
             db.session.commit()
