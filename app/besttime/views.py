@@ -53,7 +53,7 @@ def leave_message(poll_id):
             message = BestTimePollMessage(poll_id=poll_id)
             form.populate_obj(message)
             message.voter_id = current_user.id
-            message.created_at = arrow.now('UTC').datetime
+            message.created_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(message)
             db.session.commit()
             template = f'''
