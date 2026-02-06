@@ -166,7 +166,7 @@ def preview_master_datetime_slots():
                         _slot = BestTimeMasterDateTimeSlot.query\
                             .filter(func.timezone(BestTimeMasterDateTimeSlot.start) == start,
                                     func.timezone(BestTimeMasterDateTimeSlot.end) == end,
-                                    poll_id=poll_id).first()
+                                    BestTimeMasterDateTimeSlot.poll == poll_id).first()
                         if _slot:
                             selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))
                     else:
@@ -220,7 +220,7 @@ def edit_poll(poll_id):
                     ds = BestTimeMasterDateTimeSlot.query\
                         .filter(func.timezone('Asia/Bangkok', BestTimeMasterDateTimeSlot.start) == _start_datetime,
                                 func.timezone('Asia/Bangkok', BestTimeMasterDateTimeSlot.end) == _end_datetime,
-                                poll=poll).first()
+                                BestTimeMasterDateTimeSlot.poll_id == poll.id).first()
                     if not ds:
                         ds = BestTimeMasterDateTimeSlot(start=_start_datetime, end=_end_datetime, poll=poll)
                     db.session.add(ds)
@@ -294,7 +294,7 @@ def vote_poll(poll_id):
                 ds = BestTimeDateTimeSlot.query\
                     .filter(func.timezone(BestTimeMasterDateTimeSlot.start) == _start_datetime,
                             func.timezone(BestTimeMasterDateTimeSlot.end) == _end_datetime,
-                            poll_id=poll_id).first()
+                            BestTimeMasterDateTimeSlot.poll_id == poll_id).first()
                 if not ds:
                     ds = BestTimeDateTimeSlot(start=_start_datetime, end=_end_datetime, poll_id=poll_id)
                 vote.datetime_slots.append(ds)
