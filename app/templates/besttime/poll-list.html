@@ -61,21 +61,22 @@
                     </td>
                     <td>
                         {% if invitation.role == 'chairman' or invitation.poll.has_admin_role(current_user) %}
-                        <a class="button is-small is-rounded is-info"
-                           href="{{url_for('besttime.edit_poll', poll_id=invitation.poll.id)}}">
-                            <span class="icon">
-                               <i class="fa-solid fa-gear"></i>
-                            </span>
-                            <span>manage</span>
-                        </a>
-                        {% if not invitation.poll.closed_at %}
-                        <a class="button is-small is-rounded is-danger"
-                           href="{{url_for('besttime.close_poll', poll_id=invitation.poll.id)}}">
-                            <span class="icon">
-                                <i class="fa-solid fa-power-off"></i>
-                            </span>
-                            <span>close</span>
-                        </a>
+                            {% if not invitation.poll.closed_at %}
+                            <a class="button is-small is-rounded is-info"
+                               href="{{url_for('besttime.edit_poll', poll_id=invitation.poll.id)}}">
+                                <span class="icon">
+                                   <i class="fa-solid fa-gear"></i>
+                                </span>
+                                <span>manage</span>
+                            </a>
+                            <a class="button is-small is-rounded is-danger"
+                               href="{{url_for('besttime.close_poll', poll_id=invitation.poll.id)}}">
+                                <span class="icon">
+                                    <i class="fa-solid fa-power-off"></i>
+                                </span>
+                                <span>close</span>
+                            </a>
+                            {% endif %}
                         {% endif %}
                         <a class="button is-small is-rounded is-warning"
                            href="{{url_for('besttime.view_results', poll_id=invitation.poll.id)}}">
@@ -84,7 +85,6 @@
                             </span>
                             <span>result</span>
                         </a>
-                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}

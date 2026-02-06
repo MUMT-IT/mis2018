@@ -1,7 +1,6 @@
 import calendar
 import datetime
 from collections import namedtuple
-from zoneinfo import ZoneInfo
 
 import arrow
 from flask import render_template, request, redirect, url_for, current_app, make_response, flash
@@ -121,11 +120,11 @@ def add_poll():
             message = f'''
             เรียนกรรมการ
             
-            ขอเชิญท่านเลืิอกวันที่สะดวกสำหรับร่วมประชุม {poll.title} ภายในวันที่ {poll.date_span} โดยคลิกที่ลิงค์ด้านล่าง
+            ขอเชิญท่านเลือกวันที่สะดวกสำหรับร่วมประชุม {poll.title} ภายในวันที่ {poll.date_span} โดยคลิกที่ลิงค์ด้านล่าง
             
             {url}
             
-            ด้วยความเคารพ
+            ขอแสดงความนับถือ
             
             {poll.creator.fullname}
             '''
@@ -283,7 +282,10 @@ def vote_poll(poll_id):
     poll = BestTimePoll.query.get(poll_id)
     today = arrow.now('Asia/Bangkok').date()
     if today < poll.vote_start_date or today > poll.vote_end_date:
-        flash('ขณะนี้ไม่อยู่ในช่วงระยะเวลาการโหวตของโพล กรุณาตรวจสอบวันที่เปิดโหวตอีกครั้ง', 'danger')
+        flash('ขณะนี้ไม่อยู่ในช่วงระยะเวลาการโหวตของแบบสำรวจ กรุณาตรวจสอบวันที่เปิดโหวตอีกครั้ง', 'danger')
+        return redirect(url_for('besttime.index'))
+    elif poll.closed_at:
+        flash('แบบสำรวจนี้ปิดการโหวตแล้ว', 'warning')
         return redirect(url_for('besttime.index'))
     # If the user has already voted this poll
     vote = BestTimePollVote.query.filter_by(poll_id=poll_id, voter=current_user).first()
@@ -404,6 +406,6 @@ def send_mail_to_committee(slot_id):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
-    form.message.data = f'''เรียนกรรมการทุกท่าน\n\nขอแจ้งสรุปวันประชุม {slot.poll.title} เป็นวันที่ {slot}\n\nด้วยความเคารพ'''
+    form.message.data = f'''เรียนกรรมการทุกท่าน\n\nขอแจ้งสรุปวันประชุม {slot.poll.title} เป็นวันที่ {slot}\n\nขอแสดงความนับถือ\n\n{slot.poll.creator.fullname}'''
     return render_template('besttime/modals/mail_form.html',
                            form=form, slot_id=slot_id, poll=slot.poll)
