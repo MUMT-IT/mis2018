@@ -2,11 +2,20 @@
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
+    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <style>
+        .toast {
+            opacity: 1 !important;
+            transition: none !important;
+        }
+        #toast-container.toast-top-full-width > .toast {
+            width: 100% !important;
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
     {% include "academic_services/customer_nav.html" %}
     <div class="section" id="request">
-        {% include 'messages.html' %}
         <div class="container">
             <div class="columns is-flex is-align-items-stretch">
                 <div class="column">
@@ -207,6 +216,7 @@
     {{ super() }}
     <script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script type="text/javascript">
         var vm = new Vue({
             el: "#request",
@@ -228,11 +238,42 @@
                     confirmButtonText: "กดปุ่มเพื่อส่งอีเมล",
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        window.location.href = "/academic_services/email/send";
+                        var tab = '{{ tab }}';
+                        var menu = '{{ menu }}';
+                        var quotation_id = '{{ quotation_id }}';
+                        window.location.href = "/academic_services/email/send/" + quotation_id + '?menu=' + menu + '&tab=' + tab;
                         Swal.fire("ส่งอีเมลแล้ว!", "กรุณายืนยันอีเมลภายใน <strong>3 ชั่วโมง</strong> เพื่อให้สามารถดำเนินการต่อได้", "success");
                     }
                 });
             })
         })
+    </script>
+    <script>
+        function showToast(category, message) {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
+            toastr.success(message);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        showToast('{{ category }}', {{ message|tojson }});
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
     </script>
 {% endblock %}
