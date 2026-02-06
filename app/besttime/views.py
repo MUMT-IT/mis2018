@@ -110,11 +110,13 @@ def add_poll():
                     _start, _end = t.split('#')[1].split(' - ')
                     _start = _form_field.date.data.strftime('%Y-%m-%d') + ' ' + _start
                     _end = _form_field.date.data.strftime('%Y-%m-%d') + ' ' + _end
-                    _start_datetime = datetime.datetime.strptime(_start, '%Y-%m-%d %H:%M').astimezone(tz=BKK_TZ)
-                    _end_datetime = datetime.datetime.strptime(_end, '%Y-%m-%d %H:%M').astimezone(tz=BKK_TZ)
+                    _start_datetime = datetime.datetime.strptime(_start, '%Y-%m-%d %H:%M')
+                    _end_datetime = datetime.datetime.strptime(_end, '%Y-%m-%d %H:%M')
+                    _start_datetime = _start_datetime.replace(tzinfo=BKK_TZ)
+                    _end_datetime = _end_datetime.replace(tzinfo=BKK_TZ)
                     ds = BestTimeMasterDateTimeSlot(start=_start_datetime, end=_end_datetime, poll=poll)
                     db.session.add(ds)
-            poll.created_at = datetime.datetime.now().astimezone(tz=BKK_TZ)
+            poll.created_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(poll)
             db.session.commit()
             url = url_for('besttime.vote_poll', poll_id=poll.id, _external=True)
@@ -220,8 +222,10 @@ def edit_poll(poll_id):
                     _start, _end = t.split('#')[1].split(' - ')
                     _start = _form_field.date.data.strftime('%Y-%m-%d') + ' ' + _start
                     _end = _form_field.date.data.strftime('%Y-%m-%d') + ' ' + _end
-                    _start_datetime = datetime.datetime.strptime(_start, '%Y-%m-%d %H:%M').astimezone(tz=BKK_TZ)
-                    _end_datetime = datetime.datetime.strptime(_end, '%Y-%m-%d %H:%M').astimezone(tz=BKK_TZ)
+                    _start_datetime = datetime.datetime.strptime(_start, '%Y-%m-%d %H:%M')
+                    _end_datetime = datetime.datetime.strptime(_end, '%Y-%m-%d %H:%M')
+                    _start_datetime = _start_datetime.replace(tzinfo=BKK_TZ)
+                    _end_datetime = _end_datetime.replace(tzinfo=BKK_TZ)
                     ds = BestTimeMasterDateTimeSlot.query\
                         .filter(func.timezone('Asia/Bangkok', BestTimeMasterDateTimeSlot.start) == _start_datetime,
                                 func.timezone('Asia/Bangkok', BestTimeMasterDateTimeSlot.end) == _end_datetime,
@@ -229,7 +233,7 @@ def edit_poll(poll_id):
                     if not ds:
                         ds = BestTimeMasterDateTimeSlot(start=_start_datetime, end=_end_datetime, poll=poll)
                     db.session.add(ds)
-            poll.modified_at = datetime.datetime.now().astimezone(BKK_TZ)
+            poll.modified_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(poll)
             db.session.commit()
             url = url_for('besttime.vote_poll', poll_id=poll.id, _external=True)
@@ -266,7 +270,7 @@ def delete_poll(poll_id):
 @login_required
 def close_poll(poll_id):
     poll = BestTimePoll.query.get(poll_id)
-    poll.closed_at = datetime.datetime.now().astimezone(BKK_TZ)
+    poll.closed_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(poll)
     db.session.commit()
     return redirect(url_for('besttime.index'))
@@ -276,7 +280,7 @@ def close_poll(poll_id):
 @login_required
 def vote_poll(poll_id):
     poll = BestTimePoll.query.get(poll_id)
-    today = datetime.datetime.now().astimezone(BKK_TZ).date()
+    today = arrow.now('Asia/Bangkok').date()
     if today < poll.start_date or today > poll.end_date:
         flash('ขณะนี้ไม่อยู่ในช่วงระยะเวลาการโหวตของโพล กรุณาตรวจสอบวันที่เปิดโหวตอีกครั้ง', 'danger')
         return redirect(url_for('besttime.index'))
@@ -294,8 +298,10 @@ def vote_poll(poll_id):
                 _start, _end = t.split('#')[1].split(' - ')
                 _start = _form_field.date.data.strftime('%Y-%m-%d') + ' ' + _start
                 _end = _form_field.date.data.strftime('%Y-%m-%d') + ' ' + _end
-                _start_datetime = datetime.datetime.strptime(_start, '%Y-%m-%d %H:%M').astimezone(tz=BKK_TZ)
-                _end_datetime = datetime.datetime.strptime(_end, '%Y-%m-%d %H:%M').astimezone(tz=BKK_TZ)
+                _start_datetime = datetime.datetime.strptime(_start, '%Y-%m-%d %H:%M')
+                _end_datetime = datetime.datetime.strptime(_end, '%Y-%m-%d %H:%M')
+                _start_datetime = _start_datetime.replace(tzinfo=BKK_TZ)
+                _end_datetime = _end_datetime.replace(tzinfo=BKK_TZ)
                 ds = BestTimeDateTimeSlot.query\
                     .filter(func.timezone('Asia/Bangkok', BestTimeDateTimeSlot.start) == _start_datetime,
                             func.timezone('Asia/Bangkok', BestTimeDateTimeSlot.end) == _end_datetime,
@@ -304,7 +310,7 @@ def vote_poll(poll_id):
                     ds = BestTimeDateTimeSlot(start=_start_datetime, end=_end_datetime, poll_id=poll_id)
                 vote.datetime_slots.append(ds)
                 db.session.add(ds)
-        vote.voted_at = datetime.datetime.now().astimezone(tz=BKK_TZ)
+        vote.voted_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(vote)
         db.session.commit()
         if poll.is_completed:
@@ -385,7 +391,7 @@ def send_mail_to_committee(slot_id):
             old_slot = BestTimeDateTimeSlot.query.filter_by(is_best=True).first()
             old_slot.is_best = False
             slot.is_best = True
-            slot.poll.closed_at = datetime.datetime.now().astimezone(tz=BKK_TZ)
+            slot.poll.closed_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(slot)
             db.session.add(old_slot)
             db.session.commit()
