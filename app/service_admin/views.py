@@ -3398,8 +3398,8 @@ def generate_bacteria_request_pdf(service_request):
     doc = SimpleDocTemplate(buffer, pagesize=A4,
                             rightMargin=20,
                             leftMargin=20,
-                            topMargin=40,
-                            bottomMargin=40
+                            topMargin=30,
+                            bottomMargin=30
                             )
 
     data = []
@@ -3422,8 +3422,8 @@ def generate_bacteria_request_pdf(service_request):
     ]))
 
     lab_information = '''<para><font size=13>
-                        {address}
-                        </font></para>'''.format(address=service_request.sub_lab.lab_information)
+                            {address}
+                            </font></para>'''.format(address=service_request.sub_lab.lab_information)
 
     lab_table = Table([[logo, Paragraph(lab_information, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
 
@@ -3432,11 +3432,11 @@ def generate_bacteria_request_pdf(service_request):
     ]))
 
     staff_only = '''<para><font size=13>
-                    สำหรับเจ้าหน้าที่ / Staff only<br/>
-                    เลขที่ใบคำขอ &nbsp;  <u>&nbsp;{request_no}&nbsp;&nbsp;</u><br/>
-                    วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
-                    วันที่รายงานผล <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
-                    </font></para>'''.format(request_no=service_request.request_no)
+                        สำหรับเจ้าหน้าที่ / Staff only<br/>
+                        เลขที่ใบคำขอ &nbsp;  <u>&nbsp;{request_no}&nbsp;&nbsp;</u><br/>
+                        วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
+                        วันที่รายงานผล <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
+                        </font></para>'''.format(request_no=service_request.request_no)
 
     staff_table = Table([[Paragraph(staff_only, style=style_sheet['ThaiStyle'])]], colWidths=[150])
 
@@ -3476,15 +3476,15 @@ def generate_bacteria_request_pdf(service_request):
     )
 
     customer = '''<para>ข้อมูลผู้ประสานงาน<br/>
-                            ชื่อ-นามสกุล : {cus_contact}<br/>
-                            เลขประจำตัวผู้เสียภาษี : {taxpayer_identification_no}<br/>
-                            เบอร์โทรศัพท์ : {phone_number}<br/>
-                            อีเมล : {email}
-                        </para>
-                        '''.format(cus_contact=service_request.customer.customer_name,
-                                   taxpayer_identification_no=service_request.customer.customer_info.taxpayer_identification_no,
-                                   phone_number=service_request.customer.contact_phone_number,
-                                   email=service_request.customer.contact_email)
+                                ชื่อ-นามสกุล : {cus_contact}<br/>
+                                เลขประจำตัวผู้เสียภาษี : {taxpayer_identification_no}<br/>
+                                เบอร์โทรศัพท์ : {phone_number}<br/>
+                                อีเมล : {email}
+                            </para>
+                            '''.format(cus_contact=service_request.customer.customer_name,
+                                       taxpayer_identification_no=service_request.customer.customer_info.taxpayer_identification_no,
+                                       phone_number=service_request.customer.contact_phone_number,
+                                       email=service_request.customer.contact_email)
 
     customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[530])
 
@@ -3496,30 +3496,30 @@ def generate_bacteria_request_pdf(service_request):
     ]))
 
     document_address = '''<para>ข้อมูลที่อยู่จัดส่งเอกสาร<br/>
-                                       ถึง : {name}<br/>
-                                       ที่อยู่ : {address}<br/>
-                                       เบอร์โทรศัพท์ : {phone_number}<br/>
-                                       อีเมล : {email}
-                                   </para>
-                                   '''.format(name=service_request.receive_name,
-                                              address=service_request.receive_address,
-                                              phone_number=service_request.receive_phone_number,
-                                              email=service_request.customer.contact_email)
+                                           ถึง : {name}<br/>
+                                           ที่อยู่ : {address}<br/>
+                                           เบอร์โทรศัพท์ : {phone_number}<br/>
+                                           อีเมล : {email}
+                                       </para>
+                                       '''.format(name=service_request.receive_name,
+                                                  address=service_request.receive_address,
+                                                  phone_number=service_request.receive_phone_number,
+                                                  email=service_request.customer.contact_email)
 
     document_address_table = Table([[Paragraph(document_address, style=detail_style)]], colWidths=[265])
 
     quotation_address = '''<para>ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี<br/>
-                                           ออกในนาม : {name}<br/>
-                                           ที่อยู่ : {address}<br/>
-                                           เลขประจำตัวผู้เสียภาษีอากร : {taxpayer_identification_no}<br/>
-                                           เบอร์โทรศัพท์ : {phone_number}<br/>
-                                           อีเมล : {email}
-                                       </para>
-                                       '''.format(name=service_request.quotation_name,
-                                                  address=service_request.quotation_issue_address,
-                                                  taxpayer_identification_no=service_request.taxpayer_identification_no,
-                                                  phone_number=service_request.quotation_phone_number,
-                                                  email=service_request.customer.contact_email)
+                                               ออกในนาม : {name}<br/>
+                                               ที่อยู่ : {address}<br/>
+                                               เลขประจำตัวผู้เสียภาษีอากร : {taxpayer_identification_no}<br/>
+                                               เบอร์โทรศัพท์ : {phone_number}<br/>
+                                               อีเมล : {email}
+                                           </para>
+                                           '''.format(name=service_request.quotation_name,
+                                                      address=service_request.quotation_issue_address,
+                                                      taxpayer_identification_no=service_request.taxpayer_identification_no,
+                                                      phone_number=service_request.quotation_phone_number,
+                                                      email=service_request.customer.contact_email)
 
     quotation_address_table = Table([[Paragraph(quotation_address, style=detail_style)]], colWidths=[265])
 
@@ -3546,18 +3546,18 @@ def generate_bacteria_request_pdf(service_request):
     data.append(KeepTogether(header))
     w, h = header.wrap(doc.width, first_page_limit)
     current_height += h
-    data.append(KeepTogether(Spacer(3, 3)))
-    current_height += 3
+    data.append(KeepTogether(Spacer(5, 5)))
+    current_height += 5
     data.append(KeepTogether(combined_table))
     w, h = combined_table.wrap(doc.width, first_page_limit)
     current_height += h
-    data.append(KeepTogether(Spacer(3, 3)))
-    current_height += 3
+    data.append(KeepTogether(Spacer(5, 5)))
+    current_height += 5
     data.append(KeepTogether(customer_header))
     w, h = customer_header.wrap(doc.width, first_page_limit)
     current_height += h
-    data.append(KeepTogether(Spacer(3, 3)))
-    current_height += 3
+    data.append(KeepTogether(Spacer(5, 5)))
+    current_height += 5
     data.append(KeepTogether(address_table))
     w, h = address_table.wrap(doc.width, first_page_limit)
     current_height += h
@@ -3599,12 +3599,12 @@ def generate_bacteria_request_pdf(service_request):
         if current_height + h_header + reserve_space > first_page_limit:
             data.append(PageBreak())
             current_height = 0
-        data.append(KeepTogether(Spacer(3, 3)))
-        current_height += 3
+        data.append(KeepTogether(Spacer(5, 5)))
+        current_height += 5
         data.append(KeepTogether(header_table))
         current_height += h_header
-        data.append(KeepTogether(Spacer(3, 3)))
-        current_height += 3
+        data.append(KeepTogether(Spacer(5, 5)))
+        current_height += 5
         text_section = []
         for g in group['contents']:
             if g['type'] == 'content_header':
@@ -3641,8 +3641,8 @@ def generate_bacteria_request_pdf(service_request):
                         data.append(KeepTogether(header_table))
                         w, h = header_table.wrap(doc.width, first_page_limit)
                         current_height += h
-                        data.append(KeepTogether(Spacer(3, 3)))
-                        current_height += 3
+                        data.append(KeepTogether(Spacer(5, 5)))
+                        current_height += 5
                     data.append(KeepTogether(box))
                     w, h = box.wrap(doc.width, first_page_limit)
                     current_height += h
@@ -3659,10 +3659,10 @@ def generate_bacteria_request_pdf(service_request):
                     if h == "เชื้อ":
                         w += 100
                     else:
-                        w += 20
+                        w += 10
                     raw_widths.append(w)
                 total_width = sum(raw_widths)
-                max_total = 490
+                max_total = 506
 
                 if total_width > max_total:
                     scale = max_total / total_width
@@ -3680,6 +3680,7 @@ def generate_bacteria_request_pdf(service_request):
                     ('LEFTPADDING', (0, 0), (-1, -1), 4),
                     ('RIGHTPADDING', (0, 0), (-1, -1), 4),
                     ('SPAN', (-1, 1), (-1, -1)),
+                    ('SPAN', (-2, 1), (-2, -1)),
                     ('ALIGN', (-1, 1), (-1, -1), 'CENTER'),
                     ('VALIGN', (-1, 1), (-1, -1), 'MIDDLE'),
                 ]))
@@ -3697,9 +3698,9 @@ def generate_bacteria_request_pdf(service_request):
                     data.append(KeepTogether(header_table))
                     w, h = header_table.wrap(doc.width, first_page_limit)
                     current_height += h
-                    data.append(KeepTogether(Spacer(3, 3)))
-                    current_height += 3
-                data.append(KeepTogether(table))
+                    data.append(KeepTogether(Spacer(5, 5)))
+                    current_height += 5
+                data.append(KeepTogether(table_box))
                 w, h = table.wrap(doc.width, first_page_limit)
                 current_height += h
 
@@ -3713,6 +3714,7 @@ def generate_bacteria_request_pdf(service_request):
             data.append(KeepTogether(box))
             w, h = box.wrap(doc.width, first_page_limit)
             current_height += h
+
     report_header_table = Table(
         [[
             Paragraph('<b>ใบรายงานผล / Report</b>', header_style),
@@ -3730,11 +3732,11 @@ def generate_bacteria_request_pdf(service_request):
     ]))
 
     report_language = Paragraph(
-        "<br/>".join([f"- {rl.report_language.item}" for rl in service_request.report_languages]),
+        "<br/>".join([f"{rl.report_language.item}" for rl in service_request.report_languages]),
         style=detail_style)
     report_language_table = Table([[report_language]], colWidths=[265])
 
-    report_receive_channel = Paragraph(f"- {service_request.report_receive_channel.item}", style=detail_style)
+    report_receive_channel = Paragraph(f"{service_request.report_receive_channel.item}", style=detail_style)
     report_receive_channel_table = Table([[report_receive_channel]], colWidths=[265])
 
     report_table = Table(
@@ -3768,12 +3770,6 @@ def generate_bacteria_request_pdf(service_request):
         parent=style_sheet['ThaiStyleBold'],
         fontSize=14,
         leading=18
-    )
-
-    sub_detail_style = ParagraphStyle(
-        'SubDetailStyle',
-        parent=detail_style,
-        leftIndent=100
     )
 
     selected_checkbox = f'<font name="DejaVuSans">☑</font>'
@@ -3827,121 +3823,6 @@ def generate_bacteria_request_pdf(service_request):
     w, h = sign_table.wrap(doc.width, first_page_limit)
     current_height += h
 
-    checkbox = f'<font name="DejaVuSans">☐</font>'
-
-    extend_analysis_table = Table([
-        [Spacer(1, 6)],
-        [Paragraph("กรณีที่มีการขยายระยะเวลาการตรวจวิเคราะห์", style=sub_header_bold_style)],
-        [Paragraph("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ขยายระยะเวลาการตรวจวิเคราะห์ เป็นระยะเวลา "
-                   "<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> วัน", style=detail_style)],
-        [Paragraph(
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;เหตุผลความจำเป็น : &nbsp;&nbsp;&nbsp;&nbsp;{checkbox} เครื่องมือไม่พร้อม "
-            f"<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>",
-            style=detail_style)],
-        [Paragraph(
-            f"{checkbox} ห้องปฏิบัติการไม่พร้อม "
-            f"<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;</u>",
-            style=sub_detail_style)],
-        [Paragraph(
-            f"{checkbox} เจ้าหน้าที่ทดสอบไม่พร้อม "
-            f"<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>",
-            style=sub_detail_style)],
-        [Paragraph(
-            f"{checkbox} ตัวอย่างไม่พร้อม "
-            f"<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>",
-            style=sub_detail_style)],
-
-        [Paragraph(
-            f"{checkbox} อื่นๆ "
-            f"<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>",
-            style=sub_detail_style)],
-        [Spacer(1, 7)],
-        [Paragraph("ลงชื่อหัวหน้าห้องปฏิบัติการ <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>"
-                   "วันที่ <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> "
-                   "<font name='Sarabun'>/</font> <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> "
-                   "<font name='Sarabun'>/</font> <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>",
-                   style=sub_header_bold_style)],
-        [Paragraph(
-            "ลงชื่อผู้รับบริการ <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>"
-            "วันที่ <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> "
-            "<font name='Sarabun'>/</font> <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> "
-            "<font name='Sarabun'>/</font> <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>",
-            style=sub_header_bold_style)],
-        [Spacer(1, 6)],
-    ], colWidths=[530])
-
-    extend_analysis_table.setStyle(TableStyle([
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-
-    if current_height > first_page_limit:
-        data.append(PageBreak())
-        current_height = 0
-    else:
-        data.append(KeepTogether(Spacer(5, 5)))
-        current_height += 5
-    data.append(KeepTogether(extend_analysis_table))
-    w, h = extend_analysis_table.wrap(doc.width, first_page_limit)
-    current_height += h
     if service_request.samples:
         sample_id = int(''.join(str(s.id) for s in service_request.samples))
         qr_buffer = BytesIO()
@@ -3998,8 +3879,8 @@ def generate_virus_request_pdf(service_request):
     doc = SimpleDocTemplate(buffer, pagesize=A4,
                             rightMargin=20,
                             leftMargin=20,
-                            topMargin=20,
-                            bottomMargin=40
+                            topMargin=30,
+                            bottomMargin=30
                             )
 
     data = []
@@ -4260,12 +4141,12 @@ def generate_virus_request_pdf(service_request):
                 for h in headers:
                     w = stringWidth(str(h), detail_style.fontName, detail_style.fontSize)
                     if h == "เชื้อ":
-                        w += 100
+                        w += 128
                     else:
-                        w += 27
+                        w += 16
                     raw_widths.append(w)
                 total_width = sum(raw_widths)
-                max_total = 496
+                max_total = 490
 
                 if total_width > max_total:
                     scale = max_total / total_width
@@ -4438,16 +4319,17 @@ def generate_virus_request_pdf(service_request):
         [Spacer(1, 6)],
         [Paragraph(f'{selected_checkbox} {item_data}',
                    style=detail_style)],
-        [Paragraph("ลงชื่อผู้ส่งตัวอย่าง / Sent by <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>"
-                    "วันที่ <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> "
-                   "<font name='Sarabun'>/</font> <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> "
-                   "<font name='Sarabun'>/</font> <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>",
-                  style=sub_header_bold_style)],
+        [Paragraph(
+            "ลงชื่อผู้ส่งตัวอย่าง / Sent by <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>"
+            "วันที่ <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> "
+            "<font name='Sarabun'>/</font> <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> "
+            "<font name='Sarabun'>/</font> <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>",
+            style=sub_header_bold_style)],
         [Paragraph(
             "ลงชื่อผู้รับตัวอย่าง / Received by <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
             "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
@@ -6150,47 +6032,25 @@ def generate_virus_air_disinfection_quotation():
                 quote_prices[key] = row['government_price']
             else:
                 quote_prices[key] = row['other_price']
+        test_methods = []
+        surface_fields = data.get('surface_disinfection_condition_field', {}).get('surface_disinfection_organism_fields',[])
+        for f in surface_fields:
+            organisms = f.get('surface_disinfection_organism', '')
+            period_tests = f.get('surface_disinfection_period_test', '')
+            test_methods.append((organisms, period_tests))
+            for _, row in df_price.iterrows():
+                organism_rows = row['surface_disinfection_organism']
+                period_test_rows = row['surface_disinfection_period_test']
+                if (organism_rows, period_test_rows) in test_methods:
+                    p_key = ''.join(sorted(f"{organism_rows}{period_test_rows}".replace(' ', '')))
+                    values = f"<i>{organism_rows}</i> {period_test_rows}"
+                    if p_key in quote_prices:
+                        prices = quote_prices[p_key]
+                    if p_key in quote_details:
+                        quote_details[p_key]["quantity"] += 1
+                    else:
+                        quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
 
-        if service_request.sub_lab.code == 'air_disinfection':
-            test_methods = []
-            surface_fields = data.get('surface_condition_field', {}).get('surface_disinfection_organism_fields', [])
-            airborne_fields = data.get('airborne_disinfection_organism', {}).get(
-                'airborne_disinfection_organism_fields', [])
-
-            if surface_fields:
-                for f in surface_fields:
-                    organisms = f.get('surface_disinfection_organism', '')
-                    period_tests = f.get('surface_disinfection_period_test', '')
-                    for organism in organisms:
-                        if organism and period_tests:
-                            test_methods.append((organism, period_tests))
-                    for _, row in df_price.iterrows():
-                        organism_rows = row['surface_disinfection_organism']
-                        period_test_rows = row['surface_disinfection_period_test']
-                        if (organism_rows, period_test_rows) in test_methods:
-                            p_key = ''.join(sorted(f"{organism_rows}{period_test_rows}".replace(' ', '')))
-                            values = f"<i>{organism_rows}</i> {period_test_rows}"
-                            if p_key in quote_prices:
-                                prices = quote_prices[p_key]
-                                if p_key in quote_details:
-                                    quote_details[p_key]["quantity"] += 1
-                                else:
-                                    quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
-            else:
-                for f in airborne_fields:
-                    organisms = f.get('airborne_disinfection_organism', '')
-                    period_tests = f.get('airborne_disinfection_period_test', '')
-                    for organism in organisms:
-                        if organism and period_tests:
-                            test_methods.append((organism, period_tests))
-                    for _, row in df_price.iterrows():
-                        organism_rows = row['airborne_disinfection_organism']
-                        period_test_rows = row['airborne_disinfection_period_test']
-                        if (organism_rows, period_test_rows) in test_methods:
-                            p_key = ''.join(sorted(f"{organism_rows}{period_test_rows}".replace(' ', '')))
-                            values = f"<i>{organism_rows}</i> {period_test_rows}"
-                            price = quote_prices.get(p_key, 0)
-                            quote_details[p_key] = {"value": values, "price": price, "quantity": 1}
         quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
                                      name=service_request.quotation_name,
@@ -6224,8 +6084,8 @@ def generate_virus_air_disinfection_quotation():
                 db.session.add(quotation_item)
                 db.session.commit()
         flash('ร่างใบเสนอราคาสำเร็จ กรุณาดำเนินการตรวจสอบข้อมูล', 'success')
-        return redirect(
-            url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
+        return redirect(url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft',
+                                menu=menu))
     else:
         return render_template('service_admin/quotation_created_confirmation_page.html',
                                quotation_id=quotation.id, request_no=service_request.request_no, menu=menu)
