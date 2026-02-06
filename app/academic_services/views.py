@@ -45,6 +45,7 @@ pdfmetrics.registerFont(TTFont('SarabunItalic', 'app/static/fonts/THSarabunNewIt
 style_sheet = getSampleStyleSheet()
 pdfmetrics.registerFont(TTFont('DejaVuSans', 'app/static/fonts/DejaVuSans.ttf'))
 style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
+style_sheet.add(ParagraphStyle(name='ThaiStyleBold', fontName='SarabunBold'))
 style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 style_sheet.add(ParagraphStyle(name='ThaiStyleRight', fontName='Sarabun', alignment=TA_RIGHT))
@@ -3650,11 +3651,19 @@ def generate_bacteria_request_pdf(service_request):
                 if text_section:
                     para = Paragraph("<br/>".join(text_section), style=detail_style)
                     box = Table([[para]], colWidths=[530])
-                    box.setStyle(TableStyle([
-                        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                        ('LINEBELOW', (-1, 0), (-1, -1), 0, colors.white),
-                    ]))
+                    bw, bh = box.wrap(doc.width, first_page_limit)
+                    hit_page_end = current_height + bh >= first_page_limit
+                    if not hit_page_end:
+                        box.setStyle(TableStyle([
+                            ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                            ('LINEBELOW', (-1, 0), (-1, -1), 0, colors.white),
+                        ]))
+                    else:
+                        box.setStyle(TableStyle([
+                            ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ]))
                     if current_height > first_page_limit:
                         data.append(PageBreak())
                         current_height = 0
@@ -3727,14 +3736,22 @@ def generate_bacteria_request_pdf(service_request):
         if text_section:
             para = Paragraph("<br/>".join(text_section), style=detail_style)
             box = Table([[para]], colWidths=[530])
-            box.setStyle(TableStyle([
-                ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ]))
+            bw, bh = box.wrap(doc.width, first_page_limit)
+            hit_page_end = current_height + bh >= first_page_limit
+            if not hit_page_end:
+                box.setStyle(TableStyle([
+                    ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('LINEBELOW', (-1, 0), (-1, -1), 0, colors.white),
+                ]))
+            else:
+                box.setStyle(TableStyle([
+                    ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ]))
             data.append(KeepTogether(box))
             w, h = box.wrap(doc.width, first_page_limit)
             current_height += h
-
 
     report_header_table = Table(
         [[
@@ -3905,7 +3922,7 @@ def generate_virus_request_pdf(service_request):
                             )
 
     data = []
-    first_page_limit = 700
+    first_page_limit = 650
     current_height = 0
     header_style = ParagraphStyle(
         'HeaderStyle',
@@ -4137,6 +4154,19 @@ def generate_virus_request_pdf(service_request):
                         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                         ('LINEBELOW', (-1, 0), (-1, -1), 0, colors.white),
                     ]))
+                    bw, bh = box.wrap(doc.width, first_page_limit)
+                    hit_page_end = current_height + bh >= first_page_limit
+                    if not hit_page_end:
+                        box.setStyle(TableStyle([
+                            ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                            ('LINEBELOW', (-1, 0), (-1, -1), 0, colors.white),
+                        ]))
+                    else:
+                        box.setStyle(TableStyle([
+                            ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ]))
                     if current_height > first_page_limit:
                         data.append(PageBreak())
                         current_height = 0
@@ -4162,12 +4192,12 @@ def generate_virus_request_pdf(service_request):
                 for h in headers:
                     w = stringWidth(str(h), detail_style.fontName, detail_style.fontSize)
                     if h == "เชื้อ":
-                        w += 128
+                        w += 100
                     else:
-                        w += 16
+                        w += 10
                     raw_widths.append(w)
                 total_width = sum(raw_widths)
-                max_total = 490
+                max_total = 506
 
                 if total_width > max_total:
                     scale = max_total / total_width
@@ -4211,10 +4241,19 @@ def generate_virus_request_pdf(service_request):
         if text_section:
             para = Paragraph("<br/>".join(text_section), style=detail_style)
             box = Table([[para]], colWidths=[530])
-            box.setStyle(TableStyle([
-                ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ]))
+            bw, bh = box.wrap(doc.width, first_page_limit)
+            hit_page_end = current_height + bh >= first_page_limit
+            if not hit_page_end:
+                box.setStyle(TableStyle([
+                    ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('LINEBELOW', (-1, 0), (-1, -1), 0, colors.white),
+                ]))
+            else:
+                box.setStyle(TableStyle([
+                    ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ]))
             data.append(KeepTogether(box))
             w, h = box.wrap(doc.width, first_page_limit)
             current_height += h
@@ -5807,7 +5846,7 @@ def edit_result_item(result_item_id):
             result_item.edited_at = None
             result_item.is_edited = False
             result_item.edit_requester_id = current_user.id
-            result_item.req_edit_at = arrow.now('Asia/Bangkok').datetimed
+            result_item.req_edit_at = arrow.now('Asia/Bangkok').datetime
             result_item.result.req_edit_at = arrow.now('Asia/Bangkok').datetime
             result_item.result.is_edited = False
             db.session.add(result_item)

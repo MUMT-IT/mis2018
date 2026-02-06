@@ -3642,11 +3642,19 @@ def generate_bacteria_request_pdf(service_request):
                 if text_section:
                     para = Paragraph("<br/>".join(text_section), style=detail_style)
                     box = Table([[para]], colWidths=[530])
-                    box.setStyle(TableStyle([
-                        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                        ('LINEBELOW', (-1, 0), (-1, -1), 0, colors.white),
-                    ]))
+                    bw, bh = box.wrap(doc.width, first_page_limit)
+                    hit_page_end = current_height + bh >= first_page_limit
+                    if not hit_page_end:
+                        box.setStyle(TableStyle([
+                            ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                            ('LINEBELOW', (-1, 0), (-1, -1), 0, colors.white),
+                        ]))
+                    else:
+                        box.setStyle(TableStyle([
+                            ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ]))
                     if current_height > first_page_limit:
                         data.append(PageBreak())
                         current_height = 0
@@ -3719,10 +3727,19 @@ def generate_bacteria_request_pdf(service_request):
         if text_section:
             para = Paragraph("<br/>".join(text_section), style=detail_style)
             box = Table([[para]], colWidths=[530])
-            box.setStyle(TableStyle([
-                ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ]))
+            bw, bh = box.wrap(doc.width, first_page_limit)
+            hit_page_end = current_height + bh >= first_page_limit
+            if not hit_page_end:
+                box.setStyle(TableStyle([
+                    ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('LINEBELOW', (-1, 0), (-1, -1), 0, colors.white),
+                ]))
+            else:
+                box.setStyle(TableStyle([
+                    ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ]))
             data.append(KeepTogether(box))
             w, h = box.wrap(doc.width, first_page_limit)
             current_height += h
@@ -3896,7 +3913,7 @@ def generate_virus_request_pdf(service_request):
                             )
 
     data = []
-    first_page_limit = 700
+    first_page_limit = 650
     current_height = 0
     header_style = ParagraphStyle(
         'HeaderStyle',
@@ -4123,11 +4140,19 @@ def generate_virus_request_pdf(service_request):
                 if text_section:
                     para = Paragraph("<br/>".join(text_section), style=detail_style)
                     box = Table([[para]], colWidths=[530])
-                    box.setStyle(TableStyle([
-                        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                        ('LINEBELOW', (-1, 0), (-1, -1), 0, colors.white),
-                    ]))
+                    bw, bh = box.wrap(doc.width, first_page_limit)
+                    hit_page_end = current_height + bh >= first_page_limit
+                    if not hit_page_end:
+                        box.setStyle(TableStyle([
+                            ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                            ('LINEBELOW', (-1, 0), (-1, -1), 0, colors.white),
+                        ]))
+                    else:
+                        box.setStyle(TableStyle([
+                            ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ]))
                     if current_height > first_page_limit:
                         data.append(PageBreak())
                         current_height = 0
@@ -4153,9 +4178,9 @@ def generate_virus_request_pdf(service_request):
                 for h in headers:
                     w = stringWidth(str(h), detail_style.fontName, detail_style.fontSize)
                     if h == "เชื้อ":
-                        w += 128
+                        w += 120
                     else:
-                        w += 16
+                        w += 18
                     raw_widths.append(w)
                 total_width = sum(raw_widths)
                 max_total = 490
@@ -4202,10 +4227,19 @@ def generate_virus_request_pdf(service_request):
         if text_section:
             para = Paragraph("<br/>".join(text_section), style=detail_style)
             box = Table([[para]], colWidths=[530])
-            box.setStyle(TableStyle([
-                ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ]))
+            bw, bh = box.wrap(doc.width, first_page_limit)
+            hit_page_end = current_height + bh >= first_page_limit
+            if not hit_page_end:
+                box.setStyle(TableStyle([
+                    ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('LINEBELOW', (-1, 0), (-1, -1), 0, colors.white),
+                ]))
+            else:
+                box.setStyle(TableStyle([
+                    ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ]))
             data.append(KeepTogether(box))
             w, h = box.wrap(doc.width, first_page_limit)
             current_height += h
@@ -5527,6 +5561,7 @@ def export_invoice_pdf(invoice_id):
     ref1 = invoice.invoice_no
     ref2 = sub_lab.ref.upper()
     qrcode_data = generate_qrcode(amount=invoice.grand_total, ref1=ref1, ref2=ref2, ref3=None)
+
     if qrcode_data:
         qr_image_base64 = qrcode_data['qrImage']
     else:
