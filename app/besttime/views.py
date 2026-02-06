@@ -4,7 +4,6 @@ from collections import defaultdict, namedtuple
 from flask import render_template, request, redirect, url_for, current_app, make_response, flash
 from flask_login import login_required, current_user
 import arrow
-from sqlalchemy import func
 
 from app.besttime import besttime_bp
 from app.besttime.forms import BestTimePollMessageForm, BestTimePollForm, BestTimePollVoteForm, BestTimeMailForm
@@ -171,8 +170,8 @@ def preview_master_datetime_slots():
                         start = datetime.datetime.combine(_form_field.date.data, h.start, tzinfo=BKK_TZ)
                         end = datetime.datetime.combine(_form_field.date.data, h.end, tzinfo=BKK_TZ)
                         _slot = BestTimeMasterDateTimeSlot.query\
-                            .filter(func.timezone('Asia/Bangkok', BestTimeMasterDateTimeSlot.start) == start,
-                                    func.timezone('Asia/Bangkok', BestTimeMasterDateTimeSlot.end) == end,
+                            .filter(BestTimeMasterDateTimeSlot.start == start,
+                                    BestTimeMasterDateTimeSlot.end == end,
                                     BestTimeMasterDateTimeSlot.poll_id == poll_id).first()
                         if _slot:
                             selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))
@@ -227,8 +226,8 @@ def edit_poll(poll_id):
                     _start_datetime = _start_datetime.replace(tzinfo=BKK_TZ)
                     _end_datetime = _end_datetime.replace(tzinfo=BKK_TZ)
                     ds = BestTimeMasterDateTimeSlot.query\
-                        .filter(func.timezone('Asia/Bangkok', BestTimeMasterDateTimeSlot.start) == _start_datetime,
-                                func.timezone('Asia/Bangkok', BestTimeMasterDateTimeSlot.end) == _end_datetime,
+                        .filter(BestTimeMasterDateTimeSlot.start == _start_datetime,
+                                BestTimeMasterDateTimeSlot.end == _end_datetime,
                                 BestTimeMasterDateTimeSlot.poll_id == poll.id).first()
                     if not ds:
                         ds = BestTimeMasterDateTimeSlot(start=_start_datetime, end=_end_datetime, poll=poll)
@@ -303,8 +302,8 @@ def vote_poll(poll_id):
                 _start_datetime = _start_datetime.replace(tzinfo=BKK_TZ)
                 _end_datetime = _end_datetime.replace(tzinfo=BKK_TZ)
                 ds = BestTimeDateTimeSlot.query\
-                    .filter(func.timezone('Asia/Bangkok', BestTimeDateTimeSlot.start) == _start_datetime,
-                            func.timezone('Asia/Bangkok', BestTimeDateTimeSlot.end) == _end_datetime,
+                    .filter(BestTimeDateTimeSlot.start == _start_datetime,
+                            BestTimeDateTimeSlot.end == _end_datetime,
                             BestTimeDateTimeSlot.poll_id == poll_id).first()
                 if not ds:
                     ds = BestTimeDateTimeSlot(start=_start_datetime, end=_end_datetime, poll_id=poll_id)
@@ -367,8 +366,8 @@ def vote_poll(poll_id):
                 start = datetime.datetime.combine(_form_field.date.data, h.start, tzinfo=BKK_TZ)
                 end = datetime.datetime.combine(_form_field.date.data, h.end, tzinfo=BKK_TZ)
                 _slot = BestTimeMasterDateTimeSlot.query\
-                    .filter(func.timezone('Asia/Bangkok', BestTimeMasterDateTimeSlot.start) == start,
-                            func.timezone('Asia/Bangkok', BestTimeMasterDateTimeSlot.end) == end,
+                    .filter(BestTimeMasterDateTimeSlot.start == start,
+                            BestTimeMasterDateTimeSlot.end == end,
                             BestTimeMasterDateTimeSlot.poll_id == poll_id).first()
                 if _slot:
                     hour_text = f'#{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
