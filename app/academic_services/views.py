@@ -1547,7 +1547,9 @@ def add_virus_liquid_organism_form_entry():
     """
     resp = template.format(item_form.liquid_organism(),
                            item_form.liquid_ratio(class_='input'),
-                           item_form.liquid_time_duration(class_='input'),
+                           item_form.liquid_time_duration(class_='input', required=True,
+                                                          oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
+                                                          oninput="this.setCustomValidity('')"),
                            url_for('academic_services.remove_virus_liquid_organism_form_entry', name=item_form.name)
                            )
     resp = make_response(resp)
@@ -1596,9 +1598,15 @@ def add_virus_spray_organism_form_entry():
     """
     resp = template.format(item_form.spray_organism(),
                            item_form.spray_ratio(class_='input'),
-                           item_form.spray_distance(class_='input'),
-                           item_form.spray_of_time(class_='input'),
-                           item_form.spray_time_duration(class_='input'),
+                           item_form.spray_distance(class_='input', required=True,
+                                                    oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
+                                                    oninput="this.setCustomValidity('')"),
+                           item_form.spray_of_time(class_='input', required=True,
+                                                   oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
+                                                   oninput="this.setCustomValidity('')"),
+                           item_form.spray_time_duration(class_='input', required=True,
+                                                         oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
+                                                         oninput="this.setCustomValidity('')"),
                            url_for('academic_services.remove_virus_spray_organism_form_entry', name=item_form.name)
                            )
     resp = make_response(resp)
@@ -1725,7 +1733,9 @@ def add_virus_surface_disinfection_organism_form_entry():
         </tr>
     """
     resp = template.format(item_form.surface_disinfection_organism(),
-                           item_form.surface_disinfection_period_test(class_='input'),
+                           item_form.surface_disinfection_period_test(class_='input', required=True,
+                                                                      oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
+                                                                      oninput="this.setCustomValidity('')"),
                            url_for('service_admin.remove_virus_surface_disinfection_organism_form_entry',
                                    name=item_form.name)
                            )
