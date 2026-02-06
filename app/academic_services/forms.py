@@ -455,7 +455,7 @@ class VirusLiquidTestConditionForm(FlaskForm):
     liquid_ratio = StringField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
     # liquid_per_water = StringField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
     liquid_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
-                                       render_kw={'class': 'input'})
+                                       render_kw={'class': 'input', 'placeholder': 'เช่น 30 วินาที หรือ 1 นาที'})
 
 
 class VirusLiquidConditionForm(FlaskForm):
@@ -487,7 +487,7 @@ class VirusSprayTestConditionForm(FlaskForm):
     spray_distance = StringField('ระยะห่างในการฉีดพ่น (cm)', validators=[Optional()], render_kw={'class': 'input'})
     spray_of_time = StringField('ระยะเวลาฉีดพ่น (วินาที)', validators=[Optional()], render_kw={'class': 'input'})
     spray_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
-                                      render_kw={'class': 'input'})
+                                      render_kw={'class': 'input', 'placeholder': 'เช่น 30 วินาที หรือ 1 นาที'})
 
 
 class VirusSprayConditionForm(FlaskForm):
@@ -519,7 +519,7 @@ class VirusSprayConditionForm(FlaskForm):
 class VirusCoatTestConditionForm(FlaskForm):
     coat_organism = SelectField('เชื้อ', choices=[(c, c) for c in virus_liquid_organisms], validators=[Optional()])
     coat_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
-                                     render_kw={'class': 'input'})
+                                     render_kw={'class': 'input', 'placeholder': 'เช่น 30 วินาที หรือ 1 นาที'})
 
 
 class VirusCoatConditionForm(FlaskForm):
@@ -589,8 +589,8 @@ class VirusDisinfectionRequestForm(FlaskForm):
                                            choices=[('', 'กรุณาเลือกความต้องการให้ดำเนินการกับผลิตภัณฑ์ที่เหลือหลังการทดสอบเสร็จสิ้น'),
                                                     ('รับผลิตภัณฑ์คืน (ต้องติดต่อรับผลิตภัณฑ์คืนภายใน 30 วันหลังจากได้รับผลการทดสอบ)',
                                                      'รับผลิตภัณฑ์คืน (ต้องติดต่อรับผลิตภัณฑ์คืนภายใน 30 วันหลังจากได้รับผลการทดสอบ)'),
-                                                    ('ทำลายผลิตภัณฑ์ตามกระบวนการของห้องปฏิบัติกา',
-                                                     'ทำลายผลิตภัณฑ์ตามกระบวนการของห้องปฏิบัติกา')], validators=[DataRequired()],
+                                                    ('ทำลายผลิตภัณฑ์ตามกระบวนการของห้องปฏิบัติการ',
+                                                     'ทำลายผลิตภัณฑ์ตามกระบวนการของห้องปฏิบัติการ')], validators=[DataRequired()],
                                            render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือกความต้องการให้ดำเนินการกับผลิตภัณฑ์ที่เหลือหลังการทดสอบเสร็จสิ้น')",
                                              "oninput": "this.setCustomValidity('')"
                                              })
@@ -636,9 +636,9 @@ class VirusDisinfectionRequestForm(FlaskForm):
 
 class VirusSurfaceDisinfectionTestConditionForm(FlaskForm):
     surface_disinfection_organism = SelectField('เชื้อ', choices=[(c, c) for c in virus_liquid_organisms], validators=[Optional()])
-    surface_disinfection_period_test = StringField('ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (วินาที/นาที)',
+    surface_disinfection_period_test = StringField('ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (นาที/ชั่วโมง)',
                                                    validators=[Optional()],
-                                                   render_kw={'class': 'input'})
+                                                   render_kw={'class': 'input', 'placeholder': 'เช่น 1 นาที หรือ 1 ชั่วโมง หรือ 1 ชั่วโมง 1 นาที'})
 
 
 class VirusSurfaceDisinfectionConditionForm(FlaskForm):
@@ -659,7 +659,7 @@ class VirusSurfaceDisinfectionConditionForm(FlaskForm):
 
 class VirusAirborneDisinfectionTestConditionForm(FlaskForm):
     airborne_disinfection_organism = CheckboxField('เชื้อ', validators=[Optional()])
-    airborne_disinfection_period_test = StringField('ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (วินาที/นาที)',
+    airborne_disinfection_period_test = StringField('ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (นาที/ชั่วโมง)',
                                                     validators=[Optional()],
                                                     render_kw={'class': 'input'})
 
