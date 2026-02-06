@@ -238,7 +238,10 @@
                                                                 </table>
                                                             {% else %}
                                                                 <div class="field">
-                                                                    <label class="label">{{ field.label }}</label>
+                                                                    <label class="label">
+                                                                        {{ field.label }}
+                                                                        <span class="has-text-danger">*</span>
+                                                                    </label>
                                                                     <div class="control">
                                                                         {{ field() }}
                                                                     </div>
@@ -251,8 +254,8 @@
                                                             data-request-id="{{ request_id or '' }}"
                                                             hx-post="{{ url_for('service_admin.remove_condition_form', request_id=request_id) }}"
                                                             hx-vals='{"field": "{{ subform.name }}"}'
-                                                            hx-target=".subform-card"
-                                                            hx-swap="innerHTML"
+                                                            hx-target="closest .subform-card"
+                                                            hx-swap="outerHTML"
                                                     >
                                                         ลบ
                                                     </button>
@@ -272,6 +275,12 @@
                                         'hx-target': '#condition-fields',
                                          'hx-swap': 'beforeend',
                                          'hx-trigger': 'change, load'}) }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.read_document() }}
+                                    {{ form.read_document.label }}
                                 </div>
                             </div>
                         </div>
@@ -335,7 +344,7 @@
                 const option = productType.options[i];
                 if (option.value === '') continue;
                 subforms.forEach(subform => {
-                    const subformId = subform.id.split(/[\s_]+/)[0];
+                    const subformId = subform.id.replace('_condition_field', '');
                     if (option.value === subformId) {
                         option.remove();
                     }
@@ -351,22 +360,6 @@
                 removeProductTypeOptions();
             }
         });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const productType = document.getElementById('product_type');
-            const subforms = document.querySelectorAll('.subform-card');
-            for (let i = productType.options.length - 1; i >= 0; i--) {
-                const option = productType.options[i];
-                if (option.value === '') continue;
-                subforms.forEach(subform => {
-                    const subformId = subform.id.split(/[\s_]+/)[0];
-                    if (option.value === subformId) {
-                        option.remove();
-                    }
-                });
-            }
-            productType.selectedIndex = 0;
-        });
     </script>
     <script>
         document.addEventListener('click', function (e) {
@@ -379,7 +372,7 @@
                     card.remove();
                     e.preventDefault();
                 }
-                const subformId = e.target.id.split(/[\s_]+/)[0];
+                const subformId = e.target.id.replace('_condition_field', '');
 
                 let hasOptions = false;
                 for (let i = 0; i < productType.options.length; i++) {
@@ -389,7 +382,7 @@
                     }
                 }
 
-                if (!hasOptions) {
+                if (hasOptions == false) {
                     const option = document.createElement('option');
                     option.value = subformId;
                     option.text = text;
@@ -426,6 +419,7 @@
                 };
             } else {
                 product_type.required = false;
+                product_type.setCustomValidity('');
                 product_type.oninvalid = null;
                 product_type.oninput = null;
             }
@@ -543,15 +537,6 @@
             function validateQualitativeAndQuantitativeTest() {
                 const qualitativeChecked = qualitativeTestInput.is(':checked');
                 const quantitativeChecked = quantitativeTestInput.is(':checked');
-                const required = !(qualitativeChecked || quantitativeChecked);
-
-                qualitativeTestInput.prop('required', required)
-                    .attr('oninvalid', required ? "this.setCustomValidity('กรุณาเลือกวิธีทดสอบเชิงคุณภาพ')" : "")
-                    .attr('onchange', "this.setCustomValidity('')");
-
-                quantitativeTestInput.prop('required', required)
-                    .attr('oninvalid', required ? "this.setCustomValidity('กรุณาเลือกวิธีทดสอบเชิงปริมาณ')" : "")
-                    .attr('onchange', "this.setCustomValidity('')");
 
                 if (qualitativeChecked) quantitativeTestInput.closest('.field').find('label .has-text-danger').remove();
                 if (quantitativeChecked) qualitativeTestInput.closest('.field').find('label .has-text-danger').remove();
@@ -573,6 +558,7 @@
                 surfaceTypeOtherInput.prop('required', true);
             } else {
                 surfaceTypeOtherField.hide();
+                surfaceTypeOtherInput.prop('required', false)
                 surfaceTypeOtherInput.val('');
             }
         }

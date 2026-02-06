@@ -263,8 +263,11 @@ class ServiceCustomerAddress(db.Model):
     remark = db.Column('remark', db.String(), info={'label': 'หมายเหตุ'})
 
     def __str__(self):
-        return (f'{self.name}: {self.taxpayer_identification_no} : {self.address}: {self.subdistrict.name} : '
-                f'{self.district.name} : {self.province.name} : {self.zipcode} : {self.phone_number}')
+        if self.district and self.province and self.subdistrict:
+            return (f'{self.name} : {self.taxpayer_identification_no} : {self.address}: {self.subdistrict.name} : '
+                    f'{self.district.name} : {self.province.name} : {self.zipcode} : {self.phone_number}')
+        else:
+            return f'{self.name} : {self.taxpayer_identification_no} : {self.phone_number}'
 
 
 class ServiceCustomerType(db.Model):
@@ -359,6 +362,19 @@ class ServiceReportLanguage(db.Model):
         return self.item
 
 
+class ServiceReportReceiveChannel(db.Model):
+    __tablename__ = 'service_report_receive_channels'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    no = db.Column('no', db.Integer())
+    item = db.Column('item', db.String())
+    price = db.Column('price', db.Numeric())
+    sub_lab_id = db.Column('sub_lab_id', db.ForeignKey('service_sub_labs.id'))
+    sub_lab = db.relationship(ServiceSubLab, backref=db.backref('report_receive_channels', cascade='all, delete-orphan'))
+
+    def __str__(self):
+        return self.item
+
+
 class ServiceAdmin(db.Model):
     __tablename__ = 'service_admins'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -379,7 +395,6 @@ class ServiceRequest(db.Model):
     customer = db.relationship(ServiceCustomerAccount, backref=db.backref("requests"))
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
     admin = db.relationship(StaffAccount, backref=db.backref('requests'))
-    lab = db.Column('lab', db.String())
     sub_lab_id = db.Column('sub_lab_id', db.ForeignKey('service_sub_labs.id'))
     sub_lab = db.relationship(ServiceSubLab, backref=db.backref("requests"))
     receive_name = db.Column('receive_name', db.String())
@@ -389,12 +404,16 @@ class ServiceRequest(db.Model):
     quotation_issue_address = db.Column('quotation_issue_address', db.String())
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
     quotation_phone_number = db.Column('quotation_phone_number', db.String())
+    result_receive_channel = db.Column('result_receive_channel', db.String())
     document_address_id = db.Column('document_address_id', db.ForeignKey('service_customer_addresses.id'))
     document_address = db.relationship(ServiceCustomerAddress, backref=db.backref("document_address_for_requests"),
                                        foreign_keys=[document_address_id])
     quotation_address_id = db.Column('quotation_address_id', db.ForeignKey('service_customer_addresses.id'))
     quotation_address = db.relationship(ServiceCustomerAddress, backref=db.backref("quotation_address_for_requests"),
                                         foreign_keys=[quotation_address_id])
+    report_receive_channel_id = db.Column('report_receive_channel_id', db.ForeignKey('service_report_receive_channels.id'))
+    report_receive_channel = db.relationship(ServiceReportReceiveChannel, backref=db.backref("requests"),
+                                       foreign_keys=[report_receive_channel_id])
     is_completed = db.Column('is_completed', db.Boolean())
     is_downloaded = db.Column('is_downloaded', db.Boolean())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
@@ -445,7 +464,7 @@ class ServiceRequest(db.Model):
             'admin_status': self.status.admin_status if self.status else None,
             'admin_status_color': self.status.admin_status_color if self.status else None,
             'customer_status': self.status.customer_status if self.status else None,
-            'quotation_id': [quotation.id for quotation in self.quotations] if self.quotations else None,
+            'quotation_id': [quotation.id for quotation in self.quotations if quotation.disapproved_at == None] if self.quotations else None,
             'sample_id': [sample.id for sample in self.samples] if self.samples else None,
             'customer_status_color': self.status.customer_status_color if self.status else None,
             'quotation_sent_at': ', '.join(str(quotation.sent_at) for quotation in self.quotations
@@ -461,7 +480,7 @@ class ServiceRequest(db.Model):
             'sample_test_at' : ', '.join(str(result.released_at) for result in self.results if result.released_at)
                 if self.results else None,
             'result_approved_at': self.get_result().approved_at if self.get_result() and self.get_result().approved_at else None,
-            'result_edit_at': self.get_result().result_edit_at if self.get_result() and self.get_result().result_edit_at else None,
+            'req_edit_at': self.get_result().req_edit_at if self.get_result() and self.get_result().req_edit_at else None,
             'result_sent_at': self.get_result().sent_at if self.get_result() and self.get_result().sent_at else None,
             'result_is_edited' : self.get_result().is_edited if self.get_result() and self.get_result().is_edited else None,
             'invoice_sent_at': ', '.join(str(invoice.sent_at) for quotation in self.quotations
@@ -510,10 +529,9 @@ class ServiceQuotation(db.Model):
     name = db.Column('name', db.String())
     address = db.Column('address', db.Text())
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
-    remark = db.Column('remark', db.String())
     reason = db.Column('reason', db.String(), info={'label': 'เหตุผล'})
     other = db.Column('other', db.String(), info={'label': 'รายละเอียดเพิ่มเติม'})
-    cancel_reason = db.Column('cancel_reason', db.Text())
+    note = db.Column('note', db.Text(), info={'label': 'รายละเอียด'})
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('quotations'))
@@ -525,6 +543,9 @@ class ServiceQuotation(db.Model):
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
     approver = db.relationship(StaffAccount, backref=db.backref('approved_quotations'), foreign_keys=[approver_id])
+    disapproved_at = db.Column('disapproved_at', db.DateTime(timezone=True))
+    disapprover_id = db.Column('disapprover_id', db.ForeignKey('staff_account.id'))
+    disapprover = db.relationship(StaffAccount, backref=db.backref('disapproved_quotations'), foreign_keys=[disapprover_id])
     confirmed_at = db.Column('confirmed_at', db.DateTime(timezone=True))
     confirmer_id = db.Column('confirmer_id', db.ForeignKey('service_customer_accounts.id'))
     confirmer = db.relationship(ServiceCustomerAccount, backref=db.backref('confirmed_quotations'),
@@ -553,7 +574,8 @@ class ServiceQuotation(db.Model):
             'request_no': self.request.request_no if self.request else None,
             'request_id': self.request_id if self.request_id else None,
             'reason': self.reason if self.reason else None,
-            'other': self.other if self.other else None
+            'other': self.other if self.other else None,
+            'note': self.note if self.note else None
         }
 
     @property
@@ -598,8 +620,10 @@ class ServiceQuotation(db.Model):
             status = 'ลูกค้ายืนยันใบเสนอราคา'
         elif self.approved_at:
             status = 'รอลูกค้ายืนยันใบเสนอราคา'
-        elif self.sent_at:
-            status = 'รอยืนยันใบเสนอราคา'
+        elif self.sent_at and self.disapproved_at:
+            status = 'ไม่อนุมัติใบเสนอราคา'
+        elif self.sent_at and not self.disapproved_at:
+            status = 'รอหัวหน้าอนุมัติใบเสนอราคา'
         else:
             status = 'ร่างใบเสนอราคา'
         return status
@@ -612,7 +636,9 @@ class ServiceQuotation(db.Model):
             color = 'is-success'
         elif self.approved_at:
             color = 'is-primary'
-        elif self.sent_at:
+        elif self.sent_at and self.disapproved_at:
+            color = 'is-danger'
+        elif self.sent_at and not self.disapproved_at:
             color = 'is-warning'
         else:
             color = 'is-info'
@@ -813,7 +839,7 @@ class ServiceTestItem(db.Model):
             'created_at': self.created_at,
             'has_result': True if self.get_result() else None,
             'sent_at': self.get_result().sent_at if self.get_result() and self.get_result().sent_at else None,
-            'result_edit_at': self.get_result().result_edit_at if self.get_result() and self.get_result().result_edit_at else None,
+            'req_edit_at': self.get_result().req_edit_at if self.get_result() and self.get_result().req_edit_at else None,
             'is_edited': self.get_result().is_edited if self.get_result() and self.get_result().is_edited else None,
             'approved_at': self.get_result().approved_at if self.get_result() and self.get_result().approved_at else None,
             'result_id': [result.id for result in self.request.results] if self.request.results else None,
@@ -1136,6 +1162,7 @@ class ServiceResult(db.Model):
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     result_edit_at = db.Column('result_edit_at', db.DateTime(timezone=True))
+    req_edit_at = db.Column('req_edit_at', db.DateTime(timezone=True))
     sent_at = db.Column('sent_at', db.DateTime(timezone=True))
     sender_id = db.Column('sender_id', db.ForeignKey('staff_account.id'))
     sender = db.relationship(StaffAccount, backref=db.backref('sended_results'), foreign_keys=[sender_id])
@@ -1159,7 +1186,8 @@ class ServiceResult(db.Model):
             'customer_status': self.customer_status if self.customer_status else None,
             'released_at': self.released_at if self.released_at else None,
             'sent_at': self.sent_at if self.sent_at else None,
-            'result_edit_at': self.result_edit_at if self.result_edit_at else None,
+            'report_receive_channel': self.request.report_receive_channel.item if self.request else None,
+            'req_edit_at': self.req_edit_at if self.req_edit_at else None,
             'is_edited': self.is_edited if self.is_edited else None,
             'approved_at': self.approved_at if self.approved_at else None,
             'creator': self.creator.fullname if self.creator else None,
@@ -1195,7 +1223,7 @@ class ServiceResult(db.Model):
         if self.approved_at:
             status = 'ยืนยันใบรายงานผลแล้ว'
             color = 'is-success'
-        elif self.result_edit_at and not self.approved_at and not self.is_edited:
+        elif self.req_edit_at and not self.approved_at and not self.is_edited:
             status = 'ขอแก้ไขใบรายงานผล'
             color = 'is-info'
         elif uploaded_all and self.sent_at:
@@ -1221,7 +1249,7 @@ class ServiceResult(db.Model):
         elif self.approved_at:
             status = 'ยืนยันใบรายงานผลแล้ว'
             color = 'is-primary'
-        elif self.result_edit_at and not self.approved_at and not self.is_edited:
+        elif self.req_edit_at and not self.approved_at and not self.is_edited:
             status = 'ส่งคำขอแก้ไขใบรายงานผลแล้ว'
             color = 'is-info'
         elif uploaded_all and self.sent_at:

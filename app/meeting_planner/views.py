@@ -9,6 +9,7 @@ from flask_login import login_required, current_user
 from app.meeting_planner import meeting_planner
 from app.meeting_planner.forms import *
 from app.meeting_planner.models import *
+from app.room_scheduler.models import event_participant_assoc
 from app.staff.models import StaffPersonalInfo
 from app.main import mail
 from flask_mail import Message
@@ -973,6 +974,34 @@ def close_poll(poll_id):
         flash('เปิดรายการอีกครั้งเรียบร้อย', 'success')
     db.session.add(poll)
     db.session.commit()
+    scheme = 'http' if current_app.debug else 'https'
+    vote_link = url_for('meeting_planner.add_vote', poll_id=poll_id, _external=True, _scheme=scheme)
+    start_vote = arrow.get(poll.start_vote, 'Asia/Bangkok').datetime
+    close_vote = arrow.get(poll.close_vote, 'Asia/Bangkok').datetime
+    start_date = start_vote.astimezone(localtz).strftime('%d/%m/%Y')
+    start_time = start_vote.astimezone(localtz).strftime('%H:%M')
+    end_date = close_vote.astimezone(localtz).strftime('%d/%m/%Y')
+    end_time = close_vote.astimezone(localtz).strftime('%H:%M')
+    if not current_app.debug:
+        if poll.is_closed == True:
+            msg = f'แจ้งปิดโหวตการสำรวจวันเวลาประชุม{poll.poll_name}.'
+            title = f'แจ้งปิดโหวตการสำรวจวันเวลาประชุม{poll.poll_name}'
+            message = f'ขอแจ้งปิดโหวตการสำรวจวันเวลาประชุม{poll.poll_name}\n\n'
+            message += f'ขอบคุณค่ะ'
+            send_mail([p.email + '@mahidol.ac.th' for p in poll.participants], title, message)
+        else:
+            msg = f'แจ้งเปิดโหวตการสำรวจวันเวลาประชุม{poll.poll_name} โดยท่านสามารถดำเนินการโหวตได้ตั้งแต่วันที่ {start_date} เวลา {start_time} - วันที่ {end_date} เวลา {end_time}.'
+            title = f'แจ้งเปิดโหวตการสำรวจวันเวลาประชุม{poll.poll_name}'
+            message = f'ขอแจ้งเปิดโหวตการสำรวจวันเวลาประชุม{poll.poll_name}อีกครั้ง โดยท่านสามารถดำเนินการโหวตได้ตั้งแต่วันที่ {start_date} เวลา {start_time} - วันที่ {end_date} เวลา {end_time}\n'
+            message += f'จึงเรียนมาเพื่อขอความอนุเคราะห์ให้ท่านทำการสำรวจภายในวันและเวลาดังกล่าว\n\n'
+            message += f'ลิงค์สำหรับการเข้าสำรวจวันและเวลาที่สะดวกเข้าร่วมการประชุม\n'
+            message += f'{vote_link}'
+            send_mail([p.email + '@mahidol.ac.th' for p in poll.participants], title, message)
+        for p in poll.participants:
+            try:
+                line_bot_api.push_message(to=p.line_id, messages=TextSendMessage(text=msg))
+            except LineBotApiError:
+                pass
     resp = make_response()
     resp.headers['HX-Refresh'] = 'true'
     return resp

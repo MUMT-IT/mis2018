@@ -109,7 +109,6 @@
                     <th>หมายเหตุ</th>
                     <th>สถานะ</th>
                     <th>รายละเอียด</th>
-                    <th></th>
                     </thead>
                     <tbody>
                     </tbody>
@@ -299,26 +298,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            }
-                            {#else if (row.status_id == 12) {#}
-                            {#    var result_url = '/academic_services/customer/result/index?menu=report&tab=approve';#}
-                            {#    return '<div class="field has-addons">' +#}
-                            {#        '<div class="control">' +#}
-                            {#        '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +#}
-                            {#        '<span class="icon"><i class="fas fa-eye"></i></span>' +#}
-                            {#        '<span>แสดงใบคำขอร้บบริการ</span>' +#}
-                            {#        '</a>' +#}
-                            {#        '</div>' +#}
-                            {#        '</div>' +#}
-                            {#        '<div class="field has-addons">' +#}
-                            {#        '<div class="control">' +#}
-                            {#        '<a class="button is-small is-rounded is-success" ' + 'href=' + result_url + '>' +#}
-                            {#        '<span class="icon"><i class="fas fa-check"></i></span>' +#}
-                            {#        '<span>ยืนยันใบรายงานผล</span>' +#}
-                            {#        '</a>' +#}
-                            {#        '</div>' +#}
-                            {#        '</div>'#}
-                            else if (row.status_id == 20) {
+                            } else if (row.status_id == 20) {
                                 var payment_url = '/academic_services/customer/payment/add?invoice_id=' + row.invoice_id + '&menu=invoice&tab=pending';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -336,7 +316,43 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.is_completed) {
+                            } else if (row.is_completed && row.status_id == 1) {
+                                var url = '/academic_services/request/view/' + data + '?menu=' + '{{ menu }}';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>แสดงใบคำขอร้บบริการ</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-danger is-light is-rounded" onclick="vm.warn(' + data + ')">' +
+                                    '<span class="icon">' +
+                                    '<i class="far fa-trash-alt"></i>' +
+                                    '</span>' +
+                                    '<span>ยกเลิก</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>';
+                            } if (!row.is_completed) {
+                                var url = '/academic_services/portal/request?code=' + row.code + '&menu=' + '{{ menu }}' + '&request_id=' + data;
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-rounded is-warning" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>แก้ไข</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-danger is-rounded" onclick="vm.warn(' + data + ')">' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-ban"></i>' +
+                                    '</span>' +
+                                    '<span>ยกเลิก</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>';
+                            } else {
                                 var url = '/academic_services/request/view/' + data + '?menu=' + '{{ menu }}';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -346,38 +362,6 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>';
-                            } else {
-                                return ''
-                            }
-                        }
-                    },
-                    {
-                        data: 'id',
-                        render: function (data, type, row) {
-                            if (!row.is_completed) {
-                                var url = '/academic_services/portal/request?code=' + row.code + '&menu=' +
-                                    '{{ menu }}' + '&request_id=' + data;
-                                return '<div class="field has-addons">' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-rounded is-warning" ' + 'href=' + url + '>' +
-                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                    '<span>แก้ไข</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '</div>';
-                            } else if (row.status_id === 1) {
-                                return '<div class="field has-addons">' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-danger is-rounded" onclick="vm.warn(' + data + ')">' +
-                                    '<span class="icon">' +
-                                    '<i class="far fa-trash-alt"></i>' +
-                                    '</span>' +
-                                    '<span>ยกเลิก</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '</div>'
-                            } else {
-                                return ''
                             }
                         }
                     }

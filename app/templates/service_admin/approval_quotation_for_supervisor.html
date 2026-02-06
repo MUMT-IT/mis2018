@@ -105,33 +105,6 @@
                             </p>
                             <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ "{:,.2f}".format(quotation.grand_total()) }}</p>
                         </div>
-{#                        <div class="mb-4 is-flex is-align-items-center">#}
-{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่สำหรับจัดส่งเอกสาร</p>#}
-{#                        </div>#}
-{#                        <div class="mb-4 is-flex is-align-items-center">#}
-{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ถึง</p>#}
-{#                            <div style="margin-left: 1.75rem;">#}
-{#                                {{ quotation.request.receive_name }}#}
-{#                            </div>#}
-{#                        </div>#}
-{#                        <div class="mb-4 is-flex is-align-items-center">#}
-{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>#}
-{#                            <div style="margin-left: 1.75rem;">#}
-{#                                {{ quotation.request.receive_address }}#}
-{#                            </div>#}
-{#                        </div>#}
-{#                        <div class="mb-4 is-flex is-align-items-center">#}
-{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เบอร์โทรศัพท์</p>#}
-{#                            <div style="margin-left: 1.75rem;">#}
-{#                                {{ quotation.request.receive_phone_number }}#}
-{#                            </div>#}
-{#                        </div>#}
-{#                        <div class="mb-4 is-flex is-align-items-center">#}
-{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">อีเมล</p>#}
-{#                            <div style="margin-left: 1.75rem;">#}
-{#                                {{ quotation.request.customer.contact_email }}#}
-{#                            </div>#}
-{#                        </div>#}
                     </div>
                 </div>
                 <div class="column is-one-quarter">
@@ -152,12 +125,11 @@
                             <ul class="menu-list">
                                 <li>
                                     {% if quotation.approved_at %}
-                                         <span class="icon">
-                                             <i class="fas fa-clock"></i>
-                                         </span>
-                                        {{ quotation.approved_at.strftime('%d/%m/%Y') }}
+                                        {{ quotation.approved_at|localdate }}
+                                    {% elif quotation.sent_at and quotation.disapproved_at %}
+                                        <span class="tag has-text-danger is-rounded">ไม่อนุมัติใบเสนอราคา</span>
                                     {% else %}
-                                        ยังไม่ดำเนินการอนุมัติ
+                                        <span class="tag has-text-info is-rounded">ยังไม่ดำเนินการอนุัมติ</span>
                                     {% endif %}
                                 </li>
                             </ul>
@@ -203,6 +175,22 @@
                                             <span>อนุมัติและใส่ลายเซ็นดิจิทัล</span>
                                         </a>
                                     </form>
+                                </li>
+                                <li>
+                                    <li>
+                                        <div id="disapprove-quotation"></div>
+                                        <a class="button is-rounded is-outlined is-small is-fullwidth mb-2 has-text-danger"
+                                           hx-swap="innerHTML"
+                                           hx-target="#disapprove-quotation"
+                                           hx-get="{{ url_for('service_admin.disapprove_quotation', quotation_id=quotation_id,
+                                               menu=menu, tab=tab) }}"
+                                        >
+                                                <span class="icon">
+                                                    <i class="fas fa-times"></i>
+                                                </span>
+                                            <span>ไม่อนุมัติ</span>
+                                        </a>
+                                    </li>
                                 </li>
 {#                                <li>#}
 {#                                    <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"#}
