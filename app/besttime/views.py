@@ -399,7 +399,7 @@ def send_mail_to_committee(slot_id):
             db.session.add(slot)
             db.session.commit()
             title = f'แจ้งสรุปวันประชุมจากผลการโหวต {slot.poll.title}'
-            send_mail_to_voters(slot.poll, title, form.message.data)
+            send_mail_to_voters(slot.poll, form.message.data, title)
             flash(f'ส่งอีเมลเพื่อแจ้งกรรมการเรียบร้อย', 'success')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
