@@ -1129,7 +1129,7 @@ def verify_email():
         flash('ยืนยันอีเมลเรียบร้อยแล้ว', 'success')
         if quotation_id:
             return redirect(url_for('academic_services.view_quotation', quotation_id=quotation_id, menu=menu,
-                                    tab=tab, notify=True))
+                                    tab=tab))
         else:
             return redirect(url_for('academic_services.confirm_email_page'))
 
@@ -3409,607 +3409,7 @@ def generate_bacteria_request_pdf(service_request):
                             rightMargin=20,
                             leftMargin=20,
                             topMargin=30,
-                            bottomMargin=40
-                            )
-
-    data = []
-    first_page_limit = 700
-    current_height = 0
-    header_style = ParagraphStyle(
-        'HeaderStyle',
-        parent=style_sheet['ThaiStyle'],
-        fontSize=15,
-        alignment=TA_CENTER,
-    )
-
-    header = Table([[Paragraph('<b>ใบขอรับบริการ / Request</b>', style=header_style)]], colWidths=[530],
-                   rowHeights=[25])
-
-    header.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-
-    lab_information = '''<para><font size=13>
-                        {address}
-                        </font></para>'''.format(address=service_request.sub_lab.lab_information)
-
-    lab_table = Table([[logo, Paragraph(lab_information, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
-
-    lab_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-
-    staff_only = '''<para><font size=13>
-                    สำหรับเจ้าหน้าที่ / Staff only<br/>
-                    เลขที่ใบคำขอ &nbsp;  <u>&nbsp;{request_no}&nbsp;&nbsp;</u><br/>
-                    วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
-                    วันที่รายงานผล <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
-                    </font></para>'''.format(request_no=service_request.request_no)
-
-    staff_table = Table([[Paragraph(staff_only, style=style_sheet['ThaiStyle'])]], colWidths=[150])
-
-    combined_table = Table(
-        [[lab_table, staff_table]],
-        colWidths=[370, 159]
-    )
-
-    combined_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOX', (0, 0), (0, 0), 0.5, colors.grey),
-        ('BOX', (1, 0), (1, 0), 0.5, colors.grey),
-    ]))
-
-    customer_header = Table([[Paragraph('<b>ข้อมูลผู้ส่งตรวจ / Customer</b>', style=header_style)]], colWidths=[530],
-                            rowHeights=[25])
-
-    customer_header.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-
-    detail_style = ParagraphStyle(
-        'ThaiStyle',
-        parent=style_sheet['ThaiStyle'],
-        fontSize=13,
-        leading=18
-    )
-
-    center_style = ParagraphStyle(
-        'CenterStyle',
-        parent=style_sheet['ThaiStyle'],
-        fontSize=13,
-        leading=30,
-        alignment=TA_CENTER
-    )
-
-    customer = '''<para>ข้อมูลผู้ประสานงาน<br/>
-                            ชื่อ-นามสกุล : {cus_contact}<br/>
-                            เลขประจำตัวผู้เสียภาษี : {taxpayer_identification_no}<br/>
-                            เบอร์โทรศัพท์ : {phone_number}<br/>
-                            อีเมล : {email}
-                        </para>
-                        '''.format(cus_contact=service_request.customer.customer_name,
-                                   taxpayer_identification_no=service_request.customer.customer_info.taxpayer_identification_no,
-                                   phone_number=service_request.customer.contact_phone_number,
-                                   email=service_request.customer.contact_email)
-
-    customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[530])
-
-    customer_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-
-    document_address = '''<para>ข้อมูลที่อยู่จัดส่งเอกสาร<br/>
-                                       ถึง : {name}<br/>
-                                       ที่อยู่ : {address}<br/>
-                                       เบอร์โทรศัพท์ : {phone_number}<br/>
-                                       อีเมล : {email}
-                                   </para>
-                                   '''.format(name=service_request.receive_name,
-                                              address=service_request.receive_address,
-                                              phone_number=service_request.receive_phone_number,
-                                              email=service_request.customer.contact_email)
-
-    document_address_table = Table([[Paragraph(document_address, style=detail_style)]], colWidths=[265])
-
-    quotation_address = '''<para>ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี<br/>
-                                           ออกในนาม : {name}<br/>
-                                           ที่อยู่ : {address}<br/>
-                                           เลขประจำตัวผู้เสียภาษีอากร : {taxpayer_identification_no}<br/>
-                                           เบอร์โทรศัพท์ : {phone_number}<br/>
-                                           อีเมล : {email}
-                                       </para>
-                                       '''.format(name=service_request.quotation_name,
-                                                  address=service_request.quotation_issue_address,
-                                                  taxpayer_identification_no=service_request.taxpayer_identification_no,
-                                                  phone_number=service_request.quotation_phone_number,
-                                                  email=service_request.customer.contact_email)
-
-    quotation_address_table = Table([[Paragraph(quotation_address, style=detail_style)]], colWidths=[265])
-
-    address_table = Table(
-        [[quotation_address_table, document_address_table]],
-        colWidths=[265, 265]
-    )
-
-    address_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOX', (0, 0), (0, 0), 0.5, colors.grey),
-        ('BOX', (1, 0), (1, 0), 0.5, colors.grey),
-    ]))
-
-    title_table = Paragraph(
-        '<para align=center><font size=18>ใบขอรับบริการ / REQUEST<br/><br/></font></para>',
-        style=style_sheet['ThaiStyle']
-    )
-
-    data.append(
-        KeepTogether(title_table))
-    w, h = title_table.wrap(doc.width, first_page_limit)
-    current_height += h
-    data.append(KeepTogether(header))
-    w, h = header.wrap(doc.width, first_page_limit)
-    current_height += h
-    data.append(KeepTogether(Spacer(3, 3)))
-    current_height += 3
-    data.append(KeepTogether(combined_table))
-    w, h = combined_table.wrap(doc.width, first_page_limit)
-    current_height += h
-    data.append(KeepTogether(Spacer(3, 3)))
-    current_height += 3
-    data.append(KeepTogether(customer_header))
-    w, h = customer_header.wrap(doc.width, first_page_limit)
-    current_height += h
-    data.append(KeepTogether(Spacer(3, 3)))
-    current_height += 3
-    data.append(KeepTogether(address_table))
-    w, h = address_table.wrap(doc.width, first_page_limit)
-    current_height += h
-    data.append(KeepTogether(customer_table))
-    w, h = customer_table.wrap(doc.width, first_page_limit)
-    current_height += h
-
-    index = 1
-    groups = []
-    current_group = None
-
-    for item in values:
-        if item['type'] == 'header':
-            if current_group:
-                groups.append(current_group)
-            current_group = {'header': item['data'], 'contents': []}
-        else:
-            if current_group is None:
-                current_group = {'header': 'รายการทดสอบ', 'contents': []}
-            current_group['contents'].append(item)
-    if current_group:
-        groups.append(current_group)
-
-    for group in groups:
-        eng_header = 'Sample Detail' if group['header'] == 'ข้อมูลผลิตภัณฑ์' else 'Test Method'
-        header_table = Table(
-            [[Paragraph(f"<b>{group['header']} / {eng_header}</b>", style=header_style)]],
-            colWidths=[530], rowHeights=[25]
-        )
-        header_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ]))
-
-        w, h_header = header_table.wrap(doc.width, first_page_limit)
-
-        reserve_space = 30
-        if current_height + h_header + reserve_space > first_page_limit:
-            data.append(PageBreak())
-            current_height = 0
-        data.append(KeepTogether(Spacer(3, 3)))
-        current_height += 3
-        data.append(KeepTogether(header_table))
-        current_height += h_header
-        data.append(KeepTogether(Spacer(3, 3)))
-        current_height += 3
-        text_section = []
-        for g in group['contents']:
-            if g['type'] == 'content_header':
-                text_section.append(f"{index}. {g['data'].strip()}")
-                index += 1
-            elif g['type'] == 'text':
-                text_content = g['data'].split("<br/>")
-                for t in text_content:
-                    text = t.strip()
-                    if not text:
-                        continue
-
-                    if ":" in text and "," in text:
-                        header, contents = text.split(":", 1)
-                        text_section.append(header.strip() + " " + ":")
-                        for c in contents.split(","):
-                            content = c.strip()
-                            if content:
-                                text_section.append(f"- {content}")
-                    else:
-                        text_section.append(text)
-            elif g['type'] == 'table':
-                if text_section:
-                    para = Paragraph("<br/>".join(text_section), style=detail_style)
-                    box = Table([[para]], colWidths=[530])
-                    box.setStyle(TableStyle([
-                        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                        ('LINEBELOW', (-1, 0), (-1, -1), 0, colors.white),
-                    ]))
-                    if current_height > first_page_limit:
-                        data.append(PageBreak())
-                        current_height = 0
-                        data.append(KeepTogether(header_table))
-                        w, h = header_table.wrap(doc.width, first_page_limit)
-                        current_height += h
-                        data.append(KeepTogether(Spacer(3, 3)))
-                        current_height += 3
-                    data.append(KeepTogether(box))
-                    w, h = box.wrap(doc.width, first_page_limit)
-                    current_height += h
-                    text_section = []
-
-                rows = g['data']
-                for i, row in enumerate(rows):
-                    row['Lab no'] = ''
-                    row['สภาพตัวอย่าง'] = 'O ปกติ<br/>O ไม่ปกติ' if i == 0 else ''
-                headers = list(rows[0].keys())
-                raw_widths = []
-                for h in headers:
-                    w = stringWidth(str(h), detail_style.fontName, detail_style.fontSize)
-                    if h == "เชื้อ":
-                        w += 100
-                    else:
-                        w += 20
-                    raw_widths.append(w)
-                total_width = sum(raw_widths)
-                max_total = 490
-
-                if total_width > max_total:
-                    scale = max_total / total_width
-                    col_widths = [w * scale for w in raw_widths]
-                else:
-                    col_widths = raw_widths
-                table_data = [[Paragraph(h, detail_style) for h in headers]]
-                for row in rows:
-                    table_data.append([Paragraph(str(row.get(h, "")), detail_style) for h in headers])
-                table = Table(table_data, colWidths=col_widths)
-                table.setStyle(TableStyle([
-                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 4),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-                    ('SPAN', (-1, 1), (-1, -1)),
-                    ('ALIGN', (-1, 1), (-1, -1), 'CENTER'),
-                    ('VALIGN', (-1, 1), (-1, -1), 'MIDDLE'),
-                ]))
-
-                table_box = Table([[table]], colWidths=[530])
-                table_box.setStyle(TableStyle([
-                    ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-                    ('LINEABOVE', (0, 0), (-1, 0), 0, colors.white),
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER')
-                ]))
-                if current_height > first_page_limit:
-                    data.append(PageBreak())
-                    current_height = 0
-                    data.append(KeepTogether(header_table))
-                    w, h = header_table.wrap(doc.width, first_page_limit)
-                    current_height += h
-                    data.append(KeepTogether(Spacer(3, 3)))
-                    current_height += 3
-                data.append(KeepTogether(table))
-                w, h = table.wrap(doc.width, first_page_limit)
-                current_height += h
-
-        if text_section:
-            para = Paragraph("<br/>".join(text_section), style=detail_style)
-            box = Table([[para]], colWidths=[530])
-            box.setStyle(TableStyle([
-                ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ]))
-            data.append(KeepTogether(box))
-            w, h = box.wrap(doc.width, first_page_limit)
-            current_height += h
-    report_header_table = Table(
-        [[
-            Paragraph('<b>ใบรายงานผล / Report</b>', header_style),
-            Paragraph('<b>ช่องทางการรับใบรายงานผล / Reporting via</b>', header_style)
-        ]],
-        colWidths=[265, 265],
-        rowHeights=[25]
-    )
-
-    report_header_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LINEAFTER', (0, 0), (0, -1), 0.1, colors.grey)
-    ]))
-
-    report_language = Paragraph(
-        "<br/>".join([f"- {rl.report_language.item}" for rl in service_request.report_languages]),
-        style=detail_style)
-    report_language_table = Table([[report_language]], colWidths=[265])
-
-    report_receive_channel = Paragraph(f"- {service_request.report_receive_channel.item}", style=detail_style)
-    report_receive_channel_table = Table([[report_receive_channel]], colWidths=[265])
-
-    report_table = Table(
-        [[report_language_table, report_receive_channel_table]],
-        colWidths=[265, 265]
-    )
-
-    report_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOX', (0, 0), (0, 0), 0.5, colors.grey),
-        ('BOX', (1, 0), (1, 0), 0.5, colors.grey),
-    ]))
-
-    if current_height > first_page_limit:
-        data.append(PageBreak())
-        current_height = 0
-    else:
-        data.append(KeepTogether(Spacer(5, 5)))
-        current_height += 5
-    data.append(KeepTogether(report_header_table))
-    w, h = report_header_table.wrap(doc.width, first_page_limit)
-    current_height += h
-    data.append(KeepTogether(Spacer(5, 5)))
-    current_height += 5
-    data.append(KeepTogether(report_table))
-    w, h = report_table.wrap(doc.width, first_page_limit)
-    current_height += h
-
-    sub_header_bold_style = ParagraphStyle(
-        'SubHeaderBoldStyle',
-        parent=style_sheet['ThaiStyleBold'],
-        fontSize=14,
-        leading=18
-    )
-
-    sub_detail_style = ParagraphStyle(
-        'SubDetailStyle',
-        parent=detail_style,
-        leftIndent=100
-    )
-
-    selected_checkbox = f'<font name="DejaVuSans">☑</font>'
-    item_data = "".join(item['data'] for item in values if item['type'] == 'bool')
-
-    sign_table = Table([
-        [Spacer(1, 6)],
-        [Paragraph(f'{selected_checkbox} {item_data}',
-                   style=detail_style)],
-        [Paragraph(
-            "ลงชื่อผู้ส่งตัวอย่าง / Sent by <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>"
-            "วันที่ <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> "
-            "<font name='Sarabun'>/</font> <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> "
-            "<font name='Sarabun'>/</font> <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>",
-            style=sub_header_bold_style)],
-        [Paragraph(
-            "ลงชื่อผู้รับตัวอย่าง / Received by <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;</u>"
-            "วันที่ <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> "
-            "<font name='Sarabun'>/</font> <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> "
-            "<font name='Sarabun'>/</font> <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>",
-            style=sub_header_bold_style)],
-        [Spacer(1, 6)]
-    ], colWidths=[530])
-
-    sign_table.setStyle(TableStyle([
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-
-    if current_height > first_page_limit:
-        data.append(PageBreak())
-        current_height = 0
-    else:
-        data.append(KeepTogether(Spacer(5, 5)))
-        current_height += 5
-    data.append(KeepTogether(sign_table))
-    w, h = sign_table.wrap(doc.width, first_page_limit)
-    current_height += h
-
-    checkbox = f'<font name="DejaVuSans">☐</font>'
-
-    extend_analysis_table = Table([
-        [Spacer(1, 6)],
-        [Paragraph("กรณีที่มีการขยายระยะเวลาการตรวจวิเคราะห์", style=sub_header_bold_style)],
-        [Paragraph("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ขยายระยะเวลาการตรวจวิเคราะห์ เป็นระยะเวลา "
-                   "<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> วัน", style=detail_style)],
-        [Paragraph(
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;เหตุผลความจำเป็น : &nbsp;&nbsp;&nbsp;&nbsp;{checkbox} เครื่องมือไม่พร้อม "
-            f"<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>",
-            style=detail_style)],
-        [Paragraph(
-            f"{checkbox} ห้องปฏิบัติการไม่พร้อม "
-            f"<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;</u>",
-            style=sub_detail_style)],
-        [Paragraph(
-            f"{checkbox} เจ้าหน้าที่ทดสอบไม่พร้อม "
-            f"<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>",
-            style=sub_detail_style)],
-        [Paragraph(
-            f"{checkbox} ตัวอย่างไม่พร้อม "
-            f"<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>",
-            style=sub_detail_style)],
-
-        [Paragraph(
-            f"{checkbox} อื่นๆ "
-            f"<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>",
-            style=sub_detail_style)],
-        [Spacer(1, 7)],
-        [Paragraph("ลงชื่อหัวหน้าห้องปฏิบัติการ <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                   "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>"
-                   "วันที่ <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> "
-                   "<font name='Sarabun'>/</font> <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> "
-                   "<font name='Sarabun'>/</font> <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>",
-                   style=sub_header_bold_style)],
-        [Paragraph(
-            "ลงชื่อผู้รับบริการ <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>"
-            "วันที่ <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> "
-            "<font name='Sarabun'>/</font> <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> "
-            "<font name='Sarabun'>/</font> <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>",
-            style=sub_header_bold_style)],
-        [Spacer(1, 6)],
-    ], colWidths=[530])
-
-    extend_analysis_table.setStyle(TableStyle([
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-
-    if current_height > first_page_limit:
-        data.append(PageBreak())
-        current_height = 0
-    else:
-        data.append(KeepTogether(Spacer(5, 5)))
-        current_height += 5
-    data.append(KeepTogether(extend_analysis_table))
-    w, h = extend_analysis_table.wrap(doc.width, first_page_limit)
-    current_height += h
-    if service_request.samples:
-        sample_id = int(''.join(str(s.id) for s in service_request.samples))
-        qr_buffer = BytesIO()
-        qr_img = qrcode.make(url_for('service_admin.sample_verification', sample_id=sample_id, menu='sample',
-                                     _external=True))
-        qr_img.save(qr_buffer, format='PNG')
-        qr_buffer.seek(0)
-        qr_code = Image(qr_buffer, width=80, height=80)
-        qr_code_label = Paragraph("QR Code สำหรับเจ้าหน้าที่ตรวจรับตัวอย่าง", style=center_style)
-        qr_code_table = Table([
-            [qr_code_label],
-            [qr_code],
-        ], colWidths=[220])
-        qr_code_table.hAlign = 'LEFT'
-        qr_code_table.setStyle(TableStyle([
-            ('LEFTPADDING', (0, 0), (0, 0), 15),
-            ('LEFTPADDING', (0, 0), (-1, -1), 40),
-            ('RIGHTPADDING', (0, 1), (0, 1), 0),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ]))
-
-        if current_height > first_page_limit:
-            data.append(PageBreak())
-        else:
-            data.append(Spacer(1, 50))
-        data.append(KeepTogether(qr_code_table))
-    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
-    buffer.seek(0)
-    return buffer
-
-
-@academic_services.route('/request/bacteria/pdf/<int:request_id>', methods=['GET'])
-def export_bacteria_request_pdf(request_id):
-    service_request = ServiceRequest.query.get(request_id)
-    buffer = generate_bacteria_request_pdf(service_request)
-    return send_file(buffer, download_name='Request_form.pdf', as_attachment=True)
-
-
-def generate_virus_request_pdf(service_request):
-    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
-    request_data = request_data_paths[service_request.sub_lab.code]
-    values = request_data(service_request, type='pdf')
-
-    def all_page_setup(canvas, doc):
-        global page_number
-        canvas.saveState()
-        canvas.setFont("Sarabun", 12)
-        page_number = canvas.getPageNumber()
-        canvas.drawString(530, 30, f"Page {page_number}")
-        canvas.restoreState()
-
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4,
-                            rightMargin=20,
-                            leftMargin=20,
-                            topMargin=30,
-                            bottomMargin=40
+                            bottomMargin=30
                             )
 
     data = []
@@ -4269,10 +3669,10 @@ def generate_virus_request_pdf(service_request):
                     if h == "เชื้อ":
                         w += 100
                     else:
-                        w += 26
+                        w += 10
                     raw_widths.append(w)
                 total_width = sum(raw_widths)
-                max_total = 498
+                max_total = 506
 
                 if total_width > max_total:
                     scale = max_total / total_width
@@ -4324,6 +3724,491 @@ def generate_virus_request_pdf(service_request):
             data.append(KeepTogether(box))
             w, h = box.wrap(doc.width, first_page_limit)
             current_height += h
+
+
+    report_header_table = Table(
+        [[
+            Paragraph('<b>ใบรายงานผล / Report</b>', header_style),
+            Paragraph('<b>ช่องทางการรับใบรายงานผล / Reporting via</b>', header_style)
+        ]],
+        colWidths=[265, 265],
+        rowHeights=[25]
+    )
+
+    report_header_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LINEAFTER', (0, 0), (0, -1), 0.1, colors.grey)
+    ]))
+
+    report_language = Paragraph(
+        "<br/>".join([f"{rl.report_language.item}" for rl in service_request.report_languages]),
+        style=detail_style)
+    report_language_table = Table([[report_language]], colWidths=[265])
+
+    report_receive_channel = Paragraph(f"{service_request.report_receive_channel.item}", style=detail_style)
+    report_receive_channel_table = Table([[report_receive_channel]], colWidths=[265])
+
+    report_table = Table(
+        [[report_language_table, report_receive_channel_table]],
+        colWidths=[265, 265]
+    )
+
+    report_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOX', (0, 0), (0, 0), 0.5, colors.grey),
+        ('BOX', (1, 0), (1, 0), 0.5, colors.grey),
+    ]))
+
+    if current_height > first_page_limit:
+        data.append(PageBreak())
+        current_height = 0
+    else:
+        data.append(KeepTogether(Spacer(5, 5)))
+        current_height += 5
+    data.append(KeepTogether(report_header_table))
+    w, h = report_header_table.wrap(doc.width, first_page_limit)
+    current_height += h
+    data.append(KeepTogether(Spacer(5, 5)))
+    current_height += 5
+    data.append(KeepTogether(report_table))
+    w, h = report_table.wrap(doc.width, first_page_limit)
+    current_height += h
+
+    sub_header_bold_style = ParagraphStyle(
+        'SubHeaderBoldStyle',
+        parent=style_sheet['ThaiStyleBold'],
+        fontSize=14,
+        leading=18
+    )
+
+    selected_checkbox = f'<font name="DejaVuSans">☑</font>'
+    item_data = "".join(item['data'] for item in values if item['type'] == 'bool')
+
+    sign_table = Table([
+        [Spacer(1, 6)],
+        [Paragraph(f'{selected_checkbox} {item_data}',
+                   style=detail_style)],
+        [Paragraph(
+            "ลงชื่อผู้ส่งตัวอย่าง / Sent by <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>"
+            "วันที่ <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> "
+            "<font name='Sarabun'>/</font> <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> "
+            "<font name='Sarabun'>/</font> <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>",
+            style=sub_header_bold_style)],
+        [Paragraph(
+            "ลงชื่อผู้รับตัวอย่าง / Received by <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            "&nbsp;&nbsp;&nbsp;&nbsp;</u>"
+            "วันที่ <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> "
+            "<font name='Sarabun'>/</font> <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u> "
+            "<font name='Sarabun'>/</font> <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>",
+            style=sub_header_bold_style)],
+        [Spacer(1, 6)]
+    ], colWidths=[530])
+
+    sign_table.setStyle(TableStyle([
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    if current_height > first_page_limit:
+        data.append(PageBreak())
+        current_height = 0
+    else:
+        data.append(KeepTogether(Spacer(5, 5)))
+        current_height += 5
+    data.append(KeepTogether(sign_table))
+    w, h = sign_table.wrap(doc.width, first_page_limit)
+    current_height += h
+
+    if service_request.samples:
+        sample_id = int(''.join(str(s.id) for s in service_request.samples))
+        qr_buffer = BytesIO()
+        qr_img = qrcode.make(url_for('service_admin.sample_verification', sample_id=sample_id, menu='sample',
+                                     _external=True))
+        qr_img.save(qr_buffer, format='PNG')
+        qr_buffer.seek(0)
+        qr_code = Image(qr_buffer, width=80, height=80)
+        qr_code_label = Paragraph("QR Code สำหรับเจ้าหน้าที่ตรวจรับตัวอย่าง", style=center_style)
+        qr_code_table = Table([
+            [qr_code_label],
+            [qr_code],
+        ], colWidths=[220])
+        qr_code_table.hAlign = 'LEFT'
+        qr_code_table.setStyle(TableStyle([
+            ('LEFTPADDING', (0, 0), (0, 0), 15),
+            ('LEFTPADDING', (0, 0), (-1, -1), 40),
+            ('RIGHTPADDING', (0, 1), (0, 1), 0),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+
+        if current_height > first_page_limit:
+            data.append(PageBreak())
+        else:
+            data.append(Spacer(1, 50))
+        data.append(KeepTogether(qr_code_table))
+    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+    buffer.seek(0)
+    return buffer
+
+
+@academic_services.route('/request/bacteria/pdf/<int:request_id>', methods=['GET'])
+def export_bacteria_request_pdf(request_id):
+    service_request = ServiceRequest.query.get(request_id)
+    buffer = generate_bacteria_request_pdf(service_request)
+    return send_file(buffer, download_name='Request_form.pdf', as_attachment=True)
+
+
+def generate_virus_request_pdf(service_request):
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
+    request_data = request_data_paths[service_request.sub_lab.code]
+    values = request_data(service_request, type='pdf')
+
+    def all_page_setup(canvas, doc):
+        global page_number
+        canvas.saveState()
+        canvas.setFont("Sarabun", 12)
+        page_number = canvas.getPageNumber()
+        canvas.drawString(530, 30, f"Page {page_number}")
+        canvas.restoreState()
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                            rightMargin=20,
+                            leftMargin=20,
+                            topMargin=30,
+                            bottomMargin=30
+                            )
+
+    data = []
+    first_page_limit = 700
+    current_height = 0
+    header_style = ParagraphStyle(
+        'HeaderStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=15,
+        alignment=TA_CENTER,
+    )
+
+    header = Table([[Paragraph('<b>ใบขอรับบริการ / Request</b>', style=header_style)]], colWidths=[530],
+                   rowHeights=[25])
+
+    header.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    lab_information = '''<para><font size=13>
+                            {address}
+                            </font></para>'''.format(address=service_request.sub_lab.lab_information)
+
+    lab_table = Table([[logo, Paragraph(lab_information, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
+
+    lab_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    staff_only = '''<para><font size=13>
+                        สำหรับเจ้าหน้าที่ / Staff only<br/>
+                        เลขที่ใบคำขอ &nbsp;  <u>&nbsp;{request_no}&nbsp;&nbsp;</u><br/>
+                        วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
+                        วันที่รายงานผล <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
+                        </font></para>'''.format(request_no=service_request.request_no)
+
+    staff_table = Table([[Paragraph(staff_only, style=style_sheet['ThaiStyle'])]], colWidths=[150])
+
+    combined_table = Table(
+        [[lab_table, staff_table]],
+        colWidths=[370, 159]
+    )
+
+    combined_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOX', (0, 0), (0, 0), 0.5, colors.grey),
+        ('BOX', (1, 0), (1, 0), 0.5, colors.grey),
+    ]))
+
+    customer_header = Table([[Paragraph('<b>ข้อมูลผู้ส่งตรวจ / Customer</b>', style=header_style)]], colWidths=[530],
+                            rowHeights=[25])
+
+    customer_header.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    detail_style = ParagraphStyle(
+        'ThaiStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=13,
+        leading=18
+    )
+
+    center_style = ParagraphStyle(
+        'CenterStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=13,
+        leading=30,
+        alignment=TA_CENTER
+    )
+
+    customer = '''<para>ข้อมูลผู้ประสานงาน<br/>
+                                ชื่อ-นามสกุล : {cus_contact}<br/>
+                                เลขประจำตัวผู้เสียภาษี : {taxpayer_identification_no}<br/>
+                                เบอร์โทรศัพท์ : {phone_number}<br/>
+                                อีเมล : {email}
+                            </para>
+                            '''.format(cus_contact=service_request.customer.customer_name,
+                                       taxpayer_identification_no=service_request.customer.customer_info.taxpayer_identification_no,
+                                       phone_number=service_request.customer.contact_phone_number,
+                                       email=service_request.customer.contact_email)
+
+    customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[530])
+
+    customer_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    document_address = '''<para>ข้อมูลที่อยู่จัดส่งเอกสาร<br/>
+                                           ถึง : {name}<br/>
+                                           ที่อยู่ : {address}<br/>
+                                           เบอร์โทรศัพท์ : {phone_number}<br/>
+                                           อีเมล : {email}
+                                       </para>
+                                       '''.format(name=service_request.receive_name,
+                                                  address=service_request.receive_address,
+                                                  phone_number=service_request.receive_phone_number,
+                                                  email=service_request.customer.contact_email)
+
+    document_address_table = Table([[Paragraph(document_address, style=detail_style)]], colWidths=[265])
+
+    quotation_address = '''<para>ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี<br/>
+                                               ออกในนาม : {name}<br/>
+                                               ที่อยู่ : {address}<br/>
+                                               เลขประจำตัวผู้เสียภาษีอากร : {taxpayer_identification_no}<br/>
+                                               เบอร์โทรศัพท์ : {phone_number}<br/>
+                                               อีเมล : {email}
+                                           </para>
+                                           '''.format(name=service_request.quotation_name,
+                                                      address=service_request.quotation_issue_address,
+                                                      taxpayer_identification_no=service_request.taxpayer_identification_no,
+                                                      phone_number=service_request.quotation_phone_number,
+                                                      email=service_request.customer.contact_email)
+
+    quotation_address_table = Table([[Paragraph(quotation_address, style=detail_style)]], colWidths=[265])
+
+    address_table = Table(
+        [[quotation_address_table, document_address_table]],
+        colWidths=[265, 265]
+    )
+
+    address_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOX', (0, 0), (0, 0), 0.5, colors.grey),
+        ('BOX', (1, 0), (1, 0), 0.5, colors.grey),
+    ]))
+
+    title_table = Paragraph(
+        '<para align=center><font size=18>ใบขอรับบริการ / REQUEST<br/><br/></font></para>',
+        style=style_sheet['ThaiStyle']
+    )
+
+    data.append(
+        KeepTogether(title_table))
+    w, h = title_table.wrap(doc.width, first_page_limit)
+    current_height += h
+    data.append(KeepTogether(header))
+    w, h = header.wrap(doc.width, first_page_limit)
+    current_height += h
+    data.append(KeepTogether(Spacer(5, 5)))
+    current_height += 5
+    data.append(KeepTogether(combined_table))
+    w, h = combined_table.wrap(doc.width, first_page_limit)
+    current_height += h
+    data.append(KeepTogether(Spacer(5, 5)))
+    current_height += 5
+    data.append(KeepTogether(customer_header))
+    w, h = customer_header.wrap(doc.width, first_page_limit)
+    current_height += h
+    data.append(KeepTogether(Spacer(5, 5)))
+    current_height += 5
+    data.append(KeepTogether(address_table))
+    w, h = address_table.wrap(doc.width, first_page_limit)
+    current_height += h
+    data.append(KeepTogether(customer_table))
+    w, h = customer_table.wrap(doc.width, first_page_limit)
+    current_height += h
+
+    index = 1
+    groups = []
+    current_group = None
+
+    for item in values:
+        if item['type'] == 'header':
+            if current_group:
+                groups.append(current_group)
+            current_group = {'header': item['data'], 'contents': []}
+        else:
+            if current_group is None:
+                current_group = {'header': 'รายการทดสอบ', 'contents': []}
+            current_group['contents'].append(item)
+    if current_group:
+        groups.append(current_group)
+
+    for group in groups:
+        eng_header = 'Sample Detail' if group['header'] == 'ข้อมูลผลิตภัณฑ์' else 'Test Method'
+        header_table = Table(
+            [[Paragraph(f"<b>{group['header']} / {eng_header}</b>", style=header_style)]],
+            colWidths=[530], rowHeights=[25]
+        )
+        header_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+
+        w, h_header = header_table.wrap(doc.width, first_page_limit)
+
+        reserve_space = 30
+        if current_height + h_header + reserve_space > first_page_limit:
+            data.append(PageBreak())
+            current_height = 0
+        data.append(KeepTogether(Spacer(5, 5)))
+        current_height += 5
+        data.append(KeepTogether(header_table))
+        current_height += h_header
+        data.append(KeepTogether(Spacer(5, 5)))
+        current_height += 5
+        text_section = []
+        for g in group['contents']:
+            if g['type'] == 'content_header':
+                text_section.append(f"{index}. {g['data'].strip()}")
+                index += 1
+            elif g['type'] == 'text':
+                text_content = g['data'].split("<br/>")
+                for t in text_content:
+                    text = t.strip()
+                    if not text:
+                        continue
+
+                    if ":" in text and "," in text:
+                        header, contents = text.split(":", 1)
+                        text_section.append(header.strip() + " " + ":")
+                        for c in contents.split(","):
+                            content = c.strip()
+                            if content:
+                                text_section.append(f"- {content}")
+                    else:
+                        text_section.append(text)
+            elif g['type'] == 'table':
+                if text_section:
+                    para = Paragraph("<br/>".join(text_section), style=detail_style)
+                    box = Table([[para]], colWidths=[530])
+                    box.setStyle(TableStyle([
+                        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ('LINEBELOW', (-1, 0), (-1, -1), 0, colors.white),
+                    ]))
+                    if current_height > first_page_limit:
+                        data.append(PageBreak())
+                        current_height = 0
+                        data.append(KeepTogether(header_table))
+                        w, h = header_table.wrap(doc.width, first_page_limit)
+                        current_height += h
+                        data.append(KeepTogether(Spacer(5, 5)))
+                        current_height += 5
+                    data.append(KeepTogether(box))
+                    w, h = box.wrap(doc.width, first_page_limit)
+                    current_height += h
+                    text_section = []
+
+                rows = g['data']
+                for i, row in enumerate(rows):
+                    row['Lab no'] = ''
+                    if service_request.sub_lab.code == 'disinfection':
+                        row['สภาพตัวอย่าง'] = 'O ปกติ<br/>O ไม่ปกติ' if i == 0 else ''
+                    else:
+                        row['การทำงานของอุปกรณ์'] = 'O ปกติ<br/>O ไม่ปกติ' if i == 0 else ''
+                headers = list(rows[0].keys())
+                raw_widths = []
+                for h in headers:
+                    w = stringWidth(str(h), detail_style.fontName, detail_style.fontSize)
+                    if h == "เชื้อ":
+                        w += 128
+                    else:
+                        w += 16
+                    raw_widths.append(w)
+                total_width = sum(raw_widths)
+                max_total = 490
+
+                if total_width > max_total:
+                    scale = max_total / total_width
+                    col_widths = [w * scale for w in raw_widths]
+                else:
+                    col_widths = raw_widths
+                table_data = [[Paragraph(h, detail_style) for h in headers]]
+                for row in rows:
+                    table_data.append([Paragraph(str(row.get(h, "")), detail_style) for h in headers])
+                table = Table(table_data, colWidths=col_widths)
+                table.setStyle(TableStyle([
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                    ('SPAN', (-1, 1), (-1, -1)),
+                    ('ALIGN', (-1, 1), (-1, -1), 'CENTER'),
+                    ('VALIGN', (-1, 1), (-1, -1), 'MIDDLE'),
+                ]))
+
+                table_box = Table([[table]], colWidths=[530])
+                table_box.setStyle(TableStyle([
+                    ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('LINEABOVE', (0, 0), (-1, 0), 0, colors.white),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER')
+                ]))
+                if current_height > first_page_limit:
+                    data.append(PageBreak())
+                    current_height = 0
+                    data.append(KeepTogether(header_table))
+                    w, h = header_table.wrap(doc.width, first_page_limit)
+                    current_height += h
+                    data.append(KeepTogether(Spacer(5, 5)))
+                    current_height += 5
+                data.append(KeepTogether(table_box))
+                w, h = table.wrap(doc.width, first_page_limit)
+                current_height += h
+
+        if text_section:
+            para = Paragraph("<br/>".join(text_section), style=detail_style)
+            box = Table([[para]], colWidths=[530])
+            box.setStyle(TableStyle([
+                ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ]))
+            data.append(KeepTogether(box))
+            w, h = box.wrap(doc.width, first_page_limit)
+            current_height += h
+
 
     report_header_table = Table(
         [[
@@ -4782,10 +4667,7 @@ def quotation_index():
 def view_quotation(quotation_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
-    notify = request.args.get('notify')
     quotation = ServiceQuotation.query.get(quotation_id)
-    if notify:
-        flash('ยืนยันอีเมลสำเร็จ!', 'success')
     return render_template('academic_services/view_quotation.html', quotation_id=quotation_id, menu=menu,
                            quotation=quotation, tab=tab)
 
@@ -5691,191 +5573,6 @@ def view_invoice(invoice_id):
     invoice = ServiceInvoice.query.get(invoice_id)
     return render_template('academic_services/view_invoice.html', invoice_id=invoice_id, menu=menu,
                            tab=tab, invoice=invoice)
-
-
-def generate_invoice_pdf(invoice, sign=False, cancel=False):
-    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
-
-    lab = ServiceLab.query.filter_by(code=invoice.quotation.request.lab).first()
-    sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
-
-    def all_page_setup(canvas, doc):
-        canvas.saveState()
-        canvas.restoreState()
-
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer,
-                            rightMargin=20,
-                            leftMargin=20,
-                            topMargin=10,
-                            bottomMargin=10,
-                            )
-    data = []
-
-    affiliation = '''<para><font size=10>
-                               คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                               999 ต.ศาลายา อ.พุทธมณฑล จ.นครปฐม 73170<br/>
-                               โทร 0-2441-4371-9 ต่อ 2820 2830<br/>
-                               เลขประจำตัวผู้เสียภาษี 0994000158378
-                               </font></para>
-                               '''
-
-    invoice_no = '''<br/><br/><font size=10>
-                        เลขที่/No. {invoice_no}<br/>
-                        </font>
-                        '''.format(invoice_no=invoice.invoice_no)
-
-    header_content_ori = [[[],
-                           [logo],
-                           [],
-                           [Paragraph(affiliation, style=style_sheet['ThaiStyleRight']),
-                            Paragraph(invoice_no, style=style_sheet['ThaiStyleRight'])]]]
-
-    header_styles = TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('ALIGN', (-1, 0), (-1, -1), 'RIGHT'),
-    ])
-
-    header_ori = Table(header_content_ori, colWidths=[150, 200, 0, 150])
-
-    header_ori.hAlign = 'CENTER'
-    header_ori.setStyle(header_styles)
-
-    detail_style = ParagraphStyle(
-        'DetailStyle',
-        parent=style_sheet['ThaiStyle'],
-        leading=21
-    )
-
-    customer = '''<para><font size=14>
-                        ที่ <br/>
-                        วันที่ <br/>
-                        เรื่อง ใบแจ้งหนี้ค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ<br/>
-                        เรียน {customer}<br/>
-                        ที่อยู่ {address}<br/>
-                        เลขประจำตัวผู้เสียภาษี {taxpayer_identification_no}
-                        </font></para>
-                        '''.format(customer=invoice.name,
-                                   address=invoice.address,
-                                   taxpayer_identification_no=invoice.taxpayer_identification_no)
-
-    customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[540, 280])
-
-    customer_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                                        ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
-
-    items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>จำนวน / Quantity</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>ราคา / Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>จำนวนเงิน / Amount</font>', style=style_sheet['ThaiStyleCenter']),
-              ]]
-
-    for n, item in enumerate(sorted(invoice.invoice_items, key=lambda x: x.sequence), start=1):
-        lab_item = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>", item.item)
-        item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
-                       Paragraph('<font size=12>{}</font>'.format(lab_item), style=style_sheet['ThaiStyle']),
-                       Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
-                       Paragraph('<font size=12>{:,.2f}</font>'.format(item.unit_price),
-                                 style=style_sheet['ThaiStyleNumber']),
-                       Paragraph('<font size=12>{:,.2f}</font>'.format(item.total_price),
-                                 style=style_sheet['ThaiStyleNumber']),
-                       ]
-        items.append(item_record)
-
-    n = len(items)
-
-    for i in range(n):
-        items.append([
-            Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-        ])
-
-    items.append([
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>รวมเป็นเงิน</font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(invoice.subtotal()), style=style_sheet['ThaiStyleNumber']),
-    ])
-
-    items.append([
-        Paragraph('<font size=12>{}</font>'.format(bahttext(invoice.grand_total)),
-                  style=style_sheet['ThaiStyleCenter']),
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(invoice.discount()), style=style_sheet['ThaiStyleNumber']),
-    ])
-
-    items.append([
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>รวมเป็นเงินทั้งสิ้น/Grand Total</font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(invoice.grand_total), style=style_sheet['ThaiStyleNumber']),
-    ])
-
-    item_table = Table(items, colWidths=[50, 250, 75, 75])
-    item_table.setStyle(TableStyle([
-        ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
-        ('BOX', (0, 0), (0, -1), 0.25, colors.black),
-        ('BOX', (1, 0), (1, -1), 0.25, colors.black),
-        ('BOX', (2, 0), (2, -1), 0.25, colors.black),
-        ('BOX', (3, 0), (3, -1), 0.25, colors.black),
-        ('BOX', (4, 0), (4, -1), 0.25, colors.black),
-        ('LINEABOVE', (0, -3), (-1, -3), 0.25, colors.black),
-        ('BOX', (2, -3), (-1, -3), 0.25, colors.black),
-        ('BOX', (2, -2), (-1, -2), 0.25, colors.black),
-        ('BOX', (2, -1), (-1, -1), 0.25, colors.black),
-        ('SPAN', (0, -3), (1, -3)),
-        ('SPAN', (2, -3), (3, -3)),
-        ('SPAN', (0, -2), (1, -2)),
-        ('SPAN', (2, -2), (3, -2)),
-        ('SPAN', (0, -1), (1, -1)),
-        ('SPAN', (2, -1), (3, -1)),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
-    ]))
-
-    text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>', style=style_sheet['ThaiStyle'])
-    text = [[text_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    text_table = Table(text, colWidths=[0, 155, 155])
-    text_table.hAlign = 'RIGHT'
-    sign_info = Paragraph('<font size=12>(ผู้ช่วยศาตราจารย์ ดร.โชติรส พลับพลึง)</font>', style=style_sheet['ThaiStyle'])
-    sign = [[sign_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    sign_table = Table(sign, colWidths=[0, 185, 185])
-    sign_table.hAlign = 'RIGHT'
-    position_info = Paragraph('<font size=12>คณบดีคณะเทคนิคการแพทย์</font>', style=style_sheet['ThaiStyle'])
-    position = [[position_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    position_table = Table(position, colWidths=[0, 168, 168])
-    position_table.hAlign = 'RIGHT'
-
-    data.append(KeepTogether(Spacer(7, 7)))
-    data.append(KeepTogether(header_ori))
-    data.append(KeepTogether(Spacer(1, 12)))
-    data.append(KeepTogether(customer_table))
-    data.append(KeepTogether(Spacer(1, 16)))
-    data.append(KeepTogether(item_table))
-    data.append(KeepTogether(Spacer(1, 16)))
-    data.append(KeepTogether(text_table))
-    data.append(KeepTogether(Spacer(1, 25)))
-    data.append(KeepTogether(sign_table))
-    data.append(KeepTogether(position_table))
-
-    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
-    buffer.seek(0)
-    return buffer
-
-
-@academic_services.route('/invoice/pdf/<int:invoice_id>', methods=['GET'])
-def export_invoice_pdf(invoice_id):
-    invoice = ServiceInvoice.query.get(invoice_id)
-    buffer = generate_invoice_pdf(invoice)
-    return send_file(buffer, download_name='Invoice.pdf', as_attachment=True)
 
 
 @academic_services.route('/customer/request/cancel/<int:request_id>', methods=['GET'])
