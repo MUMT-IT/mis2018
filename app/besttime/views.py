@@ -64,7 +64,7 @@ def leave_message(poll_id):
                                 </div>
                                 <br/>
                                 <p>
-                                    <strong><small>{message.voter.fullname}</small></strong> <small>@{message.created_at.strftime('%d/%m/%Y %H:%M:%S')}</small>
+                                    <strong><small>{message.voter.fullname}</small></strong> <small>{message.created_at.astimezone(BKK_TZ).strftime('%d/%m/%Y %H:%M:%S')}</small>
                                 </p>
                             </div>
                         </article>
