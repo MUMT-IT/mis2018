@@ -255,13 +255,16 @@ def edit_poll(poll_id):
     return render_template('besttime/poll-setup-form.html', form=form, poll_id=poll_id)
 
 
-@besttime_bp.route('/delete/<int:poll_id>')
+@besttime_bp.route('/delete/<int:poll_id>', methods=['DELETE'])
 @login_required
 def delete_poll(poll_id):
     poll = BestTimePoll.query.get(poll_id)
     db.session.delete(poll)
     db.session.commit()
-    return redirect(url_for('besttime.index'))
+    flash(f'ลบแบบสำรวจเรียบร้อยแล้ว', 'success')
+    resp = make_response()
+    resp.headers['HX-Redirect'] = url_for('besttime.index')
+    return resp
 
 
 @besttime_bp.route('/close/<int:poll_id>')
@@ -279,7 +282,7 @@ def close_poll(poll_id):
 def vote_poll(poll_id):
     poll = BestTimePoll.query.get(poll_id)
     today = arrow.now('Asia/Bangkok').date()
-    if today < poll.start_date or today > poll.end_date:
+    if today < poll.vote_start_date or today > poll.vote_end_date:
         flash('ขณะนี้ไม่อยู่ในช่วงระยะเวลาการโหวตของโพล กรุณาตรวจสอบวันที่เปิดโหวตอีกครั้ง', 'danger')
         return redirect(url_for('besttime.index'))
     # If the user has already voted this poll

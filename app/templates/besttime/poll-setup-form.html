@@ -15,7 +15,7 @@
 {% include "besttime/nav.html" %}
 {% block page_content %}
 <section class="section">
-    <h2 class="title is-size-4">Select A Date Range For A Poll</h2>
+    <h2 class="title is-size-4">สร้างแบบสำรวจใหม่</h2>
     <form method="post">
         {{form.hidden_tag()}}
         <div class="field">
@@ -25,9 +25,22 @@
             </div>
         </div>
         <div class="field">
+            <label class="label">{{ form.vote_start_date.label }}</label>
+            <div class="control">
+                {{ form.vote_start_date(class="input") }}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">{{ form.vote_end_date.label }}</label>
+            <div class="control">
+                {{ form.vote_end_date(class="input") }}
+            </div>
+        </div>
+        <div class="field">
             <label class="label">{{form.start_date.label}}</label>
             <div class="control">
                 {{form.start_date(**{'hx-trigger': 'change',
+                'class': 'input',
                 'hx-post': url_for('besttime.preview_master_datetime_slots', poll_id=poll_id),
                 'hx-target': '#master-datetime-slots',
                 'hx-swap': 'innerHTML',
@@ -38,6 +51,7 @@
             <label class="label">{{form.end_date.label}}</label>
             <div class="control">
                 {{form.end_date(**{'hx-trigger': 'change',
+                'class': 'input',
                 'hx-post': url_for('besttime.preview_master_datetime_slots', poll_id=poll_id),
                 'hx-target': '#master-datetime-slots',
                 'hx-swap': 'innerHTML',
@@ -53,11 +67,11 @@
             </div>
         </div>
         <div class="field">
-            <label class="label">Chairman</label>
+            <label class="label">{{ form.chairman.label }}</label>
             <div>{{form.chairman(class="js-example-basic-single")}}</div>
         </div>
         <div class="field">
-            <label class="label">Committee</label>
+            <label class="label">{{ form.invitees.label }}</label>
             <div class="control">{{form.invitees(class='js-example-basic-multiple')}}</div>
         </div>
         <div class="field">
@@ -70,7 +84,12 @@
             </div>
             {% if poll_id %}
             <div class="control">
-                <a class="button is-danger" href="{{url_for('besttime.delete_poll', poll_id=poll_id)}}">Delete</a>
+                <a class="button is-danger"
+                   hx-swap="none"
+                   hx-indicator="this"
+                   hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                   hx-confirm="ท่านต้องการลบการสำรวจนี้หรือไม่ หากลบแล้วจะไม่สามารถกู้คืนได้"
+                   hx-delete="{{url_for('besttime.delete_poll', poll_id=poll_id)}}">Delete</a>
             </div>
             <div class="control">
                 <a class="button is-warning" href="{{url_for('besttime.close_poll', poll_id=poll_id)}}">Close</a>

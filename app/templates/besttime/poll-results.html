@@ -37,6 +37,7 @@
                         {% endif %}
                     </td>
                     <td>
+                    {% if slot.poll.has_admin_role(current_user) %}
                         {% if slot.has_valid_committee %}
                             <a class="button is-small is-rounded is-info"
                                hx-confirm="ท่านแน่ใจว่าจะเลือกวันนี้เป็นวันประชุมหรือไม่ หากท่านเคยเลือกวันประชุมแล้ว วันที่สรุปจะเปลี่ยนเป็นวันนี้แทน"
@@ -49,6 +50,7 @@
                                 <span>แจ้งกรรมการ</span>
                             </a>
                         {% endif %}
+                    {% endif %}
                     </td>
                 </tr>
             {% endfor %}

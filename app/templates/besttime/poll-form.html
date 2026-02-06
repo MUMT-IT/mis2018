@@ -23,11 +23,11 @@
                     สามารถโหวตใหม่ได้จนกว่าจะปิดการโหวต
                 </span>
             </div>
+            <h1 class="title is-size-3 has-text-centered">{{poll.title}}</h1>
         </div>
     </div>
     <div class="columns">
-        <div class="column is-one-third box is-offset-2">
-            <h1 class="title is-size-3">{{poll.title}}</h1>
+        <div class="column is-one-third is-offset-2">
             <form method="post">
                 {{ form.hidden_tag() }}
                 {% for field in form.date_time_slots %}
@@ -55,9 +55,8 @@
             <form>
                 {{ message_form.hidden_tag() }}
                 <div class="field">
-                    <label class="label">ฝากข้อความ</label>
                     <div class="control">
-                        {{ message_form.message(class='input') }}
+                        {{ message_form.message(class='input', placeholder='ฝากข้อความ') }}
                         <p class="help is-info">
                             ข้อความจะแสดงให้ทุกคนที่เป็นกรรมการเห็น
                         </p>

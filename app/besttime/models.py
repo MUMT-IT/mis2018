@@ -58,16 +58,18 @@ class BestTimeMasterDateTimeSlot(db.Model):
 class BestTimePoll(db.Model):
     __tablename__ = 'besttime_polls'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    title = db.Column(db.String(), nullable=False, info={'label': 'Title'})
-    start_date = db.Column(db.Date(), nullable=False, info={'label': 'Start Date'})
-    desc = db.Column(db.Text(), info={'label': 'Description'})
-    end_date = db.Column(db.Date(), nullable=False, info={'label': 'End Date'})
+    title = db.Column(db.String(), nullable=False, info={'label': 'ชื่อแบบสำรวจ'})
+    start_date = db.Column(db.Date(), nullable=False, info={'label': 'วันที่ตัวเลือกเริ่มต้น'})
+    desc = db.Column(db.Text(), info={'label': 'รายละเอียด'})
+    end_date = db.Column(db.Date(), nullable=False, info={'label': 'วันที่ตัวเลือกสุดท้าย'})
     creator_id = db.Column(db.Integer, db.ForeignKey('staff_account.id'), nullable=False)
     creator = db.relationship(StaffAccount, backref=db.backref('besttime_polls'))
     created_at = db.Column(db.DateTime(timezone=True))
     modified_at = db.Column(db.DateTime(timezone=True))
     closed_at = db.Column(db.DateTime(timezone=True))
     admins = db.relationship(StaffAccount, secondary=poll_admin_assoc_table, backref=db.backref('besttime_poll_admins'))
+    vote_start_date = db.Column('vote_start_date', db.Date(), nullable=False, info={'label': 'วันเริ่มการโหวต'})
+    vote_end_date = db.Column('vote_end_date', db.Date(), nullable=False, info={'label': 'วันสิ้นสุดการโหวต'})
 
 
     def __str__(self):
@@ -76,6 +78,10 @@ class BestTimePoll(db.Model):
     @property
     def date_span(self):
         return f'{self.start_date.strftime("%d/%m/%Y")} - {self.end_date.strftime("%d/%m/%Y")}'
+
+    @property
+    def vote_date_span(self):
+        return f'{self.vote_start_date.strftime("%d/%m/%Y")} - {self.vote_end_date.strftime("%d/%m/%Y")}'
 
     @property
     def voted(self):

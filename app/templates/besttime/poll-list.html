@@ -19,7 +19,7 @@
 {#    </div>#}
     <div class="columns">
         <div class="column box">
-            <h1 class="title is-size-4">โพลที่ท่านได้รับเชิญให้โหวต</h1>
+            <h1 class="title is-size-4">แบบสำรวจที่ท่านได้รับเชิญให้โหวต</h1>
             <table class="table is-striped">
                 <thead>
                 <th>ชื่อ</th>
@@ -46,7 +46,7 @@
                             {{invitation.poll.voted|length}}/{{invitation.poll.invitations.count()}}
                         </progress>
                     </td>
-                    <td>{{invitation.poll.date_span}}</td>
+                    <td>{{invitation.poll.vote_date_span}}</td>
                     <td>{{invitation.role}}</td>
                     <td>
                         {% if not invitation.poll.closed_at %}
@@ -76,7 +76,7 @@
                             </span>
                             <span>close</span>
                         </a>
-                        {% else %}
+                        {% endif %}
                         <a class="button is-small is-rounded is-warning"
                            href="{{url_for('besttime.view_results', poll_id=invitation.poll.id)}}">
                             <span class="icon">
@@ -84,7 +84,6 @@
                             </span>
                             <span>result</span>
                         </a>
-                        {% endif %}
                         {% endif %}
                     </td>
                 </tr>
@@ -95,7 +94,7 @@
     </div>
     <div class="columns mt-1">
         <div class="column box">
-            <h1 class="title is-size-4">โพลที่คุณสร้าง</h1>
+            <h1 class="title is-size-4">แบบสำรวจที่คุณสร้าง</h1>
             <table class="table is-striped">
                 <thead>
                 <th>ชื่อ</th>
@@ -112,15 +111,15 @@
                             <a href="{{url_for('besttime.view_results', poll_id=poll.id)}}">{{poll}}</a>
                         </td>
                         <td>{{poll.creator.fullname}}</td>
-                        <td>{{poll.date_span}}</td>
+                        <td>{{poll.vote_date_span}}</td>
                         <td>{{poll.voted|length}}</td>
                         <td>{{'open' if not poll.closed_at else 'closed'}}</td>
                         <td>
                             {% if poll.creator == current_user and not poll.closed_at %}
                                 <a class="button is-small is-rounded is-outlined" href="{{url_for('besttime.edit_poll', poll_id=poll.id)}}">
-                        <span class="icon">
-                            <i class="fa-solid fa-pencil"></i>
-                        </span>
+                                    <span class="icon">
+                                        <i class="fa-solid fa-pencil"></i>
+                                    </span>
                                     <span>edit</span>
                                 </a>
                             {% endif %}
@@ -129,7 +128,7 @@
                 {% endfor %}
                 </tbody>
             </table>
-            <a href="{{url_for('besttime.add_poll')}}" class="button is-success is-rounded">New Poll</a>
+            <a href="{{url_for('besttime.add_poll')}}" class="button is-success">New Poll</a>
         </div>
     </div>
 </section>
