@@ -98,7 +98,7 @@
                 </form>
                 <hr>
             </div>
-            <p class="is-size-3 has-text-right">ค่าใช้จ่ายรวม {{ budget }}</p>
+            <p class="is-size-3 has-text-right">ค่าใช้จ่ายรวม {{ "{:,.2f}".format(budget) }}</p>
             <div class="columns">
                 <div class="column">
                     <table class="table is-striped" id="seminarTable">
@@ -127,7 +127,7 @@
                                 <td>{{ record.seminar.topic_type }}</td>
                                 <td>{{ record.seminar }}</td>
                                 <td>{% for obj in record.objectives %}{{ obj.objective }}{% endfor %}</td>
-                                <td>{{ record.budget }}</td>
+                                <td>{% if record.budget %}{{ "{:,.2f}".format(record.budget) }}{% endif %}</td>
                                 <td>{{ record.start_datetime|localdatetime }}</td>
                                 <td>{{ record.end_datetime|localdatetime }}</td>
                                 <td>{{ record.seminar.organize_by }}</td>
@@ -174,14 +174,25 @@
             });
         });
         $(document).ready(() => {
+            var selectedDates = '{{ selected_dates or "" }}';
+            if (!selectedDates) {
+                 var today = moment();
+                var startOfYear = moment().startOf('year');
+                selectedDates = startOfYear.format('DD/MM/YYYY') + ' - ' + today.format('DD/MM/YYYY');
+            }
+            $('#dates').val(selectedDates);
+
             $('#dates').daterangepicker({
                 timePicker: false,
                 showDropdowns: true,
                 linkedCalendars: false,
                 locale: {
                     format: 'DD/MM/YYYY'
-                }
+                },
+                startDate: selectedDates.split(' - ')[0],
+                endDate: selectedDates.split(' - ')[1]
             });
+
         });
         let selectedStaff = "{{ selected_staff }}";
         $('.js-example-basic').select2({

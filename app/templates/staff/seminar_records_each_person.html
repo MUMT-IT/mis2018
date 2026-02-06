@@ -13,19 +13,26 @@
             <div class="column is-3">
                 <div class="">
                 <span class="subtitle has-text-grey">
-                    วงเงิน(ปีงบประมาณ) <br></span>
+                    วงเงิน(ปีงบปัจจุบัน) <br></span>
                 <span class="is-size-1 has-text-grey">
-                        {% if current_user.personal_info.academic_staff %} 15,000.0
-                        {% else %} 10000.0 {% endif %}
+                        {{ "{:,.2f}".format(yearly_budget.budget) }}
                 </span>
                 </div>
             </div>
             <div class="column is-3">
                 <div class="">
                     <span class="subtitle has-text-grey">
-                    ยอดที่ใช้(ปีงบปัจจุบัน)<br>
+                    ยอดที่ใช้<br>
                     </span>
-                    <span class="is-size-1 has-text-warning">{{ current_fee }}</span>
+                    <span class="is-size-1 has-text-warning">{{ "{:,.2f}".format(yearly_budget.total_used) }}</span>
+                </div>
+            </div>
+            <div class="column is-3">
+                <div class="">
+                    <span class="subtitle has-text-grey">
+                    คงเหลือ<br>
+                    </span>
+                    <span class="is-size-1 has-text-success">{{ "{:,.2f}".format(yearly_budget.remaining) }}</span>
                 </div>
             </div>
         </div>
@@ -60,7 +67,56 @@
                </div>
             </div>
         </div>
-        <span class="has-text-grey">เนื่องจากเป็นการนำเข้าข้อมูลอบรมผ่านการปรับรูปแบบวันที่ หากข้อมูลผิดพลาด กรุณาติดต่อหน่วย it ขออภัยในความไม่สะดวก</span>
+        <hr>
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">ประวัติการเข้าร่วม</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped" id="seminarAttendTable">
+                    <thead>
+                    <th>ประเภทกิจกรรม</th>
+                    <th>ชื่อกิจกรรม</th>
+                    <th>วันที่เริ่มต้นเข้าร่วม</th>
+                    <th>วันที่สิ้นสุด</th>
+                    <th>บทบาท</th>
+                    <th>ค่าลงทะเบียน</th>
+                    <th>online</th>
+                    </thead>
+                    <tbody>
+                    {% for record in seminar_list|sort(attribute='start_datetime') %}
+                    <tr>
+                        <td>
+                            {{ record.seminar.topic_type }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('staff.show_seminar_info_each_person', record_id=record.id) }}">
+                                {{ record.seminar.topic }}
+                            </a>
+                        </td>
+                        <td>
+                            {{ record.start_datetime|localdatetime }}
+                        </td>
+                        <td>
+                            {{ record.end_datetime|localdatetime }}
+                        </td>
+                        <td>
+                            {{ record.role }}
+                        </td>
+                        <td>
+                            {{ record.budget }}
+                        </td>
+                        <td>
+                            {{ record.attend_online }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
         <hr>
         <div class="columns">
             <div class="column">
@@ -70,7 +126,7 @@
                     </span>
                     <span>
                         1. ค้นหารายชื่ออบรมที่ต้องการ(หากไม่พบ กด
-                        <a href="" class="button is-rounded is-warning is-light">
+                        <a href="" class="button is-small is-rounded is-warning is-light">
                             <span class="icon">
                                 <i class="fas fa-plus"></i>
                             </span>
@@ -79,12 +135,12 @@
                         <br>
                     </span>
                     <span>
-                        2.กด<span class="icon"><i class="fas fa-user-plus"></i></span>กิจกรรมที่ต้องการ <br><br>
+                        2.กด<span class="icon is-small"><i class="fas fa-user-plus"></i></span>กิจกรรมที่ต้องการ <br><br>
                     </span>
                     <span>
-                        3.คลิ๊ก
+                        3. กด
                     <a href=""
-                       class="button is-light is-success">
+                       class="button is-small is-light is-success">
                                 <span class="icon">
                                     <i class="fas fa-user-plus"></i>
                                 </span>
@@ -100,7 +156,7 @@
         </div>
         <div class="columns">
             <div class="column has-text-left">
-                <h1 class="title">รายการประชุม อบรม สัมมนาทั้งหมด</h1>
+                <h1 class="title">ค้นหารายการประชุม อบรม สัมมนา</h1>
             </div>
             <div class="column has-text-right">
                 <a href="{{ url_for('staff.create_seminar') }}" class="button is-rounded is-warning">
@@ -120,6 +176,7 @@
                     <th>วันที่เริ่มต้น</th>
                     <th>วันที่สิ้นสุด</th>
                     <th>หน่วยงานที่จัด</th>
+                    <th>ค่าใช้จ่าย</th>
                     <th>เอกสารโครงการ</th>
                     </thead>
                     <tbody>
@@ -145,6 +202,7 @@
                         <td>
                              {% if records.organize_by %}{{ records.organize_by }}{% endif %}
                         </td>
+                        <td>{% if records.budget %}{{ "{:,.2f}".format(records.budget) }}{% endif %}</td>
                         <td>
                             {% if records.upload_file_url %}
                             <a href="{{ records.upload_file_url }}">คลิกเพื่อดู</a>

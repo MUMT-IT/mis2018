@@ -1,0 +1,194 @@
+{% extends 'continueing_edu/base.html' %}
+{% set TH = (current_lang == 'th') %}
+{% block title %}{{ texts.dashboard_title }}{% endblock %}
+
+{% block page_content %}
+<section class="section">
+  <div class="container">
+    <h1 class="title is-3">{{ texts.dashboard_title }}</h1>
+
+    <div class="columns is-multiline mb-5">
+      <div class="column is-4-desktop is-12-mobile">
+        <div class="box has-text-centered">
+          <p class="heading">{{ texts.dashboard_in_progress_title }}</p>
+          <p class="title is-2">{{ in_progress_regs|length }}</p>
+        </div>
+      </div>
+      <div class="column is-4-desktop is-12-mobile">
+        <div class="box has-text-centered">
+          <p class="heading">{{ texts.dashboard_completed_title }}</p>
+          <p class="title is-2">{{ completed_regs|length }}</p>
+        </div>
+      </div>
+      <div class="column is-4-desktop is-12-mobile">
+        <div class="box has-text-centered">
+          <p class="heading">{{ texts.dashboard_payments_title }}</p>
+          <p class="title is-2">{{ payments|length }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <h2 class="title is-4">{{ texts.dashboard_in_progress_title }}</h2>
+      {% if in_progress_regs %}
+      <div class="columns is-multiline">
+        {% for reg in in_progress_regs %}
+        {% set event = reg.event_entity %}
+        {% set event_title = event.title_th if TH and event and event.title_th else (event.title_en if event and event.title_en else (event.title_th if event and event.title_th else texts.label_none)) %}
+        {% if event %}
+        {% if event.event_type == 'course' %}
+        {% set detail_url = url_for('continuing_edu.course_detail', course_id=event.id, lang=current_lang) %}
+        {% elif event.event_type == 'webinar' %}
+        {% set detail_url = url_for('continuing_edu.webinar_detail', webinar_id=event.id, lang=current_lang) %}
+        {% else %}
+        {% set detail_url = '#' %}
+        {% endif %}
+        {% else %}
+        {% set detail_url = '#' %}
+        {% endif %}
+        {% set pay = payment_map.get(event.id if event else None) %}
+        <div class="column is-half-desktop is-full-tablet">
+          <div class="card">
+            <div class="card-content">
+              <p class="title is-5 mb-2">{{ event_title }}</p>
+              <p class="subtitle is-6">{{ texts.label_started_at }}: {{ reg.started_at or '-' }}</p>
+              <div class="tags">
+                {% if reg.status_ref %}
+                <span class="tag is-info">{{ reg.status_ref.name_th if TH and reg.status_ref.name_th else reg.status_ref.name_en }}</span>
+                {% endif %}
+                {% if pay and pay.payment_status_ref %}
+                <span class="tag {{ pay.payment_status_ref.css_badge or 'is-light' }}">{{ pay.payment_status_ref.name_th if TH and pay.payment_status_ref.name_th else pay.payment_status_ref.name_en }}</span>
+                {% endif %}
+              </div>
+              {% if event %}
+              <div class="buttons mt-3">
+                {% if detail_url and detail_url != '#' %}
+                <a class="button is-link is-light" href="{{ detail_url }}">{{ texts.button_view }}</a>
+                {% endif %}
+                <form method="post" action="{{ url_for('continuing_edu.complete_progress', event_id=event.id, lang=current_lang) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="passed" value="1">
+                  <button class="button is-small is-primary" type="submit">{{ texts.button_complete }}</button>
+                </form>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p>{{ texts.dashboard_empty_in_progress }}</p>
+      {% endif %}
+    </div>
+
+    <div class="content mt-5">
+      <h2 class="title is-4">{{ texts.dashboard_completed_title }}</h2>
+      {% if completed_regs %}
+      <div class="columns is-multiline">
+        {% for reg in completed_regs %}
+        {% set event = reg.event_entity %}
+        {% set event_title = event.title_th if TH and event and event.title_th else (event.title_en if event and event.title_en else (event.title_th if event and event.title_th else texts.label_none)) %}
+        {% if event %}
+        {% if event.event_type == 'course' %}
+        {% set detail_url = url_for('continuing_edu.course_detail', course_id=event.id, lang=current_lang) %}
+        {% elif event.event_type == 'webinar' %}
+        {% set detail_url = url_for('continuing_edu.webinar_detail', webinar_id=event.id, lang=current_lang) %}
+        {% else %}
+        {% set detail_url = '#' %}
+        {% endif %}
+        {% else %}
+        {% set detail_url = '#' %}
+        {% endif %}
+        <div class="column is-half-desktop is-full-tablet">
+          <div class="card">
+            <div class="card-content">
+              <p class="title is-5 mb-2">{{ event_title }}</p>
+              <p class="subtitle is-6">{{ texts.label_completed_at }}: {{ reg.completed_at or '-' }}</p>
+              <div class="tags">
+                {% if reg.certificate_status_ref %}
+                <span class="tag {{ reg.certificate_status_ref.css_badge or 'is-light' }}">{{ reg.certificate_status_ref.name_th if TH and reg.certificate_status_ref.name_th else reg.certificate_status_ref.name_en }}</span>
+                {% endif %}
+              </div>
+              <div class="buttons mt-3">
+                {% if detail_url and detail_url != '#' %}
+                <a class="button is-link is-light" href="{{ detail_url }}">{{ texts.button_view }}</a>
+                {% endif %}
+                {% if reg.certificate_url %}
+                <a class="button is-success is-light" href="{{ url_for('continuing_edu.certificate_view', reg_id=reg.id, lang=current_lang) }}">
+                  {{ texts.button_view_certificate }}
+                </a>
+                <a class="button is-success" href="{{ url_for('continuing_edu.certificate_pdf', reg_id=reg.id, lang=current_lang) }}" target="_blank">
+                  {{ texts.button_download_pdf }}
+                </a>
+                {% else %}
+                <a class="button is-warning is-light" href="{{ url_for('continuing_edu.certificate_pdf', reg_id=reg.id, lang=current_lang) }}">
+                  {{ texts.button_generate_certificate }}
+                </a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p>{{ texts.dashboard_empty_completed }}</p>
+      {% endif %}
+    </div>
+
+    <div class="content mt-5">
+      <h2 class="title is-4">{{ texts.dashboard_payments_title }}</h2>
+      {% if payments %}
+      <div class="table-container">
+        <table class="table is-fullwidth is-striped">
+          <thead>
+            <tr>
+              <th>{{ texts.label_event }}</th>
+              <th>{{ texts.label_amount }}</th>
+              <th>{{ texts.label_status }}</th>
+              <th>{{ texts.label_registered_at }}</th>
+              <th>{{ texts.label_actions }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for payment in payments %}
+            {% set event = payment.event_entity %}
+            {% set event_title = event.title_th if TH and event and event.title_th else (event.title_en if event and event.title_en else (event.title_th if event and event.title_th else texts.label_none)) %}
+            <tr>
+              <td>{{ event_title }}</td>
+              <td>{{ '%.2f'|format(payment.payment_amount or 0) }} {{ texts.currency_thb }}</td>
+              <td>
+                {% if payment.payment_status_ref %}
+                <span class="tag {{ payment.payment_status_ref.css_badge or 'is-light' }}">{{ payment.payment_status_ref.name_th if TH and payment.payment_status_ref.name_th else payment.payment_status_ref.name_en }}</span>
+                {% else %}
+                <span class="tag is-light">{{ texts.label_none }}</span>
+                {% endif %}
+              </td>
+              <td>{{ payment.payment_date or payment.created_at or '-' }}</td>
+              <td class="is-nowrap">
+                <div class="buttons are-small">
+                  <a class="button is-link is-light" href="{{ url_for('continuing_edu.view_invoice', payment_id=payment.id, lang=current_lang) }}">{{ texts.button_view_invoice }}</a>
+                  {% if payment.payment_proof_url %}
+                  <a class="button is-link" href="{{ payment.proof_presigned_url() }}" target="_blank">{{ texts.button_view }}</a>
+                  {% endif %}
+                  {% if payment.receipt %}
+                  <a class="button is-success is-light" href="{{ url_for('continuing_edu.view_receipt', receipt_id=payment.receipt.id, lang=current_lang) }}">{{ texts.button_view_receipt }}</a>
+                  {% endif %}
+                  {% if payment_gateway_url %}
+                  <a class="button is-primary is-light" href="{{ payment_gateway_url }}" target="_blank">{{ texts.button_pay_online }}</a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p>{{ texts.dashboard_empty_payments }}</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends 'continueing_edu/admin/base.html' %}
+{% block title %}Certificates · {{ event.title_en or 'Event' }}{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="level">
+    <div class="level-left">
+      <div>
+        <h1 class="title">Certificates for {{ event.title_en or event.title_th or 'Untitled Event' }}</h1>
+        <p class="subtitle is-6">Type: {{ event.event_type|capitalize }}</p>
+      </div>
+    </div>
+    <div class="level-right">
+      <a class="button is-light" href="{{ url_for('continuing_edu_admin.certificates_index') }}">Back to Overview</a>
+      <a class="button is-link ml-2" href="{{ url_for('continuing_edu_admin.edit_event', event_id=event.id, tab='certificates') }}">Manage Certificates</a>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="table-container">
+      <table class="table is-fullwidth is-striped is-hoverable">
+        <thead>
+          <tr>
+            <th>Member</th>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Payment</th>
+            <th>Certificate Status</th>
+            <th>Issued</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for reg in registrations %}
+          {% set member = reg.member %}
+          {% set pay = payments_map.get(reg.member_id) %}
+          <tr>
+            <td>{{ member.full_name_en or member.full_name_th or member.username }}</td>
+            <td>{{ member.email or '-' }}</td>
+            <td>
+              {% set badge = reg.status_ref.css_badge if reg.status_ref and reg.status_ref.css_badge else 'is-light' %}
+              <span class="tag {{ badge }}">{{ reg.status_ref.name_en if reg.status_ref else 'N/A' }}</span>
+              <div class="is-size-7 has-text-grey">Registered {{ reg.registration_date.strftime('%Y-%m-%d') if reg.registration_date else '-' }}</div>
+            </td>
+            <td>
+              {% if pay %}
+              <div>{{ "{:,.2f}".format(pay.payment_amount or 0) }} THB</div>
+              {% set p_badge = pay.payment_status_ref.css_badge if pay.payment_status_ref and pay.payment_status_ref.css_badge else 'is-light' %}
+              <span class="tag {{ p_badge }}">{{ pay.payment_status_ref.name_en if pay.payment_status_ref else 'N/A' }}</span>
+              {% else %}
+              <em class="has-text-grey">No payment</em>
+              {% endif %}
+            </td>
+            <td>
+              {% set c_badge = reg.certificate_status_ref.css_badge if reg.certificate_status_ref and reg.certificate_status_ref.css_badge else 'is-light' %}
+              <span class="tag {{ c_badge }}">{{ reg.certificate_status_ref.name_en if reg.certificate_status_ref else 'N/A' }}</span>
+            </td>
+            <td>{{ reg.certificate_issued_date.strftime('%Y-%m-%d %H:%M') if reg.certificate_issued_date else '-' }}</td>
+            <td class="has-text-right">
+              <div class="buttons is-right">
+                {% if reg.certificate_url %}
+                <a class="button is-small is-success is-light" href="{{ reg.certificate_presigned_url() }}" target="_blank">View</a>
+                {% else %}
+                <span class="tag is-light">Not issued</span>
+                {% endif %}
+                <a class="button is-small is-link"
+                  href="{{ url_for('continuing_edu_admin.certificates_registration_pdf', reg_id=reg.id, lang='en') }}"
+                  target="_blank">PDF</a>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="has-text-centered has-text-grey">No registrations yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

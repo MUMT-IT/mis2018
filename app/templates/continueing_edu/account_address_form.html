@@ -1,0 +1,557 @@
+{% extends "continueing_edu/base_frontend.html" %}
+
+{% block title %}
+{% set TH = (current_lang == 'th') %}
+{% if mode == 'edit' %}
+{{ texts.get('edit_address', 'แก้ไขที่อยู่' if TH else 'Edit Address') }}
+{% else %}
+{{ texts.get('add_address', 'เพิ่มที่อยู่' if TH else 'Add Address') }}
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<style>
+          .thai-address-field {
+                    position: relative;
+          }
+
+          .thai-address-input-wrapper {
+                    position: relative;
+          }
+
+          .thai-address-suggestions {
+                    position: absolute;
+                    top: 100%;
+                    left: 0;
+                    right: 0;
+                    z-index: 1000;
+                    background: white;
+                    border: 1px solid rgba(0, 0, 0, 0.15);
+                    border-top: none;
+                    border-radius: 0 0 6px 6px;
+                    max-height: 250px;
+                    overflow-y: auto;
+                    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+                    display: none;
+          }
+
+          .thai-address-suggestions.is-active {
+                    display: block;
+          }
+
+          .thai-address-suggestion-item {
+                    padding: 0.65rem 0.85rem;
+                    cursor: pointer;
+                    border-bottom: 1px solid #f3f4f6;
+          }
+
+          .thai-address-suggestion-item:last-child {
+                    border-bottom: none;
+          }
+
+          .thai-address-suggestion-item:hover,
+          .thai-address-suggestion-item.is-highlighted {
+                    background: rgba(102, 126, 234, 0.08);
+          }
+
+          .thai-address-suggestion-item .suggestion-main {
+                    font-weight: 600;
+          }
+
+          .thai-address-suggestion-item .suggestion-detail {
+                    margin-top: 0.25rem;
+                    font-size: 0.85rem;
+                    color: #6b7280;
+          }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/thai-address-database.js') }}"></script>
+<script>
+          document.addEventListener('DOMContentLoaded', () => {
+                    function initThaiAddressAutocomplete() {
+                              if (!window.thaiAddressAutocomplete) {
+                                        console.warn('Thai Address Database not loaded');
+                                        return;
+                              }
+
+                              const addressInputs = document.querySelectorAll('.thai-address-input');
+                              let currentFocusedInput = null;
+                              let highlightedIndex = -1;
+
+                              addressInputs.forEach(input => {
+                                        const field = input.dataset.field; // d, a, p, z
+                                        const suggestionsContainer = input.closest('.thai-address-field')?.querySelector('.thai-address-suggestions');
+                                        const addressEntry = input.closest('.address-entry') || document;
+                                        if (!suggestionsContainer) return;
+
+                                        input.addEventListener('input', function () {
+                                                  const query = this.value.trim();
+                                                  highlightedIndex = -1;
+
+                                                  if (query.length === 0) {
+                                                            suggestionsContainer.classList.remove('is-active');
+                                                            suggestionsContainer.innerHTML = '';
+                                                            return;
+                                                  }
+
+                                                  const results = window.thaiAddressAutocomplete.search(query, field);
+                                                  if (!results || results.length === 0) {
+                                                            suggestionsContainer.classList.remove('is-active');
+                                                            suggestionsContainer.innerHTML = '';
+                                                            return;
+                                                  }
+
+                                                  suggestionsContainer.innerHTML = '';
+                                                  results.forEach((item, index) => {
+                                                            const suggestionItem = document.createElement('div');
+                                                            suggestionItem.className = 'thai-address-suggestion-item';
+                                                            suggestionItem.dataset.index = index;
+                                                            suggestionItem.innerHTML = `
+                                                                      <div class="suggestion-main">${item.d}</div>
+                                                                      <div class="suggestion-detail">
+                                                                                ${item.a} • ${item.p} • ${item.z}
+                                                                      </div>
+                                                            `;
+
+                                                            suggestionItem.addEventListener('click', () => {
+                                                                      fillAddressFields(addressEntry, item);
+                                                                      suggestionsContainer.classList.remove('is-active');
+                                                                      suggestionsContainer.innerHTML = '';
+                                                            });
+
+                                                            suggestionItem.addEventListener('mouseenter', () => {
+                                                                      suggestionsContainer.querySelectorAll('.thai-address-suggestion-item').forEach(el => {
+                                                                                el.classList.remove('is-highlighted');
+                                                                      });
+                                                                      suggestionItem.classList.add('is-highlighted');
+                                                                      highlightedIndex = index;
+                                                            });
+
+                                                            suggestionsContainer.appendChild(suggestionItem);
+                                                  });
+
+                                                  suggestionsContainer.classList.add('is-active');
+                                                  currentFocusedInput = input;
+                                        });
+
+                                        input.addEventListener('keydown', function (e) {
+                                                  const suggestions = suggestionsContainer.querySelectorAll('.thai-address-suggestion-item');
+                                                  if (!suggestions || suggestions.length === 0) return;
+
+                                                  if (e.key === 'ArrowDown') {
+                                                            e.preventDefault();
+                                                            highlightedIndex = Math.min(highlightedIndex + 1, suggestions.length - 1);
+                                                            updateHighlight(suggestions);
+                                                  } else if (e.key === 'ArrowUp') {
+                                                            e.preventDefault();
+                                                            highlightedIndex = Math.max(highlightedIndex - 1, 0);
+                                                            updateHighlight(suggestions);
+                                                  } else if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            if (highlightedIndex >= 0 && suggestions[highlightedIndex]) {
+                                                                      suggestions[highlightedIndex].click();
+                                                            }
+                                                  } else if (e.key === 'Escape') {
+                                                            suggestionsContainer.classList.remove('is-active');
+                                                            suggestionsContainer.innerHTML = '';
+                                                  }
+                                        });
+
+                                        input.addEventListener('focus', function () {
+                                                  currentFocusedInput = this;
+                                        });
+
+                                        input.addEventListener('blur', function () {
+                                                  setTimeout(() => {
+                                                            if (currentFocusedInput === this) {
+                                                                      suggestionsContainer.classList.remove('is-active');
+                                                            }
+                                                  }, 200);
+                                        });
+                              });
+
+                              function updateHighlight(suggestions) {
+                                        suggestions.forEach((item, index) => {
+                                                  if (index === highlightedIndex) {
+                                                            item.classList.add('is-highlighted');
+                                                            item.scrollIntoView({ block: 'nearest' });
+                                                  } else {
+                                                            item.classList.remove('is-highlighted');
+                                                  }
+                                        });
+                              }
+
+                              function _q(entry, selectorA, selectorB) {
+                                        return entry.querySelector(selectorA) || entry.querySelector(selectorB);
+                              }
+
+                              function fillAddressFields(addressEntry, addressData) {
+                                        const subdistrictInput = _q(addressEntry, '[name="address_subdistrict[]"]', '[name="address_subdistrict"]');
+                                        const districtInput = _q(addressEntry, '[name="address_district[]"]', '[name="address_district"]');
+                                        const provinceInput = _q(addressEntry, '[name="address_province[]"]', '[name="address_province"]');
+                                        const zipcodeInput = _q(addressEntry, '[name="address_zipcode[]"]', '[name="address_zipcode"]');
+
+                                        if (subdistrictInput) subdistrictInput.value = addressData.d;
+                                        if (districtInput) districtInput.value = addressData.a;
+                                        if (provinceInput) provinceInput.value = addressData.p;
+                                        if (zipcodeInput) zipcodeInput.value = addressData.z;
+
+                                        [subdistrictInput, districtInput, provinceInput, zipcodeInput].forEach(input => {
+                                                  if (!input) return;
+                                                  input.classList.add('is-success');
+                                                  setTimeout(() => input.classList.remove('is-success'), 900);
+                                        });
+                              }
+
+                              document.addEventListener('click', (e) => {
+                                        if (!e.target.closest('.thai-address-field')) {
+                                                  document.querySelectorAll('.thai-address-suggestions').forEach(container => {
+                                                            container.classList.remove('is-active');
+                                                  });
+                                        }
+                              });
+                    }
+
+                    function initCountrySelect() {
+                              const countrySelect = document.getElementById('country_code');
+                              const otherWrap = document.getElementById('country_other_wrap');
+                              const otherInput = document.getElementById('country_other');
+                              if (!countrySelect || !otherWrap) return;
+
+                              function updateVisibility() {
+                                        const isOther = countrySelect.value === 'OTHER';
+                                        otherWrap.style.display = isOther ? '' : 'none';
+                                        if (!isOther && otherInput) otherInput.value = '';
+                              }
+
+                              countrySelect.addEventListener('change', updateVisibility);
+                              updateVisibility();
+                    }
+
+                    initThaiAddressAutocomplete();
+                    initCountrySelect();
+          });
+</script>
+{% endblock %}
+
+{% block content %}
+{% set TH = (current_lang == 'th') %}
+<section class="section">
+          <div class="container">
+                    <div class="is-flex is-justify-content-space-between is-align-items-center"
+                              style="gap: 1rem; flex-wrap: wrap;">
+                              <h1 class="title is-3" style="margin-bottom: 0;">
+                                        {% if mode == 'edit' %}
+                                        {{ texts.get('edit_address', 'แก้ไขที่อยู่' if TH else 'Edit Address') }}
+                                        {% else %}
+                                        {{ texts.get('add_address', 'เพิ่มที่อยู่' if TH else 'Add Address') }}
+                                        {% endif %}
+                              </h1>
+                              <a class="button"
+                                        href="{{ url_for('continuing_edu.account_settings', lang=current_lang) }}">
+                                        <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                                        <span>{{ texts.get('back_to_account', 'กลับไปหน้าบัญชี' if TH else 'Back to
+                                                  account') }}</span>
+                              </a>
+                    </div>
+
+                    <div class="box" style="margin-top: 1rem;">
+                              {% if mode == 'edit' and address %}
+                              <p class="help">{{ texts.get('address_id', 'รหัสที่อยู่' if TH else 'Address ID') }}: {{
+                                        address.id }}</p>
+                              {% endif %}
+
+                              {% set v = form_values if form_values else {} %}
+                              {% set a = address if address else None %}
+
+                              {% if mode == 'edit' and a %}
+                              {% set default_type = v.get('address_type') if v.get('address_type') is not none else
+                              (a.address_type or 'current') %}
+                              {% set default_label = v.get('label') if v.get('label') is not none else (a.label or '')
+                              %}
+                              {% set default_line1 = v.get('line1') if v.get('line1') is not none else (a.line1 or '')
+                              %}
+                              {% set default_line2 = v.get('line2') if v.get('line2') is not none else (a.line2 or '')
+                              %}
+                              {% set default_city = v.get('city') if v.get('city') is not none else (a.city or '') %}
+                              {% set default_state = v.get('state') if v.get('state') is not none else (a.state or '')
+                              %}
+                              {% set default_postal = v.get('postal_code') if v.get('postal_code') is not none else
+                              (a.postal_code or '') %}
+                              {% set default_country = v.get('country_name') if v.get('country_name') is not none else
+                              (a.country_name or '') %}
+                              {% set default_country_code = v.get('country_code') if v.get('country_code') is not none
+                              else
+                              (a.country_code or '') %}
+                              {% set default_country_other = v.get('country_other') or '' %}
+                              {% else %}
+                              {% set default_type = v.get('address_type') or 'current' %}
+                              {% set default_label = v.get('label') or '' %}
+                              {% set default_line1 = v.get('line1') or '' %}
+                              {% set default_line2 = v.get('line2') or '' %}
+                              {% set default_city = v.get('city') or '' %}
+                              {% set default_state = v.get('state') or '' %}
+                              {% set default_postal = v.get('postal_code') or '' %}
+                              {% set default_country = v.get('country_name') or ('' if not TH else 'Thailand') %}
+                              {% set default_country_code = v.get('country_code') or '' %}
+                              {% set default_country_other = v.get('country_other') or '' %}
+                              {% endif %}
+
+                              {% set ns_country = namespace(code=default_country_code, matched=false) %}
+                              {% set country_name_value = (default_country_other or default_country or '') %}
+
+                              {% if (not ns_country.code) and country_name_value and country_options %}
+                              {% for c in country_options %}
+                              {% if c['name'] == country_name_value %}
+                              {% set ns_country.code = c['code'] %}
+                              {% set ns_country.matched = true %}
+                              {% endif %}
+                              {% endfor %}
+                              {% endif %}
+
+                              {% if (not ns_country.code) and country_name_value and (not ns_country.matched) %}
+                              {% set ns_country.code = 'OTHER' %}
+                              {% endif %}
+
+                              {% set default_subdistrict = v.get('address_subdistrict[]') or
+                              v.get('address_subdistrict') or (default_line2 or '') %}
+                              {% set default_district = v.get('address_district[]') or v.get('address_district') or
+                              (default_city or '') %}
+                              {% set default_province = v.get('address_province[]') or v.get('address_province') or
+                              (default_state or '') %}
+                              {% set default_zipcode = v.get('address_zipcode[]') or v.get('address_zipcode') or
+                              (default_postal or '') %}
+
+                              <form method="post" class="address-entry"
+                                        action="{% if mode == 'edit' and a %}{{ url_for('continuing_edu.account_address_edit', address_id=a.id, lang=current_lang) }}{% else %}{{ url_for('continuing_edu.account_address_new', lang=current_lang) }}{% endif %}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                        <div class="columns">
+                                                  <div class="column is-one-third">
+                                                            <div class="field">
+                                                                      <label class="label">{{ texts.get('address_type',
+                                                                                'ประเภทที่อยู่' if TH else 'Address
+                                                                                type') }}</label>
+                                                                      <div class="control">
+                                                                                <div class="select is-fullwidth">
+                                                                                          <select name="address_type"
+                                                                                                    required>
+                                                                                                    {% for t in
+                                                                                                    ['current',
+                                                                                                    'billing', 'work',
+                                                                                                    'other'] %}
+                                                                                                    <option value="{{ t }}"
+                                                                                                              {% if
+                                                                                                              (default_type|string)==t
+                                                                                                              %}selected{%
+                                                                                                              endif %}>
+                                                                                                              {{ t }}
+                                                                                                    </option>
+                                                                                                    {% endfor %}
+                                                                                          </select>
+                                                                                </div>
+                                                                      </div>
+                                                                      <p class="help">{{ texts.get('address_type_help',
+                                                                                'ระบบจะใช้ billing ก่อน หากมี' if TH
+                                                                                else 'Billing is preferred when
+                                                                                available.') }}</p>
+                                                            </div>
+                                                  </div>
+                                                  <div class="column">
+                                                            <div class="field">
+                                                                      <label class="label">{{ texts.get('address_label',
+                                                                                'ชื่อเรียก (ไม่บังคับ)' if TH else
+                                                                                'Label (optional)') }}</label>
+                                                                      <div class="control">
+                                                                                <input class="input" name="label"
+                                                                                          value="{{ default_label }}"
+                                                                                          placeholder="{{ texts.get('address_label_placeholder', 'เช่น บ้าน, ที่ทำงาน' if TH else 'e.g. Home, Office') }}">
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                        </div>
+
+                                        <div class="field">
+                                                  <label class="label">{{ texts.get('address_line1', 'ที่อยู่บรรทัดที่
+                                                            1' if TH else 'Address line 1') }}</label>
+                                                  <div class="control">
+                                                            <input class="input" name="line1"
+                                                                      value="{{ default_line1 }}" required>
+                                                  </div>
+                                        </div>
+
+                                        <div class="field">
+                                                  <label class="label">{{ texts.get('address_line2', 'ที่อยู่บรรทัดที่ 2
+                                                            (ไม่บังคับ)' if TH else 'Address line 2 (optional)')
+                                                            }}</label>
+                                                  <div class="control">
+                                                            <input class="input" name="line2"
+                                                                      value="{{ default_line2 }}">
+                                                  </div>
+                                        </div>
+
+                                        <div class="columns">
+                                                  <div class="column">
+                                                            <div class="field">
+                                                                      <label class="label">{{
+                                                                                texts.get('subdistrict_label',
+                                                                                'ตำบล/แขวง' if TH else
+                                                                                'Subdistrict') }}</label>
+                                                                      <div class="control">
+                                                                                <div class="thai-address-field">
+                                                                                          <div
+                                                                                                    class="thai-address-input-wrapper">
+                                                                                                    <input class="input thai-address-input"
+                                                                                                              type="text"
+                                                                                                              name="address_subdistrict[]"
+                                                                                                              data-field="d"
+                                                                                                              value="{{ default_subdistrict }}"
+                                                                                                              placeholder="{{ texts.get('subdistrict_placeholder', 'พิมพ์เพื่อค้นหา' if TH else 'Type to search') }}"
+                                                                                                              autocomplete="off">
+                                                                                          </div>
+                                                                                          <div
+                                                                                                    class="thai-address-suggestions">
+                                                                                          </div>
+                                                                                </div>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                                  <div class="column">
+                                                            <div class="field">
+                                                                      <label class="label">{{
+                                                                                texts.get('district_label',
+                                                                                'อำเภอ/เขต' if TH else
+                                                                                'District') }}</label>
+                                                                      <div class="control">
+                                                                                <div class="thai-address-field">
+                                                                                          <div
+                                                                                                    class="thai-address-input-wrapper">
+                                                                                                    <input class="input thai-address-input"
+                                                                                                              type="text"
+                                                                                                              name="address_district[]"
+                                                                                                              data-field="a"
+                                                                                                              value="{{ default_district }}"
+                                                                                                              placeholder="{{ texts.get('district_placeholder', 'พิมพ์เพื่อค้นหา' if TH else 'Type to search') }}"
+                                                                                                              autocomplete="off">
+                                                                                          </div>
+                                                                                          <div
+                                                                                                    class="thai-address-suggestions">
+                                                                                          </div>
+                                                                                </div>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                                  <div class="column">
+                                                            <div class="field">
+                                                                      <label class="label">{{
+                                                                                texts.get('province_label',
+                                                                                'จังหวัด' if TH else
+                                                                                'Province') }}</label>
+                                                                      <div class="control">
+                                                                                <div class="thai-address-field">
+                                                                                          <div
+                                                                                                    class="thai-address-input-wrapper">
+                                                                                                    <input class="input thai-address-input"
+                                                                                                              type="text"
+                                                                                                              name="address_province[]"
+                                                                                                              data-field="p"
+                                                                                                              value="{{ default_province }}"
+                                                                                                              placeholder="{{ texts.get('province_placeholder', 'พิมพ์เพื่อค้นหา' if TH else 'Type to search') }}"
+                                                                                                              autocomplete="off">
+                                                                                          </div>
+                                                                                          <div
+                                                                                                    class="thai-address-suggestions">
+                                                                                          </div>
+                                                                                </div>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                        </div>
+
+                                        <div class="columns">
+                                                  <div class="column is-one-third">
+                                                            <div class="field">
+                                                                      <label class="label">{{ texts.get('zipcode_label',
+                                                                                'รหัสไปรษณีย์' if TH else
+                                                                                'Postal Code') }}</label>
+                                                                      <div class="control">
+                                                                                <div class="thai-address-field">
+                                                                                          <div
+                                                                                                    class="thai-address-input-wrapper">
+                                                                                                    <input class="input thai-address-input"
+                                                                                                              type="text"
+                                                                                                              name="address_zipcode[]"
+                                                                                                              data-field="z"
+                                                                                                              value="{{ default_zipcode }}"
+                                                                                                              placeholder="{{ texts.get('zipcode_placeholder', 'พิมพ์เพื่อค้นหา' if TH else 'Type to search') }}"
+                                                                                                              autocomplete="off">
+                                                                                          </div>
+                                                                                          <div
+                                                                                                    class="thai-address-suggestions">
+                                                                                          </div>
+                                                                                </div>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                        </div>
+
+                                        <div class="field">
+                                                  <label class="label">{{ texts.get('country', 'ประเทศ' if TH else
+                                                            'Country') }}</label>
+                                                  <div class="control">
+                                                            <div class="select is-fullwidth">
+                                                                      <select name="country_code" id="country_code">
+                                                                                <option value="">{{
+                                                                                          texts.get('select_country',
+                                                                                          'เลือกประเทศ' if TH else
+                                                                                          'Select country') }}</option>
+                                                                                {% if country_options %}
+                                                                                {% for c in country_options %}
+                                                                                <option value="{{ c['code'] }}" {% if
+                                                                                          (ns_country.code|string)==(c['code']|string)
+                                                                                          %}selected{% endif %}>{{
+                                                                                          c['name'] }}</option>
+                                                                                {% endfor %}
+                                                                                {% endif %}
+                                                                                <option value="OTHER" {% if
+                                                                                          (ns_country.code|string)=='OTHER'
+                                                                                          %}selected{% endif %}>{{
+                                                                                          texts.get('other_country',
+                                                                                          'อื่น ๆ' if TH else 'Other')
+                                                                                          }}</option>
+                                                                      </select>
+                                                            </div>
+                                                  </div>
+                                                  <div class="control" id="country_other_wrap"
+                                                            style="margin-top: 0.5rem; display:none;">
+                                                            <input class="input" name="country_other" id="country_other"
+                                                                      value="{{ default_country_other or (default_country if (ns_country.code|string)=='OTHER' else '') }}"
+                                                                      placeholder="{{ texts.get('country_other_placeholder', 'กรอกชื่อประเทศ' if TH else 'Enter country name') }}">
+                                                  </div>
+                                        </div>
+
+                                        <div class="field is-grouped" style="margin-top: 1.25rem;">
+                                                  <div class="control">
+                                                            <button class="button is-primary" type="submit">
+                                                                      <span class="icon"><i
+                                                                                          class="fas fa-save"></i></span>
+                                                                      <span>{{ texts.get('save', 'บันทึก' if TH else
+                                                                                'Save') }}</span>
+                                                            </button>
+                                                  </div>
+                                                  <div class="control">
+                                                            <a class="button"
+                                                                      href="{{ url_for('continuing_edu.account_settings', lang=current_lang) }}">{{
+                                                                      texts.get('cancel', 'ยกเลิก' if TH else 'Cancel')
+                                                                      }}</a>
+                                                  </div>
+                                        </div>
+                              </form>
+                    </div>
+          </div>
+</section>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends 'continueing_edu/admin/base.html' %}
+{% block content %}
+<div class="container">
+  <h1 class="title">Manage Events</h1>
+  <a href="{{ url_for('continuing_edu_admin.create_event') }}" class="button is-primary mb-4">Create New Event</a>
+
+  {% if events %}
+  <table class="table is-fullwidth is-striped">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Title</th>
+        <th>Type</th>
+        <th>Created</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in events %}
+      <tr>
+        <td>{{ e.id }}</td>
+        <td>{{ e.title_en or e.title_th or 'Untitled' }}</td>
+        <td>{{ e.event_type }}</td>
+        <td>{{ e.created_at }}</td>
+        <td>
+          <a class="button is-small is-link" href="{{ url_for('continuing_edu_admin.edit_event', event_id=e.id) }}">Edit</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No events yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

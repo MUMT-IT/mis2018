@@ -1,0 +1,17 @@
+<html>
+
+<body>
+          <p>{{ texts.get('dear','Dear') }} {{ member.firstname_th or member.firstname_en or '' }},</p>
+          <p>{{ texts.get('payment_success_msg','การชำระเงินของคุณได้รับการยืนยันแล้ว') }}.</p>
+          <p>
+                    {{ texts.get('event','Event') }}: {{ event.title_en or event.title_th }}<br>
+                    {{ texts.get('amount','Amount') }}: {{ payment.payment_amount }} THB<br>
+                    {{ texts.get('invoice','Invoice') }}: <a
+                              href="{{ url_for('continuing_edu.view_invoice', payment_id=payment.id, _external=True) }}">{{
+                              texts.get('view_invoice','View invoice') }}</a>
+          </p>
+          <p>{{ texts.get('contact_support','หากต้องการความช่วยเหลือกรุณาติดต่อเจ้าหน้าที่') }}.</p>
+          <p>{{ texts.get('thanks','Thank you') }},<br />ทีมงาน</p>
+</body>
+
+</html>

@@ -3,6 +3,7 @@
 {% block page_content %}
 <section class="section" id="app">
     <div class="container">
+    {% include "messages.html" %}
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
                 <div class="box">
@@ -81,7 +82,23 @@
                                 <label class="label">ดำเนินการภายใต้</label>
                             </td>
                             <td>{% for obj in attend.objectives %}
-                                {{ obj.objective }}
+                                    {{ obj.objective }}
+                                    {% if "IDP" in obj.objective %}
+                                        <table>
+                                            <thead>
+                                            <th>สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</th>
+                                            <th>วิธีการพัฒนา</th>
+                                            </thead>
+                                            {% for item in attend.idp_items %}
+                                             <tr>
+
+                                                    <td>{{ item.plan }}</td>
+                                                    <td>{{ item.learning_type }}</td>
+
+                                             </tr>
+                                             {% endfor %}
+                                        </table>
+                                    {% endif %}
                                 {% endfor %}
                             </td>
                         </tr>
@@ -103,16 +120,14 @@
                             </td>
                         </tr>
                         {% endif %}
-                        {% if attend.budget_type %}
+                        {% if attend.budget %}
                         <tr>
                             <td>
                                <label class="label">ค่าใช้จ่าย</label>
                             </td>
                             <td>{% if attend.budget_type %}
-                                {{ attend.budget_type }} :
+                                แหล่งงบประมาณ/เงินทุน: {{ attend.budget_type }}
                                 {% endif %}
-                                รวมทั้งสิ้น
-                                {{ attend.budget }}
                             </td>
                         </tr>
                         {% endif %}
@@ -120,7 +135,7 @@
                         <tr>
                             <td></td>
                             <td>
-                                ค่าลงทะเบียน: {{ attend.registration_fee }}
+                                ค่าลงทะเบียน: {{ "{:,.2f}".format(attend.registration_fee) }}
                             </td>
                         </tr>
                         {% endif %}
@@ -128,7 +143,7 @@
                         <tr>
                             <td></td>
                             <td>
-                                ค่าที่พัก: {{ attend.accommodation_cost }}
+                                ค่าที่พัก: {{ "{:,.2f}".format(attend.accommodation_cost) }}
                             </td>
                         </tr>
                         {% endif %}
@@ -136,7 +151,7 @@
                         <tr>
                             <td></td>
                             <td>
-                                ค่าน้ำมัน: {{ attend.fuel_cost }}
+                                ค่าน้ำมัน: {{ "{:,.2f}".format(attend.fuel_cost) }}
                             </td>
                         </tr>
                         {% endif %}
@@ -144,7 +159,7 @@
                         <tr>
                             <td></td>
                             <td>
-                                ค่ารถไฟ: {{ attend.train_ticket_cost }}
+                                ค่ารถไฟ: {{ "{:,.2f}".format(attend.train_ticket_cost) }}
                             </td>
                         </tr>
                         {% endif %}
@@ -152,7 +167,7 @@
                         <tr>
                             <td></td>
                             <td>
-                                ค่าTaxi: {{ attend.taxi_cost }}
+                                ค่าTaxi: {{ "{:,.2f}".format(attend.taxi_cost) }}
                             </td>
                         </tr>
                         {% endif %}
@@ -160,7 +175,7 @@
                         <tr>
                             <td></td>
                             <td>
-                                ค่าตั๋วเครื่องบิน: {{ attend.flight_ticket_cost }}
+                                ค่าตั๋วเครื่องบิน: {{ "{:,.2f}".format(attend.flight_ticket_cost) }}
                             </td>
                         </tr>
                         {% endif %}
@@ -168,7 +183,15 @@
                         <tr>
                             <td></td>
                             <td>
-                                ค่าธรรมเนียมการโอน: {{ attend.transaction_fee }}
+                                ค่าธรรมเนียมการโอน: {{ "{:,.2f}".format(attend.transaction_fee) }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if attend.budget %}
+                        <tr>
+                            <td></td>
+                            <td>
+                                รวมทั้งสิ้น {{ "{:,.2f}".format(attend.budget) }}
                             </td>
                         </tr>
                         {% endif %}
@@ -285,7 +308,7 @@
             width: 73,
             alignment: 'center'
         }
-                            , {text: '\n\n'+{{ org_name|tojson|safe }}+' คณะเทคนิคการแพทย์\nโทร. i+42+' + "{{ telephone }}",
+                            , {text: '\n\n'+{{ org_name|tojson|safe }}+' คณะเทคนิคการแพทย์\nโทร. 02-441-4371',
                                 fontSize:17, alignment: 'right'},''],
                         ],
                     }
@@ -321,10 +344,11 @@
                                 'ค่าลงทะเบียน จำนวน '+"{{ registration_fee }}"+ ' บาท '+"{{ transaction_fee }}"+"{{ accommodation_cost }}"
                                 +"{{ flight_ticket_cost }}"+"{{ train_ticket_cost }}"+"{{ taxi_cost }}"+"{{ fuel_cost }}"
                                 + 'รวมทั้งสิ้น '+"{{ budget }}"+ ' บาท',
-                                'รายละเอียดการเข้าร่วม'+"{{ seminar_attend.seminar.topic_type }}"+' ดำเนินการภายใต้\n'+"{{ seminar_attend.objective_list|join(", ") }}",
+                                'รายละเอียดการเข้าร่วม'+"{{ seminar_attend.seminar.topic_type }}"+' ดำเนินการภายใต้\n'+"{{ seminar_attend.objective_list|join(", ") }}"+"{{ idp_pre_item }}"+"{{ idp_item }}"+
+                                '{{ idp_value }}',
                                 'เป็นการเข้าร่วม'+"{{ seminar_attend.seminar.topic_type }}"
                                 +' เพื่อพัฒนาในด้าน\n'+"{{ seminar_attend.mission_list|join(", ") }}",
-                                {text: 'ความเห็นผู้บังคับบัญชา เห็นควรอนุมัติ'},
+                                {text: 'ความเห็นผู้บังคับบัญชา เห็นควรอนุมัติ เหตุผลความจำเป็น.....................................................................'},
                             ]
 				        },
 			        ]
@@ -346,7 +370,7 @@
                         headerRow: 0,
                         widths: [230,'*',5],
                         body: [
-                            ['', {text: '\n\n'+"{{ prefix_position }} "+"{{ approver }}"+'\n'+ "{{ approver_position }}",
+                            ['', {text: '\n\n'+"("+"{{ prefix_position }} "+"{{ approver }}"+" )"+'\n'+ "{{ approver_position }}",
                                 fontSize:17, alignment: 'center'},''],
                         ],
                     }
