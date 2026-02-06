@@ -5374,7 +5374,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         ('SPAN', (2, -2), (3, -2)),
         ('SPAN', (0, -1), (1, -1)),
         ('SPAN', (2, -1), (3, -1)),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 10)
     ]))
 
@@ -6058,9 +6058,6 @@ def generate_virus_air_disinfection_quotation():
                     values = f"<i>{organism_rows}</i> {period_test_rows}"
                     if p_key in quote_prices:
                         prices = quote_prices[p_key]
-                    if p_key in quote_details:
-                        quote_details[p_key]["quantity"] += 1
-                    else:
                         quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
 
         quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
@@ -6551,7 +6548,7 @@ def generate_quotation_pdf(quotation, sign=False):
         ('SPAN', (2, -2), (3, -2)),
         ('SPAN', (0, -1), (1, -1)),
         ('SPAN', (2, -1), (3, -1)),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 10)
     ]))
 
