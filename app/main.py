@@ -789,6 +789,10 @@ admin.add_view(ModelView(IDPItem, db.session, category='IDP'))
 admin.add_view(ModelView(IDPLearningType, db.session, category='IDP'))
 admin.add_view(ModelView(IDPLearningPlan, db.session, category='IDP'))
 
+from app.address import address as address_blueprint
+
+app.register_blueprint(address_blueprint)
+
 from app.service_admin import service_admin as service_admin_blueprint
 
 app.register_blueprint(service_admin_blueprint)
@@ -809,6 +813,7 @@ admin.add_views(ModelView(ServiceLab, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceSubLab, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceStatus, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceReportLanguage, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceReportReceiveChannel, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceAdmin, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerType, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerContactType, db.session, category='Academic Service'))
@@ -1173,6 +1178,96 @@ def update_approver_gsheet():
                 ap2 = StaffLeaveApprover(requester=account, approver=approver2)
                 db.session.add(ap2)
         db.session.commit()
+
+
+@dbutils.command('import_province')
+def import_province():
+    sheetid = '1FnUHT8eoEJBz35HXz4gdq9DruyNU1lfsO74O1d0YRQE'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("Province")
+    df = pandas.DataFrame(sheet.get_all_records())
+    for idx, row in df.iterrows():
+        order_id = row['order_id']
+        name = row['name']
+        code = str(row['code'])
+        province = Province.query.filter_by(name=name, code=code).first()
+        if not province:
+            new_province = Province(order_id=order_id, name=name, code=code)
+            db.session.add(new_province)
+            db.session.commit()
+        else:
+            province.order_id = order_id if order_id is not None else province.order_id
+            province.name = name if name is not None else province.name
+            province.code = code if code is not None else province.code
+            db.session.add(province)
+            db.session.commit()
+
+
+@dbutils.command('import_district')
+def import_district():
+    sheetid = '1FnUHT8eoEJBz35HXz4gdq9DruyNU1lfsO74O1d0YRQE'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("District")
+    df = pandas.DataFrame(sheet.get_all_records())
+    for idx, row in df.iterrows():
+        order_id = row['order_id']
+        name = row['name']
+        code = str(row['code'])
+        province_name = row['province_name']
+        district = District.query.filter_by(name=name, code=code).first()
+        province = Province.query.filter_by(name=province_name).first()
+        if not district:
+            new_district = District(order_id=order_id, name=name, code=code, province_id=province.id)
+            db.session.add(new_district)
+            db.session.commit()
+        else:
+            district.order_id = order_id if order_id is not None else district.order_id
+            district.name = name if name is not None else district.name
+            district.code = code if code is not None else district.code
+            district.province_id = province.id if province else district.province_id
+            db.session.add(province)
+            db.session.commit()
+
+
+@dbutils.command('import_subdistrict')
+def import_subdistrict():
+    sheetid = '1FnUHT8eoEJBz35HXz4gdq9DruyNU1lfsO74O1d0YRQE'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("Subdistrict")
+    df = pandas.DataFrame(sheet.get_all_records())
+    for idx, row in df.iterrows():
+        order_id = row['order_id']
+        name = row['name']
+        code = str(row['code'])
+        district_name = row['district_name']
+        district_code = str(row['district_code'])
+        zip_code = row['zip_code']
+        subdistrict = Subdistrict.query.filter_by(name=name, code=code).first()
+        district = District.query.filter_by(name=district_name, code=district_code).first()
+        zipcode = Zipcode.query.filter_by(zip_code=zip_code).first()
+        if not zipcode:
+            zipcode = Zipcode(zip_code=zip_code)
+            db.session.add(zipcode)
+            db.session.commit()
+        if not subdistrict:
+            new_subdistrict = Subdistrict(order_id=order_id, name=name, code=code, district_id=district.id,
+                                          zip_code_id=zipcode.id)
+            db.session.add(new_subdistrict)
+            db.session.commit()
+        else:
+            subdistrict.order_id = order_id if order_id is not None else subdistrict.order_id
+            subdistrict.name = name if name is not None else subdistrict.name
+            subdistrict.code = code if code is not None else subdistrict.code
+            subdistrict.district_id = district.id if district else subdistrict.district_id
+            subdistrict.zip_code_id = zipcode.id if zipcode else subdistrict.zip_pcode_id
+            db.session.add(subdistrict)
+            db.session.commit()
 
 
 @dbutils.command('import_student')

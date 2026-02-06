@@ -90,7 +90,7 @@
                                                 >
                                                     เรียนรู้เพิ่มเติม
                                                 </a>
-                                                {% if current_user.verify_datetime %}
+                                                {% if current_user.is_authenticated %}
                                                     {% if lab.sub_labs|length > 1 %}
                                                         <a href="{{ url_for('academic_services.detail_lab_index', cat='form', code=lab.code) }}"
                                                            class="button is-info is-small"
@@ -106,8 +106,6 @@
                                                             </a>
                                                         {% endfor %}
                                                     {% endif %}
-                                                {% elif current_user.verify_datetime == None %}
-                                                    <a id="Warn" class="button is-info is-small">ส่งคำขอรับบริการ</a>
                                                 {% else %}
                                                     <a href="{{ url_for('academic_services.login') }}"
                                                        class="button is-info is-small"

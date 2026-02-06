@@ -1,16 +1,21 @@
 {% extends "academic_services/service_base.html" %}
 {% block head %}
     {{ super() }}
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
+    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
     <style>
-        .is-full-height {
-            height: 100%;
+        .toast {
+            opacity: 1 !important;
+            transition: none !important;
+        }
+        #toast-container.toast-top-full-width > .toast {
+            width: 100% !important;
         }
     </style>
 {% endblock %}
 {% block page_content %}
     {% include "academic_services/customer_nav.html" %}
     <div class="section" id="request">
-        {% include 'messages.html' %}
         <div class="container">
             <div class="columns is-flex is-align-items-stretch">
                 <div class="column">
@@ -92,35 +97,9 @@
                                 <strong>ส่วนลด : </strong>
                                 {{ "{:,.2f}".format(quotation.discount()) }}
                             </p>
-                            <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ "{:,.2f}".format(quotation.grand_total()) }}</p>
+                            <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ "{:,.2f}".format(quotation.grand_total()) }}
+                            </p>
                         </div>
-{#                        <div class="mb-4 is-flex is-align-items-center">#}
-{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่สำหรับจัดส่งเอกสาร</p>#}
-{#                        </div>#}
-{#                        <div class="mb-4 is-flex is-align-items-center">#}
-{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ถึง</p>#}
-{#                            <div style="margin-left: 1.75rem;">#}
-{#                                {{ quotation.request.receive_name }}#}
-{#                            </div>#}
-{#                        </div>#}
-{#                        <div class="mb-4 is-flex is-align-items-center">#}
-{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>#}
-{#                            <div style="margin-left: 1.75rem;">#}
-{#                                {{ quotation.request.receive_address }}#}
-{#                            </div>#}
-{#                        </div>#}
-{#                        <div class="mb-4 is-flex is-align-items-center">#}
-{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เบอร์โทรศัพท์</p>#}
-{#                            <div style="margin-left: 1.75rem;">#}
-{#                                {{ quotation.request.receive_phone_number }}#}
-{#                            </div>#}
-{#                        </div>#}
-{#                        <div class="mb-4 is-flex is-align-items-center">#}
-{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">อีเมล</p>#}
-{#                            <div style="margin-left: 1.75rem;">#}
-{#                                {{ quotation.request.customer.contact_email }}#}
-{#                            </div>#}
-{#                        </div>#}
                     </div>
                 </div>
                 <div class="column is-one-quarter ">
@@ -150,49 +129,66 @@
                                 การดำเนินการ
                             </p>
                             <ul class="menu-list">
-                                {% if not quotation.confirmed_at %}
+                                {% if current_user.verify_datetime %}
+                                    {% if not quotation.confirmed_at %}
+                                        <li>
+                                            <a class="button is-success is-rounded is-fullwidth mb-2"
+                                               style="margin-right: .3em"
+                                               href="{{ url_for('academic_services.confirm_quotation',
+                                               quotation_id=quotation_id, menu='sample') }}"
+                                            >
+                                                    <span class="icon">
+                                                        <i class="fas fa-check"></i>
+                                                    </span>
+                                                <span>ยืนยัน</span>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <div id="reject-quotation"></div>
+                                            <a class="button is-rounded is-outlined is-small is-fullwidth mb-2 has-text-danger"
+                                               hx-swap="innerHTML"
+                                               hx-target="#reject-quotation"
+                                               hx-get="{{ url_for('academic_services.reject_quotation', quotation_id=quotation_id,
+                                                   menu=menu, tab=tab) }}"
+                                            >
+                                                    <span class="icon">
+                                                        <i class="fas fa-times"></i>
+                                                    </span>
+                                                <span>ปฏิเสธ</span>
+                                            </a>
+                                        </li>
+                                    {% endif %}
                                     <li>
-                                        <a class="button is-success is-rounded is-fullwidth mb-2" style="margin-right: .3em"
-                                           href="{{ url_for('academic_services.confirm_quotation',
-                                           quotation_id=quotation_id, menu='sample') }}"
+                                        <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
+                                           href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id) }}"
                                         >
-                                                <span class="icon">
-                                                    <i class="fas fa-check"></i>
-                                                </span>
+                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                            <span>ดาวน์โหลดใบเสนอราคา</span>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li>
+                                        <a class="Warn button is-success is-rounded is-fullwidth mb-2"
+                                           style="margin-right: .3em"
+                                        >
+                                            <span class="icon"><i class="fas fa-check"></i></span>
                                             <span>ยืนยัน</span>
                                         </a>
                                     </li>
                                     <li>
-                                        <div id="reject-quotation"></div>
-                                        <a class="button is-rounded is-outlined is-small is-fullwidth mb-2 has-text-danger"
-                                           hx-swap="innerHTML"
-                                           hx-target="#reject-quotation"
-                                           hx-get="{{ url_for('academic_services.reject_quotation', quotation_id=quotation_id,
-                                               menu=menu, tab=tab) }}"
+                                        <a class="Warn button is-rounded is-outlined is-small is-fullwidth mb-2 has-text-danger"
                                         >
-                                                <span class="icon">
-                                                    <i class="fas fa-times"></i>
-                                                </span>
-                                            <span>ปฏิเสธ</span>
+                                            <span class="icon"><i class="fas fa-times"></i>
+                                            </span><span>ปฏิเสธ</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="Warn button is-info is-outlined is-rounded is-small is-fullwidth">
+                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                            <span>ดาวน์โหลดใบเสนอราคา</span>
                                         </a>
                                     </li>
                                 {% endif %}
-{#                                <li>#}
-{#                                    <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"#}
-{#                                       @click="printQuotation()"#}
-{#                                    >#}
-{#                                        <span class="icon"><i class="fas fa-print"></i></span>#}
-{#                                        <span>พิมพ์ใบเสนอราคา</span>#}
-{#                                    </a>#}
-{#                                </li>#}
-                                <li>
-                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
-                                       href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id) }}"
-                                    >
-                                        <span class="icon"><i class="fas fa-download"></i></span>
-                                        <span>ดาวน์โหลดใบเสนอราคา</span>
-                                    </a>
-                                </li>
                             </ul>
                         </aside>
                     </div>
@@ -203,7 +199,8 @@
     <div class="columns">
         <div class="column is-two-thirds is-offset-2 has-text-centered">
             <div class="buttons is-centered">
-                <a class="button is-light" href="{{ url_for('academic_services.quotation_index', menu=menu, tab=tab) }}">
+                <a class="button is-light"
+                   href="{{ url_for('academic_services.quotation_index', menu=menu, tab=tab) }}">
                     <span class="icon">
                         <i class="fas fa-chevron-left"></i>
                     </span>
@@ -217,7 +214,9 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script type="text/javascript">
         var vm = new Vue({
             el: "#request",
@@ -227,6 +226,54 @@
                     printJS({{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id)|tojson|safe }});
                 }
             },
+        });
+    </script>
+    <script>
+        $(document).ready(() => {
+            $('.Warn').click(() => {
+                Swal.fire({
+                    title: 'กรุณายืนยันอีเมล',
+                    icon: 'warning',
+                    text: 'คุณยังไม่ได้ทำการยืนยันอีเมล กรุณายืนยันอีเมลก่อนดำเนินการใบเสนอราคา',
+                    confirmButtonText: "กดปุ่มเพื่อส่งอีเมล",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        var tab = '{{ tab }}';
+                        var menu = '{{ menu }}';
+                        var quotation_id = '{{ quotation_id }}';
+                        window.location.href = "/academic_services/email/send/" + quotation_id + '?menu=' + menu + '&tab=' + tab;
+                        Swal.fire("ส่งอีเมลแล้ว!", "กรุณายืนยันอีเมลภายใน <strong>3 ชั่วโมง</strong> เพื่อให้สามารถดำเนินการต่อได้", "success");
+                    }
+                });
+            })
+        })
+    </script>
+    <script>
+        function showToast(category, message) {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
+            toastr.success(message);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        showToast('{{ category }}', {{ message|tojson }});
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
         });
     </script>
 {% endblock %}

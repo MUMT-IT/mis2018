@@ -160,12 +160,25 @@
                                 <li>
                                     {% if quotation.approved_at %}
                                         {{ quotation.approved_at|localdate }}
+                                    {% elif quotation.sent_at and quotation.disapproved_at %}
+                                        <span class="tag has-text-danger is-rounded">ไม่อนุมัติใบเสนอราคา</span>
                                     {% else %}
-                                        ยังไม่ดำเนินการอนุมัติ
+                                        <span class="tag has-text-info is-rounded">ยังไม่ดำเนินการอนุัมติ</span>
                                     {% endif %}
                                 </li>
                             </ul>
                             <hr>
+                            {% if quotation.note %}
+                                <p class="menu-label">
+                                    เหตุผลที่ไม่อนุมัติ
+                                </p>
+                                <ul class="menu-list">
+                                    <li>
+                                        {{ quotation.note }}
+                                    </li>
+                                </ul>
+                                <hr>
+                            {% endif %}
                             <p class="menu-label">
                                 สถานะ
                             </p>
@@ -189,14 +202,16 @@
 {#                                        <span>พิมพ์ใบเสนอราคา</span>#}
 {#                                    </a>#}
 {#                                </li>#}
-                                <li>
-                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
-                                       href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id) }}"
-                                    >
-                                        <span class="icon"><i class="fas fa-download"></i></span>
-                                        <span>ดาวน์โหลดใบเสนอราคา</span>
-                                    </a>
-                                </li>
+                                {% if quotation.approved_at %}
+                                    <li>
+                                        <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
+                                           href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id) }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                            <span>ดาวน์โหลดใบเสนอราคา</span>
+                                        </a>
+                                    </li>
+                                {% endif %}
                             </ul>
                         </aside>
                     </div>

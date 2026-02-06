@@ -70,16 +70,16 @@ def crate_address_form(use_type=False):
                                       validators=[DataRequired()])
         name = StringField(validators=[DataRequired()])
         address = StringField('ที่อยู่', validators=[DataRequired()])
-        province = QuerySelectField('จังหวัด', query_factory=lambda: Province.query.order_by(Province.name),
+        province = QuerySelectField('จังหวัด', query_factory=lambda: Province.query.order_by(Province.order_id.asc()),
                                     allow_blank=True,
                                     blank_text='กรุณาเลือกจังหวัด', get_label='name',
                                     validators=[DataRequired(message='กรุณาเลือกจังหวัด')])
-        district = QuerySelectField('เขต/อำเภอ', query_factory=lambda: District.query.order_by(District.name),
+        district = QuerySelectField('เขต/อำเภอ', query_factory=lambda: District.query.order_by(District.order_id.asc()),
                                     allow_blank=True,
                                     blank_text='กรุณาเลือกเขต/อำเภอ', get_label='name',
                                     validators=[DataRequired(message='กรุณาเลือกเขต/อำเภอ')])
         subdistrict = QuerySelectField('แขวง/ตำบล',
-                                       query_factory=lambda: Subdistrict.query.order_by(Subdistrict.name),
+                                       query_factory=lambda: Subdistrict.query.order_by(Subdistrict.order_id.asc()),
                                        allow_blank=True,
                                        blank_text='กรุณาเลือกแขวง/ตำบล', get_label='name',
                                        validators=[DataRequired(message='กรุณาเลือกแขวง/ตำบล')])
@@ -101,12 +101,14 @@ def create_quotation_item_form(is_form=False):
     return ServiceQuotationItemForm
 
 
-class ServiceQuotationForm(ModelForm):
-    class Meta:
-        model = ServiceQuotation
-        exclude = ['digital_signature']
-
-    quotation_items = FieldList(FormField(create_quotation_item_form(is_form=False), default=ServiceQuotationItem))
+def create_quotation_form(is_use=False):
+    class ServiceQuotationForm(ModelForm):
+        class Meta:
+            model = ServiceQuotation
+            exclude = ['digital_signature']
+        if is_use == True:
+            quotation_items = FieldList(FormField(create_quotation_item_form(is_form=False), default=ServiceQuotationItem))
+    return ServiceQuotationForm
 
 
 class ServiceSampleForm(ModelForm):

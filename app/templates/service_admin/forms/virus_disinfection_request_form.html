@@ -139,7 +139,10 @@
                             <div class="field">
                                 <div class="field-body">
                                     <div class="field">
-                                        <label class="label">{{ form.product_storage.label }}</label>
+                                        <label class="label">
+                                            {{ form.product_storage.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
                                         <div class="select is-fullwidth">
                                             {{ form.product_storage(
                                                         **{'hx-get': url_for("service_admin.get_product_storage",
@@ -150,6 +153,67 @@
                                         </div>
                                     </div>
                                     <div id="product-storage-other-container" style='width:75%'></div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.post_test_product_action.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="select">
+                                    {{ form.post_test_product_action() }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.manufacturer.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.manufacturer(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.manufacturer_address.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.manufacturer_address(class='textarea') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.importer.label }}
+                                </label>
+                                <div class="control">
+                                    {{ form.importer(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.importer_address.label }}
+                                </label>
+                                <div class="control">
+                                    {{ form.importer_address(class='textarea') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.distributor.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.distributor(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.distributor_address.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.distributor_address(class='textarea') }}
                                 </div>
                             </div>
                         </div>
@@ -185,7 +249,11 @@
                                                                         {% if loop.first %}
                                                                             {% for _field in subfield %}
                                                                                 {% if _field.type != 'CSRFTokenField' %}
-                                                                                    <th style="border: none">
+                                                                                    {% if _field.type == 'SelectField' %}
+                                                                                        <th style="border: none; width: 16.5em">
+                                                                                    {% else %}
+                                                                                        <th style="border: none">
+                                                                                    {% endif %}
                                                                                         {{ _field.label.text }}
                                                                                         {% if _field.label.text != 'อัตราส่วนเจือจางผลิตภัณฑ์' and _field.label.text != 'ต่อน้ำ' %}
                                                                                             <span class="has-text-danger">*</span>
@@ -197,21 +265,93 @@
                                                                     {% endfor %}
                                                                     </thead>
                                                                     <tbody>
-                                                                    {% for subfield in field %}
+                                                                        {% for subfield in field %}
+                                                                            <tr>
+                                                                                {% for _field in subfield %}
+                                                                                    {% if _field.type != 'CSRFTokenField' %}
+                                                                                        <td style="border: none">
+                                                                                            {% if _field.type == 'SelectField' %}
+                                                                                                <div class="select is-fullwidth">
+                                                                                                    {{ _field() }}
+                                                                                                </div>
+                                                                                            {% else %}
+                                                                                                {{ _field() }}
+                                                                                            {% endif %}
+                                                                                        </td>
+                                                                                    {% endif %}
+                                                                                {% endfor %}
+                                                                                <td style="border: none">
+                                                                                    {% if subform.name == 'liquid_condition_field' %}
+                                                                                        <a class="button is-danger is-outlined"
+                                                                                           hx-delete="{{ url_for('service_admin.remove_virus_liquid_organism_form_entry',
+                                                                                           name=subform.name) }}"
+                                                                                           hx-target="closest tr"
+                                                                                           hx-swap="outerHTML"
+                                                                                        >
+                                                                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                                                        </a>
+                                                                                    {% elif subform.name == 'spray_condition_field' %}
+                                                                                        <a class="button is-danger is-outlined"
+                                                                                           hx-delete="{{ url_for('service_admin.remove_virus_spray_organism_form_entry',
+                                                                                           name=subform.name) }}"
+                                                                                           hx-target="closest tr"
+                                                                                           hx-swap="outerHTML"
+                                                                                        >
+                                                                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                                                        </a>
+                                                                                    {% else %}
+                                                                                        <a class="button is-danger is-outlined"
+                                                                                           hx-delete="{{ url_for('service_admin.remove_virus_coat_organism_form_entry',
+                                                                                           name=subform.name) }}"
+                                                                                           hx-target="closest tr"
+                                                                                           hx-swap="outerHTML"
+                                                                                        >
+                                                                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                                                        </a>
+                                                                                    {% endif %}
+                                                                                </td>
+                                                                            </tr>
+                                                                        {% endfor %}
                                                                         <tr>
-                                                                            {% for _field in subfield %}
-                                                                                {% if _field.type != 'CSRFTokenField' %}
-                                                                                    <td style="border: none">{{ _field() }}</td>
+                                                                            <td style="border: none">
+                                                                                {% if subform.name == 'liquid_condition_field' %}
+                                                                                    <a class="button is-info is-outlined is-rounded"
+                                                                                       hx-post="{{ url_for('service_admin.add_virus_liquid_organism_form_entry') }}"
+                                                                                       hx-target="previous tr"
+                                                                                       hx-swap="afterend"
+                                                                                    >
+                                                                                        <span class="icon"><i class="fas fa-plus"></i></span>
+                                                                                        <span>เพิ่ม</span>
+                                                                                    </a>
+                                                                                {% elif subform.name == 'spray_condition_field' %}
+                                                                                    <a class="button is-info is-outlined is-rounded"
+                                                                                       hx-post="{{ url_for('service_admin.add_virus_spray_organism_form_entry') }}"
+                                                                                       hx-target="previous tr"
+                                                                                       hx-swap="afterend"
+                                                                                    >
+                                                                                        <span class="icon"><i class="fas fa-plus"></i></span>
+                                                                                        <span>เพิ่ม</span>
+                                                                                    </a>
+                                                                                {% else %}
+                                                                                    <a class="button is-info is-outlined is-rounded"
+                                                                                       hx-post="{{ url_for('service_admin.add_virus_coat_organism_form_entry') }}"
+                                                                                       hx-target="previous tr"
+                                                                                       hx-swap="afterend"
+                                                                                    >
+                                                                                        <span class="icon"><i class="fas fa-plus"></i></span>
+                                                                                        <span>เพิ่ม</span>
+                                                                                    </a>
                                                                                 {% endif %}
-                                                                            {% endfor %}
+                                                                            </td>
                                                                         </tr>
-                                                                    {% endfor %}
                                                                     </tbody>
                                                                 </table>
                                                             {% elif field.name.endswith('surface_type') %}
-                                                                <div class="field ml-4">
-                                                                    <label id="surface_type_label"
-                                                                           class="label">{{ field.label }}</label>
+                                                                <div class="field ml-4" style="display: none" id="surface_type_field">
+                                                                    <label class="label">
+                                                                        {{ field.label }}
+                                                                        <span class="has-text-danger">*</span>
+                                                                    </label>
                                                                     <div class="control">
                                                                         {{ field() }}
                                                                     </div>
@@ -244,8 +384,8 @@
                                                             data-request-id="{{ request_id or '' }}"
                                                             hx-post="{{ url_for('service_admin.remove_condition_form', request_id=request_id) }}"
                                                             hx-vals='{"field": "{{ subform.name }}"}'
-                                                            hx-target=".subform-card"
-                                                            hx-swap="innerHTML"
+                                                            hx-target="closest .subform-card"
+                                                            hx-swap="outerHTML"
                                                     >
                                                         ลบ
                                                     </button>
@@ -265,6 +405,22 @@
                                         'hx-target': '#condition-fields',
                                          'hx-swap': 'beforeend',
                                          'hx-trigger': 'change, load'}) }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.read_document() }}
+                                    {{ form.read_document.label }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="box">
+                            <h5 class="title is-size-5">บันทึก/หมายเหตุ สำหรับผู้รับบริการ</h5>
+                            <hr style="background-color: gainsboro">
+                            <div class="field">
+                                <label class="label">{{ form.note.label }}</label>
+                                <div class="control">
+                                    {{ form.note(class='textarea') }}
                                 </div>
                             </div>
                         </div>
@@ -344,22 +500,6 @@
                 removeProductTypeOptions();
             }
         });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const productType = document.getElementById('product_type');
-            const subforms = document.querySelectorAll('.subform-card');
-            for (let i = productType.options.length - 1; i >= 0; i--) {
-                const option = productType.options[i];
-                if (option.value === '') continue;
-                subforms.forEach(subform => {
-                    const subformId = subform.id.split(/[\s_]+/)[0];
-                    if (option.value === subformId) {
-                        option.remove();
-                    }
-                });
-            }
-            productType.selectedIndex = 0;
-        });
     </script>
     <script>
         function validateProductType() {
@@ -375,6 +515,7 @@
                 };
             } else {
                 product_type.required = false;
+                product_type.setCustomValidity('');
                 product_type.oninvalid = null;
                 product_type.oninput = null;
             }
@@ -404,7 +545,7 @@
                     }
                 }
 
-                if (!hasOptions) {
+                if (hasOptions == false) {
                     const option = document.createElement('option');
                     option.value = subformId;
                     option.text = text;
@@ -431,33 +572,16 @@
     <script>
         function toggleTable(subform) {
             const table = subform.find('table');
-            const checkboxes = table.find('tbody tr input[type="checkbox"]');
 
             function validateInput() {
-                const count = checkboxes.filter(':checked').length;
-                if (count == 0) {
-                    checkboxes.prop('required', true)
-                    checkboxes.each(function () {
-                        this.setCustomValidity('กรุณาเลือกเชื้ออย่างน้อย 1 รายการ');
-                    });
-                } else {
-                    checkboxes.prop('required', false);
-                    checkboxes.each(function () {
-                        this.setCustomValidity('');
-                    });
-                }
-
                 table.find('tbody tr').each(function () {
-                    const checkbox = $(this).find('input[type="checkbox"]');
                     const textInputs = $(this).find('input[type="text"]');
 
-                    const active = checkbox.is(':checked');
                     textInputs.each(function () {
                         const name = $(this).attr('name');
-                        const isOptional = name.endsWith('ratio') || name.endsWith('per_water');
-                        $(this).prop('readonly', !active);
+                        const isOptional = name.endsWith('ratio');
 
-                        if (active && !isOptional) {
+                        if (!isOptional) {
                             $(this)
                                 .prop('required', true)
                                 .attr('oninvalid', "this.setCustomValidity('กรุณากรอกข้อมูล')")
@@ -466,17 +590,10 @@
                             $(this).prop('required', false);
                             this.setCustomValidity('');
                         }
-
-                        if (!active) {
-                            $(this).val('');
-                        }
                     })
                 });
             }
-
             validateInput();
-
-            checkboxes.on('change', validateInput);
         }
 
         function addRequiredField(subform) {
@@ -523,43 +640,32 @@
         }
 
         function toggleSurfaceTypeInput(subform) {
-            const surfaceTypeLabel = subform.find('label[id$="surface_type_label"]');
-            const surfaceTypeField = subform.find('input[name$="surface_type"]');
+            const testMethod = subform.find('input[type="radio"][name$="test_method"]:checked').val();
+            const surfaceTypeField = subform.find('#surface_type_field');
+            const surfaceTypeInput = subform.find('input[name$="surface_type"]');
             const surfaceTypeOtherField = subform.find('input[name$="surface_type_other"]');
-            let isASTMSelected = false;
 
-            subform.find('input[type="checkbox"][name$="test_method"]').each(function () {
-                if (this.checked && this.value.includes('Modified ASTM E1053-20')) {
-                    isASTMSelected = true;
-                }
-            });
-
-            if (isASTMSelected) {
-                surfaceTypeField.prop('disabled', false).attr('required', true);
-
-                surfaceTypeField.prop('required', true)
+            if (testMethod && testMethod.includes('Modified ASTM E1053-20')) {
+                surfaceTypeField.show()
+                surfaceTypeInput.prop('required', true)
                     .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกชนิดพื้นผิว')");
 
-                surfaceTypeField.on('change', function () {
-                    surfaceTypeField.each(function () {
+                surfaceTypeInput.on('change', function () {
+                    surfaceTypeInput.each(function () {
                         this.setCustomValidity('');
                     });
                 });
-
-                surfaceTypeLabel.html('<label class="label">ชนิดพื้นผิว<span class="has-text-danger ml-1">*</span></label>');
-
             } else {
-                surfaceTypeField.each(function () {
+                surfaceTypeInput.each(function () {
                     let name = $(this).attr('name');
                     if (subform.find('input[name="' + name + '"][type="hidden"]').length === 0) {
                         subform.append('<input type="hidden" name="' + name + '" value="">');
                     }
                 });
-                surfaceTypeField.prop('disabled', true);
-                surfaceTypeField.prop('checked', false)
-                surfaceTypeOtherField.closest('.field').hide();
+                surfaceTypeField.hide()
+                surfaceTypeInput.prop('required', false)
+                surfaceTypeInput.prop('checked', false)
                 surfaceTypeOtherField.val('');
-                surfaceTypeLabel.html('<label class="label">ชนิดพื้นผิว</label>');
             }
         }
 
@@ -570,10 +676,11 @@
 
             if (surfaceTypeField && surfaceTypeField.includes('อื่นๆ โปรดระบุ')) {
                 surfaceTypeOtherField.show();
-                surfaceTypeOtherInput.prop('required', true).attr('oninvalid', "this.setCustomValidity('กรุณากรอกชนิดพท้นผิว')")
+                surfaceTypeOtherInput.prop('required', true).attr('oninvalid', "this.setCustomValidity('กรุณากรอกชนิดพื้นผิว')")
                     .attr('oninput', "this.setCustomValidity('')");
             } else {
                 surfaceTypeOtherField.hide();
+                surfaceTypeOtherInput.prop('required', false)
                 surfaceTypeOtherInput.val('');
             }
         }
@@ -585,7 +692,7 @@
             toggleSurfaceTypeInput(subform);
             showSurfaceTypeOtherInput(subform);
 
-            subform.find('input[type="checkbox"][name$="test_method"]').change(function () {
+            subform.find('input[type="radio"][name$="test_method"]').change(function () {
                 toggleSurfaceTypeInput(subform);
                 showSurfaceTypeOtherInput(subform);
             });
