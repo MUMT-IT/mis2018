@@ -6238,7 +6238,7 @@ def approval_quotation_for_supervisor(quotation_id):
     if not quotation.approved_at:
         if request.method == 'POST':
             if quotation.digital_signature is None:
-                buffer = generate_quotation_pdf(quotation, sign=True)
+
                 try:
                     status_id = get_status(5)
                     password = request.form.get('password')
@@ -6246,7 +6246,7 @@ def approval_quotation_for_supervisor(quotation_id):
                     quotation.approved_at = arrow.now('Asia/Bangkok').datetime
                     quotation.request.status_id = status_id
                     db.session.add(quotation)
-                    db.session.commit()
+                    buffer = generate_quotation_pdf(quotation, sign=True)
                     sign_pdf = e_sign(buffer, password, include_image=False)
                 except (ValueError, AttributeError):
                     flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger")
