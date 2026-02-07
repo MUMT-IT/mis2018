@@ -17,8 +17,7 @@ from app.main import mail, StaffEmployment, StaffLeaveUsedQuota, StaffSeminarAtt
 
 tz = pytz.timezone('Asia/Bangkok')
 
-from flask import render_template, flash, redirect, url_for, request, make_response, current_app, jsonify, \
-    send_from_directory, Markup
+from flask import render_template, flash, redirect, url_for, request, make_response, current_app, jsonify, send_from_directory, Markup
 from flask_login import login_required, current_user
 from flask_mail import Message
 from dateutil.relativedelta import relativedelta
@@ -3077,7 +3076,17 @@ def idp_accept_result(idp_id):
 def idp_all_results():
     all_idp = IDP.query.filter_by(approver=current_user).join(PAFunctionalCompetencyRound).filter(
         PAFunctionalCompetencyRound.is_closed != True).all()
-    return render_template('PA/idp_all_results.html', all_idp=all_idp)
+    rounds = PAFunctionalCompetencyRound.query.all()
+    round_id = request.args.get('roundid', type=int)
+    if round_id:
+        print('round_id')
+        all_idp = IDP.query.filter_by(approver=current_user, round_id=round_id).join(PAFunctionalCompetencyRound).filter(
+            PAFunctionalCompetencyRound.is_closed != True).all()
+
+    return render_template('PA/idp_all_results.html', all_idp=all_idp, round=round_id,
+                           rounds=[{'id': r.id,
+                                    'round': r.desc + ': ' + r.start.strftime('%d/%m/%Y') + '-' + r.end.strftime(
+                                        '%d/%m/%Y')} for r in rounds])
 
 
 @pa.route('/seminar/idp/<int:staff_account_id>')

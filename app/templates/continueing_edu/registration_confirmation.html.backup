@@ -1,0 +1,986 @@
+{% extends "continueing_edu/base.html" %}
+
+{% block title %}{{ texts.get('confirm_registration', 'ยืนยันการลงทะเบียน' if current_lang == 'th' else 'Confirm
+Registration') }}{% endblock %}
+
+{% block head %}
+<style>
+          /* Modern Gradient Background */
+          .registration-hero {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    padding: 3rem 0;
+                    position: relative;
+                    overflow: hidden;
+          }
+
+          .registration-hero::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+                    opacity: 0.3;
+          }
+
+          .hero-content {
+                    position: relative;
+                    z-index: 1;
+                    text-align: center;
+          }
+
+          .hero-title {
+                    font-size: 2.5rem;
+                    font-weight: 700;
+                    color: white;
+                    margin-bottom: 0.5rem;
+                    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+
+          .hero-subtitle {
+                    color: rgba(255, 255, 255, 0.9);
+                    font-size: 1.1rem;
+          }
+
+          /* Glass-morphism Cards */
+          .modern-card {
+                    background: rgba(255, 255, 255, 0.95);
+                    backdrop-filter: blur(10px);
+                    border-radius: 16px;
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+                    transition: transform 0.3s ease, box-shadow 0.3s ease;
+                    overflow: hidden;
+          }
+
+          .modern-card:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+          }
+
+          .card-header-modern {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    padding: 1.5rem;
+                    border: none;
+          }
+
+          .card-header-modern.is-info {
+                    background: linear-gradient(135deg, #00d1b2 0%, #00c4a7 100%);
+          }
+
+          .card-header-modern.is-link {
+                    background: linear-gradient(135deg, #3273dc 0%, #2366d1 100%);
+          }
+
+          .card-header-title-modern {
+                    color: white;
+                    font-weight: 600;
+                    font-size: 1.1rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+          }
+
+          .card-header-title-modern .icon {
+                    font-size: 1.25rem;
+          }
+
+          .card-content-modern {
+                    padding: 2rem;
+          }
+
+          /* Event Image Modern Style */
+          .event-image-wrapper {
+                    position: relative;
+                    border-radius: 12px;
+                    overflow: hidden;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          }
+
+          .event-image-wrapper img {
+                    transition: transform 0.3s ease;
+          }
+
+          .event-image-wrapper:hover img {
+                    transform: scale(1.05);
+          }
+
+          /* Price Display */
+          .price-display {
+                    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                    padding: 1.5rem;
+                    border-radius: 12px;
+                    color: white;
+                    text-align: center;
+          }
+
+          .price-amount {
+                    font-size: 3rem;
+                    font-weight: 700;
+                    line-height: 1;
+                    margin-bottom: 0.5rem;
+          }
+
+          .price-currency {
+                    font-size: 1.5rem;
+                    font-weight: 400;
+                    opacity: 0.9;
+          }
+
+          .early-bird-badge {
+                    display: inline-block;
+                    background: #48c774;
+                    color: white;
+                    padding: 0.5rem 1rem;
+                    border-radius: 20px;
+                    font-weight: 600;
+                    margin-top: 0.5rem;
+                    animation: pulse 2s infinite;
+          }
+
+          @keyframes pulse {
+
+                    0%,
+                    100% {
+                              opacity: 1;
+                    }
+
+                    50% {
+                              opacity: 0.8;
+                    }
+          }
+
+          /* Info Table Modern */
+          .info-table {
+                    background: transparent;
+                    border: none;
+          }
+
+          .info-table td,
+          .info-table th {
+                    border: none;
+                    padding: 1rem 0;
+                    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+          }
+
+          .info-table tr:last-child td,
+          .info-table tr:last-child th {
+                    border-bottom: none;
+          }
+
+          .info-table th {
+                    font-weight: 600;
+                    color: #7957d5;
+          }
+
+          /* Checkbox Modern */
+          .modern-checkbox {
+                    display: flex;
+                    align-items: center;
+                    padding: 1.5rem;
+                    background: rgba(102, 126, 234, 0.05);
+                    border-radius: 12px;
+                    border: 2px solid rgba(102, 126, 234, 0.1);
+                    transition: all 0.3s ease;
+          }
+
+          .modern-checkbox:hover {
+                    background: rgba(102, 126, 234, 0.08);
+                    border-color: rgba(102, 126, 234, 0.2);
+          }
+
+          .modern-checkbox input[type="checkbox"] {
+                    width: 1.5rem;
+                    height: 1.5rem;
+                    margin-right: 1rem;
+                    cursor: pointer;
+          }
+
+          .modern-checkbox label {
+                    cursor: pointer;
+                    user-select: none;
+                    margin: 0;
+          }
+
+          /* Action Buttons */
+          .action-buttons {
+                    display: grid;
+                    grid-template-columns: 1fr 2fr;
+                    gap: 1rem;
+                    padding: 1.5rem;
+                    background: rgba(0, 0, 0, 0.02);
+          }
+
+          .btn-cancel {
+                    background: white;
+                    color: #7957d5;
+                    border: 2px solid #7957d5;
+                    padding: 1rem 2rem;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
+                    text-decoration: none;
+          }
+
+          .btn-cancel:hover {
+                    background: #7957d5;
+                    color: white;
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(121, 87, 213, 0.3);
+          }
+
+          .btn-confirm {
+                    background: linear-gradient(135deg, #48c774 0%, #3ec46d 100%);
+                    color: white;
+                    border: none;
+                    padding: 1rem 2rem;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    font-size: 1.1rem;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
+          }
+
+          .btn-confirm:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(72, 199, 116, 0.4);
+          }
+
+          .btn-confirm:active {
+                    transform: translateY(0);
+          }
+
+          /* Tag Styles */
+          .event-type-tag {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.5rem 1rem;
+                    border-radius: 20px;
+                    font-weight: 600;
+                    font-size: 0.9rem;
+          }
+
+          /* Smooth Fade In Animation */
+          @keyframes fadeInUp {
+                    from {
+                              opacity: 0;
+                              transform: translateY(20px);
+                    }
+
+                    to {
+                              opacity: 1;
+                              transform: translateY(0);
+                    }
+          }
+
+          .animate-in {
+                    animation: fadeInUp 0.6s ease-out;
+          }
+
+          .animate-in:nth-child(1) {
+                    animation-delay: 0.1s;
+          }
+
+          .animate-in:nth-child(2) {
+                    animation-delay: 0.2s;
+          }
+
+          .animate-in:nth-child(3) {
+                    animation-delay: 0.3s;
+          }
+
+          .animate-in:nth-child(4) {
+                    animation-delay: 0.4s;
+          }
+
+          /* Progress Steps */
+          .progress-steps {
+                    display: flex;
+                    justify-content: center;
+                    gap: 1rem;
+                    margin-bottom: 2rem;
+          }
+
+          .step {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    color: white;
+                    font-weight: 500;
+          }
+
+          .step-number {
+                    width: 2rem;
+                    height: 2rem;
+                    background: rgba(255, 255, 255, 0.2);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: 600;
+          }
+
+          .step.active .step-number {
+                    background: white;
+                    color: #667eea;
+          }
+
+          .step.completed .step-number {
+                    background: #48c774;
+                    color: white;
+          }
+
+          /* Shopping Cart Style */
+          .cart-summary-box {
+                    position: sticky;
+                    top: 20px;
+                    background: white;
+                    border: 1px solid #e8e8e8;
+                    border-radius: 12px;
+                    padding: 1.5rem;
+          }
+
+          .summary-row {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 0.75rem 0;
+                    border-bottom: 1px solid #f5f5f5;
+          }
+
+          .summary-row.total {
+                    border-bottom: none;
+                    border-top: 2px solid #667eea;
+                    padding-top: 1rem;
+                    font-size: 1.25rem;
+                    font-weight: 700;
+                    color: #667eea;
+          }
+
+          .secure-badge {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
+                    padding: 0.75rem;
+                    background: rgba(72, 199, 116, 0.1);
+                    border-radius: 8px;
+                    color: #48c774;
+                    font-size: 0.9rem;
+                    margin-top: 1rem;
+          }
+
+          /* Media Object Cart Item */
+          .media {
+                    align-items: flex-start;
+                    padding: 1rem;
+          }
+
+          .media-left .image {
+                    border: 1px solid #f5f5f5;
+          }
+
+          .media-content {
+                    flex: 1;
+                    padding: 0 1.5rem;
+          }
+
+          .media-right {
+                    min-width: 120px;
+                    padding-left: 1rem;
+                    border-left: 1px solid #f5f5f5;
+          }
+
+          @media screen and (max-width: 768px) {
+                    .action-buttons {
+                              grid-template-columns: 1fr;
+                    }
+
+                    .cart-summary-box {
+                              position: relative;
+                              top: 0;
+                    }
+
+                    .media {
+                              flex-direction: column;
+                    }
+
+                    .media-left {
+                              margin-bottom: 1rem;
+                    }
+
+                    .media-left .image {
+                              width: 100%;
+                              height: auto;
+                    }
+
+                    .media-content {
+                              padding: 0;
+                              margin-bottom: 1rem;
+                    }
+
+                    .media-right {
+                              width: 100%;
+                              border-left: none;
+                              border-top: 1px solid #f5f5f5;
+                              padding: 1rem 0 0 0;
+                              text-align: left !important;
+                    }
+          }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<!-- Modern Hero Section -->
+<div class="registration-hero">
+          <div class="container">
+                    <div class="hero-content">
+                              <div class="progress-steps">
+                                        <div class="step completed">
+                                                  <span class="step-number"><i class="fas fa-check"></i></span>
+                                                  <span>{{ texts.get('select_event', 'เลือกคอร์ส' if current_lang ==
+                                                            'th' else 'Select Event') }}</span>
+                                        </div>
+                                        <div class="step active">
+                                                  <span class="step-number">2</span>
+                                                  <span>{{ texts.get('confirm', 'ยืนยัน' if current_lang == 'th' else
+                                                            'Confirm') }}</span>
+                                        </div>
+                                        <div class="step">
+                                                  <span class="step-number">3</span>
+                                                  <span>{{ texts.get('payment', 'ชำระเงิน' if current_lang == 'th' else
+                                                            'Payment') }}</span>
+                                        </div>
+                              </div>
+                              <h1 class="hero-title">
+                                        <i class="fas fa-shopping-cart"></i>
+                                        {{ texts.get('confirm_registration', 'ยืนยันการลงทะเบียน' if current_lang ==
+                                        'th' else 'Confirm Registration') }}
+                              </h1>
+                              <p class="hero-subtitle">{{ texts.get('review_details', 'กรุณาตรวจสอบรายละเอียดก่อนยืนยัน'
+                                        if current_lang == 'th' else 'Please review the details before confirming') }}
+                              </p>
+                    </div>
+          </div>
+</div>
+
+
+<div class="container">
+          <div class="columns">
+                    <!-- Left Column: Cart Items -->
+                    <div class="column is-8">
+                              <!-- Shopping Cart Header -->
+                              <div class="box mb-5" style="background: white; border: 1px solid #e8e8e8;">
+                                        <div class="level mb-0">
+                                                  <div class="level-left">
+                                                            <div class="level-item">
+                                                                      <div>
+                                                                                <h2 class="title is-4 mb-1">
+                                                                                          <i
+                                                                                                    class="fas fa-shopping-bag has-text-info"></i>
+                                                                                          {{
+                                                                                          texts.get('cart_items',
+                                                                                          'รายการที่เลือก'
+                                                                                          if
+                                                                                          current_lang
+                                                                                          ==
+                                                                                          'th'
+                                                                                          else
+                                                                                          'Selected
+                                                                                          Items')
+                                                                                          }}
+                                                                                </h2>
+                                                                                <p class="subtitle is-7 has-text-grey">
+                                                                                          {{
+                                                                                          texts.get('item_count',
+                                                                                          '1
+                                                                                          รายการ'
+                                                                                          if
+                                                                                          current_lang
+                                                                                          ==
+                                                                                          'th'
+                                                                                          else
+                                                                                          '1
+                                                                                          item')
+                                                                                          }}
+                                                                                </p>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                        </div>
+                              </div>
+
+                              <!-- Event Item Card (Shopping Cart Style) -->
+                              <div class="box mb-5 animate-in" style="background: white; border: 1px solid #e8e8e8;">
+                                        <div class="media">
+                                                  {% set cover =
+                                                  event.cover_presigned_url() or
+                                                  event.poster_presigned_url() or
+                                                  event.image_url or url_for('static',
+                                                  filename='img/LOGO_MT-Mahidol.png') %}
+                                                  <figure class="media-left">
+                                                            <p class="image is-128x128"
+                                                                      style="border-radius: 8px; overflow: hidden;">
+                                                                      <img src="{{ cover }}"
+                                                                                alt="{{ event.title_en or event.title_th }}"
+                                                                                style="object-fit: cover; width: 100%; height: 10%;">
+                                                            </p>
+                                                  </figure>
+                                                  <div class="media-content">
+                                                            <div class="content">
+                                                                      <div class="mb-2">
+                                                                                {% if
+                                                                                event.event_type
+                                                                                ==
+                                                                                'course'
+                                                                                %}
+                                                                                <span class="tag is-info is-light">
+                                                                                          <i
+                                                                                                    class="fas fa-graduation-cap mr-1"></i>
+                                                                                          {{
+                                                                                          texts.get('course',
+                                                                                          'หลักสูตร'
+                                                                                          if
+                                                                                          current_lang
+                                                                                          ==
+                                                                                          'th'
+                                                                                          else
+                                                                                          'Course')
+                                                                                          }}
+                                                                                </span>
+                                                                                {% else %}
+                                                                                <span class="tag is-link is-light">
+                                                                                          <i
+                                                                                                    class="fas fa-video mr-1"></i>
+                                                                                          {{
+                                                                                          texts.get('webinar',
+                                                                                          'สัมมนา'
+                                                                                          if
+                                                                                          current_lang
+                                                                                          ==
+                                                                                          'th'
+                                                                                          else
+                                                                                          'Webinar')
+                                                                                          }}
+                                                                                </span>
+                                                                                {% endif
+                                                                                %}
+                                                                      </div>
+                                                                      <h3 class="title is-5 mb-2">
+                                                                                {{
+                                                                                event.title_th
+                                                                                if
+                                                                                current_lang
+                                                                                == 'th'
+                                                                                else
+                                                                                event.title_en
+                                                                                }}
+                                                                      </h3>
+                                                                      {% if
+                                                                      event.description_th
+                                                                      or
+                                                                      event.description_en
+                                                                      %}
+                                                                      <p class="has-text-grey is-size-7"
+                                                                                style="line-height: 1.4;">
+                                                                                {{
+                                                                                (event.description_th
+                                                                                if
+                                                                                current_lang
+                                                                                == 'th'
+                                                                                else
+                                                                                event.description_en)[:150]
+                                                                                }}
+                                                                                {% if
+                                                                                (event.description_th
+                                                                                if
+                                                                                current_lang
+                                                                                == 'th'
+                                                                                else
+                                                                                event.description_en)|length
+                                                                                > 150
+                                                                                %}...{%
+                                                                                endif %}
+                                                                      </p>
+                                                                      {% endif %}
+                                                                      <div class="mt-3">
+                                                                                <span
+                                                                                          class="icon-text is-size-7 has-text-grey">
+                                                                                          <span class="icon"><i
+                                                                                                              class="fas fa-calendar"></i></span>
+                                                                                          <span>
+                                                                                                    {%
+                                                                                                    if
+                                                                                                    event.start_time
+                                                                                                    %}
+                                                                                                    {{
+                                                                                                    event.start_time.strftime('%d/%m/%Y')
+                                                                                                    }}
+                                                                                                    {%
+                                                                                                    endif
+                                                                                                    %}
+                                                                                          </span>
+                                                                                </span>
+                                                                                {% if
+                                                                                event.start_time
+                                                                                and
+                                                                                event.end_time
+                                                                                %}
+                                                                                <span
+                                                                                          class="icon-text is-size-7 has-text-grey ml-3">
+                                                                                          <span class="icon"><i
+                                                                                                              class="fas fa-clock"></i></span>
+                                                                                          <span>{{ event.start_time.strftime('%H:%M')
+                                                                                                    }}
+                                                                                                    -
+                                                                                                    {{
+                                                                                                    event.end_time.strftime('%H:%M')
+                                                                                                    }}</span>
+                                                                                </span>
+                                                                                {% endif
+                                                                                %}
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                                  <div class="media-right has-text-right">
+                                                            <div class="is-size-4 has-text-weight-bold has-text-info">
+                                                                      ฿{{ price }}
+                                                            </div>
+                                                            {% if is_early_bird %}
+                                                            <div class="mt-1">
+                                                                      <span class="tag is-warning is-light">
+                                                                                <i class="fas fa-bolt mr-1"></i>
+                                                                                {{
+                                                                                texts.get('early_bird',
+                                                                                'Early
+                                                                                Bird') }}
+                                                                      </span>
+                                                            </div>
+                                                            <div class="mt-1 has-text-grey-light is-size-7">
+                                                                      <s>฿{{ fee.price
+                                                                                }}</s>
+                                                            </div>
+                                                            {% endif %}
+                                                  </div>
+                                        </div>
+                              </div>
+
+                              <!-- User Information Card -->
+                              <div class="modern-card mb-5 animate-in">
+                                        <div class="card-header-modern is-link">
+                                                  <div class="card-header-title-modern">
+                                                            <span class="icon"><i class="fas fa-user-circle"></i></span>
+                                                            <span>{{ texts.get('your_information',
+                                                                      'ข้อมูลของคุณ' if
+                                                                      current_lang == 'th'
+                                                                      else 'Your
+                                                                      Information')
+                                                                      }}</span>
+                                                  </div>
+                                        </div>
+                                        <div class="card-content-modern">
+                                                  <table class="table info-table is-fullwidth">
+                                                            <tbody>
+                                                                      <tr>
+                                                                                <th style="width: 200px;">
+                                                                                          <i
+                                                                                                    class="fas fa-user has-text-link"></i>
+                                                                                          {{
+                                                                                          texts.get('name',
+                                                                                          'ชื่อ'
+                                                                                          if
+                                                                                          current_lang
+                                                                                          ==
+                                                                                          'th'
+                                                                                          else
+                                                                                          'Name')
+                                                                                          }}
+                                                                                </th>
+                                                                                <td class="has-text-weight-semibold">
+                                                                                          {{
+                                                                                          member.full_name_th
+                                                                                          if
+                                                                                          current_lang
+                                                                                          ==
+                                                                                          'th'
+                                                                                          else
+                                                                                          member.full_name_en
+                                                                                          }}
+                                                                                </td>
+                                                                      </tr>
+                                                                      <tr>
+                                                                                <th>
+                                                                                          <i
+                                                                                                    class="fas fa-envelope has-text-link"></i>
+                                                                                          {{
+                                                                                          texts.get('email',
+                                                                                          'อีเมล'
+                                                                                          if
+                                                                                          current_lang
+                                                                                          ==
+                                                                                          'th'
+                                                                                          else
+                                                                                          'Email')
+                                                                                          }}
+                                                                                </th>
+                                                                                <td class="has-text-weight-semibold">
+                                                                                          {{
+                                                                                          member.email
+                                                                                          }}
+                                                                                </td>
+                                                                      </tr>
+                                                                      {% if
+                                                                      member.phone_no %}
+                                                                      <tr>
+                                                                                <th>
+                                                                                          <i
+                                                                                                    class="fas fa-phone has-text-link"></i>
+                                                                                          {{
+                                                                                          texts.get('phone',
+                                                                                          'เบอร์โทร'
+                                                                                          if
+                                                                                          current_lang
+                                                                                          ==
+                                                                                          'th'
+                                                                                          else
+                                                                                          'Phone')
+                                                                                          }}
+                                                                                </th>
+                                                                                <td class="has-text-weight-semibold">
+                                                                                          {{
+                                                                                          member.phone_no
+                                                                                          }}
+                                                                                </td>
+                                                                      </tr>
+                                                                      {% endif %}
+                                                            </tbody>
+                                                  </table>
+                                        </div>
+                              </div>
+
+                              <!-- Confirmation Form -->
+                              <form method="POST"
+                                        action="{{ url_for('continuing_edu.confirm_registration', event_id=event.id, lang=current_lang) }}">
+                                        <div class="modern-card animate-in">
+                                                  <div class="card-content-modern">
+                                                            <div class="modern-checkbox">
+                                                                      <input type="checkbox" name="terms_accepted"
+                                                                                id="terms_accepted" required>
+                                                                      <label for="terms_accepted">
+                                                                                <span class="has-text-weight-semibold">
+                                                                                          {{
+                                                                                          texts.get('accept_terms',
+                                                                                          'ฉันได้อ่านและยอมรับเงื่อนไขการลงทะเบียน'
+                                                                                          if
+                                                                                          current_lang
+                                                                                          ==
+                                                                                          'th'
+                                                                                          else
+                                                                                          'I
+                                                                                          have
+                                                                                          read
+                                                                                          and
+                                                                                          accept
+                                                                                          the
+                                                                                          registration
+                                                                                          terms
+                                                                                          and
+                                                                                          conditions')
+                                                                                          }}
+                                                                                </span>
+                                                                      </label>
+                                                            </div>
+                                                  </div>
+                                                  <div class="action-buttons">
+                                                            <a href="{{ url_for('continuing_edu.course_detail' if event.event_type == 'course' else 'continuing_edu.webinar_detail', 
+                         course_id=event.id if event.event_type == 'course' else None,
+                         webinar_id=event.id if event.event_type == 'webinar' else None,
+                         lang=current_lang) }}" class="btn-cancel">
+                                                                      <i class="fas fa-arrow-left"></i>
+                                                                      <span>{{ texts.get('back',
+                                                                                'ย้อนกลับ'
+                                                                                if
+                                                                                current_lang
+                                                                                == 'th'
+                                                                                else
+                                                                                'Back')
+                                                                                }}</span>
+                                                            </a>
+                                                            <button type="submit" class="btn-confirm">
+                                                                      <i class="fas fa-check-circle"></i>
+                                                                      <span>{{ texts.get('confirm_register',
+                                                                                'ยืนยันการลงทะเบียน'
+                                                                                if
+                                                                                current_lang
+                                                                                == 'th'
+                                                                                else
+                                                                                'Confirm
+                                                                                Registration')
+                                                                                }}</span>
+                                                            </button>
+                                                  </div>
+                                        </div>
+                              </form>
+
+                              <!-- Additional Info -->
+                              <div class="has-text-centered mt-5">
+                                        <p class="has-text-grey">
+                                                  <i class="fas fa-shield-alt"></i>
+                                                  {{ texts.get('secure_info',
+                                                  'ข้อมูลของคุณปลอดภัยและเข้ารหัส'
+                                                  if current_lang == 'th' else 'Your
+                                                  information is secure and
+                                                  encrypted') }}
+                                        </p>
+                              </div>
+
+                    </div>
+
+                    <!-- Right Column: Order Summary -->
+                    <div class="column is-4">
+                              <div class="cart-summary-box">
+                                        <h3 class="title is-5 mb-4">
+                                                  <i class="fas fa-receipt has-text-info"></i>
+                                                  {{ texts.get('order_summary',
+                                                  'สรุปรายการ' if current_lang == 'th'
+                                                  else 'Order Summary') }}
+                                        </h3>
+
+                                        <!-- Member Type Info -->
+                                        <div class="notification is-light mb-4" style="border-left: 3px solid #667eea;">
+                                                  <div class="icon-text">
+                                                            <span class="icon has-text-info">
+                                                                      <i class="fas fa-user-tag"></i>
+                                                            </span>
+                                                            <span class="has-text-weight-semibold">
+                                                                      {{
+                                                                      fee.member_type_ref.name_th
+                                                                      if current_lang ==
+                                                                      'th' else
+                                                                      fee.member_type_ref.name_en
+                                                                      }}
+                                                            </span>
+                                                  </div>
+                                        </div>
+
+                                        <!-- Price Breakdown -->
+                                        <div class="summary-row">
+                                                  <span class="has-text-grey">{{
+                                                            texts.get('subtotal', 'ยอดรวม'
+                                                            if current_lang == 'th' else
+                                                            'Subtotal') }}</span>
+                                                  <span class="has-text-weight-semibold">฿{{
+                                                            fee.price if not is_early_bird
+                                                            else fee.price }}</span>
+                                        </div>
+
+                                        {% if is_early_bird and fee.early_bird_price and
+                                        fee.early_bird_price < fee.price %} <div class="summary-row">
+                                                  <span class="has-text-success">
+                                                            <i class="fas fa-bolt"></i>
+                                                            {{
+                                                            texts.get('early_bird_discount',
+                                                            'ส่วนลด Early Bird' if
+                                                            current_lang == 'th' else
+                                                            'Early Bird Discount') }}
+                                                  </span>
+                                                  <span class="has-text-success has-text-weight-semibold">-฿{{
+                                                            fee.price -
+                                                            fee.early_bird_price }}</span>
+                              </div>
+                              {% endif %}
+
+                              <div class="summary-row total">
+                                        <span>{{ texts.get('total', 'ยอดชำระทั้งหมด' if
+                                                  current_lang == 'th' else 'Total')
+                                                  }}</span>
+                                        <span>฿{{ price }}</span>
+                              </div>
+
+                              <!-- Secure Badge -->
+                              <div class="secure-badge mt-4">
+                                        <i class="fas fa-lock"></i>
+                                        <span>{{ texts.get('secure_checkout',
+                                                  'ชำระเงินปลอดภัย' if current_lang ==
+                                                  'th' else 'Secure Checkout') }}</span>
+                              </div>
+
+                              <!-- Event Quick Info -->
+                              <div class="mt-5 pt-4" style="border-top: 1px solid #f5f5f5;">
+                                        <p class="has-text-grey is-size-7 mb-3">
+                                                  <i class="fas fa-calendar-alt"></i>
+                                                  {{ texts.get('event_dates',
+                                                  'วันที่จัดงาน' if current_lang == 'th'
+                                                  else 'Event Dates') }}
+                                        </p>
+                                        {% if event.start_time %}
+                                        <p class="has-text-weight-semibold is-size-7">
+                                                  {{ event.start_time.strftime('%d/%m/%Y')
+                                                  }}
+                                                  {% if event.end_time and event.end_time
+                                                  != event.start_time %}
+                                                  - {{ event.end_time.strftime('%d/%m/%Y')
+                                                  }}
+                                                  {% endif %}
+                                        </p>
+                                        {% endif %}
+                              </div>
+                    </div>
+          </div>
+</div>
+
+<script>
+          // Smooth scroll and animation enhancements
+          document.addEventListener('DOMContentLoaded', function () {
+                    // Add smooth scroll behavior
+                    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                              anchor.addEventListener('click', function (e) {
+                                        e.preventDefault();
+                                        document.querySelector(this.getAttribute('href')).scrollIntoView({
+                                                  behavior: 'smooth'
+                                        });
+                              });
+                    });
+
+                    // Add focus effect to checkbox
+                    const checkbox = document.getElementById('terms_accepted');
+                    if (checkbox) {
+                              checkbox.addEventListener('change', function () {
+                                        const container = this.closest('.modern-checkbox');
+                                        if (this.checked) {
+                                                  container.style.borderColor = 'rgba(72, 199, 116, 0.5)';
+                                                  container.style.background = 'rgba(72, 199, 116, 0.05)';
+                                        } else {
+                                                  container.style.borderColor = 'rgba(102, 126, 234, 0.1)';
+                                                  container.style.background = 'rgba(102, 126, 234, 0.05)';
+                                        }
+                              });
+                    }
+
+                    // Button loading state
+                    const form = document.querySelector('form');
+                    if (form) {
+                              form.addEventListener('submit', function () {
+                                        const btn = this.querySelector('.btn-confirm');
+                                        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>' +
+                                                  (document.documentElement.lang === 'th' ? 'กำลังดำเนินการ...' : 'Processing...') +
+                                                  '</span>';
+                                        btn.disabled = true;
+                              });
+                    }
+          });
+</script>
+{% endblock %}
+
+{% block user_support %}
+<!-- Hide user support section on registration page -->
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends 'continueing_edu/admin/base.html' %}
+{% block title %}Edit Registration Status{% endblock %}
+{% block content %}
+<div class="container">
+  <h1 class="title">Edit Registration Status</h1>
+  <form method="post" class="box">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <div class="field"><label class="label">Name EN</label><input class="input" name="name_en" value="{{ item.name_en }}" required></div>
+    <div class="field"><label class="label">Name TH</label><input class="input" name="name_th" value="{{ item.name_th }}" required></div>
+    <div class="field"><label class="label">Code</label><input class="input" name="code" value="{{ item.registration_status_code or '' }}"></div>
+    <div class="field"><label class="label">CSS Badge</label><input class="input" name="css_badge" value="{{ item.css_badge or '' }}"></div>
+    <div class="buttons"><button class="button is-primary" type="submit">Save</button><a class="button" href="{{ url_for('continuing_edu_admin.settings_registration_statuses') }}">Cancel</a></div>
+  </form>
+</div>
+{% endblock %}
+

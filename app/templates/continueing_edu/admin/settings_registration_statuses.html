@@ -1,0 +1,41 @@
+{% extends 'continueing_edu/admin/base.html' %}
+{% block title %}Registration Statuses{% endblock %}
+{% block content %}
+<div class="container">
+  <h1 class="title">Registration Statuses</h1>
+  <form method="post" class="box">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <div class="columns is-multiline">
+      <div class="column is-3"><input class="input" name="name_en" placeholder="Name EN" required></div>
+      <div class="column is-3"><input class="input" name="name_th" placeholder="Name TH" required></div>
+      <div class="column is-2"><input class="input" name="code" placeholder="Code"></div>
+      <div class="column is-3"><input class="input" name="css_badge" placeholder="CSS Badge (e.g., is-info)"></div>
+      <div class="column is-1"><button class="button is-primary" type="submit">Add</button></div>
+    </div>
+  </form>
+  <table class="table is-fullwidth is-striped">
+    <thead><tr><th>ID</th><th>Name EN</th><th>Name TH</th><th>Code</th><th>Badge</th><th></th></tr></thead>
+    <tbody>
+      {% for it in items %}
+      <tr>
+        <td>{{ it.id }}</td>
+        <td>{{ it.name_en }}</td>
+        <td>{{ it.name_th }}</td>
+        <td>{{ it.registration_status_code or '-' }}</td>
+        <td>{{ it.css_badge or '-' }}</td>
+        <td class="is-narrow">
+          <a class="button is-small" href="{{ url_for('continuing_edu_admin.settings_registration_statuses_edit', item_id=it.id) }}">Edit</a>
+          <form method="post" action="{{ url_for('continuing_edu_admin.settings_registration_statuses_delete', item_id=it.id) }}" style="display:inline" onsubmit="return confirm('Delete?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button class="button is-small is-danger is-light" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="has-text-centered">No items.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+

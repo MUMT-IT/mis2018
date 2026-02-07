@@ -1,0 +1,132 @@
+{% extends 'continueing_edu/admin/base.html' %}
+{% block title %}Course Report{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="level">
+    <div class="level-left">
+      <h1 class="title">Course & Event Report</h1>
+    </div>
+    <div class="level-right">
+      <span class="tag is-light">Events {{ total_events }}</span>
+    </div>
+  </div>
+
+  <form class="box" method="get">
+    <div class="columns is-multiline">
+      <div class="column is-3">
+        <label class="label">Event Type</label>
+        <div class="select is-fullwidth">
+          <select name="event_type">
+            <option value="">All</option>
+            {% for et in available_event_types %}
+              <option value="{{ et }}" {% if selected_event_type == et %}selected{% endif %}>{{ et|capitalize }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="column is-3">
+        <label class="label">Category</label>
+        <div class="select is-fullwidth">
+          <select name="category_id">
+            <option value="">All</option>
+            {% for cat in categories %}
+              <option value="{{ cat.id }}" {% if selected_category_id == cat.id|string %}selected{% endif %}>{{ cat.name_en }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="column is-3">
+        <label class="label">Created After</label>
+        <input class="input" type="date" name="start" value="{{ start_value or '' }}">
+      </div>
+      <div class="column is-3">
+        <label class="label">Created Before</label>
+        <input class="input" type="date" name="end" value="{{ end_value or '' }}">
+      </div>
+      <div class="column is-2">
+        <label class="label">Rows</label>
+        <div class="select is-fullwidth">
+          <select name="per_page">
+            {% for size in [10, 25, 50] %}
+              <option value="{{ size }}" {% if pagination.per_page == size %}selected{% endif %}>{{ size }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="column is-2">
+        <label class="label">&nbsp;</label>
+        <button class="button is-link is-fullwidth" type="submit">Filter</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="columns is-multiline">
+    <div class="column is-one-third">
+      <div class="box has-background-primary has-text-white">
+        <p class="heading">Events</p>
+        <p class="title is-3">{{ total_events }}</p>
+      </div>
+    </div>
+    <div class="column is-one-third">
+      <div class="box has-background-link has-text-white">
+        <p class="heading">Registrations</p>
+        <p class="title is-3">{{ total_registrations }}</p>
+      </div>
+    </div>
+    <div class="column is-one-third">
+      <div class="box has-background-success has-text-white">
+        <p class="heading">Revenue (THB)</p>
+        <p class="title is-3">{{ "{:,.2f}".format(total_amount) }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="table-container">
+      <table class="table is-fullwidth is-striped is-hoverable">
+        <thead>
+          <tr>
+            <th>Event</th>
+            <th>Type</th>
+            <th>Category</th>
+            <th>Created</th>
+            <th class="has-text-right">Registrations</th>
+            <th class="has-text-right">Unique Members</th>
+            <th class="has-text-right">Payments</th>
+            <th class="has-text-right">Revenue (THB)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in events_data %}
+          <tr>
+            <td>{{ item.event.title_en or item.event.title_th }}</td>
+            <td>{{ item.event.event_type|capitalize }}</td>
+            <td>{{ item.event.category.name_en if item.event.category else '-' }}</td>
+            <td>{{ item.event.created_at.strftime('%Y-%m-%d') if item.event.created_at else '-' }}</td>
+            <td class="has-text-right">{{ item.registrations }}</td>
+            <td class="has-text-right">{{ item.unique_members }}</td>
+            <td class="has-text-right">{{ item.payments }}</td>
+            <td class="has-text-right">{{ "{:,.2f}".format(item.amount) }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" class="has-text-centered has-text-grey">No events found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if pagination and pagination.pages > 1 %}
+  {% set query_params = 'per_page=' ~ pagination.per_page ~ '&event_type=' ~ (selected_event_type or '') ~ '&category_id=' ~ (selected_category_id or '') ~ '&start=' ~ (start_value or '') ~ '&end=' ~ (end_value or '') %}
+  <nav class="pagination is-centered" role="navigation" aria-label="pagination">
+    <a class="pagination-previous" href="?page={{ pagination.prev_num }}&{{ query_params }}" {% if not pagination.has_prev %}disabled{% endif %}>Previous</a>
+    <a class="pagination-next" href="?page={{ pagination.next_num }}&{{ query_params }}" {% if not pagination.has_next %}disabled{% endif %}>Next</a>
+    <ul class="pagination-list">
+      <li><span class="pagination-link is-current">Page {{ pagination.page }} of {{ pagination.pages }}</span></li>
+    </ul>
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}

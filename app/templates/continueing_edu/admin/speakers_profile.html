@@ -1,0 +1,71 @@
+{% extends 'continueing_edu/admin/base.html' %}
+{% block title %}Speaker Profile{% endblock %}
+{% block content %}
+<div class="container">
+  <nav class="breadcrumb" aria-label="breadcrumbs">
+    <ul>
+      <li><a href="{{ url_for('continuing_edu_admin.speakers_index') }}">Speaker Profiles</a></li>
+      <li class="is-active"><a aria-current="page">{{ profile.name_en }}</a></li>
+    </ul>
+  </nav>
+
+  <div class="box">
+    <div class="columns is-vcentered">
+      <div class="column is-narrow ali">
+        {% set avatar = profile.image_url or 'https://via.placeholder.com/160x160?text=SP' %}
+        <figure class="image is-128x128">
+          <img src="{{ avatar }}" alt="{{ profile.name_en }}">
+        </figure>
+      </div>
+      <div class="column">
+        <h1 class="title is-3">{{ profile.title_en }} {{ profile.name_en }}</h1>
+        <h2 class="subtitle is-5">{{ profile.title_th }} {{ profile.name_th }}</h2>
+        {% if profile.position_en or profile.position_th %}
+        <p class="mb-2"><strong>Position:</strong> {{ profile.position_en or profile.position_th }}</p>
+        {% endif %}
+        <p class="mb-2"><strong>Institution:</strong> {{ profile.institution_en }}<br><span class="has-text-grey">{{
+            profile.institution_th }}</span></p>
+        <div class="tags mt-2">
+          <span class="tag is-info is-light">Speaker</span>
+          {% if profile.is_active %}
+          <span class="tag is-success is-light">Active</span>
+          {% else %}
+          <span class="tag is-light">Inactive</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="column is-narrow">
+        <div class="buttons is-right">
+          <a class="button" href="mailto:{{ profile.email }}">Email</a>
+          {% if profile.phone %}<a class="button is-light" href="tel:{{ profile.phone }}">Call</a>{% endif %}
+          <a class="button is-link"
+            href="{{ url_for('continuing_edu_admin.speakers_edit', profile_id=profile.id) }}">Edit</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="columns">
+    <div class="column is-two-thirds">
+      <div class="box">
+        <h3 class="title is-5">Biography (EN)</h3>
+        <div class="content">{{ profile.bio_en or '—' }}</div>
+      </div>
+      <div class="box">
+        <h3 class="title is-5">ประวัติ (TH)</h3>
+        <div class="content">{{ profile.bio_th or '—' }}</div>
+      </div>
+    </div>
+    <div class="column">
+      <div class="box">
+        <h3 class="title is-5">Contact</h3>
+        <p><strong>Email:</strong> <a href="mailto:{{ profile.email }}">{{ profile.email }}</a></p>
+        {% if profile.phone %}<p><strong>Phone:</strong> <a href="tel:{{ profile.phone }}">{{ profile.phone }}</a></p>{%
+        endif %}
+        <p><strong>Updated:</strong> {{ profile.updated_at }}</p>
+        <p><strong>Created:</strong> {{ profile.created_at }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

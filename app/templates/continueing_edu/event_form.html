@@ -1,0 +1,75 @@
+<div class="container mt-6 mb-6">
+          <h1 class="title is-3 mb-4">{{ form_title }}</h1>
+          <form method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="field mb-4">
+                              {{ form.title.label(class="label") }}
+                              <div class="control">
+                                        {{ form.title(class="input") }}
+                              </div>
+                              {% for error in form.title.errors %}
+                              <p class="help is-danger">{{ error }}</p>
+                              {% endfor %}
+                    </div>
+                    <div class="field mb-4">
+                              {{ form.event_type.label(class="label") }}
+                              <div class="control">
+                                        {{ form.event_type(class="select") }}
+                              </div>
+                              {% for error in form.event_type.errors %}
+                              <p class="help is-danger">{{ error }}</p>
+                              {% endfor %}
+                    </div>
+                    <div class="field mb-4">
+                              {{ form.description.label(class="label") }}
+                              <div class="control">
+                                        {{ form.description(class="textarea") }}
+                              </div>
+                    </div>
+                    <div class="field is-horizontal">
+                              <div class="field-body">
+                                        <div class="field">
+                                                  {{ form.start_date.label(class="label") }}
+                                                  <div class="control">
+                                                            {{ form.start_date(class="input") }}
+                                                  </div>
+                                        </div>
+                                        <div class="field">
+                                                  {{ form.start_time.label(class="label") }}
+                                                  <div class="control">
+                                                            {{ form.start_time(class="input") }}
+                                                  </div>
+                                        </div>
+                                        <div class="field">
+                                                  {{ form.duration.label(class="label") }}
+                                                  <div class="control">
+                                                            {{ form.duration(class="input") }}
+                                                  </div>
+                                        </div>
+                              </div>
+                    </div>
+                    <div class="field mb-4">
+                              {{ form.location.label(class="label") }}
+                              <div class="control">
+                                        {{ form.location(class="input") }}
+                              </div>
+                    </div>
+                    <div class="field mb-4">
+                              {{ form.speaker.label(class="label") }}
+                              <div class="control">
+                                        {{ form.speaker(class="input") }}
+                              </div>
+                    </div>
+                    <div class="field mb-4">
+                              {{ form.capacity.label(class="label") }}
+                              <div class="control">
+                                        {{ form.capacity(class="input") }}
+                              </div>
+                    </div>
+                    <div class="field mt-5">
+                              <button class="button is-info is-rounded has-background-indigo-600 has-text-white"
+                                        type="submit">Save</button>
+                              <a href="{{ url_for('continuing_edu.admin_events') }}" class="button is-light">Cancel</a>
+                    </div>
+          </form>
+</div>

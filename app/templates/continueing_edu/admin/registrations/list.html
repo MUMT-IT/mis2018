@@ -1,0 +1,342 @@
+{% extends "continueing_edu/admin/base.html" %}
+
+{% block title %}Registrations - Admin{% endblock %}
+
+{% block head %}
+<style>
+          .stats-cards {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 1rem;
+                    margin-bottom: 2rem;
+          }
+
+          .stat-card {
+                    background: white;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 8px;
+                    padding: 1.5rem;
+                    text-align: center;
+          }
+
+          .stat-card .number {
+                    font-size: 2.5rem;
+                    font-weight: bold;
+                    color: #3b82f6;
+          }
+
+          .stat-card .label {
+                    color: #6b7280;
+                    font-size: 0.875rem;
+                    margin-top: 0.5rem;
+          }
+
+          .filters-section {
+                    background: white;
+                    padding: 1.5rem;
+                    border-radius: 8px;
+                    margin-bottom: 2rem;
+                    border: 1px solid #e5e7eb;
+          }
+
+          .table-container {
+                    background: white;
+                    border-radius: 8px;
+                    border: 1px solid #e5e7eb;
+                    overflow: hidden;
+          }
+
+          .status-badge {
+                    padding: 0.25rem 0.75rem;
+                    border-radius: 9999px;
+                    font-size: 0.875rem;
+                    font-weight: 500;
+          }
+
+          .status-pending {
+                    background: #fef3c7;
+                    color: #92400e;
+          }
+
+          .status-confirmed {
+                    background: #d1fae5;
+                    color: #065f46;
+          }
+
+          .status-cancelled {
+                    background: #fee2e2;
+                    color: #991b1b;
+          }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container is-fluid">
+          <div class="level mb-5">
+                    <div class="level-left">
+                              <div class="level-item">
+                                        <div>
+                                                  <h1 class="title">Registrations Management</h1>
+                                                  <p class="subtitle is-6">View and manage all event registrations</p>
+                                        </div>
+                              </div>
+                    </div>
+                    <div class="level-right">
+                              <div class="level-item">
+                                        <div class="buttons">
+                                                  <a href="{{ url_for('continuing_edu_admin.export_registrations', **filters) }}"
+                                                            class="button is-info">
+                                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                                            <span>Export CSV</span>
+                                                  </a>
+                                                  <a href="{{ url_for('continuing_edu_admin.bulk_actions') }}"
+                                                            class="button is-primary">
+                                                            <span class="icon"><i class="fas fa-tasks"></i></span>
+                                                            <span>Bulk Actions</span>
+                                                  </a>
+                                        </div>
+                              </div>
+                    </div>
+          </div>
+
+          <!-- Statistics Cards -->
+          <div class="stats-cards">
+                    <div class="stat-card">
+                              <div class="number">{{ stats.total }}</div>
+                              <div class="label">Total Registrations</div>
+                    </div>
+                    <div class="stat-card">
+                              <div class="number">{{ stats.pending }}</div>
+                              <div class="label">Pending</div>
+                    </div>
+                    <div class="stat-card">
+                              <div class="number">{{ stats.confirmed }}</div>
+                              <div class="label">Confirmed</div>
+                    </div>
+                    <div class="stat-card">
+                              <div class="number">{{ stats.cancelled }}</div>
+                              <div class="label">Cancelled</div>
+                    </div>
+          </div>
+
+          <!-- Filters Section -->
+          <div class="filters-section">
+                    <form method="GET" action="{{ url_for('continuing_edu_admin.list_registrations') }}">
+                              <div class="columns is-multiline">
+                                        <div class="column is-3">
+                                                  <div class="field">
+                                                            <label class="label">Search</label>
+                                                            <div class="control has-icons-left">
+                                                                      <input class="input" type="text" name="q"
+                                                                                placeholder="Member name, email..."
+                                                                                value="{{ filters.search }}">
+                                                                      <span class="icon is-left">
+                                                                                <i class="fas fa-search"></i>
+                                                                      </span>
+                                                            </div>
+                                                  </div>
+                                        </div>
+
+                                        <div class="column is-2">
+                                                  <div class="field">
+                                                            <label class="label">Status</label>
+                                                            <div class="control">
+                                                                      <div class="select is-fullwidth">
+                                                                                <select name="status">
+                                                                                          <option value="">All Statuses
+                                                                                          </option>
+                                                                                          {% for status in statuses %}
+                                                                                          <option value="{{ status.name_en.lower() }}"
+                                                                                                    {% if
+                                                                                                    filters.status==status.name_en.lower()
+                                                                                                    %}selected{% endif
+                                                                                                    %}>
+                                                                                                    {{ status.name_en }}
+                                                                                          </option>
+                                                                                          {% endfor %}
+                                                                                </select>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                        </div>
+
+                                        <div class="column is-3">
+                                                  <div class="field">
+                                                            <label class="label">Event</label>
+                                                            <div class="control">
+                                                                      <div class="select is-fullwidth">
+                                                                                <select name="event_id">
+                                                                                          <option value="">All Events
+                                                                                          </option>
+                                                                                          {% for event in events %}
+                                                                                          <option value="{{ event.id }}"
+                                                                                                    {% if
+                                                                                                    filters.event_id==event.id
+                                                                                                    %}selected{% endif
+                                                                                                    %}>
+                                                                                                    {{
+                                                                                                    event.title_en[:50]
+                                                                                                    }}
+                                                                                          </option>
+                                                                                          {% endfor %}
+                                                                                </select>
+                                                                      </div>
+                                                            </div>
+                                                  </div>
+                                        </div>
+
+                                        <div class="column is-2">
+                                                  <div class="field">
+                                                            <label class="label">From Date</label>
+                                                            <div class="control">
+                                                                      <input class="input" type="date" name="date_from"
+                                                                                value="{{ filters.date_from }}">
+                                                            </div>
+                                                  </div>
+                                        </div>
+
+                                        <div class="column is-2">
+                                                  <div class="field">
+                                                            <label class="label">To Date</label>
+                                                            <div class="control">
+                                                                      <input class="input" type="date" name="date_to"
+                                                                                value="{{ filters.date_to }}">
+                                                            </div>
+                                                  </div>
+                                        </div>
+                              </div>
+
+                              <div class="field is-grouped">
+                                        <div class="control">
+                                                  <button type="submit" class="button is-primary">
+                                                            <span class="icon"><i class="fas fa-filter"></i></span>
+                                                            <span>Apply Filters</span>
+                                                  </button>
+                                        </div>
+                                        <div class="control">
+                                                  <a href="{{ url_for('continuing_edu_admin.list_registrations') }}"
+                                                            class="button is-light">
+                                                            <span class="icon"><i class="fas fa-times"></i></span>
+                                                            <span>Clear</span>
+                                                  </a>
+                                        </div>
+                              </div>
+                    </form>
+          </div>
+
+          <!-- Registrations Table -->
+          <div class="table-container">
+                    <table class="table is-fullwidth is-hoverable">
+                              <thead>
+                                        <tr>
+                                                  <th>ID</th>
+                                                  <th>Member</th>
+                                                  <th>Event</th>
+                                                  <th>Event Type</th>
+                                                  <th>Registration Date</th>
+                                                  <th>Status</th>
+                                                  <th>Attendance</th>
+                                                  <th>Actions</th>
+                                        </tr>
+                              </thead>
+                              <tbody>
+                                        {% if registrations %}
+                                        {% for reg in registrations %}
+                                        <tr>
+                                                  <td>{{ reg.id }}</td>
+                                                  <td>
+                                                            <div><strong>{{ reg.member.full_name_en or
+                                                                                reg.member.username }}</strong></div>
+                                                            <div class="is-size-7 has-text-grey">{{ reg.member.email }}
+                                                            </div>
+                                                  </td>
+                                                  <td>
+                                                            <div>{{ reg.event_entity.title_en[:60] }}</div>
+                                                            {% if reg.event_entity.title_th %}
+                                                            <div class="is-size-7 has-text-grey">{{
+                                                                      reg.event_entity.title_th[:60] }}</div>
+                                                            {% endif %}
+                                                  </td>
+                                                  <td>
+                                                            <span class="tag is-info is-light">
+                                                                      {{ reg.event_entity.event_type.title() }}
+                                                            </span>
+                                                  </td>
+                                                  <td>{{ reg.registration_date.strftime('%Y-%m-%d %H:%M') if
+                                                            reg.registration_date else '-' }}</td>
+                                                  <td>
+                                                            {% if reg.status_ref %}
+                                                            {% set status_lower = reg.status_ref.name_en.lower() %}
+                                                            <span class="status-badge status-{{ status_lower }}">
+                                                                      {{ reg.status_ref.name_en }}
+                                                            </span>
+                                                            {% else %}
+                                                            <span class="tag">Unknown</span>
+                                                            {% endif %}
+                                                  </td>
+                                                  <td>
+                                                            <div class="is-size-7">
+                                                                      <div>Count: {{ reg.attendance_count or 0 }}</div>
+                                                                      <div>Hours: {{ reg.total_hours_attended or 0 }}
+                                                                      </div>
+                                                            </div>
+                                                  </td>
+                                                  <td>
+                                                            <div class="buttons">
+                                                                      <a href="{{ url_for('continuing_edu_admin.view_registration', registration_id=reg.id) }}"
+                                                                                class="button is-small is-info">
+                                                                                <span class="icon"><i
+                                                                                                    class="fas fa-eye"></i></span>
+                                                                      </a>
+                                                            </div>
+                                                  </td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% else %}
+                                        <tr>
+                                                  <td colspan="8" class="has-text-centered has-text-grey">
+                                                            <div class="py-6">
+                                                                      <span class="icon is-large">
+                                                                                <i class="fas fa-inbox fa-3x"></i>
+                                                                      </span>
+                                                                      <p class="mt-3">No registrations found</p>
+                                                            </div>
+                                                  </td>
+                                        </tr>
+                                        {% endif %}
+                              </tbody>
+                    </table>
+          </div>
+
+          <!-- Pagination -->
+          {% if pagination.pages > 1 %}
+          <nav class="pagination is-centered mt-5" role="navigation" aria-label="pagination">
+                    <a class="pagination-previous" {% if pagination.has_prev %}
+                              href="{{ url_for('continuing_edu_admin.list_registrations', page=pagination.prev_num, **filters) }}"
+                              {% else %} disabled {% endif %}>
+                              Previous
+                    </a>
+                    <a class="pagination-next" {% if pagination.has_next %}
+                              href="{{ url_for('continuing_edu_admin.list_registrations', page=pagination.next_num, **filters) }}"
+                              {% else %} disabled {% endif %}>
+                              Next page
+                    </a>
+                    <ul class="pagination-list">
+                              {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2,
+                              right_current=2) %}
+                              {% if page_num %}
+                              <li>
+                                        <a class="pagination-link {% if page_num == pagination.page %}is-current{% endif %}"
+                                                  href="{{ url_for('continuing_edu_admin.list_registrations', page=page_num, **filters) }}">
+                                                  {{ page_num }}
+                                        </a>
+                              </li>
+                              {% else %}
+                              <li><span class="pagination-ellipsis">&hellip;</span></li>
+                              {% endif %}
+                              {% endfor %}
+                    </ul>
+          </nav>
+          {% endif %}
+</div>
+{% endblock %}
