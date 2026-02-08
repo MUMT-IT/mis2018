@@ -2196,6 +2196,14 @@ def login_scan():
                 activity = 'checked out'
             db.session.add(record)
             db.session.commit()
+            try:
+                if activity == 'checked in':
+                    msg = f'ท่านได้ทำแสกนเข้างานล่าสุดเมื่อ {now.strftime("%d/%m/%Y %H:%M:%S")}'
+                else:
+                    msg = f'ท่านได้ทำแสกนออกงานล่าสุดเมื่อ {now.strftime("%d/%m/%Y %H:%M:%S")}'
+                line_bot_api.push_message(to=person.staff_account.line_id, messages=TextSendMessage(text=msg))
+            except LineBotApiError:
+                pass
             return jsonify(
                 {'message': 'success', 'activity': activity, 'name': person.fullname, 'time': now.isoformat(),
                  'numScans': num_scans})
@@ -2384,6 +2392,12 @@ def login_scan_gj():
                 num_scans=1,
                 qrcode_in_exp_datetime=qrcode_exp_datetime.astimezone(pytz.utc)
             )
+            try:
+                msg = f'ท่านได้ทำแสกนเข้า/ออกงานล่าสุดเมื่อ {now.strftime("%d/%m/%Y %H:%M:%S")}'
+                line_bot_api.push_message(to=person.staff_account.line_id,
+                                          messages=TextSendMessage(text=msg))
+            except LineBotApiError:
+                pass
             db.session.add(record)
             db.session.commit()
             return jsonify({'message': 'success',
@@ -4890,6 +4904,16 @@ def geo_checkin():
                 activity = 'checked out'
         db.session.add(record)
         db.session.commit()
+        try:
+            if activity == 'checked in':
+                msg = f'ท่านได้ทำแสกนเข้างานล่าสุดเมื่อ {now.strftime("%d/%m/%Y %H:%M:%S")}'
+            elif activity == 'checked out':
+                msg = f'ท่านได้ทำแสกนออกงานล่าสุดเมื่อ {now.strftime("%d/%m/%Y %H:%M:%S")}'
+            else:
+                msg = f'ท่านได้ทำแสกนเข้า/ออกงานล่าสุดเมื่อ {now.strftime("%d/%m/%Y %H:%M:%S")}'
+            line_bot_api.push_message(to=current_user.line_id, messages=TextSendMessage(text=msg))
+        except LineBotApiError:
+            pass
         return jsonify({'message': 'success',
                         'activity': activity,
                         'name': current_user.fullname,

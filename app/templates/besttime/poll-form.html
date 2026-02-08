@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <style>
+    .has-thin-border {
+      border: 1px solid #dbdbdb; /* Bulma grey */
+      border-radius: 4px;
+      padding: 0.75rem;
+    }
+    </style>
+{% endblock %}
+
+{% include "besttime/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="columns">
+        <div class="column">
+            <div class="notification is-light is-warning">
+                <span class="icon">
+                    <i class="fa-solid fa-circle-info"></i>
+                </span>
+                <span>
+                    สามารถโหวตใหม่ได้จนกว่าจะปิดการโหวต
+                </span>
+            </div>
+            <h1 class="title is-size-3 has-text-centered">{{poll.title}}</h1>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-one-third is-offset-2">
+            <form method="post">
+                {{ form.hidden_tag() }}
+                {% for field in form.date_time_slots %}
+                    <div class="field has-thin-border">
+                        <label class="label">
+                            {{ field.date.data.strftime('%-d %a %b %Y') }}
+                        </label>
+                        <div class="control">
+                            {{ field.date(type="hidden") }}
+                            {{field.time_slots()}}
+                        </div>
+                    </div>
+                {% endfor %}
+                <div class="field is-grouped">
+                    <div class="control">
+                        <button class="button is-success" type="submit">บันทึก</button>
+                    </div>
+                    <div class="control">
+                        <a class="button is-light" href="{{url_for('besttime.index')}}">ยกเลิก</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="column is-one-third">
+            <form>
+                {{ message_form.hidden_tag() }}
+                <div class="field">
+                    <div class="control">
+                        {{ message_form.message(class='input', placeholder='ฝากข้อความ') }}
+                        <p class="help is-info">
+                            ข้อความจะแสดงให้ทุกคนที่เป็นกรรมการเห็น
+                        </p>
+                    </div>
+                </div>
+                <a class="button is-link"
+                   hx-target="#messages"
+                   hx-swap="beforeend"
+                   hx-confirm="ท่านแน่ใจว่าต้องการส่งข้อความนี้"
+                   hx-indicator="this"
+                   hx-post="{{url_for('besttime.leave_message', poll_id=poll.id)}}">ส่ง</a>
+            </form>
+            <div id="messages">
+                {% for message in poll.messages %}
+                    <article class="media">
+                        <div class="media-content">
+                            <div class="tag is-large is-light is-warning">
+                                {{message.message}}
+                            </div>
+                            <br/>
+                            <p>
+                                <strong><small>{{message.voter.fullname}}</small></strong> <small>{{message.created_at|localdatetime}}</small>
+                            </p>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

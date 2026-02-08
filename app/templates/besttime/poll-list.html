@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% include "besttime/nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+    <h1 class="title has-text-centered">Best Time App!</h1>
+    {% include "messages.html" %}
+{#    <div class="columns">#}
+{#        <div class="column">#}
+{#            <h2 class="title is-size-6">Features</h2>#}
+{#            <ul>#}
+{#                <li>สร้างโพลโดยระบุช่วงเวลาได้</li>#}
+{#                <li>กำหนดประธานและกรรมการได้</li>#}
+{#                <li>แก้ไขโพลได้สำหรับประธานและผู้สร้างโพล</li>#}
+{#                <li>ประธานและกรรมการสามารถแก้ไขวันที่เลือกได้จนกว่าจะปิดสำรวจ</li>#}
+{#                <li>ดูผลการโหวตได้ตลอดเวลา</li>#}
+{#            </ul>#}
+{#        </div>#}
+{#    </div>#}
+    <div class="columns">
+        <div class="column box">
+            <h1 class="title is-size-4">แบบสำรวจที่ท่านได้รับเชิญให้โหวต</h1>
+            <table class="table is-striped">
+                <thead>
+                <th>ชื่อ</th>
+                <th>ผู้สร้าง</th>
+                <th>จำนวนโหวต</th>
+                <th>ความก้าวหน้า</th>
+                <th>ระยะเวลาเปิดให้โหวต</th>
+                <th>บทบาทของคุณ</th>
+                <th></th>
+                <th></th>
+                </thead>
+                <tbody>
+                {% for invitation in current_user.votes %}
+                <tr>
+                    <td>
+                        {{invitation.poll.title}}
+                    </td>
+                    <td>{{invitation.poll.creator.fullname}}</td>
+                    <td>{{invitation.poll.voted|length}}/{{invitation.poll.invitations.count()}}</td>
+                    <td>
+                        <progress class="progress is-success"
+                                  value="{{invitation.poll.voted|length}}"
+                                  max="{{invitation.poll.invitations.count()}}">
+                            {{invitation.poll.voted|length}}/{{invitation.poll.invitations.count()}}
+                        </progress>
+                    </td>
+                    <td>{{invitation.poll.vote_date_span}}</td>
+                    <td>{{invitation.role}}</td>
+                    <td>
+                        {% if not invitation.poll.closed_at %}
+                            <a href="{{url_for('besttime.vote_poll', poll_id=invitation.poll.id)}}"
+                                class="button is-success is-small is-rounded">
+                                <span class="icon">
+                                    <i class="fa-solid fa-check-to-slot"></i>
+                                </span>
+                                <span>vote</span>
+                            </a>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if invitation.role == 'chairman' or invitation.poll.has_admin_role(current_user) %}
+                            {% if not invitation.poll.closed_at %}
+                            <a class="button is-small is-rounded is-info"
+                               href="{{url_for('besttime.edit_poll', poll_id=invitation.poll.id)}}">
+                                <span class="icon">
+                                   <i class="fa-solid fa-gear"></i>
+                                </span>
+                                <span>manage</span>
+                            </a>
+                            <a class="button is-small is-rounded is-danger"
+                               href="{{url_for('besttime.close_poll', poll_id=invitation.poll.id)}}">
+                                <span class="icon">
+                                    <i class="fa-solid fa-power-off"></i>
+                                </span>
+                                <span>close</span>
+                            </a>
+                            {% endif %}
+                        {% endif %}
+                        <a class="button is-small is-rounded is-warning"
+                           href="{{url_for('besttime.view_results', poll_id=invitation.poll.id)}}">
+                            <span class="icon">
+                                <i class="fa-solid fa-square-poll-vertical"></i>
+                            </span>
+                            <span>result</span>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="columns mt-1">
+        <div class="column box">
+            <h1 class="title is-size-4">แบบสำรวจที่คุณสร้าง</h1>
+            <table class="table is-striped">
+                <thead>
+                <th>ชื่อ</th>
+                <th>ผู้สร้าง</th>
+                <th>ช่วงเวลาโหวต</th>
+                <th>จำนวนโหวต</th>
+                <th>สถานะ</th>
+                <th></th>
+                </thead>
+                <tbody>
+                {% for poll in current_user.besttime_polls %}
+                    <tr>
+                        <td>
+                            <a href="{{url_for('besttime.view_results', poll_id=poll.id)}}">{{poll}}</a>
+                        </td>
+                        <td>{{poll.creator.fullname}}</td>
+                        <td>{{poll.vote_date_span}}</td>
+                        <td>{{poll.voted|length}}</td>
+                        <td>{{'open' if not poll.closed_at else 'closed'}}</td>
+                        <td>
+                            {% if poll.creator == current_user and not poll.closed_at %}
+                                <a class="button is-small is-rounded is-outlined" href="{{url_for('besttime.edit_poll', poll_id=poll.id)}}">
+                                    <span class="icon">
+                                        <i class="fa-solid fa-pencil"></i>
+                                    </span>
+                                    <span>edit</span>
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <a href="{{url_for('besttime.add_poll')}}" class="button is-success">New Poll</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

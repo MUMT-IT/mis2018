@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .has-thin-border {
+            border: 1px solid #dbdbdb; /* Bulma grey */
+            border-radius: 4px;
+            padding: 0.75rem;
+        }
+    </style>
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+{% include "besttime/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <h2 class="title is-size-4">สร้างแบบสำรวจใหม่</h2>
+    <form method="post">
+        {{form.hidden_tag()}}
+        <div class="field">
+            <label class="label">{{form.title.label}}</label>
+            <div class="control">
+                {{form.title(class="input is-danger")}}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">{{ form.vote_start_date.label }}</label>
+            <div class="control">
+                {{ form.vote_start_date(class="input") }}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">{{ form.vote_end_date.label }}</label>
+            <div class="control">
+                {{ form.vote_end_date(class="input") }}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">{{form.start_date.label}}</label>
+            <div class="control">
+                {{form.start_date(**{'hx-trigger': 'change',
+                'class': 'input',
+                'hx-post': url_for('besttime.preview_master_datetime_slots', poll_id=poll_id),
+                'hx-target': '#master-datetime-slots',
+                'hx-swap': 'innerHTML',
+                'hx-headers': '{"X-CSRFToken": "{{ csrf_token() }}"}'})}}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">{{form.end_date.label}}</label>
+            <div class="control">
+                {{form.end_date(**{'hx-trigger': 'change',
+                'class': 'input',
+                'hx-post': url_for('besttime.preview_master_datetime_slots', poll_id=poll_id),
+                'hx-target': '#master-datetime-slots',
+                'hx-swap': 'innerHTML',
+                'hx-headers': '{"X-CSRFToken": "{{ csrf_token() }}"}'})}}
+            </div>
+        </div>
+        <h1 class="title is-size-6">Date Time Slots Preview</h1>
+        <div id="master-datetime-slots"></div>
+        <div class="field">
+            <label class="label">{{form.desc.label}}</label>
+            <div class="control">
+                {{form.desc(class="textarea")}}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">{{ form.chairman.label }}</label>
+            <div>{{form.chairman(class="js-example-basic-single")}}</div>
+        </div>
+        <div class="field">
+            <label class="label">{{ form.invitees.label }}</label>
+            <div class="control">{{form.invitees(class='js-example-basic-multiple')}}</div>
+        </div>
+        <div class="field">
+            <label class="label">Admins</label>
+            <div class="control">{{form.admins(class='js-example-basic-multiple')}}</div>
+        </div>
+        <div class="field is-grouped">
+            <div class="control">
+                <button class="button is-success" type="submit">Submit</button>
+            </div>
+            {% if poll_id %}
+            <div class="control">
+                <a class="button is-danger"
+                   hx-swap="none"
+                   hx-indicator="this"
+                   hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                   hx-confirm="ท่านต้องการลบการสำรวจนี้หรือไม่ หากลบแล้วจะไม่สามารถกู้คืนได้"
+                   hx-delete="{{url_for('besttime.delete_poll', poll_id=poll_id)}}">Delete</a>
+            </div>
+            <div class="control">
+                <a class="button is-warning" href="{{url_for('besttime.close_poll', poll_id=poll_id)}}">Close</a>
+            </div>
+            {% endif %}
+            <div class="control">
+                <a class="button is-light" href="{{url_for('besttime.index')}}">Back</a>
+            </div>
+        </div>
+    </form>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $('.js-example-basic-single').select2();
+            $('.js-example-basic-multiple').select2({
+                width: "100%",
+            })
+            htmx.trigger('#start_date', 'change')
+        })
+    </script>
+{% endblock %}
