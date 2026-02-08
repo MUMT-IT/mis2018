@@ -3897,7 +3897,7 @@ def generate_bacteria_request_pdf(service_request):
 def export_bacteria_request_pdf(request_id):
     service_request = ServiceRequest.query.get(request_id)
     buffer = generate_bacteria_request_pdf(service_request)
-    return send_file(buffer, download_name='Request_form.pdf', as_attachment=True)
+    return send_file(buffer, download_name='Request.pdf', as_attachment=True)
 
 
 def generate_virus_request_pdf(service_request):
@@ -4575,7 +4575,7 @@ def generate_virus_request_pdf(service_request):
 def export_virus_request_pdf(request_id):
     service_request = ServiceRequest.query.get(request_id)
     buffer = generate_virus_request_pdf(service_request)
-    return send_file(buffer, download_name='Request_form.pdf', as_attachment=True)
+    return send_file(buffer, download_name='Request.pdf', as_attachment=True)
 
 
 @academic_services.route('/api/quotation/address', methods=['GET'])
@@ -5403,8 +5403,9 @@ def create_sample_appointment(sample_id):
 def confirm_sample_appointment_page(request_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
+    code = request.args.get('code')
     return render_template('academic_services/confirm_sample_appointment_page.html', request_id=request_id,
-                           menu=menu, tab=tab)
+                           menu=menu, tab=tab, code=code)
 
 
 @academic_services.route('/customer/sample/tracking_number/add/<int:sample_id>', methods=['GET', 'POST'])
