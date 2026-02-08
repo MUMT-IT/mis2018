@@ -3736,19 +3736,10 @@ def generate_bacteria_request_pdf(service_request):
         if text_section:
             para = Paragraph("<br/>".join(text_section), style=detail_style)
             box = Table([[para]], colWidths=[530])
-            bw, bh = box.wrap(doc.width, first_page_limit)
-            hit_page_end = current_height + bh >= first_page_limit
-            if not hit_page_end:
-                box.setStyle(TableStyle([
-                    ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('LINEBELOW', (-1, 0), (-1, -1), 0, colors.white),
-                ]))
-            else:
-                box.setStyle(TableStyle([
-                    ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ]))
+            box.setStyle(TableStyle([
+                ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ]))
             data.append(KeepTogether(box))
             w, h = box.wrap(doc.width, first_page_limit)
             current_height += h
@@ -4241,19 +4232,10 @@ def generate_virus_request_pdf(service_request):
         if text_section:
             para = Paragraph("<br/>".join(text_section), style=detail_style)
             box = Table([[para]], colWidths=[530])
-            bw, bh = box.wrap(doc.width, first_page_limit)
-            hit_page_end = current_height + bh >= first_page_limit
-            if not hit_page_end:
-                box.setStyle(TableStyle([
-                    ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('LINEBELOW', (-1, 0), (-1, -1), 0, colors.white),
-                ]))
-            else:
-                box.setStyle(TableStyle([
-                    ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ]))
+            box.setStyle(TableStyle([
+                ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ]))
             data.append(KeepTogether(box))
             w, h = box.wrap(doc.width, first_page_limit)
             current_height += h
