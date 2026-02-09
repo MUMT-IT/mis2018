@@ -161,7 +161,7 @@
                                                                 {% if loop.first %}
                                                                     {% for _field in subfield %}
                                                                         {% if _field.type != 'CSRFTokenField' %}
-                                                                            <th style="border: none;width: 27em">
+                                                                            <th style="border: none;width: 28em">
                                                                                 {{ _field.label.text }}
                                                                                 <span class="has-text-danger">*</span>
                                                                             </th>
@@ -303,7 +303,7 @@
             const cleanTypeOtherInput = subform.find('input[name$="clean_type_other"]');
             const cleanTypeOtherField = cleanTypeOtherInput.closest('.field');
 
-            if (cleanTypeField && cleanTypeField.includes('อื่นๆ โปรดระบุ')) {
+            if (cleanTypeField && cleanTypeField.includes('อื่น ๆ')) {
                 cleanTypeOtherField.show();
                 cleanTypeOtherInput.prop('required', true).attr('oninvalid', "this.setCustomValidity('กรุณากรอกรูปแบบการทดสอบ')")
                     .attr('oninput', "this.setCustomValidity('')");
