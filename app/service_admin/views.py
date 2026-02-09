@@ -781,8 +781,10 @@ def view_customer():
 def create_customer(customer_id=None):
     if customer_id:
         customer = ServiceCustomerInfo.query.get(customer_id)
+        account = ServiceCustomerAccount.query.filter_by(customer_info_id=customer_id).first()
         form = ServiceCustomerInfoForm(obj=customer)
     else:
+        account = None
         form = ServiceCustomerInfoForm()
     if form.validate_on_submit():
         if customer_id is None:
@@ -790,11 +792,13 @@ def create_customer(customer_id=None):
         form.populate_obj(customer)
         if customer_id is None:
             customer.creator_id = current_user.id
-            account = ServiceCustomerAccount(email=form.email.data, customer_info=customer,
-                                             verify_datetime=arrow.now('Asia/Bangkok').datetime)
+            account = ServiceCustomerAccount(email=form.email.data, customer_info=customer)
         else:
-            for account in customer.accounts:
-                account.email = form.email.data
+            account.email = form.email.data
+        if request.form.getlist('verify_email'):
+            account.verify_datetime = arrow.now('Asia/Bangkok').datetime
+        else:
+            account.verify_datetime = None
         db.session.add(account)
         db.session.add(customer)
         db.session.commit()
@@ -807,7 +811,7 @@ def create_customer(customer_id=None):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('service_admin/create_customer.html', customer_id=customer_id,
-                           form=form)
+                           form=form, account=account)
 
 
 @service_admin.route('/request/index')
