@@ -146,6 +146,14 @@
                                     </div>
                                 </div>
                             {% endfor %}
+                            <label>
+                                <input id="verify_email" type="checkbox" name="verify_email" value="verify_email"
+                                        {% if account and account.verify_datetime or not customer_id %}
+                                            checked
+                                        {% endif %}
+                                >
+                                    Verify email
+                            </label>
                         </div>
                     </div>
                     <div class="field is-grouped is-grouped-centered">
