@@ -5043,10 +5043,11 @@ def approve_invoice(invoice_id):
                 msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
                        'ออกในนาม {}\n' \
                        'ณ วันที่ {} รอดำเนินการอัปโหลดใบแจ้งหนี้ฉบับลงนามคณบดี\n' \
-                       'กรุณาดำเนินการอัปโหลดในระบบ'.format(invoice.invoice_no, invoice.name,
-                                                            invoice.assistant_approved_at.astimezone(localtz).strftime(
-                                                                '%d/%m/%Y')
-                                                            )
+                       'กรุณาดำเนินการอัปโหลดในระบบ\n'
+                       'คลิกลิ้งค์เพื่อดำเนินการ\n'
+                       '{}'.format(invoice.invoice_no, invoice.name,
+                                   invoice.assistant_approved_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                   invoice_for_central_admin_url)
                        )
                 if not current_app.debug:
                     send_mail(email, title, message)
@@ -5085,9 +5086,10 @@ def approve_invoice(invoice_id):
                 msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
                        'ออกในนาม {}\n' \
                        'ณ วันที่ {} รอดำเนินการอนุมัติใบแจ้งหนี้\n' \
-                       'กรุณาดำเนินการอนุมัติในระบบ'.format(invoice.invoice_no, invoice.name,
-                                                            invoice.head_approved_at.astimezone(localtz).strftime(
-                                                                '%d/%m/%Y')
+                       'กรุณาดำเนินการอนุมัติในระบบ\n'
+                       'คลิกลิ้งค์เพื่อดำเนินการ\n'
+                       '{}'.format(invoice.invoice_no, invoice.name,
+                                   invoice.head_approved_at.astimezone(localtz).strftime('%d/%m/%Y'), invoice_url
                                                             )
                        )
                 if not current_app.debug:
@@ -5126,8 +5128,10 @@ def approve_invoice(invoice_id):
                 msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
                        'ออกในนาม {}\n' \
                        'ณ วันที่ {} รอดำเนินการอนุมัติใบแจ้งหนี้\n' \
-                       'กรุณาดำเนินการอนุมัติในระบบ'.format(invoice.invoice_no, invoice.name,
-                                                            invoice.sent_at.astimezone(localtz).strftime('%d/%m/%Y')
+                       'กรุณาดำเนินการอนุมัติในระบบ\n'
+                       'คลิกลิ้งค์เพื่อดำเนินการ\n'
+                       '{}'.format(invoice.invoice_no, invoice.name,
+                                   invoice.sent_at.astimezone(localtz).strftime('%d/%m/%Y'), invoice_url
                                                             )
                        )
                 send_mail(email, title, message)
@@ -5617,14 +5621,18 @@ def add_payment():
                     msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
                            'ออกในนาม {}\n' \
                            'ณ วันที่ {} รอดำเนินการตรวจสอบการชำระเงิน\n' \
-                           'กรุณาดำเนินการตรวจสอบในระบบ'.format(invoice.invoice_no, invoice.name,
+                           'กรุณาดำเนินการตรวจสอบในระบบ\n'
+                           'คลิกลิ้งค์เพื่อดำเนินการ\n'
+                           '{}'.format(invoice.invoice_no, invoice.name,
                                                                 invoice.paid_at.astimezone(localtz).strftime(
-                                                                    '%d/%m/%Y')))
+                                                                    '%d/%m/%Y'), link))
                 else:
                     msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
                            'ออกในนาม {}\n' \
                            'รอดำเนินการตรวจสอบการชำระเงิน\n' \
-                           'กรุณาดำเนินการตรวจสอบในระบบ'.format(invoice.invoice_no, invoice.name)
+                           'กรุณาดำเนินการตรวจสอบในระบบ\n'
+                           'คลิกลิ้งค์เพื่อดำเนินการ\n'
+                           '{}'.format(invoice.invoice_no, invoice.name, link)
                            )
                 if not current_app.debug:
                     send_mail([staff.email + '@mahidol.ac.th'], title, message)
@@ -6171,9 +6179,12 @@ def create_quotation_for_admin(quotation_id):
                     msg = ('ใบเสนอราคาเลขที่ {}\n' \
                            'ออกในนาม {}\n' \
                            'ณ วันที่ {} รอดำเนินการอนุมัติใบเสนอราคา\n' \
-                           'กรุณาดำเนินการอนุมัติในระบบ'
+                           'กรุณาดำเนินการอนุมัติในระบบ\n'
+                           'คลิกลิ้งค์เพื่อดำเนินการ\n'
+                           '{}'
                            .format(quotation.quotation_no, quotation.name,
-                                   quotation.sent_at.astimezone(localtz).strftime('%d/%m/%Y')
+                                   quotation.sent_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                   quotation_link
                                    )
                            )
                     if not current_app.debug:

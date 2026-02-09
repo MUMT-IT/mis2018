@@ -4612,11 +4612,11 @@ def request_quotation(request_id):
         msg = ('ใบคำขอบริการเลขที่ {}\n' \
                'ออกในนาม {}\n' \
                'ณ วันที่ {} รอดำเนินการออกใบเสนอราคา\n' \
-               'กรุณาดำเนินการออกใบเสนอราคาในระบบ'.format(service_request.request_no,
-                                                          service_request.quotation_address.name,
-                                                          service_request.created_at.astimezone(localtz).strftime(
-                                                              '%d/%m/%Y')
-                                                          )
+               'กรุณาดำเนินการออกใบเสนอราคาในระบบ\n'
+               'คลิกลิ้งค์เพื่อดำเนินการ\n'
+               '{}'.format(service_request.request_no, service_request.quotation_address.name,
+                           service_request.created_at.astimezone(localtz).strftime('%d/%m/%Y'), link
+                           )
                )
         if not current_app.debug:
             send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if
@@ -5566,14 +5566,18 @@ def add_payment():
                         msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
                                'ออกในนาม {}\n' \
                                'ณ วันที่ {} รอดำเนินการตรวจสอบการชำระเงิน\n' \
-                               'กรุณาดำเนินการตรวจสอบในระบบ'.format(invoice.invoice_no, invoice.name,
+                               'กรุณาดำเนินการตรวจสอบในระบบ\n'
+                               'คลิกลิ้งค์เพื่อดำเนินการ\n'
+                               '{}'.format(invoice.invoice_no, invoice.name,
                                                                     invoice.paid_at.astimezone(localtz).strftime(
-                                                                        '%d/%m/%Y')))
+                                                                        '%d/%m/%Y'), link))
                     else:
                         msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
                                'ออกในนาม {}\n' \
                                'รอดำเนินการตรวจสอบการชำระเงิน\n' \
-                               'กรุณาดำเนินการตรวจสอบในระบบ'.format(invoice.invoice_no, invoice.name)
+                               'กรุณาดำเนินการตรวจสอบในระบบ\n'
+                               'คลิกลิ้งค์เพื่อดำเนินการ\n'
+                               '{}'.format(invoice.invoice_no, invoice.name, link)
                                )
                     if not current_app.debug:
                         send_mail([staff.email + '@mahidol.ac.th'], title, message)
@@ -5861,11 +5865,12 @@ def edit_result_item(result_item_id):
                 msg = ('ใบคำขอรับบริการเลขที่ {}\n' \
                        'ออกในนาม {}\n'
                        'ณ วันที่ {} รอดำเนินการแก้ไข{}ฉบับร่าง\n' \
-                       'กรุณาดำเนินการแก้ไขในระบบ'.format(result_item.result.request.request_no,
+                       'กรุณาดำเนินการแก้ไขในระบบ\n'
+                       'คลิกลิ้งค์เพื่อดำเนินการ\n'
+                       '{}'.format(result_item.result.request.request_no,
                                                           result_item.result.request.quotation_address.name,
-                                                          result_item.req_edit_at.astimezone(localtz).strftime(
-                                                              '%d/%m/%Y'),
-                                                          result_item.report_language
+                                                          result_item.req_edit_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                                          result_item.report_language, link
                                                           )
                        )
                 if not current_app.debug:
