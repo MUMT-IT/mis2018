@@ -5090,7 +5090,7 @@ def approve_invoice(invoice_id):
                        'คลิกลิ้งค์เพื่อดำเนินการ\n'
                        '{}'.format(invoice.invoice_no, invoice.name,
                                    invoice.head_approved_at.astimezone(localtz).strftime('%d/%m/%Y'), invoice_url
-                                                            )
+                                   )
                        )
                 if not current_app.debug:
                     send_mail(email, title, message)
@@ -5132,7 +5132,7 @@ def approve_invoice(invoice_id):
                        'คลิกลิ้งค์เพื่อดำเนินการ\n'
                        '{}'.format(invoice.invoice_no, invoice.name,
                                    invoice.sent_at.astimezone(localtz).strftime('%d/%m/%Y'), invoice_url
-                                                            )
+                                   )
                        )
                 send_mail(email, title, message)
                 if not current_app.debug:
@@ -5624,8 +5624,8 @@ def add_payment():
                            'กรุณาดำเนินการตรวจสอบในระบบ\n'
                            'คลิกลิ้งค์เพื่อดำเนินการ\n'
                            '{}'.format(invoice.invoice_no, invoice.name,
-                                                                invoice.paid_at.astimezone(localtz).strftime(
-                                                                    '%d/%m/%Y'), link))
+                                       invoice.paid_at.astimezone(localtz).strftime(
+                                           '%d/%m/%Y'), link))
                 else:
                     msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
                            'ออกในนาม {}\n' \
@@ -6063,32 +6063,38 @@ def generate_virus_air_disinfection_quotation():
         quote_details = {}
         quote_prices = {}
         data = service_request.data
+        form = VirusAirDisinfectionRequestForm(data=data)
+
         for _, row in df_price.iterrows():
             if row['field_group'] not in quote_column_names:
                 quote_column_names[row['field_group']] = set()
             for field_name in row['field_name'].split(','):
                 quote_column_names[row['field_group']].add(field_name.strip())
-            key = ''.join(sorted(row[4:].str.cat())).replace(' ', '')
+            sorted_field_group = ''.join(sorted(row['field_group'])).replace(' ', '')
+            key = sorted_field_group + ''.join(sorted(row[4:].str.cat())).replace(' ', '')
             if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
                 quote_prices[key] = row['government_price']
             else:
                 quote_prices[key] = row['other_price']
-        test_methods = []
-        surface_fields = data.get('surface_disinfection_condition_field', {}).get('surface_disinfection_organism_fields',[])
-        for f in surface_fields:
-            organisms = f.get('surface_disinfection_organism', '')
-            period_tests = f.get('surface_disinfection_period_test', '')
-            test_methods.append((organisms, period_tests))
-            for _, row in df_price.iterrows():
-                organism_rows = row['surface_disinfection_organism']
-                period_test_rows = row['surface_disinfection_period_test']
-                if (organism_rows, period_test_rows) in test_methods:
-                    p_key = ''.join(sorted(f"{organism_rows}{period_test_rows}".replace(' ', '')))
-                    values = f"<i>{organism_rows}</i> {period_test_rows}"
-                    if p_key in quote_prices:
-                        prices = quote_prices[p_key]
-                        quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
 
+        for field in form:
+            if field.label.text not in quote_column_names:
+                continue
+            print('f', field_name)
+            keys = []
+            keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
+            for key in list(itertools.combinations(keys, len(quote_column_names[field.label.text]))):
+                sorted_field_label = ''.join(sorted(field.label.text)).replace(' ', '')
+                sorted_key_ = sorted(''.join([k[1] for k in key]))
+                p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
+                values = ', '.join(
+                    [f"<i>{k[1]}</i>" if "organism" in k[0] and k[1] != "None" else k[1] for k in key])
+                if p_key in quote_prices:
+                    prices = quote_prices[p_key]
+                    if p_key in quote_details:
+                        quote_details[p_key]["quantity"] += 1
+                    else:
+                        quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
         quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
                                      name=service_request.quotation_name,
@@ -6122,8 +6128,8 @@ def generate_virus_air_disinfection_quotation():
                 db.session.add(quotation_item)
                 db.session.commit()
         flash('ร่างใบเสนอราคาสำเร็จ กรุณาดำเนินการตรวจสอบข้อมูล', 'success')
-        return redirect(url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft',
-                                menu=menu))
+        return redirect(
+            url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
     else:
         return render_template('service_admin/quotation_created_confirmation_page.html',
                                quotation_id=quotation.id, request_no=service_request.request_no, menu=menu)
