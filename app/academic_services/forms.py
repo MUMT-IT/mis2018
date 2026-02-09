@@ -256,7 +256,7 @@ class BacteriaSprayConditionForm(FlaskForm):
                                       'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)')],
                                   validators=[Optional()])
     spray_surface_type = RadioField('ชนิดพื้นผิว', choices=[('พื้นผิวแข็งไม่มีรูพรุน', 'พื้นผิวแข็งไม่มีรูพรุน'),
-                                                            ('อื่นๆ โปรดระบุ', 'อื่นๆ โปรดระบุ')],
+                                                            ('อื่น ๆ', 'อื่น ๆ โปรดระบุ')],
                                     validators=[Optional()])
     spray_surface_type_other = StringField('ระบุ', render_kw={'class': 'input'})
     spray_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง'), ('ไม่เจือจาง', 'ไม่เจือจาง')],
@@ -455,7 +455,7 @@ class VirusLiquidTestConditionForm(FlaskForm):
     liquid_ratio = StringField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
     # liquid_per_water = StringField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
     liquid_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
-                                       render_kw={'class': 'input', 'placeholder': 'เช่น 30 วินาที หรือ 1 นาที'})
+                                       render_kw={'class': 'input'})
 
 
 class VirusLiquidConditionForm(FlaskForm):
@@ -468,7 +468,7 @@ class VirusLiquidConditionForm(FlaskForm):
                                                                  'วิธีทดสอบ Modified ASTM E1053-20']],
                                        validators=[Optional()])
     liquid_surface_type = RadioField('ชนิดพื้นผิว', choices=[('สิ่งทอ', 'สิ่งทอ'),
-                                                             ('พื้นผิวอื่นๆ โปรดระบุ', 'พื้นผิวอื่นๆ โปรดระบุ')],
+                                                             ('พื้นผิวอื่น ๆ', 'พื้นผิวอื่น ๆ โปรดระบุ')],
                                      validators=[Optional()])
     liquid_surface_type_other = StringField('ระบุ', render_kw={'class': 'input'})
     liquid_product_preparation = RadioField('การเตรียมผลิตภัณฑ์เพื่อการทดสอบ',
@@ -487,7 +487,7 @@ class VirusSprayTestConditionForm(FlaskForm):
     spray_distance = StringField('ระยะห่างในการฉีดพ่น (cm)', validators=[Optional()], render_kw={'class': 'input'})
     spray_of_time = StringField('ระยะเวลาฉีดพ่น (วินาที)', validators=[Optional()], render_kw={'class': 'input'})
     spray_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
-                                      render_kw={'class': 'input', 'placeholder': 'เช่น 30 วินาที หรือ 1 นาที'})
+                                      render_kw={'class': 'input'})
 
 
 class VirusSprayConditionForm(FlaskForm):
@@ -504,7 +504,7 @@ class VirusSprayConditionForm(FlaskForm):
                                       validators=[Optional()])
 
     spray_surface_type = RadioField('ชนิดพื้นผิว', choices=[('สิ่งทอ', 'สิ่งทอ'),
-                                                            ('พื้นผิวอื่นๆ โปรดระบุ', 'พื้นผิวอื่นๆ โปรดระบุ')],
+                                                            ('พื้นผิวอื่น ๆ', 'พื้นผิวอื่น ๆ โปรดระบุ')],
                                     validators=[Optional()])
     spray_surface_type_other = StringField('ระบุ', render_kw={'class': 'input'})
     spray_product_preparation = RadioField('การเตรียมผลิตภัณฑ์เพื่อการทดสอบ',
@@ -519,7 +519,7 @@ class VirusSprayConditionForm(FlaskForm):
 class VirusCoatTestConditionForm(FlaskForm):
     coat_organism = SelectField('เชื้อ', choices=[(c, c) for c in virus_liquid_organisms], validators=[Optional()])
     coat_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
-                                     render_kw={'class': 'input', 'placeholder': 'เช่น 30 วินาที หรือ 1 นาที'})
+                                     render_kw={'class': 'input'})
 
 
 class VirusCoatConditionForm(FlaskForm):
@@ -528,7 +528,7 @@ class VirusCoatConditionForm(FlaskForm):
     coat_test_method = RadioField('วิธีทดสอบ', choices=[(c, c) for c in ['วิธีทดสอบ Modified ASTM E1053-20']],
                                      validators=[Optional()])
     coat_surface_type = RadioField('ชนิดพื้นผิว', choices=[('ลามิเนต', 'ลามิเนต'), ('สิ่งทอ', 'สิ่งทอ'),
-                                                             ('พื้นผิวอื่นๆ โปรดระบุ', 'พื้นผิวอื่นๆ โปรดระบุ')],
+                                                             ('พื้นผิวอื่น ๆ', 'พื้นผิวอื่น ๆ โปรดระบุ')],
                                      validators=[Optional()])
     coat_surface_type_other = StringField('ระบุ', render_kw={'class': 'input'})
     coat_organism_fields = FieldList(FormField(VirusCoatTestConditionForm), min_entries=1)
@@ -638,7 +638,7 @@ class VirusSurfaceDisinfectionTestConditionForm(FlaskForm):
     surface_disinfection_organism = SelectField('เชื้อ', choices=[(c, c) for c in virus_liquid_organisms], validators=[Optional()])
     surface_disinfection_period_test = StringField('ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (นาที/ชั่วโมง)',
                                                    validators=[Optional()],
-                                                   render_kw={'class': 'input', 'placeholder': 'เช่น 1 นาที หรือ 1 ชั่วโมง หรือ 1 ชั่วโมง 1 นาที'})
+                                                   render_kw={'class': 'input'})
 
 
 class VirusSurfaceDisinfectionConditionForm(FlaskForm):
@@ -650,7 +650,7 @@ class VirusSurfaceDisinfectionConditionForm(FlaskForm):
         choices=[
             ('ทดสอบการฆ่าเชื้อบนพื้นผิวเรียบไม่มีรูพรุน (มาตรฐานวิธีทดสอบ ASTM E1053-20 ใช้พื้นผิววัสดุแก้ว)',
              'ทดสอบการฆ่าเชื้อบนพื้นผิวเรียบไม่มีรูพรุน (มาตรฐานวิธีทดสอบ ASTM E1053-20 ใช้พื้นผิววัสดุแก้ว)'),
-            ('ทดสอบการฆ่าเชื้อบนพื้นผิวชนิดอื่นๆ โปรดระบุ', 'ทดสอบการฆ่าเชื้อบนพื้นผิวชนิดอื่นๆ โปรดระบุ')
+            ('ทดสอบการฆ่าเชื้อบนพื้นผิวชนิดอื่น ๆ', 'ทดสอบการฆ่าเชื้อบนพื้นผิวชนิดอื่น ๆ โปรดระบุ')
         ], validators=[Optional()])
     surface_disinfection_clean_type_other = StringField('ระบุ', render_kw={'class': 'input'})
     surface_disinfection_organism_fields = FieldList(FormField(VirusSurfaceDisinfectionTestConditionForm),
