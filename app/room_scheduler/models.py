@@ -1,7 +1,6 @@
 from app.main import db, ma
 from sqlalchemy.sql import func
 from app.asset.models import AssetItem
-from app.eduqa.models import EduQACourseSession
 from sqlalchemy_utils import DateTimeRangeType
 
 event_participant_assoc = db.Table('event_participant_assoc',
@@ -123,7 +122,6 @@ class RoomEvent(db.Model):
                                    backref=db.backref('events', lazy='dynamic'))
     notify_participants = db.Column('notify_participants', db.Boolean(), default=True)
     course_session_id = db.Column('course_session_id', db.ForeignKey('eduqa_course_sessions.id'))
-    course_session = db.relationship(EduQACourseSession, backref=db.backref('events', cascade='all, delete-orphan'))
     meeting_event_id = db.Column('meeting_event_id', db.ForeignKey('meeting_events.id'))
 
     def to_dict(self):

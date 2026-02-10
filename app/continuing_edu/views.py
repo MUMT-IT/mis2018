@@ -27,6 +27,7 @@ from .models import (
     CEGender,
     CEAgeRange,
     CESpeakerProfile,
+    CEEventSpeaker,
 )
 from app.comhealth.models import ComHealthOrg
 from sqlalchemy import or_, and_, func
@@ -1649,51 +1650,6 @@ def dashboard():
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
     events = CEEventEntity.query.order_by(CEEventEntity.created_at.desc()).all()
-    if not events:
-        # Add sample data if no events exist
-        sample1 = CEEventEntity(
-            event_type='course',
-            title_en='Sample Course',
-            title_th='ตัวอย่างหลักสูตร',
-            description_en='This is a sample course for demonstration.',
-            description_th='นี่คือตัวอย่างหลักสูตรสำหรับการสาธิต',
-            course_code='SAMP101',
-            duration_en='2 days',
-            format_en='Online',
-            certification_en='Certificate of Completion',
-            location_en='Online',
-            speaker_en='Dr. John Doe',
-            speaker_th='ดร. จอห์น โด',
-            agenda_en='Introduction to Sample Course',
-            agenda_th='บทนำสู่หลักสูตรตัวอย่าง',
-            prerequisites_en='None',
-            prerequisites_th='ไม่มี',
-            additional_info_en='This is a sample course for demonstration purposes.',
-            additional_info_th='นี่คือตัวอย่างหลักสูตรสำหรับวัตถุประสงค์ในการสาธิต',
-            registration_fee= {'amount': 100.0, 'currency': 'USD'},
-            duration= {'amount': 2, 'unit': 'days'},
-            format= {'en': 'Online', 'th': 'ออนไลน์'},
-
-        )
-        sample2 = CEEventEntity(
-            event_type='webinar',
-            title_en='Sample Webinar',
-            title_th='ตัวอย่างสัมมนา',
-            description_en='This is a sample webinar for demonstration.',
-            description_th='นี่คือตัวอย่างสัมมนาสำหรับการสาธิต',
-            location_en='Online',
-            speaker_en='Dr. John Doe',
-            speaker_th='ดร. จอห์น โด',
-            agenda_en='Introduction to Sample Webinar',
-            agenda_th='บทนำสู่การสัมมนาตัวอย่าง',
-            duration_en='1 hour',
-            duration_th='1 ชั่วโมง',
-            location_th='ออนไลน์',
-
-        )
-        db.session.add_all([sample1, sample2])
-        db.session.commit()
-        events = CEEventEntity.query.order_by(CEEventEntity.created_at.desc()).all()
     user = get_current_user()
     registered_ids = set()
     if user:
@@ -3411,8 +3367,9 @@ def get_events_table_data():
     event_type_filter = request.args.get('event_type_filter', '')
     per_page = 10
 
-    # Build the query
+    # Build the query and join speakers for searching
     query = CEEventEntity.query
+    query = query.outerjoin(CEEventSpeaker)
 
     # Apply type filter if provided
     if event_type_filter:
@@ -3426,7 +3383,7 @@ def get_events_table_data():
             CEEventEntity.title_th.like(search_pattern),
             CEEventEntity.course_code.like(search_pattern),
             CEEventEntity.location_en.like(search_pattern),
-            CEEventEntity.speaker_en.like(search_pattern)
+            CEEventSpeaker.name_en.like(search_pattern)
         ))
 
     # Paginate the results
@@ -3494,8 +3451,6 @@ def add_event():
                 'date_th': request.form.get('date_th'),
                 'time_en': request.form.get('time_en'),
                 'time_th': request.form.get('time_th'),
-                'speaker_en': request.form.get('speaker_en'),
-                'speaker_th': request.form.get('speaker_th'),
                 'location_en': request.form.get('location_en'),
                 'location_th': request.form.get('location_th'),
                 'certificate_name_th': request.form.get('certificate_name_th'),
@@ -3503,7 +3458,16 @@ def add_event():
             })
 
         try:
-            new_event = Event(**data)
+            new_event = CEEventEntity(**data)
+            # If basic speaker name provided, attach a minimal CEEventSpeaker before commit
+            speaker_name_en = request.form.get('speaker_en')
+            speaker_name_th = request.form.get('speaker_th')
+            if speaker_name_en or speaker_name_th:
+                new_event.speakers.append(CEEventSpeaker(
+                    title_en='', title_th='',
+                    name_en=speaker_name_en or '', name_th=speaker_name_th or '',
+                    email='', phone='', institution_th='', institution_en=''
+                ))
             db.session.add(new_event)
             db.session.commit()
             flash('Event added successfully!', 'success')
@@ -3536,49 +3500,62 @@ def edit_event(event_id):
     event = CEEventEntity.query.get_or_404(event_id)
     if request.method == 'POST':
         try:
-            CEEventEntity.title_en = request.form.get('title_en')
-            CEEventEntity.title_th = request.form.get('title_th')
-            CEEventEntity.description_en = request.form.get('description_en')
-            CEEventEntity.description_th = request.form.get('description_th')
-            CEEventEntity.staff_id = request.form.get('staff_id') or None  # Set to None if empty
-            CEEventEntity.category_id = request.form.get('category_id') or None
-            CEEventEntity.certificate_type_id = request.form.get('certificate_type_id') or None
-            CEEventEntity.creating_institution = request.form.get('creating_institution')
-            CEEventEntity.department_or_unit = request.form.get('department_or_unit')
-            CEEventEntity.continue_education_score = request.form.get('continue_education_score', type=float)
+            event.title_en = request.form.get('title_en')
+            event.title_th = request.form.get('title_th')
+            event.description_en = request.form.get('description_en')
+            event.description_th = request.form.get('description_th')
+            event.staff_id = request.form.get('staff_id') or None  # Set to None if empty
+            event.category_id = request.form.get('category_id') or None
+            event.certificate_type_id = request.form.get('certificate_type_id') or None
+            event.creating_institution = request.form.get('creating_institution')
+            event.department_or_unit = request.form.get('department_or_unit')
+            event.continue_education_score = request.form.get('continue_education_score', type=float)
 
-            if CEEventEntity.event_type == 'course':
-                CEEventEntity.course_code = request.form.get('course_code')
-                CEEventEntity.image_url = request.form.get('image_url')
-                CEEventEntity.long_description_en = request.form.get('long_description_en')
-                CEEventEntity.long_description_th = request.form.get('long_description_th')
-                CEEventEntity.duration_en = request.form.get('duration_en')
-                CEEventEntity.duration_th = request.form.get('duration_th')
-                CEEventEntity.format_en = request.form.get('format_en')
-                CEEventEntity.format_th = request.form.get('format_th')
-                CEEventEntity.certification_en = request.form.get('certification_en')
-                CEEventEntity.certification_th = request.form.get('certification_th')
-                CEEventEntity.location_en = request.form.get('location_en')
-                CEEventEntity.location_th = request.form.get('location_th')
-                CEEventEntity.degree_en = request.form.get('degree_en')
-                CEEventEntity.degree_th = request.form.get('degree_th')
-                CEEventEntity.department_owner = request.form.get('department_owner')
-                CEEventEntity.created_by = request.form.get('created_by')
-                CEEventEntity.certificate_name_th = request.form.get('certificate_name_th')
-                CEEventEntity.certificate_name_en = request.form.get('certificate_name_en')
-            elif CEEventEntity.event_type == 'webinar':
-                CEEventEntity.long_description_en = request.form.get('long_description_en')
-                CEEventEntity.long_description_th = request.form.get('long_description_th')
-                CEEventEntity.date_en = request.form.get('date_en')
-                CEEventEntity.date_th = request.form.get('date_th')
-                CEEventEntity.time_en = request.form.get('time_en')
-                CEEventEntity.time_th = request.form.get('time_th')
-                CEEventEntity.speaker_en = request.form.get('speaker_en')
-                CEEventEntity.speaker_th = request.form.get('speaker_th')
-                CEEventEntity.location_en = request.form.get('location_en')
-                CEEventEntity.location_th = request.form.get('location_th')
-                CEEventEntity.certificate_name_th = request.form.get('certificate_name_th')
-                CEEventEntity.certificate_name_en = request.form.get('certificate_name_en')
+            if event.event_type == 'course':
+                event.course_code = request.form.get('course_code')
+                event.image_url = request.form.get('image_url')
+                event.long_description_en = request.form.get('long_description_en')
+                event.long_description_th = request.form.get('long_description_th')
+                event.duration_en = request.form.get('duration_en')
+                event.duration_th = request.form.get('duration_th')
+                event.format_en = request.form.get('format_en')
+                event.format_th = request.form.get('format_th')
+                event.certification_en = request.form.get('certification_en')
+                event.certification_th = request.form.get('certification_th')
+                event.location_en = request.form.get('location_en')
+                event.location_th = request.form.get('location_th')
+                event.degree_en = request.form.get('degree_en')
+                event.degree_th = request.form.get('degree_th')
+                event.department_owner = request.form.get('department_owner')
+                event.created_by = request.form.get('created_by')
+                event.certificate_name_th = request.form.get('certificate_name_th')
+                event.certificate_name_en = request.form.get('certificate_name_en')
+            elif event.event_type == 'webinar':
+                event.long_description_en = request.form.get('long_description_en')
+                event.long_description_th = request.form.get('long_description_th')
+                event.date_en = request.form.get('date_en')
+                event.date_th = request.form.get('date_th')
+                event.time_en = request.form.get('time_en')
+                event.time_th = request.form.get('time_th')
+                # Speaker information moved to CEEventSpeaker model; update/create minimal speaker record
+                speaker_name_en = request.form.get('speaker_en')
+                speaker_name_th = request.form.get('speaker_th')
+                if speaker_name_en or speaker_name_th:
+                    if event.speakers:
+                        sp = event.speakers[0]
+                        sp.name_en = speaker_name_en or sp.name_en
+                        sp.name_th = speaker_name_th or sp.name_th
+                    else:
+                        sp = CEEventSpeaker(
+                            title_en='', title_th='',
+                            name_en=speaker_name_en or '', name_th=speaker_name_th or '',
+                            email='', phone='', institution_th='', institution_en=''
+                        )
+                        event.speakers.append(sp)
+                event.location_en = request.form.get('location_en')
+                event.location_th = request.form.get('location_th')
+                event.certificate_name_th = request.form.get('certificate_name_th')
+                event.certificate_name_en = request.form.get('certificate_name_en')
 
             db.session.commit()
             flash('Event updated successfully!', 'success')
@@ -3588,11 +3565,11 @@ def edit_event(event_id):
             flash(f'Error updating event: {e}', 'danger')
 
     staff_accounts = StaffAccount.query.all()
-    categories = CEEventEntity.event_type # EventCategory.query.all()
+    categories = event.event_type # EventCategory.query.all()
     certificate_types = CECertificateType.query.all()
     return render_template('continueing_edu/event_form.html',
                            active_menu='Event Management',
-                           form_title=f'Edit Event: {CEEventEntity.title_en}',
+                           form_title=f'Edit Event: {event.title_en}',
                            event=event,
                            staff_accounts=staff_accounts,
                            categories=categories,
