@@ -3197,15 +3197,14 @@ def sample_verification(sample_id):
             # contact_email = sample.request.customer.contact_email if sample.request.customer.contact_email else sample.request.customer.email
             title_prefix = 'คุณ' if sample.request.customer.customer_info.type.type == 'บุคคล' else ''
             # link = url_for("academic_services.request_index", menu='request', _external=True, _scheme=scheme)
-            title = f'''แจ้งตรวจรับตัวอย่างของใบคำขอรับบริการ [{sample.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+            title = f'''แจ้งตรวจรับตัวอย่างจากคำขอรับบริการ'''
             message = f'''เรียน {title_prefix}{sample.request.customer.customer_name}\n\n'''
-            message += f'''ตามที่ท่านได้ส่งตัวอย่างเพื่อตรวจวิเคราะห์มายังคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ขณะนี้ทางเจ้าหน้าที่ได้ตรวจรับตัวอย่างของท่านเรียบร้อยแล้ว\n'''
-            message += f'''เจ้าหน้าที่จะดำเนินการตรวจวิเคราะห์ตามขั้นตอน และจัดทำรายงานผลการตรวจวิเคราะห์ตามที่ตกลงไว้\n'''
+            message += f'''ตามที่ท่านได้ส่งตัวอย่างเพื่อตรวจวิเคราะห์มายังคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\nขณะนี้ทางเจ้าหน้าที่ได้ตรวจรับตัวอย่างของท่านเรียบร้อยแล้ว '''
+            message += f'''เจ้าหน้าที่จะดำเนินการตรวจวิเคราะห์ และจัดทำรายงานผลการตรวจวิเคราะห์ต่อไป\n'''
             # message += f'''ท่านสามารถติดตามสถานะการตรวจวิเคราะห์ได้ที่ลิงก์ด้านล่างนี้้\n'''
             # message += f'''{link}\n\n'''
-            message += f'''ขอขอบพระคุณที่ใช้บริการจากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n\n'''
             message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-            message += f'''ขอแสดงความนับถือ\n'''
+            message += f'''ขอขอบพระคุณที่ใช้บริการ\n\n'''
             message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
             if not current_app.debug:
@@ -4696,12 +4695,12 @@ def add_tracking_number(result_id):
         db.session.commit()
         customer_name = result.request.customer.customer_name.replace(' ', '_')
         title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
-        title = f'''แจ้งหมายเลขพัสดุ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+        title = f'''แจ้งจัดส่งรายงานผลการทดสอบ'''
         message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-        message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}\n'''
+        message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
         message += f'''ขณะนี้ทางเจ้าหน้าที่ได้ดำเนินการจัดส่งรายงานผลการทดสอบฉบับจริงให้แก่ท่านทางไปรษณีย์เป็นที่เรียบร้อยแล้ว\nหมายเลขพัสดุ : {result.tracking_number}\n'''
         message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-        message += f'''ขอแสดงความนับถือ\n'''
+        message += f'''ขอขอบพระคุณที่ใช้บริการ\n'''
         message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
         message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
         if not current_app.debug:
@@ -5024,20 +5023,20 @@ def approve_invoice(invoice_id):
         if admins:
             email = [a.admin.email + '@mahidol.ac.th' for a in admins if a.is_central_admin]
             if email:
-                title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งดำเนินการใบแจ้งหนี้'
+                title = f'รายการดำเนินการใบแจ้งหนี้'
                 message = f'''เรียน แอดมินส่วนกลาง\n\n'''
                 message += f'''ตามที่มีการออกใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
-                message += f'''ลูกค้า : {invoice.customer_name}\n'''
-                message += f'''ในนาม : {invoice.name}\n'''
-                message += f'''อ้างอิงเอกสาร : \n'''
-                message += f'''- ใบคำขอรับบริการเลขที่ : {invoice.quotation.request.request_no}\n'''
-                message += f'''- ใบเสนอราคาเลขที่ : {invoice.quotation.quotation_no}\n\n'''
+                # message += f'''ลูกค้า : {invoice.customer_name}\n'''
+                # message += f'''ในนาม : {invoice.name}\n'''
+                # message += f'''อ้างอิงเอกสาร : \n'''
+                # message += f'''- ใบคำขอรับบริการเลขที่ : {invoice.quotation.request.request_no}\n'''
+                # message += f'''- ใบเสนอราคาเลขที่ : {invoice.quotation.quotation_no}\n\n'''
                 message += f'''ขอความกรุณา แอดมินส่วนกลางดำเนินการดังต่อไปนี้\n\n'''
                 message += f'''1. พิมพ์ใบแจ้งหนี้\n'''
                 message += f'''2. ออกเลขสารบรรณ\n'''
                 message += f'''3. นำเข้าเอกสารเข้าสู่ระบบ e-Office เพื่อเสนอคณบดีลงนาม\n'''
                 message += f'''4. หลังจากดำเนินการเรียบร้อยแล้ว กรุณาอัปโหลดไฟล์ใบแจ้งหนี้ที่ลงนามแล้วกลับเข้าสู่ระบบบริการวิชาการ เพื่อให้ระบบดำเนินการแจ้งลูกค้าต่อไป\n\n'''
-                message += f'''สามารถเข้าดำเนินการได้ที่ระบบ\n'''
+                message += f'''ท่านสามารถเข้าดำเนินการได้ที่ระบบ\n'''
                 message += f'''{invoice_for_central_admin_url}\n\n'''
                 message += f'''หากมีข้อขัดข้องหรือข้อมูลเพิ่มเติมที่ต้องใช้\nสามารถประสานแจ้งกลับได้โดยตรง\n\n'''
                 message += f'''ขอบคุณค่ะ\nฝ่ายระบบสารสนเทศ / MIS'''
@@ -5069,20 +5068,19 @@ def approve_invoice(invoice_id):
         if admins:
             email = [a.admin.email + '@mahidol.ac.th' for a in admins if a.is_assistant]
             if email:
-                title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอนุมัติใบแจ้งหนี้'
+                title = f'รายการอนุมัติใบแจ้งหนี้'
                 message = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n'''
-                message += f'''ใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
-                message += f'''ลูกค้า : {invoice.customer_name}\n'''
-                message += f'''ในนาม : {invoice.name}\n'''
-                message += f'''อ้างอิงจาก : \n'''
-                message += f'''- ใบคำขอรับบริการเลขที่ : {invoice.quotation.request.request_no}\n'''
-                message += f'''- ใบเสนอราคาเลขที่ : {invoice.quotation.quotation_no}\n'''
-                message += f'''ที่รอดำเนินการอนุมัติใบแจ้งหนี้\n'''
-                message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
+                # message += f'''ใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
+                # message += f'''ลูกค้า : {invoice.customer_name}\n'''
+                # message += f'''ในนาม : {invoice.name}\n'''
+                # message += f'''อ้างอิงจาก : \n'''
+                # message += f'''- ใบคำขอรับบริการเลขที่ : {invoice.quotation.request.request_no}\n'''
+                # message += f'''- ใบเสนอราคาเลขที่ : {invoice.quotation.quotation_no}\n'''
+                message += f'''มีใบแจ้งหนี้เลขที่ {invoice.invoice_no} ที่รอดำเนินการอนุมัติใบแจ้งหนี้ ท่านสามารถตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
                 message += f'''{invoice_url}\n\n'''
-                message += f'''ผู้ประสานงาน\n'''
-                message += f'''{invoice.customer_name}\n'''
-                message += f'''เบอร์โทร {invoice.contact_phone_number}\n'''
+                # message += f'''ผู้ประสานงาน\n'''
+                # message += f'''{invoice.customer_name}\n'''
+                # message += f'''เบอร์โทร {invoice.contact_phone_number}\n'''
                 message += f'''ระบบบริการวิชาการ'''
                 msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
                        'ออกในนาม {}\n' \
@@ -5111,20 +5109,10 @@ def approve_invoice(invoice_id):
         if admins:
             email = [a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor]
             if email:
-                title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอนุมัติใบแจ้งหนี้'
-                message = f'''เรียน หัวหน้าห้องปฏิบัติการ{invoice.quotation.request.sub_lab.sub_lab}\n\n'''
-                message += f'''ใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
-                message += f'''ลูกค้า : {invoice.customer_name}\n'''
-                message += f'''ในนาม : {invoice.name}\n'''
-                message += f'''อ้างอิงจาก : \n'''
-                message += f'''- ใบคำขอรับบริการเลขที่ : {invoice.quotation.request.request_no}\n'''
-                message += f'''- ใบเสนอราคาเลขที่ : {invoice.quotation.quotation_no}\n'''
-                message += f'''ที่รอดำเนินการอนุมัติใบแจ้งหนี้\n'''
-                message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
+                title = f'รายการอนุมัติใบแจ้งหนี้'
+                message = f'''เรียน หัวหน้าห้องปฏิบัติการ{invoice.quotation.request.sub_lab.sub_lab.lab.lab}\n\n'''
+                message += f'''มีใบแจ้งหนี้เลขที่ {invoice.invoice_no} ที่รอดำเนินการอนุมัติใบแจ้งหนี้ ท่านสามารถตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
                 message += f'''{invoice_url}\n\n'''
-                message += f'''ผู้ประสานงาน\n'''
-                message += f'''{invoice.customer_name}\n'''
-                message += f'''เบอร์โทร {invoice.contact_phone_number}\n'''
                 message += f'''ระบบบริการวิชาการ'''
                 msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
                        'ออกในนาม {}\n' \
@@ -5195,15 +5183,13 @@ def upload_invoice_file(invoice_id):
                    f'ขอบคุณค่ะ\n'
                    f'ระบบงานบริการวิชาการ'
                    )
-            title = f'''แจ้งออกใบแจ้งหนี้ [{invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+            title = f'''แจ้งออกใบแจ้งหนี้'''
             message = f'''เรียน {title_prefix}{invoice.customer_name}\n\n'''
-            message += f'''ตามที่ท่านใช้บริการจากหน่วยงานตรวจวิเคราะห์ของคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ขณะนี้ทางเจ้าหน้าที่ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no}\n'''
-            message += f'''ของใบคำขอรับบริการเลขที่ {invoice.quotation.request.request_no} และของใบเสนอราคาเลขที่ {invoice.quotation.quotation_no} เรียบร้อยแล้ว\nกรุณาดำเนินการชำระเงินภายใน 30 วันนับจากวันที่ออกใบแจ้งหนี้\n'''
-            message += f'''ท่านสามารถตรวจสอบรายละเอียดใบแจ้งหนี้ได้จากลิงก์ด้านล่าง\n'''
+            message += f'''ตามที่ท่านใช้บริการจากหน่วยงานตรวจวิเคราะห์ของคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\nขณะนี้ทางเจ้าหน้าที่ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว\n'''
+            message += f'''กรุณาดำเนินการชำระเงินภายใน 30 วันนับจากวันที่ออกใบแจ้งหนี้ โดยท่านสามารถตรวจสอบรายละเอียดใบแจ้งหนี้ได้จากลิงก์ด้านล่าง\n'''
             message += f'''{invoice_url}\n\n'''
-            message += f'''ขอขอบพระคุณที่ใช้บริการจากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n\n'''
             message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-            message += f'''ขอแสดงความนับถือ\n'''
+            message += f'''ขอขอบพระคุณที่ใช้บริการ\n'''
             message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
             if not current_app.debug:
@@ -5607,16 +5593,16 @@ def add_payment():
                 link = url_for("service_admin.view_invoice_for_finance", invoice_id=invoice_id, _external=True,
                                _scheme=scheme)
                 customer_name = invoice.customer_name.replace(' ', '_')
-                title = f'''[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอัปเดตการชำระเงิน'''
+                title = f'''แจ้งอัปเดตการชำระเงิน'''
                 message = f'''เรียน เจ้าหน้าที่การเงิน\n\n'''
                 message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'''
                 message += f'''ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'''
                 message += f'''จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว\n'''
-                message += f'''กรุณาตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'''
+                message += f'''ท่านสามารถตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'''
                 message += f'''{link}\n\n'''
-                message += f'''ผู้ประสานงาน\n'''
-                message += f'''{invoice.customer_name}\n'''
-                message += f'''เบอร์โทร {invoice.contact_phone_number}\n\n'''
+                # message += f'''ผู้ประสานงาน\n'''
+                # message += f'''{invoice.customer_name}\n'''
+                # message += f'''เบอร์โทร {invoice.contact_phone_number}\n\n'''
                 message += f'''ระบบงานบริการวิชาการ'''
                 if invoice.paid_at:
                     msg = ('ใบแจ้งหนี้เลขที่ {}\n' \
@@ -6171,17 +6157,16 @@ def create_quotation_for_admin(quotation_id):
             if admins:
                 email = [a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor]
                 if email:
-                    title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} ({quotation.name}) | แจ้งขออนุมัติใบเสนอราคา'''
-                    message = f'''เรียน หัวหน้าห้องปฏิบัติการ{quotation.request.sub_lab.sub_lab}\n\n'''
-                    message += f'''ใบเสนอราคาเลขที่ : {quotation.quotation_no}\n'''
-                    message += f'''ลูกค้า : {quotation.customer_name}\n'''
-                    message += f'''ในนาม : {quotation.name}\n'''
-                    message += f'''อ้างอิงจากใบคำขอรับบริการเลขที่ : {quotation.request.request_no}\n'''
-                    message += f'''ที่รอการอนุมัติใบเสนอราคา\n'''
-                    message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
+                    title = f'''รายการขออนุมัติใบเสนอราคา'''
+                    message = f'''เรียน หัวหน้าห้องปฏิบัติการ{quotation.request.sub_lab.sub_lab.lab.lab}\n\n'''
+                    # message += f'''ใบเสนอราคาเลขที่ : {quotation.quotation_no}\n'''
+                    # message += f'''ลูกค้า : {quotation.customer_name}\n'''
+                    # message += f'''ในนาม : {quotation.name}\n'''
+                    # message += f'''อ้างอิงจากใบคำขอรับบริการเลขที่ : {quotation.request.request_no}\n'''
+                    message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} ที่รอการอนุมัติใบเสนอราคา ท่านสามารถตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
                     message += f'''{quotation_link}\n\n'''
-                    message += f'''เจ้าหน้าที่ห้องปฏิบัติการ\n'''
-                    message += f'''{quotation.creator.fullname}\n'''
+                    # message += f'''เจ้าหน้าที่ห้องปฏิบัติการ\n'''
+                    # message += f'''{quotation.creator.fullname}\n'''
                     message += f'''ระบบงานบริการวิชาการ'''
                     msg = ('ใบเสนอราคาเลขที่ {}\n' \
                            'ออกในนาม {}\n' \
@@ -6300,21 +6285,14 @@ def approval_quotation_for_supervisor(quotation_id):
                                              tab='pending', _external=True, _scheme=scheme)
                     total_items = len(quotation.quotation_items)
                     title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
-                    title = f'''โปรดยืนยันใบเสนอราคา [{quotation.quotation_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                    title = f'''แจ้งออกใบเสนอราคา'''
                     customer_name = quotation.customer_name.replace(' ', '_')
-                    message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-                    message += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบเสนอราคาหมายเลข {quotation.quotation_no}\n'''
-                    message += f'''ได้รับการอนุมัติเรียบร้อยแล้ว และขณะนี้รอการยืนยันจากท่านเพื่อดำเนินการขั้นตอนต่อไป\n\n'''
-                    message += f'''รายละเอียดข้อมูล\n'''
-                    message += f'''วันที่อนุมัติ : {quotation.approved_at.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
-                    message += f'''จำนวนรายการ : {total_items} รายการ\n'''
-                    message += f'''ราคา : {"{:,.2f}".format(quotation.grand_total())} บาท\n'''
-                    message += f'''อ้างอิงจากใบคำขอรับบริการเลขที่ : {quotation.request.request_no}\n\n'''
-                    message += f'''กรุณาดำเนินการยืนยันใบเสนอราคาภายใน 7 วัน ผ่านลิงก์ด้านล่าง\n'''
+                    message = f'''เรียน {title_prefix}{quotation.customer_name}\n\n'''
+                    message += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
+                    message += f'''ขณะนี้ทางเจ้าหน้าที่ได้ดำเนินการออกใบเสนอราคาเลขที่ {quotation.quotation_no} เรียบร้อยแล้ว ท่านสามารถตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
                     message += f'''{quotation_link}\n\n'''
-                    message += f'''หากไม่ยืนยันภายในกำหนด ใบเสนอราคาอาจถูกยกเลิกและราคาอาจเปลี่ยนแปลงได้\n\n'''
                     message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-                    message += f'''ขอแสดงความนับถือ\n'''
+                    message += f'''ขอขอบคุณพระคุณที่ใช้บริการ\n'''
                     message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
                     message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
                     admins = (
@@ -6329,20 +6307,12 @@ def approval_quotation_for_supervisor(quotation_id):
                     if admins:
                         email = [a.admin.email + '@mahidol.ac.th' for a in admins if a.is_assistant]
                         if email:
-                            title_for_assistant = f'''แจ้งเพื่อทราบรายการอนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} อนุมัติโดย คุณ{quotation.approver.fullname}'''
+                            title_for_assistant = f'''รายการอนุมัติใบเสนอราคา'''
                             message_for_assistant = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n'''
-                            message_for_assistant += f'''แจ้งรายการอนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
-                            message_for_assistant += f'''ในนามลูกค้า {title_prefix}{customer_name}\n'''
-                            message_for_assistant += f'''รายละเอียดดังต่อไปนี้\n'''
-                            message_for_assistant += f'''วันที่อนุมัติ : {quotation.approved_at.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
-                            message_for_assistant += f'''จำนวนรายการ : {total_items} รายการ\n'''
-                            message_for_assistant += f'''ราคา : {"{:,.2f}".format(quotation.grand_total())} บาท\n'''
-                            message_for_assistant += f'''อ้างอิงจากใบคำขอรับบริการเลขที่ : {quotation.request.request_no}\n'''
-                            message_for_assistant += f'''อนุมัติโดย คุณ{quotation.approver.fullname}\n\n'''
-                            message_for_assistant += f'''โดยสามารถดูรายละเอียดใบเสนอราคาเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
+                            message_for_assistant += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} ที่ได้รับการอนุมัติจากหัวหน้าห้องปฏิบัติการแล้ว ท่านสามารดูรายละเอียดเพิ่มเติมได้ที่ลิงค์ด้านล่าง\n'''
                             message_for_assistant += f'''{quotation_link_for_assistant}\n\n'''
-                            message_for_assistant += f'''หัวหน้าห้องปฏิบัติการ\n'''
-                            message_for_assistant += f'''{quotation.approver.fullname}\n'''
+                            # message_for_assistant += f'''หัวหน้าห้องปฏิบัติการ\n'''
+                            # message_for_assistant += f'''{quotation.approver.fullname}\n'''
                             message_for_assistant += f'''ระบบงานบริการวิชาการ'''
                         if not current_app.debug:
                             send_mail([quotation.request.customer.email], title, message)
@@ -6394,13 +6364,11 @@ def disapprove_quotation(quotation_id):
             title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
             customer_name = quotation.customer_name.replace(' ', '_')
             if admins:
-                title = f'''แจ้งผลการไม่อนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no}'''
-                message = f'''เรียน เจ้าหน้าที่{quotation.request.sub_lab.sub_lab}\n\n'''
-                message += f'''ขอแจ้งผลการพิจารณาไม่อนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
-                message += f'''ในนามลูกค้า {title_prefix}{customer_name}\n'''
-                message += f'''เนื่องจาก{quotation.note}\n\n'''
-                message += f'''หัวหน้าห้องปฏิบัติการ\n'''
-                message += f'''{quotation.disapprover.fullname}\n'''
+                title = f'''รายการไม่อนุมัติใบเสนอราคา'''
+                message = f'''เรียน เจ้าหน้าที่{quotation.request.sub_lab.sub_lab.lab.lab}\n\n'''
+                message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} ที่ไม่ผ่านการอนุมัติจากหัวหน้าห้องปฏิบัติการ เนื่องจาก{quotation.note}\n\n'''
+                # message += f'''หัวหน้าห้องปฏิบัติการ\n'''
+                # message += f'''{quotation.disapprover.fullname}\n'''
                 message += f'''ระบบงานบริการวิชาการ'''
                 if not current_app.debug:
                     send_mail(
@@ -6743,14 +6711,14 @@ def create_draft_result(result_id=None):
                 customer_name = result.request.customer.customer_name.replace(' ', '_')
                 # contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
                 title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
-                title = f'''แจ้งออกรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                title = f'''แจ้งออกรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ'''
                 message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-                message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}\n'''
-                message += f'''ขณะนี้ทางเจ้าหน้าที่ได้จัดทำรายงานผลการทดสอบฉบับร่างเรียบร้อยแล้ว\n'''
-                message += f'''กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
+                message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
+                message += f'''ขณะนี้ทางเจ้าหน้าที่ได้จัดทำรายงานผลการทดสอบฉบับร่างของใบคำขอบริการเลขที่ {result.request.request_no}เรียบร้อยแล้ว\n'''
+                message += f'''ท่านสามารถตรวจสอบและดำเนินการยืนยันได้ที่ลิงค์ด้านล่าง\n'''
                 message += f'''{result_url}\n\n'''
                 message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-                message += f'''ขอแสดงความนับถือ\n'''
+                message += f'''ขอขอบพระคุณที่ใช้บริการ\n'''
                 message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
                 message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
                 if not current_app.debug:
@@ -6811,14 +6779,14 @@ def edit_draft_result(result_item_id):
             customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
             # contact_email = result_item.result.request.customer.contact_email if result_item.result.request.customer.contact_email else result_item.result.request.customer.email
             title_prefix = 'คุณ' if result_item.result.request.customer.customer_info.type.type == 'บุคคล' else ''
-            title = f'''แจ้งแก้ไขรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ [{result_item.result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+            title = f'''แจ้งแก้ไขรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ'''
             message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-            message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result_item.result.request.request_no}\n'''
+            message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
             message += f'''ขณะนี้ทางเจ้าหน้าที่ได้แก้ไข{result_item.report_language}ฉบับร่างเรียบร้อยแล้ว\n'''
-            message += f'''กรุณาตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันตามลิงก์ด้านล่าง\n'''
+            message += f'''ท่านสามารถตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันได้ที่ลิงค์ด้านล่าง\n'''
             message += f'''{result_url}\n\n'''
             message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-            message += f'''ขอแสดงความนับถือ\n'''
+            message += f'''ขอขอบพระคุณที่ใช้บริการ\n'''
             message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
             if not current_app.debug:
@@ -6880,13 +6848,13 @@ def create_final_result(result_id=None):
             customer_name = result.request.customer.customer_name.replace(' ', '_')
             # contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
             title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
-            title = f'''แจ้งออกรายงานผลการทดสอบฉบับจริงของใบคำขอรับบริการ [{result.request.request_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+            title = f'''แจ้งออกรายงานผลการทดสอบฉบับจริงของใบคำขอรับบริการ'''
             message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-            message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}\n'''
-            message += f'''ขณะนี้ทางเจ้าหน้าที่ได้ดำเนินการออกรายงานผลการทดสอบฉบับจริงเรียบร้อยแล้ว ท่านสามารถดูรายละเอียดรายงานผลการทดสอบได้จากลิงก์ด้านล่าง\n'''
+            message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
+            message += f'''ขณะนี้ทางเจ้าหน้าที่ได้ดำเนินการออกรายงานผลการทดสอบฉบับจริงเรียบร้อยแล้ว ท่านสามารถดูรายละเอียดเพิ่มเติมได้ที่ลิงค์ด้านล่าง\n'''
             message += f'''{result_url}\n\n'''
             message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-            message += f'''ขอแสดงความนับถือ\n'''
+            message += f'''ขอขอบพระคุณที่ใช้บริการ\n'''
             message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
             if not current_app.debug:
@@ -7022,16 +6990,16 @@ def cancel_payment(invoice_id):
     customer_name = invoice.quotation.request.customer.customer_name.replace(' ', '_')
     # contact_email = invoice.quotation.request.customer.contact_email if invoice.quotation.request.customer.contact_email else invoice.quotation.request.customer.email
     title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
-    title = f'''แจ้งยกเลิกการชำระเงินของใบแจ้งหนี้ [{invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    title = f'''แจ้งยกเลิกการชำระเงินของใบแจ้งหนี้'''
     message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-    message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {invoice.quotation.request.request_no}\n'''
+    message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
     message += f'''ขณะนี้ทางเจ้าหน้าที่ขอแจ้งให้ทราบว่า การชำระเงินสำหรับใบแจ้งหนี้เลขที่่ {invoice.invoice_no} มีความจำเป็นต้องยกเลิกการชำระเงินเดิม\n'''
-    message += f'''เนื่องจากยอดชำระไม่ครบถ้วนตามที่กำหนด จึงขอความร่วมมือให้ท่านดำเนินการชำระเงินใหม่ตามจำนวนที่ระบุไว้ในใบแจ้งหนี้ เพื่อความถูกต้องของข้อมูลในระบบ\n'''
-    message += f'''กรุณาดำเนินการแนบหลักฐานการชำระเงินใหม่ผ่านลิงก์ด้านล่าง\n'''
+    message += f'''จึงขอความร่วมมือให้ท่านดำเนินการชำระเงินใหม่ตามจำนวนที่ระบุไว้ในใบแจ้งหนี้\n'''
+    message += f'''ท่านสามารถดำเนินการแนบหลักฐานการชำระเงินใหม่ได้ที่ลิงค์ด้านล่าง\n'''
     message += f'''{upload_payment_link}\n\n'''
     message += f'''ทางคณะฯ ต้องขออภัยในความไม่สะดวกมา ณ ที่นี้\n\n'''
     message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-    message += f'''ขอแสดงความนับถือ\n'''
+    message += f'''ขอขอบพระคุณที่ใช้บริการ\n'''
     message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
     message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
     if not current_app.debug:
