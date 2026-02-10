@@ -792,13 +792,14 @@ def create_customer(customer_id=None):
         form.populate_obj(customer)
         if customer_id is None:
             customer.creator_id = current_user.id
-            account = ServiceCustomerAccount(email=form.email.data, customer_info=customer)
+            account = ServiceCustomerAccount(email=form.email.data, customer_info=customer,
+                                             verify_datetime=arrow.now('Asia/Bangkok').datetime)
         else:
             account.email = form.email.data
-        if request.form.getlist('verify_email'):
-            account.verify_datetime = arrow.now('Asia/Bangkok').datetime
-        else:
-            account.verify_datetime = None
+        # if request.form.getlist('verify_email'):
+        #     account.verify_datetime = arrow.now('Asia/Bangkok').datetime
+        # else:
+        #     account.verify_datetime = None
         db.session.add(account)
         db.session.add(customer)
         db.session.commit()
