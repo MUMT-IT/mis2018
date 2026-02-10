@@ -3094,7 +3094,6 @@ def get_other():
 
 
 @academic_services.route('/customer/report_language/add/<int:request_id>', methods=['GET', 'POST'])
-@login_required
 def create_report_language(request_id):
     menu = request.args.get('menu')
     code = request.args.get('code')
@@ -3128,7 +3127,6 @@ def create_report_language(request_id):
 
 
 @academic_services.route('/customer/detail/add/<int:request_id>', methods=['GET', 'POST'])
-@login_required
 def create_customer_detail(request_id):
     form = None
     menu = request.args.get('menu')
