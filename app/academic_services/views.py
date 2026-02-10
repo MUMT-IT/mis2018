@@ -4598,7 +4598,7 @@ def request_quotation(request_id):
     # contact_email = current_user.contact_email if current_user.contact_email else current_user.email
     if admins:
         title = f'''รายการขอใบเสนอราคา'''
-        message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.sub_lab.lab.lab}\n\n'''
+        message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.lab.lab}\n\n'''
         # message += f'''ใบคำขอบริการเลขที่ : {service_request.request_no}\n'''
         # message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
         # message += f'''ในนาม : {service_request.quotation_address.name}\n'''
@@ -4960,7 +4960,7 @@ def confirm_quotation(quotation_id):
     customer_name = quotation.customer_name.replace(' ', '_')
     if admins:
         title = f'''รายการยืนยันใบเสนอราคา'''
-        message = f'''เรียน เจ้าหน้าที่{quotation.request.sub_lab.sub_lab.lab.lab}\n\n'''
+        message = f'''เรียน เจ้าหน้าที่{quotation.request.sub_lab.lab.lab}\n\n'''
         # message += f'''ใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
         # message += f'''ลูกค้า : {quotation.customer_name}\n'''
         # message += f'''ในนาม : {quotation.name}\n'''
@@ -5009,7 +5009,7 @@ def reject_quotation(quotation_id):
         customer_name = quotation.customer_name.replace(' ', '_')
         if admins:
             title = f'''รายการปฏิเสธใบเสนอราคา'''
-            message = f'''เรียน เจ้าหน้าที่{quotation.request.sub_lab.sub_lab.lab.lab}่\n\n'''
+            message = f'''เรียน เจ้าหน้าที่{quotation.request.sub_lab.lab.lab}่\n\n'''
             # message += f'''ใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
             # message += f'''ลูกค้า : {quotation.customer_name}\n'''
             # message += f'''ในนาม : {quotation.name}\n'''
@@ -5300,7 +5300,7 @@ def create_sample_appointment(sample_id):
         if admins:
             if sample.request.status.status_id == 9:
                 title = f'''รายการแก้ไขนัดหมายส่งตัวอย่าง'''
-                message = f'''เรียน เจ้าหน้าที่{sample.request.sub_lab.sub_lab.lab.lab}\n\n'''
+                message = f'''เรียน เจ้าหน้าที่{sample.request.sub_lab.lab.lab}\n\n'''
                 # message += f'''ใบคำขอรับบริการเลขที่ {sample.request.request_no}\n'''
                 # message += f'''ลูกค้า : {sample.request.customer.customer_name}\n'''
                 # message += f'''ในนาม : {sample.request.quotation_address.name}\n'''
@@ -5330,7 +5330,7 @@ def create_sample_appointment(sample_id):
                 message += f'''ระบบงานบริการวิชาการ'''
             else:
                 title = f'''รายการนัดหมายส่งตัวอย่าง'''
-                message = f'''เรียน เจ้าหน้าที่{sample.request.sub_lab.sub_lab.lab.lab}\n\n'''
+                message = f'''เรียน เจ้าหน้าที่{sample.request.sub_lab.lab.lab}\n\n'''
                 message += f'''มีใบคำขอรับบริการเลขที่ {sample.request.request_no} ที่ได้ดำเนินการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
                 message += f'''ได้ดำเนินการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
                 if sample.appointment_date:
@@ -5550,7 +5550,7 @@ def add_payment():
                     title = f'''รายการอัปเดตการชำระเงิน'''
                     message = f'''เรียน เจ้าหน้าที่การเงิน\n\n'''
                     message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'''
-                    message += f'''ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab.lab.lab}\n'''
+                    message += f'''ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.lab.lab}\n'''
                     message += f'''จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว \n'''
                     message += f'''ท่านสามารถตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'''
                     message += f'''{link}\n\n'''
@@ -5768,7 +5768,7 @@ def confirm_result_item(result_item_id):
         customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
         if admins:
             title = f'''รายการยืนยันใบรายงานผลการทดสอบ'''
-            message = f'''เรียน เจ้าหน้าที่{result_item.result.request.sub_lab.sub_lab.lab.lab}\n\n'''
+            message = f'''เรียน เจ้าหน้าที่{result_item.result.request.sub_lab.lab.lab}\n\n'''
             # message += f'''ใบรายงานผลฉบับร่างของใบคำขอรับบริการเลขที่ : {result_item.result.request.request_no}\n'''
             # message += f'''ลูกค้า : {result_item.result.request.customer.customer_name}\n'''
             # message += f'''ในนาม : {result_item.result.request.quotation_address.name}\n'''
@@ -5847,7 +5847,7 @@ def edit_result_item(result_item_id):
             customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
             if admins:
                 title = f'''รายการขอแก้ไขใบรายงานผลการทดสอบ'''
-                message = f'''เรียน เจ้าหน้าที่{result_item.result.request.sub_lab.sub_lab.lab.lab}\n\n'''
+                message = f'''เรียน เจ้าหน้าที่{result_item.result.request.sub_lab.lab.lab}\n\n'''
                 # message += f'''{result_item.report_language}ฉบับร่างของใบคำขอรับบริการเลขที่ : {result_item.result.request.request_no}\n'''
                 # message += f'''ลูกค้า : {result_item.result.request.customer.customer_name}\n'''
                 # message += f'''ในนาม : {result_item.result.request.quotation_address.name}\n'''

@@ -5110,7 +5110,7 @@ def approve_invoice(invoice_id):
             email = [a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor]
             if email:
                 title = f'รายการอนุมัติใบแจ้งหนี้'
-                message = f'''เรียน หัวหน้าห้องปฏิบัติการ{invoice.quotation.request.sub_lab.sub_lab.lab.lab}\n\n'''
+                message = f'''เรียน หัวหน้าห้องปฏิบัติการ{invoice.quotation.request.sub_lab.lab.lab}\n\n'''
                 message += f'''มีใบแจ้งหนี้เลขที่ {invoice.invoice_no} ที่รอดำเนินการอนุมัติใบแจ้งหนี้ ท่านสามารถตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
                 message += f'''{invoice_url}\n\n'''
                 message += f'''ระบบบริการวิชาการ'''
@@ -5596,7 +5596,7 @@ def add_payment():
                 title = f'''แจ้งอัปเดตการชำระเงิน'''
                 message = f'''เรียน เจ้าหน้าที่การเงิน\n\n'''
                 message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ของลูกค้า {invoice.customer_name}\n'''
-                message += f'''ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.sub_lab}\n'''
+                message += f'''ในนาม {invoice.name} จากหน่วยงาน {invoice.quotation.request.sub_lab.lab.lab}\n'''
                 message += f'''จำนวนเงิน {invoice.grand_total:,.2f} บาท ได้มีการอัปเดตสถานะการชำระเงินเรียบร้อยแล้ว\n'''
                 message += f'''ท่านสามารถตรวจสอบรายละเอียดการชำระเงินได้ที่ลิงก์ด้านล่าง\n'''
                 message += f'''{link}\n\n'''
@@ -6158,7 +6158,7 @@ def create_quotation_for_admin(quotation_id):
                 email = [a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor]
                 if email:
                     title = f'''รายการขออนุมัติใบเสนอราคา'''
-                    message = f'''เรียน หัวหน้าห้องปฏิบัติการ{quotation.request.sub_lab.sub_lab.lab.lab}\n\n'''
+                    message = f'''เรียน หัวหน้าห้องปฏิบัติการ{quotation.request.sub_lab.lab.lab}\n\n'''
                     # message += f'''ใบเสนอราคาเลขที่ : {quotation.quotation_no}\n'''
                     # message += f'''ลูกค้า : {quotation.customer_name}\n'''
                     # message += f'''ในนาม : {quotation.name}\n'''
@@ -6365,7 +6365,7 @@ def disapprove_quotation(quotation_id):
             customer_name = quotation.customer_name.replace(' ', '_')
             if admins:
                 title = f'''รายการไม่อนุมัติใบเสนอราคา'''
-                message = f'''เรียน เจ้าหน้าที่{quotation.request.sub_lab.sub_lab.lab.lab}\n\n'''
+                message = f'''เรียน เจ้าหน้าที่{quotation.request.sub_lab.lab.lab}\n\n'''
                 message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} ที่ไม่ผ่านการอนุมัติจากหัวหน้าห้องปฏิบัติการ เนื่องจาก{quotation.note}\n\n'''
                 # message += f'''หัวหน้าห้องปฏิบัติการ\n'''
                 # message += f'''{quotation.disapprover.fullname}\n'''
