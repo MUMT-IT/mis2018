@@ -10,9 +10,6 @@
         #toast-container.toast-top-full-width > .toast {
             width: 100% !important;
         }
-        .is-full-height {
-            height: 100%;
-        }
     </style>
 {% endblock %}
 {% block page_content %}
@@ -127,9 +124,9 @@
                                     {% if quotation.approved_at %}
                                         {{ quotation.approved_at|localdate }}
                                     {% elif quotation.sent_at and quotation.disapproved_at %}
-                                        <span class="tag has-text-danger is-rounded">ไม่อนุมัติใบเสนอราคา</span>
+                                        <span class="tag is-danger is-rounded">ไม่อนุมัติใบเสนอราคา</span>
                                     {% else %}
-                                        <span class="tag has-text-info is-rounded">ยังไม่ดำเนินการอนุัมติ</span>
+                                        <span class="tag has-text-danger is-rounded">ยังไม่ดำเนินการอนุัมติ</span>
                                     {% endif %}
                                 </li>
                             </ul>

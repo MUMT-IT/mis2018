@@ -1,11 +1,6 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
-    <style>
-        .is-full-height {
-            height: 100%;
-        }
-    </style>
 {% endblock %}
 {% block page_content %}
     {% include "service_admin/admin_nav.html" %}
@@ -103,33 +98,6 @@
                             </p>
                             <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ "{:,.2f}".format(quotation.grand_total()) }}</p>
                         </div>
-{#                        <div class="mb-4 is-flex is-align-items-center">#}
-{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่สำหรับจัดส่งเอกสาร</p>#}
-{#                        </div>#}
-{#                        <div class="mb-4 is-flex is-align-items-center">#}
-{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ถึง</p>#}
-{#                            <div style="margin-left: 1.75rem;">#}
-{#                                {{ quotation.request.receive_name }}#}
-{#                            </div>#}
-{#                        </div>#}
-{#                        <div class="mb-4 is-flex is-align-items-center">#}
-{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>#}
-{#                            <div style="margin-left: 1.75rem;">#}
-{#                                {{ quotation.request.receive_address }}#}
-{#                            </div>#}
-{#                        </div>#}
-{#                        <div class="mb-4 is-flex is-align-items-center">#}
-{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เบอร์โทรศัพท์</p>#}
-{#                            <div style="margin-left: 1.75rem;">#}
-{#                                {{ quotation.request.receive_phone_number }}#}
-{#                            </div>#}
-{#                        </div>#}
-{#                        <div class="mb-4 is-flex is-align-items-center">#}
-{#                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">อีเมล</p>#}
-{#                            <div style="margin-left: 1.75rem;">#}
-{#                                {{ quotation.request.customer.contact_email }}#}
-{#                            </div>#}
-{#                        </div>#}
                     </div>
                 </div>
                 <div class="column is-one-quarter ">
@@ -149,7 +117,10 @@
                             </p>
                             <ul class="menu-list">
                                 <li>
-                                    {{ quotation.customer_name }}
+                                    ชื่อ : {{ quotation.customer_name }}
+                                </li>
+                                <li>
+                                    เบอร์โทรศัพท์ : {{ quotation.request.customer.contact_phone_number }}
                                 </li>
                             </ul>
                             <hr>
@@ -161,9 +132,9 @@
                                     {% if quotation.approved_at %}
                                         {{ quotation.approved_at|localdate }}
                                     {% elif quotation.sent_at and quotation.disapproved_at %}
-                                        <span class="tag has-text-danger is-rounded">ไม่อนุมัติใบเสนอราคา</span>
+                                        <span class="tag is-danger is-rounded">ไม่อนุมัติใบเสนอราคา</span>
                                     {% else %}
-                                        <span class="tag has-text-info is-rounded">ยังไม่ดำเนินการอนุัมติ</span>
+                                        <span class="tag has-text-danger is-rounded">ยังไม่ดำเนินการอนุัมติ</span>
                                     {% endif %}
                                 </li>
                             </ul>
