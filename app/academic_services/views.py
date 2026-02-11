@@ -1093,7 +1093,7 @@ def send_email(quotation_id):
     title_prefix = 'คุณ' if current_user.customer_info.type == 'บุคคล' else ''
     customer_name = current_user.customer_name.replace(' ', '_')
     title = f'''แจ้งยืนยันอีเมลงานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-    message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+    message = f'''เรียน {title_prefix}{current_user.customer_name}\n\n'''
     message += f'''ตามที่ท่านได้ร้องขอการยืนยันอีเมลในระบบรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
     message += f'''กรุณาคลิกลิงก์ด้านล่างเพื่อยืนยันอีเมลของท่าน โดยลิงก์นี้จะสามารถใช้งานได้ภายใน 3 ชั่วโมง\n\n'''
     message += f'''{url}\n\n'''

@@ -4696,7 +4696,7 @@ def add_tracking_number(result_id):
         customer_name = result.request.customer.customer_name.replace(' ', '_')
         title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
         title = f'''แจ้งจัดส่งรายงานผลการทดสอบ'''
-        message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+        message = f'''เรียน {title_prefix}{result.request.customer.customer_name}\n\n'''
         message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
         message += f'''ขณะนี้ทางเจ้าหน้าที่ได้ดำเนินการจัดส่งรายงานผลการทดสอบฉบับจริงให้แก่ท่านทางไปรษณีย์เป็นที่เรียบร้อยแล้ว\nหมายเลขพัสดุ : {result.tracking_number}\n'''
         message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
@@ -6712,7 +6712,7 @@ def create_draft_result(result_id=None):
                 # contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
                 title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
                 title = f'''แจ้งออกรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ'''
-                message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+                message = f'''เรียน {title_prefix}{result.request.customer.customer_name}\n\n'''
                 message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
                 message += f'''ขณะนี้ทางเจ้าหน้าที่ได้จัดทำรายงานผลการทดสอบฉบับร่างของใบคำขอบริการเลขที่ {result.request.request_no}เรียบร้อยแล้ว\n'''
                 message += f'''ท่านสามารถตรวจสอบและดำเนินการยืนยันได้ที่ลิงค์ด้านล่าง\n'''
@@ -6780,7 +6780,7 @@ def edit_draft_result(result_item_id):
             # contact_email = result_item.result.request.customer.contact_email if result_item.result.request.customer.contact_email else result_item.result.request.customer.email
             title_prefix = 'คุณ' if result_item.result.request.customer.customer_info.type.type == 'บุคคล' else ''
             title = f'''แจ้งแก้ไขรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ'''
-            message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+            message = f'''เรียน {title_prefix}{result_item.result.request.customer.customer_name}\n\n'''
             message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
             message += f'''ขณะนี้ทางเจ้าหน้าที่ได้แก้ไข{result_item.report_language}ฉบับร่างเรียบร้อยแล้ว\n'''
             message += f'''ท่านสามารถตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับร่าง และดำเนินการยืนยันได้ที่ลิงค์ด้านล่าง\n'''
@@ -6849,7 +6849,7 @@ def create_final_result(result_id=None):
             # contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
             title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
             title = f'''แจ้งออกรายงานผลการทดสอบฉบับจริงของใบคำขอรับบริการ'''
-            message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+            message = f'''เรียน {title_prefix}{result.request.customer.customer_name}\n\n'''
             message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
             message += f'''ขณะนี้ทางเจ้าหน้าที่ได้ดำเนินการออกรายงานผลการทดสอบฉบับจริงเรียบร้อยแล้ว ท่านสามารถดูรายละเอียดเพิ่มเติมได้ที่ลิงค์ด้านล่าง\n'''
             message += f'''{result_url}\n\n'''
@@ -6991,7 +6991,7 @@ def cancel_payment(invoice_id):
     # contact_email = invoice.quotation.request.customer.contact_email if invoice.quotation.request.customer.contact_email else invoice.quotation.request.customer.email
     title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
     title = f'''แจ้งยกเลิกการชำระเงินของใบแจ้งหนี้'''
-    message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+    message = f'''เรียน {title_prefix}{invoice.quotation.request.customer.customer_name}\n\n'''
     message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
     message += f'''ขณะนี้ทางเจ้าหน้าที่ขอแจ้งให้ทราบว่า การชำระเงินสำหรับใบแจ้งหนี้เลขที่่ {invoice.invoice_no} มีความจำเป็นต้องยกเลิกการชำระเงินเดิม\n'''
     message += f'''จึงขอความร่วมมือให้ท่านดำเนินการชำระเงินใหม่ตามจำนวนที่ระบุไว้ในใบแจ้งหนี้\n'''
