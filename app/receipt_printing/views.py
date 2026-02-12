@@ -119,14 +119,14 @@ def create_receipt():
             customer_name = result.request.customer.customer_name.replace(' ', '_')
             # contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
             title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
-            title = f'''แจ้งออกใบเสร็จรับเงินของใบแจ้งหนี้ [{invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-            message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-            message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}\n'''
+            title = f'''แจ้งออกใบเสร็จรับเงิน'''
+            message = f'''เรียน {title_prefix}{result.request.customer.customer_name}\n\n'''
+            message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
             message += f'''ขณะนี้ทางคณะฯ ได้ตรวจการชำระเงิน และออกใบเสร็จรับเงินของใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว\n'''
             message += f'''ท่านสามารถตรวจสอบรายละเอียดใบเสร็จรับเงินได้จากลิงก์ด้านล่าง\n'''
             message += f'''{link}\n\n'''
             message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-            message += f'''ขอแสดงความนับถือ\n'''
+            message += f'''ขอขอบพระคุณที่ใช้บริการ\n'''
             message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
             if not current_app.debug:
@@ -505,14 +505,14 @@ def cancel_receipt(receipt_id):
                 customer_name = invoice.quotation.request.customer.customer_name.replace(' ', '_')
                 contact_email = invoice.quotation.request.customer.contact_email if invoice.quotation.request.customer.contact_email else invoice.quotation.request.customer.email
                 title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
-                title = f'''แจ้งยกเลิกใบเสร็จรับเงินของใบแจ้งหนี้ [{invoice.invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-                message = f'''เรียน {title_prefix}{customer_name}\n\n'''
-                message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {invoice.quotation.request.request_no}'''
-                message += f''' ขณะนี้ทางคณะฯ ขอแจ้งให้ทราบว่า ใบเสร็จรับเงินเลขที่ {receipt.number} ได้ถูกยกเลิกเรียบร้อยแล้ว เนื่องจากมีความผิดพลาดในการจัดทำเอกสาร '''
+                title = f'''แจ้งยกเลิกใบเสร็จรับเงิน'''
+                message = f'''เรียน {title_prefix}{invoice.quotation.request.customer.customer_name}\n\n'''
+                message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
+                message += f'''ขณะนี้ทางคณะฯ ขอแจ้งให้ทราบว่า ใบเสร็จรับเงินเลขที่ {receipt.number} ได้ถูกยกเลิกเรียบร้อยแล้ว เนื่องจากมีความผิดพลาดในการจัดทำเอกสาร\n'''
                 message += f'''ทั้งนี้ คณะฯ จะดำเนินการออกเอกสารที่ถูกต้องให้ท่านใหม่ \n'''
                 message += f'''ทางคณะฯ ต้องขออภัยในความไม่สะดวกมา ณ ที่นี้\n\n'''
                 message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-                message += f'''ขอแสดงความนับถือ\n'''
+                message += f'''ขอขอบพระคุณที่ใช้บริการ\n'''
                 message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
                 message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
                 send_mail([contact_email], title, message)

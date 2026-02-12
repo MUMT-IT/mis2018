@@ -1,11 +1,6 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
-    <style>
-        .is-full-height {
-            height: 100%;
-        }
-    </style>
     <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet"/>
 {% endblock %}
 {% block page_content %}
@@ -123,7 +118,7 @@
                         <div class="mb-4 is-flex is-align-items-center">
                             <p class="subtitle is-6 mb-1 has-text-weight-semibold">เรื่อง</p>
                             <div style="margin-left: 1.75rem;">
-                                ใบแจ้งหนี้ค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ
+                                ใบแจ้งหนี้ค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ{{ invoice.quotation.request.sub_lab.lab.lab }}
                             </div>
                         </div>
                         <div class="mb-4 is-flex is-align-items-center">
@@ -192,7 +187,7 @@
                     </div>
                 </div>
                 <div class="column is-one-quarter ">
-                    <div class="box is-full-height">
+                    <div class="box">
                         <aside class="menu">
                             <p class="menu-label">
                                 งานบริการ
@@ -200,6 +195,18 @@
                             <ul class="menu-list">
                                 <li>
                                     {{ invoice.quotation.request.sub_lab.sub_lab }}
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                ข้อมูลผู้ประสานงาน
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    ชื่อ : {{ invoice.customer_name }}
+                                </li>
+                                <li>
+                                    เบอร์โทรศัพท์ : {{ invoice.contact_phone_number }}
                                 </li>
                             </ul>
                             <hr>
@@ -236,7 +243,7 @@
                             <ul class="menu-list">
                                 {% if invoice.quotation.request.status.status_id == 16 and admin %}
                                     <li>
-                                        <a class="button is-success is-rounded is-full-height mb-2"
+                                        <a class="button is-success is-rounded is-fullwidth mb-2"
                                            href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
                                            admin='admin', menu=menu, tab='pending_supervisor') }}"
                                         >
@@ -249,7 +256,7 @@
                                 {% elif (invoice.quotation.request.status.status_id == 17 and supervisor) or
                                         (invoice.quotation.request.status.status_id == 18 and assistant) %}
                                     <li>
-                                        <a class="button is-success is-rounded is-full-height mb-2"
+                                        <a class="button is-success is-rounded is-fullwidth mb-2"
                                                 {% if supervisor %}
                                                    href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
                                                    admin='supervisor', menu=menu, tab='pending_assistant') }}"

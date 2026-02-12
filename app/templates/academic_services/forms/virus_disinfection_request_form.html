@@ -673,7 +673,7 @@
             const surfaceTypeOtherInput = subform.find('input[name$="surface_type_other"]');
             const surfaceTypeOtherField = surfaceTypeOtherInput.closest('.field');
 
-            if (surfaceTypeField && surfaceTypeField.includes('อื่นๆ โปรดระบุ')) {
+            if (surfaceTypeField && surfaceTypeField.includes('อื่น ๆ')) {
                 surfaceTypeOtherField.show();
                 surfaceTypeOtherInput.prop('required', true).attr('oninvalid', "this.setCustomValidity('กรุณากรอกชนิดพท้นผิว')")
                     .attr('oninput', "this.setCustomValidity('')");

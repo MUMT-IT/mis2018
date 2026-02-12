@@ -2,17 +2,17 @@
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
-    <style>
-        .menu-list li {
-            font-size: 0.85rem;
-            font-weight: 400;
-            color: #4a4a4a;
-        }
-
-        .content ul {
-            margin-top: 0.15em;
-        }
-    </style>
+{#    <style>#}
+{#        .menu-list li {#}
+{#            font-size: 0.85rem;#}
+{#            font-weight: 400;#}
+{#            color: #4a4a4a;#}
+{#        }#}
+{##}
+{#        .content ul {#}
+{#            margin-top: 0.15em;#}
+{#        }#}
+{#    </style>#}
 {% endblock %}
 {% block page_content %}
     {% include "academic_services/customer_nav.html" %}
@@ -59,7 +59,7 @@
                                 <span class="icon"><i class="fas fa-flask"></i></span> งานบริการ
                             </p>
                             <div style="margin-left: 1.75rem;">
-                                {{ service_request.sub_lab.sub_lab }}
+                                {{ service_request.sub_lab.lab.lab }}
                             </div>
                         </div>
                         <hr>
