@@ -3449,7 +3449,7 @@ def generate_bacteria_request_pdf(service_request):
 
     staff_only = '''<para><font size=13>
                         สำหรับเจ้าหน้าที่ / Staff only<br/>
-                        เลขที่ใบคำขอ &nbsp;  <u>&nbsp;{request_no}&nbsp;&nbsp;</u><br/>
+                        เลขที่ใบคำขอ &nbsp;  <u>&nbsp;&nbsp;&nbsp;{request_no}&nbsp;&nbsp;&nbsp;</u><br/>
                         วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
                         วันที่รายงานผล <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
                         </font></para>'''.format(request_no=service_request.request_no)
@@ -3695,7 +3695,7 @@ def generate_bacteria_request_pdf(service_request):
                     col_widths = raw_widths
                 table_data = [[Paragraph(h, detail_style) for h in headers]]
                 for row in rows:
-                    table_data.append([Paragraph(str(row.get(h, "")), detail_style) for h in headers])
+                    table_data.append([Paragraph(row.get(h, ""), detail_style) for h in headers])
                 table = Table(table_data, colWidths=col_widths)
                 table.setStyle(TableStyle([
                     ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
@@ -3938,7 +3938,7 @@ def generate_virus_request_pdf(service_request):
 
     staff_only = '''<para><font size=13>
                         สำหรับเจ้าหน้าที่ / Staff only<br/>
-                        เลขที่ใบคำขอ &nbsp;  <u>&nbsp;{request_no}&nbsp;&nbsp;</u><br/>
+                        เลขที่ใบคำขอ &nbsp;  <u>&nbsp;&nbsp;&nbsp;{request_no}&nbsp;&nbsp;&nbsp;</u><br/>
                         วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
                         วันที่รายงานผล <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
                         </font></para>'''.format(request_no=service_request.request_no)
@@ -4187,7 +4187,7 @@ def generate_virus_request_pdf(service_request):
                     col_widths = raw_widths
                 table_data = [[Paragraph(h, detail_style) for h in headers]]
                 for row in rows:
-                    table_data.append([Paragraph(str(row.get(h, "")), detail_style) for h in headers])
+                    table_data.append([Paragraph(row.get(h, ""), detail_style) for h in headers])
                 table = Table(table_data, colWidths=col_widths)
                 table.setStyle(TableStyle([
                     ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
