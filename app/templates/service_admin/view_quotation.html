@@ -128,17 +128,15 @@
                                 ข้อมูลการสร้าง
                             </p>
                             <ul class="menu-list">
-                                {% if quotation.approved_at %}
+                                {% if quotation.created_at %}
                                     <li>
                                         วันที่ : {{ quotation.created_at|localdate }}
                                     </li>
                                     <li>
                                         โดย : {{ quotation.creator.fullname }}
                                     </li>
-                                {% elif quotation.sent_at and quotation.disapproved_at %}
-                                    <span class="tag is-danger is-rounded">ไม่อนุมัติใบเสนอราคา</span>
                                 {% else %}
-                                    <span class="tag has-text-danger is-rounded">ยังไม่ดำเนินการอนุัมติ</span>
+                                    <span class="tag has-text-danger is-rounded">ยังไม่ดำเนินการสร้าง</span>
                                 {% endif %}
                             </ul>
                             <hr>
