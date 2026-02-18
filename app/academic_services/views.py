@@ -5277,14 +5277,18 @@ def create_sample_appointment(sample_id):
         form.populate_obj(sample)
         if form.ship_type.data == 'ส่งทางไปรษณีย์':
             sample.appointment_date = None
-            sample.location = None
-            sample.location_name = None
-        else:
-            location = request.form.get('sample_address')
-            if location == ('salaya_address'):
+            if 'นครปฐม' in sample.request.sub_lab.address:
                 sample.location = 'salaya'
                 sample.location_name = 'คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล วิทยาเขตศาลายา'
-            if location == ('siriraj_address'):
+            else:
+                sample.location = 'siriraj'
+                sample.location_name = 'คณะเทคนิคการแพทย์ โรงพยาบาลศิริราช วิทยาเขตบางกอกน้อย'
+        else:
+            location = request.form.get('sample_address')
+            if location == 'salaya_address':
+                sample.location = 'salaya'
+                sample.location_name = 'คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล วิทยาเขตศาลายา'
+            else:
                 sample.location = 'siriraj'
                 sample.location_name = 'คณะเทคนิคการแพทย์ โรงพยาบาลศิริราช วิทยาเขตบางกอกน้อย'
             sample.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').date()
@@ -5302,11 +5306,10 @@ def create_sample_appointment(sample_id):
                 # message += f'''ใบคำขอรับบริการเลขที่ {sample.request.request_no}\n'''
                 # message += f'''ลูกค้า : {sample.request.customer.customer_name}\n'''
                 # message += f'''ในนาม : {sample.request.quotation_address.name}\n'''
-                message += f'''มีใบคำขอรับบริการเลขที่ {sample.request.request_no} ที่ได้ดำเนินการแก้ไขข้อมูลการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
+                message += f'''มีใบคำขอรับบริการเลขที่ {sample.request.request_no} ที่ได้ดำเนินการแก้ไขการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
                 if sample.appointment_date:
                     message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
                     message += f'''ช่วงเวลานัดหมาย : {sample.appointment_time_slot}\n'''
-                if sample.location:
                     message += f'''สถานที่นัดหมาย : {sample.location_name}\n'''
                     if sample.location == 'salaya':
                         message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.salaya_address}\n'''
@@ -5315,6 +5318,7 @@ def create_sample_appointment(sample_id):
                         message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.siriraj_address}\n'''
                         message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.siriraj_phone_number}\n'''
                 else:
+                    message += f'''สถานที่ส่งตัวอย่าง : {sample.location_name}\n'''
                     message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.address}\n'''
                     message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.lab.phone_number}\n'''
                 if sample.request.sub_lab.lab.email:
@@ -5330,11 +5334,9 @@ def create_sample_appointment(sample_id):
                 title = f'''รายการนัดหมายส่งตัวอย่าง'''
                 message = f'''เรียน เจ้าหน้าที่{sample.request.sub_lab.lab.lab}\n\n'''
                 message += f'''มีใบคำขอรับบริการเลขที่ {sample.request.request_no} ที่ได้ดำเนินการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
-                message += f'''ได้ดำเนินการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
                 if sample.appointment_date:
                     message += f'''วันที่นัดหมาย : {sample.appointment_date.strftime('%d/%m/%Y')}\n'''
                     message += f'''ช่วงเวลานัดหมาย : {sample.appointment_time_slot}\n'''
-                if sample.location:
                     message += f'''สถานที่นัดหมาย : {sample.location_name}\n'''
                     if sample.location == 'salaya':
                         message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.salaya_address}\n'''
@@ -5343,6 +5345,7 @@ def create_sample_appointment(sample_id):
                         message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.siriraj_address}\n'''
                         message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.siriraj_phone_number}\n'''
                 else:
+                    message += f'''สถานที่ส่งตัวอย่าง : {sample.location_name}\n'''
                     message += f'''รายละเอียดสถานที่ : {sample.request.sub_lab.address}\n'''
                     message += f'''เบอร์โทรศัพท์ : {sample.request.sub_lab.lab.phone_number}\n'''
                 if sample.request.sub_lab.lab.email:
@@ -5363,7 +5366,7 @@ def create_sample_appointment(sample_id):
         if sample.request.status.status_id == 6:
             status_id = get_status(9)
             sample.request.status_id = status_id
-            db.session.add(sample.request)
+            db.session.add(sample)
             db.session.commit()
         flash('อัพเดตข้อมูลสำเร็จ', 'success')
         return redirect(url_for('academic_services.confirm_sample_appointment_page', menu=menu, tab='delivery',
