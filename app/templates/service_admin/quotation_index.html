@@ -146,12 +146,6 @@
         });
     </script>
     <script>
-        function extractTextFromHTML(htmlString) {
-            const div = document.createElement('div');
-            div.innerHTML = htmlString;
-            return div.textContent.trim();
-        }
-
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
             $('#quotations').DataTable({

@@ -125,18 +125,37 @@
                             </ul>
                             <hr>
                             <p class="menu-label">
-                                วันที่อนุมัติ
+                                ข้อมูลการสร้าง
                             </p>
                             <ul class="menu-list">
-                                <li>
-                                    {% if quotation.approved_at %}
-                                        {{ quotation.approved_at|localdate }}
-                                    {% elif quotation.sent_at and quotation.disapproved_at %}
-                                        <span class="tag is-danger is-rounded">ไม่อนุมัติใบเสนอราคา</span>
-                                    {% else %}
-                                        <span class="tag has-text-danger is-rounded">ยังไม่ดำเนินการอนุัมติ</span>
-                                    {% endif %}
-                                </li>
+                                {% if quotation.created_at %}
+                                    <li>
+                                        วันที่ : {{ quotation.created_at|localdate }}
+                                    </li>
+                                    <li>
+                                        โดย : {{ quotation.creator.fullname }}
+                                    </li>
+                                {% else %}
+                                    <span class="tag has-text-danger is-rounded">ยังไม่ดำเนินการสร้าง</span>
+                                {% endif %}
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                ข้อมูลการอนุมัติ
+                            </p>
+                            <ul class="menu-list">
+                                {% if quotation.approved_at %}
+                                    <li>
+                                        วันที่ : {{ quotation.approved_at|localdate }}
+                                    </li>
+                                    <li>
+                                        โดย : {{ quotation.approver.fullname }}
+                                    </li>
+                                {% elif quotation.sent_at and quotation.disapproved_at %}
+                                    <span class="tag is-danger is-rounded">ไม่อนุมัติใบเสนอราคา</span>
+                                {% else %}
+                                    <span class="tag has-text-danger is-rounded">ยังไม่ดำเนินการอนุัมติ</span>
+                                {% endif %}
                             </ul>
                             <hr>
                             {% if quotation.note %}
@@ -165,14 +184,6 @@
                                 การดำเนินการ
                             </p>
                             <ul class="menu-list">
-{#                                <li>#}
-{#                                    <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"#}
-{#                                       @click="printQuotation()"#}
-{#                                    >#}
-{#                                        <span class="icon"><i class="fas fa-print"></i></span>#}
-{#                                        <span>พิมพ์ใบเสนอราคา</span>#}
-{#                                    </a>#}
-{#                                </li>#}
                                 {% if quotation.approved_at %}
                                     <li>
                                         <a class="button is-info is-outlined is-rounded is-small is-fullwidth"

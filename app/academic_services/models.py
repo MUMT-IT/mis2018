@@ -752,7 +752,11 @@ class ServiceSample(db.Model):
             'sample_condition_status': self.sample_condition_status,
             'sample_condition_status_color': self.sample_condition_status_color,
             'request_id': self.request_id if self.request_id else None,
-            'file': self.get_file if self.get_file else None
+            'file': self.get_file if self.get_file else None,
+            'customer_status': self.customer_status if self.customer_status else None,
+            'customer_status_color': self.customer_status_color if self.customer_status_color else None,
+            'admin_status': self.admin_status if self.admin_status else None,
+            'admin_status_color': self.admin_status_color if self.admin_status_color else None
         }
 
     @property
@@ -776,11 +780,11 @@ class ServiceSample(db.Model):
                     self.container_strength == 'ไม่แข็งแรง' or self.container_durability == 'ไม่คงทน' or
                     self.container_damage == 'แตก/หัก' or self.info_match == 'ไม่ตรง' or
                     self.same_production_lot == 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน'):
-                color = 'is-warning'
+                color = 'is-warning is-light'
             else:
-                color = 'is-success'
+                color = 'is-success is-light'
         else:
-            color = 'is-danger'
+            color = 'is-danger is-light'
         return color
 
     @property
@@ -788,14 +792,54 @@ class ServiceSample(db.Model):
         if self.received_at:
             if (self.has_license == True and self.has_recipe == True):
                 status = 'เอกสารครบถ้วน'
-                color = 'is-success'
+                color = 'is-success is-light'
             else:
                 status = 'เอกสารไม่ครบถ้วน'
-                color = 'is-danger'
+                color = 'is-danger is-light'
         else:
             status = 'ยังไม่ได้ส่งเอกสาร'
-            color = 'is-danger'
+            color = 'is-danger is-light'
         return {'status': status, 'color': color}
+
+    @property
+    def customer_status(self):
+        if self.received_at:
+            status = 'ส่งตัวอย่างแล้ว'
+        elif (self.appointment_date or self.tracking_number) and not self.received_at:
+            status = 'รอส่งตัวอย่าง'
+        else:
+            status = 'ยังไม่ได้นัดหมายส่งตัวอย่าง'
+        return status
+
+    @property
+    def customer_status_color(self):
+        if self.received_at:
+            color = 'is-success'
+        elif (self.appointment_date or self.tracking_number) and not self.received_at:
+            color = 'is-warning'
+        else:
+            color = 'is-danger'
+        return color
+
+    @property
+    def admin_status(self):
+        if self.received_at:
+            status = 'ได้รับตัวอย่างแล้ว'
+        elif (self.appointment_date or self.tracking_number) and not self.received_at:
+            status = 'รอรับตัวอย่าง'
+        else:
+            status = 'รอการนัดหมายส่งตัวอย่าง'
+        return status
+
+    @property
+    def admin_status_color(self):
+        if self.received_at:
+            color = 'is-success'
+        elif (self.appointment_date or self.tracking_number) and not self.received_at:
+            color = 'is-warning'
+        else:
+            color = 'is-info'
+        return color
 
 
 class ServiceTestItem(db.Model):

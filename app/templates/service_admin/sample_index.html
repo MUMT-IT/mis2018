@@ -68,7 +68,6 @@
                         <th>การส่งตัวอย่าง</th>
                         <th>สภาพตัวอย่าง</th>
                         <th>เอกสาร</th>
-                        <th>หมายเหตุ</th>
                         <th>ผู้รับ</th>
                         <th>สถานะ</th>
                         <th></th>
@@ -175,7 +174,7 @@
                             if (row.sample_condition_status !== null) {
                                 return `<span class="tag ${color}">${status}</span>`;
                             } else {
-                                return `<span class="tag is-danger">ยังไม่ได้รับตัวอย่าง</span>`;
+                                return `<span class="tag is-danger is-light">ยังไม่ได้รับตัวอย่าง</span>`;
                             }
                         }
                     },
@@ -185,49 +184,21 @@
                             if (data !== null) {
                                 return `<span class="tag ${data.color}">${data.status}</span>`;
                             } else {
-                                return `<span class="tag is-danger">ยังไม่ได้ส่งเอกสาร</span>`;
+                                return `<span class="tag is-danger is-light">ยังไม่ได้ส่งเอกสาร</span>`;
                             }
                         }
                     },
-                    {data: 'note'},
                     {data: 'received_by'},
                     {
-                        data: 'id',
+                        data: 'admin_status',
                         render: function (data, type, row) {
-                            const hasAppointmentOrTracking = row.appointment_date || row.tracking_number;
-                            const isReceived = row.received_at;
-                            return `<ul class="steps">
-                                        <li class="steps-segment ${!hasAppointmentOrTracking && !isReceived ? 'is-active' : ''}">
-                                            <span class="steps-marker">
-                                                <span class="icon">
-                                                    <i class="fas fa-calendar"></i>
-                                                </span>
-                                            </span>
-                                            <div class="steps-content">
-                                                <p>รอการนัดหมายส่งตัวอย่าง</p>
-                                            </div>
-                                        </li>
-                                        <li class="steps-segment ${hasAppointmentOrTracking && !isReceived ? 'is-active' : ''}">
-                                            <span class="steps-marker">
-                                                <span class="icon">
-                                                    <i class="fas fa-shipping-fast"></i>
-                                                </span>
-                                            </span>
-                                            <div class="steps-content">
-                                                <p>รอรับตัวอย่าง</p>
-                                            </div>
-                                        </li>
-                                        <li class="steps-segment ${isReceived ? 'is-active' : ''}">
-                                            <span class="steps-marker">
-                                                <span class="icon">
-                                                    <i class="fa fa-check"></i>
-                                                </span>
-                                            </span>
-                                            <div class="steps-content">
-                                                <p>ได้รับตัวอย่างแล้ว</p>
-                                            </div>
-                                        </li>
-                                    </ul>`
+                            var color = row.admin_status_color
+                            var status = data
+                            if (data !== null) {
+                                return `<span class="tag ${color}">${status}</span>`;
+                            } else {
+                                return `<span class="tag is-danger">ยังไม่ดำเนินการนัดหมาย</span>`;
+                            }
                         }
                     },
                     {
