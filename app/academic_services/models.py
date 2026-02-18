@@ -780,11 +780,11 @@ class ServiceSample(db.Model):
                     self.container_strength == 'ไม่แข็งแรง' or self.container_durability == 'ไม่คงทน' or
                     self.container_damage == 'แตก/หัก' or self.info_match == 'ไม่ตรง' or
                     self.same_production_lot == 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน'):
-                color = 'is-warning'
+                color = 'is-warning is-light'
             else:
-                color = 'is-success'
+                color = 'is-success is-light'
         else:
-            color = 'is-danger'
+            color = 'is-danger is-light'
         return color
 
     @property
@@ -792,13 +792,13 @@ class ServiceSample(db.Model):
         if self.received_at:
             if (self.has_license == True and self.has_recipe == True):
                 status = 'เอกสารครบถ้วน'
-                color = 'is-success'
+                color = 'is-success is-light'
             else:
                 status = 'เอกสารไม่ครบถ้วน'
-                color = 'is-danger'
+                color = 'is-danger is-light'
         else:
             status = 'ยังไม่ได้ส่งเอกสาร'
-            color = 'is-danger'
+            color = 'is-danger is-light'
         return {'status': status, 'color': color}
 
     @property
