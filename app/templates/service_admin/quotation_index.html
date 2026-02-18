@@ -87,12 +87,15 @@
                 </div>
                 <table id='quotations' class="table is-fullwidth">
                     <thead>
-                    <th style="width: 9em">ข้อมูลใบเสนอราคา</th>
-                    <th>อ้างอิงเลขใบคำขอ</th>
+                    <th>เลขใบเสนอราคา</th>
+                    <th>วันที่สร้าง</th>
+                    <th>วันที่ออก</th>
                     <th>ออกในนาม</th>
-                    <th>ยอดเงิน</th>
+                    <th>ผู้ประสานงาน</th>
+                    <th>เลขใบคำขอรับบริการ</th>
+                    <th>ราคา</th>
                     <th>หมายเหตุ</th>
-                    <th>ออกโดย</th>
+                    <th>ผู้ออก</th>
                     <th>สถานะ</th>
                     <th>รายละเอียด</th>
                     </thead>
@@ -143,76 +146,42 @@
         });
     </script>
     <script>
-        function extractTextFromHTML(htmlString) {
-            const div = document.createElement('div');
-            div.innerHTML = htmlString;
-            return div.textContent.trim();
-        }
-
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
             $('#quotations').DataTable({
                 ajax: {
                     url: {{ url_for('service_admin.quotation_index', tab=tab, api='true')|tojson|safe}},
                 },
-                order: [[0, 'desc']],
+                order: [[1, 'desc']],
                 scrollX: true,
                 columns: [
+                    {data: 'quotation_no'},
                     {
-                        data: 'quotation_no',
-                        render: function (data, type, row) {
-                            if (row.approved_at !== null) {
-                                let d = moment(row.approved_at)
-                                var detail = '<div class="field">' +
-                                                '<div class="control">' +
-                                                    '<span class="icon"><i class="far fa-file-alt"></i></span>' +
-                                                    '<span style="font-weight:600">' + data +'</span>' +
-                                                '</div>' +
-                                                '<div class="control">' +
-                                                    '<span class="icon"><i class="far fa-calendar fa-sm"></i></span>' +
-                                                    '<span class="is-size-7">' + d.format('lll') +'</span>' +
-                                                '</div>' +
-                                             '</div>'
-                                return detail
-                            } else if (data != null && row.approved_at == null) {
-                                var detail = '<div class="field">' +
-                                                '<div class="control">' +
-                                                    '<span class="icon"><i class="far fa-file-alt"></i></span>' +
-                                                    '<span style="font-weight:600">' + data +'</span>' +
-                                                '</div>' +
-                                            '</div>'
-                                return detail
-                            } else {
-                                return ''
-                            }
-                        }
-                    },
-                    { data: 'request_no' },
-                    { data: 'name',
+                        data: 'created_at',
                         render: function (data) {
-                            if (data != null) {
-                                return data
+                            if (data !== null) {
+                                let d = moment(data)
+                                return d.format('lll')
                             } else {
                                 return ''
                             }
                         }
                     },
                     {
-                        data: 'total_price',
+                        data: 'approved_at',
                         render: function (data) {
-                            if (data != null) {
-                                var detail = '<div class="field">' +
-                                            '<div class="control">' +
-                                            '<span style="font-weight:600">' + data +'</span>' +
-                                            '</a>' +
-                                            '</div>' +
-                                            '</div>'
-                                return detail
+                            if (data !== null) {
+                                let d = moment(data)
+                                return d.format('lll')
                             } else {
                                 return ''
                             }
                         }
                     },
+                    {data: 'name'},
+                    {data: 'customer_name'},
+                    {data: 'request_no'},
+                    {data: 'total_price'},
                     {
                         data: null,
                         render: function (data, type, row) {
