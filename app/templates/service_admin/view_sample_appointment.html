@@ -109,7 +109,7 @@
                             {% else %}
                                 <p>
                                     <label class="label">รายละเอียดสถานที่</label>
-                                    {{ sample.request.sub_lab.salaya_address or 'ไม่ระบุ' }}
+                                    {{ sample.request.sub_lab.address or 'ไม่ระบุ' }}
                                     เบอร์โทรศัพท์ {{ sample.request.sub_lab.lab.phone_number }}
                                     {% if sample.request.sub_lab.lab.email %}
                                         อีเมล {{ sample.request.sub_lab.lab.email }}
