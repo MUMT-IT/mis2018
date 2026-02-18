@@ -82,11 +82,11 @@
                                 <label class="label">วิธีการส่งตัวอย่าง</label>
                                 {{ sample.ship_type or 'ไม่ระบุ' }}
                             </p>
-                            {% if sample.location %}
-                                <p>
-                                    <label class="label">สถานที่ส่งตัวอย่าง</label>
-                                    {{ sample.location_name or 'ไม่ระบุ' }}
-                                </p>
+                            <p>
+                                <label class="label">สถานที่ส่งตัวอย่าง</label>
+                                {{ sample.location_name or 'ไม่ระบุ' }}
+                            </p>
+                            {% if sample.appointment_date %}
                                 {% if sample.location == 'salaya' %}
                                     <p>
                                         <label class="label">รายละเอียดสถานที่</label>
