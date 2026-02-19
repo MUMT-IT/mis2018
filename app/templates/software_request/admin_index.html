@@ -69,6 +69,12 @@
                             {% endif %}
                         </a>
                     </li>
+                    <li {% if tab == 'private' %}class="is-active"{% endif %}>
+                        <a href="{{ url_for('software_request.admin_index', tab='private') }}">
+                            <span class="icon is-small"><i class="fas fa-user"></i></span>
+                            <span>ส่วนตัว</span>
+                        </a>
+                    </li>
                     <li {% if tab == 'all' %}class="is-active"{% endif %}>
                         <a href="{{ url_for('software_request.admin_index', tab='all') }}">
                             <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
