@@ -3865,17 +3865,16 @@ def generate_bacteria_request_pdf(service_request):
         ], colWidths=[220])
         qr_code_table.hAlign = 'LEFT'
         qr_code_table.setStyle(TableStyle([
-            ('LEFTPADDING', (0, 0), (0, 0), 15),
-            ('LEFTPADDING', (0, 0), (-1, -1), 40),
-            ('RIGHTPADDING', (0, 1), (0, 1), 0),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('LEFTPADDING', (0, 0), (0, 0), 12),
+            ('LEFTPADDING', (0, 1), (0, 1), 70),
+            ('TOPPADDING', (0, 1), (0, 1), -7),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ]))
 
         if current_height > first_page_limit:
             data.append(PageBreak())
         else:
-            data.append(Spacer(1, 50))
+            data.append(Spacer(1, 30))
         data.append(KeepTogether(qr_code_table))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
@@ -4534,17 +4533,16 @@ def generate_virus_request_pdf(service_request):
         ], colWidths=[220])
         qr_code_table.hAlign = 'LEFT'
         qr_code_table.setStyle(TableStyle([
-            ('LEFTPADDING', (0, 0), (0, 0), 15),
-            ('LEFTPADDING', (0, 0), (-1, -1), 40),
-            ('RIGHTPADDING', (0, 1), (0, 1), 0),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('LEFTPADDING', (0, 0), (0, 0), 12),
+            ('LEFTPADDING', (0, 1), (0, 1), 70),
+            ('TOPPADDING', (0, 1), (0, 1), -7),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ]))
 
         if current_height > first_page_limit:
             data.append(PageBreak())
         else:
-            data.append(Spacer(1, 50))
+            data.append(Spacer(1, 30))
         data.append(KeepTogether(qr_code_table))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
