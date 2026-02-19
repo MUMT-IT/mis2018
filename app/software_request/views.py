@@ -129,6 +129,8 @@ def admin_index():
     complete_query = query.filter_by(status='เสร็จสิ้น')
     disapprove_query = query.filter_by(status='ไม่อนุมัติ')
     cancel_query = query.filter_by(status='ยกเลิก')
+    private_query = query.join(SoftwareRequestTimeline).filter(SoftwareRequestTimeline.request_id==SoftwareRequestDetail.id,
+                                                               SoftwareRequestTimeline.admin_id==current_user.id)
     if api == 'true':
         tab = request.args.get('tab')
         if tab == 'pending':
@@ -143,6 +145,8 @@ def admin_index():
             query = disapprove_query
         elif tab == 'cancel':
             query = cancel_query
+        elif tab == 'private':
+            query = private_query
 
         records_total = query.count()
         search = request.args.get('search[value]')
