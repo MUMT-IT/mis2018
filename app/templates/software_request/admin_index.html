@@ -161,7 +161,7 @@
                 eventLimit: true,
                 lazyFetching: true,
                 eventClick: function (calEvent, jsEvent, view) {
-                    window.location = '/software_request/timelines/' + calEvent.id;
+                    window.location = '/software_request/timelines/' + calEvent.id + '?tab=' + '{{ tab }}';
                 }
             });
         });
