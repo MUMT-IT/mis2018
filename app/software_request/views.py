@@ -2,6 +2,7 @@ import os
 import arrow
 import  pytz
 import requests
+from dateutil import parser
 from app.main import mail
 from flask_mail import Message
 from sqlalchemy import or_
@@ -129,6 +130,8 @@ def admin_index():
     complete_query = query.filter_by(status='เสร็จสิ้น')
     disapprove_query = query.filter_by(status='ไม่อนุมัติ')
     cancel_query = query.filter_by(status='ยกเลิก')
+    private_query = query.join(SoftwareRequestTimeline).filter(SoftwareRequestTimeline.request_id==SoftwareRequestDetail.id,
+                                                               SoftwareRequestTimeline.admin_id==current_user.id)
     if api == 'true':
         tab = request.args.get('tab')
         if tab == 'pending':
@@ -143,6 +146,8 @@ def admin_index():
             query = disapprove_query
         elif tab == 'cancel':
             query = cancel_query
+        elif tab == 'private':
+            query = private_query
 
         records_total = query.count()
         search = request.args.get('search[value]')
@@ -173,44 +178,41 @@ def admin_index():
                            cancel_count=cancel_query.count(), timelines=timelines)
 
 
-# @software_request.route('/api/request/index')
-# def get_requests():
-#     tab = request.args.get('tab')
-#     if tab == 'pending':
-#         query = SoftwareRequestDetail.query.filter_by(status='ส่งคำขอแล้ว')
-#     elif tab == 'consider':
-#         query = SoftwareRequestDetail.query.filter_by(status='อยู่ระหว่างพิจารณา')
-#     elif tab == 'approve':
-#         query = SoftwareRequestDetail.query.filter_by(status='อนุมัติ')
-#     elif tab == 'disapprove':
-#         query = SoftwareRequestDetail.query.filter_by(status='ไม่อนุมัติ')
-#     elif tab == 'cancel':
-#         query = SoftwareRequestDetail.query.filter_by(status='ยกเลิก')
-#     else:
-#         query = SoftwareRequestDetail.query
-#     records_total = query.count()
-#     search = request.args.get('search[value]')
-#     if search:
-#         query = query.filter(db.or_
-#                              (SoftwareRequestDetail.type.ilike(u'%{}%'.format(search)),
-#                               SoftwareRequestDetail.description.ilike(u'%{}%'.format(search)),
-#                               SoftwareRequestDetail.created_by.ilike(u'%{}%'.format(search)),
-#                               SoftwareRequestDetail.created_date.ilike(u'%{}%'.format(search)),
-#                               SoftwareRequestDetail.status.ilike(u'%{}%'.format(search))
-#                               ))
-#     start = request.args.get('start', type=int)
-#     length = request.args.get('length', type=int)
-#     total_filtered = query.count()
-#     query = query.offset(start).limit(length)
-#     data = []
-#     for item in query:
-#         item_data = item.to_dict()
-#         data.append(item_data)
-#     return jsonify({'data': data,
-#                     'recordFiltered': total_filtered,
-#                     'recordTotal': records_total,
-#                     'draw': request.args.get('draw', type=int)
-#                     })
+@software_request.route('/api/timelines/<tab>')
+@login_required
+def get_timelines(tab):
+    start = request.args.get('start')
+    end = request.args.get('end')
+    if start:
+        start = parser.isoparse(start)
+    if end:
+        end = parser.isoparse(end)
+
+    all_timelines = []
+    timelines = SoftwareRequestTimeline.query.filter(SoftwareRequestTimeline.start >= start, SoftwareRequestTimeline.estimate <= end)
+
+    if tab == 'private':
+        timelines = timelines.filter(SoftwareRequestTimeline.admin_id == current_user.id)
+
+    for timeline in timelines:
+        if timeline.status != 'ยกเลิกการพัฒนา':
+            all_timelines.append({
+                'id': timeline.id,
+                'title': '{} ({}) - {}'.format(timeline.task, timeline.request.title, timeline.admin.fullname),
+                'start': timeline.start.isoformat(),
+                'end': timeline.estimate.isoformat(),
+                'borderColor': '#aed581' if timeline.status == 'เสร็จสิ้น' else '#b3e5fc',
+                'backgroundColor': '#aed581' if timeline.status == 'เสร็จสิ้น' else '#b3e5fc',
+                'textColor': '#000000',
+            })
+    return jsonify(all_timelines)
+
+
+@software_request.route('/timelines/<int:timeline_id>')
+def show_timeline_detail(timeline_id):
+    tab = request.args.get('tab')
+    timeline = SoftwareRequestTimeline.query.get(timeline_id)
+    return render_template('software_request/timeline_detail.html', tab=tab, timeline=timeline)
 
 
 @software_request.route('/admin/request/edit/<int:detail_id>', methods=['GET', 'POST'])
@@ -357,13 +359,15 @@ def update_timeline_status(timeline_id):
     send_mail([timeline.request.created_by.email + '@mahidol.ac.th'], title, message)
     flash('อัพเดตสถานะสำเร็จ', 'success')
     resp = make_response()
-    resp.headers['HX-Refresh'] = 'true'
+    resp.headers['HX-Redirect'] = 'true'
     return resp
 
 
 @software_request.route('/admin/request/timeline/delete/<int:timeline_id>', methods=['GET', 'DELETE'])
 def delete_timeline(timeline_id):
+    tab = request.args.get('tab')
     timeline = SoftwareRequestTimeline.query.get(timeline_id)
+    timeline.status = 'ยกเลิกการพัฒนา'
     timeline.request.updated_date = arrow.now('Asia/Bangkok').datetime
     db.session.add(timeline)
     db.session.commit()
@@ -386,11 +390,11 @@ def delete_timeline(timeline_id):
     message += f'''ระบบขอรับบริการพัฒนา Software\n'''
     message += f'''คณะเทคนิคการแพทย์'''
     send_mail([timeline.request.created_by.email + '@mahidol.ac.th'], title, message)
-    db.session.delete(timeline)
-    db.session.commit()
-    flash('ลบข้อมูลสำเร็จ', 'success')
+    # db.session.delete(timeline)
+    # db.session.commit()
+    flash('ยกเลิกสำเร็จ', 'success')
     resp = make_response()
-    resp.headers['HX-Refresh'] = 'true'
+    resp.headers['HX-Redirect'] = url_for('software_request.admin_index', tab=tab)
     return resp
 
 

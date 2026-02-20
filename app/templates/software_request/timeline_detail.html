@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Timeline Detail{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container">
+            <div class="columns">
+                <div class="column">
+                    {% include "messages.html" %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-one-third is-offset-one-third">
+                    <div class="card">
+                        <div class="card-image">
+                            <figure class="image is-3by2">
+                                <img src="{{ url_for('static', filename='img/meeting.jpg') }}">
+                            </figure>
+                        </div>
+                        <div class="card-content">
+                            <div class="content">
+                                <p>
+                                    <span class="title is-3">{{ timeline.request.title }}</span>
+                                </p>
+                                <p>
+                                    <span class="subtitle">{{ timeline.request.type }}</span>
+                                </p>
+                                <p>
+                                    <span class="subtitle is-6">
+                                        <span class="icon">
+                                            <i class="far fa-calendar"></i>
+                                        </span>
+                                        {{ timeline.start.strftime('%d/%m/%Y') }} - {{ timeline.estimate.strftime('%d/%m/%Y') }}
+                                    </span>
+                                </p>
+                                <p>
+                                    <span>
+                                        <span
+                                        {% if timeline.status == 'รอดำเนินการ' %}
+                                            class="tag is-info is-light"
+                                        {% elif timeline.status == 'เสร็จสิ้น' %}
+                                            class="tag is-success is-light"
+                                        {% else %}
+                                            class="tag is-danger is-light"
+                                        {% endif %}
+                                        >
+                                            {{ timeline.status }}
+                                        </span>
+                                    </span>
+                                </p>
+                                <p>
+                                    <span class="icon">
+                                        <i class="fas fa-code-branch"></i>
+                                    </span>
+                                    <span>
+                                        Phase {{ timeline.phase }}
+                                    </span>
+                                </p>
+                                <p>
+                                    <span class="icon">
+                                        <i class="fas fa-clipboard-list"></i>
+                                    </span>
+                                    <span>
+                                        {{ timeline.task }}
+                                    </span>
+                                </p>
+                                <p>
+                                    <span class="icon">
+                                        <i class="fas fa-user-edit"></i>
+                                    </span>
+                                    <span>
+                                        {{ timeline.request.created_by.fullname }} ผู้ส่งคำขอ
+                                    </span>
+                                </p>
+                                <p>
+                                    <span class="icon">
+                                        <i class="fas fa-sitemap"></i>
+                                    </span>
+                                    <span>
+                                        {{ timeline.request.created_by.personal_info.org }}
+                                    </span>
+                                </p>
+                                <p>
+                                    <span class="icon">
+                                        <i class="fas fa-file-lines"></i>
+                                    </span>
+                                    <span>
+                                        เหตุผลที่ขอ {{ timeline.request.description }}
+                                    </span>
+                                </p>
+
+                                <p>
+                                    <span class="icon">
+                                        <i class="fa-solid fa-user"></i>
+                                    </span>
+                                    <span>
+                                        {{ timeline.admin.fullname }} ผู้รับผิดชอบ
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                        <footer class="card-footer">
+                            <a href="{{ url_for('software_request.admin_index', tab=tab) }}" class="card-footer-item">
+                                <span class="icon">
+                                    <i class="fas fa-chevron-left has-text-link"></i>
+                                </span>
+                                <span>กลับ</span>
+                            </a>
+                            <a href="{{ url_for('software_request.update_request', detail_id=timeline.request_id, tab=tab) }}"
+                               class="card-footer-item">
+                                <span class="icon">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </span>
+                                <span>แก้ไข</span>
+                            </a>
+                            <a class="card-footer-item"
+                               hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                               hx-delete="{{ url_for('software_request.delete_timeline', timeline_id=timeline.id, tab=tab) }}"
+                               hx-confirm="ท่านต้องการลบรายการนี้หรือไม่"
+                            >
+                                <span class="icon">
+                                    <i class="far fa-trash-alt has-text-danger"></i>
+                                </span>
+                                <span class="has-text-danger">ยกเลิก</span>
+                            </a>
+                        </footer>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
