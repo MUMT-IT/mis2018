@@ -3862,17 +3862,16 @@ def generate_bacteria_request_pdf(service_request):
         ], colWidths=[220])
         qr_code_table.hAlign = 'LEFT'
         qr_code_table.setStyle(TableStyle([
-            ('LEFTPADDING', (0, 0), (0, 0), 15),
-            ('LEFTPADDING', (0, 0), (-1, -1), 40),
-            ('RIGHTPADDING', (0, 1), (0, 1), 0),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('LEFTPADDING', (0, 0), (0, 0), 12),
+            ('LEFTPADDING', (0, 1), (0, 1), 70),
+            ('TOPPADDING', (0, 1), (0, 1), -7),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ]))
 
         if current_height > first_page_limit:
             data.append(PageBreak())
         else:
-            data.append(Spacer(1, 50))
+            data.append(Spacer(1, 30))
         data.append(KeepTogether(qr_code_table))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
@@ -4525,17 +4524,16 @@ def generate_virus_request_pdf(service_request):
         ], colWidths=[220])
         qr_code_table.hAlign = 'LEFT'
         qr_code_table.setStyle(TableStyle([
-            ('LEFTPADDING', (0, 0), (0, 0), 15),
-            ('LEFTPADDING', (0, 0), (-1, -1), 40),
-            ('RIGHTPADDING', (0, 1), (0, 1), 0),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('LEFTPADDING', (0, 0), (0, 0), 12),
+            ('LEFTPADDING', (0, 1), (0, 1), 70),
+            ('TOPPADDING', (0, 1), (0, 1), -7),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ]))
 
         if current_height > first_page_limit:
             data.append(PageBreak())
         else:
-            data.append(Spacer(1, 50))
+            data.append(Spacer(1, 30))
         data.append(KeepTogether(qr_code_table))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
@@ -5385,8 +5383,11 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         ('SPAN', (2, -2), (3, -2)),
         ('SPAN', (0, -1), (1, -1)),
         ('SPAN', (2, -1), (3, -1)),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 10)
+        ('VALIGN', (0, 0), (-1, -4), 'TOP'),
+        ('VALIGN', (0, -3), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, -4), (-1, -4), 9),
+        ('BOTTOMPADDING', (0, -3), (-1, -1), 7)
     ]))
 
     head_remark_style = ParagraphStyle(
@@ -6555,8 +6556,11 @@ def generate_quotation_pdf(quotation, sign=False):
         ('SPAN', (2, -2), (3, -2)),
         ('SPAN', (0, -1), (1, -1)),
         ('SPAN', (2, -1), (3, -1)),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 10)
+        ('VALIGN', (0, 0), (-1, -4), 'TOP'),
+        ('VALIGN', (0, -3), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, -4), (-1, -4), 9),
+        ('BOTTOMPADDING', (0, -3), (-1, -1), 7)
     ]))
 
     head_remark_style = ParagraphStyle(
@@ -6631,10 +6635,10 @@ def generate_quotation_pdf(quotation, sign=False):
 def export_quotation_pdf(quotation_id):
     quotation = ServiceQuotation.query.get(quotation_id)
     if quotation.digital_signature:
-        return send_file(BytesIO(quotation.digital_signature), download_name=f'{quotation.quotation_no}.pdf',
+        return send_file(BytesIO(quotation.digital_signature), download_name='Quotation.pdf',
                          as_attachment=True)
     buffer = generate_quotation_pdf(quotation)
-    return send_file(buffer, download_name=f'Quotation.pdf', as_attachment=True)
+    return send_file(buffer, download_name='Quotation.pdf', as_attachment=True)
 
 
 @service_admin.route('/procurement/meeting/add', methods=['GET'])

@@ -3865,17 +3865,16 @@ def generate_bacteria_request_pdf(service_request):
         ], colWidths=[220])
         qr_code_table.hAlign = 'LEFT'
         qr_code_table.setStyle(TableStyle([
-            ('LEFTPADDING', (0, 0), (0, 0), 15),
-            ('LEFTPADDING', (0, 0), (-1, -1), 40),
-            ('RIGHTPADDING', (0, 1), (0, 1), 0),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('LEFTPADDING', (0, 0), (0, 0), 12),
+            ('LEFTPADDING', (0, 1), (0, 1), 70),
+            ('TOPPADDING', (0, 1), (0, 1), -7),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ]))
 
         if current_height > first_page_limit:
             data.append(PageBreak())
         else:
-            data.append(Spacer(1, 50))
+            data.append(Spacer(1, 30))
         data.append(KeepTogether(qr_code_table))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
@@ -4534,17 +4533,16 @@ def generate_virus_request_pdf(service_request):
         ], colWidths=[220])
         qr_code_table.hAlign = 'LEFT'
         qr_code_table.setStyle(TableStyle([
-            ('LEFTPADDING', (0, 0), (0, 0), 15),
-            ('LEFTPADDING', (0, 0), (-1, -1), 40),
-            ('RIGHTPADDING', (0, 1), (0, 1), 0),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('LEFTPADDING', (0, 0), (0, 0), 12),
+            ('LEFTPADDING', (0, 1), (0, 1), 70),
+            ('TOPPADDING', (0, 1), (0, 1), -7),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ]))
 
         if current_height > first_page_limit:
             data.append(PageBreak())
         else:
-            data.append(Spacer(1, 50))
+            data.append(Spacer(1, 30))
         data.append(KeepTogether(qr_code_table))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
@@ -4777,7 +4775,7 @@ def generate_quotation_pdf(quotation, sign=False):
                     ที่อยู่ {address}<br/>
                     เลขประจำตัวผู้เสียภาษี {taxpayer_identification_no}
                     </font></para>
-                    '''.format(issued_date=issued_date, lab=quotation.sub_lab.lab.lab, customer=quotation.name,
+                    '''.format(issued_date=issued_date, lab=quotation.request.sub_lab.lab.lab, customer=quotation.name,
                                address=quotation.address,
                                taxpayer_identification_no=quotation.taxpayer_identification_no if quotation.taxpayer_identification_no else '-')
 
@@ -4832,7 +4830,7 @@ def generate_quotation_pdf(quotation, sign=False):
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>รวมเป็นเงินทั้งสิ้น/Grand Total</font>', style=style_sheet['ThaiStyleBold']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.grand_total), style=bold_style),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.grand_total()), style=bold_style),
     ])
 
     item_table = Table(items, colWidths=[50, 250, 75, 75])
@@ -4853,8 +4851,11 @@ def generate_quotation_pdf(quotation, sign=False):
         ('SPAN', (2, -2), (3, -2)),
         ('SPAN', (0, -1), (1, -1)),
         ('SPAN', (2, -1), (3, -1)),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 10)
+        ('VALIGN', (0, 0), (-1, -4), 'TOP'),
+        ('VALIGN', (0, -3), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, -4), (-1, -4), 9),
+        ('BOTTOMPADDING', (0, -3), (-1, -1), 7)
     ]))
 
     head_remark_style = ParagraphStyle(
@@ -4929,7 +4930,7 @@ def generate_quotation_pdf(quotation, sign=False):
 def export_quotation_pdf(quotation_id):
     quotation = ServiceQuotation.query.get(quotation_id)
     buffer = generate_quotation_pdf(quotation)
-    return send_file(buffer, download_name='Quotation.pdf', as_attachment=True)
+    return send_file(BytesIO(quotation.digital_signature), download_name='Quotation.pdf', as_attachment=True)
 
 
 @academic_services.route('/customer/quotation/confirm/<int:quotation_id>', methods=['GET', 'POST'])
