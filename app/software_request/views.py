@@ -208,6 +208,13 @@ def get_timelines(tab):
     return jsonify(all_timelines)
 
 
+@software_request.route('/timelines/<int:timeline_id>')
+def show_timeline_detail(timeline_id):
+    tab = request.args.get('tab')
+    timeline = SoftwareRequestTimeline.query.get(timeline_id)
+    return render_template('software_request/timeline_detail.html', tab=tab,timeline=timeline)
+
+
 @software_request.route('/admin/request/edit/<int:detail_id>', methods=['GET', 'POST'])
 def update_request(detail_id):
     tab = request.args.get('tab')
