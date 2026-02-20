@@ -2,6 +2,7 @@ import os
 import arrow
 import  pytz
 import requests
+from dateutil import parser
 from app.main import mail
 from flask_mail import Message
 from sqlalchemy import or_
@@ -177,44 +178,34 @@ def admin_index():
                            cancel_count=cancel_query.count(), timelines=timelines)
 
 
-# @software_request.route('/api/request/index')
-# def get_requests():
-#     tab = request.args.get('tab')
-#     if tab == 'pending':
-#         query = SoftwareRequestDetail.query.filter_by(status='ส่งคำขอแล้ว')
-#     elif tab == 'consider':
-#         query = SoftwareRequestDetail.query.filter_by(status='อยู่ระหว่างพิจารณา')
-#     elif tab == 'approve':
-#         query = SoftwareRequestDetail.query.filter_by(status='อนุมัติ')
-#     elif tab == 'disapprove':
-#         query = SoftwareRequestDetail.query.filter_by(status='ไม่อนุมัติ')
-#     elif tab == 'cancel':
-#         query = SoftwareRequestDetail.query.filter_by(status='ยกเลิก')
-#     else:
-#         query = SoftwareRequestDetail.query
-#     records_total = query.count()
-#     search = request.args.get('search[value]')
-#     if search:
-#         query = query.filter(db.or_
-#                              (SoftwareRequestDetail.type.ilike(u'%{}%'.format(search)),
-#                               SoftwareRequestDetail.description.ilike(u'%{}%'.format(search)),
-#                               SoftwareRequestDetail.created_by.ilike(u'%{}%'.format(search)),
-#                               SoftwareRequestDetail.created_date.ilike(u'%{}%'.format(search)),
-#                               SoftwareRequestDetail.status.ilike(u'%{}%'.format(search))
-#                               ))
-#     start = request.args.get('start', type=int)
-#     length = request.args.get('length', type=int)
-#     total_filtered = query.count()
-#     query = query.offset(start).limit(length)
-#     data = []
-#     for item in query:
-#         item_data = item.to_dict()
-#         data.append(item_data)
-#     return jsonify({'data': data,
-#                     'recordFiltered': total_filtered,
-#                     'recordTotal': records_total,
-#                     'draw': request.args.get('draw', type=int)
-#                     })
+@software_request.route('/api/timelines/<tab>')
+@login_required
+def get_timelines(tab):
+    start = request.args.get('start')
+    end = request.args.get('end')
+    if start:
+        start = parser.isoparse(start)
+    if end:
+        end = parser.isoparse(end)
+
+    all_timelines = []
+    timelines = SoftwareRequestTimeline.query.filter(SoftwareRequestTimeline.start >= start, SoftwareRequestTimeline.estimate <= end)
+
+    if tab == 'private':
+        timelines = timelines.filter(SoftwareRequestTimeline.admin_id == current_user.id)
+
+    for timeline in timelines:
+        if timeline.status != 'ยกเลิกการพัฒนา':
+            all_timelines.append({
+                'id': timeline.id,
+                'title': '{} ({}) - {}'.format(timeline.task, timeline.request.title, timeline.admin.fullname),
+                'start': timeline.start.isoformat(),
+                'end': timeline.estimate.isoformat(),
+                'borderColor': '#aed581' if timeline.status == 'เสร็จสิ้น' else '#b3e5fc',
+                'backgroundColor': '#aed581' if timeline.status == 'เสร็จสิ้น' else '#b3e5fc',
+                'textColor': '#000000',
+            })
+    return jsonify(all_timelines)
 
 
 @software_request.route('/admin/request/edit/<int:detail_id>', methods=['GET', 'POST'])
