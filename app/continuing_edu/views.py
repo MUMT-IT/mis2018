@@ -5,7 +5,7 @@ from werkzeug.security import check_password_hash
 
 from werkzeug.security import generate_password_hash
 
-from flask import  render_template, request, jsonify, flash, redirect, url_for, make_response, session, Response
+from flask import  render_template, request, jsonify, flash, redirect, url_for, make_response, session, Response, current_app
 
 from . import ce_bp
 from .models import (
@@ -28,6 +28,8 @@ from .models import (
     CEAgeRange,
     CESpeakerProfile,
     CEEventSpeaker,
+    CESatisfactionSurveyResponse,
+    CESatisfactionSurveyAccessToken,
 )
 from app.comhealth.models import ComHealthOrg
 from sqlalchemy import or_, and_, func
@@ -42,10 +44,13 @@ except Exception:
     HTML = None
 
 import os, secrets, time
+import hashlib
 import re
 from urllib.parse import urljoin, urlparse
 from requests_oauthlib import OAuth2Session
 from datetime import datetime, timezone, timedelta
+from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
+from itsdangerous.exc import SignatureExpired, BadSignature
 
 from werkzeug.utils import secure_filename
 from textwrap import shorten
@@ -53,9 +58,45 @@ from textwrap import shorten
 from . import translations as tr  # Import translations from local package
 import arrow
 from .status_utils import get_registration_status, get_certificate_status
-from .certificate_utils import issue_certificate, can_issue_certificate, build_certificate_context
+from .certificate_utils import (
+    issue_certificate,
+    can_issue_certificate,
+    build_certificate_context,
+    build_satisfaction_form_name,
+    requires_post_course_survey,
+)
 
 current_lang = 'en'  # This should be dynamically set based on user preference or request
+SATISFACTION_TOKEN_SALT = 'ce-satisfaction-access-v1'
+SATISFACTION_TOKEN_MAX_AGE = int(os.getenv('CE_SATISFACTION_TOKEN_MAX_AGE', '1209600'))  # 14 days
+CHECKIN_QR_PREFIX = 'CECHECKIN:'
+CHECKIN_TOKEN_SALT = 'continuing-edu-checkin'
+
+
+def _satisfaction_serializer():
+    secret_key = current_app.config.get('SECRET_KEY') or os.getenv('SECRET_KEY') or 'ce-dev-secret'
+    return TimedJSONWebSignatureSerializer(secret_key=secret_key, salt=SATISFACTION_TOKEN_SALT)
+
+
+def _checkin_serializer():
+    secret_key = current_app.config.get('SECRET_KEY') or os.getenv('SECRET_KEY') or 'ce-dev-secret'
+    return TimedJSONWebSignatureSerializer(secret_key=secret_key, salt=CHECKIN_TOKEN_SALT)
+
+
+def _build_attendance_checkin_payload(registration: CEMemberRegistration) -> str:
+    token = _checkin_serializer().dumps(
+        {
+            'registration_id': registration.id,
+            'event_id': registration.event_entity_id,
+        }
+    )
+    if isinstance(token, bytes):
+        token = token.decode('utf-8')
+    return f'{CHECKIN_QR_PREFIX}{token}'
+
+
+def _hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode('utf-8')).hexdigest()
 
 
 COUNTRY_OPTIONS = [
@@ -341,7 +382,7 @@ def callback():
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
     flash('เข้าสู่ระบบสำเร็จ' if lang == 'th' else 'Logged in successfully.', 'success')
-    return redirect(url_for('continuing_edu.index', lang=lang, texts=texts))
+    return redirect(url_for('continuing_edu.index', lang=lang))
 
 
 # --- Member Logout ---
@@ -1803,13 +1844,13 @@ def course_learn(course_id):
     """Member-only learning view: requires registration + approved/paid payment."""
     lang = request.args.get('lang', 'en')
     texts = tr.get(lang, tr['en'])
-    course = EventEntity.query.filter_by(id=course_id, event_type='course').first_or_404()
+    course = CEEventEntity.query.filter_by(id=course_id, event_type='course').first_or_404()
     user = get_current_user()
     if not user:
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang, next=request.full_path))
 
-    reg = MemberRegistration.query.filter_by(member_id=user.id, event_entity_id=course.id).first()
+    reg = CEMemberRegistration.query.filter_by(member_id=user.id, event_entity_id=course.id).first()
     if not reg:
         flash(texts.get('not_registered', 'You are not registered for this course.'), 'warning')
         return redirect(url_for('continuing_edu.course_detail', course_id=course.id, lang=lang))
@@ -1829,10 +1870,15 @@ def course_learn(course_id):
         flash(texts.get('payment_not_approved', 'This page requires an approved payment.'), 'warning')
         return redirect(url_for('continuing_edu.course_detail', course_id=course.id, lang=lang))
 
+    survey_required = requires_post_course_survey(reg)
+    satisfaction_form_name = build_satisfaction_form_name(course, lang=lang)
+
     return render_template(
         'continueing_edu/course_learn.html',
         course=course,
         registration=reg,
+        survey_required=survey_required,
+        satisfaction_form_name=satisfaction_form_name,
         texts=texts,
         current_lang=lang,
         logged_in_user=user,
@@ -1847,8 +1893,11 @@ def webinar_detail(webinar_id):
     user = get_current_user()
     already_registered = False
     approved_payment = False
+    current_registration = None
+    satisfaction_form_name = build_satisfaction_form_name(webinar, lang=lang)
     if user:
         reg = CEMemberRegistration.query.filter_by(member_id=user.id, event_entity_id=webinar.id).first()
+        current_registration = reg
         already_registered = reg is not None
         if reg:
             from app.continuing_edu.models import CERegisterPaymentStatus, CERegisterPayment
@@ -1856,10 +1905,23 @@ def webinar_detail(webinar_id):
                 .join(CERegisterPaymentStatus, CERegisterPayment.payment_status_ref) \
                 .filter(CERegisterPayment.member_id == user.id,
                         CERegisterPayment.event_entity_id == webinar.id,
-                        ((CERegisterPaymentStatus.register_payment_status_code == 'approved') | (CERegisterPaymentStatus.name_en == 'approved'))).first()
+                        (
+                            (func.lower(CERegisterPaymentStatus.register_payment_status_code).in_(['approved', 'paid'])) |
+                            (func.lower(CERegisterPaymentStatus.name_en).in_(['approved', 'paid']))
+                        )).first()
             approved_payment = ap is not None
-    return render_template('continueing_edu/webinar_detail.html', webinar=webinar, texts=texts, current_lang=lang,
-                           logged_in_user=user, already_registered=already_registered, approved_payment=approved_payment)
+    return render_template(
+        'continueing_edu/webinar_detail.html',
+        webinar=webinar,
+        texts=texts,
+        current_lang=lang,
+        logged_in_user=user,
+        already_registered=already_registered,
+        approved_payment=approved_payment,
+        current_registration=current_registration,
+        survey_required=bool(current_registration and requires_post_course_survey(current_registration)),
+        satisfaction_form_name=satisfaction_form_name,
+    )
 
 
 # --- Event Registration Confirmation Page ---
@@ -1936,6 +1998,40 @@ def confirm_registration(event_id):
     existing = CEMemberRegistration.query.filter_by(member_id=member.id, event_entity_id=event.id).first()
     if existing:
         print(f"[CONFIRM_REGISTRATION] Already registered - Registration ID: {existing.id}")
+        latest_payment = (
+            CERegisterPayment.query
+            .filter_by(member_id=member.id, event_entity_id=event.id)
+            .order_by(CERegisterPayment.id.desc())
+            .first()
+        )
+        if latest_payment and _can_member_update_payment_proof(latest_payment):
+            flash(
+                texts.get(
+                    'already_registered_continue_payment',
+                    'คุณลงทะเบียนแล้ว กรุณาดำเนินการชำระเงินต่อ' if lang == 'th'
+                    else 'You are already registered. Please continue payment.',
+                ),
+                'info',
+            )
+            method = (latest_payment.payment_method or 'promptpay').strip().lower()
+            if method == 'bank_transfer':
+                return redirect(
+                    url_for(
+                        'continuing_edu.view_invoice',
+                        payment_id=latest_payment.id,
+                        lang=lang,
+                        next=url_for('continuing_edu.my_payments', lang=lang),
+                    )
+                )
+            return redirect(
+                url_for(
+                    'continuing_edu.payment_process',
+                    payment_id=latest_payment.id,
+                    payment_method=method or 'promptpay',
+                    lang=lang,
+                )
+            )
+
         flash(texts.get('already_registered', 'คุณได้ลงทะเบียนแล้ว' if lang == 'th' else 'You are already registered for this event.'), 'info')
         return redirect(url_for('continuing_edu.course_detail' if event.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event.id if event.event_type=='course' else None, webinar_id=event.id if event.event_type=='webinar' else None, lang=lang))
     
@@ -1979,12 +2075,16 @@ def confirm_registration(event_id):
             db.session.rollback()
             inv = None
 
-        # payment status pending (id may be 1); try lookup by name_en
-        pending = CERegisterPaymentStatus.query.filter((CERegisterPaymentStatus.register_payment_status_code == 'pending') | (CERegisterPaymentStatus.name_en == 'pending')).first()
+        # Ensure pending status exists; never rely on hard-coded ID fallback.
+        pending = _get_or_create_payment_status(
+            'pending',
+            name_th='รอดำเนินการ',
+            css_badge='is-light',
+        )
         pay = CERegisterPayment(
             member_id=member.id,
             event_entity_id=event.id,
-            payment_status_id=pending.id if pending else 1,
+            payment_status_id=pending.id,
             payment_amount=price,
             invoice_id=inv.id if inv else None,
             payment_method=payment_method,
@@ -2099,7 +2199,20 @@ def confirm_registration(event_id):
         except Exception:
             pass
         flash(texts.get('registration_success', 'Registration submitted. Payment pending.'), 'success')
-        # Redirect to payment page with payment method
+        # Route user to the immediate next payment screen:
+        # - PromptPay: QR payment page
+        # - Bank transfer: invoice with bank details
+        if payment_method == 'bank_transfer':
+            print(f"[CONFIRM_REGISTRATION] Redirecting to invoice for payment ID: {pay.id}")
+            return redirect(
+                url_for(
+                    'continuing_edu.view_invoice',
+                    payment_id=pay.id,
+                    lang=lang,
+                    next=url_for('continuing_edu.my_payments', lang=lang),
+                )
+            )
+
         print(f"[CONFIRM_REGISTRATION] Redirecting to payment page for payment ID: {pay.id}, method: {payment_method}")
         return redirect(url_for('continuing_edu.payment_process', payment_id=pay.id, payment_method=payment_method, lang=lang))
 
@@ -2126,6 +2239,10 @@ def payment_process(payment_id):
     if payment.member_id != member.id:
         flash(texts.get('not_allowed', 'คุณไม่ได้รับอนุญาตให้เข้าถึงหน้านี้' if lang == 'th' else 'You are not allowed to access this page.'), 'danger')
         return redirect(url_for('continuing_edu.index', lang=lang))
+
+    if not _can_member_update_payment_proof(payment):
+        flash(texts.get('message_payments_locked', 'Payment is approved. Editing proof is locked.'), 'warning')
+        return redirect(request.referrer or url_for('continuing_edu.my_payments', lang=lang))
     
     # Get event details
     event = payment.event_entity
@@ -2348,6 +2465,152 @@ def payment_status_api(payment_id):
     })
 
 
+def _payment_proof_is_public_url_or_path(value: str | None) -> bool:
+    if not isinstance(value, str):
+        return False
+    return (
+        value.startswith('http://')
+        or value.startswith('https://')
+        or value.startswith('//')
+        or value.startswith('/')
+    )
+
+
+def _payment_status_code(payment: CERegisterPayment) -> str:
+    st = getattr(payment, 'payment_status_ref', None)
+    return (
+        (getattr(st, 'register_payment_status_code', None) or getattr(st, 'name_en', None) or '')
+        .strip()
+        .lower()
+    )
+
+
+def _get_or_create_payment_status(
+    code: str,
+    *,
+    name_th: str | None = None,
+    css_badge: str | None = None,
+) -> CERegisterPaymentStatus:
+    normalized = (code or '').strip().lower()
+    st = CERegisterPaymentStatus.query.filter(
+        (func.lower(CERegisterPaymentStatus.register_payment_status_code) == normalized) |
+        (func.lower(CERegisterPaymentStatus.name_en) == normalized)
+    ).first()
+    if st:
+        if not st.register_payment_status_code:
+            st.register_payment_status_code = normalized
+            db.session.add(st)
+            db.session.flush()
+        return st
+
+    st = CERegisterPaymentStatus(
+        name_en=normalized,
+        name_th=name_th or normalized,
+        css_badge=css_badge or 'is-light',
+        register_payment_status_code=normalized,
+    )
+    db.session.add(st)
+    db.session.flush()
+    return st
+
+
+def _can_member_update_payment_proof(payment: CERegisterPayment) -> bool:
+    # Block only finalized statuses so misconfigured intermediate statuses
+    # do not prevent users from reaching the payment page after registration.
+    return _payment_status_code(payment) not in {'approved', 'paid', 'cancelled', 'canceled'}
+
+
+def _can_member_upload_payment_proof(payment: CERegisterPayment) -> bool:
+    """Allow proof upload for any payment status."""
+    return True
+
+
+def _set_status_on_proof_submission(payment: CERegisterPayment) -> None:
+    """Move to pending for re-review unless payment is already finalized."""
+    if _payment_status_code(payment) in {'approved', 'paid', 'cancelled', 'canceled'}:
+        return
+
+    pending = _get_or_create_payment_status(
+        'pending',
+        name_th='รอดำเนินการ',
+        css_badge='is-light',
+    )
+    payment.payment_status_id = pending.id
+
+
+def _delete_old_payment_proof_reference(old_reference: str | None) -> None:
+    """Best-effort cleanup for previous proof (local file or S3 key)."""
+    if not old_reference:
+        return
+
+    if old_reference.startswith('/static/'):
+        try:
+            local_path = os.path.join(current_app.root_path, old_reference.lstrip('/'))
+            if os.path.isfile(local_path):
+                os.remove(local_path)
+        except Exception:
+            pass
+        return
+
+    if _payment_proof_is_public_url_or_path(old_reference):
+        return
+
+    try:
+        from app.main import s3, S3_BUCKET_NAME
+        if S3_BUCKET_NAME:
+            s3.delete_object(Bucket=S3_BUCKET_NAME, Key=old_reference)
+    except Exception:
+        pass
+
+
+def _store_payment_proof_file(file_storage, payment_id: int) -> str:
+    """Store payment proof on S3 when configured, otherwise fallback to local static uploads."""
+    from app.main import allowed_file
+
+    if not file_storage or not file_storage.filename:
+        raise ValueError('missing_file')
+    if not allowed_file(file_storage.filename):
+        raise ValueError('invalid_file_type')
+
+    safe_name = secure_filename(file_storage.filename)
+    ext = safe_name.rsplit('.', 1)[-1].lower() if '.' in safe_name else 'dat'
+    content_type = file_storage.mimetype or 'application/octet-stream'
+    payload = file_storage.read()
+    if not payload:
+        raise ValueError('empty_file')
+
+    timestamp = int(time.time())
+    nonce = secrets.token_hex(4)
+    filename = f"proof_{timestamp}_{nonce}.{ext}"
+    s3_key = f"continuing_edu/payments/{payment_id}/{filename}"
+
+    # Try S3 first if bucket configured.
+    try:
+        from app.main import s3, S3_BUCKET_NAME
+        if S3_BUCKET_NAME:
+            s3.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=s3_key,
+                Body=payload,
+                ContentType=content_type,
+            )
+            return s3_key
+    except Exception:
+        # Fallback to local below.
+        pass
+
+    # Local fallback for development/non-S3 environments.
+    relative_dir = os.path.join('uploads', 'continuing_edu', 'payments', str(payment_id))
+    absolute_dir = os.path.join(current_app.static_folder, relative_dir)
+    os.makedirs(absolute_dir, exist_ok=True)
+    absolute_file = os.path.join(absolute_dir, filename)
+
+    with open(absolute_file, 'wb') as output:
+        output.write(payload)
+
+    return url_for('static', filename=f"{relative_dir}/{filename}")
+
+
 @ce_bp.route('/payment/<int:payment_id>/upload-slip', methods=['POST'])
 def upload_payment_slip(payment_id):
     """Upload payment slip for verification"""
@@ -2368,42 +2631,31 @@ def upload_payment_slip(payment_id):
         flash(texts.get('not_allowed', 'คุณไม่ได้รับอนุญาตให้เข้าถึงหน้านี้' if lang == 'th' else 'You are not allowed to access this page.'), 'danger')
         return redirect(url_for('continuing_edu.index', lang=lang))
     
-    # Check if file was uploaded
-    if 'slip' not in request.files:
-        flash(texts.get('no_file', 'กรุณาเลือกไฟล์' if lang == 'th' else 'Please select a file.'), 'warning')
+    file = request.files.get('slip')
+    if not file or file.filename == '':
+        flash(texts.get('proof_required', 'Please provide a payment proof file.'), 'danger')
         return redirect(request.referrer or url_for('continuing_edu.my_payments', lang=lang))
-    
-    file = request.files['slip']
-    if file.filename == '':
-        flash(texts.get('no_file', 'กรุณาเลือกไฟล์' if lang == 'th' else 'Please select a file.'), 'warning')
-        return redirect(request.referrer or url_for('continuing_edu.my_payments', lang=lang))
-    
-    # Save file (implement your file storage logic here)
-    # For now, just update payment status to "pending verification"
+
     try:
-        # You can save the file to a folder or cloud storage here
-        # filename = secure_filename(file.filename)
-        # file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        
-        # Update payment status to pending verification
-        verifying_status = CERegisterPaymentStatus.query.filter(
-            (CERegisterPaymentStatus.register_payment_status_code == 'verifying') |
-            (CERegisterPaymentStatus.name_en == 'verifying')
-        ).first()
-        
-        if verifying_status:
-            payment.payment_status_id = verifying_status.id
-            db.session.commit()
-        
-        # Send notification email to member that slip was uploaded
+        old_reference = payment.payment_proof_url
+        new_reference = _store_payment_proof_file(file, payment.id)
+
+        payment.payment_proof_url = new_reference
+        _set_status_on_proof_submission(payment)
+        db.session.add(payment)
+        db.session.commit()
+
+        if old_reference and old_reference != new_reference:
+            _delete_old_payment_proof_reference(old_reference)
+
+        # Send notification email to member that proof was uploaded
         try:
             subj = texts.get('slip_uploaded', 'Payment slip uploaded')
             invoice_link = url_for('continuing_edu.view_invoice', payment_id=payment.id, lang=lang, _external=True)
             body = (f"{texts.get('email_registered_for', 'Registered for')}: {payment.event_entity.title_en or payment.event_entity.title_th}\n"
                     f"{texts.get('email_amount', 'Amount')}: {payment.payment_amount} THB\n"
-                    f"{texts.get('email_status', 'Status')}: {texts.get('status_verifying', 'Verifying')}\n\n"
+                    f"{texts.get('email_status', 'Status')}: {texts.get('status_submitted', 'Submitted')}\n\n"
                     f"{texts.get('email_invoice', 'Invoice')}: {invoice_link}\n")
-            # use dedicated slip-uploaded template
             email_html = render_template('continueing_edu/_slip_uploaded_email.html', payment=payment, event=payment.event_entity, member=member, texts=texts, current_lang=lang)
             msg = Message(subject=subj, body=body, html=email_html, recipients=[member.email]) if getattr(member, 'email', None) else None
             if msg:
@@ -2411,12 +2663,12 @@ def upload_payment_slip(payment_id):
         except Exception:
             pass
 
-        flash(texts.get('slip_uploaded', 'อัพโหลดหลักฐานการชำระเงินสำเร็จ รอการตรวจสอบ' if lang == 'th' else 'Payment slip uploaded successfully. Waiting for verification.'), 'success')
+        flash(texts.get('proof_received', 'Payment proof submitted.'), 'success')
     except Exception as e:
         print(f"Error uploading slip: {e}")
-        flash(texts.get('upload_error', 'เกิดข้อผิดพลาดในการอัพโหลด' if lang == 'th' else 'Error uploading file.'), 'danger')
+        flash(texts.get('upload_error', 'Error uploading file.'), 'danger')
     
-    return redirect(url_for('continuing_edu.my_payments', lang=lang))
+    return redirect(request.referrer or url_for('continuing_edu.my_payments', lang=lang))
 
 
 @ce_bp.route('/payment/webhook/mock', methods=['POST'])
@@ -2764,9 +3016,22 @@ def my_registrations():
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
     regs = CEMemberRegistration.query.filter_by(member_id=user.id).order_by(CEMemberRegistration.registration_date.desc()).all()
+    attendance_qr_payloads = {}
+    survey_required_by_reg = {}
+    for reg in regs:
+        status_name = (reg.status_ref.name_en or '').strip().lower() if reg.status_ref else ''
+        is_cancelled = 'cancel' in status_name
+        attendance_qr_payloads[reg.id] = {
+            'allowed': not is_cancelled,
+            'payload': _build_attendance_checkin_payload(reg),
+            'reason': 'cancelled' if is_cancelled else '',
+        }
+        survey_required_by_reg[reg.id] = requires_post_course_survey(reg)
     return render_template(
         'continueing_edu/my_registrations.html',
         registrations=regs,
+        attendance_qr_payloads=attendance_qr_payloads,
+        survey_required_by_reg=survey_required_by_reg,
         texts=texts,
         current_lang=lang,
         logged_in_user=user,
@@ -2783,13 +3048,11 @@ def my_payments():
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
     pays = CERegisterPayment.query.filter_by(member_id=user.id).order_by(CERegisterPayment.id.desc()).all()
-    payment_gateway_url = os.environ.get('PAYMENT_GATEWAY_URL')
     return render_template(
         'continueing_edu/my_payments.html',
         payments=pays,
         texts=texts,
         current_lang=lang,
-        payment_gateway_url=payment_gateway_url,
         member=user,
         logged_in_user=user,
     )
@@ -2864,27 +3127,26 @@ def submit_payment_proof(payment_id):
     if pay.member_id != user.id:
         flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
+    if not _can_member_upload_payment_proof(pay):
+        flash(
+            texts.get(
+                'proof_upload_pending_only',
+                'Payment proof can be uploaded only when status is Pending.',
+            ),
+            'warning',
+        )
+        return redirect(url_for('continuing_edu.my_payments', lang=lang))
     proof_url = request.form.get('payment_proof_url')
     if not proof_url:
         flash(texts.get('proof_required', 'Please provide a payment proof URL.'), 'danger')
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
-    # If replacing an existing S3 proof, delete the old object (best-effort)
     old = pay.payment_proof_url
-    def _is_http(u):
-        return isinstance(u, str) and (u.startswith('http://') or u.startswith('https://') or u.startswith('//'))
-    try:
-        if old and not _is_http(old) and old != proof_url:
-            from app.main import s3, S3_BUCKET_NAME
-            s3.delete_object(Bucket=S3_BUCKET_NAME, Key=old)
-    except Exception:
-        pass
     pay.payment_proof_url = proof_url
-    # Optionally move to 'submitted' if such status exists
-    submitted = CERegisterPaymentStatus.query.filter((CERegisterPaymentStatus.register_payment_status_code == 'submitted') | (CERegisterPaymentStatus.name_en == 'submitted')).first()
-    if submitted:
-        pay.payment_status_id = submitted.id
+    _set_status_on_proof_submission(pay)
     db.session.add(pay)
     db.session.commit()
+    if old and old != proof_url:
+        _delete_old_payment_proof_reference(old)
     flash(texts.get('proof_received', 'Payment proof submitted.'), 'success')
     return redirect(url_for('continuing_edu.my_payments', lang=lang))
 
@@ -2901,44 +3163,36 @@ def upload_payment_proof(payment_id):
     if pay.member_id != user.id:
         flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
+    if not _can_member_upload_payment_proof(pay):
+        flash(
+            texts.get(
+                'proof_upload_pending_only',
+                'Payment proof can be uploaded only when status is Pending.',
+            ),
+            'warning',
+        )
+        return redirect(url_for('continuing_edu.my_payments', lang=lang))
     file = request.files.get('payment_proof_file')
     if not file or file.filename == '':
         flash(texts.get('proof_required', 'Please provide a payment proof file.'), 'danger')
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
-
-    # Upload to S3
-    # Lazy import to avoid circular import at module load
-    from app.main import allowed_file, s3, S3_BUCKET_NAME
-    if not allowed_file(file.filename):
-        flash(texts.get('proof_required', 'Please provide a payment proof file.'), 'danger')
-        return redirect(url_for('continuing_edu.my_payments', lang=lang))
-    safe_name = secure_filename(file.filename)
-    ext = safe_name.rsplit('.', 1)[-1].lower() if '.' in safe_name else 'dat'
-    key = f"continuing_edu/payments/{payment_id}/proof_{int(time.time())}.{ext}"
-    content_type = file.mimetype or 'application/octet-stream'
-    data = file.read()
-    # If replacing an existing S3 proof, delete the old object (best-effort)
-    old = pay.payment_proof_url
     try:
-        s3.put_object(Bucket=S3_BUCKET_NAME, Key=key, Body=data, ContentType=content_type)
-        if old and old != key:
-            try:
-                from urllib.parse import urlparse
-                # delete old only if it is a key (not URL)
-                if not (old.startswith('http://') or old.startswith('https://') or old.startswith('//')):
-                    s3.delete_object(Bucket=S3_BUCKET_NAME, Key=old)
-            except Exception:
-                pass
-        pay.payment_proof_url = key
-    except Exception:
+        old = pay.payment_proof_url
+        new_reference = _store_payment_proof_file(file, payment_id)
+        pay.payment_proof_url = new_reference
+        _set_status_on_proof_submission(pay)
+        db.session.add(pay)
+        db.session.commit()
+
+        if old and old != new_reference:
+            _delete_old_payment_proof_reference(old)
+
+        flash(texts.get('proof_received', 'Payment proof submitted.'), 'success')
+    except ValueError:
         flash(texts.get('proof_required', 'Please provide a payment proof file.'), 'danger')
-        return redirect(url_for('continuing_edu.my_payments', lang=lang))
-    submitted = CERegisterPaymentStatus.query.filter((CERegisterPaymentStatus.register_payment_status_code == 'submitted') | (CERegisterPaymentStatus.name_en == 'submitted')).first()
-    if submitted:
-        pay.payment_status_id = submitted.id
-    db.session.add(pay)
-    db.session.commit()
-    flash(texts.get('proof_received', 'Payment proof submitted.'), 'success')
+    except Exception as e:
+        print(f"Error uploading proof: {e}")
+        flash(texts.get('upload_error', 'Error uploading file.'), 'danger')
     return redirect(url_for('continuing_edu.my_payments', lang=lang))
 
 
@@ -3054,13 +3308,72 @@ def view_invoice(payment_id):
         }
         return invoice_meta, seller
 
-    invoice_meta, seller = _build_invoice_context(pay)
+    def _first_env(*keys: str) -> str:
+        for key in keys:
+            value = (os.getenv(key) or '').strip()
+            if value:
+                return value
+        return ''
 
-    payment_qr_url = os.environ.get('PAYMENT_QR_URL')
-    promptpay_id = os.environ.get('PROMPTPAY_ID')
-    bank_info = os.environ.get('BANK_INFO')
-    payment_instructions = os.environ.get('PAYMENT_INSTRUCTIONS')
-    payment_gateway_url = os.environ.get('PAYMENT_GATEWAY_URL')
+    def _extract_account_no(text: str | None) -> str:
+        if not text:
+            return ''
+        match = re.search(r'(\d[\d\-\s]{6,}\d)', text)
+        if not match:
+            return ''
+        candidate = match.group(1).strip()
+        digits_only = re.sub(r'\D', '', candidate)
+        return candidate if len(digits_only) >= 8 else ''
+
+    def _build_invoice_payment_channel_context(payment, inv_meta):
+        payment_instructions = _first_env('INVOICE_PAYMENT_INSTRUCTIONS', 'PAYMENT_INSTRUCTIONS')
+        bank_info = _first_env('INVOICE_BANK_INFO', 'BANK_INFO')
+
+        bank_name = _first_env('INVOICE_BANK_NAME', 'BANK_NAME')
+        bank_branch = _first_env('INVOICE_BANK_BRANCH', 'BANK_BRANCH')
+        bank_account_name = _first_env('INVOICE_BANK_ACCOUNT_NAME', 'BANK_ACCOUNT_NAME')
+        bank_account_no = _first_env('INVOICE_BANK_ACCOUNT_NO', 'BANK_ACCOUNT_NO')
+        if not bank_account_no:
+            bank_account_no = _extract_account_no(bank_info)
+
+        promptpay_id = _first_env('INVOICE_PROMPTPAY_ID', 'PROMPTPAY_ID', 'BILLERID')
+        payment_qr_url = _first_env('INVOICE_PAYMENT_QR_URL', 'PAYMENT_QR_URL')
+
+        # Optional template URL for QR generation from PromptPay ID
+        # Example: https://example.com/qr?id={promptpay_id}&amount={amount}
+        qr_template = _first_env('PROMPTPAY_QR_TEMPLATE_URL')
+        if not payment_qr_url and promptpay_id and qr_template:
+            try:
+                amount = float(getattr(payment, 'payment_amount', 0) or 0)
+            except Exception:
+                amount = 0.0
+            try:
+                payment_qr_url = qr_template.format(
+                    promptpay_id=promptpay_id,
+                    amount=f'{amount:.2f}',
+                    invoice_no=(inv_meta.get('invoice_no') if inv_meta else ''),
+                    payment_id=getattr(payment, 'id', ''),
+                )
+            except Exception:
+                payment_qr_url = ''
+
+        payment_gateway_url = _first_env('PAYMENT_GATEWAY_URL')
+
+        return {
+            'payment_instructions': payment_instructions,
+            'bank_info': bank_info,
+            'bank_name': bank_name,
+            'bank_branch': bank_branch,
+            'bank_account_name': bank_account_name,
+            'bank_account_no': bank_account_no,
+            'promptpay_id': promptpay_id,
+            'qr_url': payment_qr_url,
+            'payment_gateway_url': payment_gateway_url,
+        }
+
+    invoice_meta, seller = _build_invoice_context(pay)
+    payment_channel = _build_invoice_payment_channel_context(pay, invoice_meta)
+
     return render_template(
         'continueing_edu/invoice.html',
         payment=pay,
@@ -3069,11 +3382,12 @@ def view_invoice(payment_id):
         back_url=back_url,
         texts=texts,
         current_lang=lang,
-        payment_qr_url=payment_qr_url,
-        promptpay_id=promptpay_id,
-        bank_info=bank_info,
-        payment_instructions=payment_instructions,
-        payment_gateway_url=payment_gateway_url,
+        payment_qr_url=payment_channel.get('qr_url'),
+        promptpay_id=payment_channel.get('promptpay_id'),
+        bank_info=payment_channel.get('bank_info'),
+        payment_instructions=payment_channel.get('payment_instructions'),
+        payment_gateway_url=payment_channel.get('payment_gateway_url'),
+        payment_channel=payment_channel,
         pdf_available=(HTML is not None),
         invoice_meta=invoice_meta,
         seller=seller,
@@ -3165,12 +3479,70 @@ def download_invoice_pdf(payment_id):
         }
         return invoice_meta, seller
 
-    invoice_meta, seller = _build_invoice_context(pay)
+    def _first_env(*keys: str) -> str:
+        for key in keys:
+            value = (os.getenv(key) or '').strip()
+            if value:
+                return value
+        return ''
 
-    payment_qr_url = os.environ.get('PAYMENT_QR_URL')
-    promptpay_id = os.environ.get('PROMPTPAY_ID')
-    bank_info = os.environ.get('BANK_INFO')
-    payment_instructions = os.environ.get('PAYMENT_INSTRUCTIONS')
+    def _extract_account_no(text: str | None) -> str:
+        if not text:
+            return ''
+        match = re.search(r'(\d[\d\-\s]{6,}\d)', text)
+        if not match:
+            return ''
+        candidate = match.group(1).strip()
+        digits_only = re.sub(r'\D', '', candidate)
+        return candidate if len(digits_only) >= 8 else ''
+
+    def _build_invoice_payment_channel_context(payment, inv_meta):
+        payment_instructions = _first_env('INVOICE_PAYMENT_INSTRUCTIONS', 'PAYMENT_INSTRUCTIONS')
+        bank_info = _first_env('INVOICE_BANK_INFO', 'BANK_INFO')
+
+        bank_name = _first_env('INVOICE_BANK_NAME', 'BANK_NAME')
+        bank_branch = _first_env('INVOICE_BANK_BRANCH', 'BANK_BRANCH')
+        bank_account_name = _first_env('INVOICE_BANK_ACCOUNT_NAME', 'BANK_ACCOUNT_NAME')
+        bank_account_no = _first_env('INVOICE_BANK_ACCOUNT_NO', 'BANK_ACCOUNT_NO')
+        if not bank_account_no:
+            bank_account_no = _extract_account_no(bank_info)
+
+        promptpay_id = _first_env('INVOICE_PROMPTPAY_ID', 'PROMPTPAY_ID', 'BILLERID')
+        payment_qr_url = _first_env('INVOICE_PAYMENT_QR_URL', 'PAYMENT_QR_URL')
+
+        qr_template = _first_env('PROMPTPAY_QR_TEMPLATE_URL')
+        if not payment_qr_url and promptpay_id and qr_template:
+            try:
+                amount = float(getattr(payment, 'payment_amount', 0) or 0)
+            except Exception:
+                amount = 0.0
+            try:
+                payment_qr_url = qr_template.format(
+                    promptpay_id=promptpay_id,
+                    amount=f'{amount:.2f}',
+                    invoice_no=(inv_meta.get('invoice_no') if inv_meta else ''),
+                    payment_id=getattr(payment, 'id', ''),
+                )
+            except Exception:
+                payment_qr_url = ''
+
+        payment_gateway_url = _first_env('PAYMENT_GATEWAY_URL')
+
+        return {
+            'payment_instructions': payment_instructions,
+            'bank_info': bank_info,
+            'bank_name': bank_name,
+            'bank_branch': bank_branch,
+            'bank_account_name': bank_account_name,
+            'bank_account_no': bank_account_no,
+            'promptpay_id': promptpay_id,
+            'qr_url': payment_qr_url,
+            'payment_gateway_url': payment_gateway_url,
+        }
+
+    invoice_meta, seller = _build_invoice_context(pay)
+    payment_channel = _build_invoice_payment_channel_context(pay, invoice_meta)
+
     html = render_template(
         'continueing_edu/invoice.html',
         payment=pay,
@@ -3178,11 +3550,12 @@ def download_invoice_pdf(payment_id):
         logged_in_user=user,
         texts=texts,
         current_lang=lang,
-        payment_qr_url=payment_qr_url,
-        promptpay_id=promptpay_id,
-        bank_info=bank_info,
-        payment_instructions=payment_instructions,
-        payment_gateway_url=os.environ.get('PAYMENT_GATEWAY_URL'),
+        payment_qr_url=payment_channel.get('qr_url'),
+        promptpay_id=payment_channel.get('promptpay_id'),
+        bank_info=payment_channel.get('bank_info'),
+        payment_instructions=payment_channel.get('payment_instructions'),
+        payment_gateway_url=payment_channel.get('payment_gateway_url'),
+        payment_channel=payment_channel,
         pdf_available=True,
         invoice_meta=invoice_meta,
         seller=seller,
@@ -3245,6 +3618,231 @@ def _get_registration_or_404(event_id, member_id):
     return reg
 
 
+def _event_detail_redirect(event_entity, lang):
+    if event_entity.event_type == 'course':
+        return redirect(url_for('continuing_edu.course_detail', course_id=event_entity.id, lang=lang))
+    return redirect(url_for('continuing_edu.webinar_detail', webinar_id=event_entity.id, lang=lang))
+
+
+def _has_approved_or_paid_payment(member_id: int, event_id: int) -> bool:
+    from app.continuing_edu.models import CERegisterPaymentStatus, CERegisterPayment
+
+    payment = (
+        CERegisterPayment.query
+        .join(CERegisterPaymentStatus, CERegisterPayment.payment_status_ref)
+        .filter(
+            CERegisterPayment.member_id == member_id,
+            CERegisterPayment.event_entity_id == event_id,
+            (
+                (func.lower(CERegisterPaymentStatus.register_payment_status_code).in_(['approved', 'paid'])) |
+                (func.lower(CERegisterPaymentStatus.name_en).in_(['approved', 'paid']))
+            ),
+        )
+        .order_by(CERegisterPayment.id.desc())
+        .first()
+    )
+    return payment is not None
+
+
+def _build_satisfaction_access_link(reg: CEMemberRegistration, lang: str = 'en') -> str:
+    serializer = _satisfaction_serializer()
+    now_utc = datetime.now(timezone.utc)
+    payload = {
+        'reg_id': reg.id,
+        'member_id': reg.member_id,
+        'nonce': secrets.token_urlsafe(10),
+        'iat': int(now_utc.timestamp()),
+    }
+    raw_token = serializer.dumps(payload)
+    token = raw_token.decode('utf-8') if isinstance(raw_token, bytes) else str(raw_token)
+
+    rec = CESatisfactionSurveyAccessToken(
+        registration_id=reg.id,
+        member_id=reg.member_id,
+        event_entity_id=reg.event_entity_id,
+        token_hash=_hash_token(token),
+        expires_at=now_utc + timedelta(seconds=SATISFACTION_TOKEN_MAX_AGE),
+    )
+    db.session.add(rec)
+    db.session.commit()
+
+    return url_for('continuing_edu.satisfaction_survey_by_token', token=token, lang=lang, _external=True)
+
+
+def _resolve_satisfaction_access_token(token: str):
+    serializer = _satisfaction_serializer()
+    try:
+        payload = serializer.loads(token, max_age=SATISFACTION_TOKEN_MAX_AGE)
+    except SignatureExpired:
+        return None, None, 'expired'
+    except BadSignature:
+        return None, None, 'invalid'
+
+    token_rec = CESatisfactionSurveyAccessToken.query.filter_by(token_hash=_hash_token(token)).first()
+    if not token_rec:
+        return None, None, 'invalid'
+
+    now_utc = datetime.now(timezone.utc)
+    expires_at = token_rec.expires_at
+    if expires_at and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at and now_utc > expires_at:
+        return None, token_rec, 'expired'
+    if token_rec.used_at:
+        return None, token_rec, 'used'
+
+    reg = CEMemberRegistration.query.get(token_rec.registration_id)
+    if not reg:
+        return None, token_rec, 'invalid'
+    if payload.get('reg_id') != reg.id or payload.get('member_id') != reg.member_id:
+        return None, token_rec, 'invalid'
+    return reg, token_rec, None
+
+
+def _render_satisfaction_form(
+    reg: CEMemberRegistration,
+    *,
+    lang: str,
+    texts,
+    form_data=None,
+    share_link: str | None = None,
+    access_token: str | None = None,
+):
+    event = reg.event_entity
+    survey_name = build_satisfaction_form_name(event, lang=lang)
+    existing = CESatisfactionSurveyResponse.query.filter_by(registration_id=reg.id).first()
+    form_action = (
+        url_for('continuing_edu.satisfaction_survey_by_token', token=access_token, lang=lang)
+        if access_token else
+        url_for('continuing_edu.satisfaction_survey', event_id=event.id, lang=lang)
+    )
+    return render_template(
+        'continueing_edu/satisfaction_survey.html',
+        registration=reg,
+        event=event,
+        survey_name=survey_name,
+        response=existing,
+        form_data=form_data,
+        form_action=form_action,
+        share_link=share_link,
+        texts=texts,
+        current_lang=lang,
+        logged_in_user=get_current_user(),
+    )
+
+
+def _handle_satisfaction_submission(
+    reg: CEMemberRegistration,
+    *,
+    lang: str,
+    texts,
+    token_rec: CESatisfactionSurveyAccessToken | None = None,
+    access_token: str | None = None,
+):
+    if not reg.completed_at:
+        flash(
+            texts.get(
+                'questionnaire_complete_event_first',
+                'Please complete your learning progress first.',
+            ),
+            'warning',
+        )
+        return _event_detail_redirect(reg.event_entity, lang)
+
+    form = request.form
+
+    def _parse_rating(field_name):
+        raw = (form.get(field_name) or '').strip()
+        try:
+            value = int(raw)
+        except Exception:
+            return None
+        if value < 1 or value > 5:
+            return None
+        return value
+
+    overall = _parse_rating('overall_rating')
+    content = _parse_rating('content_rating')
+    instructor = _parse_rating('instructor_rating')
+    platform = _parse_rating('platform_rating')
+
+    if None in (overall, content, instructor, platform):
+        flash(
+            texts.get(
+                'satisfaction_required_scores',
+                'Please rate all required items from 1 to 5.',
+            ),
+            'danger',
+        )
+        return _render_satisfaction_form(
+            reg,
+            lang=lang,
+            texts=texts,
+            form_data=form,
+            access_token=access_token,
+        )
+
+    recommend_raw = (form.get('recommend_to_others') or '').strip().lower()
+    if recommend_raw in ('1', 'true', 'yes', 'y'):
+        recommend = True
+    elif recommend_raw in ('0', 'false', 'no', 'n'):
+        recommend = False
+    else:
+        recommend = None
+
+    event = reg.event_entity
+    survey_name = build_satisfaction_form_name(event, lang=lang)
+    existing = CESatisfactionSurveyResponse.query.filter_by(registration_id=reg.id).first()
+    response = existing or CESatisfactionSurveyResponse(
+        registration_id=reg.id,
+        member_id=reg.member_id,
+        event_entity_id=reg.event_entity_id,
+    )
+    response.survey_name = survey_name
+    response.overall_rating = overall
+    response.content_rating = content
+    response.instructor_rating = instructor
+    response.platform_rating = platform
+    response.recommend_to_others = recommend
+    response.comment_text = (form.get('comment_text') or '').strip() or None
+    db.session.add(response)
+
+    if not reg.questionnaire_completed_at:
+        reg.questionnaire_completed_at = datetime.now(timezone.utc)
+
+    if reg.assessment_passed:
+        pending = get_certificate_status('pending', 'รอดำเนินการ', 'is-info')
+        reg.certificate_status_id = pending.id
+
+    if token_rec and not token_rec.used_at:
+        token_rec.used_at = datetime.now(timezone.utc)
+        db.session.add(token_rec)
+
+    db.session.add(reg)
+
+    if reg.certificate_url:
+        db.session.commit()
+        flash(texts.get('satisfaction_saved', 'Satisfaction survey saved.'), 'success')
+    elif reg.assessment_passed and can_issue_certificate(reg):
+        issue_certificate(reg, lang=lang, base_url=request.url_root)
+        flash(
+            texts.get(
+                'questionnaire_completed_and_certificate_ready',
+                'Satisfaction survey completed. Your certificate is now available.',
+            ),
+            'success',
+        )
+    else:
+        db.session.commit()
+        flash(texts.get('satisfaction_saved', 'Satisfaction survey saved.'), 'success')
+
+    if access_token:
+        return redirect(url_for('continuing_edu.satisfaction_survey_by_token', token=access_token, lang=lang, submitted='1'))
+    if event.event_type == 'course':
+        return redirect(url_for('continuing_edu.course_learn', course_id=event.id, lang=lang))
+    return redirect(url_for('continuing_edu.webinar_detail', webinar_id=event.id, lang=lang))
+
+
 @ce_bp.route('/event/<int:event_id>/start_progress', methods=['POST'])
 def start_progress(event_id):
     lang = request.args.get('lang', 'en')
@@ -3255,6 +3853,9 @@ def start_progress(event_id):
         return redirect(url_for('continuing_edu.login', lang=lang))
     
     reg = _get_registration_or_404(event_id, user.id)
+    if not _has_approved_or_paid_payment(user.id, event_id):
+        flash(texts.get('payment_not_approved', 'This page requires an approved payment.'), 'warning')
+        return _event_detail_redirect(reg.event_entity, lang)
     if not reg.started_at:
         reg.started_at = datetime.now(timezone.utc)
         in_progress_status = get_registration_status('in_progress', 'in_progress', 'กำลังเรียน', 'is-info')
@@ -3274,6 +3875,9 @@ def complete_progress(event_id):
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
     reg = _get_registration_or_404(event_id, user.id)
+    if not _has_approved_or_paid_payment(user.id, event_id):
+        flash(texts.get('payment_not_approved', 'This page requires an approved payment.'), 'warning')
+        return _event_detail_redirect(reg.event_entity, lang)
    
     if not reg.completed_at:
         reg.completed_at = datetime.now(timezone.utc)
@@ -3283,10 +3887,21 @@ def complete_progress(event_id):
     passed = request.form.get('passed') or request.args.get('passed')
     if passed is not None:
         reg.assessment_passed = True if str(passed).lower() in ('1','true','yes','y','passed') else False
-    # Issue certificate if completed and passed AND payment approved
+    # Issue certificate if completed, passed, questionnaire completed (for courses), and payment approved
     if reg.assessment_passed:
         pending = get_certificate_status('pending', 'รอดำเนินการ', 'is-info')
         reg.certificate_status_id = pending.id
+        if requires_post_course_survey(reg) and not reg.questionnaire_completed_at:
+            db.session.add(reg)
+            db.session.commit()
+            flash(
+                texts.get(
+                    'questionnaire_required_before_certificate',
+                    'Please complete the satisfaction survey before receiving certificate.',
+                ),
+                'warning',
+            )
+            return redirect(url_for('continuing_edu.satisfaction_survey', event_id=event_id, lang=lang))
         approved = can_issue_certificate(reg)
         if approved:
             issue_certificate(reg, lang=lang, base_url=request.url_root)
@@ -3299,7 +3914,115 @@ def complete_progress(event_id):
         db.session.add(reg)
         db.session.commit()
         flash(texts.get('progress_completed', 'Progress completed.'), 'success')
-    return redirect(url_for('continuing_edu.course_detail' if reg.event_entity.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event_id if reg.event_entity.event_type=='course' else None, webinar_id=event_id if reg.event_entity.event_type=='webinar' else None, lang=lang))
+    return _event_detail_redirect(reg.event_entity, lang)
+
+
+@ce_bp.route('/event/<int:event_id>/satisfaction', methods=['GET', 'POST'])
+def satisfaction_survey(event_id):
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+
+    reg = _get_registration_or_404(event_id, user.id)
+    if not reg.completed_at:
+        flash(
+            texts.get(
+                'questionnaire_complete_event_first',
+                'Please complete your learning progress first.',
+            ),
+            'warning',
+        )
+        return _event_detail_redirect(reg.event_entity, lang)
+
+    if request.method == 'POST':
+        return _handle_satisfaction_submission(reg, lang=lang, texts=texts)
+    share_link = request.args.get('share_link')
+    return _render_satisfaction_form(reg, lang=lang, texts=texts, share_link=share_link)
+
+
+@ce_bp.route('/event/<int:event_id>/satisfaction/share-link', methods=['POST'])
+def generate_satisfaction_share_link(event_id):
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+
+    reg = _get_registration_or_404(event_id, user.id)
+    if not requires_post_course_survey(reg):
+        flash(texts.get('questionnaire_not_required', 'Satisfaction survey is not required for this event.'), 'info')
+        return _event_detail_redirect(reg.event_entity, lang)
+    if not reg.completed_at:
+        flash(
+            texts.get(
+                'questionnaire_complete_event_first',
+                'Please complete your learning progress first.',
+            ),
+            'warning',
+        )
+        return _event_detail_redirect(reg.event_entity, lang)
+
+    share_link = _build_satisfaction_access_link(reg, lang=lang)
+    flash(
+        texts.get(
+            'satisfaction_share_link_generated',
+            'Share link generated. You can copy it below.',
+        ),
+        'success',
+    )
+    return redirect(url_for('continuing_edu.satisfaction_survey', event_id=event_id, lang=lang, share_link=share_link))
+
+
+@ce_bp.route('/satisfaction/access/<token>', methods=['GET', 'POST'])
+def satisfaction_survey_by_token(token):
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+
+    reg, token_rec, err = _resolve_satisfaction_access_token(token)
+
+    if err == 'used' and request.args.get('submitted') == '1':
+        event = token_rec.event_entity if token_rec else None
+        return render_template('continueing_edu/satisfaction_submitted.html', event=event, texts=texts, current_lang=lang)
+
+    if err:
+        if err == 'expired':
+            flash(texts.get('satisfaction_link_expired', 'This satisfaction link has expired.'), 'danger')
+        elif err == 'used':
+            flash(texts.get('satisfaction_link_used', 'This satisfaction link has already been used.'), 'warning')
+        else:
+            flash(texts.get('satisfaction_link_invalid', 'Invalid satisfaction link.'), 'danger')
+        return redirect(url_for('continuing_edu.index', lang=lang))
+
+    if not reg.completed_at:
+        flash(
+            texts.get(
+                'questionnaire_complete_event_first',
+                'Please complete your learning progress first.',
+            ),
+            'warning',
+        )
+        return redirect(url_for('continuing_edu.index', lang=lang))
+
+    if request.method == 'POST':
+        return _handle_satisfaction_submission(reg, lang=lang, texts=texts, token_rec=token_rec, access_token=token)
+    return _render_satisfaction_form(reg, lang=lang, texts=texts, access_token=token)
+
+
+@ce_bp.route('/event/<int:event_id>/complete_questionnaire', methods=['POST'])
+def complete_questionnaire(event_id):
+    """Backward-compatible endpoint: redirect to internal satisfaction form."""
+    lang = request.args.get('lang', 'en')
+    texts = tr.get(lang, tr['en'])
+    user = get_current_user()
+    if not user:
+        flash(texts.get('login_required', 'Please login to continue.'), 'danger')
+        return redirect(url_for('continuing_edu.login', lang=lang))
+    _get_registration_or_404(event_id, user.id)
+    return redirect(url_for('continuing_edu.satisfaction_survey', event_id=event_id, lang=lang))
 
 
 @ce_bp.route('/certificate/<int:reg_id>/pdf')
@@ -3314,6 +4037,23 @@ def certificate_pdf(reg_id):
     if reg.member_id != user.id:
         flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
         return redirect(url_for('continuing_edu.my_registrations', lang=lang))
+
+    if not reg.certificate_url and not can_issue_certificate(reg):
+        if requires_post_course_survey(reg) and not reg.questionnaire_completed_at:
+            flash(
+                texts.get(
+                    'questionnaire_required_before_certificate',
+                    'Please complete the satisfaction survey before receiving certificate.',
+                ),
+                'warning',
+            )
+            return redirect(url_for('continuing_edu.satisfaction_survey', event_id=reg.event_entity_id, lang=lang))
+        flash(texts.get('certificate_not_available_yet', 'Certificate is not available yet.'), 'warning')
+        return redirect(url_for('continuing_edu.my_registrations', lang=lang))
+
+    if not reg.certificate_url and can_issue_certificate(reg):
+        issue_certificate(reg, lang=lang, base_url=request.url_root)
+
     # If already generated, redirect to stored location
     if reg.certificate_url:
         url = reg.certificate_presigned_url()
@@ -3342,6 +4082,25 @@ def certificate_view(reg_id):
     if reg.member_id != user.id:
         flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
         return redirect(url_for('continuing_edu.my_registrations', lang=lang))
+    if not reg.certificate_url and not can_issue_certificate(reg):
+        if requires_post_course_survey(reg) and not reg.questionnaire_completed_at:
+            flash(
+                texts.get(
+                    'questionnaire_required_before_certificate',
+                    'Please complete the satisfaction survey before receiving certificate.',
+                ),
+                'warning',
+            )
+            return redirect(url_for('continuing_edu.satisfaction_survey', event_id=reg.event_entity_id, lang=lang))
+        flash(texts.get('certificate_not_available_yet', 'Certificate is not available yet.'), 'warning')
+        return redirect(url_for('continuing_edu.my_registrations', lang=lang))
+
+    if not reg.certificate_url and can_issue_certificate(reg):
+        issue_certificate(reg, lang=lang, base_url=request.url_root)
+        if not reg.certificate_url:
+            flash(texts.get('certificate_not_available_yet', 'Certificate is not available yet.'), 'warning')
+            return redirect(url_for('continuing_edu.my_registrations', lang=lang))
+
     return render_template('continueing_edu/certificate_view.html', reg=reg, event=reg.event_entity, member=reg.member, current_lang=lang)
 
 
@@ -3471,7 +4230,7 @@ def add_event():
             db.session.add(new_event)
             db.session.commit()
             flash('Event added successfully!', 'success')
-            return redirect(url_for('continueing_edu.events_management'))
+            return redirect(url_for('continuing_edu.events_management'))
         except Exception as e:
             db.session.rollback()
             flash(f'Error adding event: {e}', 'danger')
@@ -3559,7 +4318,7 @@ def edit_event(event_id):
 
             db.session.commit()
             flash('Event updated successfully!', 'success')
-            return redirect(url_for('continueing_edu.events_management'))
+            return redirect(url_for('continuing_edu.events_management'))
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating event: {e}', 'danger')
@@ -3593,7 +4352,7 @@ def delete_event(event_id):
     except Exception as e:
         db.session.rollback()
         flash(f'Error deleting event: {e}', 'danger')
-    return redirect(url_for('continueing_edu.events_management', lang=lang))
+    return redirect(url_for('continuing_edu.events_management', lang=lang))
 
 
 @ce_bp.route('/api/registrations_data', methods=['GET'])
@@ -3745,7 +4504,7 @@ def event_details(event_id):
         return render_template(template_name, active_menu='Event Details', event=event)
     except NotFound:
         flash('Event not found.', 'danger')
-        return redirect(url_for('continueing_edu.events_management'))
+        return redirect(url_for('continuing_edu.events_management'))
     
 
 @ce_bp.route('/events' , methods=['GET'])

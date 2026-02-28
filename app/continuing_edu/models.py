@@ -7,6 +7,7 @@ from app.staff.models import StaffAccount
 from app.main import db
 import os
 import boto3
+import datetime
 
 
 class CEOrganizationType(db.Model):
@@ -297,6 +298,7 @@ class CEEventEntity(db.Model):
     image_url = db.Column(db.Text, nullable=True)
     poster_image_url = db.Column(db.String(500), nullable=True, comment="URL for poster image")
     cover_image_url = db.Column(db.String(500), nullable=True, comment="URL for cover/banner image")
+    detail_document_url = db.Column(db.String(1024), nullable=True, comment="Link to project detail document or PDF")
     long_description_en = db.Column(db.Text, nullable=True)
     long_description_th = db.Column(db.Text, nullable=True)
     duration_en = db.Column(db.String(50), nullable=True)
@@ -371,6 +373,25 @@ class CEEventEntity(db.Model):
             self._cover_presigned_cache = self._generate_presigned_url(self.cover_image_url)
         return self._cover_presigned_cache
 
+    # Publishing and registration controls
+    is_published = db.Column(db.Boolean, default=False, nullable=False, comment="Whether the event is publicly visible")
+    registration_open = db.Column(db.Boolean, default=False, nullable=False, comment="Whether registration is enabled")
+    registration_open_at = db.Column(db.DateTime(timezone=True), nullable=True, comment="Registration open datetime")
+    registration_close_at = db.Column(db.DateTime(timezone=True), nullable=True, comment="Registration close datetime")
+
+    def is_registration_active(self, now: datetime.datetime | None = None) -> bool:
+        """Return True when registration is considered open (flag + within optional window)."""
+        if not self.registration_open:
+            return False
+        if now is None:
+            now = datetime.datetime.now(datetime.timezone.utc)
+        # If datetimes are naive, compare as-is
+        if self.registration_open_at and now < self.registration_open_at:
+            return False
+        if self.registration_close_at and now > self.registration_close_at:
+            return False
+        return True
+
 
 # --------------------------------------------------
 # Association Tables (now a single generic registration table)
@@ -422,6 +443,11 @@ class CEMemberRegistration(db.Model):
     # Progress tracking
     started_at = db.Column(db.DateTime(timezone=True), nullable=True, comment="When the member started the event")
     completed_at = db.Column(db.DateTime(timezone=True), nullable=True, comment="When the member completed the event")
+    questionnaire_completed_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=True,
+        comment="When the member completed the post-course questionnaire",
+    )
 
     __table_args__ = (
         UniqueConstraint("member_id", "event_entity_id", name="_member_event_entity_uc"),
@@ -565,7 +591,7 @@ class CERegisterPayment(db.Model):
         val = self.payment_proof_url
         if not val:
             return None
-        if self._is_http_url(val):
+        if self._is_http_url(val) or (isinstance(val, str) and val.startswith('/')):
             return val
         try:
             bucket = os.getenv('BUCKETEER_BUCKET_NAME')
@@ -825,6 +851,82 @@ class CEEventCertificateManager(db.Model):
     def __repr__(self) -> str:
         return f"<EventCertificateManager Event:{self.event_entity_id} Staff:{self.staff_id}>"
 
+
+class CESatisfactionSurveyResponse(db.Model):
+    """Stores one satisfaction survey response per event registration."""
+    __tablename__ = 'ce_satisfaction_survey_responses'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    registration_id = db.Column(
+        db.Integer,
+        ForeignKey('ce_member_registrations.id', ondelete='CASCADE'),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    member_id = db.Column(db.Integer, ForeignKey('ce_members.id', ondelete='CASCADE'), nullable=False, index=True)
+    event_entity_id = db.Column(
+        db.Integer,
+        ForeignKey('ce_event_entities.id', ondelete='CASCADE'),
+        nullable=False,
+        index=True,
+    )
+    survey_name = db.Column(db.String(255), nullable=False)
+    overall_rating = db.Column(db.Integer, nullable=False)
+    content_rating = db.Column(db.Integer, nullable=False)
+    instructor_rating = db.Column(db.Integer, nullable=False)
+    platform_rating = db.Column(db.Integer, nullable=False)
+    recommend_to_others = db.Column(db.Boolean, nullable=True)
+    comment_text = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    updated_at = db.Column(
+        db.DateTime(timezone=True),
+        server_default=db.func.now(),
+        onupdate=db.func.now(),
+    )
+
+    registration = relationship(
+        "CEMemberRegistration",
+        backref=db.backref('satisfaction_response', uselist=False, lazy=True),
+    )
+    member = relationship("CEMember", backref=db.backref('satisfaction_responses', lazy=True))
+    event_entity = relationship("CEEventEntity", backref=db.backref('satisfaction_responses', lazy=True))
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<SatisfactionSurveyResponse Reg:{self.registration_id} Event:{self.event_entity_id}>"
+
+
+class CESatisfactionSurveyAccessToken(db.Model):
+    """One-time tokenized access links for satisfaction surveys."""
+    __tablename__ = 'ce_satisfaction_survey_access_tokens'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    registration_id = db.Column(
+        db.Integer,
+        ForeignKey('ce_member_registrations.id', ondelete='CASCADE'),
+        nullable=False,
+        index=True,
+    )
+    member_id = db.Column(db.Integer, ForeignKey('ce_members.id', ondelete='CASCADE'), nullable=False, index=True)
+    event_entity_id = db.Column(
+        db.Integer,
+        ForeignKey('ce_event_entities.id', ondelete='CASCADE'),
+        nullable=False,
+        index=True,
+    )
+    token_hash = db.Column(db.String(128), unique=True, nullable=False, index=True)
+    expires_at = db.Column(db.DateTime(timezone=True), nullable=False)
+    used_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+
+    registration = relationship("CEMemberRegistration", backref=db.backref('satisfaction_access_tokens', lazy=True))
+    member = relationship("CEMember", backref=db.backref('satisfaction_access_tokens', lazy=True))
+    event_entity = relationship("CEEventEntity", backref=db.backref('satisfaction_access_tokens', lazy=True))
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<SatisfactionSurveyAccessToken Reg:{self.registration_id} Used:{bool(self.used_at)}>"
+
+
 class CEMemberAddress(db.Model):
     """Stores multiple addresses per member."""
     __tablename__ = 'ce_member_addresses'
@@ -845,3 +947,12 @@ class CEMemberAddress(db.Model):
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<MemberAddress {self.address_type} Member:{self.member_id}>"
+
+
+# Compatibility aliases for older code that imported the previous class names
+# New class names use the CE prefix (e.g., CERegisterPayment). Provide
+# legacy unprefixed names to avoid ImportError when other modules still
+# import the old names.
+RegisterPayment = CERegisterPayment
+RegisterPaymentStatus = CERegisterPaymentStatus
+RegisterPaymentReceipt = CERegisterPaymentReceipt

@@ -153,6 +153,47 @@
     margin-bottom: 8px;
   }
 
+  .payment-channel-grid {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: 1fr minmax(220px, 280px);
+    gap: 10px;
+    align-items: start;
+  }
+
+  .payment-channel-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: #f8fafc;
+  }
+
+  .payment-channel-card__title {
+    font-weight: 800;
+    margin-bottom: 6px;
+    color: #1f2937;
+  }
+
+  .payment-qr-box {
+    text-align: center;
+  }
+
+  .payment-qr-box img {
+    width: 100%;
+    max-width: 230px;
+    height: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+    padding: 6px;
+  }
+
+  @media (max-width: 768px) {
+    .payment-channel-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
   @media print {
     body {
       background: #fff !important;
@@ -187,6 +228,14 @@ and payment.invoice.invoice_no else ('INV%06d' % payment.id))) %}
 {% set subtotal = inv.get('subtotal', (payment.payment_amount or 0)) %}
 {% set vat_amount = inv.get('vat_amount', 0) %}
 {% set total = inv.get('total', (payment.payment_amount or 0)) %}
+{% set pay_channel = (payment_channel if payment_channel is defined and payment_channel else {}) %}
+{% set channel_qr_url = pay_channel.get('qr_url') or payment_qr_url %}
+{% set channel_promptpay_id = pay_channel.get('promptpay_id') or promptpay_id %}
+{% set channel_bank_info = pay_channel.get('bank_info') or bank_info %}
+{% set channel_bank_name = pay_channel.get('bank_name') %}
+{% set channel_bank_branch = pay_channel.get('bank_branch') %}
+{% set channel_bank_account_name = pay_channel.get('bank_account_name') %}
+{% set channel_bank_account_no = pay_channel.get('bank_account_no') %}
 
 <div class="container" style="max-width: 980px;">
   <div class="invoice-paper">
@@ -395,13 +444,32 @@ and payment.invoice.invoice_no else ('INV%06d' % payment.id))) %}
             - {{ 'หรือส่งหลักฐานกลับทางอีเมล' if TH else 'Or reply to email with proof of payment.' }}
           </div>
           {% endif %}
-          {% if bank_info %}
-          <div style="margin-top: 10px;">
-            <div style="font-weight:800;">{{ texts.get('invoice_bank_info', 'ข้อมูลบัญชีธนาคาร' if TH else 'Bank
-              info') }}</div>
-            <div style="white-space: pre-line;">{{ bank_info }}</div>
+          <div class="payment-channel-grid">
+            <div class="payment-channel-card">
+              <div class="payment-channel-card__title">{{ texts.get('invoice_bank_info', 'ข้อมูลบัญชีธนาคาร' if TH else 'Bank info') }}</div>
+              {% if channel_bank_name %}<div><strong>{{ 'ธนาคาร' if TH else 'Bank' }}:</strong> {{ channel_bank_name }}</div>{% endif %}
+              {% if channel_bank_branch %}<div><strong>{{ 'สาขา' if TH else 'Branch' }}:</strong> {{ channel_bank_branch }}</div>{% endif %}
+              {% if channel_bank_account_name %}<div><strong>{{ 'ชื่อบัญชี' if TH else 'Account Name' }}:</strong> {{ channel_bank_account_name }}</div>{% endif %}
+              {% if channel_bank_account_no %}<div><strong>{{ 'เลขที่บัญชี' if TH else 'Account No.' }}:</strong> {{ channel_bank_account_no }}</div>{% endif %}
+              {% if channel_promptpay_id %}<div><strong>{{ 'PromptPay ID' }}:</strong> {{ channel_promptpay_id }}</div>{% endif %}
+              {% if channel_bank_info %}
+              <div style="white-space: pre-line; margin-top:6px;">{{ channel_bank_info }}</div>
+              {% endif %}
+            </div>
+            <div class="payment-channel-card payment-qr-box">
+              <div class="payment-channel-card__title">{{ 'QR-Code Payment' }}</div>
+              {% if channel_qr_url %}
+              <img src="{{ channel_qr_url }}" alt="Payment QR Code">
+              <div style="font-size:0.8rem; color:#6b7280; margin-top:6px;">{{ 'สแกนเพื่อชำระเงิน' if TH else 'Scan to pay' }}</div>
+              {% elif channel_promptpay_id %}
+              <div style="font-size:0.9rem; color:#374151;">
+                {{ 'ใช้ PromptPay ID ด้านซ้ายเพื่อชำระเงิน' if TH else 'Use PromptPay ID on the left to pay.' }}
+              </div>
+              {% else %}
+              <div style="font-size:0.9rem; color:#6b7280;">{{ 'ยังไม่ได้ตั้งค่า QR สำหรับการชำระเงิน' if TH else 'QR payment is not configured.' }}</div>
+              {% endif %}
+            </div>
           </div>
-          {% endif %}
         </div>
 
 

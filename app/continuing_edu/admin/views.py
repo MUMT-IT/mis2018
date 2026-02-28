@@ -41,6 +41,7 @@ from app.continuing_edu.models import (
     CEEventPaymentApprover,
     CEEventReceiptIssuer,
     CEEventCertificateManager,
+    CESatisfactionSurveyResponse,
 )
 from sqlalchemy import func
 import datetime
@@ -193,6 +194,7 @@ def edit_event(event_id):
 @admin_required
 def dashboard():
     staff = get_current_staff()
+   
     now_utc = datetime.datetime.now(datetime.timezone.utc)
     current_date = now_utc.astimezone().strftime('%A %d %B %Y')
 
@@ -898,6 +900,215 @@ def members_report():
     )
 
 
+@admin_bp.route('/reports/satisfaction')
+@login_required
+@admin_required
+def satisfaction_report():
+    staff = get_current_staff()
+
+    event_type = (request.args.get('event_type') or '').strip()
+    year_raw = (request.args.get('year') or '').strip()
+    start_raw = request.args.get('start')
+    end_raw = request.args.get('end')
+
+    start_dt = _parse_date_arg(start_raw)
+    end_dt = _parse_date_arg(end_raw, end=True)
+
+    year_val = None
+    if year_raw:
+        try:
+            year_val = int(year_raw)
+        except ValueError:
+            year_raw = ''
+
+    filters = []
+    if event_type:
+        filters.append(CEEventEntity.event_type == event_type)
+    if year_val:
+        filters.append(func.extract('year', CESatisfactionSurveyResponse.created_at) == year_val)
+    if start_dt:
+        filters.append(CESatisfactionSurveyResponse.created_at >= start_dt)
+    if end_dt:
+        filters.append(CESatisfactionSurveyResponse.created_at < end_dt)
+
+    base_query = (
+        CESatisfactionSurveyResponse.query
+        .join(CEEventEntity, CESatisfactionSurveyResponse.event_entity_id == CEEventEntity.id)
+        .filter(*filters)
+    )
+
+    total_responses = base_query.count()
+
+    avg_row = (
+        db.session.query(
+            func.coalesce(func.avg(CESatisfactionSurveyResponse.overall_rating), 0),
+            func.coalesce(func.avg(CESatisfactionSurveyResponse.content_rating), 0),
+            func.coalesce(func.avg(CESatisfactionSurveyResponse.instructor_rating), 0),
+            func.coalesce(func.avg(CESatisfactionSurveyResponse.platform_rating), 0),
+        )
+        .join(CEEventEntity, CESatisfactionSurveyResponse.event_entity_id == CEEventEntity.id)
+        .filter(*filters)
+        .first()
+    )
+
+    overall_avg = float(avg_row[0] or 0)
+    content_avg = float(avg_row[1] or 0)
+    instructor_avg = float(avg_row[2] or 0)
+    platform_avg = float(avg_row[3] or 0)
+
+    events_summary = (
+        db.session.query(
+            CEEventEntity.id,
+            CEEventEntity.event_type,
+            CEEventEntity.title_en,
+            CEEventEntity.title_th,
+            func.count(CESatisfactionSurveyResponse.id).label('responses'),
+            func.avg(CESatisfactionSurveyResponse.overall_rating).label('overall_avg'),
+            func.avg(CESatisfactionSurveyResponse.content_rating).label('content_avg'),
+            func.avg(CESatisfactionSurveyResponse.instructor_rating).label('instructor_avg'),
+            func.avg(CESatisfactionSurveyResponse.platform_rating).label('platform_avg'),
+        )
+        .join(CESatisfactionSurveyResponse, CESatisfactionSurveyResponse.event_entity_id == CEEventEntity.id)
+        .filter(*filters)
+        .group_by(CEEventEntity.id)
+        .order_by(func.count(CESatisfactionSurveyResponse.id).desc(), CEEventEntity.created_at.desc())
+        .all()
+    )
+
+    yearly_summary = (
+        db.session.query(
+            func.extract('year', CESatisfactionSurveyResponse.created_at).label('year'),
+            CEEventEntity.event_type,
+            func.count(CESatisfactionSurveyResponse.id).label('responses'),
+            func.avg(CESatisfactionSurveyResponse.overall_rating).label('overall_avg'),
+            func.avg(CESatisfactionSurveyResponse.content_rating).label('content_avg'),
+            func.avg(CESatisfactionSurveyResponse.instructor_rating).label('instructor_avg'),
+            func.avg(CESatisfactionSurveyResponse.platform_rating).label('platform_avg'),
+        )
+        .join(CEEventEntity, CESatisfactionSurveyResponse.event_entity_id == CEEventEntity.id)
+        .filter(*filters)
+        .group_by(func.extract('year', CESatisfactionSurveyResponse.created_at), CEEventEntity.event_type)
+        .order_by(func.extract('year', CESatisfactionSurveyResponse.created_at).desc(), CEEventEntity.event_type.asc())
+        .all()
+    )
+
+    responses = (
+        db.session.query(
+            CESatisfactionSurveyResponse.id,
+            CESatisfactionSurveyResponse.event_entity_id,
+            CESatisfactionSurveyResponse.overall_rating,
+            CESatisfactionSurveyResponse.content_rating,
+            CESatisfactionSurveyResponse.instructor_rating,
+            CESatisfactionSurveyResponse.platform_rating,
+        )
+        .join(CEEventEntity, CESatisfactionSurveyResponse.event_entity_id == CEEventEntity.id)
+        .filter(*filters)
+        .all()
+    )
+
+    speaker_summary = []
+    if responses:
+        event_ids = sorted({row.event_entity_id for row in responses})
+        speaker_rows = (
+            CEEventSpeaker.query
+            .filter(CEEventSpeaker.event_entity_id.in_(event_ids))
+            .with_entities(
+                CEEventSpeaker.event_entity_id,
+                CEEventSpeaker.email,
+                CEEventSpeaker.name_en,
+                CEEventSpeaker.name_th,
+            )
+            .all()
+        )
+
+        event_speakers = {}
+        for s in speaker_rows:
+            event_map = event_speakers.setdefault(s.event_entity_id, {})
+            email_key = (s.email or '').strip().lower()
+            name_fallback = (s.name_en or s.name_th or '').strip().lower()
+            speaker_key = email_key or f"name:{name_fallback}" if name_fallback else None
+            if not speaker_key:
+                continue
+            display_name = (s.name_en or s.name_th or s.email or 'Unknown Speaker').strip()
+            if speaker_key not in event_map:
+                event_map[speaker_key] = display_name
+
+        agg = {}
+        for row in responses:
+            speakers_for_event = event_speakers.get(row.event_entity_id, {})
+            for speaker_key, speaker_name in speakers_for_event.items():
+                rec = agg.setdefault(
+                    speaker_key,
+                    {
+                        'speaker_name': speaker_name,
+                        'responses': 0,
+                        'overall_sum': 0.0,
+                        'content_sum': 0.0,
+                        'instructor_sum': 0.0,
+                        'platform_sum': 0.0,
+                        'event_ids': set(),
+                    },
+                )
+                rec['responses'] += 1
+                rec['overall_sum'] += float(row.overall_rating or 0)
+                rec['content_sum'] += float(row.content_rating or 0)
+                rec['instructor_sum'] += float(row.instructor_rating or 0)
+                rec['platform_sum'] += float(row.platform_rating or 0)
+                rec['event_ids'].add(row.event_entity_id)
+
+        for rec in agg.values():
+            responses_count = rec['responses'] or 1
+            speaker_summary.append(
+                {
+                    'speaker_name': rec['speaker_name'],
+                    'responses': rec['responses'],
+                    'events_count': len(rec['event_ids']),
+                    'overall_avg': rec['overall_sum'] / responses_count,
+                    'content_avg': rec['content_sum'] / responses_count,
+                    'instructor_avg': rec['instructor_sum'] / responses_count,
+                    'platform_avg': rec['platform_sum'] / responses_count,
+                }
+            )
+
+        speaker_summary.sort(key=lambda item: (item['responses'], item['overall_avg']), reverse=True)
+
+    available_event_types = [
+        row[0]
+        for row in db.session.query(CEEventEntity.event_type).distinct().order_by(CEEventEntity.event_type).all()
+        if row[0]
+    ]
+    available_years = [
+        int(row[0])
+        for row in (
+            db.session.query(func.extract('year', CESatisfactionSurveyResponse.created_at))
+            .filter(CESatisfactionSurveyResponse.created_at.isnot(None))
+            .distinct()
+            .order_by(func.extract('year', CESatisfactionSurveyResponse.created_at).desc())
+            .all()
+        )
+        if row[0]
+    ]
+
+    return render_template(
+        'continueing_edu/admin/reports/satisfaction_report.html',
+        logged_in_admin=staff,
+        total_responses=total_responses,
+        overall_avg=overall_avg,
+        content_avg=content_avg,
+        instructor_avg=instructor_avg,
+        platform_avg=platform_avg,
+        events_summary=events_summary,
+        yearly_summary=yearly_summary,
+        speaker_summary=speaker_summary,
+        available_event_types=available_event_types,
+        available_years=available_years,
+        selected_event_type=event_type,
+        selected_year=year_raw,
+        start_value=start_raw,
+        end_value=end_raw,
+    )
+
+
 @admin_bp.route('/certificates')
 @login_required
 @admin_required
@@ -1024,8 +1235,12 @@ def certificates_registration_pdf(reg_id):
         return redirect(reg.certificate_url)
 
     if HTML is None:
-        flash('PDF rendering library is not available on this server.', 'danger')
-        return redirect(url_for('continuing_edu_admin.certificates_event_detail', event_id=event_id))
+        # Fallback: render the certificate HTML directly when PDF library is unavailable.
+        # This lets admins view or save the certificate as HTML instead of PDF.
+        context = build_certificate_context(reg, lang=lang, base_url=request.url_root)
+        html = render_template('continueing_edu/certificate_pdf.html', **context)
+        filename = f"certificate_{reg.member_id}_{event_id}.html"
+        return Response(html, mimetype='text/html', headers={'Content-Disposition': f'inline; filename="{filename}"'})
 
     context = build_certificate_context(reg, lang=lang, base_url=request.url_root)
     html = render_template('continueing_edu/certificate_pdf.html', **context)
@@ -1038,8 +1253,69 @@ def certificates_registration_pdf(reg_id):
 @admin_required
 def manage_events():
     staff = get_current_staff()
-    events = CEEventEntity.query.order_by(CEEventEntity.created_at.desc()).all()
-    return render_template('continueing_edu/admin/events.html', logged_in_admin=staff, events=events)
+    # Filters: text query, event type, status
+    status = request.args.get('status', '').lower()
+    q = (request.args.get('q') or '').strip()
+    event_type = (request.args.get('type') or '').lower()
+
+    query = CEEventEntity.query.order_by(CEEventEntity.created_at.desc())
+
+    if q:
+        pattern = f"%{q}%"
+        query = query.filter((CEEventEntity.title_en.ilike(pattern)) | (CEEventEntity.title_th.ilike(pattern)))
+
+    if event_type in ('course', 'webinar'):
+        query = query.filter(CEEventEntity.event_type == event_type)
+
+    if status == 'published':
+        query = query.filter(CEEventEntity.is_published.is_(True))
+    elif status == 'draft':
+        query = query.filter(CEEventEntity.is_published.is_(False))
+    elif status == 'registration_open':
+        query = query.filter(CEEventEntity.registration_open.is_(True))
+
+    events = query.all()
+    # Precompute helpful aggregates to avoid N+1 queries in the template
+    event_ids = [e.id for e in events]
+    reg_counts = {}
+    if event_ids:
+        rows = (
+            db.session.query(CEMemberRegistration.event_entity_id, func.count(CEMemberRegistration.id))
+            .filter(CEMemberRegistration.event_entity_id.in_(event_ids))
+            .group_by(CEMemberRegistration.event_entity_id)
+            .all()
+        )
+        reg_counts = {r[0]: int(r[1]) for r in rows}
+
+    # earliest agenda start per event
+    event_starts = {}
+    if event_ids:
+        agendas = (
+            CEEventAgenda.query
+            .filter(CEEventAgenda.event_entity_id.in_(event_ids))
+            .order_by(CEEventAgenda.event_entity_id.asc(), CEEventAgenda.start_time.asc())
+            .all()
+        )
+        for a in agendas:
+            if a.event_entity_id not in event_starts:
+                event_starts[a.event_entity_id] = a.start_time
+
+    # total_seats if defined on model instance (optional) and creator label
+    total_seats_map = {e.id: getattr(e, 'total_seats', None) for e in events}
+    creators = {e.id: (e.staff.fullname if getattr(e, 'staff', None) and getattr(e.staff, 'fullname', None) else (e.created_by or '')) for e in events}
+
+    return render_template(
+        'continueing_edu/admin/events.html',
+        logged_in_admin=staff,
+        events=events,
+        q=q,
+        filter_type=event_type,
+        filter_status=status,
+        reg_counts=reg_counts,
+        event_starts=event_starts,
+        total_seats_map=total_seats_map,
+        creators=creators,
+    )
 
 
 @admin_bp.route('/progress')
@@ -1047,7 +1323,13 @@ def manage_events():
 @admin_required
 def progress_index():
     staff = get_current_staff()
-    events = CEEventEntity.query.order_by(CEEventEntity.created_at.desc()).all()
+    status = request.args.get('status', '').lower()
+    query = CEEventEntity.query.order_by(CEEventEntity.created_at.desc())
+    if status == 'published':
+        query = query.filter(CEEventEntity.is_published.is_(True))
+    elif status == 'draft':
+        query = query.filter(CEEventEntity.is_published.is_(False))
+    events = query.all()
     # Build simple stats per event
     stats = {}
     for e in events:
@@ -1069,7 +1351,13 @@ def progress_index():
 @admin_required
 def promotions_index():
     staff = get_current_staff()
-    events = CEEventEntity.query.order_by(CEEventEntity.created_at.desc()).all()
+    status = request.args.get('status', '').lower()
+    query = CEEventEntity.query.order_by(CEEventEntity.created_at.desc())
+    if status == 'published':
+        query = query.filter(CEEventEntity.is_published.is_(True))
+    elif status == 'draft':
+        query = query.filter(CEEventEntity.is_published.is_(False))
+    events = query.all()
     return render_template('continueing_edu/admin/promotions_index.html', logged_in_admin=staff, events=events)
 
 
@@ -1637,6 +1925,11 @@ def event_notify(event_id):
 # -----------------------------
 # Admin Payments Review
 # -----------------------------
+def _payment_requires_uploaded_proof(payment: CERegisterPayment) -> bool:
+    method = (getattr(payment, 'payment_method', None) or '').strip().lower()
+    return method in {'bank_transfer', 'counter'}
+
+
 @admin_bp.route('/payments')
 @login_required
 @admin_required
@@ -1678,6 +1971,60 @@ def payments_index():
 
     pagination = query.order_by(CERegisterPayment.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
     payments = pagination.items
+
+    def _staff_display_name(staff_obj):
+        if not staff_obj:
+            return None
+        return (
+            getattr(staff_obj, 'fullname', None)
+            or getattr(getattr(staff_obj, 'personal_info', None), 'fullname', None)
+            or getattr(staff_obj, 'email', None)
+            or f"staff#{getattr(staff_obj, 'id', '')}"
+        )
+
+    event_ids = {p.event_entity_id for p in payments if getattr(p, 'event_entity_id', None)}
+    approver_rows = []
+    editor_rows = []
+    if event_ids:
+        approver_rows = CEEventPaymentApprover.query.filter(
+            CEEventPaymentApprover.event_entity_id.in_(event_ids)
+        ).all()
+        editor_rows = CEEventEditor.query.filter(
+            CEEventEditor.event_entity_id.in_(event_ids)
+        ).all()
+
+    approver_ids_by_event = {}
+    editor_ids_by_event = {}
+    authorized_names_by_event = {}
+
+    for row in approver_rows:
+        approver_ids_by_event.setdefault(row.event_entity_id, set()).add(row.staff_id)
+        name = _staff_display_name(getattr(row, 'staff', None))
+        if name:
+            authorized_names_by_event.setdefault(row.event_entity_id, [])
+            if name not in authorized_names_by_event[row.event_entity_id]:
+                authorized_names_by_event[row.event_entity_id].append(name)
+
+    for row in editor_rows:
+        editor_ids_by_event.setdefault(row.event_entity_id, set()).add(row.staff_id)
+        name = _staff_display_name(getattr(row, 'staff', None))
+        if name:
+            authorized_names_by_event.setdefault(row.event_entity_id, [])
+            if name not in authorized_names_by_event[row.event_entity_id]:
+                authorized_names_by_event[row.event_entity_id].append(name)
+
+    payment_action_meta = {}
+    for pay in payments:
+        event_id = pay.event_entity_id
+        approver_ids = approver_ids_by_event.get(event_id, set())
+        editor_ids = editor_ids_by_event.get(event_id, set())
+        can_decide = staff.id in approver_ids or staff.id in editor_ids
+        payment_action_meta[pay.id] = {
+            'can_decide': can_decide,
+            'required_role': 'Payment Approver or Event Editor',
+            'authorized_staff': authorized_names_by_event.get(event_id, []),
+        }
+
     statuses = CERegisterPaymentStatus.query.order_by(CERegisterPaymentStatus.name_en.asc()).all()
     # Totals summary
     total_amount = sum([p.payment_amount or 0 for p in payments])
@@ -1699,6 +2046,7 @@ def payments_index():
         total_amount=total_amount,
         total_count=total_count,
         status_counts=status_counts,
+        payment_action_meta=payment_action_meta,
         logged_in_admin=staff,
     )
 
@@ -1742,6 +2090,9 @@ def _set_payment_status(pay: CERegisterPayment, status_en: str, staff_id: int):
 def payment_approve(payment_id):
     staff = get_current_staff()
     pay = CERegisterPayment.query.get_or_404(payment_id)
+    if _payment_requires_uploaded_proof(pay) and not pay.payment_proof_url:
+        flash('Payment proof is required before approval for this payment method.', 'danger')
+        return redirect(url_for('continuing_edu_admin.payments_index'))
     _set_payment_status(pay, 'approved', staff.id)
     flash('Payment approved.', 'success')
     return redirect(url_for('continuing_edu_admin.payments_index'))
@@ -1877,6 +2228,20 @@ def bootstrap_defaults():
 def update_event_general(event_id):
     staff = get_current_staff()
     event = CEEventEntity.query.get_or_404(event_id)
+    # Quick toggles: allow header forms to only update a single flag without requiring full form payload
+    if request.form.get('_quick_publish_toggle') == '1':
+        event.is_published = request.form.get('is_published') == '1'
+        db.session.add(event)
+        db.session.commit()
+        flash('Publish status updated.', 'success')
+        return redirect(url_for('continuing_edu_admin.edit_event', event_id=event.id, tab='general'))
+
+    if request.form.get('_quick_registration_toggle') == '1':
+        event.registration_open = request.form.get('registration_open') == '1'
+        db.session.add(event)
+        db.session.commit()
+        flash('Registration status updated.', 'success')
+        return redirect(url_for('continuing_edu_admin.edit_event', event_id=event.id, tab='general'))
 
     # Basic fields; extend as needed
     title_en = request.form.get('title_en')
@@ -1960,6 +2325,9 @@ def update_event_general(event_id):
         event.cover_image_url = None
     event.certificate_name_en = request.form.get('certificate_name_en')
     event.certificate_name_th = request.form.get('certificate_name_th')
+    # Link to project detail document (optional)
+    if 'detail_document_url' in request.form:
+        event.detail_document_url = request.form.get('detail_document_url') or None
     ce_val = request.form.get('continue_education_score')
     if ce_val is not None and ce_val != '':
         try:
@@ -1981,6 +2349,22 @@ def update_event_general(event_id):
         return redirect(url_for('continuing_edu_admin.edit_event', event_id=event.id, tab='general'))
     event.early_bird_start = from_date
     event.early_bird_end = to_date
+
+    # Publish / registration controls
+    # Only update flags if the fields are present in the submitted form.
+    # The header quick-toggle submits only the flag, while the full form omits them;
+    # avoid overwriting existing values when omitted.
+    if 'is_published' in request.form:
+        event.is_published = request.form.get('is_published') == '1'
+    if 'registration_open' in request.form:
+        event.registration_open = request.form.get('registration_open') == '1'
+    reg_open_at = _parse_dt(request.form.get('registration_open_at')) if request.form.get('registration_open_at') else None
+    reg_close_at = _parse_dt(request.form.get('registration_close_at')) if request.form.get('registration_close_at') else None
+    if reg_open_at and reg_close_at and reg_close_at <= reg_open_at:
+        flash('Registration close must be after registration open.', 'danger')
+        return redirect(url_for('continuing_edu_admin.edit_event', event_id=event.id, tab='general'))
+    event.registration_open_at = reg_open_at
+    event.registration_close_at = reg_close_at
 
     db.session.add(event)
     db.session.commit()

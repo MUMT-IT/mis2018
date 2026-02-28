@@ -3,6 +3,35 @@
 <div class="container mt-6 mb-6">
   <h1 class="title is-3 mb-4">Edit Event: {{ event.title_en or 'Untitled' }}</h1>
 
+  <div class="level mb-3">
+    <div class="level-left">
+      <!-- left intentionally empty to keep title alignment -->
+    </div>
+    <div class="level-right">
+      <div style="display:flex;gap:1rem;align-items:center;">
+        <form method="post" action="{{ url_for('continuing_edu_admin.update_event_general', event_id=event.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="_quick_publish_toggle" value="1" />
+          <label class="checkbox" style="display:flex;align-items:center;gap:.5rem;">
+            <input id="header-publish-switch" type="checkbox" name="is_published" value="1" {% if event.is_published
+              %}checked{% endif %}>
+            <span>Published</span>
+          </label>
+        </form>
+
+        <form method="post" action="{{ url_for('continuing_edu_admin.update_event_general', event_id=event.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="_quick_registration_toggle" value="1" />
+          <label class="checkbox" style="display:flex;align-items:center;gap:.5rem;">
+            <input id="header-registration-switch" type="checkbox" name="registration_open" value="1" {% if
+              event.registration_open %}checked{% endif %}>
+            <span>Registration</span>
+          </label>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <div class="tabs is-boxed">
     <ul>
       <li class="{% if active_tab=='general' %}is-active{% endif %}"><a href="?tab=general">General Info</a></li>
@@ -205,6 +234,17 @@
         </div>
       </div>
 
+      <div class="columns">
+        <div class="column">
+          <div class="field">
+            <label class="label">Detail Document URL</label>
+            <div class="control"><input class="input" type="url" name="detail_document_url"
+                value="{{ event.detail_document_url or '' }}" placeholder="https://example.com/document.pdf"></div>
+            <p class="help">Optional link to project detail document or PDF (opens in new tab).</p>
+          </div>
+        </div>
+      </div>
+
       <div class="field">
         <label class="label">CE Score</label>
         <div class="control"><input class="input" type="number" step="0.01" name="continue_education_score"
@@ -231,6 +271,67 @@
           </div>
         </div>
       </div>
+
+      {# registration toggle moved to header quick-controls #}
+
+      <div id="registration-dates" class="columns"
+        style="display: {% if event.registration_open %}flex{% else %}none{% endif %};">
+        <div class="column">
+          <div class="field">
+            <label class="label">Registration Open At</label>
+            <div class="control"><input class="input" type="datetime-local" name="registration_open_at"
+                value="{{ event.registration_open_at.strftime('%Y-%m-%dT%H:%M') if event.registration_open_at else '' }}">
+            </div>
+          </div>
+        </div>
+        <div class="column">
+          <div class="field">
+            <label class="label">Registration Close At</label>
+            <div class="control"><input class="input" type="datetime-local" name="registration_close_at"
+                value="{{ event.registration_close_at.strftime('%Y-%m-%dT%H:%M') if event.registration_close_at else '' }}">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        // Toggle registration dates panel based on header registration switch
+        document.addEventListener('DOMContentLoaded', function () {
+          var headerReg = document.getElementById('header-registration-switch');
+          var block = document.getElementById('registration-dates');
+          if (!headerReg || !block) return;
+          // initial state
+          block.style.display = headerReg.checked ? 'flex' : 'none';
+          headerReg.addEventListener('change', function () {
+            block.style.display = headerReg.checked ? 'flex' : 'none';
+          });
+        });
+      </script>
+
+      <script>
+        // Auto-submit header publish switch when toggled
+        document.addEventListener('DOMContentLoaded', function () {
+          var headerSwitch = document.getElementById('header-publish-switch');
+          if (!headerSwitch) return;
+          headerSwitch.addEventListener('change', function () {
+            // submit the surrounding form
+            var form = headerSwitch.closest('form');
+            if (form) form.submit();
+          });
+        });
+      </script>
+
+      <script>
+        // Auto-submit header registration switch when toggled
+        document.addEventListener('DOMContentLoaded', function () {
+          var headerReg = document.getElementById('header-registration-switch');
+          if (!headerReg) return;
+          headerReg.addEventListener('change', function () {
+            var form = headerReg.closest('form');
+            if (form) form.submit();
+          });
+        });
+      </script>
 
       <div class="field is-grouped">
         <div class="control"><button class="button is-primary" type="submit">Save General Info</button></div>
@@ -589,6 +690,9 @@
             <div class="is-size-7">Started: {{ reg.started_at or '-' }}</div>
             <div class="is-size-7">Completed: {{ reg.completed_at or '-' }}</div>
             <div class="is-size-7">Assessment Passed: {{ 'Yes' if reg.assessment_passed else 'No' }}</div>
+            {% if event.event_type in ['course', 'webinar'] %}
+            <div class="is-size-7">Questionnaire: {{ reg.questionnaire_completed_at or '-' }}</div>
+            {% endif %}
             <div class="buttons mt-2">
               <form method="post"
                 action="{{ url_for('continuing_edu_admin.update_registration_certificate', event_id=event.id, reg_id=reg.id) }}">

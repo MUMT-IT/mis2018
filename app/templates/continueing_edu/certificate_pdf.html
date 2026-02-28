@@ -8,6 +8,26 @@
             % set static_base=certificate_static_base.rstrip('/') if certificate_static_base else url_for('static', filename='').rstrip('/') %
         }
 
+            {
+            % set _event_bg=None %
+        }
+
+            {
+            % if event is defined %
+        }
+
+            {
+            % set _event_bg=(event.poster_presigned_url() if event.poster_presigned_url() else (event.poster_image_url if event.poster_image_url else None)) %
+        }
+
+            {
+            % endif %
+        }
+
+            {
+            % set bg=_event_bg or (static_base ~ '/img/CerTemplate.png') %
+        }
+
         @page {
             size: A4 landscape;
             margin: 0;
@@ -33,7 +53,7 @@
         }
 
         body {
-            background-image: url('{{ static_base }}/img/continuing_edu_certificate_bg.jpg');
+            background-image: url('{{ bg }}');
             background-repeat: no-repeat;
             background-position: center center;
             background-size: cover;

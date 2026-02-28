@@ -234,6 +234,12 @@
                 {% if detail_url and detail_url != '#' %}
                 <a class="button is-link is-light" href="{{ detail_url }}">{{ texts.button_view }}</a>
                 {% endif %}
+                {% if (event.event_type in ['course', 'webinar']) and not reg.questionnaire_completed_at %}
+                <a class="button is-link is-light"
+                  href="{{ url_for('continuing_edu.satisfaction_survey', event_id=event.id, lang=current_lang) }}">
+                  {{ texts.get('button_open_questionnaire', 'Open questionnaire') }}
+                </a>
+                {% endif %}
                 {% if reg.certificate_url %}
                 <a class="button is-success is-light"
                   href="{{ url_for('continuing_edu.certificate_view', reg_id=reg.id, lang=current_lang) }}">

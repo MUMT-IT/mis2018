@@ -1,0 +1,18 @@
+{% extends "continueing_edu/base_frontend.html" %}
+
+{% block title %}{{ texts.get('satisfaction_form', 'Satisfaction Survey') }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="notification is-success is-light">
+      <h1 class="title is-4">{{ texts.get('satisfaction_thank_you', 'Thank you for your feedback') }}</h1>
+      <p>{{ texts.get('satisfaction_submitted_success', 'Your satisfaction survey has been submitted successfully.') }}</p>
+      {% if event %}
+      <p class="mt-2"><strong>{{ event.title_en or event.title_th }}</strong></p>
+      {% endif %}
+    </div>
+    <a class="button is-link" href="{{ url_for('continuing_edu.index', lang=current_lang) }}">{{ texts.get('button_back_home', 'Back Home') }}</a>
+  </div>
+</section>
+{% endblock %}

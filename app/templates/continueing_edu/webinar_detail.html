@@ -352,7 +352,7 @@
                     <div class="notification is-success is-light">
                         <p class="mb-2"><strong>{{ texts.get('status_registered', 'ลงทะเบียนแล้ว' if current_lang ==
                                 'th' else 'You are registered') }}</strong></p>
-                        {{ registration_status_badge(webinar, [webinar.id], approved_payment, texts, current_lang)
+                        {{ registration_status_badge(webinar, [webinar.id], texts, current_lang, approved_payment)
                         }}
                     </div>
 
@@ -365,10 +365,23 @@
                         <p>{{ texts.get('completed', 'เสร็จสิ้น' if current_lang == 'th' else 'Completed') }}: {{
                             (logged_in_user.registrations|selectattr('event_entity_id','equalto',
                             webinar.id)|map(attribute='completed_at')|list|first) or '-' }}</p>
+                        {% if survey_required %}
+                        <p>{{ texts.get('questionnaire', 'แบบประเมิน' if current_lang == 'th' else 'Questionnaire') }}:
+                            {{ current_registration.questionnaire_completed_at or '-' }}</p>
+                        {% if current_registration.completed_at %}
+                        <div class="mt-2">
+                            <a class="button is-small is-link is-light"
+                                href="{{ url_for('continuing_edu.satisfaction_survey', event_id=webinar.id, lang=current_lang) }}">
+                                {{ satisfaction_form_name }}
+                            </a>
+                        </div>
+                        {% endif %}
+                        {% endif %}
                         <div class="buttons mt-2">
                             {% if approved_payment %}
                             <form method="post"
                                 action="{{ url_for('continuing_edu.start_progress', event_id=webinar.id, lang=current_lang) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                                 <button class="button is-small is-primary" type="submit">
                                     <span class="icon"><i class="fas fa-play"></i></span>
                                     <span>{{ texts.get('start', 'เริ่มเรียน' if current_lang == 'th' else 'Start')
@@ -379,6 +392,7 @@
                                 action="{{ url_for('continuing_edu.complete_progress', event_id=webinar.id, lang=current_lang) }}"
                                 class="ml-2">
                                 <input type="hidden" name="passed" value="1">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                                 <button class="button is-small is-success" type="submit">
                                     <span class="icon"><i class="fas fa-check"></i></span>
                                     <span>{{ texts.get('complete_issue_cert', 'เสร็จสิ้นและออกใบประกาศนียบัตร' if

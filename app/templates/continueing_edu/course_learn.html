@@ -234,7 +234,35 @@
                                         <div class="box">
                                                   <h2 class="title is-5">{{ texts.get('label_certificate',
                                                             'Certificate') }}</h2>
-                                                  {% if registration.certificate_url %}
+                                                  {% if survey_required %}
+                                                  <hr>
+                                                  <h3 class="title is-6">{{ satisfaction_form_name }}</h3>
+                                                  {% if registration.questionnaire_completed_at %}
+                                                  <p class="has-text-success mb-3">
+                                                            {{ texts.get('message_questionnaire_completed', 'Questionnaire completed') }}:
+                                                            {{ registration.questionnaire_completed_at }}
+                                                  </p>
+                                                  <div class="buttons">
+                                                            <a class="button is-small is-link is-light"
+                                                                      href="{{ url_for('continuing_edu.satisfaction_survey', event_id=course.id, lang=current_lang) }}">
+                                                                      {{ texts.get('button_view_questionnaire', 'View questionnaire') }}
+                                                            </a>
+                                                  </div>
+                                                  {% else %}
+                                                  <p class="has-text-grey mb-3">
+                                                            {{ texts.get('message_questionnaire_required_for_certificate', 'Please complete questionnaire before receiving certificate.') }}
+                                                  </p>
+                                                  <div class="buttons">
+                                                            <a class="button is-small is-link is-light"
+                                                                      href="{{ url_for('continuing_edu.satisfaction_survey', event_id=course.id, lang=current_lang) }}">
+                                                                      {{ texts.get('button_open_questionnaire', 'Open questionnaire') }}
+                                                            </a>
+                                                  </div>
+                                                  {% endif %}
+                                                  {% endif %}
+                                                  {% if survey_required and not registration.questionnaire_completed_at %}
+                                                  <p class="has-text-grey">{{ texts.get('message_certificate_waiting_questionnaire', 'Certificate will be available after questionnaire completion.') }}</p>
+                                                  {% elif registration.certificate_url %}
                                                   <div class="buttons">
                                                             <a class="button is-small is-success is-light"
                                                                       href="{{ url_for('continuing_edu.certificate_view', reg_id=registration.id, lang=current_lang) }}">{{

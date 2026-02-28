@@ -12,7 +12,8 @@ from app.continuing_edu.models import (
     CEEventRegistrationReviewer,
     CEEventPaymentApprover,
     CEEventReceiptIssuer,
-    CEEventCertificateManager
+    CEEventCertificateManager,
+    CEMemberRegistration,
 )
 
 # Import the continuing_edu permission from the global roles module
@@ -235,8 +236,49 @@ def require_payment_role(*allowed_roles):
                     break
 
             if not has_permission:
-                flash('You do not have permission to perform this action.', 'error')
-                abort(403)
+                role_labels = {
+                    'editor': 'Event Editor',
+                    'registration_reviewer': 'Registration Reviewer',
+                    'payment_approver': 'Payment Approver',
+                    'receipt_issuer': 'Receipt Issuer',
+                    'certificate_manager': 'Certificate Manager',
+                    'any': 'Any event role',
+                }
+                needed = ', '.join([role_labels.get(r, r) for r in allowed_roles]) or 'required role'
+
+                from app.continuing_edu.models import CEEventPaymentApprover, CEEventEditor
+
+                approvers = CEEventPaymentApprover.query.filter_by(event_entity_id=event_id).all()
+                editors = CEEventEditor.query.filter_by(event_entity_id=event_id).all()
+
+                authorized_names = []
+                for rec in [*approvers, *editors]:
+                    staff_rec = getattr(rec, 'staff', None)
+                    if not staff_rec:
+                        continue
+                    name = (
+                        getattr(staff_rec, 'fullname', None)
+                        or (getattr(getattr(staff_rec, 'personal_info', None), 'fullname', None))
+                        or getattr(staff_rec, 'email', None)
+                        or f"staff#{getattr(staff_rec, 'id', '')}"
+                    )
+                    if name and name not in authorized_names:
+                        authorized_names.append(name)
+
+                pay_event = getattr(pay, 'event_entity', None)
+                event_title = (
+                    getattr(pay_event, 'title_en', None)
+                    or getattr(pay_event, 'title_th', None)
+                    or f'event #{event_id}'
+                )
+
+                authorized_text = ', '.join(authorized_names) if authorized_names else 'No assignee configured'
+                flash(
+                    f'Permission denied. Required role: {needed} for "{event_title}". '
+                    f'Authorized staff: {authorized_text}',
+                    'danger',
+                )
+                return redirect(url_for('continuing_edu_admin.payments_index'))
 
             return f(*args, **kwargs)
         return decorated_function
@@ -255,8 +297,14 @@ def can_manage_registrations(f):
             flash('Staff account not found.', 'error')
             abort(403)
         
-        # Get event_id from kwargs or args if available
-        event_id = kwargs.get('event_id') or kwargs.get('registration_id')
+        # Resolve event_id from direct event_id or registration_id
+        event_id = kwargs.get('event_id')
+        registration_id = kwargs.get('registration_id')
+        if not event_id and registration_id:
+            reg = CEMemberRegistration.query.with_entities(
+                CEMemberRegistration.event_entity_id
+            ).filter_by(id=registration_id).first()
+            event_id = reg[0] if reg else None
         
         # Check if staff has registration reviewer or editor role
         has_permission = False

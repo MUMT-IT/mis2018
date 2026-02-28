@@ -28,6 +28,7 @@
       {% set event_type_key = 'event_type_' + (event_type or '') %}
       {% set completed = (r.completed_at is not none) %}
       {% set started = (r.started_at is not none) %}
+      {% set survey_required = survey_required_by_reg.get(r.id, false) %}
 
       <div class="column is-12">
         <div class="box">
@@ -104,7 +105,28 @@
             </div>
 
             <div class="column is-6">
+              <h3 class="title is-6">{{ texts.get('satisfaction_form', 'Satisfaction Survey') }}</h3>
+              {% if survey_required %}
+              {% if r.questionnaire_completed_at %}
+              <p class="has-text-success mb-3">
+                {{ texts.get('status_completed', 'Completed') }}
+              </p>
+              {% elif completed %}
+              <a class="button is-small is-primary is-light mb-3"
+                href="{{ url_for('continuing_edu.satisfaction_survey', event_id=r.event_entity_id, lang=current_lang) }}">
+                {{ texts.get('button_start_satisfaction_survey', 'Start satisfaction survey') }}
+              </a>
+              {% else %}
+              <p class="has-text-grey mb-3">
+                {{ texts.get('questionnaire_complete_event_first', 'Please complete your learning progress first.') }}
+              </p>
+              {% endif %}
+              {% endif %}
+
               <h3 class="title is-6">{{ texts.get('label_certificate', 'Certificate') }}</h3>
+              {% if completed and survey_required and not r.questionnaire_completed_at %}
+              <p class="has-text-grey mb-2">{{ texts.get('message_questionnaire_required_for_certificate', 'Please complete questionnaire before receiving certificate.') }}</p>
+              {% endif %}
               {% if r.certificate_url %}
               <div class="buttons">
                 <a class="button is-small is-success is-light"
@@ -125,6 +147,38 @@
               <p class="has-text-grey">{{ texts.get('message_no_certificate_yet', 'Certificate will be available after
                 completion.') }}</p>
               {% endif %}
+
+              {% set qr_info = attendance_qr_payloads.get(r.id) %}
+              {% if qr_info %}
+              <hr>
+              <h3 class="title is-6 mb-2">{{ texts.get('label_attendance_qr', 'Attendance QR Pass') }}</h3>
+              {% if qr_info.allowed %}
+              <p class="has-text-grey is-size-7 mb-2">
+                {{ texts.get('attendance_qr_help', 'Show this QR code at the check-in desk before joining the event.') }}
+              </p>
+              <div class="has-text-centered mb-3">
+                <img src="{{ qrcode(qr_info.payload, box_size=5, border=2) }}"
+                  alt="Attendance QR for registration {{ r.id }}">
+              </div>
+              <div class="field has-addons">
+                <div class="control is-expanded">
+                  <input class="input is-small" id="attendance-qr-payload-{{ r.id }}" type="text" readonly
+                    value="{{ qr_info.payload }}">
+                </div>
+                <div class="control">
+                  <button class="button is-small is-light" type="button"
+                    onclick="copyAttendanceQrPayload('attendance-qr-payload-{{ r.id }}')">
+                    <span class="icon"><i class="fas fa-copy"></i></span>
+                    <span>{{ texts.get('button_copy', 'Copy') }}</span>
+                  </button>
+                </div>
+              </div>
+              {% else %}
+              <p class="has-text-grey is-size-7">
+                {{ texts.get('attendance_qr_unavailable', 'QR pass is unavailable for cancelled registration.') }}
+              </p>
+              {% endif %}
+              {% endif %}
             </div>
           </div>
         </div>
@@ -137,4 +191,23 @@
     <a class="button" href="{{ url_for('continuing_edu.index', lang=current_lang) }}">{{ texts.button_back_home }}</a>
   </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function copyAttendanceQrPayload(elementId) {
+    const input = document.getElementById(elementId);
+    if (!input) return;
+
+    input.select();
+    input.setSelectionRange(0, 99999);
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(input.value).catch(() => {
+        document.execCommand('copy');
+      });
+      return;
+    }
+    document.execCommand('copy');
+  }
+</script>
 {% endblock %}

@@ -65,43 +65,76 @@
               texts.label_none) }}</span>
           </td>
           <td>
-            {% if p.payment_proof_url %}
-            <button class="button is-small is-light" type="button"
-              onclick="openProofModal('{{ p.proof_presigned_url()|e }}')">{{ texts.button_view }}</button>
+            {% set proof_url = p.proof_presigned_url() %}
+            {% if proof_url %}
+            <button class="button is-small is-light" type="button" onclick="openProofModal('{{ proof_url|e }}')">{{
+              texts.button_view }}</button>
+            {% elif p.payment_proof_url %}
+            <span class="tag is-warning is-light">{{ 'พบหลักฐาน แต่ยังเปิดพรีวิวไม่ได้' if TH else 'Proof uploaded
+              (preview unavailable)' }}</span>
             {% else %}
             <em>{{ texts.label_none }}</em>
             {% endif %}
           </td>
           <td>
-            {% set status_code = p.payment_status_ref.register_payment_status_code if p.payment_status_ref and
-            p.payment_status_ref.register_payment_status_code else (p.payment_status_ref.name_en|lower if
-            p.payment_status_ref else '') %}
-            {% set can_replace = status_code in ['pending','submitted','rejected',''] %}
-            {% if can_replace %}
+            {% set status_code = ((p.payment_status_ref.register_payment_status_code if p.payment_status_ref and
+            p.payment_status_ref.register_payment_status_code else (p.payment_status_ref.name_en if p.payment_status_ref
+            else ''))|lower) %}
+            {% set method_code = (p.payment_method or '')|lower %}
+            {% set manual_slip_method = method_code in ['bank_transfer', 'counter'] %}
+            {% set online_method = method_code in ['promptpay', 'credit_card'] %}
+            {% set can_manage_payment = status_code in ['pending','submitted','rejected','verifying',''] %}
+            {% set payment_process_url = url_for('continuing_edu.payment_process', payment_id=p.id,
+            payment_method=(method_code or 'promptpay'), lang=current_lang) %}
+            {% if can_manage_payment %}
+            <div class="mb-2">
+              <a class="button is-small is-primary" href="{{ payment_process_url }}">
+                {{ texts.get('button_open_payment_page', 'ดำเนินการชำระเงิน' if TH else 'Open payment page') }}
+              </a>
+            </div>
+            {% if online_method %}
+            <p class="is-size-7 has-text-grey mb-2">
+              {{ texts.get('message_open_payment_page_to_pay', 'กรุณากดปุ่มเพื่อชำระเงินผ่านระบบออนไลน์' if TH else 'Use
+              Open payment page to complete online payment.') }}
+            </p>
+            {% endif %}
+            {% else %}
+            <em>{{ texts.get('message_payments_locked', 'Payment is approved. Editing proof is locked.') }}</em>
+            <p class="is-size-7 has-text-grey mt-1">
+              {{ texts.get('message_payment_process_locked_status', 'สถานะนี้ไม่สามารถเปิดหน้าชำระเงินได้ แต่ยังอัปโหลดหลักฐานได้'
+              if TH else 'Payment page is locked for this status, but proof upload is still available.') }}
+            </p>
+            {% endif %}
+
+            {% if manual_slip_method %}
+            <p class="is-size-7 has-text-grey mb-2">{{ 'กรุณาอัปโหลดสลิป/หลักฐานการโอนเพื่อรอตรวจสอบ' if TH else 'Please
+              upload transfer slip/proof for admin verification.' }}</p>
+            {% else %}
+            <p class="is-size-7 has-text-grey mb-2">{{ 'สามารถอัปโหลดหลักฐานการชำระเงินได้ทุกวิธี เพื่อให้แอดมินตรวจสอบ'
+              if TH else 'You can upload payment proof for any payment method for admin verification.' }}</p>
+            {% endif %}
             <form method="post"
               action="{{ url_for('continuing_edu.submit_payment_proof', payment_id=p.id, lang=current_lang) }}"
               class="is-flex">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
               <input class="input" type="url" name="payment_proof_url" placeholder="https://..."
                 style="max-width:260px;margin-right:8px;">
-              <button class="button is-small is-link" type="submit">{{ texts.button_replace_url if p.payment_proof_url
-                else texts.button_submit_url }}</button>
+              <button class="button is-small is-link" type="submit">{{ texts.get('button_replace_url', 'Replace URL') if
+                p.payment_proof_url else texts.get('button_submit_url', 'Submit URL') }}</button>
             </form>
             <form method="post"
               action="{{ url_for('continuing_edu.upload_payment_proof', payment_id=p.id, lang=current_lang) }}"
               class="is-flex mt-2" enctype="multipart/form-data">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-              <input class="input" type="file" name="payment_proof_file" style="max-width:260px;margin-right:8px;">
-              <button class="button is-small" type="submit">{{ texts.button_replace_file if p.payment_proof_url else
-                texts.button_upload_file }}</button>
+              <input class="input" type="file" name="payment_proof_file" accept="image/*,.pdf"
+                style="max-width:260px;margin-right:8px;">
+              <button class="button is-small" type="submit">{{ texts.get('button_replace_file', 'Replace File') if
+                p.payment_proof_url else texts.get('button_upload_file', 'Upload File') }}</button>
             </form>
-            {% else %}
-            <em>{{ texts.message_payments_locked }}</em>
-            {% endif %}
             <div class="mt-2">
               <a class="button is-small is-primary is-light"
                 href="{{ url_for('continuing_edu.view_invoice', payment_id=p.id, lang=current_lang, next=request.full_path) }}">{{
-                texts.button_view_invoice }}</a>
+                texts.get('button_view_invoice', 'View invoice') }}</a>
             </div>
 
             {% set can_cancel = status_code in ['pending','submitted','rejected','verifying',''] %}
@@ -116,17 +149,11 @@
               </form>
             </div>
             {% endif %}
-            {% if payment_gateway_url %}
-            <div class="mt-2">
-              <a class="button is-small is-primary" href="{{ payment_gateway_url }}" target="_blank">{{
-                texts.button_pay_online }}</a>
-            </div>
-            {% endif %}
             {% if p.receipt %}
             <div class="mt-2">
               <a class="button is-small is-light"
                 href="{{ url_for('continuing_edu.view_receipt', receipt_id=p.receipt.id, lang=current_lang) }}">{{
-                texts.button_view_receipt }}</a>
+                texts.get('button_view_receipt', 'View receipt') }}</a>
             </div>
             {% endif %}
           </td>
