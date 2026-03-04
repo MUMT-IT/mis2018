@@ -14,4 +14,3 @@ analysis/
 .idea/
 app/.idea/
 *.dump*
-.venv/
