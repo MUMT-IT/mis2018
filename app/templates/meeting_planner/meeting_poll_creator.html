@@ -14,7 +14,7 @@
                             <span>เพิ่มรายการ</span>
                         </a>
                     </div>
-                    <table id="poll" class="table is-fullwidth">
+                    <table id="polls" class="table is-fullwidth">
                         <thead>
                             <th>ชื่อรายการ</th>
                             <th>เริ่มสำรวจ</th>
@@ -22,7 +22,7 @@
                             <th>รายละเอียด</th>
                         </thead>
                         <tbody>
-                            {% for poll in polls %}
+                            {% for poll in polls|sort(attribute='start_vote') %}
                                 <tr>
                                     <td>
                                         {{ poll.poll_name }}
@@ -57,7 +57,9 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#poll').DataTable();
+            $('#polls').DataTable({
+                order: [[3, 'asc']],
+            })
         });
     </script>
 {% endblock %}

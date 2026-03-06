@@ -29,7 +29,8 @@ import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 import base64
 
-
+# from app.besttime.models import BestTimePoll, BestTimeDateTimeSlot, BestTimeMasterDateTimeSlot, BestTimePollVote, \
+#     BestTimePollMessage
 
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 
@@ -202,11 +203,6 @@ from app.food import foodbp as food_blueprint
 
 app.register_blueprint(food_blueprint)
 from app.food.models import *
-
-
-from app.besttime import besttime_bp as besttime_blueprint
-app.register_blueprint(besttime_blueprint)
-
 
 from app.kpi import kpibp as kpi_blueprint
 
@@ -740,6 +736,16 @@ from app.scb_payment_service.models import *
 
 admin.add_view(ModelView(ScbPaymentServiceApiClientAccount, db.session, category='SCB Payment Service'))
 admin.add_view(ModelView(ScbPaymentRecord, db.session, category='SCB Payment Service'))
+
+from app.besttime import besttime_bp as besttime_blueprint
+app.register_blueprint(besttime_blueprint)
+from app.besttime.models import *
+
+admin.add_views(ModelView(BestTimePoll, db.session, category='Besttime'))
+admin.add_views(ModelView(BestTimeDateTimeSlot, db.session, category='Besttime'))
+admin.add_views(ModelView(BestTimeMasterDateTimeSlot, db.session, category='Besttime'))
+admin.add_views(ModelView(BestTimePollVote, db.session, category='Besttime'))
+admin.add_views(ModelView(BestTimePollMessage, db.session, category='Besttime'))
 
 from app.meeting_planner import meeting_planner as meeting_planner_blueprint
 
