@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ผลตรวจสุขภาพ | คณะเทคนิคการแพทย์ มหิดล</title>
+    <!-- Bulma CSS Framework -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <!-- Google Fonts for Thai Language -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        :root {
+            --mahidol-blue: #003566;
+            --mahidol-gold: #C29B40;
+        }
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f0f2f5;
+            min-height: 100vh;
+        }
+        .navbar {
+            background-color: var(--mahidol-blue);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .navbar-item, .navbar-link {
+            color: white !important;
+        }
+        .hero.is-info {
+            background-color: var(--mahidol-blue);
+            border-bottom: 5px solid var(--mahidol-gold);
+        }
+        .card {
+            border-radius: 12px;
+            overflow: hidden;
+            border: none;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.05);
+        }
+        .status-tag {
+            border-radius: 20px;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.85rem;
+        }
+        .btn-view {
+            background-color: var(--mahidol-blue);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .btn-view:hover {
+            background-color: #004b8d;
+            color: white;
+            transform: translateY(-2px);
+        }
+        .footer {
+            background-color: #fff;
+            padding: 3rem 1.5rem 3rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+        <div class="container">
+            <div class="navbar-brand">
+                <a class="navbar-item" href="#">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/2/2f/Mahidol_University_Logo.svg/1200px-Mahidol_University_Logo.svg.png" alt="Logo" style="max-height: 40px; margin-right: 10px;">
+                    <strong class="has-text-white">MT Mahidol</strong>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <section class="hero is-info is-small">
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                <h1 class="title is-3">คณะเทคนิคการแพทย์ มหิดล</h1>
+                <p class="subtitle is-5">ระบบรายงานผลตรวจสุขภาพออนไลน์</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-10-desktop">
+                    
+                    <!-- Patient Info Summary -->
+                    <div class="box mb-5">
+                        <div class="level">
+                            <div class="level-left">
+                                <div>
+                                    <p class="heading">ชื่อผู้รับการตรวจ</p>
+                                    <p class="title is-5">{{ current_user.fullname }}</p>
+                                </div>
+                            </div>
+                            <div class="level-right">
+                                <div class="has-text-right-tablet">
+                                    <p class="heading">Email</p>
+                                    <p class="title is-5">{{ email }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h2 class="title is-4 mb-4">
+                        <span class="icon mr-2">
+                            <i class="fas fa-file-medical"></i>
+                        </span>
+                        ประวัติการตรวจสุขภาพ
+                    </h2>
+
+                    <!-- List of Exams -->
+                    <div class="card">
+                        <div class="table-container">
+                            <table class="table is-fullwidth is-hoverable is-striped">
+                                <thead>
+                                    <tr>
+                                        <th>วันที่ตรวจ</th>
+                                        <th class="has-text-centered">รายงานผล</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="servicedate">
+                                    <tr><td>Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <article class="message is-warning mt-5">
+                        <div class="message-body is-size-7">
+                            <strong>หมายเหตุ:</strong> ผลตรวจนี้เป็นความลับส่วนบุคคล หากท่านมีข้อสงสัยเกี่ยวกับผลการตรวจกรุณาปรึกษาผู้เชี่ยวชาญ คณะเทคนิคการแพทย์ มหิดล
+                        </div>
+                    </article>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="content has-text-centered">
+            <p>
+                <strong>ศคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</strong> <br>
+                https://mt.mahidol.ac.th <br>
+                mtmuhealthcare@gmail.com <br>
+                เลขที่ 2 ถนนพรานนท์ แขวงศิริราช เขตบางกอกน้อย กรุงเทพฯ 10700 <br>
+                <span class="icon-text mt-2">
+                    <span class="icon"><i class="fas fa-phone"></i></span>
+                    <span>โทร: 0-2411-2347,0-2419-7167,0-8198-58029</span>
+                </span>
+            </p>
+        </div>
+    </footer>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        htmx.ajax("GET", "{{ url_for('comhealth.cmslis_email', email=email) }}", {
+            target: "#servicedate",
+            swap: "innerHTML"
+        });
+    });
+</script>
+</body>
+</html>
