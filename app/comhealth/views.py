@@ -3344,7 +3344,7 @@ def employee_lab(serviceNo, age, gender):
             )
     html += interpert_normaltest(lab,age,gender)
     html += xray_result(serviceNo)
-    #html += f'<div id="loader-overlay" class="hidden" hx-swap-oob="true"></div>'
+    html += f'<div id="loader-overlay" class="hidden" hx-swap-oob="true"></div>'
 
     return html
 
