@@ -40,7 +40,7 @@
                             {% else %}
                                 {% set polls = current_user.polls %}
                             {% endif %}
-                            {% for p in polls %}
+                            {% for p in polls|sort(attribute='start_vote') %}
                                 <tr>
                                     <td>
                                         <a href="{{ url_for('meeting_planner.detail_poll_member', poll_id=p.id, tab=tab) }}">
@@ -92,7 +92,9 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#poll').DataTable();
+            $('#poll').DataTable({
+                order: [[3, 'asc']],
+            });
         });
     </script>
 {% endblock %}

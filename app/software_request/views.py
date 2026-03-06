@@ -366,6 +366,7 @@ def update_timeline_status(timeline_id):
 @software_request.route('/admin/request/timeline/delete/<int:timeline_id>', methods=['GET', 'DELETE'])
 def delete_timeline(timeline_id):
     tab = request.args.get('tab')
+    cancel = request.args.get('cancel', 'false')
     timeline = SoftwareRequestTimeline.query.get(timeline_id)
     timeline.status = 'ยกเลิกการพัฒนา'
     timeline.request.updated_date = arrow.now('Asia/Bangkok').datetime
@@ -390,11 +391,16 @@ def delete_timeline(timeline_id):
     message += f'''ระบบขอรับบริการพัฒนา Software\n'''
     message += f'''คณะเทคนิคการแพทย์'''
     send_mail([timeline.request.created_by.email + '@mahidol.ac.th'], title, message)
-    # db.session.delete(timeline)
-    # db.session.commit()
-    flash('ยกเลิกสำเร็จ', 'success')
+    db.session.delete(timeline)
+    db.session.commit()
+
     resp = make_response()
-    resp.headers['HX-Redirect'] = url_for('software_request.admin_index', tab=tab)
+    if cancel == 'true':
+        flash('ยกเลิกรายการสำเร็จ', 'success')
+        resp.headers['HX-Redirect'] = url_for('software_request.admin_index', tab=tab)
+    else:
+        flash('ลบข้อมูลสำเร็จ', 'success')
+        resp.headers['HX-Refresh'] = 'true'
     return resp
 
 

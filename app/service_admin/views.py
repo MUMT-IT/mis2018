@@ -399,9 +399,12 @@ def heavymetal_request_data(service_request, type):
             for fd in field:
                 row = {}
                 for f_name, f in fd._fields.items():
-                    if f.data:
+                    if f.type != 'CSRFTokenField':
                         label = f.label.text
-                        row[label] = ', '.join(f.data) if f.type == 'CheckboxField' else f.data
+                        if f.type == 'CheckboxField':
+                            row[label] = ', '.join(f.data) if f.data else ''
+                        else:
+                            row[label] = f.data if f.data else ''
 
                 rows.append(row)
             values.append({'type': 'table', 'data': rows})
@@ -431,9 +434,13 @@ def foodsafety_request_data(service_request, type):
             for fd in field:
                 row = {}
                 for f_name, f in fd._fields.items():
-                    if f.data:
+                    if f.type != 'CSRFTokenField':
                         label = f.label.text
-                        row[label] = ', '.join(f.data) if f.type == 'CheckboxField' else f.data
+                        if f.type == 'CheckboxField':
+                            row[label] = ', '.join(f.data) if f.data else ''
+                        else:
+                            row[label] = f.data if f.data else ''
+
                 rows.append(row)
             values.append({'type': 'table', 'data': rows})
         else:
@@ -1538,7 +1545,7 @@ def create_heavy_metal_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(1)
+            status_id = get_status(2)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -1674,7 +1681,7 @@ def create_food_safety_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(1)
+            status_id = get_status(2)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -1909,7 +1916,7 @@ def create_protein_identification_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(1)
+            status_id = get_status(2)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -2033,7 +2040,7 @@ def create_sds_page_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(1)
+            status_id = get_status(2)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -2157,7 +2164,7 @@ def create_quantitative_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(1)
+            status_id = get_status(2)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -2287,7 +2294,7 @@ def create_metabolomic_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(1)
+            status_id = get_status(2)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -2516,7 +2523,7 @@ def create_endotoxin_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(1)
+            status_id = get_status(2)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -2680,7 +2687,7 @@ def create_toxicology_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(1)
+            status_id = get_status(2)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -5851,14 +5858,21 @@ def quotation_index():
 @service_admin.route('/quotation/generate')
 @login_required
 def generate_quotation():
-    code = request.args.get('code')
-    menu = request.args.get('menu')
-    request_id = request.args.get('request_id')
-    request_paths = {'bacteria': 'service_admin.generate_bacteria_quotation',
-                     'disinfection': 'service_admin.generate_virus_disinfection_quotation',
-                     'air_disinfection': 'service_admin.generate_virus_air_disinfection_quotation'
-                     }
-    return redirect(url_for(request_paths[code], menu=menu, request_id=request_id))
+   code = request.args.get('code')
+   menu = request.args.get('menu')
+   request_id = request.args.get('request_id')
+   request_paths = {'bacteria': 'service_admin.generate_bacteria_quotation',
+                    'disinfection': 'service_admin.generate_virus_disinfection_quotation',
+                    'air_disinfection': 'service_admin.generate_virus_air_disinfection_quotation',
+                    'heavymetal': 'service_admin.generate_heavy_metal_quotation',
+                    'foodsafety': 'service_admin.generate_food_safety_quotation',
+                    'protein_identification': 'service_admin.generate_protein_identification_quotation',
+                    'sds_page': 'service_admin.generate_sds_page_quotation',
+                    'quantitative': 'service_admin.generate_quantitative_quotation',
+                    'endotoxin': 'service_admin.generate_endotoxin_quotation',
+                    'toxicology': 'service_admin.generate_toxicology_quotation'
+                    }
+   return redirect(url_for(request_paths[code], menu=menu, request_id=request_id))
 
 
 @service_admin.route('/quotation/bacteria/generate', methods=['GET', 'POST'])
@@ -6068,7 +6082,6 @@ def generate_virus_air_disinfection_quotation():
         for field in form:
             if field.label.text not in quote_column_names:
                 continue
-            print('f', field_name)
             keys = []
             keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
             for key in list(itertools.combinations(keys, len(quote_column_names[field.label.text]))):
@@ -6083,6 +6096,635 @@ def generate_virus_air_disinfection_quotation():
                         quote_details[p_key]["quantity"] += 1
                     else:
                         quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
+        quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
+        quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
+                                     name=service_request.quotation_name,
+                                     address=service_request.quotation_issue_address,
+                                     taxpayer_identification_no=service_request.taxpayer_identification_no,
+                                     creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
+        db.session.add(quotation)
+        quotation_no.count += 1
+        status_id = get_status(3)
+        service_request.status_id = status_id
+        db.session.add(service_request)
+        db.session.commit()
+        sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
+        for _, (_, item) in enumerate(quote_details.items()):
+            quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                  item=item['value'],
+                                                  quantity=item['quantity'],
+                                                  unit_price=item['price'],
+                                                  total_price=int(item['quantity']) * item['price'])
+            sequence_no.count += 1
+            db.session.add(quotation_item)
+            db.session.commit()
+        if service_request.report_languages:
+            for rl in service_request.report_languages:
+                quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                      item=rl.report_language.item,
+                                                      quantity=1,
+                                                      unit_price=rl.report_language.price,
+                                                      total_price=rl.report_language.price)
+                sequence_no.count += 1
+                db.session.add(quotation_item)
+                db.session.commit()
+        flash('ร่างใบเสนอราคาสำเร็จ กรุณาดำเนินการตรวจสอบข้อมูล', 'success')
+        return redirect(
+            url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
+    else:
+        return render_template('service_admin/quotation_created_confirmation_page.html',
+                               quotation_id=quotation.id, request_no=service_request.request_no, menu=menu)
+
+
+@service_admin.route('/quotation/heavy_metal/generate', methods=['GET', 'POST'])
+def generate_heavy_metal_quotation():
+    menu = request.args.get('menu')
+    request_id = request.args.get('request_id')
+    service_request = ServiceRequest.query.get(request_id)
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
+    if not quotation:
+        sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
+        gc = get_credential(json_keyfile)
+        wksp = gc.open_by_key(sheet_price_id)
+        sheet_price = wksp.worksheet(service_request.sub_lab.code)
+        df_price = pandas.DataFrame(sheet_price.get_all_records())
+        quote_column_names = {}
+        quote_details = {}
+        quote_prices = {}
+        data = service_request.data
+        form = HeavyMetalRequestForm(data=data)
+
+        for _, row in df_price.iterrows():
+            if row['field_group'] not in quote_column_names:
+                quote_column_names[row['field_group']] = set()
+            for field_name in row['field_name'].split(','):
+                quote_column_names[row['field_group']].add(field_name.strip())
+            sorted_field_group = ''.join(sorted(row['field_group'])).replace(' ', '')
+            key = sorted_field_group + ''.join(sorted(row[4:].str.cat())).replace(' ', '')
+            if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
+                quote_prices[key] = row['government_price']
+            else:
+                quote_prices[key] = row['other_price']
+        for field in form:
+            if field.label.text not in quote_column_names:
+                continue
+
+            keys = []
+            keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
+            for key in list(itertools.combinations(keys, len(quote_column_names[field.label.text]))):
+                sorted_field_label = ''.join(sorted(field.label.text)).replace(' ', '')
+                sorted_key_ = sorted(''.join([k[1] for k in key]))
+                p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
+                values = ', '.join([k[1] for k in key])
+                if p_key in quote_prices:
+                    prices = quote_prices[p_key]
+                    if p_key in quote_details:
+                        quote_details[p_key]["quantity"] += 1
+                    else:
+                        quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
+        quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
+        quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
+                                     name=service_request.quotation_name,
+                                     address=service_request.quotation_issue_address,
+                                     taxpayer_identification_no=service_request.taxpayer_identification_no,
+                                     creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
+        db.session.add(quotation)
+        quotation_no.count += 1
+        status_id = get_status(3)
+        service_request.status_id = status_id
+        db.session.add(service_request)
+        db.session.commit()
+        sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
+        for _, (_, item) in enumerate(quote_details.items()):
+            quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                  item=item['value'],
+                                                  quantity=item['quantity'],
+                                                  unit_price=item['price'],
+                                                  total_price=int(item['quantity']) * item['price'])
+            sequence_no.count += 1
+            db.session.add(quotation_item)
+            db.session.commit()
+        if service_request.report_languages:
+            for rl in service_request.report_languages:
+                quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                      item=rl.report_language.item,
+                                                      quantity=1,
+                                                      unit_price=rl.report_language.price,
+                                                      total_price=rl.report_language.price)
+                sequence_no.count += 1
+                db.session.add(quotation_item)
+                db.session.commit()
+        flash('ร่างใบเสนอราคาสำเร็จ กรุณาดำเนินการตรวจสอบข้อมูล', 'success')
+        return redirect(
+            url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
+    else:
+        return render_template('service_admin/quotation_created_confirmation_page.html',
+                               quotation_id=quotation.id, request_no=service_request.request_no, menu=menu)
+
+
+@service_admin.route('/quotation/food_safety/generate', methods=['GET', 'POST'])
+def generate_food_safety_quotation():
+    menu = request.args.get('menu')
+    request_id = request.args.get('request_id')
+    service_request = ServiceRequest.query.get(request_id)
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
+    if not quotation:
+        sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
+        gc = get_credential(json_keyfile)
+        wksp = gc.open_by_key(sheet_price_id)
+        sheet_price = wksp.worksheet(service_request.sub_lab.code)
+        df_price = pandas.DataFrame(sheet_price.get_all_records())
+        quote_column_names = {}
+        quote_details = {}
+        quote_prices = {}
+        data = service_request.data
+        form = FoodSafetyRequestForm(data=data)
+
+        for _, row in df_price.iterrows():
+            if row['field_group'] not in quote_column_names:
+                quote_column_names[row['field_group']] = set()
+            for field_name in row['field_name'].split(','):
+                quote_column_names[row['field_group']].add(field_name.strip())
+            sorted_field_group = ''.join(sorted(row['field_group'])).replace(' ', '')
+            key = sorted_field_group + ''.join(sorted(row[4:].str.cat())).replace(' ', '')
+            if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
+                quote_prices[key] = row['government_price']
+            else:
+                quote_prices[key] = row['other_price']
+
+        for field in form:
+            if field.label.text not in quote_column_names:
+                continue
+
+            keys = []
+            keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
+            for key in list(itertools.combinations(keys, len(quote_column_names[field.label.text]))):
+                sorted_field_label = ''.join(sorted(field.label.text)).replace(' ', '')
+                sorted_key_ = sorted(''.join([k[1] for k in key]))
+                values = ', '.join([k[1] for k in key])
+                if field.label.text == 'Food Safety Condition Field':
+                    p_key = sorted_field_label
+                    unique_key = f"{p_key}_{values}"
+                else:
+                    p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
+                    unique_key = p_key
+
+                if p_key in quote_prices:
+                    prices = quote_prices[p_key]
+
+                    if unique_key in quote_details:
+                        quote_details[unique_key]["quantity"] += 1
+                    else:
+                        quote_details[unique_key] = {"value": values, "price": prices, "quantity": 1}
+
+        quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
+        quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
+                                     name=service_request.quotation_name,
+                                     address=service_request.quotation_issue_address,
+                                     taxpayer_identification_no=service_request.taxpayer_identification_no,
+                                     creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
+        db.session.add(quotation)
+        quotation_no.count += 1
+        status_id = get_status(3)
+        service_request.status_id = status_id
+        db.session.add(service_request)
+        db.session.commit()
+        sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
+        for _, (_, item) in enumerate(quote_details.items()):
+            quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                  item=item['value'],
+                                                  quantity=item['quantity'],
+                                                  unit_price=item['price'],
+                                                  total_price=int(item['quantity']) * item['price'])
+            sequence_no.count += 1
+            db.session.add(quotation_item)
+            db.session.commit()
+        if service_request.report_languages:
+            for rl in service_request.report_languages:
+                quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                      item=rl.report_language.item,
+                                                      quantity=1,
+                                                      unit_price=rl.report_language.price,
+                                                      total_price=rl.report_language.price)
+                sequence_no.count += 1
+                db.session.add(quotation_item)
+                db.session.commit()
+        flash('ร่างใบเสนอราคาสำเร็จ กรุณาดำเนินการตรวจสอบข้อมูล', 'success')
+        return redirect(
+            url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
+    else:
+        return render_template('service_admin/quotation_created_confirmation_page.html',
+                               quotation_id=quotation.id, request_no=service_request.request_no, menu=menu)
+
+
+@service_admin.route('/quotation/protein_identification/generate', methods=['GET', 'POST'])
+def generate_protein_identification_quotation():
+    menu = request.args.get('menu')
+    request_id = request.args.get('request_id')
+    service_request = ServiceRequest.query.get(request_id)
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
+    if not quotation:
+        sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
+        gc = get_credential(json_keyfile)
+        wksp = gc.open_by_key(sheet_price_id)
+        sheet_price = wksp.worksheet(service_request.sub_lab.code)
+        df_price = pandas.DataFrame(sheet_price.get_all_records())
+        quote_column_names = {}
+        quote_details = {}
+        quote_prices = {}
+        data = service_request.data
+        form = ProteinIdentificationRequestForm(data=data)
+
+        for _, row in df_price.iterrows():
+            if row['field_group'] not in quote_column_names:
+                quote_column_names[row['field_group']] = set()
+            for field_name in row['field_name'].split(','):
+                quote_column_names[row['field_group']].add(field_name.strip())
+            sorted_field_group = ''.join(sorted(row['field_group'])).replace(' ', '')
+            key = sorted_field_group + ''.join(sorted(row[4:].str.cat())).replace(' ', '')
+            if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
+                quote_prices[key] = row['government_price']
+            else:
+                quote_prices[key] = row['other_price']
+        for field in form:
+            if field.label.text not in quote_column_names:
+                continue
+
+            keys = []
+            keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
+            for r in range(1, len(quote_column_names[field.label.text]) + 1):
+                for key in itertools.combinations(keys, r):
+                    sorted_field_label = ''.join(sorted(field.label.text)).replace(' ', '')
+                    sorted_key_ = sorted(''.join([k[1] for k in key]))
+                    p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
+                    values = ', '.join([k[1] for k in key])
+
+                    if p_key in quote_prices:
+                        prices = quote_prices[p_key]
+                        if p_key in quote_details:
+                            quote_details[p_key]["quantity"] += 1
+                        else:
+                            quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
+        quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
+        quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
+                                     name=service_request.quotation_name,
+                                     address=service_request.quotation_issue_address,
+                                     taxpayer_identification_no=service_request.taxpayer_identification_no,
+                                     creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
+        db.session.add(quotation)
+        quotation_no.count += 1
+        status_id = get_status(3)
+        service_request.status_id = status_id
+        db.session.add(service_request)
+        db.session.commit()
+        sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
+        for _, (_, item) in enumerate(quote_details.items()):
+            quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                  item=item['value'],
+                                                  quantity=item['quantity'],
+                                                  unit_price=item['price'],
+                                                  total_price=int(item['quantity']) * item['price'])
+            sequence_no.count += 1
+            db.session.add(quotation_item)
+            db.session.commit()
+        if service_request.report_languages:
+            for rl in service_request.report_languages:
+                quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                      item=rl.report_language.item,
+                                                      quantity=1,
+                                                      unit_price=rl.report_language.price,
+                                                      total_price=rl.report_language.price)
+                sequence_no.count += 1
+                db.session.add(quotation_item)
+                db.session.commit()
+        flash('ร่างใบเสนอราคาสำเร็จ กรุณาดำเนินการตรวจสอบข้อมูล', 'success')
+        return redirect(
+            url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
+    else:
+        return render_template('service_admin/quotation_created_confirmation_page.html',
+                               quotation_id=quotation.id, request_no=service_request.request_no, menu=menu)
+
+
+@service_admin.route('/quotation/sds_page/generate', methods=['GET', 'POST'])
+def generate_sds_page_quotation():
+   menu = request.args.get('menu')
+   request_id = request.args.get('request_id')
+   service_request = ServiceRequest.query.get(request_id)
+   quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
+   if not quotation:
+       sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
+       gc = get_credential(json_keyfile)
+       wksp = gc.open_by_key(sheet_price_id)
+       sheet_price = wksp.worksheet(service_request.sub_lab.code)
+       df_price = pandas.DataFrame(sheet_price.get_all_records())
+       quote_column_names = {}
+       quote_details = {}
+       quote_prices = {}
+       data = service_request.data
+       form = SDSPageRequestForm(data=data)
+
+       for _, row in df_price.iterrows():
+           if row['field_group'] not in quote_column_names:
+               quote_column_names[row['field_group']] = set()
+           for field_name in row['field_name'].split(','):
+               quote_column_names[row['field_group']].add(field_name.strip())
+           sorted_field_group = ''.join(sorted(row['field_group'])).replace(' ', '')
+           key = sorted_field_group + ''.join(sorted(row[4:].str.cat())).replace(' ', '')
+           if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
+               quote_prices[key] = row['government_price']
+           else:
+               quote_prices[key] = row['other_price']
+
+       for field in form:
+           if field.label.text not in quote_column_names:
+               continue
+
+           keys = []
+           keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
+           for r in range(1, len(quote_column_names[field.label.text]) + 1):
+               for key in itertools.combinations(keys, r):
+                   sorted_field_label = ''.join(sorted(field.label.text)).replace(' ', '')
+                   sorted_key_ = sorted(''.join([k[1] for k in key]))
+                   values = ', '.join([k[1] for k in key])
+
+                   if field.label.text == 'SDS Page':
+                       p_key = sorted_field_label
+                       counts = re.findall(r'\d+', values)
+                       quantity = int(counts[0])
+                   else:
+                       p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
+                       quantity = None
+                   if p_key in quote_prices:
+                       prices = quote_prices[p_key]
+                       if p_key in quote_details:
+                           quote_details[p_key]["quantity"] += 1
+                       else:
+                           if quantity:
+                               quote_details[p_key] = {"value": f'SDS Page {values}', "price": prices, "quantity": quantity}
+                           else:
+                               quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
+
+       quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
+       quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
+                                    name=service_request.quotation_name,
+                                    address=service_request.quotation_issue_address,
+                                    taxpayer_identification_no=service_request.taxpayer_identification_no,
+                                    creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
+       db.session.add(quotation)
+       quotation_no.count += 1
+       status_id = get_status(3)
+       service_request.status_id = status_id
+       db.session.add(service_request)
+       db.session.commit()
+       sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
+       for _, (_, item) in enumerate(quote_details.items()):
+           quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                 item=item['value'],
+                                                 quantity=item['quantity'],
+                                                 unit_price=item['price'],
+                                                 total_price=int(item['quantity']) * item['price'])
+           sequence_no.count += 1
+           db.session.add(quotation_item)
+           db.session.commit()
+       if service_request.report_languages:
+           for rl in service_request.report_languages:
+               quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                     item=rl.report_language.item,
+                                                     quantity=1,
+                                                     unit_price=rl.report_language.price,
+                                                     total_price=rl.report_language.price)
+               sequence_no.count += 1
+               db.session.add(quotation_item)
+               db.session.commit()
+       flash('ร่างใบเสนอราคาสำเร็จ กรุณาดำเนินการตรวจสอบข้อมูล', 'success')
+       return redirect(
+           url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
+   else:
+       return render_template('service_admin/quotation_created_confirmation_page.html',
+                              quotation_id=quotation.id, request_no=service_request.request_no, menu=menu)
+
+
+@service_admin.route('/quotation/quantitative/generate', methods=['GET', 'POST'])
+def generate_quantitative_quotation():
+   menu = request.args.get('menu')
+   request_id = request.args.get('request_id')
+   service_request = ServiceRequest.query.get(request_id)
+   quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
+   if not quotation:
+       sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
+       gc = get_credential(json_keyfile)
+       wksp = gc.open_by_key(sheet_price_id)
+       sheet_price = wksp.worksheet(service_request.sub_lab.code)
+       df_price = pandas.DataFrame(sheet_price.get_all_records())
+       quote_column_names = {}
+       quote_details = {}
+       quote_prices = {}
+       data = service_request.data
+       form = QuantitativeRequestForm(data=data)
+
+       for _, row in df_price.iterrows():
+           if row['field_group'] not in quote_column_names:
+               quote_column_names[row['field_group']] = set()
+           for field_name in row['field_name'].split(','):
+               quote_column_names[row['field_group']].add(field_name.strip())
+           sorted_field_group = ''.join(sorted(row['field_group'])).replace(' ', '')
+           key = sorted_field_group + ''.join(sorted(row[4:].str.cat())).replace(' ', '')
+           if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
+               quote_prices[key] = row['government_price']
+           else:
+               quote_prices[key] = row['other_price']
+
+       for field in form:
+           if field.label.text not in quote_column_names:
+               continue
+
+           keys = []
+           keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
+           for r in range(1, len(quote_column_names[field.label.text]) + 1):
+               for key in itertools.combinations(keys, r):
+                   sorted_field_label = ''.join(sorted(field.label.text)).replace(' ', '')
+                   sorted_key_ = sorted(''.join([k[1] for k in key]))
+                   values = ', '.join([k[1] for k in key])
+                   p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
+
+                   if p_key in quote_prices:
+                       prices = quote_prices[p_key]
+                       if p_key in quote_details:
+                           quote_details[p_key]["quantity"] += 1
+                       else:
+                           quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
+
+       quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
+       quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
+                                    name=service_request.quotation_name,
+                                    address=service_request.quotation_issue_address,
+                                    taxpayer_identification_no=service_request.taxpayer_identification_no,
+                                    creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
+       db.session.add(quotation)
+       quotation_no.count += 1
+       status_id = get_status(3)
+       service_request.status_id = status_id
+       db.session.add(service_request)
+       db.session.commit()
+       sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
+       for _, (_, item) in enumerate(quote_details.items()):
+           quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                 item=item['value'],
+                                                 quantity=item['quantity'],
+                                                 unit_price=item['price'],
+                                                 total_price=int(item['quantity']) * item['price'])
+           sequence_no.count += 1
+           db.session.add(quotation_item)
+           db.session.commit()
+       if service_request.report_languages:
+           for rl in service_request.report_languages:
+               quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                     item=rl.report_language.item,
+                                                     quantity=1,
+                                                     unit_price=rl.report_language.price,
+                                                     total_price=rl.report_language.price)
+               sequence_no.count += 1
+               db.session.add(quotation_item)
+               db.session.commit()
+       flash('ร่างใบเสนอราคาสำเร็จ กรุณาดำเนินการตรวจสอบข้อมูล', 'success')
+       return redirect(
+           url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
+   else:
+       return render_template('service_admin/quotation_created_confirmation_page.html',
+                              quotation_id=quotation.id, request_no=service_request.request_no, menu=menu)
+
+
+@service_admin.route('/quotation/endotoxin/generate', methods=['GET', 'POST'])
+def generate_endotoxin_quotation():
+    menu = request.args.get('menu')
+    request_id = request.args.get('request_id')
+    service_request = ServiceRequest.query.get(request_id)
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
+    if not quotation:
+        sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
+        gc = get_credential(json_keyfile)
+        wksp = gc.open_by_key(sheet_price_id)
+        sheet_price = wksp.worksheet(service_request.sub_lab.code)
+        df_price = pandas.DataFrame(sheet_price.get_all_records())
+        quote_column_names = {}
+        quote_details = {}
+        quote_prices = {}
+        data = service_request.data
+        form = EndotoxinRequestForm(data=data)
+
+        for _, row in df_price.iterrows():
+            if row['field_group'] not in quote_column_names:
+                quote_column_names[row['field_group']] = set()
+            for field_name in row['field_name'].split(','):
+                quote_column_names[row['field_group']].add(field_name.strip())
+            sorted_field_group = ''.join(sorted(row['field_group'])).replace(' ', '')
+            key = sorted_field_group + ''.join(sorted(row[4:].str.cat())).replace(' ', '')
+            if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
+                quote_prices[key] = row['government_price']
+            else:
+                quote_prices[key] = row['other_price']
+        for field in form:
+            if field.label.text not in quote_column_names:
+                continue
+
+            keys = []
+            keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
+            for key in list(itertools.combinations(keys, len(quote_column_names[field.label.text]))):
+                p_key = ''.join(sorted(field.label.text)).replace(' ', '')
+                if p_key in quote_prices:
+                    prices = quote_prices[p_key]
+                    if p_key in quote_details:
+                        quote_details[p_key]["quantity"] += 1
+                    else:
+                        quote_details[p_key] = {"value": "Endotoxin test", "price": prices, "quantity": 1}
+        quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
+        quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
+                                     name=service_request.quotation_name,
+                                     address=service_request.quotation_issue_address,
+                                     taxpayer_identification_no=service_request.taxpayer_identification_no,
+                                     creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
+        db.session.add(quotation)
+        quotation_no.count += 1
+        status_id = get_status(3)
+        service_request.status_id = status_id
+        db.session.add(service_request)
+        db.session.commit()
+        sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
+        for _, (_, item) in enumerate(quote_details.items()):
+            quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                  item=item['value'],
+                                                  quantity=item['quantity'],
+                                                  unit_price=item['price'],
+                                                  total_price=int(item['quantity']) * item['price'])
+            sequence_no.count += 1
+            db.session.add(quotation_item)
+            db.session.commit()
+        if service_request.report_languages:
+            for rl in service_request.report_languages:
+                quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                      item=rl.report_language.item,
+                                                      quantity=1,
+                                                      unit_price=rl.report_language.price,
+                                                      total_price=rl.report_language.price)
+                sequence_no.count += 1
+                db.session.add(quotation_item)
+                db.session.commit()
+        flash('ร่างใบเสนอราคาสำเร็จ กรุณาดำเนินการตรวจสอบข้อมูล', 'success')
+        return redirect(
+            url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
+    else:
+        return render_template('service_admin/quotation_created_confirmation_page.html',
+                               quotation_id=quotation.id, request_no=service_request.request_no, menu=menu)
+
+
+@service_admin.route('/quotation/toxicology/generate', methods=['GET', 'POST'])
+def generate_toxicology_quotation():
+    menu = request.args.get('menu')
+    request_id = request.args.get('request_id')
+    service_request = ServiceRequest.query.get(request_id)
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
+    if not quotation:
+        sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
+        gc = get_credential(json_keyfile)
+        wksp = gc.open_by_key(sheet_price_id)
+        sheet_price = wksp.worksheet(service_request.sub_lab.code)
+        df_price = pandas.DataFrame(sheet_price.get_all_records())
+        quote_column_names = {}
+        quote_details = {}
+        quote_prices = {}
+        data = service_request.data
+        form = ToxicologyRequestForm(data=data)
+
+        for _, row in df_price.iterrows():
+            if row['field_group'] not in quote_column_names:
+                quote_column_names[row['field_group']] = set()
+            for field_name in row['field_name'].split(','):
+                quote_column_names[row['field_group']].add(field_name.strip())
+            sorted_field_group = ''.join(sorted(row['field_group'])).replace(' ', '')
+            key = sorted_field_group + ''.join(sorted(row[4:].str.cat())).replace(' ', '')
+            if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
+                quote_prices[key] = row['government_price']
+            else:
+                quote_prices[key] = row['other_price']
+        for field in form:
+            if field.label.text not in quote_column_names:
+                continue
+
+            keys = []
+            keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
+            for r in range(1, len(quote_column_names[field.label.text]) + 1):
+                for key in itertools.combinations(keys, r):
+                    sorted_field_label = ''.join(sorted(field.label.text)).replace(' ', '')
+                    sorted_key_ = sorted(''.join([k[1] for k in key]))
+                    p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
+                    values = ', '.join([k[1] for k in key])
+
+                    if p_key in quote_prices:
+                        prices = quote_prices[p_key]
+                        if p_key in quote_details:
+                            quote_details[p_key]["quantity"] += 1
+                        else:
+                            quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
         quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
                                      name=service_request.quotation_name,

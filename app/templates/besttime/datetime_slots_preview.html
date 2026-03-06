@@ -3,7 +3,7 @@ Please uncheck a timeslot that you don't want to display in your poll.
     <div class="field has-thin-border">
         {{ field.csrf_token }}
         <label class="label">
-            {{ field.date.data.strftime('%-d %a %b %Y') }}
+            {{ field.date.data.strftime('%d %a %b %Y') }}
         </label>
         <div class="control">
             {{field.date(type="hidden")}}

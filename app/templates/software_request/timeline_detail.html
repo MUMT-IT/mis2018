@@ -115,8 +115,9 @@
                             </a>
                             <a class="card-footer-item"
                                hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
-                               hx-delete="{{ url_for('software_request.delete_timeline', timeline_id=timeline.id, tab=tab) }}"
-                               hx-confirm="ท่านต้องการลบรายการนี้หรือไม่"
+                               hx-delete="{{ url_for('software_request.delete_timeline', timeline_id=timeline.id, tab=tab,
+                                       cancel='true') }}"
+                               hx-confirm="ท่านต้องการยกเลิกรายการนี้หรือไม่"
                             >
                                 <span class="icon">
                                     <i class="far fa-trash-alt has-text-danger"></i>
