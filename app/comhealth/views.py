@@ -3138,7 +3138,7 @@ def cmslis_email(email):
 
 
     for row in data:
-        servicedate = row.get("serviceDate")
+        servicedate = row.get("currentDate")
         dt = datetime.fromisoformat(servicedate)
         servicedate_thai = dt.strftime("%d/%m/") + str(dt.year + 543)
 
@@ -3626,7 +3626,7 @@ def interpert_normaltest(lab,age,gender):
         u_rbc_inp_id = result.get("UA14", {}).get("interpret", "")
         u_crystal_id = result.get("UA18", {}).get("interpret", "")
 
-    urine_p_g_inp = None
+    urine_p_g_inp = 'ไม่ตรวจ'
     urine_p_g_adv = None
     if "UA05" in result and "UA06" in result:
         urine_protein = result["UA05"]["advise"]
@@ -3708,7 +3708,7 @@ def testspecial(serviceNo, gender, age):
                 </tr>
             '''
     if not rows:
-        rows = '<tr><td colspan="4" class="text-muted text-center">ไม่มีข้อมูลรายการพิเศษ</td></tr>'
+        rows = '<tr><td colspan="4" class="text-muted text-center">ไม่มีข้อมูลรายการตรวจพิเศษ</td></tr>'
 
     return f'''
             <tbody id="testspecial">
@@ -3862,16 +3862,31 @@ def check_range(bp, r1, r2, cond):
 
 
 def get_bp_interpret_id(result_bp, data):
-    bp = parse_bp(result_bp)
+    s, d = map(int, result_bp.split("/"))
+
+    # ตรวจความดันต่ำก่อน
+    if s < 90 or d < 60:
+        return "001001"
 
     matches = []
 
     for row in data:
-        if check_range(bp, row["result1"], row.get("result2"), row["condiType"]):
-            matches.append(row)
+        r1s, r1d = map(int, row["result1"].split("/"))
 
-    if not matches:
-        return None
+        if row["condiType"] == "between":
+            r2s, r2d = map(int, row["result2"].split("/"))
+
+            if (r1s <= s <= r2s) or (r1d <= d <= r2d):
+                matches.append(row)
+
+        elif row["condiType"] == ">=":
+            if s >= r1s or d >= r1d:
+                matches.append(row)
+
+    if matches:
+        return max(matches, key=lambda x: int(x["condiId"]))["condiInterpretId"]
+
+    return None
 
     return max(matches, key=lambda x: int(x["condiId"]))["condiInterpretId"]
 
