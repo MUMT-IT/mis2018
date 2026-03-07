@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light">
     <title>รายงานผลการตรวจสุขภาพ (Health Check-up Report)</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -81,6 +82,14 @@
             height: 40px;
             background: white;
             clip-path: ellipse(50% 100% at 50% 100%);
+        }
+
+        .hospital-logo {
+            height: 80px;
+            width: auto;
+            display: block;
+            margin: 0 auto 1.5rem;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
         }
 
         .patient-summary-box {
@@ -254,15 +263,62 @@
             color: #475569;
         }
 
-        .medical-opinion { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 1.5rem; border-radius: 0.5rem; font-style: italic; }
+        /* Loading Animation Core CSS */
+        .loader-dots {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+        }
 
+        .loader-dots span {
+            width: 15px;
+            height: 15px;
+            background-color: #e74c3c; /* สีที่คุณเลือก */
+            border-radius: 50%;
+            display: inline-block;
+            animation: bounce 0.6s infinite alternate;
+            box-shadow: 0 4px 6px -1px rgba(231, 76, 60, 0.4);
+        }
+
+        .loader-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .loader-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+            from {
+                transform: translateY(0);
+                opacity: 0.6;
+            }
+            to {
+                transform: translateY(-20px);
+                opacity: 1;
+            }
+        }
+
+        /* Overlay Styles */
         #loader-overlay {
-            position: fixed; inset: 0; background: white; z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.5s;
+            position: fixed;
+            inset: 0;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease, visibility 0.5s;
         }
 
-        .pulse-loader {
-            width: 60px; height: 60px; background-color: var(--primary-medical); border-radius: 50%; animation: pulse 1.2s infinite ease-in-out;
+        #loader-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
         }
+
 
         @keyframes pulse {
             0% { transform: scale(0); opacity: 1; }
@@ -281,10 +337,20 @@
     </style>
 </head>
 <body>
+    <!-- Loading Overlay -->
+    <div id="loader-overlay">
+        <div class="loader-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <p class="mt-8 text-gray-600 dark:text-gray-300 font-medium animate-pulse">Loading...</p>
+    </div>
+
     <div class="report-wrapper">
         <header class="header-section has-text-centered">
             <div class="mb-2">
-                <i class="fa-solid fa-house-medical-circle-check fa-3x mb-3"></i>
+                <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" alt="Mahidol University Logo" class="hospital-logo" onerror="this.style.display='none'">
                 <h1 class="title is-2 has-text-white mb-2">รายงานผลการตรวจสุขภาพ</h1>
                 <p class="is-size-6 has-text-white-ter has-text-weight-light">FACULTY OF MEDICAL TECHNOLOGY, MAHIDOL UNIVERSITY</p>
             </div>
@@ -316,7 +382,7 @@
             <div class="mb-6">
                 <div class="main-section-title">
                     <span class="icon is-medium has-text-primary"><i class="fa-solid fa-heart-pulse fa-lg"></i></span>
-                    <h2 class="title is-4 mb-0">การตรวจร่างกายทั่วไป (PHYSICAL EXAMINNATION)</h2>
+                    <h2 class="title is-4 mb-0">การตรวจร่างกายทั่วไป (PHYSICAL EXAMINATION)</h2>
                 </div>
 
                 <div class="vitals-grid mb-4">
@@ -352,7 +418,7 @@
                     <div class="vital-box" style="background: var(--accent-medical); border-color: var(--secondary-medical);">
                         <div class="vital-icon"><i class="fa-solid fa-user-check"></i></div>
                         <div class="vital-value"><span id="bmi">-</span></div>
-                        <div class="vital-unit">BMI (ปกติ)</div>
+                        <div class="vital-unit">BMI</div>
                         <div class="reference-text">ค่าปกติ: 18.5 - 22.9</div>
                     </div>
                 </div>
@@ -515,7 +581,7 @@
                     </h3>
                     <div class="lab-table-card">
                         <div class="lab-header">
-                            <div class="lab-title"><i class="fa-solid fa-circle-nodes"></i> Cholesterol & Lipid Results</div>
+                            <div class="lab-title"><i class="fa-solid fa-circle-nodes"></i> Lipid Profile Results</div>
                         </div>
                         <table class="table is-fullwidth mb-0">
                             <thead>
