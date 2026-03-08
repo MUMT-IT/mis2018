@@ -87,32 +87,90 @@
         <div class="column">
           <div class="field">
             <label class="label">Location (EN)</label>
-            <div class="control"><input class="input" type="text" name="location_en"
+            <div class="control"><input class="input" id="location-en-input" type="text" name="location_en"
                 value="{{ event.location_en or '' }}"></div>
           </div>
         </div>
         <div class="column">
           <div class="field">
             <label class="label">Location (TH)</label>
-            <div class="control"><input class="input" type="text" name="location_th"
+            <div class="control"><input class="input" id="location-th-input" type="text" name="location_th"
                 value="{{ event.location_th or '' }}"></div>
           </div>
         </div>
       </div>
+      <p class="help" id="location-required-hint" style="display:none;">Location is required for Onsite or Hybrid format.</p>
 
       <div class="columns">
         <div class="column">
           <div class="field">
             <label class="label">Duration (EN)</label>
             <div class="control"><input class="input" type="text" name="duration_en"
-                value="{{ event.duration_en or '' }}"></div>
+                value="{{ event.duration_en or '' }}" placeholder="e.g., 3 days / 12 hours"></div>
           </div>
         </div>
         <div class="column">
           <div class="field">
             <label class="label">Duration (TH)</label>
             <div class="control"><input class="input" type="text" name="duration_th"
-                value="{{ event.duration_th or '' }}"></div>
+                value="{{ event.duration_th or '' }}" placeholder="เช่น 3 วัน / 12 ชั่วโมง"></div>
+            <p class="help">At least one duration field is required.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="columns">
+        <div class="column is-half">
+          <div class="field">
+            <label class="label">Format</label>
+            <div class="control">
+              <div class="select is-fullwidth">
+                <select id="format-mode-select" name="format_mode" required>
+                  <option value="" disabled {% if not format_mode %}selected{% endif %}>Select format</option>
+                  <option value="online" {% if format_mode=='online' %}selected{% endif %}>Online</option>
+                  <option value="onsite" {% if format_mode=='onsite' %}selected{% endif %}>Onsite</option>
+                  <option value="hybrid" {% if format_mode=='hybrid' %}selected{% endif %}>Hybrid</option>
+                </select>
+              </div>
+            </div>
+            <p class="help">Required for both Course and Webinar.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="columns">
+        <div class="column is-half">
+          <div class="field">
+            <label class="label">Max Participants</label>
+            <div class="control">
+              <input class="input" type="number" min="1" step="1" name="max_participants"
+                value="{{ event.max_participants if event.max_participants is not none else '' }}"
+                placeholder="Leave blank for unlimited">
+            </div>
+            <p class="help">Applies to both Course and Webinar.</p>
+          </div>
+        </div>
+      </div>
+
+      {% if event.event_type == 'webinar' %}
+      <hr>
+      <h3 class="title is-6">Online Meeting Information</h3>
+      <div class="columns">
+        <div class="column is-half">
+          <div class="field">
+            <label class="label">Platform</label>
+            <div class="control">
+              <div class="select is-fullwidth">
+                <select name="online_platform">
+                  <option value="">Select platform</option>
+                  <option value="zoom" {% if event.online_platform=='zoom' %}selected{% endif %}>Zoom</option>
+                  <option value="webex" {% if event.online_platform=='webex' %}selected{% endif %}>Webex</option>
+                  <option value="teams" {% if event.online_platform=='teams' %}selected{% endif %}>Microsoft Teams</option>
+                  <option value="google_meet" {% if event.online_platform=='google_meet' %}selected{% endif %}>Google Meet</option>
+                  <option value="other" {% if event.online_platform=='other' %}selected{% endif %}>Other</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -120,19 +178,24 @@
       <div class="columns">
         <div class="column">
           <div class="field">
-            <label class="label">Format (EN)</label>
-            <div class="control"><input class="input" type="text" name="format_en" value="{{ event.format_en or '' }}">
+            <label class="label">Meeting Link</label>
+            <div class="control">
+              <input class="input" type="url" name="online_meeting_url" value="{{ event.online_meeting_url or '' }}"
+                placeholder="https://...">
             </div>
           </div>
         </div>
-        <div class="column">
+        <div class="column is-half">
           <div class="field">
-            <label class="label">Format (TH)</label>
-            <div class="control"><input class="input" type="text" name="format_th" value="{{ event.format_th or '' }}">
+            <label class="label">Meeting Password / Passcode</label>
+            <div class="control">
+              <input class="input" type="text" name="online_meeting_password"
+                value="{{ event.online_meeting_password or '' }}" placeholder="Optional">
             </div>
           </div>
         </div>
       </div>
+      {% endif %}
 
       <div class="columns">
         <div class="column">
@@ -884,6 +947,27 @@
 <script>
   // Image preview for poster and cover
   document.addEventListener('DOMContentLoaded', function () {
+    const formatModeSelect = document.getElementById('format-mode-select');
+    const locationEnInput = document.getElementById('location-en-input');
+    const locationThInput = document.getElementById('location-th-input');
+    const locationRequiredHint = document.getElementById('location-required-hint');
+
+    function syncLocationRequirement() {
+      if (!formatModeSelect || !locationEnInput || !locationThInput) return;
+      const mode = (formatModeSelect.value || '').toLowerCase();
+      const required = mode === 'onsite' || mode === 'hybrid';
+      locationEnInput.required = false;
+      locationThInput.required = false;
+      if (locationRequiredHint) {
+        locationRequiredHint.style.display = required ? '' : 'none';
+      }
+    }
+
+    if (formatModeSelect) {
+      formatModeSelect.addEventListener('change', syncLocationRequirement);
+      syncLocationRequirement();
+    }
+
     const posterFileInput = document.getElementById('poster-file-input');
     const posterFileName = document.getElementById('poster-file-name');
     const posterPreview = document.getElementById('poster-preview');

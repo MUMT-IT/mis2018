@@ -309,6 +309,26 @@ class CEEventEntity(db.Model):
     certification_th = db.Column(db.String(50), nullable=True)
     location_en = db.Column(db.String(255), nullable=True)
     location_th = db.Column(db.String(255), nullable=True)
+    max_participants = db.Column(
+        db.Integer,
+        nullable=True,
+        comment="Maximum participants allowed for this event (applies to course/webinar)",
+    )
+    online_platform = db.Column(
+        db.String(50),
+        nullable=True,
+        comment="Online meeting platform for webinar (e.g., zoom, webex, teams, meet, other)",
+    )
+    online_meeting_url = db.Column(
+        db.String(1024),
+        nullable=True,
+        comment="Online meeting URL for webinar",
+    )
+    online_meeting_password = db.Column(
+        db.String(255),
+        nullable=True,
+        comment="Online meeting password/passcode for webinar",
+    )
     degree_en = db.Column(db.String(50), nullable=True)
     degree_th = db.Column(db.String(50), nullable=True)
     department_owner = db.Column(db.String(50), nullable=True)

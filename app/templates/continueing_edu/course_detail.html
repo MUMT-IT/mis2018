@@ -885,15 +885,13 @@
                             </div>
                             {% endif %}
 
-                            {% set total_registered = course.registrations|length %}
-                            {% set max_seats = 50 %} <!-- TODO: Add max_seats field to model -->
-                            {% if total_registered >= max_seats %}
+                            {% if max_seats is not none and total_registered >= max_seats %}
                             <div class="seats-full">
                                 <i class="fas fa-users"></i> {{ texts.get('seats_full', 'ที่นั่งเต็มแล้ว' if
                                 current_lang ==
                                 'th' else 'Seats Full') }}
                             </div>
-                            {% else %}
+                            {% elif max_seats is not none %}
                             <div class="info-badge">
                                 <span class="icon"><i class="fas fa-users"></i></span>
                                 <div>
@@ -901,6 +899,15 @@
                                         'Available Seats') }}:</strong><br>
                                     <span class="value">{{ max_seats - total_registered }} / {{ max_seats }} {{
                                         texts.get('seats', 'ที่นั่ง' if current_lang == 'th' else 'seats') }}</span>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="info-badge">
+                                <span class="icon"><i class="fas fa-users"></i></span>
+                                <div>
+                                    <strong>{{ texts.get('registered_count', 'จำนวนผู้ลงทะเบียน' if current_lang == 'th'
+                                        else 'Registered') }}:</strong><br>
+                                    <span class="value">{{ total_registered }}</span>
                                 </div>
                             </div>
                             {% endif %}

@@ -118,6 +118,32 @@ def _wants_json_response():
     return 'application/json' in accept
 
 
+def _registration_status_counts(base_query):
+    rows = (
+        base_query
+        .join(CERegistrationStatus, CEMemberRegistration.status_id == CERegistrationStatus.id)
+        .with_entities(
+            func.lower(
+                func.coalesce(
+                    CERegistrationStatus.registration_status_code,
+                    CERegistrationStatus.name_en,
+                )
+            ).label('status_code'),
+            func.count(CEMemberRegistration.id),
+        )
+        .group_by('status_code')
+        .all()
+    )
+    counts = {code: count for code, count in rows if code}
+    return {
+        'total': base_query.count(),
+        'registered': counts.get('registered', 0),
+        'in_progress': counts.get('in_progress', 0),
+        'completed': counts.get('completed', 0),
+        'cancelled': counts.get('cancelled', 0) + counts.get('canceled', 0),
+    }
+
+
 def _attendance_error(message, event_id=None, status_code=400, details=None):
     details = details or {}
     if _wants_json_response():
@@ -442,7 +468,8 @@ def list_registrations():
     # Apply filters
     if status_filter:
         status = CERegistrationStatus.query.filter(
-            func.lower(CERegistrationStatus.name_en) == status_filter.lower()
+            (func.lower(CERegistrationStatus.name_en) == status_filter.lower()) |
+            (func.lower(CERegistrationStatus.registration_status_code) == status_filter.lower())
         ).first()
         if status:
             query = query.filter(CEMemberRegistration.status_id == status.id)
@@ -495,18 +522,7 @@ def list_registrations():
     statuses = CERegistrationStatus.query.all()
     
     # Statistics
-    stats = {
-        'total': CEMemberRegistration.query.count(),
-        'pending': CEMemberRegistration.query.join(CERegistrationStatus).filter(
-            func.lower(CERegistrationStatus.name_en) == 'pending'
-        ).count(),
-        'confirmed': CEMemberRegistration.query.join(CERegistrationStatus).filter(
-            func.lower(CERegistrationStatus.name_en) == 'confirmed'
-        ).count(),
-        'cancelled': CEMemberRegistration.query.join(CERegistrationStatus).filter(
-            func.lower(CERegistrationStatus.name_en) == 'cancelled'
-        ).count(),
-    }
+    stats = _registration_status_counts(CEMemberRegistration.query)
     
     return render_template(
         'continueing_edu/admin/registrations/list.html',
@@ -741,7 +757,8 @@ def export_registrations():
     
     if status_filter:
         status = CERegistrationStatus.query.filter(
-            func.lower(CERegistrationStatus.name_en) == status_filter.lower()
+            (func.lower(CERegistrationStatus.name_en) == status_filter.lower()) |
+            (func.lower(CERegistrationStatus.registration_status_code) == status_filter.lower())
         ).first()
         if status:
             query = query.filter(CEMemberRegistration.status_id == status.id)
@@ -844,18 +861,7 @@ def event_registrations(event_id):
     registrations = pagination.items
     
     # Statistics for this event
-    stats = {
-        'total': query.count(),
-        'pending': query.join(CERegistrationStatus).filter(
-            func.lower(CERegistrationStatus.name_en) == 'pending'
-        ).count(),
-        'confirmed': query.join(CERegistrationStatus).filter(
-            func.lower(CERegistrationStatus.name_en) == 'confirmed'
-        ).count(),
-        'cancelled': query.join(CERegistrationStatus).filter(
-            func.lower(CERegistrationStatus.name_en) == 'cancelled'
-        ).count(),
-    }
+    stats = _registration_status_counts(CEMemberRegistration.query.filter_by(event_entity_id=event_id))
     
     return render_template(
         'continueing_edu/admin/registrations/event_registrations.html',

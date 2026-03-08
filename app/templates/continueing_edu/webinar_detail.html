@@ -377,6 +377,27 @@
                         </div>
                         {% endif %}
                         {% endif %}
+                        {% if approved_payment and webinar.online_meeting_url %}
+                        <div class="notification is-link is-light mt-3 mb-2">
+                            <p class="mb-2">
+                                <strong>{{ texts.get('online_meeting', 'การประชุมออนไลน์' if current_lang == 'th' else
+                                    'Online meeting') }}</strong>
+                                {% if webinar.online_platform %}
+                                ({{ webinar.online_platform|replace('_', ' ')|title }})
+                                {% endif %}
+                            </p>
+                            <a class="button is-small is-link" href="{{ webinar.online_meeting_url }}" target="_blank"
+                                rel="noopener noreferrer">
+                                {{ texts.get('join_meeting', 'เข้าร่วมประชุม' if current_lang == 'th' else 'Join meeting')
+                                }}
+                            </a>
+                            {% if webinar.online_meeting_password %}
+                            <p class="is-size-7 mt-2">
+                                {{ texts.get('meeting_password', 'รหัสผ่านประชุม' if current_lang == 'th' else 'Meeting password') }}: <strong>{{ webinar.online_meeting_password }}</strong>
+                            </p>
+                            {% endif %}
+                        </div>
+                        {% endif %}
                         <div class="buttons mt-2">
                             {% if approved_payment %}
                             <form method="post"
@@ -410,14 +431,16 @@
                     </div>
                     {% else %}
                     <div class="mt-4">
-                        {{ registration_button(webinar, logged_in_user, already_registered, texts, current_lang) }}
+                        {{ registration_button(webinar, logged_in_user, already_registered, texts, current_lang,
+                        max_seats, total_registered) }}
                     </div>
                     {% endif %}
                     {% else %}
                     <div class="box has-background-warning-light mt-4">
                         <p class="mb-3"><strong>{{ texts.get('login_required_title', 'กรุณาเข้าสู่ระบบ' if
                                 current_lang == 'th' else 'Login Required') }}</strong></p>
-                        {{ registration_button(webinar, logged_in_user, already_registered, texts, current_lang) }}
+                        {{ registration_button(webinar, logged_in_user, already_registered, texts, current_lang,
+                        max_seats, total_registered) }}
                     </div>
                     {% endif %}
                 </div>

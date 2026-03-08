@@ -26,8 +26,9 @@
       entity.title_en else (entity.title_th if entity and entity.title_th else texts.label_none)) %}
       {% set event_type = entity.event_type if entity else '' %}
       {% set event_type_key = 'event_type_' + (event_type or '') %}
-      {% set completed = (r.completed_at is not none) %}
-      {% set started = (r.started_at is not none) %}
+      {% set reg_status_code = (r.status_ref.registration_status_code if r.status_ref and r.status_ref.registration_status_code else (r.status_ref.name_en if r.status_ref else ''))|lower %}
+      {% set completed = (r.completed_at is not none) or reg_status_code == 'completed' %}
+      {% set started = (r.started_at is not none) or reg_status_code in ['in_progress', 'completed'] %}
       {% set survey_required = survey_required_by_reg.get(r.id, false) %}
 
       <div class="column is-12">

@@ -79,6 +79,25 @@ def _parse_date_arg(value: str, *, end: bool = False):
     except ValueError:
         return None
 
+
+def _detect_event_format_mode(format_en: str | None, format_th: str | None) -> str | None:
+    def _normalize(value: str | None) -> str:
+        return (value or '').strip().lower().replace('-', ' ').replace('_', ' ')
+
+    tokens = [_normalize(format_en), _normalize(format_th)]
+
+    has_online = any(t in ('online', 'virtual', 'ออนไลน์') for t in tokens)
+    has_onsite = any(t in ('onsite', 'on site', 'in person', 'ในสถานที่') for t in tokens)
+    has_hybrid = any(t in ('hybrid', 'ผสม', 'online + onsite', 'ออนไลน์ + ในสถานที่') for t in tokens)
+
+    if has_hybrid or (has_online and has_onsite):
+        return 'hybrid'
+    if has_online:
+        return 'online'
+    if has_onsite:
+        return 'onsite'
+    return None
+
 class EventCreateStep1Form(FlaskForm):
     event_type = SelectField('Event Type', choices=[('course', 'Course'), ('webinar', 'Webinar')], validators=[DataRequired()])
     title = StringField('Title', validators=[DataRequired()])
@@ -185,6 +204,7 @@ def edit_event(event_id):
         registration_statuses=registration_statuses,
         certificate_statuses=certificate_statuses,
         can_issue_certificate=can_issue_certificate,
+        format_mode=_detect_event_format_mode(event.format_en, event.format_th),
     )
 
 # Login/logout now handled by main MIS system via @login_required
@@ -1300,8 +1320,15 @@ def manage_events():
             if a.event_entity_id not in event_starts:
                 event_starts[a.event_entity_id] = a.start_time
 
-    # total_seats if defined on model instance (optional) and creator label
-    total_seats_map = {e.id: getattr(e, 'total_seats', None) for e in events}
+    # Capacity map for event list (new field with fallback to legacy attribute if present)
+    total_seats_map = {
+        e.id: (
+            getattr(e, 'max_participants', None)
+            if getattr(e, 'max_participants', None) is not None
+            else getattr(e, 'total_seats', None)
+        )
+        for e in events
+    }
     creators = {e.id: (e.staff.fullname if getattr(e, 'staff', None) and getattr(e.staff, 'fullname', None) else (e.created_by or '')) for e in events}
 
     return render_template(
@@ -1930,6 +1957,39 @@ def _payment_requires_uploaded_proof(payment: CERegisterPayment) -> bool:
     return method in {'bank_transfer', 'counter'}
 
 
+def _payment_status_code(payment: CERegisterPayment) -> str:
+    st = getattr(payment, 'payment_status_ref', None)
+    return (
+        (getattr(st, 'register_payment_status_code', None) or getattr(st, 'name_en', None) or '')
+        .strip()
+        .lower()
+    )
+
+
+def _get_or_create_payment_status(code: str, *, name_th: str | None = None, css_badge: str | None = None):
+    normalized = (code or '').strip().lower()
+    st = CERegisterPaymentStatus.query.filter(
+        (func.lower(CERegisterPaymentStatus.register_payment_status_code) == normalized)
+        | (func.lower(CERegisterPaymentStatus.name_en) == normalized)
+    ).first()
+    if st:
+        if not st.register_payment_status_code:
+            st.register_payment_status_code = normalized
+            db.session.add(st)
+            db.session.flush()
+        return st
+
+    st = CERegisterPaymentStatus(
+        name_en=normalized,
+        name_th=name_th or normalized,
+        css_badge=css_badge or 'is-light',
+        register_payment_status_code=normalized,
+    )
+    db.session.add(st)
+    db.session.flush()
+    return st
+
+
 @admin_bp.route('/payments')
 @login_required
 @admin_required
@@ -2066,13 +2126,29 @@ def payment_receipt(payment_id):
 
 
 def _set_payment_status(pay: CERegisterPayment, status_en: str, staff_id: int):
-    # status_en now treated as code; fallback to name_en
-    st = CERegisterPaymentStatus.query.filter_by(register_payment_status_code=status_en).first()
-    if not st:
-        st = CERegisterPaymentStatus.query.filter_by(name_en=status_en).first()
     from datetime import datetime
-    if st:
-        pay.payment_status_id = st.id
+    badge_by_code = {
+        'pending': 'is-light',
+        'submitted': 'is-info',
+        'approved': 'is-success',
+        'paid': 'is-success',
+        'rejected': 'is-danger',
+        'cancelled': 'is-light',
+    }
+    thai_by_code = {
+        'pending': 'รอดำเนินการ',
+        'submitted': 'ส่งหลักฐานแล้ว',
+        'approved': 'อนุมัติแล้ว',
+        'paid': 'ชำระแล้ว',
+        'rejected': 'ปฏิเสธ',
+        'cancelled': 'ยกเลิก',
+    }
+    st = _get_or_create_payment_status(
+        status_en,
+        name_th=thai_by_code.get(status_en, status_en),
+        css_badge=badge_by_code.get(status_en, 'is-light'),
+    )
+    pay.payment_status_id = st.id
     pay.approved_by_staff_id = staff_id
     pay.approval_date = datetime.utcnow()
     db.session.add(pay)
@@ -2090,6 +2166,9 @@ def _set_payment_status(pay: CERegisterPayment, status_en: str, staff_id: int):
 def payment_approve(payment_id):
     staff = get_current_staff()
     pay = CERegisterPayment.query.get_or_404(payment_id)
+    if _payment_status_code(pay) in {'paid', 'cancelled', 'canceled'}:
+        flash('Cannot approve a finalized payment status.', 'warning')
+        return redirect(url_for('continuing_edu_admin.payments_index'))
     if _payment_requires_uploaded_proof(pay) and not pay.payment_proof_url:
         flash('Payment proof is required before approval for this payment method.', 'danger')
         return redirect(url_for('continuing_edu_admin.payments_index'))
@@ -2104,6 +2183,9 @@ def payment_approve(payment_id):
 def payment_reject(payment_id):
     staff = get_current_staff()
     pay = CERegisterPayment.query.get_or_404(payment_id)
+    if _payment_status_code(pay) in {'paid', 'cancelled', 'canceled'}:
+        flash('Cannot reject a finalized payment status.', 'warning')
+        return redirect(url_for('continuing_edu_admin.payments_index'))
     _set_payment_status(pay, 'rejected', staff.id)
     flash('Payment rejected.', 'warning')
     return redirect(url_for('continuing_edu_admin.payments_index'))
@@ -2123,7 +2205,9 @@ def payments_export_csv():
     end_date = request.args.get('end_date', '')
     query = CERegisterPayment.query
     if status:
-        st = CERegisterPaymentStatus.query.filter_by(name_en=status).first()
+        st = CERegisterPaymentStatus.query.filter_by(register_payment_status_code=status).first()
+        if not st:
+            st = CERegisterPaymentStatus.query.filter_by(name_en=status).first()
         if st:
             query = query.filter_by(payment_status_id=st.id)
     if q:
@@ -2177,7 +2261,9 @@ def bootstrap_defaults():
         ('pending', 'รอดำเนินการ', 'is-light'),
         ('submitted', 'ส่งหลักฐานแล้ว', 'is-info'),
         ('approved', 'อนุมัติแล้ว', 'is-success'),
+        ('paid', 'ชำระแล้ว', 'is-success'),
         ('rejected', 'ปฏิเสธ', 'is-danger'),
+        ('cancelled', 'ยกเลิก', 'is-light'),
     ]:
         s = CERegisterPaymentStatus.query.filter_by(name_en=name_en).first()
         if not s:
@@ -2252,12 +2338,77 @@ def update_event_general(event_id):
     event.title_th = request.form.get('title_th') or event.title_th
     event.description_en = request.form.get('description_en')
     event.description_th = request.form.get('description_th')
-    event.location_en = request.form.get('location_en')
-    event.location_th = request.form.get('location_th')
-    event.duration_en = request.form.get('duration_en')
-    event.duration_th = request.form.get('duration_th')
-    event.format_en = request.form.get('format_en')
-    event.format_th = request.form.get('format_th')
+
+    location_en = (request.form.get('location_en') or '').strip()
+    location_th = (request.form.get('location_th') or '').strip()
+    duration_en = (request.form.get('duration_en') or '').strip()
+    duration_th = (request.form.get('duration_th') or '').strip()
+    if not duration_en and not duration_th:
+        flash('Duration is required.', 'danger')
+        return redirect(url_for('continuing_edu_admin.edit_event', event_id=event.id, tab='general'))
+    if not duration_en:
+        duration_en = duration_th
+    if not duration_th:
+        duration_th = duration_en
+    event.duration_en = duration_en or None
+    event.duration_th = duration_th or None
+
+    format_mode = (request.form.get('format_mode') or '').strip().lower()
+    if not format_mode:
+        format_mode = _detect_event_format_mode(request.form.get('format_en'), request.form.get('format_th')) or ''
+    if format_mode not in ('online', 'onsite', 'hybrid'):
+        flash('Format is required (Online, Onsite, or Hybrid).', 'danger')
+        return redirect(url_for('continuing_edu_admin.edit_event', event_id=event.id, tab='general'))
+
+    format_map = {
+        'online': ('Online', 'ออนไลน์'),
+        'onsite': ('Onsite', 'ในสถานที่'),
+        'hybrid': ('Hybrid', 'ผสม (ออนไลน์ + ในสถานที่)'),
+    }
+    event.format_en, event.format_th = format_map[format_mode]
+
+    if format_mode in ('onsite', 'hybrid') and not (location_en or location_th):
+        flash('Location is required for Onsite or Hybrid format.', 'danger')
+        return redirect(url_for('continuing_edu_admin.edit_event', event_id=event.id, tab='general'))
+    if not location_en and location_th:
+        location_en = location_th
+    if not location_th and location_en:
+        location_th = location_en
+    event.location_en = location_en or None
+    event.location_th = location_th or None
+
+    # Capacity for both course/webinar
+    max_participants_raw = (request.form.get('max_participants') or '').strip()
+    if max_participants_raw:
+        try:
+            max_participants = int(max_participants_raw)
+            if max_participants <= 0:
+                raise ValueError('non_positive')
+            event.max_participants = max_participants
+        except Exception:
+            flash('Max participants must be a positive integer.', 'danger')
+            return redirect(url_for('continuing_edu_admin.edit_event', event_id=event.id, tab='general'))
+    else:
+        event.max_participants = None
+
+    # Webinar online meeting fields
+    if event.event_type == 'webinar':
+        platform = (request.form.get('online_platform') or '').strip().lower()
+        if platform not in ('', 'zoom', 'webex', 'teams', 'google_meet', 'other'):
+            platform = 'other'
+
+        online_url = (request.form.get('online_meeting_url') or '').strip()
+        if online_url and not (online_url.startswith('http://') or online_url.startswith('https://')):
+            flash('Online meeting URL must start with http:// or https://.', 'danger')
+            return redirect(url_for('continuing_edu_admin.edit_event', event_id=event.id, tab='general'))
+
+        event.online_platform = platform or None
+        event.online_meeting_url = online_url or None
+        event.online_meeting_password = (request.form.get('online_meeting_password') or '').strip() or None
+    else:
+        event.online_platform = None
+        event.online_meeting_url = None
+        event.online_meeting_password = None
     # Handle image uploads (file upload only)
     poster_file = request.files.get('poster_image_file')
     cover_file = request.files.get('cover_image_file')

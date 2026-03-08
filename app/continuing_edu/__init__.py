@@ -146,6 +146,9 @@ translations = {
         'currency_thb': 'THB',
         'event_type_course': 'Course',
         'event_type_webinar': 'Webinar',
+        'online_meeting': 'Online meeting',
+        'join_meeting': 'Join meeting',
+        'meeting_password': 'Meeting password',
 
         # Member portal messages
         'message_payments_locked': 'Payment is approved. Editing proof is locked.',
@@ -380,6 +383,9 @@ translations = {
         'currency_thb': 'บาท',
         'event_type_course': 'หลักสูตร',
         'event_type_webinar': 'สัมมนาออนไลน์',
+        'online_meeting': 'การประชุมออนไลน์',
+        'join_meeting': 'เข้าร่วมประชุม',
+        'meeting_password': 'รหัสผ่านประชุม',
 
         # ข้อความสำหรับสมาชิก
         'message_payments_locked': 'การชำระเงินได้รับการอนุมัติแล้ว ไม่สามารถแก้ไขหลักฐานได้',

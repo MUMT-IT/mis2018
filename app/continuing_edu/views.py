@@ -19,6 +19,7 @@ from .models import (
     CERegisterPayment,
     CEContinuingInvoice,
     CERegisterPaymentStatus,
+    CERegistrationStatus,
     CEOrganization,
     CEOrganizationType,
     CEOccupation,
@@ -310,6 +311,40 @@ def _price_for_member(event: CEEventEntity, member: CEMember):
     eb_active = is_early_bird_active(event)
     price = fee.early_bird_price if (eb_active and fee.early_bird_price is not None) else fee.price
     return fee, price
+
+
+def _event_max_participants(event: CEEventEntity) -> int | None:
+    raw = getattr(event, 'max_participants', None)
+    if raw in (None, ''):
+        return None
+    try:
+        value = int(raw)
+        return value if value > 0 else None
+    except Exception:
+        return None
+
+
+def _event_active_registration_count(event_id: int) -> int:
+    cancelled = or_(
+        func.lower(func.coalesce(CERegistrationStatus.registration_status_code, '')).like('%cancel%'),
+        func.lower(func.coalesce(CERegistrationStatus.name_en, '')).like('%cancel%'),
+    )
+    count = (
+        db.session.query(func.count(CEMemberRegistration.id))
+        .outerjoin(CERegistrationStatus, CEMemberRegistration.status_id == CERegistrationStatus.id)
+        .filter(CEMemberRegistration.event_entity_id == event_id)
+        .filter(~cancelled)
+        .scalar()
+    )
+    return int(count or 0)
+
+
+def _is_event_registration_full(event: CEEventEntity) -> tuple[bool, int | None, int]:
+    max_participants = _event_max_participants(event)
+    total_registered = _event_active_registration_count(event.id)
+    if max_participants is None:
+        return False, None, total_registered
+    return total_registered >= max_participants, max_participants, total_registered
 
 # --- Member Login ---
 @ce_bp.route('/login', methods=['GET', 'POST'])
@@ -1835,8 +1870,18 @@ def course_detail(course_id):
                     )
                 ).order_by(RegisterPayment.id.desc()).first()
             approved_payment = ap is not None
-    return render_template('continueing_edu/course_detail.html', course=course, texts=texts, current_lang=lang,
-                           logged_in_user=user, already_registered=already_registered, approved_payment=approved_payment)
+    _, max_seats, total_registered = _is_event_registration_full(course)
+    return render_template(
+        'continueing_edu/course_detail.html',
+        course=course,
+        texts=texts,
+        current_lang=lang,
+        logged_in_user=user,
+        already_registered=already_registered,
+        approved_payment=approved_payment,
+        max_seats=max_seats,
+        total_registered=total_registered,
+    )
 
 
 @ce_bp.route('/course/<int:course_id>/learn')
@@ -1910,6 +1955,7 @@ def webinar_detail(webinar_id):
                             (func.lower(CERegisterPaymentStatus.name_en).in_(['approved', 'paid']))
                         )).first()
             approved_payment = ap is not None
+    _, max_seats, total_registered = _is_event_registration_full(webinar)
     return render_template(
         'continueing_edu/webinar_detail.html',
         webinar=webinar,
@@ -1918,6 +1964,8 @@ def webinar_detail(webinar_id):
         logged_in_user=user,
         already_registered=already_registered,
         approved_payment=approved_payment,
+        max_seats=max_seats,
+        total_registered=total_registered,
         current_registration=current_registration,
         survey_required=bool(current_registration and requires_post_course_survey(current_registration)),
         satisfaction_form_name=satisfaction_form_name,
@@ -1953,6 +2001,11 @@ def register_event(event_id):
     if existing:
         print(f"[REGISTER_EVENT] Already registered - Registration ID: {existing.id}")
         flash(texts.get('already_registered', 'You are already registered for this event.'), 'info')
+        return redirect(url_for('continuing_edu.course_detail' if event.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event.id if event.event_type=='course' else None, webinar_id=event.id if event.event_type=='webinar' else None, lang=lang))
+
+    is_full, _, _ = _is_event_registration_full(event)
+    if is_full:
+        flash(texts.get('seats_full', 'ที่นั่งเต็มแล้ว' if lang == 'th' else 'Seats Full'), 'danger')
         return redirect(url_for('continuing_edu.course_detail' if event.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event.id if event.event_type=='course' else None, webinar_id=event.id if event.event_type=='webinar' else None, lang=lang))
 
     fee, price = _price_for_member(event, member)
@@ -2033,6 +2086,11 @@ def confirm_registration(event_id):
             )
 
         flash(texts.get('already_registered', 'คุณได้ลงทะเบียนแล้ว' if lang == 'th' else 'You are already registered for this event.'), 'info')
+        return redirect(url_for('continuing_edu.course_detail' if event.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event.id if event.event_type=='course' else None, webinar_id=event.id if event.event_type=='webinar' else None, lang=lang))
+
+    is_full, _, _ = _is_event_registration_full(event)
+    if is_full:
+        flash(texts.get('seats_full', 'ที่นั่งเต็มแล้ว' if lang == 'th' else 'Seats Full'), 'danger')
         return redirect(url_for('continuing_edu.course_detail' if event.event_type=='course' else 'continuing_edu.webinar_detail', course_id=event.id if event.event_type=='course' else None, webinar_id=event.id if event.event_type=='webinar' else None, lang=lang))
     
     fee, price = _price_for_member(event, member)
@@ -2526,16 +2584,16 @@ def _can_member_upload_payment_proof(payment: CERegisterPayment) -> bool:
 
 
 def _set_status_on_proof_submission(payment: CERegisterPayment) -> None:
-    """Move to pending for re-review unless payment is already finalized."""
+    """Move to submitted for re-review unless payment is already finalized."""
     if _payment_status_code(payment) in {'approved', 'paid', 'cancelled', 'canceled'}:
         return
 
-    pending = _get_or_create_payment_status(
-        'pending',
-        name_th='รอดำเนินการ',
-        css_badge='is-light',
+    submitted = _get_or_create_payment_status(
+        'submitted',
+        name_th='ส่งหลักฐานแล้ว',
+        css_badge='is-info',
     )
-    payment.payment_status_id = pending.id
+    payment.payment_status_id = submitted.id
 
 
 def _delete_old_payment_proof_reference(old_reference: str | None) -> None:
@@ -2723,12 +2781,12 @@ def _mark_payment_paid_and_notify(payment_id, lang='en'):
     payment = CERegisterPayment.query.get(payment_id)
     if not payment:
         raise ValueError('payment not found')
-    paid_status = CERegisterPaymentStatus.query.filter(
-        (CERegisterPaymentStatus.register_payment_status_code == 'paid') |
-        (CERegisterPaymentStatus.name_en == 'paid')
-    ).first()
-    if paid_status:
-        payment.payment_status_id = paid_status.id
+    paid_status = _get_or_create_payment_status(
+        'paid',
+        name_th='ชำระแล้ว',
+        css_badge='is-success',
+    )
+    payment.payment_status_id = paid_status.id
     payment.payment_date = datetime.now()
     db.session.add(payment)
     db.session.commit()
@@ -2857,54 +2915,53 @@ def process_credit_card(payment_id):
         # For now, just simulate success and update status
         
         # Update payment status to paid
-        paid_status = CERegisterPaymentStatus.query.filter(
-            (CERegisterPaymentStatus.register_payment_status_code == 'paid') |
-            (CERegisterPaymentStatus.name_en == 'paid')
-        ).first()
-        
-        if paid_status:
-            payment.payment_status_id = paid_status.id
-            payment.payment_date = datetime.now()
-            db.session.commit()
-            # Send payment success email with invoice/receipt
-            try:
-                subj = texts.get('payment_success', 'Payment successful!')
-                invoice_link = url_for('continuing_edu.view_invoice', payment_id=payment.id, lang=lang, _external=True)
-                payments_link = url_for('continuing_edu.my_payments', lang=lang, _external=True)
-                body = (f"{texts.get('email_registered_for', 'Registered for')}: {payment.event_entity.title_en or payment.event_entity.title_th}\n"
-                        f"{texts.get('email_amount', 'Amount')}: {payment.payment_amount} THB\n"
-                        f"{texts.get('email_status', 'Status')}: {texts.get('status_paid', 'Paid')}\n\n"
-                        f"{texts.get('email_invoice', 'Invoice')}: {invoice_link}\n"
-                        f"{texts.get('email_my_payments', 'My payments')}: {payments_link}\n")
-                # use dedicated payment success template
-                email_html = render_template('continueing_edu/_payment_success_email.html', payment=payment, event=payment.event_entity, member=member, texts=texts, current_lang=lang)
-                msg = Message(subject=subj, body=body, html=email_html, recipients=[member.email]) if getattr(member, 'email', None) else None
-                if msg:
-                    if HTML is not None:
-                        try:
-                            payment_qr_url = os.environ.get('PAYMENT_QR_URL')
-                            promptpay_id = os.environ.get('PROMPTPAY_ID')
-                            bank_info = os.environ.get('BANK_INFO')
-                            payment_instructions = os.environ.get('PAYMENT_INSTRUCTIONS')
-                            html = render_template(
-                                'continueing_edu/invoice.html',
-                                payment=payment,
-                                member=member,
-                                texts=texts,
-                                current_lang=lang,
-                                payment_qr_url=payment_qr_url,
-                                promptpay_id=promptpay_id,
-                                bank_info=bank_info,
-                                payment_instructions=payment_instructions,
-                                pdf_available=True,
-                            )
-                            pdf_bytes = HTML(string=html, base_url=request.host_url).write_pdf()
-                            msg.attach(f"invoice_INV-{payment.id}.pdf", 'application/pdf', pdf_bytes)
-                        except Exception:
-                            pass
-                    mail.send(msg)
-            except Exception:
-                pass
+        paid_status = _get_or_create_payment_status(
+            'paid',
+            name_th='ชำระแล้ว',
+            css_badge='is-success',
+        )
+        payment.payment_status_id = paid_status.id
+        payment.payment_date = datetime.now()
+        db.session.commit()
+        # Send payment success email with invoice/receipt
+        try:
+            subj = texts.get('payment_success', 'Payment successful!')
+            invoice_link = url_for('continuing_edu.view_invoice', payment_id=payment.id, lang=lang, _external=True)
+            payments_link = url_for('continuing_edu.my_payments', lang=lang, _external=True)
+            body = (f"{texts.get('email_registered_for', 'Registered for')}: {payment.event_entity.title_en or payment.event_entity.title_th}\n"
+                    f"{texts.get('email_amount', 'Amount')}: {payment.payment_amount} THB\n"
+                    f"{texts.get('email_status', 'Status')}: {texts.get('status_paid', 'Paid')}\n\n"
+                    f"{texts.get('email_invoice', 'Invoice')}: {invoice_link}\n"
+                    f"{texts.get('email_my_payments', 'My payments')}: {payments_link}\n")
+            # use dedicated payment success template
+            email_html = render_template('continueing_edu/_payment_success_email.html', payment=payment, event=payment.event_entity, member=member, texts=texts, current_lang=lang)
+            msg = Message(subject=subj, body=body, html=email_html, recipients=[member.email]) if getattr(member, 'email', None) else None
+            if msg:
+                if HTML is not None:
+                    try:
+                        payment_qr_url = os.environ.get('PAYMENT_QR_URL')
+                        promptpay_id = os.environ.get('PROMPTPAY_ID')
+                        bank_info = os.environ.get('BANK_INFO')
+                        payment_instructions = os.environ.get('PAYMENT_INSTRUCTIONS')
+                        html = render_template(
+                            'continueing_edu/invoice.html',
+                            payment=payment,
+                            member=member,
+                            texts=texts,
+                            current_lang=lang,
+                            payment_qr_url=payment_qr_url,
+                            promptpay_id=promptpay_id,
+                            bank_info=bank_info,
+                            payment_instructions=payment_instructions,
+                            pdf_available=True,
+                        )
+                        pdf_bytes = HTML(string=html, base_url=request.host_url).write_pdf()
+                        msg.attach(f"invoice_INV-{payment.id}.pdf", 'application/pdf', pdf_bytes)
+                    except Exception:
+                        pass
+                mail.send(msg)
+        except Exception:
+            pass
 
         flash(texts.get('payment_success', 'ชำระเงินสำเร็จ' if lang == 'th' else 'Payment successful!'), 'success')
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
@@ -3072,19 +3129,16 @@ def cancel_payment(payment_id):
         flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
 
-    st = getattr(pay, 'payment_status_ref', None)
-    status_code = (getattr(st, 'register_payment_status_code', None) or getattr(st, 'name_en', None) or '').lower()
-    if status_code == 'paid':
+    status_code = _payment_status_code(pay)
+    if status_code in {'paid', 'approved'}:
         flash(texts.get('cannot_cancel_paid', 'Paid payments cannot be cancelled.'), 'warning')
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
 
-    cancelled = CERegisterPaymentStatus.query.filter(
-        (CERegisterPaymentStatus.register_payment_status_code.in_(['cancelled', 'canceled'])) |
-        (CERegisterPaymentStatus.name_en.in_(['cancelled', 'canceled']))
-    ).first()
-    if not cancelled:
-        flash(texts.get('cancel_status_missing', 'Cancel status not configured.'), 'danger')
-        return redirect(url_for('continuing_edu.my_payments', lang=lang))
+    cancelled = _get_or_create_payment_status(
+        'cancelled',
+        name_th='ยกเลิก',
+        css_badge='is-light',
+    )
 
     try:
         # cancel invoice (if exists)
