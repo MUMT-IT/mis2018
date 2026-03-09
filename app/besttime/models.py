@@ -59,9 +59,9 @@ class BestTimePoll(db.Model):
     __tablename__ = 'besttime_polls'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     title = db.Column(db.String(), nullable=False, info={'label': 'ชื่อแบบสำรวจ'})
-    start_date = db.Column(db.Date(), nullable=False, info={'label': 'วันที่ตัวเลือกเริ่มต้น'})
+    start_date = db.Column(db.Date(), nullable=True, info={'label': 'วันที่ตัวเลือกเริ่มต้น'})
+    end_date = db.Column(db.Date(), nullable=True, info={'label': 'วันที่ตัวเลือกสุดท้าย'})
     desc = db.Column(db.Text(), info={'label': 'รายละเอียด'})
-    end_date = db.Column(db.Date(), nullable=False, info={'label': 'วันที่ตัวเลือกสุดท้าย'})
     creator_id = db.Column(db.Integer, db.ForeignKey('staff_account.id'), nullable=False)
     creator = db.relationship(StaffAccount, backref=db.backref('besttime_polls'))
     created_at = db.Column(db.DateTime(timezone=True))
