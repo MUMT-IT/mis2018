@@ -2477,12 +2477,14 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
         style=style_sheet['ThaiStyle']) if sign else ""
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer,
-                            rightMargin=10,
-                            leftMargin=10,
-                            topMargin=180,
-                            bottomMargin=10,
-                            )
+
+    doc = SimpleDocTemplate(
+        buffer,
+        rightMargin=10,
+        leftMargin=10,
+        topMargin=180,
+        bottomMargin=10,
+    )
     receipt_number = receipt.code
     data = []
     affiliation = '''<para align=center><font size=10>
@@ -2537,9 +2539,9 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                                    style=style_sheet['ThaiStyle'])
     hight_customer_name = 5.5
     if receipt.issued_for:
-
+        hight_customer_name = 4.0
         customer_name = '''<para><font size=12>
-        ได้รับเงินจาก / RECEIVED FROM {issued_for} ({customer_name})<br/>
+        ได้รับเงินจาก / RECEIVED FROM {issued_for}<br/>
         ที่อยู่ / ADDRESS {address} <br/>
         </font></para>
         '''.format(issued_for=receipt.issued_for,
