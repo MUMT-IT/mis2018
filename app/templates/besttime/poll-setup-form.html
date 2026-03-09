@@ -39,25 +39,50 @@
         <div class="field">
             <label class="label">{{form.start_date.label}}</label>
             <div class="control">
-                {{form.start_date(**{'hx-trigger': 'change',
-                'class': 'input',
-                'hx-post': url_for('besttime.preview_master_datetime_slots', poll_id=poll_id),
-                'hx-target': '#master-datetime-slots',
-                'hx-swap': 'innerHTML',
-                'hx-headers': '{"X-CSRFToken": "{{ csrf_token() }}"}'})}}
+                {{form.start_date(class='input')}}
             </div>
         </div>
         <div class="field">
             <label class="label">{{form.end_date.label}}</label>
             <div class="control">
-                {{form.end_date(**{'hx-trigger': 'change',
-                'class': 'input',
-                'hx-post': url_for('besttime.preview_master_datetime_slots', poll_id=poll_id),
-                'hx-target': '#master-datetime-slots',
-                'hx-swap': 'innerHTML',
-                'hx-headers': '{"X-CSRFToken": "{{ csrf_token() }}"}'})}}
+                {{form.end_date(class='input')}}
             </div>
         </div>
+        <div class="field">
+            <a class="button is-info is-small is-light is-rounded"
+               hx-post="{{ url_for('besttime.preview_master_datetime_slots', poll_id=poll_id) }}"
+               hx-target="#master-datetime-slots"
+               hx-trigger="click, load"
+               hx-include="closest form"
+               hx-swap="innerHTML">
+                <span class="icon">
+                    <i class="fas fa-plus"></i>
+                </span>
+                <span>เพิ่ม</span>
+            </a>
+        </div>
+{#        <div class="field">#}
+{#            <label class="label">{{form.start_date.label}}</label>#}
+{#            <div class="control">#}
+{#                {{form.start_date(**{'hx-trigger': 'change',#}
+{#                'class': 'input',#}
+{#                'hx-post': url_for('besttime.preview_master_datetime_slots', poll_id=poll_id),#}
+{#                'hx-target': '#master-datetime-slots',#}
+{#                'hx-swap': 'innerHTML',#}
+{#                'hx-headers': '{"X-CSRFToken": "{{ csrf_token() }}"}'})}}#}
+{#            </div>#}
+{#        </div>#}
+{#        <div class="field">#}
+{#            <label class="label">{{form.end_date.label}}</label>#}
+{#            <div class="control">#}
+{#                {{form.end_date(**{'hx-trigger': 'change',#}
+{#                'class': 'input',#}
+{#                'hx-post': url_for('besttime.preview_master_datetime_slots', poll_id=poll_id),#}
+{#                'hx-target': '#master-datetime-slots',#}
+{#                'hx-swap': 'innerHTML',#}
+{#                'hx-headers': '{"X-CSRFToken": "{{ csrf_token() }}"}'})}}#}
+{#            </div>#}
+{#        </div>#}
         <h1 class="title is-size-6">Date Time Slots Preview</h1>
         <div id="master-datetime-slots"></div>
         <div class="field">
@@ -112,7 +137,7 @@
             $('.js-example-basic-multiple').select2({
                 width: "100%",
             })
-            htmx.trigger('#start_date', 'change')
+            {#htmx.trigger('#start_date', 'change')#}
         })
     </script>
 {% endblock %}
