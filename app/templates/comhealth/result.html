@@ -48,6 +48,30 @@
 
             --summary-bg: #fffcf0;
             --summary-border: #fde68a;
+
+            --table-border-color: #e2e8f0;
+            --table-border-width: 1px;
+        }
+
+        table td, .table th {
+            border-bottom: var(--table-border-width) solid var(--table-border-color) !important;
+            border-top: 0 !important; /* ปิดเส้นด้านบนเพื่อไม่ให้เส้นซ้อนกัน */
+            vertical-align: middle;
+        }
+
+        /* ป้องกัน Dark Mode แทรกแซง */
+        @media (prefers-color-scheme: dark) {
+            body { background-color: #f1f5f9 !important; color: #334155 !important; }
+            .report-wrapper { background: white !important; color: #334155 !important; box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important; }
+            .lab-table-card, .table, .table td, .table th { background-color: white !important; color: #334155 !important; }
+            .main-section-title { background: #f8fafc !important; color: #1e293b !important; }
+            .vital-box { background: white !important; border-color: #e2e8f0 !important; }
+            .vital-value { color: #1e293b !important; }
+            .summary-list-card { background: var(--summary-bg) !important; border-color: var(--summary-border) !important; }
+            .summary-label { color: #475569 !important; }
+            .summary-value { color: #92400e !important; }
+            .lab-header { color: var(--primary-medical) !important; }
+            .has-text-grey { color: #64748b !important; }
         }
 
         body {
@@ -382,7 +406,7 @@
             <div class="mb-6">
                 <div class="main-section-title">
                     <span class="icon is-medium has-text-primary"><i class="fa-solid fa-heart-pulse fa-lg"></i></span>
-                    <h2 class="title is-4 mb-0">การตรวจร่างกายทั่วไป (PHYSICAL EXAMINATION)</h2>
+                    <h2 class="title is-4 mb-0" style="color: #334155;">การตรวจร่างกายทั่วไป (PHYSICAL EXAMINATION)</h2>
                 </div>
 
                 <div class="vitals-grid mb-4">
@@ -446,7 +470,7 @@
             <div class="mb-6">
                 <div class="main-section-title">
                     <span class="icon is-medium has-text-primary"><i class="fa-solid fa-flask-vial fa-lg"></i></span>
-                    <h2 class="title is-4 mb-0">การตรวจทางเคมี (Blood Chemistry)</h2>
+                    <h2 class="title is-4 mb-0" style="color: #334155;">การตรวจทางเคมี (Blood Chemistry)</h2>
                 </div>
                 <span id="test_result"></span>
                 <div class="chemistry-sub-group">
@@ -480,7 +504,7 @@
                             <div class="interpretation-box">
                                 <div class="interpretation-title">ผลการตรวจและคำแนะนำ</div>
                                 <div class="interpretation-content">
-                                    <p>• <strong>ผลการตรวจ:</strong> &nbsp;<span id="intp_glu">-</span></p>
+                                    <p>• <strong style="color: #64748b;">ผลการตรวจ:</strong> &nbsp;<span id="intp_glu">-</span></p>
                                     <p>• <span id="adv_glu">-</span></p>
                                 </div>
                             </div>
@@ -526,7 +550,7 @@
                             <div class="interpretation-box">
                                 <div class="interpretation-title">ผลการตรวจและคำแนะนำ</div>
                                 <div class="interpretation-content">
-                                    <p>• <strong>ผลการตรวจ:</strong> &nbsp;<span id="intp_bun_cre">-</span></p>
+                                    <p>• <strong style="color: #64748b;">ผลการตรวจ:</strong> &nbsp;<span id="intp_bun_cre">-</span></p>
                                     <p>• <span id="adv_bun_cre">-</span></p>
                                 </div>
                             </div>
@@ -566,7 +590,7 @@
                             <div class="interpretation-box">
                                 <div class="interpretation-title">ผลการตรวจและคำแนะนำ</div>
                                 <div class="interpretation-content">
-                                    <p>• <strong>ผลการตรวจ:</strong> &nbsp;<span id="intp_ua">-</span></p>
+                                    <p>• <strong style="color: #64748b;">ผลการตรวจ:</strong> &nbsp;<span id="intp_ua">-</span></p>
                                     <p>• <span id="adv_ua">-</span></p>
                                 </div>
                             </div>
@@ -624,7 +648,7 @@
                             <div class="interpretation-box">
                                 <div class="interpretation-title">ผลการตรวจและคำแนะนำ</div>
                                 <div class="interpretation-content">
-                                    <p>• <strong>ผลการตรวจ:</strong> &nbsp;<span id="intp_cho_tg_ldl">-</span></p>
+                                    <p>• <strong style="color: #64748b;">ผลการตรวจ:</strong> &nbsp;<span id="intp_cho_tg_ldl">-</span></p>
                                     <p>• <span id="adv_cho_tg_ldl">-</span></p>
                                 </div>
                             </div>
@@ -674,7 +698,7 @@
                             <div class="interpretation-box">
                                 <div class="interpretation-title">ผลการตรวจและคำแนะนำ</div>
                                 <div class="interpretation-content">
-                                    <p>• <strong>ผลการตรวจ:</strong> &nbsp;<span id="intp_ast_alt_alk">-</span></p>
+                                    <p>• <strong style="color: #64748b;">ผลการตรวจ:</strong> &nbsp;<span id="intp_ast_alt_alk">-</span></p>
                                     <p>•  &nbsp;<span id="adv_ast_alt_alk">-</span>
                                 </div>
                             </div>
@@ -765,7 +789,7 @@
                             <div class="interpretation-box cbc-interp">
                                 <div class="interpretation-title">ผลการตรวจและคำแนะนำ</div>
                                 <div class="interpretation-content">
-                                    <p>• <strong>ผลการตรวจ:</strong> &nbsp;<span id="intp_cbc_hb_mcv">-</span></p>
+                                    <p>• <strong style="color: #64748b;">ผลการตรวจ:</strong> &nbsp;<span id="intp_cbc_hb_mcv">-</span></p>
                                     <p>• <span id="adv_cbc_hb_mcv">-</span>
                                 </div>
                             </div>
@@ -805,7 +829,7 @@
                             <div class="interpretation-box cbc-interp">
                                 <div class="interpretation-title">ผลการตรวจและคำแนะนำ</div>
                                 <div class="interpretation-content">
-                                    <p>• <strong>ผลการตรวจ:</strong> &nbsp;<span id="intp_cbc_pl_count">-</span></p>
+                                    <p>• <strong style="color: #64748b;">ผลการตรวจ:</strong> &nbsp;<span id="intp_cbc_pl_count">-</span></p>
                                     <p>• <span id="adv_cbc_pl_count">-</span></p>
                                 </div>
                             </div>
@@ -845,7 +869,7 @@
                             <div class="interpretation-box cbc-interp">
                                 <div class="interpretation-title">ผลการตรวจและคำแนะนำ</div>
                                 <div class="interpretation-content">
-                                    <p>• <strong>ผลการตรวจ:</strong> &nbsp;<span id="intp_cbc_wbc_count">-</span></p>
+                                    <p>• <strong style="color: #64748b;">ผลการตรวจ:</strong> &nbsp;<span id="intp_cbc_wbc_count">-</span></p>
                                     <p>• <span id="adv_cbc_wbc_count">-</span></p>
                                 </div>
                             </div>
@@ -909,7 +933,7 @@
                             <div class="interpretation-box cbc-interp">
                                 <div class="interpretation-title">ผลการตรวจและคำแนะนำ</div>
                                 <div class="interpretation-content">
-                                    <p>• <strong>ผลการตรวจ:</strong> &nbsp;<span id="intp_cbc_diff">-</span></p>
+                                    <p>• <strong style="color: #64748b;">ผลการตรวจ:</strong> &nbsp;<span id="intp_cbc_diff">-</span></p>
                                     <p><span id="adv_cbc_diff">-</span></p>
                                 </div>
                             </div>
@@ -971,7 +995,7 @@
                             <div class="interpretation-box ua-interp-theme">
                                 <div class="interpretation-title">ผลการตรวจและคำแนะนำ (Urinalysis)</div>
                                 <div class="interpretation-content">
-                                    <p>• <strong>ผลการตรวจ:</strong> &nbsp;<span id="intp_urine_p_g">-</span></p>
+                                    <p>• <strong style="color: #64748b;">ผลการตรวจ:</strong> &nbsp;<span id="intp_urine_p_g">-</span></p>
                                     <p><span id="adv_urine_p_g">-</span>
                                 </div>
                             </div>
