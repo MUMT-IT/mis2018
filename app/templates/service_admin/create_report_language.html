@@ -11,6 +11,7 @@
     {% include "service_admin/admin_nav.html" %}
     <section class="section">
         <div class="container">
+            {% include 'messages.html' %}
             <div class="columns">
                 <div class="column has-text-centered">
                     <h1 class="title">
@@ -20,12 +21,11 @@
             </div>
             <div class="columns">
                 <div class="column is-10 is-offset-1">
-                    <div class="box">
-                        <form method="post">
-                            <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
-                            <div class="field">
-                                <label class="label">ใบรายงานผล</label>
-                            </div>
+                    <form method="post">
+                        <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                        <div class="box">
+                            <h5 class="title is-size-5">ใบรายงานผล</h5>
+                            <hr style="background-color: gainsboro">
                             {% for language, reports in report_languages|sort(attribute='group_id')|groupby('group_id') %}
                                 <div class="field">
                                     <div class="control">
@@ -35,8 +35,12 @@
                                 <div class="field ml-4" id="{{ reports[0].eng_language }}-options">
                                     <div class="control">
                                         {% for r in reports|sort(attribute='no') %}
-                                            <label {% if r.category == 'copy' %}class="checkbox mb-2 ml-4"
-                                                   {% else %}class="checkbox mb-2"{% endif %}>
+                                            <label {% if r.category == 'copy' %}
+                                                        class="checkbox mb-2 ml-4"
+                                                   {% else %}
+                                                        class="checkbox mb-2"
+                                                    {% endif %}
+                                            >
                                                 <input id="{{ r.category }}" type="checkbox"
                                                        name="check_report_language"
                                                        value="{{ r.id }}"
@@ -49,20 +53,34 @@
                                                     ราคา {{ "{:,.2f}".format(r.price) }} บาท
                                                 {% endif %}
                                             </label>
-                                            <br/>
+                                            <br>
                                         {% endfor %}
                                     </div>
                                 </div>
                             {% endfor %}
-                            <div class="field">
-                                <div class="buttons is-centered">
-                                    <button class="button is-success" type="submit" value="submit">
-                                        บันทึกและดำเนินการต่อ
-                                    </button>
-                                </div>
+                        </div>
+                        <div class="box">
+                            <h5 class="title is-size-5">ช่องทางการรับใบรายงานผล</h5>
+                            <hr style="background-color: gainsboro">
+                            {% for report_receive_channel in report_receive_channels|sort(attribute='no') %}
+                                <label>
+                                    <input type="radio" name="report_receive_channel" value="{{ report_receive_channel.id }}"
+                                            {% if service_request.report_receive_channel_id == report_receive_channel.id %}
+                                                checked
+                                            {% endif %}>
+                                    {{ report_receive_channel.item }}
+                                </label>
+                                <br>
+                            {% endfor %}
+                        </div>
+                        <div class="field">
+                            <div class="buttons is-centered">
+                                <button class="button is-success" type="submit" value="submit">
+                                    บันทึกและดำเนินการต่อ
+                                </button>
                             </div>
-                        </form>
-                    </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

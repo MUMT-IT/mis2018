@@ -1,45 +1,45 @@
 # -*- coding: utf-8 -*-
+import datetime
 import io
 import json
 import os
-import datetime
+import re
 from collections import OrderedDict, defaultdict
 from io import BytesIO
 
-import arrow
 import pandas as pd
-from flask_cors import cross_origin
-from flask_mail import Message
-from flask_wtf.csrf import generate_csrf
-from pandas import read_excel, isna
+import requests
 from bahttext import bahttext
-from decimal import Decimal
-
-from sqlalchemy import or_, case
-from sqlalchemy.orm.attributes import flag_modified
-from sqlalchemy.sql import and_
 from flask import (render_template, flash, redirect,
                    url_for, session, request, send_file,
-                   send_from_directory, jsonify, make_response)
+                   send_from_directory, make_response)
 from flask_admin import BaseView, expose
+from flask_cors import cross_origin
 from flask_login import login_required, current_user
+from flask_mail import Message
+from flask_wtf.csrf import generate_csrf
+from markupsafe import escape
+from pandas import read_excel, isna
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
-from reportlab.lib.utils import ImageReader
-from reportlab.platypus import (SimpleDocTemplate, Table, Image,
-                                Spacer, Paragraph, TableStyle, PageBreak, KeepTogether)
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
+from reportlab.platypus import (SimpleDocTemplate, Table, Image,
+                                Spacer, Paragraph, TableStyle, PageBreak, KeepTogether)
+from sqlalchemy import or_, case
+from sqlalchemy.orm.attributes import flag_modified
+from sqlalchemy.sql import and_
 
-from . import comhealth
+from app.main import mail
+from .apis import *
 from .forms import (ServiceForm, TestProfileForm, TestListForm,
                     TestForm, TestGroupForm, CustomerForm, PasswordOfSignDigitalForm, SendMailToCustomerForm,
                     CustomerInfoForm)
 from .models import *
-from app.main import cors, mail
 from ..e_sign_api import e_sign
 
 bangkok = pytz.timezone('Asia/Bangkok')
@@ -268,6 +268,7 @@ def show_finance_records(service_id):
 @comhealth.route('/customers')
 @login_required
 def index():
+
     services = ComHealthService.query.all()
     services_data = []
     for sv in services:
@@ -2476,12 +2477,14 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
         style=style_sheet['ThaiStyle']) if sign else ""
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer,
-                            rightMargin=10,
-                            leftMargin=10,
-                            topMargin=180,
-                            bottomMargin=10,
-                            )
+
+    doc = SimpleDocTemplate(
+        buffer,
+        rightMargin=10,
+        leftMargin=10,
+        topMargin=180,
+        bottomMargin=10,
+    )
     receipt_number = receipt.code
     data = []
     affiliation = '''<para align=center><font size=10>
@@ -2536,9 +2539,9 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                                    style=style_sheet['ThaiStyle'])
     hight_customer_name = 5.5
     if receipt.issued_for:
-
+        hight_customer_name = 4.0
         customer_name = '''<para><font size=12>
-        ได้รับเงินจาก / RECEIVED FROM {issued_for} ({customer_name})<br/>
+        ได้รับเงินจาก / RECEIVED FROM {issued_for}<br/>
         ที่อยู่ / ADDRESS {address} <br/>
         </font></para>
         '''.format(issued_for=receipt.issued_for,
@@ -3077,11 +3080,13 @@ def add_consent_records(service_id, consent_detail_id):
 
 
 @comhealth.route('/receipt/search')
+@login_required
 def search_receipt():
     return render_template('comhealth/search_receipt.html')
 
 
 @comhealth.route('/receipt/search/list', methods=['POST', 'GET'])
+@login_required
 def receipt_list():
     code = request.form.get('code', None)
     if code:
@@ -3091,3 +3096,852 @@ def receipt_list():
     if request.headers.get('HX-Request') == 'true':
         return render_template('comhealth/receipt_list.html', receipt_detail=receipt_detail)
     return render_template('comhealth/receipt_list.html', receipt_detail=receipt_detail)
+
+
+@comhealth.route('/list/servicedate')
+@login_required
+def customers_result_list():
+    customer = ComHealthCustomer.query.filter_by(firstname=current_user.personal_info.th_firstname, lastname=current_user.personal_info.th_lastname).first()
+    #email = customer.email  ( ใช้สำหรับคนภายนอก )
+
+    email = current_user.email #( ภายในคณะ )
+    email = f"{email}@mahidol.ac.th" #( ภายในคณะ )
+
+    return render_template('comhealth/customers_result_list.html',email=email)
+
+
+@comhealth.route('/api/cmslis/<email>')
+@login_required
+def cmslis_email(email):
+
+    api_employee_url = f"https://webmt.mahidol.ac.th/api/Employees/email/{email}"
+    response_employee = requests.get(api_employee_url)
+
+    if response_employee.status_code != 200:
+        return '<tr><td colspan="2" class="has-text-centered">ไม่พบข้อมูล</td></tr>'
+
+    employee = response_employee.json()
+
+    cmscode = employee.get("cmsCode")
+    if not cmscode:
+        return '<tr><td colspan="2" class="has-text-centered">ไม่พบข้อมูล</td></tr>'
+
+
+    # service วันที่ตรวจ
+    api_services_url = f"http://webmt.mahidol.ac.th/api/Employees/{cmscode}/services"
+    response_services = requests.get(api_services_url)
+    services = response_services.json()
+
+    html = ""
+    data = services.get("data", [])
+
+    if not data:
+        return '<tr><td colspan="2" class="has-text-centered">ไม่พบข้อมูล</td></tr>'
+
+
+    for row in data:
+        servicedate = row.get("currentDate")
+        dt = datetime.fromisoformat(servicedate)
+        servicedate_thai = dt.strftime("%d/%m/") + str(dt.year + 543)
+
+        serviceno = row.get("serviceNo")
+
+        result_url = url_for(
+            'comhealth.customer_result',
+            serviceNo=serviceno,
+            email=email,
+            servicedate=servicedate
+        )
+
+        html += f"""
+        <tr>
+            <td class="is-vcentered">
+                <div class="has-text-weight-bold">{servicedate_thai}</div>
+            </td>
+            <td class="has-text-centered is-vcentered">
+                <a href="{result_url}" class="button btn-view is-small is-rounded">
+                    <span class="icon"><i class="fas fa-search"></i></span>
+                    <span>ดูผลตรวจ</span>
+                </a>
+            </td>
+        </tr>
+        """
+
+    return html
+
+
+INTERPRET_CACHE = {}
+def load_all_interpret():
+    global INTERPRET_CACHE
+
+    if INTERPRET_CACHE:
+        return INTERPRET_CACHE  # ถ้าโหลดแล้ว ไม่ต้องโหลดซ้ำ
+
+    url = "https://webmt.mahidol.ac.th/api/ConditionInterprets"
+    response = requests.get(url, timeout=10)
+    data = response.json()["data"]
+
+    INTERPRET_CACHE = {
+        item["condiInterpretId"]: item
+        for item in data
+    }
+
+    return INTERPRET_CACHE
+
+CONDITION_CACHE = {}
+def load_all_conditions():
+    global CONDITION_CACHE
+
+    if CONDITION_CACHE:
+        return CONDITION_CACHE  # โหลดแล้วไม่ต้องโหลดซ้ำ
+
+    url = "https://webmt.mahidol.ac.th/api/Conditions"
+    response = requests.get(url, timeout=10)
+    data = response.json()
+
+    grouped = defaultdict(list)
+
+    for item in data:
+        subject = item.get("subject")
+        grouped[subject].append(item)
+
+    CONDITION_CACHE = dict(grouped)
+    return CONDITION_CACHE
+
+mapping_color_inp = {
+        "Nm": ("has-text-dark"),
+        "AbH": ("has-text-danger")
+    }
+
+@comhealth.route('/result/<int:serviceNo>/<string:email>/<string:servicedate>')
+@login_required
+def customer_result(serviceNo, email, servicedate):
+    api_employee_url = f"https://webmt.mahidol.ac.th/api/Employees/email/{email}"
+    response_employee = requests.get(api_employee_url)
+    employee = response_employee.json()
+
+    dt = datetime.fromisoformat(servicedate)
+    servicedate_thai = dt.strftime("%d/%m/") + str(dt.year + 543)
+
+    load_all_interpret()
+
+    return render_template(
+        'comhealth/result.html',
+        employee=employee,
+        servicedate_thai=servicedate_thai,
+        service_no=serviceNo
+    )
+
+@comhealth.route('/api/physical/<int:serviceNo>')
+@login_required
+def employee_physical(serviceNo):
+    'phyical น้ำหนัก ส่วนสูง'
+    api_physical_url = f"http://webmt.mahidol.ac.th/api/PhysicalExams/{serviceNo}"
+    try:
+        reponse_physical = requests.get(api_physical_url)
+        physical = reponse_physical.json()
+    except:
+        return '<tr><td colspan="4">Error loading data</td></tr>'
+
+    api_waist_url = f"https://webmt.mahidol.ac.th/api/Questionares/waistline/{serviceNo}"
+    try:
+        reponse_waist = requests.get(api_waist_url)
+        question = reponse_waist.json()
+    except:
+        return '<tr><td colspan="4">Error loading data</td></tr>'
+
+    weight = physical.get("weight","")
+    height = physical.get("height","")
+    heartrate = physical.get("heartRate","")
+    systolic = physical.get("systolic","")
+    comment = physical.get("comment","")
+    waistline  = question.get("waistline","")
+    if not waistline:
+        waistline = '-'
+
+    interpret_cache = load_all_interpret()
+    condition_cache = load_all_conditions()
+
+    def calculate_bmi(weight_kg, height_cm):
+        try:
+            weight_kg = float(weight_kg)
+            height_cm = float(height_cm)
+
+            if height_cm == 0:
+                return None
+
+            height_m = height_cm / 100
+            bmi = weight_kg / (height_m ** 2)
+
+            return round(bmi, 1)
+        except (TypeError, ValueError):
+            return None
+
+    bmi = calculate_bmi(weight, height)
+
+    if bmi is not None:
+        bmi_condi = match_condition(bmi, 0, 0, condition_cache.get("BMI"))
+        bmi_inp_id = interpret_cache.get(bmi_condi.get('condiInterpretId',""))
+        bmi_adv = bmi_inp_id.get('advise',"")
+        bmi_isnormal = bmi_inp_id.get('autoVal', "")
+        color_bmi_inp = mapping_color_inp.get(bmi_isnormal, ("has-text-warning"))
+    else:
+        bmi = '-'
+        bmi_inp = ''
+        bmi_adv = ''
+        color_bmi_inp = 'has-text-dark'
+
+    #systolic
+    if systolic != '':
+        bp_condi = get_bp_interpret_id(systolic, condition_cache.get('Systolic'))
+        bp_inp_id = interpret_cache.get(bp_condi)
+        bp_inp = bp_inp_id.get('interpret',"")
+        bp_isnormal = bp_inp_id.get('autoVal',"")
+        color_bp_inp = mapping_color_inp.get(bp_isnormal, ("has-text-warning"))
+    else:
+        color_bp_inp = 'has-text-dark'
+        bp_inp = ''
+
+    return (
+        f'<span id="weight" hx-swap-oob="true">{weight}</span>'
+        f'<span id="height" hx-swap-oob="true">{height}</span>'
+        f'<span id="heartrate" hx-swap-oob="true">{heartrate}</span>'
+        f'<span id="systolic" hx-swap-oob="true" class="{color_bp_inp}">{systolic}</span>'
+        f'<span id="waistline" hx-swap-oob="true">{waistline}</span>'
+        f'<span id="bmi" hx-swap-oob="true" class="{color_bmi_inp}">{bmi}</span>'
+        f'<span id="bmi_inp" hx-swap-oob="true" class={color_bmi_inp}>{bmi_adv}</span>'
+        f'<span id="comment" hx-swap-oob="true">{comment}</span>'
+        f'<span id="bp_inp" hx-swap-oob="true" class="{color_bp_inp}">{bp_inp}</span>'
+    )
+
+
+@comhealth.route('/api/lab/<int:serviceNo>/<int:age>/<gender>')
+@login_required
+def employee_lab(serviceNo, age, gender):
+
+    api_lab_url = f"https://webmt.mahidol.ac.th/api/Labs/service/testsummary/{serviceNo}"
+    try:
+        response = requests.get(api_lab_url)
+        lab = response.json()
+    except:
+        return '<tr><td colspan="4">Error loading data</td></tr>'
+
+    html = ""
+    condition_cache = load_all_conditions()
+    interpret_cache = load_all_interpret()
+    results_dict = {}
+
+    for row in lab.get("data", []):
+        if row.get("testNormalBook") == True:
+            tcode = row.get("tcode")
+            testname = escape(row.get("testNamePrintResult"))
+            value = escape(row.get("testResult"))
+            ref = escape(row.get("refBookTh"))
+            unit = row.get("unit")
+
+            if tcode == "LDL2":
+                tcode_oob = "LDL"
+            elif tcode == "LDLD":
+                tcode_oob = "LDL"
+            else:
+                tcode_oob = tcode
+
+            try:
+                condi = match_condition(value, age, gender, condition_cache.get(tcode))
+                inp_id = interpret_cache.get(condi.get('condiInterpretId', ""))
+                isnormal = inp_id.get('autoVal', "")
+                color_inp = mapping_color_inp.get(isnormal, ("has-text-warning"))
+            except:
+                condi = None
+                color_inp = 'has-text-dark'
+
+            results_dict[tcode] = {
+                "testname": testname,
+                "value": value
+            }
+
+            html += render_lab_oob(
+                tcode=tcode_oob,
+                value=value,
+                ref=ref,
+                testname=testname,
+                unit=unit,
+                color=color_inp
+            )
+    html += interpert_normaltest(lab,age,gender)
+    html += xray_result(serviceNo)
+    html += f'<div id="loader-overlay" class="hidden" hx-swap-oob="true"></div>'
+
+    return html
+
+
+def interpert_normaltest(lab,age,gender):
+    TARGET_TCODES = [
+        "GTT2","BUN","CRE","UA","CHO","HDLC","LDL2","TG","LDLD",
+        "AST","ALT","ALK",
+        "CBC10","CBC11","CBC08","CBC01","CBC02","CBC03","CBC04","CBC05","CBC06",
+        "UA05","UA06","UA13","UA14","UA18","UA22",
+        "SXM7","IFOBT"
+    ]
+    result = {}
+    urine_other = None
+    interpret_cache = load_all_interpret()
+    condition_cache = load_all_conditions()
+    for row in lab.get("data", []):
+        if row.get("testNormalBook") == True:
+
+            tcode = row.get("tcode")
+            value = escape(row.get("testResult"))
+
+            if tcode not in TARGET_TCODES:
+                continue
+
+            #urine wbc, urine rbc
+            if tcode == 'UA13' or tcode == 'UA14':
+                if "-" in value:
+                    u_wbc_rbc_value = value.split("-", 1)[1].strip()
+                    try:
+                        float(u_wbc_rbc_value)
+                        value = u_wbc_rbc_value
+                    except ValueError:
+                        continue
+                else:
+                    continue
+
+            if tcode == 'UA05' or tcode == 'UA06':
+                match = re.search(r"\d+", value)
+                if match:
+                    value = int(match.group())
+
+
+            if tcode == 'UA18':
+                try:
+                    float(value)
+                except ValueError:
+                    continue
+
+            if tcode == 'UA22':
+                urine_other = value
+                continue
+
+            if tcode == 'CBC10':
+                continue
+
+            condi = match_condition(value, age, gender, condition_cache.get(tcode))
+
+            if not condi:
+                continue
+
+            interpret_id = condi['condiInterpretId']
+
+            interpret_data = interpret_cache.get(interpret_id)
+
+            if interpret_data:
+                result[tcode] = {
+                    "condi_id": interpret_id,
+                    "interpret": interpret_data.get("interpret"),
+                    "advise": interpret_data.get("advise")
+                }
+            else:
+                result[tcode] = {
+                    "condi_id": "",
+                    "interpret": "",
+                    "advise": ""
+                }
+
+    def bun_cre_inpadv(bun_condi_inp_id, cre_condi_inp_id):
+        # กรณีผิดปกติทั้งคู่ -> 004005
+        abnormal_pairs = {
+            ('004003', '004002'),
+            ('004002', '004004'),
+            ('004003', '004004'),
+        }
+        if (bun_condi_inp_id, cre_condi_inp_id) in abnormal_pairs:
+            return api_interpert('004005')
+
+        # กรณีค่าตรงกันทั้งคู่
+        if bun_condi_inp_id == cre_condi_inp_id:
+            if bun_condi_inp_id in ['004001', '004002']:
+                return api_interpert(bun_condi_inp_id)
+
+        # CRE เดี่ยว
+        if cre_condi_inp_id in ['004001', '004002', '004004', '004006']:
+            return api_interpert(cre_condi_inp_id)
+
+        # BUN เดี่ยว
+        if bun_condi_inp_id == '004003':
+            return api_interpert(bun_condi_inp_id)
+
+    bun_cre_inp = None
+    bun_cre_adv = None
+    if "BUN" in result and "CRE" in result:
+        bun_cre_id = bun_cre_inpadv(
+            result["BUN"]["condi_id"],
+            result["CRE"]["condi_id"]
+        )
+        if bun_cre_id:
+            bun_cre_inp = bun_cre_id.get("interpret")
+            bun_cre_adv = bun_cre_id.get("advise")
+
+    def cho_tg_hdl_ldl_inadv(cho_condi_inp_id, tg_condi_inp_id, ldl_condi_inp_id):
+        # CHO และ LDL = 007003 (มี return ทันที)
+        if cho_condi_inp_id == '007003' and ldl_condi_inp_id == '007003':
+            return api_interpert('007003')
+
+        # CHO = 007004 และ LDL = 007006 (มี return ทันที)
+        if cho_condi_inp_id == '007004' and ldl_condi_inp_id == '007006':
+            return api_interpert('007004')
+
+        result = None
+
+        # กลุ่มปกติ
+        if '007002' in (cho_condi_inp_id, tg_condi_inp_id, ldl_condi_inp_id):
+            result = api_interpert('007002')
+
+        # CHO ต่ำ
+        if cho_condi_inp_id == '007001':
+            result = api_interpert('007001')
+
+        # สูงกว่าเล็กน้อย
+        if '007003' in (cho_condi_inp_id, tg_condi_inp_id, ldl_condi_inp_id):
+            result = api_interpert('007003')
+
+        # สูง
+        if (
+                cho_condi_inp_id == '007004' or
+                tg_condi_inp_id == '007005' or
+                ldl_condi_inp_id == '007006'
+        ):
+            result = api_interpert('007004')
+
+        return result
+
+    cho_tg_ldl_inp = None
+    cho_tg_ldl_adv = None
+    if "CHO" in result and "TG" in result:
+
+        ldl_key = None
+
+        if "LDLD" in result:
+            ldl_key = "LDLD"
+        elif "LDL2" in result:
+            ldl_key = "LDL2"
+
+        if ldl_key:
+            cho_tg_ldl_id = cho_tg_hdl_ldl_inadv(
+                result["CHO"]["condi_id"],
+                result["TG"]["condi_id"],
+                result[ldl_key]["condi_id"],
+            )
+        if cho_tg_ldl_id:
+            cho_tg_ldl_inp = cho_tg_ldl_id.get("interpret")
+            cho_tg_ldl_adv = cho_tg_ldl_id.get("advise")
+
+
+    def liver_inadv(ast_inp_id, alt_inp_id, alk_inp_id):
+        values = (ast_inp_id, alt_inp_id, alk_inp_id)
+
+        # ระดับผิดปกติ
+        if '008003' in values:
+            return api_interpert('008003')
+
+        # ระดับกึ่ง
+        if '008002' in values:
+            return api_interpert('008002')
+
+        # ระดับปกติ
+        if '008001' in values:
+            return api_interpert('008001')
+
+        return None
+
+
+    ast_alt_alk_inp = None
+    ast_alt_alk_adv = None
+    if "AST" in result and "ALT" in result and "ALK" in result:
+        ast_alt_alk_id = liver_inadv(
+            result["AST"]["condi_id"],
+            result["ALT"]["condi_id"],
+            result["ALK"]["condi_id"],
+        )
+        if ast_alt_alk_id:
+            ast_alt_alk_inp = ast_alt_alk_id.get("interpret")
+            ast_alt_alk_adv = ast_alt_alk_id.get("advise")
+
+
+    def cbc_diff_interpret(n_id, l_id, m_id, e_id, b_id):
+        result = None
+        # ปกติทุกตัว
+        if (
+                n_id == "011001" and
+                l_id == "012001" and
+                m_id == "013001" and
+                e_id == "014001" and
+                b_id == "015001"
+        ):
+            data = api_interpert(n_id)
+            result = data.get("interpret")
+
+        # ต่ำกว่าปกติ (ระดับแรก)
+        if (
+                n_id == "011002" or
+                l_id == "012002" or
+                m_id == "013002"
+        ):
+            data = api_interpert("011002")
+            result = data.get("interpret")
+
+        # ต่ำกว่าปกติ (ระดับรุนแรงกว่า)
+        if (
+                n_id == "011003" or
+                l_id == "012003" or
+                m_id == "013003" or
+                e_id == "014002" or
+                b_id == "015002"
+        ):
+            data = api_interpert("011003")
+            result = data.get("interpret")
+
+        return result
+
+    cbc_diff_inp = None
+    cbc_diff_adv = None
+
+    if "CBC02" in result and "CBC03" in result and "CBC04" in result and "CBC05" in result and "CBC06" in result:
+        adv_n = result["CBC02"]["advise"]
+        adv_l = result["CBC03"]["advise"]
+        adv_m = result["CBC04"]["advise"]
+        adv_e = result["CBC05"]["advise"]
+        adv_b = result["CBC06"]["advise"]
+        cbc_diff_adv = text_br(adv_n, adv_l, adv_m, adv_e, adv_b)
+        cbc_diff_inp = cbc_diff_interpret(
+            result["CBC02"]["condi_id"],
+            result["CBC03"]["condi_id"],
+            result["CBC04"]["condi_id"],
+            result["CBC05"]["condi_id"],
+            result["CBC06"]["condi_id"],
+        )
+
+
+    def urine_protein_glucose_interpret(u1_p_id, u1_g_id):
+        # พบแพทย์ (รุนแรงสุด)
+        if u1_p_id in {"017007", "017006"}:
+            return api_interpert(u1_p_id).get("interpret")
+        # ผิดปกติ
+        if u1_p_id == "017005":
+            return api_interpert(u1_p_id).get("interpret")
+        if u1_g_id == "017004":
+            return api_interpert(u1_g_id).get("interpret")
+        # ระดับรองลงมา
+        if u1_p_id == "017003":
+            return api_interpert(u1_p_id).get("interpret")
+        if u1_g_id == "017002":
+            return api_interpert(u1_g_id).get("interpret")
+        return None
+
+    u_micro_adv = None
+    u_micro_inp = None
+    u_wbc_inp_id = None
+    u_rbc_inp_id = None
+    u_micro_keys = ["UA13", "UA14", "UA18"]
+    if any(k in result for k in u_micro_keys):
+        advises = [result.get(k, {}).get("advise", "") for k in u_micro_keys]
+        u_micro_adv = text_br(*advises)
+
+        u_wbc_inp_id = result.get("UA13", {}).get("interpret", "")
+        u_rbc_inp_id = result.get("UA14", {}).get("interpret", "")
+        u_crystal_id = result.get("UA18", {}).get("interpret", "")
+
+    urine_p_g_inp = 'ไม่ตรวจ'
+    urine_p_g_adv = None
+    if "UA05" in result and "UA06" in result:
+        urine_protein = result["UA05"]["advise"]
+        urine_glu = result["UA06"]["advise"]
+        urine_p_g_adv = text_br(urine_protein, urine_glu)
+        urine_p_g_inp = urine_protein_glucose_interpret(
+            result["UA05"]["condi_id"],
+            result["UA06"]["condi_id"],
+        )
+        #u_other_ip = find_cast(urine_other)
+        #u_micro_inp = api_interpert(u_other_ip).get("interpret")
+        u_other_ip = ''
+        u_micro_inp = ''
+
+    return  (
+        f'<span id="intp_glu" hx-swap-oob="true">{result.get("GTT2", {}).get("interpret", "")}</span>'
+        f'<span id="adv_glu" hx-swap-oob="true">{result.get("GTT2", {}).get("advise", "")}</span>'
+        f'<span id="intp_bun_cre" hx-swap-oob="true">{bun_cre_inp or ""}</span>'
+        f'<span id="adv_bun_cre" hx-swap-oob="true">{bun_cre_adv or ""}</span>'
+        f'<span id="intp_ua" hx-swap-oob="true">{result.get("UA", {}).get("interpret", "")}</span>'
+        f'<span id="adv_ua" hx-swap-oob="true">{result.get("UA", {}).get("advise", "")}</span>'
+        f'<span id="intp_cho_tg_ldl" hx-swap-oob="true">{cho_tg_ldl_inp or ""}</span>'
+        f'<span id="adv_cho_tg_ldl" hx-swap-oob="true">{cho_tg_ldl_adv or ""}</span>'
+        f'<span id="intp_ast_alt_alk" hx-swap-oob="true">{ast_alt_alk_inp or ""}</span>'
+        f'<span id="adv_ast_alt_alk" hx-swap-oob="true">{ast_alt_alk_adv or ""}</span>'
+        f'<span id="intp_cbc_hb_mcv" hx-swap-oob="true">{result.get("CBC11", {}).get("interpret", "")}</span>'
+        f'<span id="adv_cbc_hb_mcv" hx-swap-oob="true">{result.get("CBC11", {}).get("advise", "")}</span>'
+        f'<span id="intp_cbc_pl_count" hx-swap-oob="true">{result.get("CBC08", {}).get("interpret", "")}</span>'
+        f'<span id="adv_cbc_pl_count" hx-swap-oob="true">{result.get("CBC08", {}).get("advise", "")}</span>'
+        f'<span id="intp_cbc_wbc_count" hx-swap-oob="true">{result.get("CBC01", {}).get("interpret", "")}</span>'
+        f'<span id="adv_cbc_wbc_count" hx-swap-oob="true">{result.get("CBC01", {}).get("advise", "")}</span>'
+        f'<span id="intp_cbc_diff" hx-swap-oob="true">{cbc_diff_inp or ""}</span>'
+        f'<span id="adv_cbc_diff" hx-swap-oob="true">{cbc_diff_adv or ""}</span>'
+        f'<span id="intp_urine_p_g" hx-swap-oob="true">{urine_p_g_inp or ""}</span>'
+        f'<span id="adv_urine_p_g" hx-swap-oob="true">{urine_p_g_adv or ""}</span>'
+        f'<span id="adv_stool" hx-swap-oob="true">{result.get("SXM7", {}).get("advise", "")}</span>'
+        f'<span id="intp_ifobt" hx-swap-oob="true">{result.get("IFOBT", {}).get("interpret", "")}</span>'
+        f'<span id="adv_ifobt" hx-swap-oob="true">{result.get("IFOBT", {}).get("advise", "")}</span>'
+        f'<span id="intp_urine_micro" hx-swap-oob="true">{u_micro_inp or ""}</span>'
+        f'<span id="adv_urine_micro" hx-swap-oob="true">{u_micro_adv or ""}</span>'
+    )
+
+
+def text_br(*advises):
+    clean_advises = [adv for adv in advises if adv]
+    return "<br>".join(clean_advises)
+
+
+@comhealth.route('/api/testspecial/<int:serviceNo>/<int:gender>/<int:age>')
+def testspecial(serviceNo, gender, age):
+    api_lab_url = f"https://webmt.mahidol.ac.th/api/Labs/service/testsummary/{serviceNo}"
+    try:
+        response = requests.get(api_lab_url)
+        lab = response.json()
+    except:
+        return '<tr><td colspan="4">Error loading data</td></tr>'
+
+    rows = ""
+    cre_value = None
+    for row in lab.get("data", []):
+        tcode = escape(row.get("tcode", "-"))
+        if tcode == 'CRE':
+            cre_value = escape(row.get("testResult", "-"))
+        if not row.get("testNormalBook") and not row.get("isProfile"):
+            testname = escape(row.get("testNamePrintResult", "-"))
+            if tcode == 'eGFR':
+                value = egfr(gender,cre_value,age)
+            else:
+                value = escape(row.get("testResult", "-"))
+            ref = escape(row.get("refBookTh", "-"))
+            unit = row.get("unit", "")
+
+            rows += f'''
+                <tr>
+                    <td>{testname}</td>
+                    <td class="text-center">{value}</td>
+                    <td>{ref}</td>
+                    <td>{unit}</td>
+                </tr>
+            '''
+    if not rows:
+        rows = '<tr><td colspan="4" class="text-muted text-center">ไม่มีข้อมูลรายการตรวจพิเศษ</td></tr>'
+
+    return f'''
+            <tbody id="testspecial">
+                {rows}
+            </tbody>
+        '''
+
+
+@comhealth.route('/api/xray/<int:serviceNo>')
+@login_required
+def xray_result(serviceNo):
+    api_url = f"https://webmt.mahidol.ac.th/api/XRays/{serviceNo}"
+    reponse_xray = requests.get(api_url)
+    xray =  reponse_xray.json()
+    status = xray.get("status")
+    chest = xray.get("chest")
+    isnormal = xray.get("normal")
+
+    if status == 404:
+        status = 'ไม่ X-ray'
+        chest = ''
+        status_class = "has-text-black"
+    else:
+        status_class = "has-text-warning" if str(isnormal).lower() == "false" else "has-text-success"
+
+    return (
+        f'<span id="xray_status" hx-swap-oob="true" class="{status_class}">{status}</span>'
+        f'<span id="xray_chest" hx-swap-oob="true">{chest}</span>'
+    )
+
+
+def render_lab_oob(tcode, value, ref, testname, unit, color):
+    return (
+        f'<span id="{tcode}_name" hx-swap-oob="true">{testname}</span>'
+        f'<span id="{tcode}_result" hx-swap-oob="true" class="{color}">{value}</span>'
+        f'<span id="{tcode}_ref" hx-swap-oob="true">{ref}</span>'
+        f'<span id="{tcode}_unit" hx-swap-oob="true">{unit}</span>'
+    )
+
+
+def api_interpert(condiinterpret_id):
+    interpret_cache = load_all_interpret()
+    return interpret_cache.get(condiinterpret_id)
+
+
+def api_condition(tcode):
+    condi_url = f"https://webmt.mahidol.ac.th/api/Conditions/subject/{tcode}"
+    return requests.get(condi_url).json()["data"]
+
+
+def match_condition(test_result, age, sex, conditions):
+    for c in conditions:
+
+        # ---------- เพศ ----------
+        if c.get("sex") not in ("0", sex):
+            continue
+
+        condi_type = c.get("condiType")
+        # ---------- อายุ ----------
+        condi_type_age = c.get("condiTypeAge")
+
+        if condi_type == "=":
+            if str(test_result).strip().lower() == str(c.get("result1")).strip().lower():
+                return {
+                    "condiId": c["condiId"],
+                    "condiInterpretId": c["condiInterpretId"],
+                    "groupCondiId": c["groupCondiId"],
+                }
+            continue
+
+        try:
+            test_result = float(test_result)
+        except (TypeError, ValueError):
+            continue
+
+        if condi_type_age == ">":
+            if age <= int(c.get("age", 0)):
+                continue
+
+        elif condi_type_age == ">=":
+            if age < int(c.get("age", 0)):
+                continue
+
+        elif condi_type_age == "<":
+            if age >= int(c.get("age", 0)):
+                continue
+
+        elif condi_type_age == "<=":
+            if age > int(c.get("age", 0)):
+                continue
+
+        elif condi_type_age == "between":
+            age1 = int(c.get("age", 0))
+            age2 = int(c.get("age2", 0))
+            if not (age1 <= age <= age2):
+                continue
+
+        # ---------- ค่า Test_Result ----------
+        condi_type = c.get("condiType")
+        r1 = float(c.get("result1"))
+        r2 = float(c.get("result2")) if c.get("result2") else None
+
+        match = False
+
+        if condi_type == ">":
+            match = test_result > r1
+
+        elif condi_type == ">=":
+            match = test_result >= r1
+
+        elif condi_type == "<":
+            match = test_result < r1
+
+        elif condi_type == "<=":
+            match = test_result <= r1
+
+        elif condi_type == "between":
+            match = r1 <= test_result <= r2
+
+        if match:
+            return {
+                "condiId": c.get("condiId"),
+                "condiInterpretId": c.get("condiInterpretId"),
+                "ref": c.get("refEng"),
+                "unit": c.get("unit"),
+            }
+
+    return None
+
+
+def parse_bp(bp_str):
+    s, d = bp_str.split("/")
+    return int(s), int(d)
+
+
+def check_range(bp, r1, r2, cond):
+    s, d = bp
+    r1s, r1d = parse_bp(r1)
+
+    if cond == "<":
+        return (s < r1s) or (d < r1d)
+
+    if cond == ">=":
+        return (s >= r1s) or (d >= r1d)
+
+    if cond == "between":
+        r2s, r2d = parse_bp(r2)
+        return (r1s <= s <= r2s) or (r1d <= d <= r2d)
+
+    return False
+
+
+def get_bp_interpret_id(result_bp, data):
+    s, d = map(int, result_bp.split("/"))
+
+    # ตรวจความดันต่ำก่อน
+    if s < 90 or d < 60:
+        return "001001"
+
+    matches = []
+
+    for row in data:
+        r1s, r1d = map(int, row["result1"].split("/"))
+
+        if row["condiType"] == "between":
+            r2s, r2d = map(int, row["result2"].split("/"))
+
+            if (r1s <= s <= r2s) or (r1d <= d <= r2d):
+                matches.append(row)
+
+        elif row["condiType"] == ">=":
+            if s >= r1s or d >= r1d:
+                matches.append(row)
+
+    if matches:
+        return max(matches, key=lambda x: int(x["condiId"]))["condiInterpretId"]
+
+    return None
+
+    return max(matches, key=lambda x: int(x["condiId"]))["condiInterpretId"]
+
+
+def egfr(gender_code, cre, age):
+    if age <= 0:
+        return ""
+
+    try:
+        cre = float(cre)
+        age = int(age)
+
+        if gender_code == 2:  # หญิง
+            g = 144
+            if cre <= 0.7:
+                gfr = g * (cre / 0.7) ** -0.329 * (0.993 ** age)
+            else:
+                gfr = g * (cre / 0.7) ** -1.209 * (0.993 ** age)
+
+        elif gender_code == 1:  # ชาย
+            g = 141
+            if cre <= 0.9:
+                gfr = g * (cre / 0.9) ** -0.411 * (0.993 ** age)
+            else:
+                gfr = g * (cre / 0.9) ** -1.209 * (0.993 ** age)
+        else:
+            return ""
+
+        return f"{gfr:.2f}"
+
+    except (TypeError, ValueError):
+        return ""

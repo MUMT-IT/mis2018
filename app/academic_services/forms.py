@@ -32,8 +32,10 @@ class ForgetPasswordForm(FlaskForm):
 
 
 class ResetPasswordForm(FlaskForm):
-    new_password = PasswordField('New Password', validators=[DataRequired()])
-    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('new_password')])
+    new_password = PasswordField('New Password', validators=[DataRequired(), Length(min=8,
+                                                                                    message='รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร')])
+    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('new_password',
+                                                                                             message='รหัสผ่านไม่ตรงกัน')])
     submit = SubmitField('Submit')
 
 
@@ -65,16 +67,16 @@ class ServiceCustomerAddressForm(ModelForm):
 
     name = StringField(validators=[DataRequired()])
     address = StringField('ที่อยู่', validators=[DataRequired()])
-    province = QuerySelectField('จังหวัด', query_factory=lambda: Province.query.order_by(Province.name),
+    province = QuerySelectField('จังหวัด', query_factory=lambda: Province.query.order_by(Province.order_id.asc()),
                                 allow_blank=True,
                                 blank_text='กรุณาเลือกจังหวัด', get_label='name',
                                 validators=[DataRequired(message='กรุณาเลือกจังหวัด')])
-    district = QuerySelectField('เขต/อำเภอ', query_factory=lambda: District.query.order_by(District.name),
+    district = QuerySelectField('เขต/อำเภอ', query_factory=lambda: District.query.order_by(District.order_id.asc()),
                                 allow_blank=True,
                                 blank_text='กรุณาเลือกเขต/อำเภอ', get_label='name',
                                 validators=[DataRequired(message='กรุณาเลือกเขต/อำเภอ')])
     subdistrict = QuerySelectField('แขวง/ตำบล',
-                                   query_factory=lambda: Subdistrict.query.order_by(Subdistrict.name),
+                                   query_factory=lambda: Subdistrict.query.order_by(Subdistrict.order_id.asc()),
                                    allow_blank=True,
                                    blank_text='กรุณาเลือกแขวง/ตำบล', get_label='name',
                                    validators=[DataRequired(message='กรุณาเลือกแขวง/ตำบล')])
@@ -200,7 +202,7 @@ bacteria_wash_organisms = [
 class BacteriaLiquidTestConditionForm(FlaskForm):
     liquid_organism = CheckboxField('เชื้อ', validators=[Optional()])
     liquid_ratio = StringField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'
-                                                                                                , 'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
+        , 'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
     liquid_per_water = StringField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input',
                                                                                  'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
     liquid_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (นาที)', validators=[Optional()],
@@ -228,16 +230,16 @@ class BacteriaLiquidConditionForm(FlaskForm):
 class BacteriaSprayTestConditionForm(FlaskForm):
     spray_organism = CheckboxField('เชื้อ', validators=[Optional()])
     spray_ratio = StringField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()],
-                               render_kw={'class': 'input', 'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
+                              render_kw={'class': 'input', 'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
     spray_per_water = StringField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input',
                                                                                 'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
     spray_distance = StringField('ระยะห่างในการฉีดพ่น (cm)', validators=[Optional()],
-                                  render_kw={'class': 'input', 'placeholder': 'เช่น 1 cm'})
+                                 render_kw={'class': 'input', 'placeholder': 'เช่น 1 cm'})
     spray_of_time = StringField('ระยะเวลาฉีดพ่น (วินาที)', validators=[Optional()],
-                                 render_kw={'class': 'input', 'placeholder': 'เช่น 30 วินาที'})
+                                render_kw={'class': 'input', 'placeholder': 'เช่น 30 วินาที'})
     spray_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (นาที)',
-                                       validators=[Optional()],
-                                       render_kw={'class': 'input', 'placeholder': 'เช่น 1 นาที'})
+                                      validators=[Optional()],
+                                      render_kw={'class': 'input', 'placeholder': 'เช่น 1 นาที'})
 
 
 class BacteriaSprayConditionForm(FlaskForm):
@@ -254,7 +256,7 @@ class BacteriaSprayConditionForm(FlaskForm):
                                       'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)')],
                                   validators=[Optional()])
     spray_surface_type = RadioField('ชนิดพื้นผิว', choices=[('พื้นผิวแข็งไม่มีรูพรุน', 'พื้นผิวแข็งไม่มีรูพรุน'),
-                                                            ('อื่นๆ โปรดระบุ', 'อื่นๆ โปรดระบุ')],
+                                                            ('อื่น ๆ', 'อื่น ๆ โปรดระบุ')],
                                     validators=[Optional()])
     spray_surface_type_other = StringField('ระบุ', render_kw={'class': 'input'})
     spray_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง'), ('ไม่เจือจาง', 'ไม่เจือจาง')],
@@ -266,7 +268,7 @@ class BacteriaSprayConditionForm(FlaskForm):
 class BacteriaSheetTestConditionForm(FlaskForm):
     sheet_organism = CheckboxField('เชื้อ', validators=[Optional()])
     sheet_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (นาที)', validators=[Optional()],
-                                       render_kw={'class': 'input', 'placeholder': 'เช่น 1 นาที'})
+                                      render_kw={'class': 'input', 'placeholder': 'เช่น 1 นาที'})
 
 
 class BacteriaSheetConditionForm(FlaskForm):
@@ -288,11 +290,11 @@ class BacteriaSheetConditionForm(FlaskForm):
 class BacteriaAfterWashTestConditionForm(FlaskForm):
     after_wash_organism = CheckboxField('เชื้อ', validators=[Optional()])
     after_wash_ratio = StringField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input',
-                                                                                                     'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
+                                                                                                    'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
     after_wash_per_water = StringField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input',
                                                                                      'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
     after_wash_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับผ้า (นาที)', validators=[Optional()],
-                                            render_kw={'class': 'input', 'placeholder': 'เช่น 1 นาที'})
+                                           render_kw={'class': 'input', 'placeholder': 'เช่น 1 นาที'})
 
 
 class BacteriaAfterWashConditionForm(FlaskForm):
@@ -391,9 +393,9 @@ class BacteriaRequestForm(FlaskForm):
                                                      "oninput": "this.setCustomValidity('')"
                                                  })
     amount = StringField('จำนวนที่ส่ง', validators=[DataRequired()],
-                          render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกจำนวนที่ส่ง')",
-                                     "oninput": "this.setCustomValidity('')"
-                                     })
+                         render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกจำนวนที่ส่ง')",
+                                    "oninput": "this.setCustomValidity('')"
+                                    })
     collect_sample_during_testing = SelectField('การเก็บตัวอย่างระหว่างรอทดสอบ',
                                                 choices=[('', 'กรุณาเลือกการเก็บตัวอย่างระหว่างรอทดสอบ'),
                                                          ('อุณหภูมิห้อง', 'อุณหภูมิห้อง'),
@@ -404,6 +406,14 @@ class BacteriaRequestForm(FlaskForm):
                                                     "oninput": "this.setCustomValidity('')"
                                                 })
     collect_sample_during_testing_other = StringField('ระบุ')
+    read_document = BooleanField(
+        'ข้าพเจ้าได้อ่านและรับทราบคู่มือการใช้บริการห้องปฏิบัติการ (MN-BS-025-07-01) แล้ว',
+        validators=[DataRequired(message='กรุณายอมรับ')],
+        render_kw={
+            "oninvalid": "this.setCustomValidity('กรุณายอมรับ')",
+            "oninput": "this.setCustomValidity('')"
+        }
+    )
     product_type = SelectField('ประเภทผลิตภัณฑ์', choices=[('', '+ เพิ่มประเภทผลิตภัณฑ์'),
                                                            ('liquid',
                                                             'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดของเหลว หรือชนิดผง ที่ละลายน้้าได้'),
@@ -426,10 +436,13 @@ class BacteriaRequestForm(FlaskForm):
 
 
 virus_liquid_organisms = [
-    'Influenza virus A (H1N1)',
-    'Enterovirus A-71',
+    'Influenza A virus (H1N1)',
+    'Influenza A virus (H3N2)',
+    'Influenza A virus (H5N1)',
     'Respiratory syncytial virus',
-    'SARS-CoV-2'
+    'Enterovirus A-71',
+    'SARS-CoV-2',
+    'Monkeypox virus'
 ]
 
 virus_airborne_organisms = [
@@ -438,26 +451,24 @@ virus_airborne_organisms = [
 
 
 class VirusLiquidTestConditionForm(FlaskForm):
-    liquid_organism = CheckboxField('เชื้อ', validators=[Optional()])
-    liquid_ratio = StringField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input',
-                                                                                                     'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
-    liquid_per_water = StringField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input',
-                                                                                 'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
+    liquid_organism = SelectField('เชื้อ', choices=[(c, c) for c in virus_liquid_organisms], validators=[Optional()])
+    liquid_ratio = StringField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
+    # liquid_per_water = StringField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
     liquid_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
-                                       render_kw={'class': 'input', 'placeholder': 'เช่น 30 วินาที หรือ 1 นาที'})
+                                       render_kw={'class': 'input'})
 
 
 class VirusLiquidConditionForm(FlaskForm):
     product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ฆ่าเชื้อ ชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้',
                                render_kw={'class': 'input is-danger'})
-    liquid_test_method = CheckboxField('วิธีทดสอบ',
-                                       choices=[(c, c) for c in ['วิธีทดสอบ ASTM E1052-20 (Virus suspension test)',
-                                                                 'วิธีทดสอบ ASTM E1053-20 (Nonporous environmental surfaces)',
-                                                                 'วิธีทดสอบ Modified ASTM E1053-20']],
-                                       validators=[Optional()])
+    liquid_test_method = RadioField('วิธีทดสอบ',
+                                    choices=[(c, c) for c in ['วิธีทดสอบ ASTM E1052-20 (Virus suspension test)',
+                                                              'วิธีทดสอบ ASTM E1053-20 (Nonporous environmental surfaces)',
+                                                              'วิธีทดสอบ Modified ASTM E1053-20']],
+                                    validators=[Optional()])
     liquid_surface_type = RadioField('ชนิดพื้นผิว', choices=[('สิ่งทอ', 'สิ่งทอ'),
-                                                             ('พื้นผิวอื่นๆ โปรดระบุ', 'พื้นผิวอื่นๆ โปรดระบุ')],
+                                                             ('พื้นผิวอื่น ๆ', 'พื้นผิวอื่น ๆ โปรดระบุ')],
                                      validators=[Optional()])
     liquid_surface_type_other = StringField('ระบุ', render_kw={'class': 'input'})
     liquid_product_preparation = RadioField('การเตรียมผลิตภัณฑ์เพื่อการทดสอบ',
@@ -466,21 +477,17 @@ class VirusLiquidConditionForm(FlaskForm):
                                                      ('ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน',
                                                       'ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน')],
                                             validators=[Optional()])
-    liquid_organism_fields = FieldList(FormField(VirusLiquidTestConditionForm), min_entries=len(virus_liquid_organisms))
+    liquid_organism_fields = FieldList(FormField(VirusLiquidTestConditionForm), min_entries=1)
 
 
 class VirusSprayTestConditionForm(FlaskForm):
-    spray_organism = CheckboxField('เชื้อ', validators=[Optional()])
-    spray_ratio = StringField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input',
-                                                                                                'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
-    spray_per_water = StringField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input',
-                                                                                 'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
-    spray_distance = StringField('ระยะห่างในการฉีดพ่น (cm)', validators=[Optional()], render_kw={'class': 'input',
-                                                                                                 'placeholder': 'เช่น 1 cm'})
-    spray_of_time = StringField('ระยะเวลาฉีดพ่น (วินาที)', validators=[Optional()], render_kw={'class': 'input',
-                                                                                                'placeholder': 'เช่น 30 วินาที'})
+    spray_organism = SelectField('เชื้อ', choices=[(c, c) for c in virus_liquid_organisms], validators=[Optional()])
+    spray_ratio = StringField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'})
+    # spray_per_water = StringField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input'})
+    spray_distance = StringField('ระยะห่างในการฉีดพ่น (cm)', validators=[Optional()], render_kw={'class': 'input'})
+    spray_of_time = StringField('ระยะเวลาฉีดพ่น (วินาที)', validators=[Optional()], render_kw={'class': 'input'})
     spray_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
-                                      render_kw={'class': 'input', 'placeholder': 'เช่น 30 วินาที หรือ 1 นาที'})
+                                      render_kw={'class': 'input'})
 
 
 class VirusSprayConditionForm(FlaskForm):
@@ -491,13 +498,13 @@ class VirusSprayConditionForm(FlaskForm):
                                    choices=[('ฉีดพ่นธรรมดา (Trigger spray)', 'ฉีดพ่นธรรมดา (Trigger spray)'),
                                             ('ฉีดพ่นอัดก๊าซ (Aerosol spray)', 'ฉีดพ่นอัดก๊าซ (Aerosol spray)')],
                                    validators=[Optional()])
-    spray_test_method = CheckboxField('วิธีทดสอบ', choices=[(c, c) for c in [
+    spray_test_method = RadioField('วิธีทดสอบ', choices=[(c, c) for c in [
         'วิธีทดสอบ ASTM E1053-20 (Nonporous environmental surfaces)',
         'วิธีทดสอบ Modified ASTM E1053-20']],
-                                      validators=[Optional()])
+                                   validators=[Optional()])
 
     spray_surface_type = RadioField('ชนิดพื้นผิว', choices=[('สิ่งทอ', 'สิ่งทอ'),
-                                                            ('พื้นผิวอื่นๆ โปรดระบุ', 'พื้นผิวอื่นๆ โปรดระบุ')],
+                                                            ('พื้นผิวอื่น ๆ', 'พื้นผิวอื่น ๆ โปรดระบุ')],
                                     validators=[Optional()])
     spray_surface_type_other = StringField('ระบุ', render_kw={'class': 'input'})
     spray_product_preparation = RadioField('การเตรียมผลิตภัณฑ์เพื่อการทดสอบ',
@@ -506,22 +513,25 @@ class VirusSprayConditionForm(FlaskForm):
                                                     ('ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน (แนบขวดสเปรย์มาด้วย)',
                                                      'ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน (แนบขวดสเปรย์มาด้วย)')],
                                            validators=[Optional()])
-    spray_organism_fields = FieldList(FormField(VirusSprayTestConditionForm), min_entries=len(virus_liquid_organisms))
+    spray_organism_fields = FieldList(FormField(VirusSprayTestConditionForm), min_entries=1)
 
 
 class VirusCoatTestConditionForm(FlaskForm):
-    coat_organism = CheckboxField('เชื้อ', validators=[Optional()])
+    coat_organism = SelectField('เชื้อ', choices=[(c, c) for c in virus_liquid_organisms], validators=[Optional()])
     coat_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)', validators=[Optional()],
-                                     render_kw={'class': 'input', 'placeholder': 'เช่น 30 วินาที หรือ 1 นาที'})
+                                     render_kw={'class': 'input'})
 
 
 class VirusCoatConditionForm(FlaskForm):
     product_type = HiddenField('ประเภทผลิตภัณฑ์', default='ผลิตภัณฑ์ฆ่าเชื้อที่เคลือบบนพื้นผิวสำเร็จรูป',
                                render_kw={'class': 'input is-danger'})
-    coat_test_method = CheckboxField('วิธีทดสอบ', choices=[(c, c) for c in ['วิธีทดสอบ Modified ASTM E1053-20']],
-                                     validators=[Optional()])
-    coat_specify_surface_type = StringField('ระบุชนิดของพื้นผิว', render_kw={'class': 'input'})
-    coat_organism_fields = FieldList(FormField(VirusCoatTestConditionForm), min_entries=len(virus_liquid_organisms))
+    coat_test_method = RadioField('วิธีทดสอบ', choices=[(c, c) for c in ['วิธีทดสอบ Modified ASTM E1053-20']],
+                                  validators=[Optional()])
+    coat_surface_type = RadioField('ชนิดพื้นผิว', choices=[('ลามิเนต', 'ลามิเนต'), ('สิ่งทอ', 'สิ่งทอ'),
+                                                           ('พื้นผิวอื่น ๆ', 'พื้นผิวอื่น ๆ โปรดระบุ')],
+                                   validators=[Optional()])
+    coat_surface_type_other = StringField('ระบุ', render_kw={'class': 'input'})
+    coat_organism_fields = FieldList(FormField(VirusCoatTestConditionForm), min_entries=1)
 
 
 class VirusDisinfectionRequestForm(FlaskForm):
@@ -560,9 +570,9 @@ class VirusDisinfectionRequestForm(FlaskForm):
                                     "oninput": "this.setCustomValidity('')"
                                     })
     amount = StringField('จำนวนที่ส่ง', validators=[DataRequired()],
-                          render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกจำนวนที่ส่ง')",
-                                     "oninput": "this.setCustomValidity('')"
-                                     })
+                         render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกจำนวนที่ส่ง')",
+                                    "oninput": "this.setCustomValidity('')"
+                                    })
     service_life = StringField('อายุการใช้งานหลังการเปิดใช้', validators=[DataRequired()],
                                render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกอายุการใช้งานหลังดารเปิดใช้')",
                                           "oninput": "this.setCustomValidity('')"
@@ -575,12 +585,52 @@ class VirusDisinfectionRequestForm(FlaskForm):
                                              "oninput": "this.setCustomValidity('')"
                                              })
     product_storage_other = StringField('ระบุ')
+    post_test_product_action = SelectField('ต้องการให้ดำเนินการกับผลิตภัณฑ์ที่เหลือหลังการทดสอบเสร็จสิ้น',
+                                           choices=[('',
+                                                     'กรุณาเลือกความต้องการให้ดำเนินการกับผลิตภัณฑ์ที่เหลือหลังการทดสอบเสร็จสิ้น'),
+                                                    ('รับผลิตภัณฑ์คืน (ต้องติดต่อรับผลิตภัณฑ์คืนภายใน 30 วันหลังจากได้รับผลการทดสอบ)',
+                                                     'รับผลิตภัณฑ์คืน (ต้องติดต่อรับผลิตภัณฑ์คืนภายใน 30 วันหลังจากได้รับผลการทดสอบ)'),
+                                                    ('ทำลายผลิตภัณฑ์ตามกระบวนการของห้องปฏิบัติการ',
+                                                     'ทำลายผลิตภัณฑ์ตามกระบวนการของห้องปฏิบัติการ')],
+                                           validators=[DataRequired()],
+                                           render_kw={
+                                               "oninvalid": "this.setCustomValidity('กรุณาเลือกความต้องการให้ดำเนินการกับผลิตภัณฑ์ที่เหลือหลังการทดสอบเสร็จสิ้น')",
+                                               "oninput": "this.setCustomValidity('')"
+                                           })
+    manufacturer = StringField('ผู้ผลิต', validators=[DataRequired()],
+                               render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อผู้ผลิต')",
+                                          "oninput": "this.setCustomValidity('')"
+                                          })
+    manufacturer_address = TextAreaField('ที่อยู่ผู้ผลิต', validators=[DataRequired()],
+                                         render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้ผลิต')",
+                                                    "oninput": "this.setCustomValidity('')"
+                                                    })
+    importer = StringField('ผู้นำเข้า')
+    importer_address = TextAreaField('ที่อยู่ผู้นำเข้า')
+    distributor = StringField('ผู้จัดจำหน่าย', validators=[DataRequired()],
+                              render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อผู้จัดจำหน่าย')",
+                                         "oninput": "this.setCustomValidity('')"
+                                         })
+    distributor_address = TextAreaField('ที่อยู่ผู้จัดจำหน่าย', validators=[DataRequired()],
+                                        render_kw={
+                                            "oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้จัดจำหน่าย')",
+                                            "oninput": "this.setCustomValidity('')"
+                                        })
+    note = TextAreaField('บันทึก/หมายเหตุ สำหรับผู้รับบริการ')
     product_type = SelectField('ประเภทผลิตภัณฑ์', choices=[('', '+ เพิ่มประเภทผลิตภัณฑ์'),
                                                            ('liquid',
                                                             'ผลิตภัณฑ์ฆ่าเชื้อชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้'),
                                                            ('spray', 'ผลิตภัณฑ์ฆ่าเชื้อชนิดฉีดพ่น'),
                                                            ('coat', 'ผลิตภัณฑ์ฆ่าเชื้อที่เคลือบบนพื้นผิวสำเร็จรูป')],
                                validators=[Optional()])
+    read_document = BooleanField(
+        'ข้าพเจ้าได้อ่าน ทำความเข้าใจ และยอมรับเงื่อนไขการให้บริการ ในคู่มือการใช้บริการห้องปฏิบัติการไวรัสวิทยา (MN-WI-VI-025-07-01) แล้ว',
+        validators=[DataRequired(message='กรุณายอมรับ')],
+        render_kw={
+            "oninvalid": "this.setCustomValidity('กรุณายอมรับ')",
+            "oninput": "this.setCustomValidity('')"
+        }
+    )
     liquid_condition_field = FormField(VirusLiquidConditionForm,
                                        'ผลิตภัณฑ์ฆ่าเชื้อชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้')
     spray_condition_field = FormField(VirusSprayConditionForm, 'ผลิตภัณฑ์ฆ่าเชื้อชนิดฉีดพ่น')
@@ -588,11 +638,11 @@ class VirusDisinfectionRequestForm(FlaskForm):
 
 
 class VirusSurfaceDisinfectionTestConditionForm(FlaskForm):
-    surface_disinfection_organism = CheckboxField('เชื้อ', validators=[Optional()])
-    surface_disinfection_period_test = StringField('ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (วินาที/นาที)',
+    surface_disinfection_organism = SelectField('เชื้อ', choices=[(c, c) for c in virus_liquid_organisms],
+                                                validators=[Optional()])
+    surface_disinfection_period_test = StringField('ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (นาที/ชั่วโมง)',
                                                    validators=[Optional()],
-                                                   render_kw={'class': 'input',
-                                                              'placeholder': 'เช่น 30 วินาที หรือ 1 นาที'})
+                                                   render_kw={'class': 'input'})
 
 
 class VirusSurfaceDisinfectionConditionForm(FlaskForm):
@@ -604,19 +654,18 @@ class VirusSurfaceDisinfectionConditionForm(FlaskForm):
         choices=[
             ('ทดสอบการฆ่าเชื้อบนพื้นผิวเรียบไม่มีรูพรุน (มาตรฐานวิธีทดสอบ ASTM E1053-20 ใช้พื้นผิววัสดุแก้ว)',
              'ทดสอบการฆ่าเชื้อบนพื้นผิวเรียบไม่มีรูพรุน (มาตรฐานวิธีทดสอบ ASTM E1053-20 ใช้พื้นผิววัสดุแก้ว)'),
-            ('ทดสอบการฆ่าเชื้อบนพื้นผิวชนิดอื่นๆ โปรดระบุ', 'ทดสอบการฆ่าเชื้อบนพื้นผิวชนิดอื่นๆ โปรดระบุ')
+            ('ทดสอบการฆ่าเชื้อบนพื้นผิวชนิดอื่น ๆ', 'ทดสอบการฆ่าเชื้อบนพื้นผิวชนิดอื่น ๆ โปรดระบุ')
         ], validators=[Optional()])
     surface_disinfection_clean_type_other = StringField('ระบุ', render_kw={'class': 'input'})
     surface_disinfection_organism_fields = FieldList(FormField(VirusSurfaceDisinfectionTestConditionForm),
-                                                     min_entries=len(virus_liquid_organisms))
+                                                     min_entries=1)
 
 
 class VirusAirborneDisinfectionTestConditionForm(FlaskForm):
     airborne_disinfection_organism = CheckboxField('เชื้อ', validators=[Optional()])
-    airborne_disinfection_period_test = StringField('ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (วินาที/นาที)',
+    airborne_disinfection_period_test = StringField('ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (นาที/ชั่วโมง)',
                                                     validators=[Optional()],
-                                                    render_kw={'class': 'input',
-                                                               'placeholder': 'เช่น 30 วินาที หรือ 1 นาที'})
+                                                    render_kw={'class': 'input'})
 
 
 class VirusAirborneDisinfectionConditionForm(FlaskForm):
@@ -631,7 +680,7 @@ class VirusAirborneDisinfectionConditionForm(FlaskForm):
              'ทดสอบการทำลายเชื้อในอากาศ (เครื่องปล่อยสารหรืออนุภาคทำลายเชื้อ)')
         ], validators=[Optional()])
     airborne_disinfection_organism_fields = FieldList(FormField(VirusAirborneDisinfectionTestConditionForm),
-                                                      min_entries=len(virus_airborne_organisms))
+                                                      min_entries=1)
 
 
 class VirusAirDisinfectionRequestForm(FlaskForm):
@@ -677,12 +726,20 @@ class VirusAirDisinfectionRequestForm(FlaskForm):
                                             "oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้จัดจำหน่าย')",
                                             "oninput": "this.setCustomValidity('')"
                                         })
+    note = TextAreaField('บันนึก/หมายเหตุ สำหรับผู้รับบริการ')
+    read_document = BooleanField(
+        'ข้าพเจ้าได้อ่าน ทำความเข้าใจ และยอมรับเงื่อนไขการให้บริการ ในคู่มือการใช้บริการห้องปฏิบัติการไวรัสวิทยา (MN-WI-VI-025-07-01) แล้ว',
+        validators=[DataRequired(message='กรุณายอมรับ')],
+        render_kw={
+            "oninvalid": "this.setCustomValidity('กรุณายอมรับ')",
+            "oninput": "this.setCustomValidity('')"
+        }
+    )
     product_type = SelectField('ประเภทการฆ่า/ทำลายเชื้อ', choices=[('', '+ เพิ่มประเภทการฆ่า/ทำลายเชื้อ'),
-                                                                   ('surface', 'การฆ่าเชื้อบนพื้นผิว'),
-                                                                   ('airborne', 'การลด/ทำลายเชื้อในอากาศ')],
+                                                                   ('surface', 'การฆ่าเชื้อบนพื้นผิว')],
                                validators=[Optional()])
-    surface_condition_field = FormField(VirusSurfaceDisinfectionConditionForm, 'การฆ่าเชื้อบนพื้นผิว')
-    airborne_condition_field = FormField(VirusAirborneDisinfectionConditionForm, 'การลด/ทำลายเชื้อในอากาศ')
+    surface_disinfection_condition_field = FormField(VirusSurfaceDisinfectionConditionForm, 'การฆ่าเชื้อบนพื้นผิว')
+    # airborne_condition_field = FormField(VirusAirborneDisinfectionConditionForm, 'การลด/ทำลายเชื้อในอากาศ')
 
 
 class HeavyMetalConditionForm(FlaskForm):
@@ -800,14 +857,13 @@ class ProteinIdentificationConditionForm(FlaskForm):
                               render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                          "oninput": "this.setCustomValidity('')"
                                          })
-    clean_up = CheckboxField('Clean Up Sample', choices=[('Do', 'Do')], validators=[Optional()])
+    clean_up = CheckboxField('Clean Up Sample', choices=[('Sample cleanup service', 'Do')], validators=[Optional()])
     protein_identification = CheckboxField('Protein Identification by LC/MS', choices=[('In-gel digestion',
                                                                                         'In-gel digestion'),
                                                                                        ('In-solution digestion',
                                                                                         'In-solution digestion'),
-                                                                                       (
-                                                                                           'In-solution digestion (not include protein digestion)',
-                                                                                           'In-solution digestion (not include protein digestion')],
+                                                                                       ('In-solution digestion (not include protein digestion)',
+                                                                                        'In-solution digestion (not include protein digestion')],
                                            validators=[Optional()])
 
 
@@ -845,7 +901,7 @@ class SDSPageConditionForm(FlaskForm):
                               render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                          "oninput": "this.setCustomValidity('')"
                                          })
-    clean_up = CheckboxField('Clean Up Sample', choices=[('Do', 'Do')], validators=[Optional()])
+    clean_up = CheckboxField('Clean Up Sample', choices=[('Sample cleanup service', 'Do')], validators=[Optional()])
     staining = CheckboxField('Staining', choices=[('Coomassie Stain', 'Coomassie Stain'),
                                                   ('Silver Stain', 'Silver Stain')], validators=[Optional()])
 
@@ -890,7 +946,8 @@ class QuantitativeConditionForm(FlaskForm):
 
 
 class QuantitativeRequestForm(FlaskForm):
-    processing_data = CheckboxField('Processing data for quantitation analysis (Extra change)', choices=[('Do', 'Do')])
+    processing_data = CheckboxField('Processing data for quantitation analysis (Extra change)',
+                                    choices=[('Processing data', 'Do')])
     sample_species = StringField('Sample species', validators=[DataRequired()],
                                  render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                             "oninput": "this.setCustomValidity('')"
@@ -908,7 +965,7 @@ class MetabolomicConditionForm(FlaskForm):
                               render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                          "oninput": "this.setCustomValidity('')"
                                          })
-    clean_up = CheckboxField('Clean Up Sample', choices=[('Do', 'Do')], validators=[Optional()])
+    clean_up = CheckboxField('Clean Up Sample', choices=[('Sample cleanup service', 'Do')], validators=[Optional()])
     untargeted_metabolomic = CheckboxField('Untargeted Metabolomic', choices=[('Negative', 'Negative'),
                                                                               ('Positive', 'Positive')],
                                            validators=[Optional()])
@@ -918,7 +975,8 @@ class MetabolomicConditionForm(FlaskForm):
 
 
 class MetabolomicRequestForm(FlaskForm):
-    processing_data = CheckboxField('Processing data for quantitation analysis (Extra change)', choices=[('Do', 'Do')])
+    processing_data = CheckboxField('Processing data for quantitation analysis (Extra change)',
+                                    choices=[('Process data', 'Do')])
     sample_species = StringField('Sample species', validators=[DataRequired()],
                                  render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                             "oninput": "this.setCustomValidity('')"
@@ -1001,9 +1059,9 @@ class ToxicologyRequestForm(FlaskForm):
     volume = StringField('Total Volume (mL)')
     other = StringField('Other')
     date_of_collection = StringField('Date of collection', validators=[DataRequired()],
-                                      render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือกวันที่')",
-                                                 "oninput": "this.setCustomValidity('')"
-                                                 })
+                                     render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือกวันที่')",
+                                                "oninput": "this.setCustomValidity('')"
+                                                })
     toxicology_condition_field = FieldList(FormField(ToxicologyConditionForm), min_entries=1)
 
 

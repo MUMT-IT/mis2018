@@ -7,7 +7,7 @@
         </header>
         <section class="modal-card-body">
             <div class="box">
-                <p class="modal-card-title">ค่าใช้จ่ายรวม {{ total_fee }}</p>
+                <p class="modal-card-title">ค่าใช้จ่ายรวม {{ "{:,.2f}".format(total_fee) }}</p>
             </div>
             <table class="table is-fullwidth is-bordered" id="seminarAttendTable">
                 <thead>
@@ -35,7 +35,7 @@
                             {% if record.role %}{{ record.role }}{% endif %}
                         </td>
                         <td>
-                            {% if record.budget %}{{ record.budget }}{% endif %}
+                            {% if record.budget %}{{ "{:,.2f}".format(record.budget) }}{% endif %}
                         </td>
                     </tr>
                 {% endfor %}

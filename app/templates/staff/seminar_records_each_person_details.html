@@ -39,19 +39,19 @@
                 <div class="notification is-light is-grey">
                     วงเงิน:ปีงบประมาณ <br>
                     <h4 class="title">
-                        {% if account.personal_info.academic_staff %} 15,000.0
-                        {% else %} 10000.0 {% endif %}
+                        {% if account.personal_info.academic_staff %} 15,000.00
+                        {% else %} 10,000.00 {% endif %}
                     </h4>
                 </div>
             </div>
             <div class="column">
                 <div class="notification is-light is-warning">
-                    ยอดเงินที่ใช้ไป (ปีงบประมาณปัจจุบัน) <br><h4 class="title"> {{ current_fee }}</h4>
+                    ยอดเงินที่ใช้ไป (ปีงบประมาณปัจจุบัน) <br><h4 class="title">{{ "{:,.2f}".format(current_fee) }}</h4>
                 </div>
             </div>
             <div class="column">
                 <div class="notification is-light is-info">
-                    ยอดเงินที่ใช้ไปทั้งหมด <br><h4 class="title">{{ total_fee }}</h4>
+                    ยอดเงินที่ใช้ไปทั้งหมด <br><h4 class="title">{{ "{:,.2f}".format(total_fee) }}</h4>
                 </div>
             </div>
         </div>
@@ -88,7 +88,7 @@
                             {% if record.role %}{{ record.role }}{% endif %}
                         </td>
                         <td>
-                            {% if record.budget %}{{ record.budget }}{% endif %}
+                            {% if record.budget %}{{ "{:,.2f}".format(record.budget) }}{% endif %}
                         </td>
                     </tr>
                     {% endfor %}

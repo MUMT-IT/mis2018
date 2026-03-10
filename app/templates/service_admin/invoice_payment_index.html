@@ -14,7 +14,7 @@
             width: 100% !important;
         }
         #invoices {
-            font-size: 0.95rem;
+            font-size: 0.90rem;
         }
     </style>
 {% endblock %}
@@ -41,7 +41,6 @@
                         <th>ใบแจ้งหนี้</th>
                         <th>รายละเอียด</th>
                         <th>ดำเนินการ</th>
-                        <th></th>
                         </thead>
                         <tbody>
                         </tbody>
@@ -221,13 +220,30 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.is_paid == false) {
+                            if (row.paid_at == null && row.is_paid == false) {
                                 return `<div class="field has-addons">
                                             <div class="control">
                                                 <a class="button is-small is-rounded is-success"
                                                     onclick="vm.warn('${data}')">
                                                     <span class="icon"><i class="fas fa-check"></i></span>
                                                     <span>ชำระเงินถูกต้อง</span>
+                                                </a>
+                                            </div>
+                                        </div>`;
+                            } else if (row.paid_at && row.is_paid == false) {
+                                return `<div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-rounded is-success"
+                                                    onclick="vm.warn('${data}')">
+                                                    <span class="icon"><i class="fas fa-check"></i></span>
+                                                    <span>ชำระเงินถูกต้อง</span>
+                                                </a>
+                                            </div>
+                                            <div class="control">
+                                                <a class="button is-small is-rounded is-danger"
+                                                    onclick="vm.danger('${data}')">
+                                                    <span class="icon"><i class="fas fa-times"></i></span>
+                                                    <span>ยกเลิก</span>
                                                 </a>
                                             </div>
                                         </div>`;
@@ -251,24 +267,6 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else {
-                                return ''
-                            }
-                        }
-                    },
-                    {
-                        data: 'id',
-                        render: function (data, type, row) {
-                            if (row.paid_at && row.is_paid == false) {
-                                return `<div class="field has-addons">
-                                            <div class="control">
-                                                <a class="button is-small is-rounded is-danger"
-                                                    onclick="vm.danger('${data}')">
-                                                    <span class="icon"><i class="fas fa-times"></i></span>
-                                                    <span>ยกเลิก</span>
-                                                </a>
-                                            </div>
-                                        </div>`;
                             } else {
                                 return ''
                             }

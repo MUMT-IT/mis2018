@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% include "besttime/nav.html" %}
+{% block page_content %}
+    <section class="section">
+    {% include "messages.html" %}
+        <h2 class="title has-text-centered">ตารางการสำรวจวัน-เวลาประชุม</h2>
+        <p class="subtitle has-text-centered is-6 has-text-grey">จัดการและตรวจสอบสถานะองค์ประชุมแบบเรียลไทม์</p>
+        <div class="columns is-centered">
+            <div class="column is-three-quarters">
+                <table class="table is-striped is-fullwidth">
+                    <thead>
+                    <th>วันและเวลา</th>
+                    <th style="text-align: center">จำนวนกรรมการโหวต</th>
+                    <th>รายชื่อกรรมการโหวต</th>
+                    <th style="text-align: center">ครบองค์ประชุม *</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    {% for slot in slots %}
+                        <tr>
+                            <td>
+                                {{ slot }}
+                                {% if slot.is_best %}
+                                    <span class="tag is-success">
+                                        วันสรุป
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: center">
+                                <span class="tag is-info is-rounded is-light">{{ slot.poll_votes|length }} คน</span></td>
+                            <td>{{ slot.get_voter_names()|join(', ') }}</td>
+                            <td style="text-align: center">
+                                {% if slot.has_valid_committee %}
+                                <span class="icon">
+                                    <i class="fa-solid fa-circle-check has-text-success"></i>
+                                </span>
+                                {% else %}
+                                <span class="icon">
+                                    <i class="fa-solid fa-circle-xmark has-text-danger"></i>
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                            {% if slot.poll.has_admin_role(current_user) %}
+                                {% if slot.has_valid_committee %}
+                                    <a class="button is-small is-rounded is-info"
+                                       hx-confirm="ท่านแน่ใจว่าจะเลือกวันนี้เป็นวันประชุมหรือไม่ หากท่านเคยเลือกวันประชุมแล้ว วันที่สรุปจะเปลี่ยนเป็นวันนี้แทน"
+                                       hx-swap="innerHTML"
+                                       hx-target="#mail-form"
+                                       hx-get="{{ url_for('besttime.send_mail_to_committee', slot_id=slot.id) }}">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-envelope"></i>
+                                        </span>
+                                        <span>แจ้งกรรมการ</span>
+                                    </a>
+                                {% endif %}
+                            {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                <div id="mail-form"></div>
+                <article class="message is-link is-light">
+                    <div class="message-body">
+                        <p class="is-size-7">
+                            <strong>หมายเหตุ :</strong>
+                            การครบองค์ประชุมพิจารณาจากรายชื่อประธานและกรรมการที่เข้าร่วมต้องเกินกึ่งหนึ่งของคณะกรรมการทั้งหมดตามระเบียบวาระ
+                        </p>
+                    </div>
+                </article>
+                <a class="button is-light" href="{{ url_for('besttime.index') }}">Back</a>
+            </div>
+        </div>
+    </section>
+{% endblock %}

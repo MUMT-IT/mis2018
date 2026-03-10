@@ -1,5 +1,4 @@
 from ..main import db
-from sqlalchemy.sql import func
 from datetime import datetime
 
 person_and_farm = db.Table('food_person_and_farm',

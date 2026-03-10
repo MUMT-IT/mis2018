@@ -1,84 +1,125 @@
 {% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
+    <style>
+        .is-disabled-box {
+            opacity: 0.5;
+            pointer-events: none;
+            background-color: #dddddd;
+        }
+    </style>
+{% endblock %}
 {% block page_content %}
     {% include "meeting_planner/nav.html" %}
     <section class="section">
         <div class="container">
             {% include "messages.html" %}
-            <h1 class="title has-text-centered">รายละเอียดผลสำรวจวันประชุม</h1>
-            <h1 class="subtitle has-text-centered">
-                {{ poll.poll_name }}
-            </h1>
-            <div class="columns">
-                <div class="column">
-                    <div class="column is-12 box">
-                        <form method="post">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                            <h1 class="title has-text-left">สำรวจวัน-เวลาประชุม</h1>
-                            <table class="table is-fullwidth">
-                                <tbody>
-                                    <tr>
-                                        <td><h1 class="subtitle">ชื่อรายการ</h1></td>
-                                        <td><h1 class="subtitle" style="margin-left: 35em">{{ poll.poll_name }}</h1></td>
-                                    </tr>
-                                    <tr>
-                                        <td><h1 class="subtitle">เริ่มสำรวจ</h1></td>
-                                        <td><h1 class="subtitle" style="margin-left: 35em">{{ poll.start_vote|localdatetime }}</h1></td>
-                                    </tr>
-                                    <tr>
-                                        <td><h1 class="subtitle">ปิดสำรวจ</h1></td>
-                                        <td><h1 class="subtitle" style="margin-left: 35em">{{ poll.close_vote|localdatetime }}</h1></td>
-                                    </tr>
-                                    <tr>
-                                        <td><h1 class="subtitle">วัน-เวลาที่สะดวกประชุม</h1></td>
-                                        <td>
-                                            {% for item in poll.poll_items %}
-                                                <h1 class="subtitle" style="margin-left: 35em">
-                                                    <label class="checkbox">
-                                                        <input type="checkbox" name="check_vote" value="{{ item.id }}"
-                                                            {% if item.voters.filter_by(poll_participant_id=poll_participant_id)
-                                                                .first() %}
-                                                            checked
-                                                            {% endif %}
-                                                        >
-                                                            {{ item.start|localdatetime }} - {{ item.end|localdatetime }}
-                                                    </label>
-                                                </h1>
-                                            {% endfor %}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td><h1 class="subtitle">รายชื่อผู้เข้าร่วม</h1></td>
-                                        <td>
-                                            {% for p in poll.participants %}
-                                                <h1 class="subtitle" style="margin-left: 35em">
-                                                    <p>{{ loop.index }}. {{ p.fullname }}</p>
-                                                </h1>
-                                            {% endfor %}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            <div class="field is-grouped is-grouped-centered">
-                                <div class="control">
-                                    <a href="{{ url_for('meeting_planner.list_poll_participant', tab=tab) }}" class="button">
-                                        Cancel
-                                    </a>
-                                </div>
-                                <div class="control">
-                                    <input type="submit" value="Submit" class="button is-success">
+            <h1 class="title has-text-centered">รายละเอียดการสำรวจวันประชุม</h1>
+            <p class="subtitle is-5 has-text-grey has-text-centered">
+                หัวข้อ: <strong class="has-text-link">{{ poll.poll_name }}</strong>
+            </p>
+            <div class="columns is-variable is-6 is-align-items-stretch">
+                <div class="column is-7 box" style="height: 100%">
+                    <form method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <h1 class="title is-4 mt-2">
+                            <span class="icon has-text-link"><i class="fas fa-info-circle"></i></span>
+                            <span>รายละเอียด</span>
+                        </h1>
+                        <div class="columns mb-5">
+                            <div class="column">
+                                <div class="notification is-light py-3 px-4 is-rounded">
+                                    <p class="is-size-7 has-text-grey">เริ่มสำรวจ</p>
+                                    <p><strong>{{ poll.start_vote|localdatetime }}</strong></p>
                                 </div>
                             </div>
-                        </form>
-                    </div>
-                    <div class="column is-12 box">
-                        <div class="columns is-vcentered">
-                            <div class="column has-text-left">
-                                <h1 class="title">ผลสำรวจวัน-เวลาประชุม</h1>
-                            </div>
-                            <div class="column has-text-right">
-                                <h1 class="title">Voted {{ voted|length }}/{{ poll.participants|length }} persons</h1>
+                            <div class="column">
+                                <div class="notification is-light py-3 px-4 is-rounded">
+                                    <p class="is-size-7 has-text-grey">ปิดสำรวจ</p>
+                                    <p><strong>{{ poll.close_vote|localdatetime }}</strong></p>
+                                </div>
                             </div>
                         </div>
+                        <hr>
+                        <h1 class="title is-5 mt-2">
+                            <span class="icon has-text-link"><i class="far fa-calendar"></i></span>
+                            <span>วัน-เวลาที่สะดวก</span>
+                        </h1>
+                        {% for item in poll.poll_items %}
+                            <div {% if item.id in conflict_item_ids %}
+                                    class="box is-disabled-box"
+                                 {% else %}
+                                    class="box"
+                                {% endif %}
+                            >
+                                <input class="is-checkradio" id="{{ item.id }}" type="checkbox" name="check_vote" value="{{ item.id }}"
+                                        {% if item.voters.filter_by(poll_participant_id=poll_participant_id).first() %}
+                                            checked
+                                        {% endif %}
+                                >
+                                <label for="{{ item.id }}">
+                                    {% if item.start|localdate != item.end|localdate %}
+                                        <strong>{{ item.start|localdate }} - {{ item.end|localdate }}</strong>
+                                    {% else %}
+                                        <strong>{{ item.start|localdate }}</strong>
+                                    {% endif %}
+                                    <br>
+                                    <span style="margin-left: 1.9em">
+                                        {{ item.start|localtime }} - {{ item.end|localtime }}
+                                    </span>
+                                    {% if item.id in conflict_item_ids %}
+                                        <br>
+                                        <span class="icon has-text-danger" style="margin-left: 1.7em"><i class="fas fa-exclamation-triangle"></i></span>
+                                        <span class="has-text-danger">
+                                            ช่วงเวลานี้ซ้ำกับการประชุมอื่น
+                                        </span>
+                                    {% endif %}
+                                </label>
+                            </div>
+                        {% endfor %}
+                        <hr>
+                        <h1 class="title is-5 mt-2">
+                            <span class="icon has-text-link"><i class="fas fa-users"></i></span>
+                            <span>รายชื่อผู้เข้าร่วม</span>
+                        </h1>
+                        <div class="field">
+                            {% for p in poll.participants %}
+                                <span class="tag is-light is-size-7 is-rounded mb-2">
+                                    {{ p.fullname }}
+                                </span>
+                                <br>
+                            {% endfor %}
+                        </div>
+                        <div class="field is-grouped is-grouped-centered mb-3">
+                            <div class="control">
+                                <a href="{{ url_for('meeting_planner.list_poll_participant', tab=tab) }}" class="button">
+                                    Cancel
+                                </a>
+                            </div>
+                            <div class="control">
+                                <input type="submit" value="Submit" class="button is-success">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="column is-5 box ml-5" style="height: 100%">
+                    <div class="level">
+                        <div class="level-left">
+                            <div>
+                                <h1 class="title is-4 mt-2">
+                                    <span class="icon has-text-link"><i class="fas fa-poll-h"></i></span>
+                                    <span>ผลสำรวจวัน-เวลาประชุม</span>
+                                </h1>
+                                <h1 class="subtitle has-text-grey" style="margin-left:  1.7em">Voted {{ voted|length }}/{{ poll.participants|length }} persons</h1>
+                            </div>
+                        </div>
+                        <div class="level-right">
+                            <span class="tag is-link is-large"><strong class="has-text-white">{{ vote_percentage }} %</strong></span>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="field">
                         {% for item in poll.poll_items %}
                             <span>
                                 {{ loop.index }}. {{ item.start|localdatetime }} - {{ item.end|localdatetime }}
@@ -89,6 +130,11 @@
                             </progress>
                         {% endfor %}
                     </div>
+                    <article class="message is-warning mt-6 mb-3">
+                        <div class="message-body">
+                            <strong>หมายเหตุ :</strong> ผลโหวตจะอัปเดตแบบเรียลไทม์เมื่อผู้เข้าร่วมดำเนินการโหวต
+                        </div>
+                    </article>
                 </div>
             </div>
         </div>
@@ -96,11 +142,4 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script>
-        $(document).ready(function () {
-            document.body.addEventListener('htmx:configRequest', function (evt) {
-                evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }};
-            });
-        })
-    </script>
 {% endblock %}

@@ -356,6 +356,12 @@
                         </span>
                         <span class="is-size-5">ระบบรับแจ้งและติดตามข้อร้องเรียนและปัญหา</span>
                     </a>
+                    <a href="https://mt.mahidol.ac.th/prservice_system/" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-clipboard-list"></i>
+                        </span>
+                        <span class="is-size-5">ระบบขอรับบริการงานประชาสัมพันธ์ฯ</span>
+                    </a>
                 </nav>
                 <nav class="panel is-info">
                     <p class="panel-heading">Analytics</p>
@@ -439,6 +445,14 @@
                             <i class="fa fa-exclamation-triangle has-text-warning"></i>
                         </span>
                         <span class="is-size-5">จัดการคอร์สอบรม</span>
+                    </a>
+                    <a href="{{ url_for('besttime.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                        <span class="is-size-5">
+                            ระบบนัดหมายการประชุมกรรมการจัดซื้อจัดจ้าง
+                        </span>
                     </a>
                     <a href="{{ url_for('meeting_planner.index') }}" class="panel-block">
                         <span class="panel-icon">
@@ -550,8 +564,7 @@
                         </span>
                         <span class="is-size-5">ระบบรับแจ้งและติดตามข้อร้องเรียนและปัญหา</span>
                     </a>
-                    <a href="{{ url_for('comp_tracker.admin_record_complaint_index', menu='all') }}"
-                        class="panel-block">
+                    <a href="{{ url_for('comp_tracker.admin_record_complaint_index', menu='all') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-user-clock"></i>
                         </span>
@@ -563,6 +576,11 @@
                         </span>
                         <sapn class="is-size-5">ระบบขอรับบริการพัฒนา Software</sapn>
                     </a>
+                    <a href="{{ url_for('address.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-user-clock"></i>
+                        </span>
+                        <span class="is-size-5">ระบบจัดการข้อมูลเขตการปกครอง</span></a>
                     <a href="{{ url_for('staff.login_scan') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-user-clock"></i>

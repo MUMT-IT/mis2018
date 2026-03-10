@@ -1,0 +1,38 @@
+<div class="modal is-active animate__animated" id="mail-form-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">แจ้งเตือนสรุปวันประชุม{{ poll.title }}</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form hx-post="{{ url_for('besttime.send_mail_to_committee', slot_id=slot_id) }}"
+                  hx-swap="none"
+                  hx-indicator="#save-btn">
+                {{ form.hidden_tag() }}
+                <div class="field">
+                    <label class="label">
+                        ข้อความ
+                    </label>
+                    {{ form.message(class="textarea") }}
+                </div>
+                <div class="field">
+                    <button class="button is-outlined" id="cancel-btn">ยกเลิก</button>
+                    <button class="button is-success" id="save-btn">บันทึก</button>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+<script>
+    document.getElementById("cancel-btn").addEventListener("click", function (event) {
+        event.preventDefault()
+        htmx.removeClass(htmx.find('#mail-form-modal'), 'is-active')
+    })
+    document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#mail-form-modal'), 'is-active')
+    })
+    document.addEventListener('closeModal', () => {
+        htmx.removeClass(htmx.find('#mail-form-modal'), 'is-active')
+    })
+</script>

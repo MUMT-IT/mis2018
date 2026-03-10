@@ -13,7 +13,10 @@
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                     <div class="field">
-                        <label class="label">รายละเอียด</label>
+                        <label class="label">
+                            รายละเอียด
+                            <span class="has-text-danger">*</span>
+                        </label>
                         <div class="control">
                             {{ form.note(class='textarea') }}
                         </div>

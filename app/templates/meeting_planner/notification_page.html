@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container has-text-centered">
+            <div class="box">
+                <span class="icon is-large has-text-warning">
+                    <i class="fas fa-exclamation-circle fa-3x"></i>
+                </span>
+                <h1 class="title is-3 mt-3">ยังไม่ถึงวันเริ่มการสำรวจประชุม</h1>
+                <div class="notification is-info is-light mt-4">
+                    รายการสำรวจนี้ยังไม่ถึงกำหนดวันเริ่มสำรวจ โดยจะสามารถเข้าร่วมสำรวจได้ตั้งแต่วันที่ {{ start_vote|localdatetime }} ถึง {{ close_vote|localdatetime }}
+                </div>
+                <div class="buttons is-centered mt-5">
+                    <a href='{{ url_for('meeting_planner.list_poll_participant', menu=menu) }}'
+                       class="button is-link is-light"
+                    >
+                        กลับหน้าหลัก
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

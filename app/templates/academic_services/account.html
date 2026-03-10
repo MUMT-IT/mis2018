@@ -53,21 +53,37 @@
                     <form method="post">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="field" style="margin-left: 1em; margin-right: 1em; margin-top: .5em">
-                            <label class="label">รหัสผ่านใหม่</label>
-                            <div class="control is-expanded has-icons-left">
-                                <input type="password" class="input" name="new_password" placeholder="New password">
+                            <label class="label">
+                                รหัสผ่านใหม่
+                                <i class="fas fa-info-circle ml-2 is-size-7 has-text-info"></i>
+                                <span class="is-size-7 ml-1 has-text-info">รหัสผ่านควรมีอย่างน้อย 8 ตัวอักษร</span>
+                            </label>
+                            <div class="control has-icons-left has-icons-right is-expanded">
+                                <input type="password" class="input" id="new_password" name="new_password"
+                                       placeholder="New password">
                                 <span class="icon is-small is-left">
                                     <i class="fas fa-lock"></i>
+                                </span>
+                                <span class="icon is-small is-right" style="pointer-events: all; cursor: pointer;"
+                                      onclick="toggleShowNewPassword()"
+                                >
+                                    <i id="open_new_password_icon" class="fas fa-eye"></i>
                                 </span>
                             </div>
                         </div>
                         <div class="field" style="margin-left: 1em; margin-right: 1em">
                             <label class="label">ยืนยันรหัสผ่านใหม่</label>
-                            <div class="control is-expanded has-icons-left">
-                                <input type="password" class="input" name="confirm_password" placeholder="Confirm password">
+                            <div class="control has-icons-left has-icons-right is-expanded">
+                                <input type="password" class="input" id="confirm_password" name="confirm_password"
+                                       placeholder="Confirm password">
                                 <span class="icon is-small is-left">
                                     <i class="fas fa-lock"></i>
                                 </span>
+                                 <span class="icon is-small is-right" style="pointer-events: all; cursor: pointer;"
+                                       onclick="toggleShowConfirmPassword()"
+                                 >
+                                     <i id="open_confirm_password_icon" class="fas fa-eye"></i>
+                                 </span>
                                 <p class="help has-text-danger">รหัสต้องตรงกัน</p>
                             </div>
                         </div>
@@ -87,4 +103,36 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script>
+        function toggleShowNewPassword() {
+            const newPassword = document.getElementById("new_password");
+            const openNewPasswordIcon = document.getElementById("open_new_password_icon");
+
+            if (newPassword.type === "password") {
+                newPassword.type = "text";
+                openNewPasswordIcon.classList.remove("fa-eye");
+                openNewPasswordIcon.classList.add("fa-eye-slash");
+            } else {
+                newPassword.type = "password";
+                openNewPasswordIcon.classList.remove("fa-eye-slash");
+                openNewPasswordIcon.classList.add("fa-eye");
+            }
+        }
+    </script>
+    <script>
+        function toggleShowConfirmPassword() {
+            const confirmPassword = document.getElementById("confirm_password");
+            const openConfirmPasswordIcon = document.getElementById("open_confirm_password_icon");
+
+            if (confirmPassword.type === "password") {
+                confirmPassword.type = "text";
+                openConfirmPasswordIcon.classList.remove("fa-eye");
+                openConfirmPasswordIcon.classList.add("fa-eye-slash");
+            } else {
+                confirmPassword.type = "password";
+                openConfirmPasswordIcon.classList.remove("fa-eye-slash");
+                openConfirmPasswordIcon.classList.add("fa-eye");
+            }
+        }
+    </script>
 {% endblock %}

@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light">
+    <title>รายงานผลการตรวจสุขภาพ (Health Check-up Report)</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        :root {
+            --primary-medical: #0f766e;
+            --secondary-medical: #0d9488;
+            --accent-medical: #f0fdfa;
+            --danger-medical: #be123c;
+            --warning-medical: #d97706;
+            --success-medical: #15803d;
+            --cbc-primary: #be185d;
+            --cbc-secondary: #db2777;
+            --cbc-accent: #fdf2f8;
+            --summary-bg: #fffcf0;
+            --summary-border: #fde68a;
+            /* Urinalysis Theme (Orange-Yellow) */
+            --ua-primary: #ca8a04;
+            --ua-secondary: #f59e0b;
+            --ua-accent: #fffbeb;
+            --ua-border: #fef3c7;
+
+            /* Stool Examination Theme (Brown) */
+            --stool-primary: #78350f;
+            --stool-secondary: #92400e;
+            --stool-accent: #fff7ed;
+            --stool-border: #ffedd5;
+
+            /* Chest X-Ray Theme (Blue/Cyan) */
+            --xray-primary: #0369a1;
+            --xray-secondary: #0ea5e9;
+            --xray-accent: #f0f9ff;
+            --xray-border: #e0f2fe;
+
+            /* Special Test Theme (Purple) */
+            --special-primary: #6d28d9;
+            --special-secondary: #7c3aed;
+            --special-accent: #f5f3ff;
+            --special-border: #ddd6fe;
+
+            --summary-bg: #fffcf0;
+            --summary-border: #fde68a;
+
+            --table-border-color: #e2e8f0;
+            --table-border-width: 1px;
+        }
+
+        table td, .table th {
+            border-bottom: var(--table-border-width) solid var(--table-border-color) !important;
+            border-top: 0 !important; /* ปิดเส้นด้านบนเพื่อไม่ให้เส้นซ้อนกัน */
+            vertical-align: middle;
+        }
+
+        /* ป้องกัน Dark Mode แทรกแซง */
+        @media (prefers-color-scheme: dark) {
+            body { background-color: #f1f5f9 !important; color: #334155 !important; }
+            .report-wrapper { background: white !important; color: #334155 !important; box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important; }
+            .lab-table-card, .table, .table td, .table th { background-color: white !important; color: #334155 !important; }
+            .main-section-title { background: #f8fafc !important; color: #1e293b !important; }
+            .vital-box { background: white !important; border-color: #e2e8f0 !important; }
+            .vital-value { color: #1e293b !important; }
+            .summary-list-card { background: var(--summary-bg) !important; border-color: var(--summary-border) !important; }
+            .summary-label { color: #475569 !important; }
+            .summary-value { color: #92400e !important; }
+            .lab-header { color: var(--primary-medical) !important; }
+            .has-text-grey { color: #64748b !important; }
+        }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f1f5f9;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .report-wrapper {
+            max-width: 1100px;
+            margin: 2rem auto;
+            background: white;
+            border-radius: 2rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .header-section {
+            background: linear-gradient(135deg, var(--primary-medical) 0%, var(--secondary-medical) 100%);
+            padding: 3rem 2rem 4.5rem;
+            color: white;
+            position: relative;
+        }
+
+        .header-section::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: white;
+            clip-path: ellipse(50% 100% at 50% 100%);
+        }
+
+        .hospital-logo {
+            height: 80px;
+            width: auto;
+            display: block;
+            margin: 0 auto 1.5rem;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+        }
+
+        .patient-summary-box {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 1.5rem 2.5rem;
+            border-radius: 1.5rem;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            margin-top: 1.5rem;
+            display: inline-block;
+            text-align: left;
+        }
+
+        .patient-info-row {
+            display: flex;
+            gap: 3rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .info-group label {
+            display: block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.8);
+            letter-spacing: 0.05em;
+            margin-bottom: 2px;
+        }
+
+        .info-group span {
+            font-size: 1.15rem;
+            font-weight: 600;
+        }
+
+        .section-card { padding: 0 2rem 2rem; margin-top: -1rem; }
+
+        .lab-id-outer {
+            text-align: right;
+            padding: 1rem 0;
+            margin-bottom: 1rem;
+            border-bottom: 1px dashed #e2e8f0;
+            font-family: monospace;
+            color: #64748b;
+        }
+
+        .lab-id-outer strong {
+            color: var(--primary-medical);
+            font-size: 1.1rem;
+        }
+
+        .main-section-title {
+            background: #f8fafc;
+            padding: 1rem 1.5rem;
+            border-radius: 1rem;
+            border-left: 6px solid var(--primary-medical);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .main-section-title.cbc-title { border-left-color: var(--cbc-primary); background: var(--cbc-accent); }
+        .main-section-title.ua-title { border-left-color: var(--ua-primary); background: var(--ua-accent); }
+        .main-section-title.stool-title { border-left-color: var(--stool-primary); background: var(--stool-accent); }
+        .main-section-title.xray-title { border-left-color: var(--xray-primary); background: var(--xray-accent); }
+        .main-section-title.special-title { border-left-color: var(--special-primary); background: var(--special-accent); }
+
+        .vitals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .vital-box {
+            background: white;
+            border: 1px solid #e2e8f0;
+            padding: 1.25rem;
+            border-radius: 1.25rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .vital-icon { font-size: 1.25rem; color: var(--secondary-medical); margin-bottom: 0.25rem; }
+        .vital-value { font-size: 1.6rem; font-weight: 700; color: #1e293b; line-height: 1.2; }
+        .vital-unit { font-size: 0.8rem; color: #64748b; margin-top: 2px; }
+        .reference-text { font-size: 0.7rem; color: var(--secondary-medical); margin-top: 4px; font-weight: 600; }
+
+        .summary-list-card {
+            background: var(--summary-bg);
+            border-radius: 1.25rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--summary-border);
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(217, 119, 6, 0.1);
+        }
+
+        .summary-item:last-child { border-bottom: none; }
+        .summary-label { font-weight: 600; color: #475569; }
+        .summary-value { color: #92400e; font-weight: 600; }
+
+        .chemistry-sub-group {
+            margin-left: 1rem;
+            border-left: 2px solid #f1f5f9;
+            padding-left: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .chemistry-sub-group.cbc-group { border-left-color: #f9a8d4; }
+        .chemistry-sub-group.ua-group { border-left-color: #fde68a; }
+        .chemistry-sub-group.stool-group { border-left-color: #ffedd5; }
+        .chemistry-sub-group.xray-group { border-left-color: #bae6fd; }
+        .chemistry-sub-group.special-group { border-left-color: #ddd6fe; }
+
+        .lab-table-card { border: 1px solid #e2e8f0; border-radius: 1.25rem; overflow: hidden; margin-bottom: 1.5rem; background: #fff; }
+        .lab-header { background: var(--accent-medical); padding: 1rem 1.5rem; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; }
+        .lab-header.cbc-header { background: var(--cbc-accent); border-bottom-color: #f9a8d4; }
+        .lab-header.ua-header { background: var(--ua-accent); border-bottom-color: #fde68a; }
+        .lab-header.stool-header { background: var(--stool-accent); border-bottom-color: #ffedd5; }
+        .lab-header.xray-header { background: var(--xray-accent); border-bottom-color: #bae6fd; }
+        .lab-header.special-header { background: var(--special-accent); border-bottom-color: #ddd6fe; }
+
+        .lab-title { font-weight: 700; color: var(--primary-medical); display: flex; align-items: center; gap: 0.5rem; }
+        .lab-title.cbc-title-text { color: var(--cbc-primary); }
+        .lab-title.ua-title-text {color: var(--ua-primary);}
+        .lab-title.stool-title-text { color: var(--stool-primary); }
+        .lab-title.xray-title-text { color: var(--xray-primary); }
+        .lab-title.special-title-text { color: var(--special-primary); }
+
+        .status-badge { padding: 0.25rem 0.75rem; border-radius: 2rem; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+        .status-normal { background: #dcfce7; color: #166534; }
+        .status-warning { background: #fef3c7; color: #92400e; }
+        .status-danger { background: #fee2e2; color: #991b1b; }
+
+        .interpretation-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-top: 0.5rem;
+        }
+        .interpretation-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--primary-medical);
+            margin-bottom: 0.5rem;
+            text-decoration: underline;
+        }
+        .interpretation-box.cbc-interp { border-color: #f9a8d4; background: #fff5f8; }
+        .interpretation-box.cbc-interp .interpretation-title { color: var(--cbc-primary); }
+
+        .interpretation-box.ua-interp-theme { border-color: #fde68a; background-color: #fffdf5; }
+        .interpretation-box.ua-interp-theme .interpretation-title { color: var(--ua-primary); }
+
+        .interpretation-box.stool-interp-theme { border-color: #ffedd5; background-color: #fffaf5; }
+        .interpretation-box.stool-interp-theme .interpretation-title { color: var(--stool-primary); }
+
+        .interpretation-box.xray-interp-theme { border-color: #bae6fd; background-color: #f0f9ff; }
+        .interpretation-box.xray-interp-theme .interpretation-title { color: var(--xray-primary); }
+
+        .interpretation-content {
+            font-size: 0.9rem;
+            color: #475569;
+        }
+
+        /* Loading Animation Core CSS */
+        .loader-dots {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loader-dots span {
+            width: 15px;
+            height: 15px;
+            background-color: #e74c3c; /* สีที่คุณเลือก */
+            border-radius: 50%;
+            display: inline-block;
+            animation: bounce 0.6s infinite alternate;
+            box-shadow: 0 4px 6px -1px rgba(231, 76, 60, 0.4);
+        }
+
+        .loader-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .loader-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+            from {
+                transform: translateY(0);
+                opacity: 0.6;
+            }
+            to {
+                transform: translateY(-20px);
+                opacity: 1;
+            }
+        }
+
+        /* Overlay Styles */
+        #loader-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease, visibility 0.5s;
+        }
+
+        #loader-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+
+        @keyframes pulse {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .report-wrapper { box-shadow: none; border-radius: 0; margin: 0; width: 100%; max-width: 100%; }
+            .header-section { padding: 2rem; background: #fff !important; color: black !important; border-bottom: 2px solid #eee; text-align: left !important; }
+            .header-section::after { display: none; }
+            .patient-summary-box { background: #f8fafc !important; border: 1px solid #ddd !important; color: black !important; padding: 1rem; width: 100%; }
+            .main-section-title { background: #eee !important; border-left-color: #000 !important; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loader-overlay">
+        <div class="loader-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <p class="mt-8 text-gray-600 dark:text-gray-300 font-medium animate-pulse">Loading...</p>
+    </div>
+
+    <div class="report-wrapper">
+        <header class="header-section has-text-centered">
+            <div class="mb-2">
+                <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" alt="Mahidol University Logo" class="hospital-logo" onerror="this.style.display='none'">
+                <h1 class="title is-2 has-text-white mb-2">รายงานผลการตรวจสุขภาพ</h1>
+                <p class="is-size-6 has-text-white-ter has-text-weight-light">FACULTY OF MEDICAL TECHNOLOGY, MAHIDOL UNIVERSITY</p>
+            </div>
+
+            <div class="patient-summary-box">
+                <div class="patient-info-row">
+                    <div class="info-group">
+                        <label>ชื่อ-นามสกุล</label>
+                        <span>{{ employee.prename }}{{ employee.fname }} {{ employee.lname }}</span>
+                    </div>
+                    <div class="info-group">
+                        <label>อายุ</label>
+                        <span>{{ employee.age }} ปี</span>
+                    </div>
+                    <div class="info-group">
+                        <label>วันที่ตรวจ</label>
+                        <span>{{ servicedate_thai }}</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="section-card">
+            <div class="lab-id-outer">
+                LAB NO: <strong>{{ service_no }}</strong>
+            </div>
+
+            <!-- Section 1: Vitals -->
+            <div class="mb-6">
+                <div class="main-section-title">
+                    <span class="icon is-medium has-text-primary"><i class="fa-solid fa-heart-pulse fa-lg"></i></span>
+                    <h2 class="title is-4 mb-0" style="color: #334155;">การตรวจร่างกายทั่วไป (PHYSICAL EXAMINATION)</h2>
+                </div>
+
+                <div class="vitals-grid mb-4">
+                    <div class="vital-box">
+                        <div class="vital-icon"><i class="fa-solid fa-arrows-up-down"></i></div>
+                        <div class="vital-value"><span id="height">Loading</span></div>
+                        <div class="vital-unit">cm (ส่วนสูง)</div>
+                    </div>
+                    <div class="vital-box">
+                        <div class="vital-icon"><i class="fa-solid fa-weight-scale"></i></div>
+                        <div class="vital-value"><span id="weight">Loading</span></div>
+                        <div class="vital-unit">kg (น้ำหนัก)</div>
+                    </div>
+                    <div class="vital-box">
+                        <div class="vital-icon"><i class="fa-solid fa-heartbeat"></i></div>
+                        <div class="vital-value"><span id="heartrate">Loading</span></div>
+                        <div class="vital-unit">bpm (ชีพจร)</div>
+                    </div>
+                </div>
+
+                <div class="vitals-grid">
+                    <div class="vital-box">
+                        <div class="vital-icon"><i class="fa-solid fa-gauge-high"></i></div>
+                        <div class="vital-value"><span id="systolic">Loading</span></div>
+                        <div class="vital-unit">mmHg (ความดัน)</div>
+                    </div>
+                    <div class="vital-box">
+                        <div class="vital-icon"><i class="fa-solid fa-ruler-horizontal"></i></div>
+                        <div class="vital-value"><span id="waistline">Loading</span></div>
+                        <div class="vital-unit">cm (รอบเอว)</div>
+                        <div class="reference-text">ค่าปกติ: &lt; 90 cm</div>
+                    </div>
+                    <div class="vital-box" style="background: var(--accent-medical); border-color: var(--secondary-medical);">
+                        <div class="vital-icon"><i class="fa-solid fa-user-check"></i></div>
+                        <div class="vital-value"><span id="bmi">Loading</span></div>
+                        <div class="vital-unit">BMI</div>
+                        <div class="reference-text">ค่าปกติ: 18.5 - 22.9</div>
+                    </div>
+                </div>
+
+                <div class="summary-list-card">
+                    <h4 class="is-size-6 has-text-weight-bold mb-3" style="color: #92400e;">
+                        ผลการตรวจร่างกายทั่วไป (PHYSICAL EXAMINATION)
+                    </h4>
+                    <div class="summary-item">
+                        <span class="summary-label">ความดันโลหิตอยู่ในเกณฑ์ (Blood pressure):</span>
+                        <span class="summary-value"><span id="bp_inp">-</span></span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">ลักษณะรูปร่าง (ผลดัชนีมวลกาย BMI):</span>
+                        <span class="summary-value"><span id="bmi_inp">-</span></span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">ตรวจร่างกายทั่วไปโดยแพทย์:</span>
+                        <span class="summary-value"><span id="comment">-</span></span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Blood Chemistry Group -->
+            <div class="mb-6">
+                <div class="main-section-title">
+                    <span class="icon is-medium has-text-primary"><i class="fa-solid fa-flask-vial fa-lg"></i></span>
+                    <h2 class="title is-4 mb-0" style="color: #334155;">การตรวจทางเคมี (Blood Chemistry)</h2>
+                </div>
+                <span id="test_result"></span>
+                <div class="chemistry-sub-group">
+                    <h3 class="subtitle is-5 mb-4 has-text-weight-bold has-text-grey-dark">
+                        <i class="fa-solid fa-caret-right mr-2 has-text-primary"></i>ระดับน้ำตาล (Glucose Level)
+                    </h3>
+                    <div class="lab-table-card">
+                        <div class="lab-header">
+                            <div class="lab-title"><i class="fa-solid fa-droplet"></i> Blood Glucose Result</div>
+                        </div>
+                        <table class="table is-fullwidth mb-0">
+                            <thead>
+                                <tr class="is-size-7 has-text-grey">
+                                    <th width="40%">รายการ</th>
+                                    <th class="has-text-centered">ผลตรวจ</th>
+                                    <th class="has-text-centered">ค่าอ้างอิง</th>
+                                    <th class="has-text-centered">หน่วย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="GTT2_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="GTT2_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="GTT2_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="GTT2_unit">-</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="p-4 pt-0">
+                            <div class="interpretation-box">
+                                <div class="interpretation-title">ผลการตรวจและคำแนะนำ</div>
+                                <div class="interpretation-content">
+                                    <p>• <strong style="color: #64748b;">ผลการตรวจ:</strong> &nbsp;<span id="intp_glu">-</span></p>
+                                    <p>• <span id="adv_glu">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kidney Function Section -->
+                <div class="chemistry-sub-group">
+                    <h3 class="subtitle is-5 mb-4 has-text-weight-bold has-text-grey-dark">
+                        <i class="fa-solid fa-caret-right mr-2 has-text-primary"></i>การทำงานของไต (Kidney Function)
+                    </h3>
+                    <div class="lab-table-card">
+                        <div class="lab-header">
+                            <div class="lab-title"><i class="fa-solid fa-vial-circle-check"></i> Renal Function Tests</div>
+                        </div>
+                        <table class="table is-fullwidth mb-0">
+                            <thead>
+                                <tr class="is-size-7 has-text-grey">
+                                    <th width="40%">รายการตรวจ</th>
+                                    <th class="has-text-centered">ผลตรวจ</th>
+                                    <th class="has-text-centered">ค่าอ้างอิง</th>
+                                    <th class="has-text-centered">หน่วย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="BUN_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="BUN_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="BUN_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="BUN_unit">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="CRE_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="CRE_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="CRE_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="CRE_unit">-</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="p-4 pt-0">
+                            <div class="interpretation-box">
+                                <div class="interpretation-title">ผลการตรวจและคำแนะนำ</div>
+                                <div class="interpretation-content">
+                                    <p>• <strong style="color: #64748b;">ผลการตรวจ:</strong> &nbsp;<span id="intp_bun_cre">-</span></p>
+                                    <p>• <span id="adv_bun_cre">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Uric Acid Section -->
+                <div class="chemistry-sub-group">
+                    <h3 class="subtitle is-5 mb-4 has-text-weight-bold has-text-grey-dark">
+                        <i class="fa-solid fa-caret-right mr-2 has-text-primary"></i>ระดับกรดยูริกในเลือด (Uric Acid)
+                    </h3>
+                    <div class="lab-table-card">
+                        <div class="lab-header">
+                            <div class="lab-title"><i class="fa-solid fa-bone"></i> Uric Acid Result</div>
+                        </div>
+                        <table class="table is-fullwidth mb-0">
+                            <thead>
+                                <tr class="is-size-7 has-text-grey">
+                                    <th width="40%">รายการตรวจ</th>
+                                    <th class="has-text-centered">ผลตรวจ</th>
+                                    <th class="has-text-centered">ค่าอ้างอิง</th>
+                                    <th class="has-text-centered">หน่วย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="UA_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="UA_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="UA_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="UA_unit">-</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="p-4 pt-0">
+                            <div class="interpretation-box">
+                                <div class="interpretation-title">ผลการตรวจและคำแนะนำ</div>
+                                <div class="interpretation-content">
+                                    <p>• <strong style="color: #64748b;">ผลการตรวจ:</strong> &nbsp;<span id="intp_ua">-</span></p>
+                                    <p>• <span id="adv_ua">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lipid Profile Section -->
+                <div class="chemistry-sub-group">
+                    <h3 class="subtitle is-5 mb-4 has-text-weight-bold has-text-grey-dark">
+                        <i class="fa-solid fa-caret-right mr-2 has-text-primary"></i>ตรวจกลุ่มไขมัน (Lipid Profile)
+                    </h3>
+                    <div class="lab-table-card">
+                        <div class="lab-header">
+                            <div class="lab-title"><i class="fa-solid fa-circle-nodes"></i> Lipid Profile Results</div>
+                        </div>
+                        <table class="table is-fullwidth mb-0">
+                            <thead>
+                                <tr class="is-size-7 has-text-grey">
+                                    <th width="40%">รายการตรวจ</th>
+                                    <th class="has-text-centered">ผลตรวจ</th>
+                                    <th class="has-text-centered">ค่าอ้างอิง</th>
+                                    <th class="has-text-centered">หน่วย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="CHO_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="CHO_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="CHO_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="CHO_unit">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="TG_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="TG_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="TG_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="TG_unit">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="HDLC_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="HDLC_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="HDLC_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="HDLC_unit">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="LDL_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="LDL_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="LDL_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="LDL_unit">-</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="p-4 pt-0">
+                            <div class="interpretation-box">
+                                <div class="interpretation-title">ผลการตรวจและคำแนะนำ</div>
+                                <div class="interpretation-content">
+                                    <p>• <strong style="color: #64748b;">ผลการตรวจ:</strong> &nbsp;<span id="intp_cho_tg_ldl">-</span></p>
+                                    <p>• <span id="adv_cho_tg_ldl">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Liver Function Section -->
+                <div class="chemistry-sub-group">
+                    <h3 class="subtitle is-5 mb-4 has-text-weight-bold has-text-grey-dark">
+                        <i class="fa-solid fa-caret-right mr-2 has-text-primary"></i>การตรวจคัดกรองการทำงานของตับ (Liver Function)
+                    </h3>
+                    <div class="lab-table-card">
+                        <div class="lab-header">
+                            <div class="lab-title"><i class="fa-solid fa-kit-medical"></i> Liver Function Tests</div>
+                        </div>
+                        <table class="table is-fullwidth mb-0">
+                            <thead>
+                                <tr class="is-size-7 has-text-grey">
+                                    <th width="40%">รายการตรวจ</th>
+                                    <th class="has-text-centered">ผลตรวจ</th>
+                                    <th class="has-text-centered">ค่าอ้างอิง</th>
+                                    <th class="has-text-centered">หน่วย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                    <td class="has-text-weight-semibold"><span id="AST_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="AST_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="AST_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="AST_unit">-</span></td>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="ALT_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="ALT_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="ALT_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="ALT_unit">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="ALK_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="ALK_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="ALK_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="ALK_unit">-</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="p-4 pt-0">
+                            <div class="interpretation-box">
+                                <div class="interpretation-title">ผลการตรวจและคำแนะนำ</div>
+                                <div class="interpretation-content">
+                                    <p>• <strong style="color: #64748b;">ผลการตรวจ:</strong> &nbsp;<span id="intp_ast_alt_alk">-</span></p>
+                                    <p>•  &nbsp;<span id="adv_ast_alt_alk">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: CBC (Pink Theme) -->
+            <div class="mb-6">
+                <div class="main-section-title cbc-title">
+                    <span class="icon is-medium" style="color: var(--cbc-primary);"><i class="fa-solid fa-microscope fa-lg"></i></span>
+                    <h2 class="title is-4 mb-0" style="color: var(--cbc-primary);">3. ความสมบูรณ์ของเลือด (CBC - COMPLETE BLOOD COUNT)</h2>
+                </div>
+
+                <!-- Group 3.1: Blood indices -->
+                <div class="chemistry-sub-group cbc-group">
+                    <h3 class="subtitle is-5 mb-4 has-text-weight-bold" style="color: var(--cbc-primary);">
+                        <i class="fa-solid fa-caret-right mr-2"></i>ดัชนีทางโลหิตวิทยา (Blood indices)
+                    </h3>
+                    <div class="lab-table-card" style="border-color: #f9a8d4;">
+                        <!-- Added Table Header to match style -->
+                        <div class="lab-header cbc-header">
+                            <div class="lab-title cbc-title-text"><i class="fa-solid fa-vial"></i> Red Blood Cell Indices</div>
+                        </div>
+                        <table class="table is-fullwidth mb-0">
+                            <thead>
+                                <tr class="is-size-7 has-text-grey">
+                                    <th width="40%">รายการตรวจ</th>
+                                    <th class="has-text-centered">ผลตรวจ</th>
+                                    <th class="has-text-centered">ค่าอ้างอิง</th>
+                                    <th class="has-text-centered">หน่วย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="CBC10_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="CBC10_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="CBC10_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="CBC10_unit">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="CBC11_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="CBC11_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="CBC11_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="CBC11_unit">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="CBC12_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="CBC12_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="CBC12_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="CBC12_unit">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="CBC13_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="CBC13_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="CBC13_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="CBC13_unit">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="CBC14_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="CBC14_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="CBC14_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="CBC14_unit">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="CBC15_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="CBC15_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="CBC15_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="CBC15_unit">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="CBC16_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="CBC16_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="CBC16_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="CBC16_unit">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="CBC18_name">-</span></td>
+                                    <td colspan="3" class="has-text-centered has-text-weight-bold is-size-7">
+                                        <span id="CBC18_result">-</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="p-4 pt-0">
+                            <div class="interpretation-box cbc-interp">
+                                <div class="interpretation-title">ผลการตรวจและคำแนะนำ</div>
+                                <div class="interpretation-content">
+                                    <p>• <strong style="color: #64748b;">ผลการตรวจ:</strong> &nbsp;<span id="intp_cbc_hb_mcv">-</span></p>
+                                    <p>• <span id="adv_cbc_hb_mcv">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Group 3.2: Platelet -->
+                <div class="chemistry-sub-group cbc-group">
+                    <h3 class="subtitle is-5 mb-4 has-text-weight-bold" style="color: var(--cbc-primary);">
+                        <i class="fa-solid fa-caret-right mr-2"></i>เกล็ดเลือด (Platelet)
+                    </h3>
+                    <div class="lab-table-card" style="border-color: #f9a8d4;">
+                        <div class="lab-header cbc-header">
+                            <div class="lab-title cbc-title-text"><i class="fa-solid fa-layer-group"></i> Platelet Count Result</div>
+                        </div>
+                        <table class="table is-fullwidth mb-0">
+                            <thead>
+                                <tr class="is-size-7 has-text-grey">
+                                    <th width="40%">รายการตรวจ</th>
+                                    <th class="has-text-centered">ผลตรวจ</th>
+                                    <th class="has-text-centered">ค่าอ้างอิง</th>
+                                    <th class="has-text-centered">หน่วย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="CBC08_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="CBC08_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="CBC08_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="CBC08_unit">-</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="p-4 pt-0">
+                            <div class="interpretation-box cbc-interp">
+                                <div class="interpretation-title">ผลการตรวจและคำแนะนำ</div>
+                                <div class="interpretation-content">
+                                    <p>• <strong style="color: #64748b;">ผลการตรวจ:</strong> &nbsp;<span id="intp_cbc_pl_count">-</span></p>
+                                    <p>• <span id="adv_cbc_pl_count">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Group 3.3: WBC Count -->
+                <div class="chemistry-sub-group cbc-group">
+                    <h3 class="subtitle is-5 mb-4 has-text-weight-bold" style="color: var(--cbc-primary);">
+                        <i class="fa-solid fa-caret-right mr-2"></i>ปริมาณเม็ดเลือดขาว (White Blood Cell Count)
+                    </h3>
+                    <div class="lab-table-card" style="border-color: #f9a8d4;">
+                        <div class="lab-header cbc-header">
+                            <div class="lab-title cbc-title-text"><i class="fa-solid fa-shield-virus"></i> Total WBC Count</div>
+                        </div>
+                        <table class="table is-fullwidth mb-0">
+                            <thead>
+                                <tr class="is-size-7 has-text-grey">
+                                    <th width="40%">รายการตรวจ</th>
+                                    <th class="has-text-centered">ผลตรวจ</th>
+                                    <th class="has-text-centered">ค่าอ้างอิง</th>
+                                    <th class="has-text-centered">หน่วย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="CBC01_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="CBC01_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="CBC01_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="CBC01_unit">-</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="p-4 pt-0">
+                            <div class="interpretation-box cbc-interp">
+                                <div class="interpretation-title">ผลการตรวจและคำแนะนำ</div>
+                                <div class="interpretation-content">
+                                    <p>• <strong style="color: #64748b;">ผลการตรวจ:</strong> &nbsp;<span id="intp_cbc_wbc_count">-</span></p>
+                                    <p>• <span id="adv_cbc_wbc_count">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Group 3.4: Differential WBC -->
+                <div class="chemistry-sub-group cbc-group">
+                    <h3 class="subtitle is-5 mb-4 has-text-weight-bold" style="color: var(--cbc-primary);">
+                        <i class="fa-solid fa-caret-right mr-2"></i>ลักษณะ/ชนิดของเม็ดเลือดขาว (Differential WBC)
+                    </h3>
+                    <div class="lab-table-card" style="border-color: #f9a8d4;">
+                        <div class="lab-header cbc-header">
+                            <div class="lab-title cbc-title-text"><i class="fa-solid fa-bacteria"></i> WBC Differential Count</div>
+                        </div>
+                        <table class="table is-fullwidth mb-0">
+                            <thead>
+                                <tr class="is-size-7 has-text-grey">
+                                    <th width="40%">รายการตรวจ</th>
+                                    <th class="has-text-centered">ผลตรวจ</th>
+                                    <th class="has-text-centered">ค่าอ้างอิง</th>
+                                    <th class="has-text-centered">หน่วย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="CBC02_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="CBC02_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="CBC02_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="CBC02_unit">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="CBC03_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="CBC03_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="CBC03_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="CBC03_unit">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="CBC04_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="CBC04_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="CBC04_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="CBC04_unit">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="CBC05_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="CBC05_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="CBC05_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="CBC05_unit">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="CBC06_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="CBC06_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="CBC06_ref">-</span></td>
+                                    <td class="has-text-centered is-size-7"><span id="CBC06_unit">-</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="p-4 pt-0">
+                            <div class="interpretation-box cbc-interp">
+                                <div class="interpretation-title">ผลการตรวจและคำแนะนำ</div>
+                                <div class="interpretation-content">
+                                    <p>• <strong style="color: #64748b;">ผลการตรวจ:</strong> &nbsp;<span id="intp_cbc_diff">-</span></p>
+                                    <p><span id="adv_cbc_diff">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Section 4: URINALYSIS (Orange-Yellow Theme) -->
+            <div class="mb-6">
+                <div class="main-section-title ua-title">
+                    <span class="icon is-medium" style="color: var(--ua-primary);"><i class="fa-solid fa-vial-virus fa-lg"></i></span>
+                    <h2 class="title is-4 mb-0" style="color: var(--ua-primary);">4. การตรวจปัสสาวะ (URINALYSIS)</h2>
+                </div>
+
+                <!-- 4.1 Chemical Examination -->
+                <div class="chemistry-sub-group ua-group">
+                    <h3 class="subtitle is-5 mb-4 has-text-weight-bold" style="color: var(--ua-primary);">
+                        <i class="fa-solid fa-caret-right mr-2"></i>ตรวจทางเคมี (Chemical Examination)
+                    </h3>
+                    <div class="lab-table-card" style="border-color: #fde68a;">
+                        <div class="lab-header ua-header">
+                            <div class="lab-title ua-title-text"><i class="fa-solid fa-vial"></i> Urine Chemistry Results</div>
+                        </div>
+                        <table class="table is-fullwidth mb-0">
+                            <thead>
+                                <tr class="is-size-7 has-text-grey">
+                                    <th width="40%">รายการตรวจ</th>
+                                    <th class="has-text-centered">ผลตรวจ</th>
+                                    <th class="has-text-centered">ค่าอ้างอิง</th>
+                                    <th class="has-text-centered">หน่วย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="UA03_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="UA03_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="UA03_ref">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="UA04_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="UA04_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="UA04_ref">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="UA05_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="UA05_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="UA05_ref">-</span></td>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="UA06_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="UA06_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="UA06_ref">-</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="p-4 pt-0">
+                            <div class="interpretation-box ua-interp-theme">
+                                <div class="interpretation-title">ผลการตรวจและคำแนะนำ (Urinalysis)</div>
+                                <div class="interpretation-content">
+                                    <p>• <strong style="color: #64748b;">ผลการตรวจ:</strong> &nbsp;<span id="intp_urine_p_g">-</span></p>
+                                    <p><span id="adv_urine_p_g">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4.2 Microscopic Examination -->
+                <div class="chemistry-sub-group ua-group">
+                    <h3 class="subtitle is-5 mb-4 has-text-weight-bold" style="color: var(--ua-primary);">
+                        <i class="fa-solid fa-caret-right mr-2"></i>ตรวจตะกอนด้วยกล้องจุลทรรศน์ (Microscopic Examination)
+                    </h3>
+                    <div class="lab-table-card" style="border-color: #fde68a;">
+                        <div class="lab-header ua-header">
+                            <div class="lab-title ua-title-text"><i class="fa-solid fa-microscope"></i> Sediment Analysis (cells/hpf)</div>
+                        </div>
+                        <table class="table is-fullwidth mb-0">
+                            <thead>
+                                <tr class="is-size-7 has-text-grey">
+                                    <th width="40%">รายการตรวจ</th>
+                                    <th class="has-text-centered">ผลตรวจ</th>
+                                    <th class="has-text-centered">ค่าอ้างอิง</th>
+                                    <th class="has-text-centered">หน่วย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="UA13_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="UA13_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="UA13_ref">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="UA14_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="UA14_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="UA14_ref">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="UA15_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="UA15_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="UA15_ref">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="UA16_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="UA16_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="UA16_ref">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="UA19_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="UA19_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="UA19_ref">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="UA18_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="UA18_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"></td>
+                                </tr>
+                                <tr>
+                                    <td class="has-text-weight-semibold"><span id="UA22_name">-</span></td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="UA22_result">-</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="UA22_ref">-</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <!-- Integrated Interpretation Box for Urinalysis -->
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 5: STOOL EXAMINATION -->
+            <div class="mb-6">
+                <div class="main-section-title stool-title">
+                    <span class="icon is-medium" style="color: var(--stool-primary);"><i class="fa-solid fa-poop fa-lg"></i></span>
+                    <h2 class="title is-4 mb-0" style="color: var(--stool-primary);">5. ตรวจอุจจาระ (STOOL EXAMINATION)</h2>
+                </div>
+
+                <div class="chemistry-sub-group stool-group">
+                    <h3 class="subtitle is-5 mb-4 has-text-weight-bold" style="color: var(--stool-primary);">
+                        <i class="fa-solid fa-caret-right mr-2"></i>ตรวจพยาธิ (Parasite) ไข่พยาธิ (Ova) และโปรโตซัว (Protozoa)
+                    </h3>
+                    <div class="lab-table-card" style="border-color: #ffedd5;">
+                        <div class="lab-header stool-header">
+                            <div class="lab-title stool-title-text"><i class="fa-solid fa-bug"></i> Parasitology Results</div>
+                        </div>
+                        <table class="table is-fullwidth mb-0">
+                            <thead>
+                                <tr class="is-size-7 has-text-grey">
+                                    <th width="40%">รายการตรวจ</th>
+                                    <th class="has-text-centered">ผลตรวจ</th>
+                                    <th class="has-text-centered">ค่าอ้างอิง</th>
+                                    <th class="has-text-centered">หน่วย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="has-text-weight-semibold">ตรวจไข่พยาธิ พยาธิ และโปรโตซัว</td>
+                                    <td class="has-text-centered has-text-weight-bold is-size-5"><span id="SXM7_result">ไม่ตรวจ</span></td>
+                                    <td class="has-text-centered has-text-grey"><span id="SXM7_ref"></span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="p-4 pt-0">
+                            <div class="interpretation-box stool-interp-theme">
+                                <div class="interpretation-title">ผลการตรวจและคำแนะนำ (Stool Exam)</div>
+                                <div class="interpretation-content">
+                                    <p>•  &nbsp;<span id="adv_stool"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Section 6: CHEST X-RAY -->
+            <div class="mb-6">
+                <div class="main-section-title xray-title">
+                    <span class="icon is-medium" style="color: var(--xray-primary);"><i class="fa-solid fa-x-ray fa-lg"></i></span>
+                    <h2 class="title is-4 mb-0" style="color: var(--xray-primary);">6. เอกซเรย์ปอด (CHEST X-RAY)</h2>
+                </div>
+                <span id="xray_data"></span>
+                <div class="chemistry-sub-group xray-group">
+                    <div class="lab-table-card" style="border-color: #bae6fd;">
+                        <div class="lab-header xray-header">
+                            <div class="lab-title xray-title-text"><i class="fa-solid fa-lungs"></i> Radiographic Findings</div>
+                        </div>
+                        <div class="p-5">
+                            <div class="columns">
+                                <div class="column is-3">
+                                    <p class="has-text-grey is-size-7 uppercase mb-1">ผลการตรวจ:</p>
+                                    <p class="title is-5"><span id="xray_status">-</span></p>
+                                </div>
+                                <div class="column">
+                                    <p class="has-text-grey is-size-7 uppercase mb-1">รายละเอียด (Findings):</p>
+                                    <p class="is-size-6">
+                                        <span id="xray_chest">-</span></td>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 7: Special Test -->
+            <div class="mb-6">
+                <div class="main-section-title special-title">
+                    <span class="icon is-medium" style="color: var(--special-primary);"><i class="fa-solid fa-star fa-lg"></i></span>
+                    <h2 class="title is-4 mb-0" style="color: var(--special-primary);">7. รายการตรวจพิเศษ (Special Test)</h2>
+                </div>
+
+                <div class="chemistry-sub-group special-group">
+                    <div class="lab-table-card" style="border-color: #ddd6fe;">
+                        <div class="lab-header special-header">
+                            <div class="lab-title special-title-text"><i class="fa-solid fa-vial-circle-check"></i> Special Analysis Results</div>
+                        </div>
+                        <table class="table is-fullwidth mb-0">
+                            <thead>
+                                <tr class="is-size-7 has-text-grey">
+                                    <th width="40%">รายการตรวจ (Test)</th>
+                                    <th class="has-text-centered">ผลตรวจ (Result)</th>
+                                    <th class="has-text-centered">ค่าอ้างอิง (Reference)</th>
+                                    <th class="has-text-centered">หน่วย (Unit)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="testspecial"
+                                hx-get="{{ url_for('comhealth.testspecial', serviceNo=service_no, gender=employee.sex, age=employee.age) }}"
+                                hx-trigger="load"
+                                hx-swap="outerHTML">
+                                <tr><td colspan="4">... special tests ...</td></tr>
+                            </tbody>
+                        </table>
+
+                    </div>
+                </div>
+            </div>
+        </main>
+
+    </div>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    console.log("Start calling lab......");
+    htmx.ajax("GET", "{{ url_for('comhealth.employee_lab', serviceNo=service_no, age=employee.age, gender=employee.sex) }}", {
+        swap: "none"
+    });
+    console.log("Start calling physical...");
+    htmx.ajax("GET", "{{ url_for('comhealth.employee_physical', serviceNo=service_no) }}", {
+        swap: "none"
+    });
+});
+</script>
+
+</body>
+</html>
