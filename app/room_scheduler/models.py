@@ -95,6 +95,14 @@ class RoomEvent(db.Model):
     start = db.Column('start', db.DateTime(timezone=True), nullable=False)
     end = db.Column('end', db.DateTime(timezone=True), nullable=False)
     datetime = db.Column(DateTimeRangeType())
+    hour = db.Column('hour', db.String(), info={'label': 'จำนวนชั่วโมง', 'choices': [('', 'กรุณาเลือกจำนวนชั่วโมง'),
+                                                                                     ('3', '3 ชั่วโมง'),
+                                                                                     ('6', '6 ชั่วโมง')]
+                                                })
+    booking = db.Column('booking', db.String(), info={'label': 'การจองซ้ำ', 'choices': [('', ''),
+                                                                                        ('ทุกวัน', 'ทุกวัน'),
+                                                                                        ('ทุกสัปดาห์', 'ทุกสัปดาห์')]
+                                                      })
     iocode_id = db.Column('iocode_id', db.ForeignKey('iocodes.id'))
     occupancy = db.Column('occupancy', db.Integer())
     # number of sets of food/refreshment requested
