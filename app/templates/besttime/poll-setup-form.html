@@ -15,7 +15,11 @@
 {% include "besttime/nav.html" %}
 {% block page_content %}
 <section class="section">
-    <h2 class="title has-text-centered">สร้างแบบสำรวจใหม่</h2>
+    {% if poll_id %}
+        <h2 class="title has-text-centered">แก้ไขแบบสำรวจ</h2>
+    {% else %}
+        <h2 class="title has-text-centered">สร้างแบบสำรวจใหม่</h2>
+    {% endif %}
     <p class="subtitle has-text-centered is-6 has-text-grey">กรอกรายละเอียดเพื่อกำหนดวันโหวตและผู้รับผิดชอบ</p>
     <form method="post">
         {{form.hidden_tag()}}
