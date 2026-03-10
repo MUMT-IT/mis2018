@@ -2477,12 +2477,14 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
         style=style_sheet['ThaiStyle']) if sign else ""
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer,
-                            rightMargin=10,
-                            leftMargin=10,
-                            topMargin=180,
-                            bottomMargin=10,
-                            )
+
+    doc = SimpleDocTemplate(
+        buffer,
+        rightMargin=10,
+        leftMargin=10,
+        topMargin=180,
+        bottomMargin=10,
+    )
     receipt_number = receipt.code
     data = []
     affiliation = '''<para align=center><font size=10>
@@ -2537,9 +2539,9 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                                    style=style_sheet['ThaiStyle'])
     hight_customer_name = 5.5
     if receipt.issued_for:
-
+        hight_customer_name = 4.0
         customer_name = '''<para><font size=12>
-        ได้รับเงินจาก / RECEIVED FROM {issued_for} ({customer_name})<br/>
+        ได้รับเงินจาก / RECEIVED FROM {issued_for}<br/>
         ที่อยู่ / ADDRESS {address} <br/>
         </font></para>
         '''.format(issued_for=receipt.issued_for,
@@ -3206,6 +3208,11 @@ def load_all_conditions():
     CONDITION_CACHE = dict(grouped)
     return CONDITION_CACHE
 
+mapping_color_inp = {
+        "Nm": ("has-text-dark"),
+        "AbH": ("has-text-danger")
+    }
+
 @comhealth.route('/result/<int:serviceNo>/<string:email>/<string:servicedate>')
 @login_required
 def customer_result(serviceNo, email, servicedate):
@@ -3243,12 +3250,12 @@ def employee_physical(serviceNo):
     except:
         return '<tr><td colspan="4">Error loading data</td></tr>'
 
-    weight = physical.get("weight")
-    height = physical.get("height")
-    heartrate = physical.get("heartRate")
-    systolic = physical.get("systolic")
-    comment = physical.get("comment")
-    waistline  = question.get("waistline")
+    weight = physical.get("weight","")
+    height = physical.get("height","")
+    heartrate = physical.get("heartRate","")
+    systolic = physical.get("systolic","")
+    comment = physical.get("comment","")
+    waistline  = question.get("waistline","")
     if not waistline:
         waistline = '-'
 
@@ -3271,32 +3278,40 @@ def employee_physical(serviceNo):
             return None
 
     bmi = calculate_bmi(weight, height)
+
     if bmi is not None:
         bmi_condi = match_condition(bmi, 0, 0, condition_cache.get("BMI"))
-        bmi_inp_id = interpret_cache.get(bmi_condi['condiInterpretId'])
-        bmi_inp = bmi_inp_id['interpret']
+        bmi_inp_id = interpret_cache.get(bmi_condi.get('condiInterpretId',""))
+        bmi_adv = bmi_inp_id.get('advise',"")
+        bmi_isnormal = bmi_inp_id.get('autoVal', "")
+        color_bmi_inp = mapping_color_inp.get(bmi_isnormal, ("has-text-warning"))
     else:
         bmi = '-'
         bmi_inp = ''
+        bmi_adv = ''
+        color_bmi_inp = 'has-text-dark'
 
     #systolic
-    try:
+    if systolic != '':
         bp_condi = get_bp_interpret_id(systolic, condition_cache.get('Systolic'))
         bp_inp_id = interpret_cache.get(bp_condi)
-        bp_inp = bp_inp_id['interpret']
-    except:
+        bp_inp = bp_inp_id.get('interpret',"")
+        bp_isnormal = bp_inp_id.get('autoVal',"")
+        color_bp_inp = mapping_color_inp.get(bp_isnormal, ("has-text-warning"))
+    else:
+        color_bp_inp = 'has-text-dark'
         bp_inp = ''
 
     return (
         f'<span id="weight" hx-swap-oob="true">{weight}</span>'
         f'<span id="height" hx-swap-oob="true">{height}</span>'
         f'<span id="heartrate" hx-swap-oob="true">{heartrate}</span>'
-        f'<span id="systolic" hx-swap-oob="true">{systolic}</span>'
+        f'<span id="systolic" hx-swap-oob="true" class="{color_bp_inp}">{systolic}</span>'
         f'<span id="waistline" hx-swap-oob="true">{waistline}</span>'
-        f'<span id="bmi" hx-swap-oob="true">{bmi}</span>'
-        f'<span id="bmi_inp" hx-swap-oob="true">{bmi_inp}</span>'
+        f'<span id="bmi" hx-swap-oob="true" class="{color_bmi_inp}">{bmi}</span>'
+        f'<span id="bmi_inp" hx-swap-oob="true" class={color_bmi_inp}>{bmi_adv}</span>'
         f'<span id="comment" hx-swap-oob="true">{comment}</span>'
-        f'<span id="bp_inp" hx-swap-oob="true">{bp_inp}</span>'
+        f'<span id="bp_inp" hx-swap-oob="true" class="{color_bp_inp}">{bp_inp}</span>'
     )
 
 
@@ -3312,7 +3327,8 @@ def employee_lab(serviceNo, age, gender):
         return '<tr><td colspan="4">Error loading data</td></tr>'
 
     html = ""
-
+    condition_cache = load_all_conditions()
+    interpret_cache = load_all_interpret()
     results_dict = {}
 
     for row in lab.get("data", []):
@@ -3330,6 +3346,15 @@ def employee_lab(serviceNo, age, gender):
             else:
                 tcode_oob = tcode
 
+            try:
+                condi = match_condition(value, age, gender, condition_cache.get(tcode))
+                inp_id = interpret_cache.get(condi.get('condiInterpretId', ""))
+                isnormal = inp_id.get('autoVal', "")
+                color_inp = mapping_color_inp.get(isnormal, ("has-text-warning"))
+            except:
+                condi = None
+                color_inp = 'has-text-dark'
+
             results_dict[tcode] = {
                 "testname": testname,
                 "value": value
@@ -3340,7 +3365,8 @@ def employee_lab(serviceNo, age, gender):
                 value=value,
                 ref=ref,
                 testname=testname,
-                unit=unit
+                unit=unit,
+                color=color_inp
             )
     html += interpert_normaltest(lab,age,gender)
     html += xray_result(serviceNo)
@@ -3740,10 +3766,10 @@ def xray_result(serviceNo):
     )
 
 
-def render_lab_oob(tcode, value, ref, testname, unit):
+def render_lab_oob(tcode, value, ref, testname, unit, color):
     return (
         f'<span id="{tcode}_name" hx-swap-oob="true">{testname}</span>'
-        f'<span id="{tcode}_result" hx-swap-oob="true">{value}</span>'
+        f'<span id="{tcode}_result" hx-swap-oob="true" class="{color}">{value}</span>'
         f'<span id="{tcode}_ref" hx-swap-oob="true">{ref}</span>'
         f'<span id="{tcode}_unit" hx-swap-oob="true">{unit}</span>'
     )
