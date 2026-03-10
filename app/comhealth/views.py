@@ -3332,7 +3332,7 @@ def employee_lab(serviceNo, age, gender):
     results_dict = {}
 
     for row in lab.get("data", []):
-        if row.get("testNormalBook") == True:
+        if row.get("testNormalBook") == True and row.get("isProfile") == False:
             tcode = row.get("tcode")
             testname = escape(row.get("testNamePrintResult"))
             value = escape(row.get("testResult"))
