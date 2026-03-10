@@ -134,7 +134,7 @@ def add_poll():
             return redirect(url_for('besttime.index'))
         else:
             return f'{form.errors}'
-    return render_template('besttime/poll-setup-form.html', form=form)
+    return render_template('besttime/poll-setup-form.html', form=form, poll_id=None)
 
 
 @besttime_bp.route('/api/preview_master_datetime_slots', methods=['POST'])
