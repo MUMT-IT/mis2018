@@ -113,6 +113,8 @@ def add_poll():
                     ds = BestTimeMasterDateTimeSlot(start=_start_datetime, end=_end_datetime, poll=poll)
                     db.session.add(ds)
             poll.created_at = arrow.now('Asia/Bangkok').datetime
+            poll.start_date = None
+            poll.end_date = None
             db.session.add(poll)
             db.session.commit()
             url = url_for('besttime.vote_poll', poll_id=poll.id, _external=True)
@@ -120,7 +122,7 @@ def add_poll():
             message = f'''
             เรียนกรรมการ
             
-            ขอเชิญท่านเลือกวันที่สะดวกสำหรับร่วมประชุม {poll.title} ภายในวันที่ {poll.date_span} โดยคลิกที่ลิงค์ด้านล่าง
+            ขอเชิญท่านเลือกวันที่สะดวกสำหรับร่วมประชุม {poll.title} ภายในวันที่ {poll.vote_date_span} โดยคลิกที่ลิงค์ด้านล่าง
             
             {url}
             
@@ -135,7 +137,7 @@ def add_poll():
     return render_template('besttime/poll-setup-form.html', form=form)
 
 
-@besttime_bp.route('/api/preview-master-datetime-slots', methods=['POST'])
+@besttime_bp.route('/api/preview_master_datetime_slots', methods=['POST'])
 @login_required
 def preview_master_datetime_slots():
     form = BestTimePollForm()
@@ -143,43 +145,95 @@ def preview_master_datetime_slots():
     start_date = form.start_date.data
     end_date = form.end_date.data
 
-    while len(form.datetime_slots) > 0:
-        form.datetime_slots.pop_entry()
-
-    if (start_date and end_date) and start_date < end_date:
-        current = start_date
-        delta = datetime.timedelta(days=1)
-
-        while current <= end_date:
-            if calendar.weekday(current.year, current.month, current.day) < 5:
-                form.datetime_slots.append_entry({'date': current})
-            current += delta
-            for _form_field in form.datetime_slots:
-                selected = []
-                choices = [dt for dt in
-                           [(_form_field.date.data.strftime('%Y-%m-%d') + '#09:00 - 12:00', '09:00 - 12:00'),
-                            (_form_field.date.data.strftime('%Y-%m-%d') + '#13:00 - 16:00', '13:00 - 16:00')]]
-                _form_field.time_slots.choices = choices
-                # Preselect all choices so that the users will only need to uncheck the choice that is not good for them.
-                for h in vote_hours:
-                    hour_text = f'#{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
-                    hour_display = f'{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
-                    if poll_id:
-                        start = datetime.datetime.combine(_form_field.date.data, h.start, tzinfo=BKK_TZ)
-                        end = datetime.datetime.combine(_form_field.date.data, h.end, tzinfo=BKK_TZ)
-                        _slot = BestTimeMasterDateTimeSlot.query \
-                            .filter(BestTimeMasterDateTimeSlot.start == start,
-                                    BestTimeMasterDateTimeSlot.end == end,
-                                    BestTimeMasterDateTimeSlot.poll_id == poll_id).first()
-                        if _slot:
-                            selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))
+    if (start_date and end_date) and start_date == end_date or poll_id:
+        dates = set()
+        for slot in form.datetime_slots:
+            if slot.date.data:
+                dates.add(slot.date.data)
+        if start_date:
+            dates.add(start_date)
+        if poll_id:
+            datetime_slots = BestTimeMasterDateTimeSlot.query.filter_by(poll_id=poll_id)
+            date_set = set([datetime_slot.start.date() for datetime_slot in datetime_slots])
+            dates.update(date_set)
+        while len(form.datetime_slots) > 0:
+            form.datetime_slots.pop_entry()
+        for date in sorted(dates):
+            form.datetime_slots.append_entry({'date': date})
+        for _form_field in form.datetime_slots:
+            selected = []
+            choices = [dt for dt in
+                        [(_form_field.date.data.strftime('%Y-%m-%d') + '#09:00 - 12:00', '09:00 - 12:00'),
+                        (_form_field.date.data.strftime('%Y-%m-%d') + '#13:00 - 16:00', '13:00 - 16:00')]]
+            _form_field.time_slots.choices = choices
+            for h in vote_hours:
+                hour_text = f'#{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
+                hour_display = f'{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
+                if poll_id:
+                    start = datetime.datetime.combine(_form_field.date.data, h.start, tzinfo=BKK_TZ)
+                    end = datetime.datetime.combine(_form_field.date.data, h.end, tzinfo=BKK_TZ)
+                    _slot = BestTimeMasterDateTimeSlot.query \
+                        .filter(BestTimeMasterDateTimeSlot.start == start,
+                                BestTimeMasterDateTimeSlot.end == end,
+                                BestTimeMasterDateTimeSlot.poll_id == poll_id).first()
+                    if _slot:
+                        selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))
                     else:
                         selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))
-                _form_field.time_slots.data = [dt[0] for dt in selected]
+                else:
+                    selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))
 
+            _form_field.time_slots.data = [dt[0] for dt in selected]
         return render_template('besttime/datetime_slots_preview.html', form=form)
     else:
         return ''
+
+
+# @besttime_bp.route('/api/preview-master-datetime-slots', methods=['POST'])
+# @login_required
+# def preview_master_datetime_slots():
+#     form = BestTimePollForm()
+#     poll_id = request.args.get('poll_id')
+#     start_date = form.start_date.data
+#     end_date = form.end_date.data
+#
+#     while len(form.datetime_slots) > 0:
+#         form.datetime_slots.pop_entry()
+#
+#     if (start_date and end_date) and start_date < end_date:
+#         current = start_date
+#         delta = datetime.timedelta(days=1)
+#
+#         while current <= end_date:
+#             if calendar.weekday(current.year, current.month, current.day) < 5:
+#                 form.datetime_slots.append_entry({'date': current})
+#             current += delta
+#             for _form_field in form.datetime_slots:
+#                 selected = []
+#                 choices = [dt for dt in
+#                            [(_form_field.date.data.strftime('%Y-%m-%d') + '#09:00 - 12:00', '09:00 - 12:00'),
+#                             (_form_field.date.data.strftime('%Y-%m-%d') + '#13:00 - 16:00', '13:00 - 16:00')]]
+#                 _form_field.time_slots.choices = choices
+#                 # Preselect all choices so that the users will only need to uncheck the choice that is not good for them.
+#                 for h in vote_hours:
+#                     hour_text = f'#{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
+#                     hour_display = f'{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
+#                     if poll_id:
+#                         start = datetime.datetime.combine(_form_field.date.data, h.start, tzinfo=BKK_TZ)
+#                         end = datetime.datetime.combine(_form_field.date.data, h.end, tzinfo=BKK_TZ)
+#                         _slot = BestTimeMasterDateTimeSlot.query \
+#                             .filter(BestTimeMasterDateTimeSlot.start == start,
+#                                     BestTimeMasterDateTimeSlot.end == end,
+#                                     BestTimeMasterDateTimeSlot.poll_id == poll_id).first()
+#                         if _slot:
+#                             selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))
+#                     else:
+#                         selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))
+#                 _form_field.time_slots.data = [dt[0] for dt in selected]
+#
+#         return render_template('besttime/datetime_slots_preview.html', form=form)
+#     else:
+#         return ''
 
 
 @besttime_bp.route('/edit/<int:poll_id>', methods=['GET', 'POST'])
@@ -231,6 +285,8 @@ def edit_poll(poll_id):
                         ds = BestTimeMasterDateTimeSlot(start=_start_datetime, end=_end_datetime, poll=poll)
                     db.session.add(ds)
             poll.modified_at = arrow.now('Asia/Bangkok').datetime
+            poll.start_date = None
+            poll.end_date = None
             db.session.add(poll)
             db.session.commit()
             url = url_for('besttime.vote_poll', poll_id=poll.id, _external=True)
@@ -239,7 +295,7 @@ def edit_poll(poll_id):
             เรียนกรรมการ
 
             เนื่องจากมีการเปลี่ยนแปลงโพลสำรวจวันประชุมจึง
-            ขอความกรุณาท่านเลืิอกวันที่สะดวกสำหรับร่วมประชุม {poll.title} ภายในวันที่ {poll.date_span} โดยคลิกที่ลิงค์ด้านล่าง
+            ขอความกรุณาท่านเลืิอกวันที่สะดวกสำหรับร่วมประชุม {poll.title} ภายในวันที่ {poll.vote_date_span} โดยคลิกที่ลิงค์ด้านล่าง
 
             {url}
 

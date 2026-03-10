@@ -4,7 +4,7 @@
     {{ super() }}
     <style>
         .has-thin-border {
-            border: 1px solid #dbdbdb; /* Bulma grey */
+            border: 1px solid #dbdbdb;
             border-radius: 4px;
             padding: 0.75rem;
         }
@@ -15,88 +15,138 @@
 {% include "besttime/nav.html" %}
 {% block page_content %}
 <section class="section">
-    <h2 class="title is-size-4">สร้างแบบสำรวจใหม่</h2>
+    <h2 class="title has-text-centered">สร้างแบบสำรวจใหม่</h2>
+    <p class="subtitle has-text-centered is-6 has-text-grey">กรอกรายละเอียดเพื่อกำหนดวันโหวตและผู้รับผิดชอบ</p>
     <form method="post">
         {{form.hidden_tag()}}
-        <div class="field">
-            <label class="label">{{form.title.label}}</label>
-            <div class="control">
-                {{form.title(class="input is-danger")}}
-            </div>
-        </div>
-        <div class="field">
-            <label class="label">{{ form.vote_start_date.label }}</label>
-            <div class="control">
-                {{ form.vote_start_date(class="input") }}
-            </div>
-        </div>
-        <div class="field">
-            <label class="label">{{ form.vote_end_date.label }}</label>
-            <div class="control">
-                {{ form.vote_end_date(class="input") }}
-            </div>
-        </div>
-        <div class="field">
-            <label class="label">{{form.start_date.label}}</label>
-            <div class="control">
-                {{form.start_date(**{'hx-trigger': 'change',
-                'class': 'input',
-                'hx-post': url_for('besttime.preview_master_datetime_slots', poll_id=poll_id),
-                'hx-target': '#master-datetime-slots',
-                'hx-swap': 'innerHTML',
-                'hx-headers': '{"X-CSRFToken": "{{ csrf_token() }}"}'})}}
-            </div>
-        </div>
-        <div class="field">
-            <label class="label">{{form.end_date.label}}</label>
-            <div class="control">
-                {{form.end_date(**{'hx-trigger': 'change',
-                'class': 'input',
-                'hx-post': url_for('besttime.preview_master_datetime_slots', poll_id=poll_id),
-                'hx-target': '#master-datetime-slots',
-                'hx-swap': 'innerHTML',
-                'hx-headers': '{"X-CSRFToken": "{{ csrf_token() }}"}'})}}
-            </div>
-        </div>
-        <h1 class="title is-size-6">Date Time Slots Preview</h1>
-        <div id="master-datetime-slots"></div>
-        <div class="field">
-            <label class="label">{{form.desc.label}}</label>
-            <div class="control">
-                {{form.desc(class="textarea")}}
-            </div>
-        </div>
-        <div class="field">
-            <label class="label">{{ form.chairman.label }}</label>
-            <div>{{form.chairman(class="js-example-basic-single")}}</div>
-        </div>
-        <div class="field">
-            <label class="label">{{ form.invitees.label }}</label>
-            <div class="control">{{form.invitees(class='js-example-basic-multiple')}}</div>
-        </div>
-        <div class="field">
-            <label class="label">Admins</label>
-            <div class="control">{{form.admins(class='js-example-basic-multiple')}}</div>
-        </div>
-        <div class="field is-grouped">
-            <div class="control">
-                <button class="button is-success" type="submit">Submit</button>
-            </div>
-            {% if poll_id %}
-            <div class="control">
-                <a class="button is-danger"
-                   hx-swap="none"
-                   hx-indicator="this"
-                   hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
-                   hx-confirm="ท่านต้องการลบการสำรวจนี้หรือไม่ หากลบแล้วจะไม่สามารถกู้คืนได้"
-                   hx-delete="{{url_for('besttime.delete_poll', poll_id=poll_id)}}">Delete</a>
-            </div>
-            <div class="control">
-                <a class="button is-warning" href="{{url_for('besttime.close_poll', poll_id=poll_id)}}">Close</a>
-            </div>
-            {% endif %}
-            <div class="control">
-                <a class="button is-light" href="{{url_for('besttime.index')}}">Back</a>
+        <div class="columns is-centered">
+            <div class="column is-three-fifths box">
+                <div class="field m-5">
+                    <h2 class="title is-5">
+                        <span class="icon"><i class="fas fa-info-circle"></i></span>
+                        <span>รายละเอียด</span>
+                    </h2>
+                    <div class="field">
+                        <label class="label">{{form.title.label}}</label>
+                        <div class="control">
+                            {{form.title(class="input is-danger", placeholder="กรุณาระบุชื่อแบบสำรวจ")}}
+                        </div>
+                    </div>
+                    <div class="field-body mb-3">
+                        <div class="field">
+                            <label class="label">{{ form.vote_start_date.label }}</label>
+                            <div class="control">
+                                {{ form.vote_start_date(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.vote_end_date.label }}</label>
+                            <div class="control">
+                                {{ form.vote_end_date(class="input") }}
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <h2 class="title is-5">
+                        <span class="icon"><i class="fas fa-clock"></i></span>
+                        <span>ตัวเลือกเวลา</span>
+                    </h2>
+                    <div class="field-body mb-3">
+                        <div class="field">
+                            <label class="label">{{form.start_date.label}}</label>
+                            <div class="control">
+                                {{form.start_date(class='input')}}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{form.end_date.label}}</label>
+                            <div class="control">
+                                {{form.end_date(class='input')}}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <a class="button is-info is-small is-outlined is-rounded"
+                           hx-post="{{ url_for('besttime.preview_master_datetime_slots', poll_id=poll_id) }}"
+                           hx-target="#master-datetime-slots"
+                           hx-trigger="click, load"
+                           hx-include="closest form"
+                           hx-swap="innerHTML">
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                            <span>เพิ่มช่วงเวลาอื่น</span>
+                        </a>
+                    </div>
+            {#        <div class="field">#}
+            {#            <label class="label">{{form.start_date.label}}</label>#}
+            {#            <div class="control">#}
+            {#                {{form.start_date(**{'hx-trigger': 'change',#}
+            {#                'class': 'input',#}
+            {#                'hx-post': url_for('besttime.preview_master_datetime_slots', poll_id=poll_id),#}
+            {#                'hx-target': '#master-datetime-slots',#}
+            {#                'hx-swap': 'innerHTML',#}
+            {#                'hx-headers': '{"X-CSRFToken": "{{ csrf_token() }}"}'})}}#}
+            {#            </div>#}
+            {#        </div>#}
+            {#        <div class="field">#}
+            {#            <label class="label">{{form.end_date.label}}</label>#}
+            {#            <div class="control">#}
+            {#                {{form.end_date(**{'hx-trigger': 'change',#}
+            {#                'class': 'input',#}
+            {#                'hx-post': url_for('besttime.preview_master_datetime_slots', poll_id=poll_id),#}
+            {#                'hx-target': '#master-datetime-slots',#}
+            {#                'hx-swap': 'innerHTML',#}
+            {#                'hx-headers': '{"X-CSRFToken": "{{ csrf_token() }}"}'})}}#}
+            {#            </div>#}
+            {#        </div>#}
+                    <h1 class="title is-size-6">Date Time Slots Preview</h1>
+                    <div id="master-datetime-slots"></div>
+                    <div class="field">
+                        <label class="label">{{form.desc.label}}</label>
+                        <div class="control">
+                            {{form.desc(class="textarea")}}
+                        </div>
+                    </div>
+                    <hr>
+                    <h2 class="title is-5">
+                        <span class="icon"><i class="fas fa-users"></i></span>
+                        <span>รายชื่อคณะกรรมการ</span>
+                    </h2>
+                    <div class="field">
+                        <label class="label">{{ form.chairman.label }}</label>
+                        <div>{{form.chairman(class="js-example-basic-single")}}</div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.invitees.label }}</label>
+                        <div class="control">{{form.invitees(class='js-example-basic-multiple')}}</div>
+                    </div>
+                    <div class="field">
+                        <label class="label">Admins</label>
+                        <div class="control">{{form.admins(class='js-example-basic-multiple')}}</div>
+                    </div>
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <button class="button is-success" type="submit">Submit</button>
+                        </div>
+                        {% if poll_id %}
+                        <div class="control">
+                            <a class="button is-danger"
+                               hx-swap="none"
+                               hx-indicator="this"
+                               hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                               hx-confirm="ท่านต้องการลบการสำรวจนี้หรือไม่ หากลบแล้วจะไม่สามารถกู้คืนได้"
+                               hx-delete="{{url_for('besttime.delete_poll', poll_id=poll_id)}}">Delete</a>
+                        </div>
+                        <div class="control">
+                            <a class="button is-warning" href="{{url_for('besttime.close_poll', poll_id=poll_id)}}">Close</a>
+                        </div>
+                        {% endif %}
+                        <div class="control">
+                            <a class="button is-light" href="{{url_for('besttime.index')}}">Back</a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </form>
@@ -112,7 +162,7 @@
             $('.js-example-basic-multiple').select2({
                 width: "100%",
             })
-            htmx.trigger('#start_date', 'change')
+            {#htmx.trigger('#start_date', 'change')#}
         })
     </script>
 {% endblock %}
