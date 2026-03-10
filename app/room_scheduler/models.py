@@ -125,6 +125,8 @@ class RoomEvent(db.Model):
     course_session_id = db.Column('course_session_id', db.ForeignKey('eduqa_course_sessions.id'))
     course_session = db.relationship(EduQACourseSession, backref=db.backref('events', cascade='all, delete-orphan'))
     meeting_event_id = db.Column('meeting_event_id', db.ForeignKey('meeting_events.id'))
+    master_id = db.Column('master_id', db.Integer, db.ForeignKey('scheduler_room_reservations.id'))
+    secondary = db.relationship('RoomEvent', backref=db.backref('master', remote_side=[id]))
 
     def to_dict(self):
         return {
