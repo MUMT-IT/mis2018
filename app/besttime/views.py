@@ -147,6 +147,7 @@ def preview_master_datetime_slots():
 
     if (start_date and end_date) and start_date == end_date or poll_id:
         dates = set()
+        poll_dates = set()
         for slot in form.datetime_slots:
             if slot.date.data:
                 dates.add(slot.date.data)
@@ -177,8 +178,9 @@ def preview_master_datetime_slots():
                                 BestTimeMasterDateTimeSlot.end == end,
                                 BestTimeMasterDateTimeSlot.poll_id == poll_id).first()
                     if _slot:
+                        poll_dates.add(_slot.start.date())
                         selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))
-                    else:
+                    elif _form_field.date.data not in poll_dates:
                         selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))
                 else:
                     selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))
