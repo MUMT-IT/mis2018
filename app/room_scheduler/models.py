@@ -95,6 +95,18 @@ class RoomEvent(db.Model):
     start = db.Column('start', db.DateTime(timezone=True), nullable=False)
     end = db.Column('end', db.DateTime(timezone=True), nullable=False)
     datetime = db.Column(DateTimeRangeType())
+    hour = db.Column('hour', db.String(), info={'label': 'จำนวนชั่วโมง', 'choices': [('', 'กรุณาเลือกจำนวนชั่วโมง'),
+                                                                                     ('1', '1 ชั่วโมง'),
+                                                                                     ('2', '2 ชั่วโมง'),
+                                                                                     ('3', '3 ชั่วโมง'),
+                                                                                     ('4', '4 ชั่วโมง'),
+                                                                                     ('5', '5 ชั่วโมง'),
+                                                                                     ('6', '6 ชั่วโมง')]
+                                                })
+    booking = db.Column('booking', db.String(), info={'label': 'การจองซ้ำ', 'choices': [('', ''),
+                                                                                        ('ทุกวัน', 'ทุกวัน'),
+                                                                                        ('ทุกสัปดาห์', 'ทุกสัปดาห์')]
+                                                      })
     iocode_id = db.Column('iocode_id', db.ForeignKey('iocodes.id'))
     occupancy = db.Column('occupancy', db.Integer())
     # number of sets of food/refreshment requested
@@ -125,6 +137,8 @@ class RoomEvent(db.Model):
     course_session_id = db.Column('course_session_id', db.ForeignKey('eduqa_course_sessions.id'))
     course_session = db.relationship(EduQACourseSession, backref=db.backref('events', cascade='all, delete-orphan'))
     meeting_event_id = db.Column('meeting_event_id', db.ForeignKey('meeting_events.id'))
+    master_id = db.Column('master_id', db.Integer, db.ForeignKey('scheduler_room_reservations.id'))
+    secondary = db.relationship('RoomEvent', backref=db.backref('master', remote_side=[id]))
 
     def to_dict(self):
         return {

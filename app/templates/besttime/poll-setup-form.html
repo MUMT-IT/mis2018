@@ -15,7 +15,11 @@
 {% include "besttime/nav.html" %}
 {% block page_content %}
 <section class="section">
-    <h2 class="title has-text-centered">สร้างแบบสำรวจใหม่</h2>
+    {% if poll_id %}
+        <h2 class="title has-text-centered">แก้ไขแบบสำรวจ</h2>
+    {% else %}
+        <h2 class="title has-text-centered">สร้างแบบสำรวจใหม่</h2>
+    {% endif %}
     <p class="subtitle has-text-centered is-6 has-text-grey">กรอกรายละเอียดเพื่อกำหนดวันโหวตและผู้รับผิดชอบ</p>
     <form method="post">
         {{form.hidden_tag()}}
@@ -49,21 +53,21 @@
                     <hr>
                     <h2 class="title is-5">
                         <span class="icon"><i class="fas fa-clock"></i></span>
-                        <span>ตัวเลือกเวลา</span>
+                        <span>ตัวเลือกวัน-เวลาประชุม</span>
                     </h2>
                     <div class="field-body mb-3">
                         <div class="field">
-                            <label class="label">{{form.start_date.label}}</label>
+                            <label class="label">วันประชุม</label>
                             <div class="control">
                                 {{form.start_date(class='input')}}
                             </div>
                         </div>
-                        <div class="field">
-                            <label class="label">{{form.end_date.label}}</label>
-                            <div class="control">
-                                {{form.end_date(class='input')}}
-                            </div>
-                        </div>
+{#                        <div class="field">#}
+{#                            <label class="label">{{form.end_date.label}}</label>#}
+{#                              <div class="control">#}
+{#                                {{form.end_date(class='input')}}#}
+{#                            </div>#}
+{#                        </div>#}
                     </div>
                     <div class="field">
                         <a class="button is-info is-small is-outlined is-rounded"
@@ -75,7 +79,7 @@
                             <span class="icon">
                                 <i class="fas fa-plus"></i>
                             </span>
-                            <span>เพิ่มช่วงเวลาอื่น</span>
+                            <span>เพิ่มวันประชุม</span>
                         </a>
                     </div>
             {#        <div class="field">#}

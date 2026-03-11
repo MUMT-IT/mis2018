@@ -134,7 +134,7 @@ def add_poll():
             return redirect(url_for('besttime.index'))
         else:
             return f'{form.errors}'
-    return render_template('besttime/poll-setup-form.html', form=form)
+    return render_template('besttime/poll-setup-form.html', form=form, poll_id=None)
 
 
 @besttime_bp.route('/api/preview_master_datetime_slots', methods=['POST'])
@@ -143,10 +143,11 @@ def preview_master_datetime_slots():
     form = BestTimePollForm()
     poll_id = request.args.get('poll_id')
     start_date = form.start_date.data
-    end_date = form.end_date.data
+    # end_date = form.end_date.data
 
-    if (start_date and end_date) and start_date == end_date or poll_id:
+    if start_date or poll_id:
         dates = set()
+        date_set = set()
         for slot in form.datetime_slots:
             if slot.date.data:
                 dates.add(slot.date.data)
@@ -178,7 +179,7 @@ def preview_master_datetime_slots():
                                 BestTimeMasterDateTimeSlot.poll_id == poll_id).first()
                     if _slot:
                         selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))
-                    else:
+                    elif _form_field.date.data not in date_set:
                         selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))
                 else:
                     selected.append((_form_field.date.data.strftime('%Y-%m-%d') + hour_text, hour_display))

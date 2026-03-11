@@ -201,7 +201,16 @@ def edit_detail(event_id):
     end = localtz.localize(event.datetime.upper)
     if form.validate_on_submit():
         event_start = arrow.get(form.start.data, 'Asia/Bangkok').datetime
-        event_end = arrow.get(form.end.data, 'Asia/Bangkok').datetime
+        hour = int(form.hour.data)
+        start = arrow.get(form.start.data, 'Asia/Bangkok')
+        end = start
+        # event_end = arrow.get(form.start.data, 'Asia/Bangkok').shift(hours=int(form.hour.data)).datetime
+        for i in range(hour):
+            end = end.shift(hours=1)
+            if hour > 3 and end.hour == 12:
+                end = end.shift(hours=1)
+
+        event_end = end.datetime
         overlaps = get_overlaps(event.room.id, event_start, event_end)
         overlaps = [evt for evt in overlaps if evt.id != event_id]
         if overlaps:
@@ -284,12 +293,23 @@ def room_reserve(room_id):
         new_event = RoomEvent()
         if form.start.data:
             startdatetime = arrow.get(form.start.data, 'Asia/Bangkok').datetime
+            hour = int(form.hour.data)
+            # enddatetime = arrow.get(form.start.data, 'Asia/Bangkok').shift(hours=int(form.hour.data)).datetime
+            start = arrow.get(form.start.data, 'Asia/Bangkok')
+            end = start
+            for i in range(hour):
+                end = end.shift(hours=1)
+                if hour > 3 and end.hour == 12:
+                    end = end.shift(hours=1)
+
+            enddatetime = end.datetime
         else:
             startdatetime = None
-        if form.end.data:
-            enddatetime = arrow.get(form.end.data, 'Asia/Bangkok').datetime
-        else:
             enddatetime = None
+        # if form.end.data:
+        #     enddatetime = arrow.get(form.end.data, 'Asia/Bangkok').datetime
+        # else:
+        #     enddatetime = None
 
         if room_id and startdatetime and enddatetime:
             if get_overlaps(room_id, startdatetime, enddatetime):
@@ -421,8 +441,10 @@ def check_room_availability():
     event_id = request.args.get('event_id', type=int)
     start = request.args.get('start')
     end = request.args.get('end')
+    hour = request.args.get('hour')
     start = dateutil.parser.isoparse(start).astimezone(pytz.timezone('Asia/Bangkok'))
-    end = dateutil.parser.isoparse(end).astimezone(pytz.timezone('Asia/Bangkok'))
+    end = start + timedelta(hours=int(hour))
+    # end = dateutil.parser.isoparse(start).astimezone(pytz.timezone('Asia/Bangkok'))
     overlaps = get_overlaps(room_id, start, end, session_id, session_attr)
     overlaps = [evt for evt in overlaps if evt.id != event_id]
     if overlaps:
