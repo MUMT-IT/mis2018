@@ -3086,13 +3086,11 @@ def add_consent_records(service_id, consent_detail_id):
 
 
 @comhealth.route('/receipt/search')
-@login_required
 def search_receipt():
     return render_template('comhealth/search_receipt.html')
 
 
 @comhealth.route('/receipt/search/list', methods=['POST', 'GET'])
-@login_required
 def receipt_list():
     code = request.form.get('code', None)
     if code:
