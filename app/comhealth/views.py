@@ -2241,14 +2241,13 @@ def create_receipt(record_id):
         address = request.form.get('receipt_address', None)
         issued_for = request.form.get('issued_for', None)
         issuer = ComHealthCashier.query.filter_by(staff=current_user).first()
-        reason_text = record.finance_contact.reason or ""
+        reason_text = getattr(record.finance_contact, "reason", "") or ""
         if record.note:
             record.note = f"{record.note}:{reason_text}"
         else:
             # ถ้ายังไม่มี note เดิม ไม่ต้องขึ้นต้นด้วย :
             record.note = f"{reason_text}"
 
-        print("note",record.note)
         if not issuer:
             issuer = ComHealthCashier(staff=current_user,
                                       position=current_user.personal_info.position)
@@ -2478,13 +2477,6 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
 
     buffer = BytesIO()
 
-    doc = SimpleDocTemplate(
-        buffer,
-        rightMargin=10,
-        leftMargin=10,
-        topMargin=180,
-        bottomMargin=10,
-    )
     receipt_number = receipt.code
     data = []
     affiliation = '''<para align=center><font size=10>
@@ -2537,34 +2529,48 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     if cancel:
         origin_or_copy = Paragraph('<para align=center><font size=20>ยกเลิก(Cancel)<br/><br/></font></para>',
                                    style=style_sheet['ThaiStyle'])
-    hight_customer_name = 5.5
+    customer_br = ''
     if receipt.issued_for:
-        hight_customer_name = 4.0
-        customer_name = '''<para><font size=12>
+        customer_name = '''
+        <para><font size=12>
         ได้รับเงินจาก / RECEIVED FROM {issued_for}<br/>
-        ที่อยู่ / ADDRESS {address} <br/>
+        ที่อยู่ / ADDRESS {address}
         </font></para>
-        '''.format(issued_for=receipt.issued_for,
-                   customer_name=receipt.record.customer.fullname,
-                   address=receipt.address,
-                   )
+        '''.format(
+            issued_for=receipt.issued_for,
+            address=receipt.address
+        )
     else:
-        customer_name = '''<para><font size=12>
+        customer_br = '<br/>'
+        customer_name = '''<para><font size=12><br/>
         ได้รับเงินจาก / RECEIVED FROM {customer_name}
         </font></para>
         '''.format(customer_name=receipt.record.customer.fullname,
                    )
-    customer_labno = '''<para><font size=11>
-    หมายเลขรายการ / NUMBER {customer_labno}<br/><br/>
+    customer_labno = '''
+    <para align=right><font size=11>{customer_br}
+    หมายเลขรายการ / NUMBER {customer_labno}
     </font></para>
     '''.format(customer_labno=receipt.record.labno,
-               venue=receipt.issued_at)
+               venue=receipt.issued_at,customer_br=customer_br)
     customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
                        Paragraph(customer_labno, style=style_sheet['ThaiStyle'])]],
-                     colWidths=[300, 200]
+                     colWidths=[360, 140]
                      )
     customer.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                                 ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
+
+    w, h = customer.wrap(500, 100)
+    top_margin = 180 + (h * 0.5)
+
+    doc = SimpleDocTemplate(
+        buffer,
+        rightMargin=10,
+        leftMargin=10,
+        topMargin=top_margin,
+        bottomMargin=10,
+    )
+
     items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>เบิกได้ (บาท)*<br/>Reimbursable (BAHT)</font>',
@@ -2795,11 +2801,11 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
         subheader1 = Paragraph('<para align=center><font size=16>ใบเสร็จรับเงิน / RECEIPT<br/><br/></font></para>',
                                style=style_sheet['ThaiStyle'])
         w, h = subheader1.wrap(doc.width, doc.topMargin)
-        subheader1.drawOn(canvas, doc.leftMargin, doc.height + doc.topMargin - h * 5.5)
+        subheader1.drawOn(canvas, doc.leftMargin, doc.height + doc.topMargin - h * 5)
 
         subheader2 = customer
         w, h = subheader2.wrap(doc.width, doc.topMargin)
-        subheader2.drawOn(canvas, doc.leftMargin + 28, doc.height + doc.topMargin - h * hight_customer_name)
+        subheader2.drawOn(canvas, doc.leftMargin + 28, doc.height + doc.topMargin - h - 120)
 
         logo_image = ImageReader('app/static/img/mu-watermark.png')
         canvas.drawImage(logo_image, 140, 265, mask='auto')
