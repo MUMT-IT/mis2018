@@ -288,7 +288,8 @@
         let checkAvailability = function (e) {
             let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
             let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
-            let hour = $('input[name="hour"]').val()
+            let hour = $('select[name="hour"]').val()
+
             htmx.ajax('GET',
                 '{{ url_for("room.check_room_availability") }}',
                 {
