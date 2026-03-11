@@ -104,7 +104,7 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">ตั้งแต่วันที่</label>
+                            <label class="label">วันที่เริ่ม</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
@@ -116,16 +116,28 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">สิ้นสุดวันที่</label>
+                            <label class="label">{{ form.hour.label }}</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
-                                <div class="control">
-                                    {{ form.end(class='input') }}
+                                <div class="select">
+                                    {{ form.hour(required=true) }}
                                 </div>
                             </div>
                         </div>
                     </div>
+{#                    <div class="field is-horizontal">#}
+{#                        <div class="field-label is-normal">#}
+{#                            <label class="label">สิ้นสุดวันที่</label>#}
+{#                        </div>#}
+{#                        <div class="field-body">#}
+{#                            <div class="field">#}
+{#                                <div class="control">#}
+{#                                    {{ form.end(class='input') }}#}
+{#                                </div>#}
+{#                            </div>#}
+{#                        </div>#}
+{#                    </div>#}
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
                             <label class="label">ตรวจสอบการใช้งาน</label>
@@ -276,6 +288,7 @@
         let checkAvailability = function (e) {
             let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
             let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
+            let hour = $('input[name="hour"]').val()
             htmx.ajax('GET',
                 '{{ url_for("room.check_room_availability") }}',
                 {
@@ -284,7 +297,8 @@
                     values: {
                         'room': {{ room.id|tojson|safe }},
                         'start': startDateTime.format(),
-                        'end': endDateTime.format(),
+                        'hour': hour,
+                        {#'end': endDateTime.format(),#}
                         'session_id': null,
                         {% if event %}
                             'event_id': {{ event.id|tojson|safe }}
