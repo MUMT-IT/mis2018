@@ -387,7 +387,7 @@
                     </div>
                     <div class="info-group">
                         <label>อายุ</label>
-                        <span>{{ employee.age }} ปี</span>
+                        <span>{{ age }} ปี</span>
                     </div>
                     <div class="info-group">
                         <label>วันที่ตรวจ</label>
@@ -1163,7 +1163,7 @@
                                 </tr>
                             </thead>
                             <tbody id="testspecial"
-                                hx-get="{{ url_for('comhealth.testspecial', serviceNo=service_no, gender=employee.sex, age=employee.age) }}"
+                                hx-get="{{ url_for('comhealth.testspecial', serviceNo=service_no, gender=employee.sex, age=age) }}"
                                 hx-trigger="load"
                                 hx-swap="outerHTML">
                                 <tr><td colspan="4">... special tests ...</td></tr>
@@ -1179,7 +1179,7 @@
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     console.log("Start calling lab......");
-    htmx.ajax("GET", "{{ url_for('comhealth.employee_lab', serviceNo=service_no, age=employee.age, gender=employee.sex) }}", {
+    htmx.ajax("GET", "{{ url_for('comhealth.employee_lab', serviceNo=service_no, age=age, gender=employee.sex) }}", {
         swap: "none"
     });
     console.log("Start calling physical...");

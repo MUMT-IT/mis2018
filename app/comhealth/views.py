@@ -3126,6 +3126,8 @@ def cmslis_email(email):
 
     employee = response_employee.json()
 
+    employee_dob = employee.get("birthDate")
+
     cmscode = employee.get("cmsCode")
     if not cmscode:
         return '<tr><td colspan="2" class="has-text-centered">ไม่พบข้อมูล</td></tr>'
@@ -3150,11 +3152,22 @@ def cmslis_email(email):
 
         serviceno = row.get("serviceNo")
 
+        #อายุตามวันที่ตรวจ
+        if not employee_dob:
+            age = "No birth date"
+        else:
+            birth_date = datetime.strptime(employee_dob, "%Y-%m-%dT%H:%M:%S").date()
+            service_date = datetime.strptime(servicedate, "%Y-%m-%dT%H:%M:%S").date()
+            age = service_date.year - birth_date.year - (
+                    (service_date.month, service_date.day) < (birth_date.month, birth_date.day)
+            )
+
         result_url = url_for(
             'comhealth.customer_result',
             serviceNo=serviceno,
             email=email,
-            servicedate=servicedate
+            servicedate=servicedate,
+            age=age
         )
 
         html += f"""
@@ -3217,9 +3230,9 @@ mapping_color_inp = {
         "AbH": ("has-text-danger")
     }
 
-@comhealth.route('/result/<int:serviceNo>/<string:email>/<string:servicedate>')
+@comhealth.route('/result/<int:serviceNo>/<string:email>/<string:servicedate>/<string:age>')
 @login_required
-def customer_result(serviceNo, email, servicedate):
+def customer_result(serviceNo, email, servicedate, age):
     api_employee_url = f"https://webmt.mahidol.ac.th/api/Employees/email/{email}"
     response_employee = requests.get(api_employee_url)
     employee = response_employee.json()
@@ -3233,7 +3246,8 @@ def customer_result(serviceNo, email, servicedate):
         'comhealth/result.html',
         employee=employee,
         servicedate_thai=servicedate_thai,
-        service_no=serviceNo
+        service_no=serviceNo,
+        age=age
     )
 
 @comhealth.route('/api/physical/<int:serviceNo>')
