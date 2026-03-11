@@ -94,6 +94,67 @@
     </div>
     <div class="columns mt-1">
         <div class="column box">
+            <h1 class="title is-size-4">แบบสำรวจที่คุณจัดการ</h1>
+            <table class="table is-striped">
+                <thead>
+                <th>ชื่อ</th>
+                <th>ผู้สร้าง</th>
+                <th>จำนวนโหวต</th>
+                <th>ความก้าวหน้า</th>
+                <th>ระยะเวลาเปิดให้โหวต</th>
+                <th>บทบาทของคุณ</th>
+                <th></th>
+                </thead>
+                <tbody>
+                {% for poll in current_user.besttime_poll_admins %}
+                <tr>
+                    <td>
+                        {{ poll.title }}
+                    </td>
+                    <td>{{ poll.creator.fullname}}</td>
+                    <td>{{ poll.voted|length}}/{{poll.invitations.count() }}</td>
+                    <td>
+                        <progress class="progress is-success"
+                                  value="{{ poll.voted|length }}"
+                                  max="{{ poll.invitations.count()}}">
+                            {{ poll.voted|length}}/{{poll.invitations.count() }}
+                        </progress>
+                    </td>
+                    <td>{{ poll.vote_date_span }}</td>
+                    <td>Admin</td>
+                    <td>
+                        {% if not poll.closed_at %}
+                            <a class="button is-small is-rounded is-info"
+                               href="{{url_for('besttime.edit_poll', poll_id=poll.id)}}">
+                                <span class="icon">
+                                   <i class="fa-solid fa-gear"></i>
+                                </span>
+                                <span>manage</span>
+                            </a>
+                            <a class="button is-small is-rounded is-danger"
+                               href="{{url_for('besttime.close_poll', poll_id=poll.id)}}">
+                                <span class="icon">
+                                    <i class="fa-solid fa-power-off"></i>
+                                </span>
+                                <span>close</span>
+                            </a>
+                        {% endif %}
+                        <a class="button is-small is-rounded is-warning"
+                           href="{{url_for('besttime.view_results', poll_id=poll.id)}}">
+                            <span class="icon">
+                                <i class="fa-solid fa-square-poll-vertical"></i>
+                            </span>
+                            <span>result</span>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="columns mt-1">
+        <div class="column box">
             <h1 class="title is-size-4">แบบสำรวจที่คุณสร้าง</h1>
             <table class="table is-striped">
                 <thead>

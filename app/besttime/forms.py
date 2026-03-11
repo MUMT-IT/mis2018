@@ -80,9 +80,9 @@ class BestTimePollForm(ModelForm):
             if name in model_attrs:
                 field.populate_obj(obj, name)
 
-    chairman = QuerySelectField('ประธาน', query_factory=lambda: StaffAccount.query.all(), get_label="fullname")
-    invitees = QuerySelectMultipleField('กรรมการ', query_factory=lambda: StaffAccount.query.all(), get_label="fullname")
-    admins = QuerySelectMultipleField(query_factory=lambda: StaffAccount.query.all(), get_label="fullname")
+    chairman = QuerySelectField('ประธาน', query_factory=lambda: StaffAccount.get_active_accounts(), get_label="fullname")
+    invitees = QuerySelectMultipleField('กรรมการ', query_factory=lambda: StaffAccount.get_active_accounts(), get_label="fullname")
+    admins = QuerySelectMultipleField(query_factory=lambda: StaffAccount.get_active_accounts(), get_label="fullname")
     datetime_slots = FieldList(FormField(BestTimeMasterDateTimeSlotForm), min_entries=0)
 
 
