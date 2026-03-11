@@ -201,7 +201,7 @@ def edit_detail(event_id):
     end = localtz.localize(event.datetime.upper)
     if form.validate_on_submit():
         event_start = arrow.get(form.start.data, 'Asia/Bangkok').datetime
-        event_end = arrow.get(form.end.data, 'Asia/Bangkok').datetime
+        event_end = arrow.get(form.start.data, 'Asia/Bangkok').shift(hours=int(form.hour.data)).datetime
         overlaps = get_overlaps(event.room.id, event_start, event_end)
         overlaps = [evt for evt in overlaps if evt.id != event_id]
         if overlaps:
@@ -284,12 +284,14 @@ def room_reserve(room_id):
         new_event = RoomEvent()
         if form.start.data:
             startdatetime = arrow.get(form.start.data, 'Asia/Bangkok').datetime
+            enddatetime = arrow.get(form.start.data, 'Asia/Bangkok').shift(hours=int(form.hour.data)).datetime
         else:
             startdatetime = None
-        if form.end.data:
-            enddatetime = arrow.get(form.end.data, 'Asia/Bangkok').datetime
-        else:
             enddatetime = None
+        # if form.end.data:
+        #     enddatetime = arrow.get(form.end.data, 'Asia/Bangkok').datetime
+        # else:
+        #     enddatetime = None
 
         if room_id and startdatetime and enddatetime:
             if get_overlaps(room_id, startdatetime, enddatetime):
