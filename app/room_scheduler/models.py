@@ -96,7 +96,11 @@ class RoomEvent(db.Model):
     end = db.Column('end', db.DateTime(timezone=True), nullable=False)
     datetime = db.Column(DateTimeRangeType())
     hour = db.Column('hour', db.String(), info={'label': 'จำนวนชั่วโมง', 'choices': [('', 'กรุณาเลือกจำนวนชั่วโมง'),
+                                                                                     ('1', '1 ชั่วโมง'),
+                                                                                     ('2', '2 ชั่วโมง'),
                                                                                      ('3', '3 ชั่วโมง'),
+                                                                                     ('4', '4 ชั่วโมง'),
+                                                                                     ('5', '5 ชั่วโมง'),
                                                                                      ('6', '6 ชั่วโมง')]
                                                 })
     booking = db.Column('booking', db.String(), info={'label': 'การจองซ้ำ', 'choices': [('', ''),
