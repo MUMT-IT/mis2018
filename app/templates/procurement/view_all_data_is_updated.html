@@ -44,25 +44,39 @@
 {% block scripts %}
     {{ super() }}
     <script>
-        $(document).ready(function () {
-            $('#data').DataTable({
-                searchDelay: 350,
-                ajax: '{{ url_for("procurement.get_procurement_data_is_updated") }}',
-                serverSide: true,
-                order: [[0, 'desc']],
-                columns: [
-                    {data: 'received_date'},
-                    {data: 'name'},
-                    {data: 'procurement_no'},
-                    {data: 'erp_code'},
-                    {data: 'budget_year'},
-                    {data: 'location'},
-                    {data: 'status'},
-                    {data: 'updater'},
-                    {data: 'updated_at'},
+    $(document).ready(function () {
+        var table = $('#data').DataTable({
+            serverSide: true,
+            searchDelay: 1000,
+            ajax: '{{ url_for("procurement.get_procurement_data_is_updated") }}',
 
-                ],
-            });
+            order: [[0, 'desc']],
+
+            language: {
+                emptyTable: "กรุณาพิมพ์คำค้นหาอย่างน้อย 4 ตัวอักษร"
+            },
+
+            columns: [
+                {data: 'received_date'},
+                {data: 'name'},
+                {data: 'procurement_no'},
+                {data: 'erp_code'},
+                {data: 'budget_year'},
+                {data: 'location'},
+                {data: 'status'},
+                {data: 'updater'},
+                {data: 'updated_at'}
+            ]
         });
+
+        $('#data_filter input').unbind();
+
+        $('#data_filter input').on('keyup', function () {
+            var value = this.value;
+            if (value.length >= 4 || value.length === 0) {
+                table.search(value).draw();
+            }
+         });
+    });
     </script>
 {% endblock %}

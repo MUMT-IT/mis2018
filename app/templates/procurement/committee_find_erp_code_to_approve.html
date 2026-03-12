@@ -66,15 +66,28 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#data').DataTable({
-                searchDelay: 350,
-                ajax: '{{ url_for("procurement.get_procurement_search_data") }}',
+            var table = $('#data').DataTable({
                 serverSide: true,
+                searchDelay: 1000,
+                ajax: '{{ url_for("procurement.get_procurement_search_data") }}',
+
+                language: {
+                    emptyTable: "กรุณาพิมพ์ ERP Code อย่างน้อย 4 ตัว"
+                },
+
                 columns: [
                     {data: 'check'},
                     {data: 'erp_code'}
+                ]
+            });
 
-                ],
+            $('#data_filter input').unbind();
+
+            $('#data_filter input').on('keyup', function () {
+                var value = this.value;
+                if (value.length >= 4 || value.length === 0) {
+                    table.search(value).draw();
+                }
             });
         });
     </script>

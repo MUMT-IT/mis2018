@@ -70,7 +70,7 @@ def add_procurement():
         mime_type = file.mimetype
         file_name = '{}.{}'.format(procurement.erp_code, file.filename.split('.')[-1])
         file_data = file.stream.read()
-        print(f'{file_name}')
+        #print(f'{file_name}')
         if file and allowed_file(file.filename):
             img_name = file_name
 
@@ -426,26 +426,46 @@ def search_erp_code_info():
 
 @procurement.route('/api/data/search')
 def get_procurement_search_data():
-    query = ProcurementDetail.query
-    search = request.args.get('search[value]')
-    query = query.filter(db.or_(
-        ProcurementDetail.erp_code.like(u'%{}%'.format(search))
-    ))
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    total_filtered = query.count()
-    query = query.offset(start).limit(length)
+
+    draw = request.args.get('draw', type=int)
+    start = request.args.get('start', type=int, default=0)
+    length = request.args.get('length', type=int, default=10)
+    search = request.args.get('search[value]', '').strip()
+
+    # ถ้ายังไม่ได้ค้นหา ไม่ต้อง query database
+    if not search:
+        return jsonify({
+            'data': [],
+            'recordsFiltered': 0,
+            'recordsTotal': 0,
+            'draw': draw
+        })
+
+    query = ProcurementDetail.query.filter(
+        ProcurementDetail.erp_code.ilike(f'%{search}%')
+    )
+
+    records_filtered = query.count()
+
+    results = query.offset(start).limit(length).all()
+
     data = []
-    for item in query:
+    for item in results:
         item_data = item.to_dict()
         item_data['check'] = '<a href="{}"><i class="far fa-check-circle"></i></a>'.format(
-            url_for('procurement.view_procurement_on_scan', procurement_no=item.procurement_no))
+            url_for(
+                'procurement.view_procurement_on_scan',
+                procurement_no=item.procurement_no
+            )
+        )
         data.append(item_data)
-    return jsonify({'data': data,
-                    'recordsFiltered': total_filtered,
-                    'recordsTotal': ProcurementDetail.query.count(),
-                    'draw': request.args.get('draw', type=int),
-                    })
+
+    return jsonify({
+        'data': data,
+        'recordsFiltered': records_filtered,
+        'recordsTotal': records_filtered,
+        'draw': draw
+    })
 
 
 @procurement.route('/information/view')
@@ -456,45 +476,81 @@ def view_procurement():
 
 @procurement.route('/api/data')
 def get_procurement_data():
-    query = ProcurementDetail.query
-    search = request.args.get('search[value]')
-    query = query.filter(db.or_(
-        ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
-        ProcurementDetail.name.like(u'%{}%'.format(search)),
-        ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
-        ProcurementDetail.available.like(u'%{}%'.format(search))
-    ))
-    direction = request.args.get('order[0][dir]')
+
+    draw = request.args.get('draw', type=int)
+    start = request.args.get('start', type=int, default=0)
+    length = request.args.get('length', type=int, default=10)
+    search = request.args.get('search[value]', '').strip()
+
+    # ถ้ายังไม่ได้ค้นหา ไม่ต้อง query database
+    if not search:
+        return jsonify({
+            'data': [],
+            'recordsFiltered': 0,
+            'recordsTotal': 0,
+            'draw': draw
+        })
+
+    base_query = ProcurementDetail.query
+    query = base_query
+
+    # search
+    if search:
+        query = query.filter(db.or_(
+            ProcurementDetail.procurement_no.ilike(f'%{search}%'),
+            ProcurementDetail.name.ilike(f'%{search}%'),
+            ProcurementDetail.erp_code.ilike(f'%{search}%'),
+            ProcurementDetail.available.ilike(f'%{search}%')
+        ))
+
+    # order
+    direction = request.args.get('order[0][dir]', 'asc')
     col_idx = request.args.get('order[0][column]')
-    col_name = request.args.get('columns[{}][data]'.format(col_idx))
+    col_name = request.args.get(f'columns[{col_idx}][data]')
+
     try:
         column = getattr(ProcurementDetail, col_name)
     except AttributeError:
-        column = ProcurementDetail.received_date.desc()
+        column = ProcurementDetail.received_date
 
     if direction == 'desc':
         column = column.desc()
+    else:
+        column = column.asc()
 
     query = query.order_by(column)
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    total_filtered = query.count()
-    query = query.offset(start).limit(length)
+
+    # count
+    records_filtered = query.count()
+
+    # pagination
+    results = query.offset(start).limit(length).all()
+
     data = []
-    for item in query:
+    for item in results:
         item_data = item.to_dict()
+
         item_data['view'] = '<a href="{}"><i class="fas fa-eye"></i></a>'.format(
-            url_for('procurement.view_qrcode', procurement_id=item.id))
+            url_for('procurement.view_qrcode', procurement_id=item.id)
+        )
+
         item_data['edit'] = '<a href="{}"><i class="fas fa-edit"></i></a>'.format(
-            url_for('procurement.edit_procurement', procurement_id=item.id))
-        item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data[
-            'received_date'] else ''
+            url_for('procurement.edit_procurement', procurement_id=item.id)
+        )
+
+        if item_data.get('received_date'):
+            item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y')
+        else:
+            item_data['received_date'] = ''
+
         data.append(item_data)
-    return jsonify({'data': data,
-                    'recordsFiltered': total_filtered,
-                    'recordsTotal': ProcurementDetail.query.count(),
-                    'draw': request.args.get('draw', type=int),
-                    })
+
+    return jsonify({
+        'data': data,
+        'recordsFiltered': records_filtered,
+        'recordsTotal': base_query.count(),
+        'draw': draw
+    })
 
 @procurement.route('/information/updated')
 @login_required
@@ -504,54 +560,76 @@ def view_procurement_updated():
 
 @procurement.route('/api/data/updated')
 def get_procurement_data_is_updated():
-    query = ProcurementDetail.query
-    search = request.args.get('search[value]')
+
+    draw = request.args.get('draw', type=int)
+    start = request.args.get('start', type=int, default=0)
+    length = request.args.get('length', type=int, default=10)
+    search = request.args.get('search[value]', '').strip()
+
+    base_query = ProcurementDetail.query
+    query = base_query
+
+    # search
     query = query.filter(db.or_(
-        ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
-        ProcurementDetail.name.like(u'%{}%'.format(search)),
-        ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
-        ProcurementDetail.available.like(u'%{}%'.format(search))
+        ProcurementDetail.procurement_no.ilike(f'%{search}%'),
+        ProcurementDetail.name.ilike(f'%{search}%'),
+        ProcurementDetail.erp_code.ilike(f'%{search}%'),
+        ProcurementDetail.available.ilike(f'%{search}%')
     ))
 
-    direction = request.args.get('order[0][dir]')
+    # order
+    direction = request.args.get('order[0][dir]', 'asc')
     col_idx = request.args.get('order[0][column]')
-    col_name = request.args.get('columns[{}][data]'.format(col_idx))
+    col_name = request.args.get(f'columns[{col_idx}][data]')
 
     try:
         column = getattr(ProcurementDetail, col_name)
     except AttributeError:
-        column = getattr(ProcurementDetail, 'received_date')
+        column = ProcurementDetail.received_date
 
     if direction == 'desc':
         column = column.desc()
+    else:
+        column = column.asc()
 
     query = query.order_by(column)
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    total_filtered = query.count()
-    query = query.offset(start).limit(length)
+
+    # count
+    records_filtered = query.count()
+
+    # pagination
+    results = query.offset(start).limit(length).all()
+
     data = []
-    for item in query:
-        current_record = item.current_record
+    for item in results:
+
         item_data = item.to_dict()
-        try:
-            item_data['location'] = u'{}'.format(current_record.location)
-            item_data['status'] = u'{}'.format(current_record.status)
-            item_data['updater'] = u'{}'.format(current_record.updater)
-            item_data['updated_at'] = u'{}'.format(current_record.updated_at)
-        except:
+        current_record = item.current_record
+
+        if current_record:
+            item_data['location'] = str(current_record.location or '')
+            item_data['status'] = str(current_record.status or '')
+            item_data['updater'] = str(current_record.updater or '')
+            item_data['updated_at'] = str(current_record.updated_at or '')
+        else:
             item_data['location'] = ''
             item_data['status'] = ''
             item_data['updater'] = ''
             item_data['updated_at'] = ''
-        item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data[
-            'received_date'] else ''
+
+        if item_data.get('received_date'):
+            item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y')
+        else:
+            item_data['received_date'] = ''
+
         data.append(item_data)
-    return jsonify({'data': data,
-                    'recordsFiltered': total_filtered,
-                    'recordsTotal': ProcurementDetail.query.count(),
-                    'draw': request.args.get('draw', type=int),
-                    })
+
+    return jsonify({
+        'data': data,
+        'recordsFiltered': records_filtered,
+        'recordsTotal': records_filtered,
+        'draw': draw
+    })
 
 
 @procurement.route('/information/find', methods=['POST', 'GET'])
@@ -576,7 +654,7 @@ def edit_procurement(procurement_id):
         mime_type = file.mimetype
         file_name = '{}.{}'.format(procurement.erp_code, file.filename.split('.')[-1])
         file_data = file.stream.read()
-        print(f'Form {file.filename} and new file name {file_name}')
+        #print(f'Form {file.filename} and new file name {file_name}')
         if file and allowed_file(file.filename):
             img_name = file_name
 
@@ -928,7 +1006,7 @@ def add_img_procurement(procurement_id):
         mime_type = file.mimetype
         file_name = '{}.{}'.format(procurement.erp_code, file.filename.split('.')[-1])
         file_data = file.stream.read()
-        print(f'Form {file.filename} and new file name {file_name}')
+        #print(f'Form {file.filename} and new file name {file_name}')
         if file and allowed_file(file.filename):
             img_name = file_name
 
