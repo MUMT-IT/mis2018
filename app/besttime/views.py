@@ -32,19 +32,22 @@ def send_mail_to_voters(poll, message, title):
 
 @besttime_bp.route('/')
 def index():
-    return render_template('besttime/poll-list.html')
+    tab = request.args.get('tab')
+    return render_template('besttime/poll-list.html', tab=tab)
 
 
 @besttime_bp.route('/view/<int:poll_id>')
 @login_required
 def view_results(poll_id):
+    tab = request.args.get('tab')
     slots = BestTimeDateTimeSlot.query.filter_by(poll_id=poll_id)
-    return render_template('besttime/poll-results.html', slots=slots)
+    return render_template('besttime/poll-results.html', slots=slots, tab=tab)
 
 
 @besttime_bp.route('/messages/<int:poll_id>', methods=["GET", "POST"])
 @login_required
 def leave_message(poll_id):
+    tab = request.args.get('tab')
     poll = BestTimePoll.query.get(poll_id)
     form = BestTimePollMessageForm()
     if request.method == "POST":
@@ -75,7 +78,7 @@ def leave_message(poll_id):
             resp.headers["HX-Swap"] = "none"
             return resp
 
-    return render_template('besttime/poll-message-form.html', poll=poll, form=form)
+    return render_template('besttime/poll-message-form.html', poll=poll, form=form, tab=tab)
 
 
 def add_datetime_slot_choices(form, datetime_slot_field):
@@ -89,6 +92,7 @@ def add_datetime_slot_choices(form, datetime_slot_field):
 @besttime_bp.route('/new', methods=['GET', 'POST'])
 @login_required
 def add_poll():
+    tab = request.args.get('tab')
     form = BestTimePollForm()
     if request.method == 'POST':
         add_datetime_slot_choices(form, form.datetime_slots)
@@ -117,7 +121,7 @@ def add_poll():
             poll.end_date = None
             db.session.add(poll)
             db.session.commit()
-            url = url_for('besttime.vote_poll', poll_id=poll.id, _external=True)
+            url = url_for('besttime.vote_poll', poll_id=poll.id, tab='voter', _external=True)
             title = f'MUMT-MIS: ขอเชิญเลือกวันเพื่อประชุม {poll.title}'
             message = f'''
             เรียนกรรมการ
@@ -131,10 +135,10 @@ def add_poll():
             {poll.creator.fullname}
             '''
             send_mail_to_voters(poll=poll, title=title, message=message)
-            return redirect(url_for('besttime.index'))
+            return redirect(url_for('besttime.index', tab=tab))
         else:
             return f'{form.errors}'
-    return render_template('besttime/poll-setup-form.html', form=form, poll_id=None)
+    return render_template('besttime/poll-setup-form.html', form=form, poll_id=None, tab=tab)
 
 
 @besttime_bp.route('/api/preview_master_datetime_slots', methods=['POST'])
@@ -240,6 +244,7 @@ def preview_master_datetime_slots():
 @besttime_bp.route('/edit/<int:poll_id>', methods=['GET', 'POST'])
 @login_required
 def edit_poll(poll_id):
+    tab = request.args.get('tab')
     poll = BestTimePoll.query.get(poll_id)
     if request.method == 'GET':
         form = BestTimePollForm(obj=poll)
@@ -290,7 +295,7 @@ def edit_poll(poll_id):
             poll.end_date = None
             db.session.add(poll)
             db.session.commit()
-            url = url_for('besttime.vote_poll', poll_id=poll.id, _external=True)
+            url = url_for('besttime.vote_poll', poll_id=poll.id, tab='voter', _external=True)
             title = f'MUMT-MIS: แจ้งเปลี่ยนแปลงโพลสำรวจวันเพื่อประชุม {poll.title}'
             message = f'''
             เรียนกรรมการ
@@ -305,45 +310,48 @@ def edit_poll(poll_id):
             {poll.creator.fullname}
             '''
             send_mail_to_voters(poll=poll, title=title, message=message)
-            return redirect(url_for('besttime.index'))
+            return redirect(url_for('besttime.index', tab=tab))
         else:
             return f'{form.errors}'
-    return render_template('besttime/poll-setup-form.html', form=form, poll_id=poll_id)
+    return render_template('besttime/poll-setup-form.html', form=form, poll_id=poll_id, tab=tab)
 
 
 @besttime_bp.route('/delete/<int:poll_id>', methods=['DELETE'])
 @login_required
 def delete_poll(poll_id):
+    tab = request.args.get('tab')
     poll = BestTimePoll.query.get(poll_id)
     db.session.delete(poll)
     db.session.commit()
     flash(f'ลบแบบสำรวจเรียบร้อยแล้ว', 'success')
     resp = make_response()
-    resp.headers['HX-Redirect'] = url_for('besttime.index')
+    resp.headers['HX-Redirect'] = url_for('besttime.index', tab=tab)
     return resp
 
 
 @besttime_bp.route('/close/<int:poll_id>')
 @login_required
 def close_poll(poll_id):
+    tab = request.args.get('tab')
     poll = BestTimePoll.query.get(poll_id)
     poll.closed_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(poll)
     db.session.commit()
-    return redirect(url_for('besttime.index'))
+    return redirect(url_for('besttime.index', tab=tab))
 
 
 @besttime_bp.route('/vote/polls/<int:poll_id>', methods=['GET', 'POST'])
 @login_required
 def vote_poll(poll_id):
+    tab = request.args.get('tab')
     poll = BestTimePoll.query.get(poll_id)
     today = arrow.now('Asia/Bangkok').date()
     if today < poll.vote_start_date or today > poll.vote_end_date:
         flash('ขณะนี้ไม่อยู่ในช่วงระยะเวลาการโหวตของแบบสำรวจ กรุณาตรวจสอบวันที่เปิดโหวตอีกครั้ง', 'danger')
-        return redirect(url_for('besttime.index'))
+        return redirect(url_for('besttime.index', tab=tab))
     elif poll.closed_at:
         flash('แบบสำรวจนี้ปิดการโหวตแล้ว', 'warning')
-        return redirect(url_for('besttime.index'))
+        return redirect(url_for('besttime.index', tab=tab))
     # If the user has already voted this poll
     vote = BestTimePollVote.query.filter_by(poll_id=poll_id, voter=current_user).first()
     form = BestTimePollVoteForm()
@@ -374,7 +382,7 @@ def vote_poll(poll_id):
         db.session.add(vote)
         db.session.commit()
         if poll.is_completed:
-            url = url_for('besttime.view_results', poll_id=poll.id, _external=True)
+            url = url_for('besttime.view_results', poll_id=poll.id, tab=tab, _external=True)
             if poll.has_valid_slots:
                 title = f'MUMT-MIS: แจ้งพิจาณาผลการโหวตเพื่อประชุม {poll.title}'
                 message = f'''
@@ -408,7 +416,7 @@ def vote_poll(poll_id):
             else:
                 send_mail(recp=recipients, title=title, message=message)
 
-        return redirect(url_for('besttime.index'))
+        return redirect(url_for('besttime.index', tab=tab))
 
     if request.method == 'GET':
         if vote:
@@ -440,11 +448,12 @@ def vote_poll(poll_id):
             if vote:
                 _form_field.time_slots.data = [t[0] for t in choices if t[0] in voted_time_slots]
 
-    return render_template('besttime/poll-form.html', form=form, poll=poll, message_form=message_form)
+    return render_template('besttime/poll-form.html', form=form, poll=poll, tab=tab, message_form=message_form)
 
 
 @besttime_bp.route('/vote/<int:slot_id>/mail', methods=['GET', 'POST'])
 def send_mail_to_committee(slot_id):
+    tab = request.args.get('tab')
     slot = BestTimeDateTimeSlot.query.get(slot_id)
     form = BestTimeMailForm()
     if request.method == 'POST':
@@ -465,4 +474,4 @@ def send_mail_to_committee(slot_id):
         return resp
     form.message.data = f'''เรียนกรรมการทุกท่าน\n\nขอแจ้งสรุปวันประชุม {slot.poll.title} เป็นวันที่ {slot}\n\nขอแสดงความนับถือ\n\n{slot.poll.creator.fullname}'''
     return render_template('besttime/modals/mail_form.html',
-                           form=form, slot_id=slot_id, poll=slot.poll)
+                           form=form, slot_id=slot_id, poll=slot.poll, tab=tab)
