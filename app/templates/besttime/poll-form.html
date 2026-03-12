@@ -46,7 +46,7 @@
                         <button class="button is-success" type="submit">บันทึก</button>
                     </div>
                     <div class="control">
-                        <a class="button is-light" href="{{url_for('besttime.index')}}">ยกเลิก</a>
+                        <a class="button is-light" href="{{url_for('besttime.index', tab=tab)}}">ยกเลิก</a>
                     </div>
                 </div>
             </form>
@@ -67,7 +67,7 @@
                    hx-swap="beforeend"
                    hx-confirm="ท่านแน่ใจว่าต้องการส่งข้อความนี้"
                    hx-indicator="this"
-                   hx-post="{{url_for('besttime.leave_message', poll_id=poll.id)}}">ส่ง</a>
+                   hx-post="{{url_for('besttime.leave_message', poll_id=poll.id, tab=tab)}}">ส่ง</a>
             </form>
             <div id="messages">
                 {% for message in poll.messages %}
