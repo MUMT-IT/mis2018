@@ -140,14 +140,14 @@
                                hx-indicator="this"
                                hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
                                hx-confirm="ท่านต้องการลบการสำรวจนี้หรือไม่ หากลบแล้วจะไม่สามารถกู้คืนได้"
-                               hx-delete="{{url_for('besttime.delete_poll', poll_id=poll_id)}}">Delete</a>
+                               hx-delete="{{url_for('besttime.delete_poll', poll_id=poll_id, tab=tab)}}">Delete</a>
                         </div>
                         <div class="control">
-                            <a class="button is-warning" href="{{url_for('besttime.close_poll', poll_id=poll_id)}}">Close</a>
+                            <a class="button is-warning" href="{{url_for('besttime.close_poll', poll_id=poll_id, tab=tab)}}">Close</a>
                         </div>
                         {% endif %}
                         <div class="control">
-                            <a class="button is-light" href="{{url_for('besttime.index')}}">Back</a>
+                            <a class="button is-light" href="{{url_for('besttime.index', tab=tab)}}">Back</a>
                         </div>
                     </div>
                 </div>
