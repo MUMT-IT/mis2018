@@ -1,11 +1,12 @@
 import calendar
 import datetime
-from collections import namedtuple
-
 import arrow
+from collections import namedtuple
 from flask import render_template, request, redirect, url_for, current_app, make_response, flash
 from flask_login import login_required, current_user
-
+from linebot.exceptions import LineBotApiError
+from linebot.models import TextSendMessage
+from app.auth.views import line_bot_api
 from app.besttime import besttime_bp
 from app.besttime.forms import BestTimePollMessageForm, BestTimePollForm, BestTimePollVoteForm, BestTimeMailForm
 from app.besttime.models import *
@@ -122,6 +123,11 @@ def add_poll():
             db.session.add(poll)
             db.session.commit()
             url = url_for('besttime.vote_poll', poll_id=poll.id, tab='voter', _external=True)
+            msg = ('คำเชิญเลือกวันที่สะดวกสำหรับร่วมประชุม {}\n'
+                   'กรุณาดำเนินการภายในวันที่ {}\n'
+                   'คลิกลิ้งค์เพื่อดำเนินการ\n'
+                   '{}'.format(poll.title, poll.vote_date_span, url)
+                   )
             title = f'MUMT-MIS: ขอเชิญเลือกวันเพื่อประชุม {poll.title}'
             message = f'''
             เรียนกรรมการ
@@ -135,6 +141,14 @@ def add_poll():
             {poll.creator.fullname}
             '''
             send_mail_to_voters(poll=poll, title=title, message=message)
+            if not current_app.debug:
+                for c in poll.invitations:
+                    try:
+                        line_bot_api.push_message(to=c.voter.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
+            else:
+                print('msg', msg, 'user', [c.voter.line_id for c in poll.invitations])
             return redirect(url_for('besttime.index', tab=tab))
         else:
             return f'{form.errors}'
@@ -296,6 +310,11 @@ def edit_poll(poll_id):
             db.session.add(poll)
             db.session.commit()
             url = url_for('besttime.vote_poll', poll_id=poll.id, tab='voter', _external=True)
+            msg = ('โพลสำรวจวันประชุม {} มีการเปลี่ยนแปลง\n'
+                   'กรุณาดำเนินการภายในวันที่ {}\n'
+                   'คลิกลิ้งค์เพื่อดำเนินการ\n'
+                   '{}'.format(poll.title, poll.vote_date_span, url)
+                   )
             title = f'MUMT-MIS: แจ้งเปลี่ยนแปลงโพลสำรวจวันเพื่อประชุม {poll.title}'
             message = f'''
             เรียนกรรมการ
@@ -310,6 +329,14 @@ def edit_poll(poll_id):
             {poll.creator.fullname}
             '''
             send_mail_to_voters(poll=poll, title=title, message=message)
+            if not current_app.debug:
+                for c in poll.invitations:
+                    try:
+                        line_bot_api.push_message(to=c.voter.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
+            else:
+                print('msg', msg, 'user', [c.voter.line_id for c in poll.invitations])
             return redirect(url_for('besttime.index', tab=tab))
         else:
             return f'{form.errors}'
@@ -384,6 +411,11 @@ def vote_poll(poll_id):
         if poll.is_completed:
             url = url_for('besttime.view_results', poll_id=poll.id, tab=tab, _external=True)
             if poll.has_valid_slots:
+                msg = ('ขณะนี้กรรมการได้โหวตเพื่อประชุม {} ครบแล้ว\n'
+                       'กรุณาดำเนินการพิจารณาผลการโหวตเพื่อนัดประชุมต่อไป\n'
+                       'คลิกลิ้งค์เพื่อดำเนินการ\n'
+                       '{}'.format(poll.title, url)
+                       )
                 title = f'MUMT-MIS: แจ้งพิจาณาผลการโหวตเพื่อประชุม {poll.title}'
                 message = f'''
                 เรียนกรรมการ
@@ -398,6 +430,11 @@ def vote_poll(poll_id):
                 '''
                 recipients = [f'{poll.creator.email}@mahidol.ac.th']
             else:
+                msg = ('ขณะนี้กรรมการได้โหวตเพื่อประชุม {} ครบแล้ว แต่ไม่มีช่วงเวลาที่เหมาะสม\n'
+                       'กรุณาดำเนินการพิจารณาแก้ไขโพลเพื่อโหวตเพิ่มเติม\n'
+                       'คลิกลิ้งค์เพื่อดำเนินการ\n'
+                       '{}'.format(poll.title, url)
+                       )
                 title = f'MUMT-MIS: แจ้งพิจาณาผลการโหวตเพื่อประชุม {poll.title}'
                 message = f'''
                 เรียนกรรมการ
@@ -412,9 +449,14 @@ def vote_poll(poll_id):
                 '''
                 recipients = [f'{poll.creator.email}@mahidol.ac.th']
             if current_app.debug:
+                print(f'Line sent to {poll.creator.line_id}. Message: {msg}')
                 print(f'Mail sent to {recipients}. Message: {message}')
             else:
                 send_mail(recp=recipients, title=title, message=message)
+                try:
+                    line_bot_api.push_message(to=poll.creator.line_id, messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
 
         return redirect(url_for('besttime.index', tab=tab))
 
@@ -466,8 +508,17 @@ def send_mail_to_committee(slot_id):
             slot.poll.closed_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(slot)
             db.session.commit()
+            msg = 'ขอแจ้งสรุปวันประชุม "{}" โดยกำหนดเป็นวันที่ {}'.format(slot.poll.title, slot)
             title = f'แจ้งสรุปวันประชุมจากผลการโหวต {slot.poll.title}'
             send_mail_to_voters(slot.poll, form.message.data, title)
+            if not current_app.debug:
+                for c in slot.poll.invitations:
+                    try:
+                        line_bot_api.push_message(to=c.voter.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
+            else:
+                print('msg', msg, 'user', [c.voter.line_id for c in slot.poll.invitations])
             flash(f'ส่งอีเมลเพื่อแจ้งกรรมการเรียบร้อย', 'success')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
