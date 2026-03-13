@@ -564,18 +564,35 @@ def get_procurement_data_is_updated():
     draw = request.args.get('draw', type=int)
     start = request.args.get('start', type=int, default=0)
     length = request.args.get('length', type=int, default=10)
-    search = request.args.get('search[value]', '').strip()
 
-    base_query = ProcurementDetail.query
-    query = base_query
+    query = ProcurementDetail.query \
+        .outerjoin(ProcurementRecord, ProcurementDetail.id == ProcurementRecord.item_id) \
+        .outerjoin(RoomResource, ProcurementRecord.location_id == RoomResource.id)
 
-    # search
-    query = query.filter(db.or_(
-        ProcurementDetail.procurement_no.ilike(f'%{search}%'),
-        ProcurementDetail.name.ilike(f'%{search}%'),
-        ProcurementDetail.erp_code.ilike(f'%{search}%'),
-        ProcurementDetail.available.ilike(f'%{search}%')
-    ))
+    # 3. Individual Column Search
+    i = 0
+    while True:
+        col_data = request.args.get(f'columns[{i}][data]')
+        if not col_data:
+            break
+
+        col_search_val = request.args.get(f'columns[{i}][search][value]', '').strip()
+
+        if col_search_val:
+            # ค้นหาใน Model หลัก
+            if hasattr(ProcurementDetail, col_data):
+                column_attr = getattr(ProcurementDetail, col_data)
+                query = query.filter(column_attr.ilike(f'%{col_search_val}%'))
+
+            # ค้นหาในส่วน Location (อ้างอิงตาม Model RoomResource)
+            elif col_data == 'location':
+                query = query.filter(or_(
+                    RoomResource.number.ilike(f'%{col_search_val}%'),
+                    RoomResource.location.ilike(f'%{col_search_val}%'),
+                    RoomResource.desc.ilike(f'%{col_search_val}%')
+                ))
+
+        i += 1
 
     # order
     direction = request.args.get('order[0][dir]', 'asc')

@@ -10,6 +10,9 @@
                 </div>
             </div>
             <div class="column">
+                    <div class="has-text-centered">
+                        <h1 class="title is-4">{{ service.location }}</h1>
+                    </div>
                     <div class="has-text-right">
                       {% if service.records.count() > 0 %}
                         <a class="button is-link"
@@ -30,7 +33,7 @@
                         </a>
                       {% endif %}
                     </div>
-                </div>
+            </div>
             <div class="columns">
                 <div class="column">
                     <table id="data" class="table is-fullwidth is-striped">

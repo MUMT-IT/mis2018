@@ -13,15 +13,27 @@
                 <div class="column">
                     <table id="data" class="table is-fullwidth is-striped">
                         <thead>
-                        <th>วันที่ได้รับ</th>
-                        <th>รายการ</th>
-                        <th>รหัสครุภัณฑ์</th>
-                        <th>Inventory Number/ERP</th>
-                        <th>ปีงบประมาณ</th>
-                        <th>Location</th>
-                        <th>Status</th>
-                        <th>Updater</th>
-                        <th>Updated at</th>
+                            <tr>
+                                <th>วันที่ได้รับ</th>
+                                <th>รายการ</th>
+                                <th>รหัสครุภัณฑ์</th>
+                                <th>Inventory Number/ERP</th>
+                                <th>ปีงบประมาณ</th>
+                                <th>Location</th>
+                                <th>Status</th>
+                                <th>Updater</th>
+                                <th>Updated at</th>
+                            </tr>
+                            <tr id="search_row">
+                                <td></td>
+                                <td><input type="text" class="input is-small" placeholder="ค้นหาชื่อ..."></td>
+                                <td><input type="text" class="input is-small" placeholder="ค้นหารหัส..."></td>
+                                <td><input type="text" class="input is-small" placeholder="ค้นหา ERP..."></td>
+                                <td><input type="text" class="input is-small" placeholder="ค้นหาปีงบฯ..."></td>
+                                <td><input type="text" class="input is-small" placeholder="ค้นหาที่อยู่..."></td>
+                                <td><input type="text" class="input is-small" placeholder="ค้นหาสถานะ..."></td>
+                                <td><input type="text" class="input is-small" placeholder="ค้นหาผู้อัปเดต..."></td>
+                                <td></td> </tr>
                         </thead>
                         <tbody>
                         </tbody>
@@ -44,39 +56,46 @@
 {% block scripts %}
     {{ super() }}
     <script>
-    $(document).ready(function () {
-        var table = $('#data').DataTable({
-            serverSide: true,
-            searchDelay: 1000,
-            ajax: '{{ url_for("procurement.get_procurement_data_is_updated") }}',
+        $(document).ready(function () {
+            // 1. เริ่มต้นสร้าง DataTable
+            var table = $('#data').DataTable({
+                serverSide: true,
+                processing: true,
+                searchDelay: 1000,
+                ajax: '{{ url_for("procurement.get_procurement_data_is_updated") }}',
+                order: [[0, 'desc']],
+                dom: 'lrtip',
+                columns: [
+                    {data: 'received_date'},
+                    {data: 'name'},
+                    {data: 'procurement_no'},
+                    {data: 'erp_code'},
+                    {data: 'budget_year'},
+                    {data: 'location'},
+                    {data: 'status'},
+                    {data: 'updater'},
+                    {data: 'updated_at'}
+                ]
+            });
 
-            order: [[0, 'desc']],
+            // 2. จัดการการค้นหาแยกคอลัมน์ (Individual Column Search)
+            // ปรับให้ดักจับ input ภายใน #search_row แทนการใช้ class
+            $('#search_row input').on('click keyup change', function (e) {
+                // สำคัญ: ป้องกันไม่ให้เกิดการ Sorting เมื่อคลิกหรือพิมพ์ในช่อง Input
+                e.stopPropagation();
 
-            language: {
-                emptyTable: "กรุณาพิมพ์คำค้นหาอย่างน้อย 4 ตัวอักษร"
-            },
+                // ดำเนินการค้นหาเฉพาะเมื่อเป็นเหตุการณ์ keyup หรือ change
+                if (e.type === 'keyup' || e.type === 'change') {
+                    // หาลำดับคอลัมน์ (index) จากลำดับของ td ที่ input นั้นอาศัยอยู่
+                    var colIdx = $(this).closest('td').index();
+                    var searchValue = this.value;
 
-            columns: [
-                {data: 'received_date'},
-                {data: 'name'},
-                {data: 'procurement_no'},
-                {data: 'erp_code'},
-                {data: 'budget_year'},
-                {data: 'location'},
-                {data: 'status'},
-                {data: 'updater'},
-                {data: 'updated_at'}
-            ]
+                    // เงื่อนไข: ค้นหาเมื่อพิมพ์อย่างน้อย 3 ตัวอักษร หรือเมื่อล้างค่าว่าง
+                    if (searchValue.length >= 3 || searchValue.length === 0) {
+                        table.column(colIdx).search(searchValue).draw();
+                    }
+                }
+            });
         });
-
-        $('#data_filter input').unbind();
-
-        $('#data_filter input').on('keyup', function () {
-            var value = this.value;
-            if (value.length >= 4 || value.length === 0) {
-                table.search(value).draw();
-            }
-         });
-    });
     </script>
 {% endblock %}
