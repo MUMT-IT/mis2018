@@ -601,7 +601,7 @@
     <div class="container" style="max-width: 900px;">
         <!-- Google Sign-in Section -->
         <div class="modern-card animate-in">
-            <!-- <div class="google-signin-section">
+            <div class="google-signin-section">
                 <div class="google-signin-title">
                     <i class="fab fa-google"></i>
                     {{ texts.get('google_signin_title', 'ลงทะเบียนด้วย Google' if
@@ -625,7 +625,7 @@
             <div class="divider">
                 <span>{{ texts.get('or_text', 'หรือ' if current_lang == 'th' else 'OR')
                     }}</span>
-            </div> -->
+            </div>
 
             <!-- Manual Registration Form -->
             <form method="POST" action="{{ url_for('continuing_edu.register', lang=current_lang) }}">
@@ -1136,6 +1136,52 @@
                                     </button>
                                 </div>
                             </div>
+
+                            {% set default_addr_type = entry.get('type') or ('billing' if loop.index == 2 else
+                            'current') %}
+
+                            <div class="columns">
+                                <div class="column is-one-third">
+                                    <div class="field">
+                                        <label class="modern-label">
+                                            <i class="fas fa-list field-icon"></i>
+                                            {{ texts.get('address_type', 'ประเภทที่อยู่' if current_lang == 'th' else
+                                            'Address type') }}
+                                        </label>
+                                        <div class="control">
+                                            <div class="select is-fullwidth">
+                                                <select name="address_type[]" class="modern-input address-type-select">
+                                                    {% for t in ['current', 'billing', 'work', 'other'] %}
+                                                    <option value="{{ t }}" {% if (default_addr_type|string)==t
+                                                        %}selected{% endif %}>{{ t }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <p class="help">{{ texts.get('address_type_help', 'ระบบจะใช้ billing ก่อน หากมี'
+                                            if current_lang == 'th' else 'Billing is preferred when available.') }}</p>
+                                    </div>
+                                </div>
+                                <div class="column address-type-other-field"
+                                    style="display:{% if (default_addr_type|string) == 'other' %}block{% else %}none{% endif %};">
+                                    <div class="field">
+                                        <label class="modern-label">
+                                            <i class="fas fa-pen field-icon"></i>
+                                            {{ texts.get('address_type_other_prompt', 'ระบุประเภทที่อยู่' if
+                                            current_lang == 'th' else 'Specify address type') }}
+                                        </label>
+                                        <input class="input modern-input" type="text" name="address_type_other[]"
+                                            value="{{ entry.get('type_other', '') }}"
+                                            placeholder="{{ texts.get('address_type_other_placeholder', 'เช่น ที่ส่งเอกสาร' if current_lang == 'th' else 'e.g. Mailing') }}">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <input type="hidden" name="address_country[]"
+                                value="{{ entry.get('country_code', 'TH') or 'TH' }}">
+                            <input type="hidden" name="address_country_other[]"
+                                value="{{ entry.get('country_other', '') }}">
+
                             <!-- Address Name Field -->
                             <div class="field">
                                 <label class="modern-label">
@@ -1776,6 +1822,35 @@
                         </button>
                     </div>
                 </div>
+
+                <div class="columns">
+                    <div class="column is-one-third">
+                        <div class="field">
+                            <label class="modern-label"><i class="fas fa-list field-icon"></i> {{ texts.get('address_type', 'ประเภทที่อยู่' if current_lang == 'th' else 'Address type') }}</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select name="address_type[]" class="modern-input address-type-select">
+                                        <option value="current">current</option>
+                                        <option value="billing">billing</option>
+                                        <option value="work">work</option>
+                                        <option value="other">other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <p class="help">{{ texts.get('address_type_help', 'ระบบจะใช้ billing ก่อน หากมี' if current_lang == 'th' else 'Billing is preferred when available.') }}</p>
+                        </div>
+                    </div>
+                    <div class="column address-type-other-field" style="display:none;">
+                        <div class="field">
+                            <label class="modern-label"><i class="fas fa-pen field-icon"></i> {{ texts.get('address_type_other_prompt', 'ระบุประเภทที่อยู่' if current_lang == 'th' else 'Specify address type') }}</label>
+                            <input class="input modern-input" type="text" name="address_type_other[]" placeholder="{{ texts.get('address_type_other_placeholder', 'เช่น ที่ส่งเอกสาร' if current_lang == 'th' else 'e.g. Mailing') }}">
+                        </div>
+                    </div>
+                </div>
+
+                <input type="hidden" name="address_country[]" value="TH">
+                <input type="hidden" name="address_country_other[]" value="">
+
                 <div class="field">
                     <label class="modern-label">
                         <i class="fas fa-tag field-icon"></i>
@@ -1861,11 +1936,35 @@
                         entry.querySelectorAll('input[type="text"]').forEach(input => {
                             input.value = '';
                         });
+
+                        // Reset selects
+                        entry.querySelectorAll('select').forEach(select => {
+                            select.selectedIndex = 0;
+                            select.dispatchEvent(new Event('change'));
+                        });
+
                         // Hide any open suggestions
                         entry.querySelectorAll('.thai-address-suggestions').forEach(suggestions => {
                             suggestions.classList.remove('is-active');
                         });
                     }
+                }
+            });
+
+            // Address type other toggle (event delegation)
+            addressesContainer.addEventListener('change', (e) => {
+                const select = e.target.closest('.address-type-select');
+                if (!select) return;
+                const entry = select.closest('.address-entry');
+                if (!entry) return;
+                const otherField = entry.querySelector('.address-type-other-field');
+                if (!otherField) return;
+
+                const isOther = select.value === 'other';
+                otherField.style.display = isOther ? 'block' : 'none';
+                if (!isOther) {
+                    const input = otherField.querySelector('input');
+                    if (input) input.value = '';
                 }
             });
         }

@@ -1,0 +1,283 @@
+{% extends "continueing_edu/admin/base.html" %}
+
+{% block title %}Attendance Management - Admin{% endblock %}
+
+{% block head %}
+<style>
+  .stats-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+  }
+
+  .stat-card .label {
+    color: #6b7280;
+    font-size: 0.85rem;
+  }
+
+  .stat-card .value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #1f2937;
+  }
+
+  .panel-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .table-container {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .qr-input {
+    max-width: 280px;
+  }
+
+  .status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 9999px;
+    font-size: 0.78rem;
+    padding: 0.2rem 0.65rem;
+    white-space: nowrap;
+  }
+
+  .status-chip--checked {
+    background: #dcfce7;
+    color: #14532d;
+  }
+
+  .status-chip--pending {
+    background: #fef3c7;
+    color: #92400e;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container is-fluid">
+  <div class="level mb-4">
+    <div class="level-left">
+      <div class="level-item">
+        <div>
+          <h1 class="title">Attendance Management</h1>
+          <p class="subtitle is-6">จัดการรายชื่อผู้ลงทะเบียนและสถานะเข้างาน</p>
+        </div>
+      </div>
+    </div>
+    <div class="level-right">
+      <a class="button is-link" href="{{ url_for('continuing_edu_admin.attendance_qrcode', event_id=filters.event_id) }}">
+        <span class="icon"><i class="fas fa-qrcode"></i></span>
+        <span>QR Scanner</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="stats-cards">
+    <div class="stat-card">
+      <div class="label">Total</div>
+      <div class="value">{{ stats.total }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Checked-in</div>
+      <div class="value">{{ stats.checked_in }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Not Checked-in</div>
+      <div class="value">{{ stats.not_checked_in }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Today's Check-ins</div>
+      <div class="value">{{ stats.today_checkins }}</div>
+    </div>
+  </div>
+
+  <div class="panel-card">
+    <form method="GET" action="{{ url_for('continuing_edu_admin.attendance_management') }}">
+      <div class="columns is-multiline">
+        <div class="column is-4">
+          <label class="label">Course / Webinar</label>
+          <div class="select is-fullwidth">
+            <select name="event_id">
+              <option value="">All events</option>
+              {% for event in events %}
+                <option value="{{ event.id }}" {% if filters.event_id == event.id %}selected{% endif %}>
+                  #{{ event.id }} - {{ event.title_th or event.title_en or ('Event ' ~ event.id) }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="column is-2">
+          <label class="label">Check-in</label>
+          <div class="select is-fullwidth">
+            <select name="checked_in">
+              <option value="" {% if not filters.checked_in %}selected{% endif %}>All</option>
+              <option value="yes" {% if filters.checked_in == 'yes' %}selected{% endif %}>Checked-in</option>
+              <option value="no" {% if filters.checked_in == 'no' %}selected{% endif %}>Not checked-in</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="column is-4">
+          <label class="label">Search</label>
+          <input class="input" type="text" name="q" value="{{ filters.q }}" placeholder="ชื่อ, อีเมล, registration id">
+        </div>
+
+        <div class="column is-2">
+          <label class="label">Rows</label>
+          <div class="select is-fullwidth">
+            <select name="per_page">
+              {% for option in [25, 50, 100] %}
+                <option value="{{ option }}" {% if filters.per_page == option %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="field is-grouped">
+        <button class="button is-primary" type="submit">
+          <span class="icon"><i class="fas fa-filter"></i></span>
+          <span>Apply</span>
+        </button>
+        <a class="button is-light" href="{{ url_for('continuing_edu_admin.attendance_management') }}">Clear</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-hoverable is-size-7">
+      <thead>
+        <tr>
+          <th>Registration</th>
+          <th>Member</th>
+          <th>Course / Webinar</th>
+          <th>Status</th>
+          <th>Attendance</th>
+          <th>QR Payload</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for reg in registrations %}
+        {% set checked = reg.started_at or (reg.attendance_count or 0) > 0 %}
+        <tr>
+          <td>
+            <div><strong>#{{ reg.id }}</strong></div>
+            <div class="has-text-grey">{{ reg.registration_date.strftime('%Y-%m-%d %H:%M') if reg.registration_date else '-' }}</div>
+          </td>
+          <td>
+            <div><strong>{{ reg.member.full_name_th or reg.member.full_name_en or reg.member.username }}</strong></div>
+            <div class="has-text-grey">{{ reg.member.email or '-' }}</div>
+          </td>
+          <td>
+            <div>{{ reg.event_entity.title_th or reg.event_entity.title_en or ('Event ' ~ reg.event_entity_id) }}</div>
+            <div class="has-text-grey">{{ (reg.event_entity.event_type or '').title() }}</div>
+          </td>
+          <td>
+            {% if checked %}
+              <span class="status-chip status-chip--checked"><i class="fas fa-check-circle"></i> Checked-in</span>
+            {% else %}
+              <span class="status-chip status-chip--pending"><i class="fas fa-hourglass-half"></i> Not checked-in</span>
+            {% endif %}
+            <div class="has-text-grey mt-1">{{ reg.status_ref.name_en if reg.status_ref else 'Unknown' }}</div>
+          </td>
+          <td>
+            <div>Count: <strong>{{ reg.attendance_count or 0 }}</strong></div>
+            <div>Hours: <strong>{{ "%.2f"|format(reg.total_hours_attended or 0.0) }}</strong></div>
+            <div>Time: {{ reg.started_at.strftime('%Y-%m-%d %H:%M') if reg.started_at else '-' }}</div>
+          </td>
+          <td>
+            <div class="field has-addons qr-input">
+              <div class="control is-expanded">
+                <input class="input is-small" id="qr-{{ reg.id }}" value="{{ checkin_payloads[reg.id] }}" readonly>
+              </div>
+              <div class="control">
+                <button class="button is-small is-light" type="button" onclick="copyPayload('qr-{{ reg.id }}')">
+                  <span class="icon"><i class="fas fa-copy"></i></span>
+                </button>
+              </div>
+            </div>
+          </td>
+          <td>
+            <form method="POST" action="{{ url_for('continuing_edu_admin.attendance_checkin') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="registration_id" value="{{ reg.id }}">
+              <input type="hidden" name="event_id" value="{{ filters.event_id or '' }}">
+              <input type="hidden" name="next" value="{{ request.full_path }}">
+              <button class="button is-small {% if checked %}is-light{% else %}is-success{% endif %}" type="submit">
+                <span class="icon"><i class="fas fa-user-check"></i></span>
+                <span>{% if checked %}Re-check{% else %}Check-in{% endif %}</span>
+              </button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="7" class="has-text-centered has-text-grey py-6">ไม่พบข้อมูลผู้ลงทะเบียนตามเงื่อนไขที่เลือก</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pagination.pages > 1 %}
+    <nav class="pagination is-centered mt-4" role="navigation" aria-label="pagination">
+      <a class="pagination-previous"
+         {% if pagination.has_prev %}
+           href="{{ url_for('continuing_edu_admin.attendance_management', page=pagination.prev_num, event_id=filters.event_id, checked_in=filters.checked_in, q=filters.q, per_page=filters.per_page) }}"
+         {% else %}disabled{% endif %}>
+        Previous
+      </a>
+      <a class="pagination-next"
+         {% if pagination.has_next %}
+           href="{{ url_for('continuing_edu_admin.attendance_management', page=pagination.next_num, event_id=filters.event_id, checked_in=filters.checked_in, q=filters.q, per_page=filters.per_page) }}"
+         {% else %}disabled{% endif %}>
+        Next
+      </a>
+      <ul class="pagination-list">
+        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+          {% if page_num %}
+            <li>
+              <a class="pagination-link {% if page_num == pagination.page %}is-current{% endif %}"
+                 href="{{ url_for('continuing_edu_admin.attendance_management', page=page_num, event_id=filters.event_id, checked_in=filters.checked_in, q=filters.q, per_page=filters.per_page) }}">{{ page_num }}</a>
+            </li>
+          {% else %}
+            <li><span class="pagination-ellipsis">&hellip;</span></li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </nav>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function copyPayload(elementId) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    el.select();
+    el.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+  }
+</script>
+{% endblock %}

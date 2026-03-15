@@ -53,17 +53,27 @@
                     font-weight: 500;
           }
 
-          .status-pending {
+          .status-registered {
                     background: #fef3c7;
                     color: #92400e;
           }
 
-          .status-confirmed {
+          .status-in_progress {
+                    background: #dbeafe;
+                    color: #1e40af;
+          }
+
+          .status-completed {
                     background: #d1fae5;
                     color: #065f46;
           }
 
           .status-cancelled {
+                    background: #fee2e2;
+                    color: #991b1b;
+          }
+
+          .status-canceled {
                     background: #fee2e2;
                     color: #991b1b;
           }
@@ -106,12 +116,16 @@
                               <div class="label">Total Registrations</div>
                     </div>
                     <div class="stat-card">
-                              <div class="number">{{ stats.pending }}</div>
-                              <div class="label">Pending</div>
+                              <div class="number">{{ stats.registered }}</div>
+                              <div class="label">Registered</div>
                     </div>
                     <div class="stat-card">
-                              <div class="number">{{ stats.confirmed }}</div>
-                              <div class="label">Confirmed</div>
+                              <div class="number">{{ stats.in_progress }}</div>
+                              <div class="label">In Progress</div>
+                    </div>
+                    <div class="stat-card">
+                              <div class="number">{{ stats.completed }}</div>
+                              <div class="label">Completed</div>
                     </div>
                     <div class="stat-card">
                               <div class="number">{{ stats.cancelled }}</div>
@@ -146,9 +160,10 @@
                                                                                           <option value="">All Statuses
                                                                                           </option>
                                                                                           {% for status in statuses %}
-                                                                                          <option value="{{ status.name_en.lower() }}"
+                                                                                          {% set status_code = (status.registration_status_code or status.name_en or '')|lower %}
+                                                                                          <option value="{{ status_code }}"
                                                                                                     {% if
-                                                                                                    filters.status==status.name_en.lower()
+                                                                                                    filters.status==status_code
                                                                                                     %}selected{% endif
                                                                                                     %}>
                                                                                                     {{ status.name_en }}
@@ -266,8 +281,8 @@
                                                             reg.registration_date else '-' }}</td>
                                                   <td>
                                                             {% if reg.status_ref %}
-                                                            {% set status_lower = reg.status_ref.name_en.lower() %}
-                                                            <span class="status-badge status-{{ status_lower }}">
+                                                            {% set status_code = (reg.status_ref.registration_status_code or reg.status_ref.name_en or 'unknown')|lower %}
+                                                            <span class="status-badge status-{{ status_code }}">
                                                                       {{ reg.status_ref.name_en }}
                                                             </span>
                                                             {% else %}

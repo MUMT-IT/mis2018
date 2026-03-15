@@ -5,167 +5,210 @@
 {% block content %}
 <section class="section">
   <div class="container">
-    <h1 class="title is-3">{{ texts.my_registrations_page_title }}</h1>
+    <div class="mb-5">
+      <h1 class="title is-3">{{ texts.my_registrations_page_title }}</h1>
+      <p class="subtitle is-6">
+        {{ texts.get('my_registrations_subtitle', 'Continue your courses and track your learning progress.') }}
+      </p>
+      <div class="buttons">
+        <a class="button is-link" href="{{ url_for('continuing_edu.all_events', lang=current_lang) }}">{{
+          texts.get('button_browse_courses', 'Browse courses') }}</a>
+        <a class="button is-light" href="{{ url_for('continuing_edu.member_dashboard', lang=current_lang) }}">{{
+          texts.get('button_go_to_dashboard', 'Go to dashboard') }}</a>
+      </div>
+    </div>
     {% set TH = (current_lang == 'th') %}
     {% if registrations %}
-    <table class="table is-fullwidth is-striped">
-      <thead>
-        <tr>
-          <th>{{ texts.label_event }}</th>
-          <th>{{ texts.label_type }}</th>
-          <th>{{ texts.label_registered_at }}</th>
-          <th>{{ texts.label_payment }}</th>
-          <th>{{ texts.label_progress }}</th>
-          <th>{{ texts.label_actions }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for r in registrations %}
-        <tr>
-          {% set entity = r.event_entity %}
-          {% set event_title = entity.title_th if TH and entity and entity.title_th else (entity.title_en if entity
-          and entity.title_en else (entity.title_th if entity and entity.title_th else texts.label_none)) %}
-          <td>{{ event_title }}</td>
-          {% set event_type = entity.event_type if entity else '' %}
-          {% set event_type_key = 'event_type_' + (event_type or '') %}
-          <td>{{ texts.get(event_type_key, event_type|title) }}</td>
-          <td>{{ r.registration_date }}</td>
-          <td>
-            {% set pay = payments_map.get(r.event_entity.id) %}
-            {% if pay %}
-            <div>
-              <span class="tag is-light">{{ pay.payment_status_ref.name_th if TH and pay.payment_status_ref and
-                pay.payment_status_ref.name_th else (pay.payment_status_ref.name_en if pay.payment_status_ref else
-                texts.label_none) }}</span>
+    <div class="columns is-multiline">
+      {% for r in registrations %}
+      {% set entity = r.event_entity %}
+      {% set event_title = entity.title_th if TH and entity and entity.title_th else (entity.title_en if entity and
+      entity.title_en else (entity.title_th if entity and entity.title_th else texts.label_none)) %}
+      {% set event_type = entity.event_type if entity else '' %}
+      {% set event_type_key = 'event_type_' + (event_type or '') %}
+      {% set reg_status_code = (r.status_ref.registration_status_code if r.status_ref and r.status_ref.registration_status_code else (r.status_ref.name_en if r.status_ref else ''))|lower %}
+      {% set completed = (r.completed_at is not none) or reg_status_code == 'completed' %}
+      {% set started = (r.started_at is not none) or reg_status_code in ['in_progress', 'completed'] %}
+      {% set survey_required = survey_required_by_reg.get(r.id, false) %}
+
+      <div class="column is-12">
+        <div class="box">
+          <div class="level is-mobile">
+            <div class="level-left">
+              <div>
+                <h2 class="title is-5 mb-1">{{ event_title }}</h2>
+                <div class="tags">
+                  <span class="tag is-light">{{ texts.get(event_type_key, event_type|title) }}</span>
+                  {% if completed %}
+                  <span class="tag is-success">{{ texts.get('status_completed', 'Completed') }}</span>
+                  {% elif started %}
+                  <span class="tag is-info">{{ texts.get('status_in_progress', 'In progress') }}</span>
+                  {% else %}
+                  <span class="tag is-warning is-light">{{ texts.get('status_not_started', 'Not started') }}</span>
+                  {% endif %}
+                  {% if r.certificate_url %}
+                  <span class="tag is-success is-light">{{ texts.get('status_certificate_ready', 'Certificate ready')
+                    }}</span>
+                  {% elif r.certificate_status_ref %}
+                  <span class="tag is-light">{{ r.certificate_status_ref.name_th if TH and
+                    r.certificate_status_ref.name_th else r.certificate_status_ref.name_en }}</span>
+                  {% endif %}
+                </div>
+                <p class="is-size-7 has-text-grey">
+                  {{ texts.label_registered_at }}: {{ r.registration_date }}
+                  {% if started %}&nbsp;•&nbsp;{{ texts.label_started_at }}: {{ r.started_at }}{% endif %}
+                  {% if completed %}&nbsp;•&nbsp;{{ texts.label_completed_at }}: {{ r.completed_at }}{% endif %}
+                </p>
+              </div>
             </div>
-            <div>
-              {{ texts.label_amount }}: {{ '%.2f'|format(pay.payment_amount or 0) }} {{ texts.currency_thb }}
+            <div class="level-right">
+              <div class="buttons">
+                {% if entity and entity.event_type == 'course' %}
+                <a class="button is-link"
+                  href="{{ url_for('continuing_edu.course_learn', course_id=entity.id, lang=current_lang) }}">
+                  {{ texts.get('button_continue', 'Continue') }}
+                </a>
+                <a class="button is-link"
+                  href="{{ url_for('continuing_edu.course_detail', course_id=entity.id, lang=current_lang) }}">
+                  {{ texts.get('button_view_details', 'View details') }}
+                </a>
+                {% elif entity %}
+                <a class="button is-link"
+                  href="{{ url_for('continuing_edu.webinar_detail', webinar_id=entity.id, lang=current_lang) }}">
+                  {{ texts.get('button_view_details', 'View details') }}
+                </a>
+                {% endif %}
+              </div>
             </div>
-            <div>
-              {{ texts.label_proof }}:
-              {% if pay.payment_proof_url %}
-              <button class="button is-small is-light" type="button"
-                onclick="openProofModal('{{ pay.proof_presigned_url()|e }}')">{{ texts.button_view }}</button>
+          </div>
+
+          <div class="columns is-variable is-4">
+            <div class="column is-6">
+              <h3 class="title is-6">{{ texts.get('label_learning_progress', texts.label_progress) if
+                texts.get('label_learning_progress') else texts.label_progress }}</h3>
+              <div class="buttons">
+                {% if not started %}
+                <form method="post"
+                  action="{{ url_for('continuing_edu.start_progress', event_id=r.event_entity_id, lang=current_lang) }}">
+                  <button class="button is-small" type="submit">{{ texts.button_start }}</button>
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                </form>
+                {% endif %}
+                {% if started and not completed %}
+                <form method="post"
+                  action="{{ url_for('continuing_edu.complete_progress', event_id=r.event_entity_id, lang=current_lang) }}">
+                  <input type="hidden" name="passed" value="1">
+                  <button class="button is-small is-link" type="submit">{{ texts.button_complete }}</button>
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                </form>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="column is-6">
+              <h3 class="title is-6">{{ texts.get('satisfaction_form', 'Satisfaction Survey') }}</h3>
+              {% if survey_required %}
+              {% if r.questionnaire_completed_at %}
+              <p class="has-text-success mb-3">
+                {{ texts.get('status_completed', 'Completed') }}
+              </p>
+              {% elif completed %}
+              <a class="button is-small is-primary is-light mb-3"
+                href="{{ url_for('continuing_edu.satisfaction_survey', event_id=r.event_entity_id, lang=current_lang) }}">
+                {{ texts.get('button_start_satisfaction_survey', 'Start satisfaction survey') }}
+              </a>
               {% else %}
-              <em>{{ texts.label_none }}</em>
+              <p class="has-text-grey mb-3">
+                {{ texts.get('questionnaire_complete_event_first', 'Please complete your learning progress first.') }}
+              </p>
               {% endif %}
-            </div>
-            <form method="post"
-              action="{{ url_for('continuing_edu.submit_payment_proof', payment_id=pay.id, lang=current_lang) }}"
-              class="is-flex" style="margin-top:6px;">
-              <input class="input" type="url" name="payment_proof_url" placeholder="https://..."
-                style="max-width:260px;margin-right:8px;">
-              <button class="button is-small is-link" type="submit">{{ texts.button_replace_url if
-                pay.payment_proof_url else texts.button_submit_url }}</button>
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            </form>
-            {% else %}
-            <em>{{ texts.label_no_payment_record }}</em>
-            {% endif %}
-          </td>
-          <td>
-            <div>{{ texts.label_started_at }}: {{ r.started_at or '-' }}</div>
-            <div>{{ texts.label_completed_at }}: {{ r.completed_at or '-' }}</div>
-            {% set approved = (pay and pay.payment_status_ref and pay.payment_status_ref.name_en=='approved') %}
-            <div class="buttons mt-2">
-              {% if approved and not r.started_at %}
-              <form method="post"
-                action="{{ url_for('continuing_edu.start_progress', event_id=r.event_entity.id, lang=current_lang) }}">
-                <button class="button is-small" type="submit">{{ texts.button_start }}</button>
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              </form>
               {% endif %}
-              {% if approved and r.started_at and not r.completed_at %}
-              <form method="post"
-                action="{{ url_for('continuing_edu.complete_progress', event_id=r.event_entity.id, lang=current_lang) }}">
-                <input type="hidden" name="passed" value="1">
-                <button class="button is-small is-link" type="submit">{{ texts.button_complete }}</button>
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              </form>
+
+              <h3 class="title is-6">{{ texts.get('label_certificate', 'Certificate') }}</h3>
+              {% if completed and survey_required and not r.questionnaire_completed_at %}
+              <p class="has-text-grey mb-2">{{ texts.get('message_questionnaire_required_for_certificate', 'Please complete questionnaire before receiving certificate.') }}</p>
               {% endif %}
               {% if r.certificate_url %}
-              <a class="button is-small is-success is-light"
-                href="{{ url_for('continuing_edu.certificate_view', reg_id=r.id, lang=current_lang) }}">{{
-                texts.button_view_certificate }}</a>
-              <a class="button is-small"
-                href="{{ url_for('continuing_edu.certificate_pdf', reg_id=r.id, lang=current_lang) }}">{{
-                texts.button_download_pdf }}</a>
+              <div class="buttons">
+                <a class="button is-small is-success is-light"
+                  href="{{ url_for('continuing_edu.certificate_view', reg_id=r.id, lang=current_lang) }}">{{
+                  texts.button_view_certificate }}</a>
+                <a class="button is-small"
+                  href="{{ url_for('continuing_edu.certificate_pdf', reg_id=r.id, lang=current_lang) }}">{{
+                  texts.button_download_pdf }}</a>
+              </div>
+              {% else %}
+              {% if r.certificate_status_ref %}
+              <p class="has-text-grey">
+                {{ texts.get('label_status', 'Status') }}:
+                {{ r.certificate_status_ref.name_th if TH and r.certificate_status_ref.name_th else
+                r.certificate_status_ref.name_en }}
+              </p>
+              {% endif %}
+              <p class="has-text-grey">{{ texts.get('message_no_certificate_yet', 'Certificate will be available after
+                completion.') }}</p>
+              {% endif %}
+
+              {% set qr_info = attendance_qr_payloads.get(r.id) %}
+              {% if qr_info %}
+              <hr>
+              <h3 class="title is-6 mb-2">{{ texts.get('label_attendance_qr', 'Attendance QR Pass') }}</h3>
+              {% if qr_info.allowed %}
+              <p class="has-text-grey is-size-7 mb-2">
+                {{ texts.get('attendance_qr_help', 'Show this QR code at the check-in desk before joining the event.') }}
+              </p>
+              <div class="has-text-centered mb-3">
+                <img src="{{ qrcode(qr_info.payload, box_size=5, border=2) }}"
+                  alt="Attendance QR for registration {{ r.id }}">
+              </div>
+              <div class="field has-addons">
+                <div class="control is-expanded">
+                  <input class="input is-small" id="attendance-qr-payload-{{ r.id }}" type="text" readonly
+                    value="{{ qr_info.payload }}">
+                </div>
+                <div class="control">
+                  <button class="button is-small is-light" type="button"
+                    onclick="copyAttendanceQrPayload('attendance-qr-payload-{{ r.id }}')">
+                    <span class="icon"><i class="fas fa-copy"></i></span>
+                    <span>{{ texts.get('button_copy', 'Copy') }}</span>
+                  </button>
+                </div>
+              </div>
+              {% else %}
+              <p class="has-text-grey is-size-7">
+                {{ texts.get('attendance_qr_unavailable', 'QR pass is unavailable for cancelled registration.') }}
+              </p>
+              {% endif %}
               {% endif %}
             </div>
-          </td>
-          <td>
-            {% if r.event_entity.event_type == 'course' %}
-            <a class="button is-small is-link"
-              href="{{ url_for('continuing_edu.course_detail', course_id=r.event_entity.id, lang=current_lang) }}">{{
-              texts.button_view }}</a>
-            {% else %}
-            <a class="button is-small is-link"
-              href="{{ url_for('continuing_edu.webinar_detail', webinar_id=r.event_entity.id, lang=current_lang) }}">{{
-              texts.button_view }}</a>
-            {% endif %}
-            {% if r.certificate_url %}
-            <a class="button is-small is-light" href="{{ r.certificate_presigned_url() }}" target="_blank">{{
-              texts.button_view_certificate }}</a>
-            {% else %}
-            <a class="button is-small"
-              href="{{ url_for('continuing_edu.certificate_pdf', reg_id=r.id, lang=current_lang) }}">{{
-              texts.button_generate_certificate }}</a>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
     {% else %}
     <p>{{ texts.message_no_registrations }}</p>
     {% endif %}
     <a class="button" href="{{ url_for('continuing_edu.index', lang=current_lang) }}">{{ texts.button_back_home }}</a>
   </div>
 </section>
-
-<!-- Proof Modal -->
-<div id="proof-modal" class="modal">
-  <div class="modal-background" onclick="closeProofModal()"></div>
-  <div class="modal-content">
-    <div class="box">
-      <div id="proof-container" class="content" style="text-align:center"></div>
-    </div>
-  </div>
-  <button class="modal-close is-large" aria-label="close" onclick="closeProofModal()"></button>
-</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-  function isImageUrl(url) {
-    return /\.(png|jpg|jpeg|gif|webp|svg)(\?.*)?$/i.test(url);
-  }
-  function openProofModal(url) {
-    var modal = document.getElementById('proof-modal');
-    var container = document.getElementById('proof-container');
-    container.innerHTML = '';
-    if (isImageUrl(url)) {
-      var img = document.createElement('img');
-      img.src = url;
-      img.alt = '{{ texts.label_proof }}';
-      img.style.maxWidth = '100%';
-      img.style.maxHeight = '70vh';
-      container.appendChild(img);
-    } else {
-      var iframe = document.createElement('iframe');
-      iframe.src = url;
-      iframe.style.width = '100%';
-      iframe.style.height = '70vh';
-      iframe.setAttribute('frameborder', '0');
-      container.appendChild(iframe);
+  function copyAttendanceQrPayload(elementId) {
+    const input = document.getElementById(elementId);
+    if (!input) return;
+
+    input.select();
+    input.setSelectionRange(0, 99999);
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(input.value).catch(() => {
+        document.execCommand('copy');
+      });
+      return;
     }
-    modal.classList.add('is-active');
-  }
-  function closeProofModal() {
-    var modal = document.getElementById('proof-modal');
-    var container = document.getElementById('proof-container');
-    modal.classList.remove('is-active');
-    container.innerHTML = '';
+    document.execCommand('copy');
   }
 </script>
 {% endblock %}

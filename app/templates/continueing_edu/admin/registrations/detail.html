@@ -304,6 +304,7 @@
 
                                         <form method="POST"
                                                   action="{{ url_for('continuing_edu_admin.update_registration_status', registration_id=registration.id) }}">
+                                                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                                                   <div class="field">
                                                             <label class="label">Change Status</label>
                                                             <div class="control">

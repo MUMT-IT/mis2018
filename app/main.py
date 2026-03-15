@@ -63,7 +63,7 @@ ma = Marshmallow()
 csrf = CSRFProtect()
 admin = Admin(index_view=MyAdminIndexView())
 mail = Mail()
-qrcode = QRcode()
+flask_qrcode = QRcode()
 principal = Principal()
 
 dbutils = AppGroup('dbutils')
@@ -105,7 +105,7 @@ def create_app():
     admin.init_app(app)
     mail.init_app(app)
     cors.init_app(app)
-    qrcode.init_app(app)
+    flask_qrcode.init_app(app)
     principal.init_app(app)
     jwt.init_app(app)
 
@@ -2008,6 +2008,12 @@ from app.continuing_edu.admin.views import admin_bp as continuing_edu_admin_bp
 from app.continuing_edu.admin.certifications import cert_bp as continuing_edu_admin_cert_bp
 app.register_blueprint(continuing_edu_admin_bp)
 app.register_blueprint(continuing_edu_admin_cert_bp)
+
+# Import CLI commands from scripts
+try:
+    from scripts import seed_ce_mockup_courses
+except ImportError:
+    pass  # Script might not be available in all environments
 
 if __name__ == '__main__':
     import os

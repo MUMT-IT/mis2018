@@ -118,11 +118,11 @@ class StaffAccount(db.Model):
 
     @classmethod
     def get_active_accounts(cls):
-        return [account for account in cls.query.all() if account.is_active]
+        return [account for account in cls.query.all() if account.is_active and not account.is_retired]
 
     @classmethod
     def get_it_unit(cls):
-        return [account for account in cls.query.all() if (account.is_active and account.personal_info.org.name == 'หน่วยข้อมูลและสารสนเทศ')
+        return [account for account in cls.query.all() if (account.is_active and not account.is_retired and account.personal_info.org.name == 'หน่วยข้อมูลและสารสนเทศ')
                 or account.email == 'likit.pre']
 
     @property
