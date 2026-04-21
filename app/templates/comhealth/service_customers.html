@@ -63,9 +63,6 @@
                 ajax: '{{ url_for("comhealth.get_services_customers", service_id=service_id) }}',
                 processing: true,
                 serverSide: true,
-                language: {
-                    processing: '<button class="button is-light is-loading">Loading</button>'
-                },
                 columns: [
                     {data: 'firstname'},
                     {data: 'lastname'},

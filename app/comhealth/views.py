@@ -694,19 +694,32 @@ def show_finance_records(service_id):
 @comhealth.route('/customers')
 @login_required
 def index():
-
-    services = ComHealthService.query.all()
-    services_data = []
-    for sv in services:
-        d = {
-            'id': sv.id,
-            'date': sv.date,
-            'location': sv.location,
-            'registered': sv.records.count(),
-            'checkedin': sv.records.filter(ComHealthRecord.checkin_datetime != None).count()
-        }
-        services_data.append(d)
-    services_data = sorted(services_data, key=lambda x: x['date'], reverse=True)
+    registered_counts = db.session.query(
+        ComHealthRecord.service_id,
+        func.count(ComHealthRecord.id).label('registered')
+    ).group_by(ComHealthRecord.service_id).subquery()
+    checkedin_counts = db.session.query(
+        ComHealthRecord.service_id,
+        func.count(ComHealthRecord.id).label('checkedin')
+    ).filter(ComHealthRecord.checkin_datetime != None) \
+        .group_by(ComHealthRecord.service_id).subquery()
+    services = db.session.query(
+        ComHealthService.id,
+        ComHealthService.date,
+        ComHealthService.location,
+        func.coalesce(registered_counts.c.registered, 0).label('registered'),
+        func.coalesce(checkedin_counts.c.checkedin, 0).label('checkedin')
+    ).outerjoin(registered_counts, registered_counts.c.service_id == ComHealthService.id) \
+        .outerjoin(checkedin_counts, checkedin_counts.c.service_id == ComHealthService.id) \
+        .order_by(ComHealthService.date.desc()) \
+        .all()
+    services_data = [{
+        'id': sv.id,
+        'date': sv.date,
+        'location': sv.location,
+        'registered': sv.registered,
+        'checkedin': sv.checkedin
+    } for sv in services]
     return render_template('comhealth/index.html', services=services_data)
 
 
