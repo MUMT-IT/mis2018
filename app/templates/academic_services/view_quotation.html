@@ -104,7 +104,7 @@
                         <div class="field">
                             <div class="buttons is-centered">
                                 {% if current_user.verify_datetime %}
-                                    {% if not quotation.confirmed_at %}
+                                    {% if not quotation.confirmed_at and not quotation.cancelled_at %}
                                         <a class="button is-success is-rounded is-small mb-2"
                                            style="margin-right: .3em"
                                            href="{{ url_for('academic_services.confirm_quotation',
