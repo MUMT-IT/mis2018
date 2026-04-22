@@ -325,6 +325,12 @@ class ComHealthFinanceContactReason(db.Model):
 
 class ComHealthRecord(db.Model):
     __tablename__ = 'comhealth_test_records'
+    __table_args__ = (
+        db.Index('ix_comhealth_test_records_service_id', 'service_id'),
+        db.Index('ix_comhealth_test_records_service_labno', 'service_id', 'labno'),
+        db.Index('ix_comhealth_test_records_service_customer', 'service_id', 'customer_id'),
+        db.Index('ix_comhealth_test_records_service_checkin', 'service_id', 'checkin_datetime'),
+    )
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     date = db.Column('date', db.Date())
     labno = db.Column('labno', db.String(16))

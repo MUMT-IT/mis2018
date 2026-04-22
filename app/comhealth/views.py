@@ -779,13 +779,21 @@ def display_service_customers(service_id):
 @comhealth.route('api/services/<int:service_id>/customers')
 @login_required
 def get_services_customers(service_id):
-    query = ComHealthRecord.query.filter_by(service_id=service_id)
-    records_total = query.count()
+    query = db.session.query(
+        ComHealthRecord.id,
+        ComHealthRecord.labno,
+        ComHealthRecord.checkin_datetime,
+        ComHealthRecord.customer_id,
+        ComHealthRecord.note,
+        ComHealthCustomer.firstname,
+        ComHealthCustomer.lastname,
+    ).join(ComHealthCustomer, ComHealthRecord.customer_id == ComHealthCustomer.id) \
+        .filter(ComHealthRecord.service_id == service_id)
+    records_total = ComHealthRecord.query.filter_by(service_id=service_id).count()
     search = request.args.get('search[value]')
     col_idx = request.args.get('order[0][column]')
     direction = request.args.get('order[0][dir]')
     col_name = request.args.get('columns[{}][data]'.format(col_idx))
-    query = query.join(ComHealthCustomer, ComHealthRecord.customer_id == ComHealthCustomer.id)
     if search:
         query = query.filter(or_(
             ComHealthCustomer.firstname.contains(search),
@@ -806,14 +814,18 @@ def get_services_customers(service_id):
     length = request.args.get('length', 10, type=int)
     if length < 0 or length > SERVICE_CUSTOMERS_PAGE_SIZE_MAX:
         length = SERVICE_CUSTOMERS_PAGE_SIZE_MAX
-    total_filtered = query.count()
-    query = query.options(
-        selectinload(ComHealthRecord.customer),
-        selectinload(ComHealthRecord.finance_contact)
-    ).offset(start).limit(length)
+    total_filtered = query.count() if search else records_total
+    query = query.offset(start).limit(length)
     data = []
     for item in query:
-        item_data = item.to_dict()
+        item_data = {
+            'id': item.id,
+            'labno': item.labno,
+            'firstname': item.firstname,
+            'lastname': item.lastname,
+            'checkin_datetime': item.checkin_datetime,
+            'note': item.note
+        }
         if item.checkin_datetime != None:
             item_data['checkin_datetime'] = item.checkin_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M")
             item_data[
