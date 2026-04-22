@@ -2359,11 +2359,9 @@ def export_csv(service_id):
             u'{}'.format(local_checkin.strftime('%Y-%m-%d %H:%M:%S') if local_checkin else ''),
         ]
 
-    if query.with_entities(ComHealthRecord.id).first() is None:
-        flash('ไม่พบข้อมูลสำหรับ export', 'warning')
-        return redirect(url_for('comhealth.export_csv_page', service_id=service_id))
-
     def _stream_csv():
+        rows_per_chunk = 500
+        rows_in_chunk = 0
         buffer = io.StringIO()
         writer = csv.writer(buffer, lineterminator='\n')
         buffer.write(u'\ufeff')
@@ -2374,9 +2372,15 @@ def export_csv(service_id):
 
         for record in query.yield_per(1000):
             writer.writerow(_serialize_row(record))
+            rows_in_chunk += 1
+            if rows_in_chunk >= rows_per_chunk:
+                yield buffer.getvalue()
+                buffer.seek(0)
+                buffer.truncate(0)
+                rows_in_chunk = 0
+
+        if rows_in_chunk:
             yield buffer.getvalue()
-            buffer.seek(0)
-            buffer.truncate(0)
 
     date_suffix = selected_date.strftime('%Y%m%d') if selected_date else 'all'
     filename = 'comhealth_export_{}_{}.csv'.format(service_id, date_suffix)
