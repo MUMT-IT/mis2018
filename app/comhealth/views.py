@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-import datetime
+import csv
+import datetime as dt_module
 import hashlib
 import io
 import json
@@ -15,7 +16,7 @@ import requests
 import pytz
 from bahttext import bahttext
 from flask import (render_template, flash, redirect,
-                   url_for, session, request, send_file,
+                   url_for, session, request, send_file, stream_with_context,
                    send_from_directory, make_response, current_app)
 from flask_admin import BaseView, expose
 from flask_cors import cross_origin
@@ -37,7 +38,7 @@ from reportlab.pdfgen import canvas
 from reportlab.platypus import (SimpleDocTemplate, Table, Image,
                                 Spacer, Paragraph, TableStyle, PageBreak, KeepTogether)
 from sqlalchemy import or_, case
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.sql import and_
 
@@ -2237,14 +2238,20 @@ def export_csv_page(service_id):
 def export_csv(service_id):
     # TODO: add employment types (number)
     # TODO: add organization + dept + unit
-    service = ComHealthService.query.get(service_id)
+    service = ComHealthService.query.get_or_404(service_id)
     export_date = request.form.get('export_date', '').strip()
     selected_date = None
     if export_date:
-        try:
-            selected_date = datetime.strptime(export_date, '%Y-%m-%d').date()
-        except ValueError:
-            selected_date = None
+        for date_format in ('%d/%m/%Y', '%Y-%m-%d'):
+            try:
+                selected_date = datetime.strptime(export_date, date_format).date()
+                break
+            except ValueError:
+                continue
+        if selected_date is None:
+            flash('รูปแบบวันที่ไม่ถูกต้อง', 'warning')
+            return redirect(url_for('comhealth.export_csv_page', service_id=service_id))
+
     def _to_bangkok(dt):
         if not dt:
             return None
@@ -2252,73 +2259,121 @@ def export_csv(service_id):
             dt = pytz.utc.localize(dt)
         return dt.astimezone(bangkok)
 
-    rows = []
-    for record in service.records:
+    query = (
+        ComHealthRecord.query
+        .execution_options(stream_results=True)
+        .options(
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.org),
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.dept),
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.division),
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.emptype),
+            joinedload(ComHealthRecord.finance_contact),
+            selectinload(ComHealthRecord.ordered_tests).joinedload(ComHealthTestItem.test),
+        )
+        .filter(
+            ComHealthRecord.service_id == service_id,
+            ComHealthRecord.labno.isnot(None),
+            ComHealthRecord.labno != ''
+        )
+        .order_by(ComHealthRecord.checkin_datetime.asc(), ComHealthRecord.id.asc())
+    )
+
+    if selected_date:
+        start_local = bangkok.localize(datetime.combine(selected_date, datetime.min.time()))
+        end_local = start_local + dt_module.timedelta(days=1)
+        query = query.filter(
+            ComHealthRecord.checkin_datetime >= start_local,
+            ComHealthRecord.checkin_datetime < end_local
+        )
+
+    headers = [
+        'labno',
+        'hn',
+        'title',
+        'firstname',
+        'lastname',
+        'age',
+        'dob',
+        'gender',
+        'phone',
+        'organization',
+        'department',
+        'division',
+        'unit',
+        'employmentType',
+        'emp_id',
+        'tests',
+        'urgent',
+        'note_to_lab',
+        'employment_note',
+        'finance_contact',
+        'checkin_datetime',
+    ]
+
+    def _serialize_row(record):
         local_checkin = _to_bangkok(record.checkin_datetime)
-        if selected_date:
-            if not local_checkin:
-                continue
-            if local_checkin.date() != selected_date:
-                continue
-        if not record.labno:
-            continue
-        tests = ','.join([item.test.code for item in record.ordered_tests])
-        department = record.customer.dept.name if record.customer.dept else ''
-        emptype = record.customer.emptype.name if record.customer.emptype else ''
+        customer = record.customer
+        department = customer.dept.name if customer and customer.dept else ''
+        emptype = customer.emptype.name if customer and customer.emptype else ''
         reason = record.finance_contact.reason if record.finance_contact else ''
-        division = record.customer.division.name if record.customer.division else ''
-        rows.append({'hn': u'{}'.format(record.customer.hn or ''),
-                     'title': u'{}'.format(record.customer.title),
-                     'firstname': u'{}'.format(record.customer.firstname),
-                     'lastname': u'{}'.format(record.customer.lastname),
-                     'employmentType': u'{}'.format(emptype),
-                     'emp_id': u'{}'.format(record.customer.emp_id or ''),
-                     'age': u'{}'.format(record.customer.age_years or ''),
-                     'dob': u'{}'.format(record.customer.dob or ''),
-                     'gender': u'{}'.format(record.customer.gender),
-                     'phone': u'{}'.format(record.customer.phone or ''),
-                     'organization': u'{}'.format(record.customer.org.name),
-                     'department': u'{}'.format(department),
-                     'division': u'{}'.format(division),
-                     'unit': u'{}'.format(record.customer.unit or ''),
-                     'labno': u'{}'.format(record.labno),
-                     'tests': u'{}'.format(tests),
-                     'urgent': record.urgent,
-                     'note_to_lab': u'{}'.format(record.comment),
-                     'employment_note': u'{}'.format(record.note),
-                     'finance_contact': u'{}'.format(reason),
-                     'checkin_datetime': u'{}'.format(
-                         local_checkin.strftime('%Y-%m-%d %H:%M:%S') if local_checkin else ''
-                     )})
-    if rows:
-        pd.DataFrame(rows).to_excel('export.xlsx',
-                                    header=True,
-                                    columns=['labno',
-                                             'hn',
-                                             'title',
-                                             'firstname',
-                                             'lastname',
-                                             'age',
-                                             'dob',
-                                             'gender',
-                                             'phone',
-                                             'organization',
-                                             'department',
-                                             'division',
-                                             'unit',
-                                             'employmentType',
-                                             'emp_id',
-                                             'tests',
-                                             'urgent',
-                                             'note_to_lab',
-                                             'employment_note',
-                                             'finance_contact',
-                                             'checkin_datetime'],
-                                    index=False,
-                                    encoding='utf-8')
-        return send_from_directory(os.getcwd(), path='export.xlsx')
-    else:
-        return 'Data is empty.'
+        division = customer.division.name if customer and customer.division else ''
+        organization = customer.org.name if customer and customer.org else ''
+        hn_value = customer.hn if customer and customer.hn else ''
+        tests = ','.join(
+            item.test.code for item in record.ordered_tests
+            if item.test and item.test.code
+        )
+        return [
+            u'{}'.format(record.labno or ''),
+            u'="{}"'.format(hn_value) if hn_value else '',
+            u'{}'.format(customer.title if customer else ''),
+            u'{}'.format(customer.firstname if customer else ''),
+            u'{}'.format(customer.lastname if customer else ''),
+            u'{}'.format(customer.age_years if customer and customer.age_years is not None else ''),
+            u'{}'.format(customer.dob if customer and customer.dob else ''),
+            u'{}'.format(customer.gender if customer and customer.gender is not None else ''),
+            u'{}'.format(customer.phone if customer else ''),
+            u'{}'.format(organization),
+            u'{}'.format(department),
+            u'{}'.format(division),
+            u'{}'.format(customer.unit if customer and customer.unit else ''),
+            u'{}'.format(emptype),
+            u'{}'.format(customer.emp_id if customer and customer.emp_id else ''),
+            u'{}'.format(tests),
+            bool(record.urgent),
+            u'{}'.format(record.comment or ''),
+            u'{}'.format(record.note or ''),
+            u'{}'.format(reason),
+            u'{}'.format(local_checkin.strftime('%Y-%m-%d %H:%M:%S') if local_checkin else ''),
+        ]
+
+    if query.with_entities(ComHealthRecord.id).first() is None:
+        flash('ไม่พบข้อมูลสำหรับ export', 'warning')
+        return redirect(url_for('comhealth.export_csv_page', service_id=service_id))
+
+    def _stream_csv():
+        buffer = io.StringIO()
+        writer = csv.writer(buffer, lineterminator='\n')
+        buffer.write(u'\ufeff')
+        writer.writerow(headers)
+        yield buffer.getvalue()
+        buffer.seek(0)
+        buffer.truncate(0)
+
+        for record in query.yield_per(1000):
+            writer.writerow(_serialize_row(record))
+            yield buffer.getvalue()
+            buffer.seek(0)
+            buffer.truncate(0)
+
+    date_suffix = selected_date.strftime('%Y%m%d') if selected_date else 'all'
+    filename = 'comhealth_export_{}_{}.csv'.format(service_id, date_suffix)
+    response = current_app.response_class(
+        stream_with_context(_stream_csv()),
+        mimetype='text/csv; charset=utf-8'
+    )
+    response.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
+    return response
 
 
 @comhealth.route('/organizations/add', methods=['GET', 'POST'])
