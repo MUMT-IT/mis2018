@@ -139,6 +139,14 @@
                                 </table>
                             </div>
                         {% endif %}
+                        {% if record.organization %}
+                            <div class="field">
+                                <label class="label">หน่วยงานที่รับผิดชอบ</label>
+                                <div class="control">
+                                    {{ record.organization }}
+                                </div>
+                            </div>
+                        {% endif %}
                         <div class="field" style="margin-top: .8em">
                             <label class="label">สถานะ</label>
                             <div class="control">

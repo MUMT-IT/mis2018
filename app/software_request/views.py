@@ -12,7 +12,7 @@ from flask_login import login_required, current_user
 from app.roles import it_permission
 from app.software_request import software_request
 from app.software_request.forms import create_request_form, create_timeline_form, SoftwareRequestIssueForm, \
-    SoftwareRequestTestResultForm
+    create_test_result_form
 from app.software_request.models import *
 from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
@@ -60,9 +60,25 @@ def condition_for_service_request():
     return render_template('software_request/condition_page.html')
 
 
-@software_request.route('/request/view/<int:detail_id>')
+@software_request.route('/request/view/<int:detail_id>', methods=['GET', 'POST'])
 def view_request(detail_id):
     detail = SoftwareRequestDetail.query.get(detail_id)
+    if request.method == 'POST':
+        note = request.form.get('note')
+        detail.note = note
+        db.session.add(detail)
+        db.session.commit()
+        for form in request.form:
+            if form.startswith("result_"):
+                item_id = form.replace("result_", "")
+                value = request.form.get(form)
+                test_result = SoftwareRequestTestResult.query.get(item_id)
+                test_result.status = value
+                test_result.recorded_at = arrow.now('Asia/Bangkok').datetime
+                test_result.recorder_id = current_user.id
+                db.session.add(test_result)
+                db.session.commit()
+        flash('บันทึกผลเรียบร้อยแล้ว', 'success')
     return render_template('software_request/view_request.html', detail=detail)
 
 
@@ -296,6 +312,7 @@ def update_request(detail_id):
 @software_request.route('/admin/request/timeline/edit/<int:timeline_id>', methods=['GET', 'POST'])
 def create_timeline(detail_id=None, timeline_id=None):
     tab = request.args.get('tab')
+    template = request.args.get('template')
     if detail_id:
         SoftwareRequestTimelineForm = create_timeline_form(detail_id=detail_id)
         form = SoftwareRequestTimelineForm()
@@ -330,7 +347,6 @@ def create_timeline(detail_id=None, timeline_id=None):
             message = f'''เรียน คุณ{timeline.request.created_by.fullname}\n\n'''
             message += f'''{timeline.request.approver.fullname} ได้ทำการเพิ่มความคืบหน้า (Timeline) ของคำร้องขอรับบริการพัฒนา \n\n'''
             message += f'''โดยมีรายละเอียดข้อมูลดังต่อไปนี้\n'''
-            message += f'''  – รอบการดำเนินการพัฒนา (Phase): {timeline.phase}\n'''
             message += f'''  – งานที่ต้องดำเนินการ (Task): {timeline.task}\n'''
             message += f'''  – สถานะการดำเนินงาน: {timeline.status}\n'''
             message += f'''  – วันที่เริ่มต้น: {timeline.start.strftime('%d/%m/%Y')}\n'''
@@ -345,8 +361,8 @@ def create_timeline(detail_id=None, timeline_id=None):
             send_mail([timeline.request.created_by.email + '@mahidol.ac.th'], title, message)
             flash('เพิ่มข้อมูลสำเร็จ', 'success')
             resp = make_response(render_template('software_request/timeline_template.html',tab=tab,
-                                                 timeline=timeline))
-            resp.headers['HX-Trigger'] = 'closeTimeline'
+                                                 timeline=timeline, template=template))
+            resp.headers['HX-Trigger'] = 'closeTimelineModal '
         else:
             if status != timeline.status:
                 scheme = 'http' if current_app.debug else 'https'
@@ -370,7 +386,7 @@ def create_timeline(detail_id=None, timeline_id=None):
         for er in form.errors:
             flash(er, 'danger')
     return render_template('software_request/modal/create_timeline_modal.html', form=form, tab=tab,
-                           detail_id=detail_id, timeline_id=timeline_id)
+                           detail_id=detail_id, timeline_id=timeline_id, template=template)
 
 
 @software_request.route('/admin/request/timeline/update/<int:timeline_id>', methods=['GET', 'POST'])
@@ -416,7 +432,6 @@ def delete_timeline(timeline_id):
     message = f'''เรียน คุณ{timeline.request.created_by.fullname}\n\n'''
     message += f'''{timeline.request.approver.fullname} ได้ทำการยกเลิกพัฒนาความคืบหน้า (Timeline) ของคำร้องขอรับบริการพัฒนา \n\n'''
     message += f'''โดยมีรายละเอียดข้อมูลดังต่อไปนี้\n'''
-    message += f'''  – รอบการดำเนินการพัฒนา (Phase): {timeline.phase}\n'''
     message += f'''  – งานที่ต้องดำเนินการ (Task): {timeline.task}\n'''
     message += f'''  – สถานะการดำเนินงาน: {timeline.status}\n'''
     message += f'''  – วันที่เริ่มต้น: {timeline.start.strftime('%d/%m/%Y')}\n'''
@@ -502,9 +517,11 @@ def create_issue(detail_id=None, issue_id=None):
 @software_request.route('/request/test_result/edit/<int:test_result_id>', methods=['GET', 'POST'])
 def create_test_result(detail_id=None, test_result_id=None):
     if detail_id:
+        SoftwareRequestTestResultForm = create_test_result_form(detail_id=detail_id, has_note=False)
         form = SoftwareRequestTestResultForm()
     else:
         test_result = SoftwareRequestTestResult.query.get(test_result_id)
+        SoftwareRequestTestResultForm = create_test_result_form(detail_id=test_result.request_id, has_note=False)
         form = SoftwareRequestTestResultForm(obj=test_result)
     if form.validate_on_submit():
         if detail_id:
@@ -519,31 +536,13 @@ def create_test_result(detail_id=None, test_result_id=None):
             test_result.updater_id = current_user.id
         db.session.add(test_result)
         db.session.commit()
-        scheme = 'http' if current_app.debug else 'https'
-        link = url_for("software_request.update_request", detail_id=test_result.request_id, _external=True,
-                       _scheme=scheme)
         if detail_id:
             flash('บันทึกข้อมูลผลการทดสอบสำเร็จ', 'success')
-            if test_result.request.staffs:
-                title = f'''แจ้งผลการทดสอบระบบ{test_result.request.title}'''
-                message = f'''ทดสอบระบบ{test_result.request.title}เสร็จเรียบร้อยแล้ว โดยมีรายละเอียดดังนี้ {test_result.detail}\n'''
-                message += f'''ท่านสามารถดูรายละเอียดเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
-                message += f'''{link}\n\n'''
-                message += f'''ระบบขอรับบริการพัฒนา Software\n'''
-                message += f'''คณะเทคนิคการแพทย์'''
-                send_mail([staff.email + '@mahidol.ac.th' for staff in test_result.request.staffs], title, message)
-            resp = make_response(render_template('software_request/test_result_template.html', test_result=test_result))
-            resp.headers['HX-Trigger'] = 'closeModal'
+            resp = make_response(render_template('software_request/test_result_template.html',
+                                                 test_result=test_result))
+            resp.headers['HX-Trigger'] = 'closeTestResultModal'
         else:
             flash('อัพเดตข้อมูลผลการทดสอบสำเร็จ', 'success')
-            if test_result.request.staffs:
-                title = f'''แจ้งแก้ไขผลการทดสอบระบบ{test_result.request.title}'''
-                message = f'''มีการแก้ไขผลการทดสอบระบบ{test_result.request.title} โดยมีรายละเอียดดังนี้ {test_result.detail}\n'''
-                message += f'''ท่านสามารถดูรายละเอียดเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
-                message += f'''{link}\n\n'''
-                message += f'''ระบบขอรับบริการพัฒนา Software\n'''
-                message += f'''คณะเทคนิคการแพทย์'''
-                send_mail([staff.email + '@mahidol.ac.th' for staff in test_result.request.staffs], title, message)
             resp = make_response()
             resp.headers['HX-Refresh'] = 'true'
         return resp
@@ -560,3 +559,21 @@ def delete_test_result(test_result_id):
     resp = make_response()
     resp.headers['HX-Refresh'] = 'true'
     return resp
+
+
+@software_request.route('/request/test_result/note/edit/<int:test_result_id>', methods=['GET', 'POST'])
+def create_note(test_result_id):
+    test_result = SoftwareRequestTestResult.query.get(test_result_id)
+    SoftwareRequestTestResultForm = create_test_result_form(detail_id=test_result.request_id, has_note=True)
+    form = SoftwareRequestTestResultForm(obj=test_result)
+    if form.validate_on_submit():
+        form.populate_obj(test_result)
+        db.session.add(test_result)
+        db.session.commit()
+        flash('บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
+        resp = make_response(render_template('software_request/note_template.html',
+                                             test_result=test_result))
+        resp.headers['HX-Trigger'] = 'closeNoteModal'
+        return resp
+    return render_template('software_request/modal/create_note_modal.html', form=form,
+                           test_result_id=test_result_id)

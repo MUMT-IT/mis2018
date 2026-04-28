@@ -6,6 +6,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print">
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{#    <style>#}
+{#        td {#}
+{#            word-break: break-word;#}
+{#            white-space: normal !important;#}
+{#        }#}
+{#    </style>#}
 {% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
@@ -13,114 +19,118 @@
         <div class="container">
             <h1 class="title">รายการขอรับบริการพัฒนา Software (สำหรับหน่วย IT)</h1>
             {% include 'messages.html' %}
-            <hr>
-            <h1 class="title is-size-4">Request</h1>
-            <div class="tabs is-boxed">
-                <ul>
-                    <li {% if tab == 'pending' %}class="is-active"{% endif %}>
-                        <a href="{{ url_for('software_request.admin_index', tab='pending') }}">
-                            <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
-                            <span style="margin-right: .5em">รอดำเนินการ</span>
-                            {% if pending_count %}
-                                <span class="tag is-rounded is-danger">{{ pending_count }}</span>
-                            {% endif %}
-                        </a>
-                    </li>
-                    <li {% if tab == 'consider' %}class="is-active"{% endif %}>
-                        <a href="{{ url_for('software_request.admin_index', tab='consider') }}">
-                            <span class="icon is-small"><i class="fas fa-history"></i></span>
-                            <span style="margin-right: .5em">อยู่ระหว่างพิจารณา</span>
-                            {% if consider_count %}
-                                <span class="tag is-rounded is-danger">{{ consider_count }}</span>
-                            {% endif %}
-                        </a>
-                    </li>
-                    <li {% if tab == 'approve' %}class="is-active"{% endif %}>
-                        <a href="{{ url_for('software_request.admin_index', tab='approve') }}">
-                            <span class="icon is-small"><i class="fas fa-pen-fancy"></i></span>
-                            <span style="margin-right: .5em">อนุมัติ</span>
-                            {% if approve_count %}
-                                <span class="tag is-rounded is-danger">{{ approve_count }}</span>
-                            {% endif %}
-                        </a>
-                    </li>
-                    <li {% if tab == 'complete' %}class="is-active"{% endif %}>
-                        <a href="{{ url_for('software_request.admin_index', tab='complete') }}">
-                            <span class="icon is-small"><i class="fas fa-check"></i></span>
-                            <span style="margin-right: .5em">เสร็จสิ้น</span>
-{#                            {% if complete_count %}#}
-{#                                <span class="tag is-rounded is-danger">{{ complete_count }}</span>#}
-{#                            {% endif %}#}
-                        </a>
-                    </li>
-                    <li {% if tab == 'disapprove' %}class="is-active"{% endif %}>
-                        <a href="{{ url_for('software_request.admin_index', tab='disapprove') }}">
-                            <span class="icon is-small"><i class="fas fa-times"></i></span>
-                            <span style="margin-right: .5em">ไม่อนุมัติ</span>
-{#                            {% if disapprove_count %}#}
-{#                                <span class="tag is-rounded is-danger">{{ disapprove_count }}</span>#}
-{#                            {% endif %}#}
-                        </a>
-                    </li>
-                    <li {% if tab == 'cancel' %}class="is-active"{% endif %}>
-                        <a href="{{ url_for('software_request.admin_index', tab='cancel') }}">
-                            <span class="icon is-small"><i class="fas fa-ban"></i></span>
-                            <span style="margin-right: .5em">ยกเลิก</span>
-{#                            {% if cancel_count %}#}
-{#                                <span class="tag is-rounded is-danger">{{ cancel_count }}</span>#}
-{#                            {% endif %}#}
-                        </a>
-                    </li>
-                    <li {% if tab == 'private' %}class="is-active"{% endif %}>
-                        <a href="{{ url_for('software_request.admin_index', tab='private') }}">
-                            <span class="icon is-small"><i class="fas fa-user"></i></span>
-                            <span>ส่วนตัว</span>
-                        </a>
-                    </li>
-                    <li {% if tab == 'all' %}class="is-active"{% endif %}>
-                        <a href="{{ url_for('software_request.admin_index', tab='all') }}">
-                            <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
-                            <span>ทั้งหมด</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
             <div class="columns">
                 <div class="column">
-                    <table id="request" class="table is-fullwidth">
-                        <thead>
-                        <tr>
-                            <th>โครงการ/ระบบ</th>
-                            <th>ประเภทคำขอ</th>
-                            <th>รายละเอียด</th>
-                            <th>ผู้ส่งคำขอ</th>
-                            <th>สังกัด</th>
-                            <th>วันที่ส่งคำขอ</th>
-                            <th>สถานะ</th>
-                            <th>Timelines</th>
-                            <th>issues</th>
-                            <th></th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <hr>
-            <h1 class="title is-size-4">Timeline</h1>
-            <p>คลิกเพื่อข้ามไปวันที่ที่ต้องการตรวจสอบ</p>
-                <div class="field">
-                    <div class="control has-icons-left">
-                        <input class="input" name="datePicker" id="datePicker">
-                        <span class="icon is-small is-left">
-                    <i class="far fa-calendar-alt"></i>
-                </span>
+                    <hr>
+                    <h1 class="title is-size-4">Request</h1>
+                    <div class="tabs is-boxed">
+                        <ul>
+                            <li {% if tab == 'pending' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('software_request.admin_index', tab='pending') }}">
+                                    <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
+                                    <span style="margin-right: .5em">รอดำเนินการ</span>
+                                    {% if pending_count %}
+                                        <span class="tag is-rounded is-danger">{{ pending_count }}</span>
+                                    {% endif %}
+                                </a>
+                            </li>
+                            <li {% if tab == 'consider' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('software_request.admin_index', tab='consider') }}">
+                                    <span class="icon is-small"><i class="fas fa-history"></i></span>
+                                    <span style="margin-right: .5em">อยู่ระหว่างพิจารณา</span>
+                                    {% if consider_count %}
+                                        <span class="tag is-rounded is-danger">{{ consider_count }}</span>
+                                    {% endif %}
+                                </a>
+                            </li>
+                            <li {% if tab == 'approve' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('software_request.admin_index', tab='approve') }}">
+                                    <span class="icon is-small"><i class="fas fa-pen-fancy"></i></span>
+                                    <span style="margin-right: .5em">อนุมัติ</span>
+                                    {% if approve_count %}
+                                        <span class="tag is-rounded is-danger">{{ approve_count }}</span>
+                                    {% endif %}
+                                </a>
+                            </li>
+                            <li {% if tab == 'complete' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('software_request.admin_index', tab='complete') }}">
+                                    <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                    <span style="margin-right: .5em">เสร็จสิ้น</span>
+        {#                            {% if complete_count %}#}
+        {#                                <span class="tag is-rounded is-danger">{{ complete_count }}</span>#}
+        {#                            {% endif %}#}
+                                </a>
+                            </li>
+                            <li {% if tab == 'disapprove' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('software_request.admin_index', tab='disapprove') }}">
+                                    <span class="icon is-small"><i class="fas fa-times"></i></span>
+                                    <span style="margin-right: .5em">ไม่อนุมัติ</span>
+        {#                            {% if disapprove_count %}#}
+        {#                                <span class="tag is-rounded is-danger">{{ disapprove_count }}</span>#}
+        {#                            {% endif %}#}
+                                </a>
+                            </li>
+                            <li {% if tab == 'cancel' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('software_request.admin_index', tab='cancel') }}">
+                                    <span class="icon is-small"><i class="fas fa-ban"></i></span>
+                                    <span style="margin-right: .5em">ยกเลิก</span>
+        {#                            {% if cancel_count %}#}
+        {#                                <span class="tag is-rounded is-danger">{{ cancel_count }}</span>#}
+        {#                            {% endif %}#}
+                                </a>
+                            </li>
+                            <li {% if tab == 'private' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('software_request.admin_index', tab='private') }}">
+                                    <span class="icon is-small"><i class="fas fa-user"></i></span>
+                                    <span>ส่วนตัว</span>
+                                </a>
+                            </li>
+                            <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('software_request.admin_index', tab='all') }}">
+                                    <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                    <span>ทั้งหมด</span>
+                                </a>
+                            </li>
+                        </ul>
                     </div>
-                </div>
-            <div class="columns">
-                <div class="column">
-                    <div id="timeline_calendar"></div>
+                    <div class="columns">
+                        <div class="column">
+                            <table id="request" class="table is-fullwidth">
+                                <thead>
+                                <tr>
+                                    <th>โครงการ/ระบบ</th>
+                                    <th>ประเภทคำขอ</th>
+                                    <th>รายละเอียด</th>
+                                    <th>ผู้ส่งคำขอ</th>
+                                    <th>สังกัด</th>
+                                    <th>วันที่ส่งคำขอ</th>
+                                    <th>สถานะ</th>
+                                    <th>Timelines</th>
+                                    <th>issues</th>
+                                    <th></th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <hr>
+                    <h1 class="title is-size-4">Timeline</h1>
+                    <p>คลิกเพื่อข้ามไปวันที่ที่ต้องการตรวจสอบ</p>
+                        <div class="field">
+                            <div class="control has-icons-left">
+                                <input class="input" name="datePicker" id="datePicker">
+                                <span class="icon is-small is-left">
+                            <i class="far fa-calendar-alt"></i>
+                        </span>
+                            </div>
+                        </div>
+                    <div class="columns">
+                        <div class="column">
+                            <div id="timeline_calendar"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -179,7 +189,7 @@
                     {data: 'type'},
                     {
                         data: 'description',
-                        width: "280px"
+                        width: "230px"
                     },
                     {data: 'created_by'},
                     {data: 'org'},

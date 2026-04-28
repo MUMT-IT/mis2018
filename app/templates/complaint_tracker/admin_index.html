@@ -9,8 +9,8 @@
     <section class="section">
         <div class="container">
             {% include 'messages.html' %}
-            <div class="columns">
-                <div class="column">
+            <div class="columns is-centered">
+                <div class="column is-full">
                     {% include 'complaint_tracker/title.html' %}
                     <div class="buttons is-centered">
                         <a href="{{ url_for('comp_tracker.admin_record_complaint_summary', menu='all') }}" class="button is-info">
@@ -70,22 +70,24 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 {#                        <input type="submit" value="Print" class="button is-success">#}
                         <br/>
-                        <table id="records" class="table is-fullwidth">
+                        <table id="records" class="table is-striped is-fullwidth">
                             <thead>
 {#                            <th></th>#}
-                            <th>ID</th>
-                            <th>รายละเอียด</th>
-                            <th>หัวข้อ</th>
-                            <th>ประเภท</th>
-                            <th>ประเภทครุภัณฑ์</th>
-                            <th>บทบาท</th>
-                            <th>วันที่สร้าง</th>
-                            <th>ระดับความรุนแรง</th>
-                            <th>สถานะ</th>
-                            <th>ใบอนุมัติหลักการซ่อม</th>
-                            <th>ตรวจสอบ</th>
+                                <th style="width: 1.5em">ID</th>
+                                <th>รายละเอียด</th>
+                                <th>หัวข้อ</th>
+                                <th>ประเภท</th>
+{#                                <th>ประเภทครุภัณฑ์</th>#}
+                                <th>Tag</th>
+                                <th>หน่วยงานที่รับผิดชอบ</th>
+                                <th>บทบาท</th>
+                                <th>วันที่สร้าง</th>
+                                <th>ระดับความรุนแรง</th>
+                                <th>สถานะ</th>
+                                <th style="width: 3em">ใบอนุมัติซ่อม</th>
+                                <th style="width: 2.5em">ตรวจสอบ</th>
                             </thead>
-                            <tbody>
+                                <tbody>
                                 {% if records %}
                                     {% for record in records %}
                                         <tr>
@@ -94,18 +96,34 @@
 {#                                                <label for="{{ record.id }}"></label>#}
 {#                                            </td>#}
                                             <td>{{ record.id }}</td>
-                                            <td style="width: 20em;">{{ record.desc }}</td>
-                                            <td style="width: 15em;">{{ record.topic }}</td>
+                                            <td>{{ record.desc }}</td>
+                                            <td>{{ record.topic }}</td>
                                             <td>{{ record.type or 'ไม่ระบุ' }}</td>
-                                            <td style="width: 10em">
-                                                {% if record.procurements %}
-                                                    {% for procurement in record.procurements %}
-                                                        {{ procurement.category }}
+                                            <td>
+                                                {% if record.tags %}
+                                                    {% for tag in record.tags %}
+                                                        <span class="tag is-rounded is-info is-light mb-1" >
+                                                            {{ tag }}
+                                                        </span>
+                                                        <br>
                                                     {% endfor %}
-                                                {% else %}
-                                                    ไม่ระบุ
                                                 {% endif %}
                                             </td>
+{#                                            <td>#}
+{#                                                {% if record.procurements %}#}
+{#                                                    {% for procurement in record.procurements %}#}
+{#                                                        {{ procurement.category }}#}
+{#                                                    {% endfor %}#}
+{#                                                {% else %}#}
+{#                                                    ไม่ระบุ#}
+{#                                                {% endif %}#}
+{#                                            </td>#}
+                                            <td>
+                                                {% if record.organization %}
+                                                    <span class="tag is-rounded is-primary">
+                                                        {{ record.organization }}
+                                                    </span>
+                                                {% endif %}</td>
                                             <td>
                                                 {% if record.has_admin(current_user) %}
                                                     <span class="tag is-light is-link">
@@ -120,9 +138,9 @@
                                             <td>
                                                 {{ record.created_at|localdatetime }}
                                             </td>
-                                            <td style="width: 10em;">
+                                            <td>
                                                 <span class="tag {{ record.priority.color }}">
-                                                    {{ record.priority or 'ไม่ระบุ'}}
+                                                    {{ record.priority.priority_short or 'ไม่ระบุ'}}
                                                 </span>
                                             </td>
                                             <td>
@@ -139,19 +157,21 @@
                                                     </span>
                                                 {% endif %}
                                             </td>
-                                            <td>
+                                            <td class="has-text-centered">
                                                 {% if record.repair_approvals %}
-                                                     {% if record.get_print_of_repair_approval == True %}
-                                                         <span class="tag is-success is-light">
-                                                             <span class="icon"><i class="fas fa-check"></i></span>
-                                                             <span>ออกเอกสารแล้ว</span>
-                                                         </span>
-                                                     {% else %}
-                                                         <span class="tag is-danger is-light">
-                                                             <span class="icon"><i class="fas fa-times"></i></span>
-                                                             <span>ยังไม่ออกเอกสาร</span>
-                                                         </span>
-                                                     {% endif %}
+                                                    {% if record.get_print_of_repair_approval == True %}
+                                                        <i class="far fa-check-circle has-text-success"></i>
+{#                                                        <span class="tag is-success is-light">#}
+{#                                                            <span class="icon"><i class="fas fa-check"></i></span>#}
+{#                                                            <span>ออกเอกสารแล้ว</span>#}
+{#                                                        </span>#}
+                                                    {% else %}
+                                                        <i class="fas fa-times has-text-danger"></i>
+{#                                                        <span class="tag is-danger is-light">#}
+{#                                                            <span class="icon"><i class="fas fa-times"></i></span>#}
+{#                                                            <span>ยังไม่ออกเอกสาร</span>#}
+{#                                                        </span>#}
+                                                    {% endif %}
                                                 {% endif %}
                                             </td>
                                             <td>

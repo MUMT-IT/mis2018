@@ -94,6 +94,7 @@ class ComplaintPriority(db.Model):
     __tablename__ = 'complaint_priorities'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     priority = db.Column('priority', db.Integer, nullable=False)
+    priority_short = db.Column('priority_short ', db.String())
     priority_text = db.Column('priority_text', db.String(255), nullable=False)
     priority_detail = db.Column('priority_detail', db.String)
     color = db.Column('color', db.String())
@@ -156,6 +157,11 @@ class ComplaintRecord(db.Model):
     subtopic = db.relationship(ComplaintSubTopic, backref=db.backref('records', cascade='all, delete-orphan'))
     priority_id = db.Column('priority_id', db.ForeignKey('complaint_priorities.id'))
     priority = db.relationship(ComplaintPriority, backref=db.backref('records', cascade='all, delete-orphan'))
+    organization =db.Column('organization', db.String(), info={'label': 'หน่วยงานรับผิดชอบ', 'choices': [
+        ('', 'กรุณาเลือกหน่วยงานที่รับผิดชอบ'),
+        ('หน่วยซ่อมบำรุง', 'หน่วยซ่อมบำรุง '),
+        ('หน่วยข้อมูลและสารสนเทศ', 'หน่วยข้อมูลและสารสนเทศ')
+    ]})
     status_id = db.Column('status', db.ForeignKey('complaint_statuses.id'))
     status = db.relationship(ComplaintStatus, backref=db.backref('records', cascade='all, delete-orphan'))
     type_id = db.Column('type_id', db.ForeignKey('complaint_types.id'))
@@ -239,8 +245,9 @@ class ComplaintRecord(db.Model):
             'created_at': self.created_at.astimezone(localtz).isoformat(),
             'topic': self.topic.topic,
             'type': self.type.type if self.type else 'ไม่ระบุ',
-            'priority': self.priority.priority_text if self.priority else None,
+            'priority': self.priority.priority_short if self.priority else None,
             'desc': self.desc,
+            'organization': self.organization if self.organization else None,
             'status': self.status.status if self.status else None,
             'procurement':  [procurement.category.category if procurement.category else 'ไม่ระบุ' for procurement in self.procurements] if self.procurements else 'ไม่ระบุ'
         }

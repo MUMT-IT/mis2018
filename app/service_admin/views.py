@@ -4099,7 +4099,7 @@ def generate_bacteria_request_pdf(service_request):
 def export_bacteria_request_pdf(request_id):
     service_request = ServiceRequest.query.get(request_id)
     buffer = generate_bacteria_request_pdf(service_request)
-    return send_file(buffer, download_name='Request.pdf', as_attachment=True)
+    return send_file(buffer, download_name=f'Request {service_request.request_no}.pdf', as_attachment=True)
 
 
 def generate_virus_request_pdf(service_request):
@@ -4761,7 +4761,7 @@ def generate_virus_request_pdf(service_request):
 def export_virus_request_pdf(request_id):
     service_request = ServiceRequest.query.get(request_id)
     buffer = generate_virus_request_pdf(service_request)
-    return send_file(buffer, download_name='Request.pdf', as_attachment=True)
+    return send_file(buffer, download_name=f'Request {service_request.request_no}.pdf', as_attachment=True)
 
 
 @service_admin.route('/result/index')
@@ -5768,7 +5768,7 @@ def export_invoice_pdf(invoice_id):
         invoice.downloaded_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(invoice)
         db.session.commit()
-    return send_file(buffer, download_name='Invoice.pdf', as_attachment=True)
+    return send_file(buffer, download_name=f'Invoice {invoice.invoice_no}.pdf', as_attachment=True)
 
 
 @service_admin.route('/payment/add', methods=['GET', 'POST'])
@@ -7499,10 +7499,10 @@ def generate_quotation_pdf(quotation, sign=False):
 def export_quotation_pdf(quotation_id):
     quotation = ServiceQuotation.query.get(quotation_id)
     if quotation.digital_signature:
-        return send_file(BytesIO(quotation.digital_signature), download_name='Quotation.pdf',
+        return send_file(BytesIO(quotation.digital_signature),download_name=f'Quotation {quotation.quotation_no}.pdf',
                          as_attachment=True)
     buffer = generate_quotation_pdf(quotation)
-    return send_file(buffer, download_name='Quotation.pdf', as_attachment=True)
+    return send_file(buffer, download_name=f'Quotation {quotation.quotation_no}.pdf', as_attachment=True)
 
 
 @service_admin.route('/procurement/meeting/add', methods=['GET'])
@@ -7771,7 +7771,7 @@ def get_invoice_payments():
     for item in query:
         item_data = item.to_dict()
         download_file = url_for('academic_services.download_file', key=item.file,
-                                download_filename=f"{item.invoice_no}.pdf")
+                                download_filename=f"'Invoice {item.invoice_no}.pdf")
         item_data['file'] = f'''<div class="field has-addons">
                         <div class="control">
                             <a class="button is-small is-outlined is-link is-rounded" href="{download_file}">
@@ -7806,7 +7806,10 @@ def view_invoice_for_finance(invoice_id):
         is_overdue = True
     if invoice.payments:
         for payment in invoice.payments:
-            slip_url = generate_url(payment.slip)
+            if payment.slip:
+                slip_url = generate_url(payment.slip)
+            else:
+                slip_url = None
     else:
         slip_url = None
     return render_template('service_admin/view_invoice_for_finance.html', invoice=invoice, slip_url=slip_url,

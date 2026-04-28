@@ -780,6 +780,17 @@ def get_records():
     data = []
     for item in query:
         item_data = item.to_dict()
+        tags = []
+        if item.tags:
+            for tag in item.tags:
+                tag_html = f'''
+                        <span class ="tag is-rounded is-info is-light mb-1" >
+                            {tag.tag}
+                        </span><br>'''
+                tags.append(tag_html)
+        else:
+            tag_html = ''
+        item_data['tag'] = ''.join(tags) if tags else ''
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,

@@ -3993,7 +3993,7 @@ def generate_bacteria_request_pdf(service_request):
 def export_bacteria_request_pdf(request_id):
     service_request = ServiceRequest.query.get(request_id)
     buffer = generate_bacteria_request_pdf(service_request)
-    return send_file(buffer, download_name='Request.pdf', as_attachment=True)
+    return send_file(buffer, download_name=f'Request {service_request.request_no}.pdf', as_attachment=True)
 
 
 def generate_virus_request_pdf(service_request):
@@ -4661,7 +4661,7 @@ def generate_virus_request_pdf(service_request):
 def export_virus_request_pdf(request_id):
     service_request = ServiceRequest.query.get(request_id)
     buffer = generate_virus_request_pdf(service_request)
-    return send_file(buffer, download_name='Request.pdf', as_attachment=True)
+    return send_file(buffer, download_name=f'Request {service_request.request_no}.pdf', as_attachment=True)
 
 
 @academic_services.route('/api/quotation/address', methods=['GET'])
@@ -5038,7 +5038,7 @@ def generate_quotation_pdf(quotation, sign=False):
 def export_quotation_pdf(quotation_id):
     quotation = ServiceQuotation.query.get(quotation_id)
     buffer = generate_quotation_pdf(quotation)
-    return send_file(BytesIO(quotation.digital_signature), download_name='Quotation.pdf', as_attachment=True)
+    return send_file(BytesIO(quotation.digital_signature), download_name=f'Quotation {quotation.quotation_no}.pdf', as_attachment=True)
 
 
 @academic_services.route('/customer/quotation/confirm/<int:quotation_id>', methods=['GET', 'POST'])

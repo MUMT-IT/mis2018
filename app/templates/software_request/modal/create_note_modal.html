@@ -1,36 +1,27 @@
-<div class="modal is-active animate__animated" id="test-result-modal">
+<div class="modal is-active animate__animated" id="note-modal">
     <div class="modal-background"></div>
         <div class="modal-card">
             <header class="modal-card-head">
                 <p class="modal-card-title" align="center">
-                    {% if detail_id %}
-                        เพิ่มผลการทดสอบ
-                    {% else %}
-                        แก้ไขผลการทดสอบ
-                    {% endif %}
+                    อัพเดตหมายเหตุ
                 </p>
                 <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
             </header>
             <section class="modal-card-body">
-                <form
-                    {% if detail_id %}
-                        hx-post="{{ url_for('software_request.create_test_result', detail_id=detail_id) }}"
-                    {% else %}
-                        hx-post="{{ url_for('software_request.create_test_result', test_result_id=test_result_id) }}"
-                    {% endif %}
-                    hx-target="#test_results"
-                    hx-swap="beforeend"
+                <form hx-post="{{ url_for('software_request.create_note', test_result_id=test_result_id) }}"
+                      hx-target="#notes_{{ test_result_id }}"
+                      hx-swap="innerHTML"
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
-                    <div class="field">
+                    <div class="field" id="note">
                         <label class="label">
-                            Requirement
+                            หมายเหตุ
                             <span class="has-text-danger">*</span>
                         </label>
                     </div>
                     <div class="field">
                         <div class="control">
-                            {{ form.issue(class='js-example-basic-single') }}
+                            {{ form.note(class='textarea', required=true) }}
                         </div>
                     </div>
                     <div class="field mt-2">
@@ -44,12 +35,7 @@
 </div>
 <script>
     window.document.getElementById("cancelButton").addEventListener("click", function() {
-        htmx.addClass(htmx.find('#test-result-modal'), 'animate__fadeOut')
-        htmx.removeClass(htmx.find('#test-result-modal'), "is-active", 500)
+        htmx.addClass(htmx.find('#note-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#note-modal'), "is-active", 500)
     })
-    $(document).ready(() => {
-        $('.js-example-basic-single').select2({
-            width: '100%',
-        });
-    });
 </script>

@@ -37,6 +37,15 @@ class SoftwareRequestNumberID(db.Model):
         return u'{}'.format(self.count + 1)
 
 
+class SoftwareRequestPhase(db.Model):
+    __tablename__ = 'software_request_phases'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    phase = db.Column('phase', db.String(), nullable=False)
+
+    def __str__(self):
+        return f'{self.phase}'
+
+
 class SoftwareRequestSystem(db.Model):
     __tablename__ = 'software_request_systems'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -52,6 +61,7 @@ class SoftwareRequestDetail(db.Model):
     title = db.Column('title', db.String(), info={'label': 'หัวข้อคำขอ'})
     description = db.Column('description', db.Text(), info={'label': 'รายละเอียดคำขอ'})
     status = db.Column('status', db.String())
+    note = db.Column('note', db.Text())
     type = db.Column('type', db.String(), info={'label': 'ประเภทคำขอ',
                                                 'choices': [('', 'กรุณาเลือกประเภทคำขอ'),
                                                             ('พัฒนาโปรแกรมใหม่', 'พัฒนาโปรแกรมใหม่'),
@@ -130,12 +140,6 @@ class SoftwareRequestTimeline(db.Model):
     task = db.Column('task', db.Text(), nullable=False, info={'label': 'Task'})
     start = db.Column('start', db.Date(), nullable=False, info={'label': 'วันที่เริ่มต้น'})
     estimate = db.Column('estimate', db.Date(), nullable=False, info={'label': 'วันที่คาดว่าจะแล้วเสร็จ'})
-    phase = db.Column('phase', db.String(), nullable=False, info={'label': 'Phase',
-                                                                  'choices': [('1', '1'),
-                                                                              ('2', '2'),
-                                                                              ('3', '3'),
-                                                                              ('4', '4')
-                                                                              ]})
     status = db.Column('status', db.String(), nullable=False,  info={'label': 'สถานะ',
                                                                      'choices': [('รอดำเนินการ', 'รอดำเนินการ'),
                                                                                  ('เสร็จสิ้น', 'เสร็จสิ้น'),
@@ -172,7 +176,11 @@ class SoftwareIssues(db.Model):
         'label': 'ประเภท',
         'choices': [(c,c) for c in ('Bug', 'Request', 'Enhancement')],
     })
-    issue = db.Column('issue', db.Text(), nullable=False, info={'label': 'Issue'})
+    issue = db.Column('issue', db.Text(), nullable=False, info={'label': 'Issue/Request'})
+    start = db.Column('start', db.Date(), info={'label': 'วันที่เริ่มต้น'})
+    end = db.Column('end', db.Date(), info={'label': 'วันที่สิ้นสุด'})
+    phase_id = db.Column('phase_id', db.ForeignKey('software_request_phases.id'))
+    phase = db.relationship(SoftwareRequestPhase, backref=db.backref('software_request_issues'))
     created_by = db.Column('created_by', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, foreign_keys=[created_by])
     created_at = db.Column('created_at', db.DateTime(timezone=True))
@@ -211,13 +219,19 @@ class SoftwareIssues(db.Model):
 class SoftwareRequestTestResult(db.Model):
     __tablename__ = 'software_request_test_results'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    detail = db.Column('detail', db.Text(), nullable=False, info={'label': 'รายละเอียด'})
+    status = db.Column('status', db.String())
+    note = db.Column('note', db.Text())
+    issue_id = db.Column('issue_id', db.ForeignKey('software_issues.id'))
+    issue = db.relationship(SoftwareIssues, backref=db.backref('test_results'))
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    recorded_at = db.Column('recorded_at', db.DateTime(timezone=True))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('created_test_results'), foreign_keys=[creator_id])
     updater_id = db.Column('updater_id', db.ForeignKey('staff_account.id'))
     updater = db.relationship(StaffAccount, backref=db.backref('updated_test_results'), foreign_keys=[updater_id])
+    recorder_id = db.Column('recorder_id', db.ForeignKey('staff_account.id'))
+    recorder = db.relationship(StaffAccount, backref=db.backref('recorded_test_results'), foreign_keys=[recorder_id])
     request_id = db.Column('request_id', db.ForeignKey('software_request_details.id'))
     request = db.relationship(SoftwareRequestDetail, backref=db.backref('test_results'))
 

@@ -17,12 +17,14 @@
                         <thead>
                             <th>วันที่แจ้ง</th>
                             <th>หัวข้อ</th>
+                            <th>Tag</th>
                             <th>ประเภท</th>
-                            <th>ประเภทครุภัณฑ์</th>
+{#                            <th>ประเภทครุภัณฑ์</th>#}
+                            <th>หน่วยงานที่รับผิดชอบ</th>
                             <th>ระดับความรุนแรง</th>
                             <th>รายละเอียด</th>
                             <th>สถานะ</th>
-                            <th>ดู</th>
+                            <th>รายละเอียด</th>
                         </thead>
                         <tbody>
                         </tbody>
@@ -58,13 +60,24 @@
                         }
                     },
                     { data : 'topic' },
+                    { data : 'tag' },
                     { data : 'type' },
-                    { data : 'procurement' },
+                    {#{ data : 'procurement' },#}
                     {
-                        data : 'priority',
+                        data : 'organization',
                         render: function (data) {
-                            var priority_color = data == 'ระดับ 1 admin สามารถดำเนินการจัดการได้' ? 'is-info is-light' :
-                                data == 'ระดับ 2 ส่งต่อหัวหน้าดำเนินการจัดการ' ? 'is-warning is-light' : 'is-danger is-light'
+                            if (data != null) {
+                                return '<span class="tag is-rounded is-primary is-light">' + data +'</span>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'priority',
+                        render: function (data) {
+                            var priority_color = data == 'ระดับ 1 admin สามารถดำเนินการจัดการได้' ? 'is-info' :
+                                data == 'ระดับ 2 ส่งต่อหัวหน้าดำเนินการจัดการ' ? 'is-warning' : 'is-danger'
                             if (data != null) {
                                 return '<span class="tag '+ priority_color +'">'+ data +'</span>'
                             } else {
@@ -90,14 +103,10 @@
                         data: 'id',
                         render: function (data) {
                             var url = '/complaint-tracker/admin/complaint/view/' + data + '?menu=' + '{{ menu }}';
-                            return '<div class="field has-addons">' +
-                                        '<div class="control">' +
-                                            '<a class="button is-small is-light is-rounded is-info" ' +
-                                                    'href=' + url + '>' +
-                                                '<span class="icon"><i class="fas fa-eye"></i></span>' +
-                                                '<span>View</span>' +
-                                            '</a>' +
-                                        '</div>' +
+                            return '<div class="has-text-centered">' +
+                                        '<a class="is-info"' + 'href=' + url + '>' +
+                                            '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                        '</a>' +
                                     '</div>'
                         }
                     }

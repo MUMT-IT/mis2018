@@ -26,7 +26,7 @@
                             <th>รายละเอียด</th>
                         </thead>
                         <tbody>
-                            {% for detail in details|sort(attribute='created_date', reverse = True) %}
+                            {% for detail in details %}
                                 <tr>
                                     <td>{{ detail.title }}</td>
                                     <td>{{ detail.type }}</td>
@@ -70,6 +70,7 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
+            $.fn.dataTable.moment('DD/MM/YYYY');
             $('#detail').DataTable({
                 order: [[3, 'desc']]
             });
