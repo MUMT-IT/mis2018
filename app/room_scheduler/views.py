@@ -285,6 +285,7 @@ def cancel(event_id=None):
 
     event.cancelled_at = cancelled_datetime
     event.cancelled_by = current_user.id
+    flash('ยกเลิกการจองห้องเรียบร้อยแล้ว', 'success')
     db.session.add(event)
     db.session.commit()
 

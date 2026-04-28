@@ -160,12 +160,12 @@ def user_lookup_callback(identity, payload):
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('errors/404.html', error=e), 404
+    return render_template('errors/404.html', blueprint=request.blueprint, error=e), 404
 
 
 @app.errorhandler(500)
 def internal_server_error(e):
-    return render_template('errors/500.html', error=e), 500
+    return render_template('errors/500.html', blueprint=request.blueprint, error=e), 500
 
 
 @app.errorhandler(PermissionDenied)
@@ -961,6 +961,7 @@ app.register_blueprint(software_request_blueprint)
 from app.software_request.models import *
 
 admin.add_views(ModelView(SoftwareRequestNumberID, db.session, category='Software Request'))
+admin.add_views(ModelView(SoftwareRequestPhase, db.session, category='Software Request'))
 admin.add_views(ModelView(SoftwareRequestSystem, db.session, category='Software Request'))
 admin.add_views(ModelView(SoftwareRequestDetail, db.session, category='Software Request'))
 admin.add_views(ModelView(SoftwareRequestTimeline, db.session, category='Software Request'))
@@ -1521,7 +1522,10 @@ def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
     datetime_format = '%d/%m/%Y'
     try:
-        dt = dt.astimezone(bangkok).strftime(datetime_format)
+        if isinstance(dt, datetime):
+            dt = dt.astimezone(bangkok).strftime(datetime_format)
+        elif isinstance(dt, date):
+            dt = dt.strftime(datetime_format)
     except AttributeError:
         return None
     return dt

@@ -113,6 +113,17 @@ def send_mail_to_voters(poll, message, title, attachments=None):
             base_send_mail(recp=recipients, title=title, message=message)
 
 
+def send_mail_to_unvoted_users(poll, message, title, attachments=None):
+    recipients = [f'{c.voter.email}@mahidol.ac.th' for c in poll.invitations if not c.voted_at]
+    if current_app.debug:
+        print(f'Mail sent to {recipients}. Message: {message}')
+    else:
+        if attachments:
+            send_mail_with_attachments(recp=recipients, title=title, message=message, attachments=attachments)
+        else:
+            base_send_mail(recp=recipients, title=title, message=message)
+
+
 @besttime_bp.route('/')
 def index():
     tab = request.args.get('tab')
@@ -342,6 +353,8 @@ def preview_master_datetime_slots():
 def edit_poll(poll_id):
     tab = request.args.get('tab')
     poll = BestTimePoll.query.get(poll_id)
+    old_vote_start_date = arrow.get(poll.vote_start_date, 'Asia/Bangkok').date()
+    old_vote_end_date = arrow.get(poll.vote_end_date, 'Asia/Bangkok').date()
     if request.method == 'GET':
         form = BestTimePollForm(obj=poll)
         form.chairman.data = BestTimePollVote.query.filter_by(poll=poll, role='chairman').first().voter
@@ -358,7 +371,6 @@ def edit_poll(poll_id):
             chairman = poll.get_chairman()
             form.populate_obj(poll)
             for invitee in form.invitees.data:
-                # Check for new invitees.
                 if not BestTimePollVote.query.filter_by(voter=invitee, poll=poll).first():
                     invitation = BestTimePollVote(voter=invitee, poll=poll)
                     db.session.add(invitation)
@@ -391,34 +403,66 @@ def edit_poll(poll_id):
             poll.end_date = None
             db.session.add(poll)
             db.session.commit()
+            new_vote_start_date = arrow.get(poll.vote_start_date, 'Asia/Bangkok').date()
+            new_vote_end_date = arrow.get(poll.vote_end_date, 'Asia/Bangkok').date()
             url = url_for('besttime.vote_poll', poll_id=poll.id, tab='voter', _external=True)
-            msg = ('โพลสำรวจวันประชุม {} มีการเปลี่ยนแปลง\n'
-                   'กรุณาดำเนินการภายในวันที่ {}\n'
-                   'คลิกลิ้งค์เพื่อดำเนินการ\n'
-                   '{}'.format(poll.title, poll.vote_date_span, url)
-                   )
-            title = f'MUMT-MIS: แจ้งเปลี่ยนแปลงโพลสำรวจวันเพื่อประชุม {poll.title}'
-            message = f'''
-            เรียนกรรมการ
+            if (old_vote_start_date != new_vote_start_date) or (old_vote_end_date != new_vote_end_date):
+                msg = ('โพลสำรวจวันประชุม {} มีการขยายระยะเวลาสำรวจวันประชุม\n'
+                       'กรุณาดำเนินการภายในวันที่ {}\n'
+                       'คลิกลิ้งค์เพื่อดำเนินการ\n'
+                       '{}'.format(poll.title, poll.vote_date_span, url)
+                       )
+                title = f'MUMT-MIS: แจ้งขยายระยะเวลาโพลสำรวจวันเพื่อประชุม {poll.title}'
+                message = f'''
+                            เรียนกรรมการ
 
-            เนื่องจากมีการเปลี่ยนแปลงโพลสำรวจวันประชุมจึง
-            ขอความกรุณาท่านเลือกวันที่สะดวกสำหรับร่วมประชุม {poll.title} ภายในวันที่ {poll.vote_date_span} โดยคลิกที่ลิงค์ด้านล่าง
+                            เนื่องจากมีการขยายระยะเวลาสำรวจวันประชุมจึง
+                            ขอความกรุณาท่านเลือกวันที่สะดวกสำหรับร่วมประชุม {poll.title} ภายในวันที่ {poll.vote_date_span} โดยคลิกที่ลิงค์ด้านล่าง
 
-            {url}
+                            {url}
 
-            ด้วยความเคารพ
+                            ด้วยความเคารพ
 
-            {poll.creator.fullname}
-            '''
-            send_mail_to_voters(poll=poll, title=title, message=message)
-            if not current_app.debug:
-                for c in poll.invitations:
-                    try:
-                        line_bot_api.push_message(to=c.voter.line_id, messages=TextSendMessage(text=msg))
-                    except LineBotApiError:
-                        pass
+                            {poll.creator.fullname}
+                            '''
+                send_mail_to_unvoted_users(poll=poll, title=title, message=message)
+                if not current_app.debug:
+                    for c in poll.invitations:
+                        if not c.voted_at:
+                            try:
+                                line_bot_api.push_message(to=c.voter.line_id, messages=TextSendMessage(text=msg))
+                            except LineBotApiError:
+                                pass
+                else:
+                    print('msg', msg, 'user', [c.voter.line_id for c in poll.invitations if not c.voted_at])
             else:
-                print('msg', msg, 'user', [c.voter.line_id for c in poll.invitations])
+                msg = ('โพลสำรวจวันประชุม {} มีการเปลี่ยนแปลง\n'
+                       'กรุณาดำเนินการภายในวันที่ {}\n'
+                       'คลิกลิ้งค์เพื่อดำเนินการ\n'
+                       '{}'.format(poll.title, poll.vote_date_span, url)
+                       )
+                title = f'MUMT-MIS: แจ้งเปลี่ยนแปลงโพลสำรวจวันเพื่อประชุม {poll.title}'
+                message = f'''
+                เรียนกรรมการ
+    
+                เนื่องจากมีการเปลี่ยนแปลงโพลสำรวจวันประชุมจึง
+                ขอความกรุณาท่านเลือกวันที่สะดวกสำหรับร่วมประชุม {poll.title} ภายในวันที่ {poll.vote_date_span} โดยคลิกที่ลิงค์ด้านล่าง
+    
+                {url}
+    
+                ด้วยความเคารพ
+    
+                {poll.creator.fullname}
+                '''
+                send_mail_to_voters(poll=poll, title=title, message=message)
+                if not current_app.debug:
+                    for c in poll.invitations:
+                        try:
+                            line_bot_api.push_message(to=c.voter.line_id, messages=TextSendMessage(text=msg))
+                        except LineBotApiError:
+                            pass
+                else:
+                    print('msg', msg, 'user', [c.voter.line_id for c in poll.invitations])
             return redirect(url_for('besttime.index', tab=tab))
         else:
             return f'{form.errors}'

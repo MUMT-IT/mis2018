@@ -160,7 +160,7 @@
                                     '</div>' +
                                     '</div>'
                             } else if (row.file_attached_at) {
-                                dowload_url = '/service_admin/aws-s3/download/' + row.invoice_file + '?download_filename='
+                                dowload_url = '/service_admin/aws-s3/download/' + row.invoice_file + '?download_filename=Invoice '
                                     + row.invoice_no + '.pdf';
                                 return `
                                         <div class="field has-addons">

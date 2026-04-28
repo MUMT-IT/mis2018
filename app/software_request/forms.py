@@ -48,7 +48,6 @@ def create_timeline_form(detail_id):
         task = TextAreaField('Task', validators=[DataRequired()])
         start = DateField('วันที่เริ่มต้น', validators=[DataRequired()])
         estimate = DateField('วันที่คาดว่าจะแล้วเสร็จ', validators=[DataRequired()])
-        phase = SelectField('Phase', choices=[('1', '1'), ('2', '2'), ('3', '3')],validators=[DataRequired()])
         status = SelectField('status', choices=[('รอดำเนินการ', 'รอดำเนินการ'), ('เสร็จสิ้น', 'เสร็จสิ้น'), ('ยกเลิกการพัฒนา', 'ยกเลิกการพัฒนา')],
                              validators=[DataRequired()])
         issue = QuerySelectField('ปํญหาที่พบ', query_factory=lambda: SoftwareIssues.query.filter_by(software_request_detail_id=detail_id).all(), allow_blank=True,
@@ -57,17 +56,80 @@ def create_timeline_form(detail_id):
     return SoftwareRequestTimelineForm
 
 
+class QuerySelectFieldAppendable(QuerySelectField):
+    def __init__(self, label, validators=None, **kwargs):
+        super(QuerySelectFieldAppendable, self).__init__(label, validators, **kwargs)
+
+    def iter_choices(self):
+        for value, label, selected in super().iter_choices():
+            if value == '__None':
+                yield '', label, selected
+            else:
+                yield value, label, selected
+
+    def process_formdata(self, valuelist):
+        if valuelist and valuelist[0] == '':
+            valuelist = ['__None']
+        if valuelist:
+            if self.allow_blank and valuelist[0] == '__None':
+                self.data = None
+            else:
+                self._data = None
+                value = valuelist[0]
+
+                if value.isdigit():
+                    phase = SoftwareRequestPhase.query.get(int(value))
+                    if phase:
+                        self._formdata = value
+                    else:
+                        phase = SoftwareRequestPhase.query.filter_by(phase=value).first()
+                        if not phase:
+                            phase = SoftwareRequestPhase(phase=value)
+                            db.session.add(phase)
+                            db.session.commit()
+                        self._formdata = str(phase.id)
+
+
 class SoftwareRequestIssueForm(ModelForm):
     class Meta:
         model = SoftwareIssues
-        only = ['issue', 'label']
+        only = ['issue', 'label', 'start', 'end']
 
     status_ = SelectField('Status',
                           default='Draft',
                           choices=[(c,c) for c in ('Draft', 'Working', 'Cancelled', 'Closed')])
+    phase = QuerySelectFieldAppendable('Phase', query_factory=lambda: SoftwareRequestPhase.query.all(),
+                                       allow_blank=True,
+                                       blank_text='กรุณาเลือก Phase',
+                                       get_label='phase',
+                                       render_kw={'required': True})
     staff = QuerySelectField('ผู้รับผิดชอบ', query_factory=lambda: StaffAccount.get_it_unit(), get_label='fullname')
 
 
-class SoftwareRequestTestResultForm(ModelForm):
-    class Meta:
-        model = SoftwareRequestTestResult
+class QuerySelectFieldRequired(QuerySelectField):
+    def iter_choices(self):
+        for value, label, selected in super().iter_choices():
+            if value == '__None':
+                yield '', label, selected
+            else:
+                yield value, label, selected
+
+    def process_formdata(self, valuelist):
+        if valuelist and valuelist[0] == '':
+            valuelist = ['__None']
+        return super().process_formdata(valuelist)
+
+
+def create_test_result_form(detail_id, has_note=False):
+    class SoftwareRequestTestResultForm(ModelForm):
+        class Meta:
+            model = SoftwareRequestTestResult
+        if not has_note:
+            issue = QuerySelectFieldRequired('Requirement',
+                                             query_factory=lambda: SoftwareIssues.query.filter(SoftwareIssues.accepted_at != None,
+                                                                                               SoftwareIssues.software_request_detail_id==detail_id).all(),
+                                             allow_blank=True,
+                                             blank_text='กรุณาเลือก Requirement',
+                                             get_label='issue',
+                                             render_kw={'required': True})
+    return SoftwareRequestTestResultForm

@@ -1,28 +1,40 @@
-<article class="media">
-    <div class="media-content">
-        <div class="content">
-            <p>
-                <strong>{{ test_result.creator.fullname }}</strong>
-                -
-                <small>{{ test_result.created_at|localdatetime }}</small>
-                <br>
-                {{ test_result.detail }}
-                <br>
-                <small>
-                    <a hx-swap="innerHTML"
-                       hx-target="#test-result-form"
-                       hx-get="{{ url_for('software_request.create_test_result', test_result_id=test_result.id) }}"
-                    >
-                        แก้ไข
-                    </a> ·
-                    <a hx-delete="{{ url_for('software_request.delete_test_result', test_result_id=test_result.id) }}"
-                       hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                       hx-confirm="ท่านต้องการลบรายการนี้หรือไม่"
-                    >
-                        ลบ
-                    </a>
-                </small>
-            </p>
+<tr>
+    <td>{{ test_result.issue.issue }}</td>
+    <td>
+        {% if test_result.status %}
+            {% if test_result.status == 'ผ่าน' %}
+                <span class="tag is-success">{{ test_result.status }}</span>
+            {% else %}
+                <span class="tag is-danger">{{ test_result.status }}</span>
+            {% endif %}
+        {% endif %}
+    </td>
+    <td>{{ test_result.recorded_at|localdatetime or '' }}</td>
+    <td>
+        {% if test_result.recorder %}
+            {{ test_result.recorder.fullname }}
+        {% endif %}
+    </td>
+    <td>{{ test_result.note or '' }}</td>
+    <td>
+        <div class="field has-addons">
+            <div class="control">
+                <a class="button is-small is-rounded"
+                   hx-swap="innerHTML"
+                   hx-target="#timeline_form"
+                   hx-get="{{ url_for('software_request.create_test_result', test_result_id=test_result.id, tab=tab) }}"
+                >
+                    <span class="icon"><i class="fas fa-pencil-alt"></i></span>
+                </a>
+            </div>
+            <div class="control">
+                <a class="button is-small is-rounded"
+                   hx-delete="{{ url_for('software_request.delete_test_result', test_result_id=test_result.id) }}"
+                   hx-confirm="ท่านต้องการลบรายการนี้หรือไม่"
+                >
+                    <span class="icon"> <i class="far fa-trash-alt has-text-danger"></i></span>
+                </a>
+            </div>
         </div>
-    </div>
-</article>
+    </td>
+</tr>

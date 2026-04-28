@@ -5,10 +5,17 @@
     <section class="section">
         <div class="container">
             <div class="has-text-centered">
-                <h1 class="title has-text-danger">Oops! This is embarassing.</h1>
-                <h1 class="subtitle has-text-danger">
-                    ขออภัย ระบบไม่พบรายการที่ท่านต้องการ กรุณาติดต่อเจ้าหน้าที่หน่วยสารสนเทศ
-                </h1>
+                {% if blueprint == 'academic_services' %}
+                    <h1 class="title has-text-danger">ขออภัยในความไม่สะดวก</h1>
+                    <h1 class="subtitle has-text-danger">
+                        ขออภัย ระบบไม่พบข้อมูลตามรายการที่ท่านร้องขอ กรุณาติดต่อเจ้าหน้าที่ส่วนกลาง
+                    </h1>
+                {% else %}
+                    <h1 class="title has-text-danger">Oops! This is embarassing.</h1>
+                    <h1 class="subtitle has-text-danger">
+                        ขออภัย ระบบไม่พบรายการที่ท่านต้องการ กรุณาติดต่อเจ้าหน้าที่หน่วยสารสนเทศ
+                    </h1>
+                {% endif %}
             </div>
             <br>
             <div class="has-text-centered">

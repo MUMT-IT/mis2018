@@ -47,13 +47,42 @@
                         </div>
                     </div>
                 {% endif %}
-                  <div class="field" style="margin-top:0.5em">
+                <div class="field" style="margin-top:0.5em">
                     <label class="label">
                         {{ form.issue.label }}
                         <span class="has-text-danger">*</span>
                     </label>
                     <div class="control">
                         {{ form.issue(class='textarea') }}
+                    </div>
+                </div>
+                <div class="field-body">
+                    <div class="field" style="margin-top:0.5em">
+                        <label class="label">
+                            Phase
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ form.phase(class='js-example-basic-single') }}
+                        </div>
+                    </div>
+                    <div class="field" style="margin-top:0.5em">
+                        <label class="label">
+                            {{ form.start.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ form.start(class='input', type='text', required=True) }}
+                        </div>
+                    </div>
+                    <div class="field" style="margin-top:0.5em">
+                        <label class="label">
+                            {{ form.end.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ form.end(class='input', type='text', required=True) }}
+                        </div>
                     </div>
                 </div>
                 <div class="field" style="margin-top: 0.5em">
@@ -84,8 +113,49 @@
         htmx.removeClass(htmx.find('#issue-modal'), "is-active", 500)
     })
     $(document).ready(() => {
-        $('.js-example-basic-single').select2({
+        moment.locale('th');
+        $('[id$="staff"]').select2({
+            width: '100%'
+        });
+        $('[id$="phase"]').select2({
             width: '100%',
+            tags: true
+        });
+        $('input[name="start"]').daterangepicker({
+            singleDatePicker: true,
+            showDropdowns: true,
+            autoUpdateInput: false,
+            {% if form.start.data %}
+                startDate: {{ form.start.data.isoformat()|tojson|safe }},
+            {% endif %}
+            locale: {
+                format: 'YYYY-MM-DD',
+                cancelLabel: 'Clear'
+            },
+        });
+        $('input[name="start"]').on('apply.daterangepicker', function (ev, picker) {
+            $(this).val(picker.startDate.format('YYYY-MM-DD'));
+        });
+        $('input[name="start"]').on('cancel.daterangepicker', function () {
+            $(this).val('');
+        });
+         $('input[name="end"]').daterangepicker({
+            singleDatePicker: true,
+            showDropdowns: true,
+            autoUpdateInput: false,
+            {% if form.end.data %}
+                startDate: {{ form.end.data.isoformat()|tojson|safe }},
+            {% endif %}
+            locale: {
+                format: 'YYYY-MM-DD',
+                cancelLabel: 'Clear'
+            },
+        });
+        $('input[name="end"]').on('apply.daterangepicker', function (ev, picker) {
+            $(this).val(picker.startDate.format('YYYY-MM-DD'));
+        });
+        $('input[name="end"]').on('cancel.daterangepicker', function () {
+            $(this).val('');
         });
     });
 </script>

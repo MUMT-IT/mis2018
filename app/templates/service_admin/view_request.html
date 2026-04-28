@@ -293,7 +293,7 @@
                                             {% if invoice.file %}
                                                 <a class="button is-link is-outlined is-rounded is-small mb-2"
                                                    href="{{ url_for('service_admin.download_file', key=invoice.file,
-                                                        download_filename=invoice.invoice_no ~ '.pdf') }}"
+                                                        download_filename='Invoice' + ' ' + invoice.invoice_no + '.pdf') }}"
                                                 >
                                                     <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>
                                                     <span>ดาวน์โหลดใบแจ้งหนี้</span>

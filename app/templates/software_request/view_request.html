@@ -2,6 +2,7 @@
 {% block title %}MUMT Internal Information System{% endblock %}
 {% block head %}
     {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
 {% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
@@ -26,6 +27,8 @@
                                     class="tag is-danger is-medium"
                                 {% elif detail.status == 'ยกเลิก' %}
                                     class="tag is-dark is-medium"
+                                {% elif detail.status == 'เสร็จสิ้น' %}
+                                    class="tag is-info is-medium"
                                 {% endif %}
                                 >
                                     {{ detail.status }}
@@ -238,13 +241,11 @@
                                     <div class="field is-expanded">
                                         <div class="control">
                                             {% if detail.timelines %}
-                                                <table id="timelines"
-                                                       class="table is-fullwidth is-striped is-hoverable">
+                                                <table id="timelines" class="table is-fullwidth is-striped">
                                                     <thead>
                                                     <th>Task</th>
-                                                    <th>Issue</th>
+                                                    <th>Issue/Request</th>
                                                     <th>สถานะ</th>
-                                                    <th>Phase</th>
                                                     <th>วันที่เริ่มต้น</th>
                                                     <th>วันที่คาดว่าจะแล้วเสร็จ</th>
                                                     <th>ผู้รับผิดชอบ</th>
@@ -259,7 +260,6 @@
                                                                     {{ timeline.status }}
                                                                 </span>
                                                             </td>
-                                                            <td>{{ timeline.phase }}</td>
                                                             <td>{{ timeline.start.strftime('%d/%m/%Y') }}</td>
                                                             <td>{{ timeline.estimate.strftime('%d/%m/%Y') }}</td>
                                                             <td>{{ timeline.admin.fullname }}</td>
@@ -281,50 +281,77 @@
                     <h5 class="title is-size-4">ข้อมูลผลการทดสอบ</h5>
                     <div class="box">
                         <div class="field">
-                            <div id="test_results">
-                                {% for test_result in detail.test_results %}
-                                    <article class="media">
-                                        <div class="media-content">
-                                            <div class="content">
-                                                <p>
-                                                    <strong>{{ test_result.creator.fullname }}</strong>
-                                                    -
-                                                    <small>{{ test_result.created_at|localdatetime }}</small>
-                                                    <br>
-                                                    {{ test_result.detail }}
-                                                    <br>
-                                                    <small>
-                                                        <a hx-swap="innerHTML"
-                                                           hx-target="#test-result-form"
-                                                           hx-get="{{ url_for('software_request.create_test_result',
-                                                               test_result_id=test_result.id) }}"
-                                                        >
-                                                            แก้ไข
-                                                        </a> ·
-                                                        <a hx-delete="{{ url_for('software_request.delete_test_result',
-                                                            test_result_id=test_result.id) }}"
-                                                           hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                                                           hx-confirm="ท่านต้องการลบรายการนี้หรือไม่"
-                                                        >
-                                                            ลบ
-                                                        </a>
-                                                    </small>
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </article>
-                                {% endfor %}
-                            </div>
+                            <form method="post" action="{{ url_for('software_request.view_request', detail_id=detail.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <table class="table is-fullwidth is-striped" id="test_results">
+                                    <thead>
+                                        <th>ผลการทดสอบ</th>
+                                        <th>รายละเอียด</th>
+                                        <th>วันที่บันทึกผล</th>
+                                        <th>ผู้บันทึกผล</th>
+                                        <th>หมายเหตุ</th>
+                                    </thead>
+                                    <tbody>
+                                        {% for test_result in detail.test_results %}
+                                            <tr>
+                                                <td>
+                                                    <input class="is-checkradio"
+                                                           id="pass_{{ test_result.id }}"
+                                                           type="radio"
+                                                           name="result_{{ test_result.id }}"
+                                                           value="ผ่าน"
+                                                           {% if test_result.status == 'ผ่าน' %}checked{% endif %}>
+                                                    <label for="pass_{{ test_result.id }}">ผ่าน</label>
+                                                    <input class="is-checkradio"
+                                                           id="notpass_{{ test_result.id }}"
+                                                           type="radio"
+                                                           name="result_{{ test_result.id }}"
+                                                           value="ไม่ผ่าน"
+                                                           {% if test_result.status == 'ไม่ผ่าน' %}checked{% endif %}>
+                                                    <label for="notpass_{{ test_result.id }}">ไม่ผ่าน</label>
+                                                </td>
+                                                <td>{{ test_result.issue.issue }}</td>
+                                                <td>{{ test_result.recorded_at|localdatetime or '' }}</td>
+                                                <td>
+                                                    {% if test_result.recorder %}
+                                                        {{ test_result.recorder.fullname }}
+                                                    {% endif %}
+                                                </td>
+                                                <td id="notes_{{ test_result.id }}">
+                                                    {{ test_result.note or '' }}
+                                                    <div id="note_form"></div>
+                                                    <div class="field has-addons">
+                                                        <div class="control">
+                                                            <a class="is-info"
+                                                               hx-swap="innerHTML"
+                                                               hx-target="#note_form"
+                                                               hx-get="{{ url_for('software_request.create_note',
+                                                                       test_result_id=test_result.id) }}"
+                                                            >
+                                                                <span class="icon">
+                                                                    <i class="fas fa-pencil-alt"></i>
+                                                                </span>
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                                <div class="field">
+                                    <label class="label">ความคิดเห็นเพิ่มเติม</label>
+                                    <div class="control">
+                                        <textarea class="textarea" name="note">{{ detail.note or '' }}</textarea>
+                                    </div>
+                                </div>
+                                {% if detail.test_results %}
+                                    <div class="field mt-1">
+                                        <input type="submit" value="บันทีก" class="button is-info is-rounded">
+                                    </div>
+                                {% endif %}
+                            </form>
                         </div>
-                        <div id="test-result-form"></div>
-                        <a class='button is-link is-rounded'
-                           hx-swap="innerHTML"
-                           hx-target="#test-result-form"
-                           hx-get="{{ url_for('software_request.create_test_result', detail_id=detail.id) }}"
-                        >
-                            <span class="icon"><i class="fas fa-plus"></i></span>
-                            <span>เพิ่มความคิดเห็น/ข้อเสนอแนะ</span>
-                        </a>
                     </div>
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
@@ -342,6 +369,7 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
+            $.fn.dataTable.moment('DD/MM/YYYY');
             $('#timelines').DataTable({
                 order: [
                     [4, 'asc'],
@@ -352,9 +380,15 @@
                 paging: false,
                 info: false
             })
+            $('#test_results').DataTable({
+                lengthChange: false,
+                searching: false,
+                paging: false,
+                info: false
+            })
         });
-        window.document.addEventListener("closeModal", function () {
-            htmx.removeClass(htmx.find('#test-result-modal'), "is-active")
+        window.document.addEventListener("closeNoteModal", function () {
+            htmx.removeClass(htmx.find('#note-modal'), "is-active")
         })
     </script>
 {% endblock %}

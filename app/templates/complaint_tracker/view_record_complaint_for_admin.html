@@ -229,6 +229,14 @@
                                 {% endif %}
                             </div>
                         </div>
+                        {% if record.organization %}
+                            <div class="field">
+                                <label class="label">หน่วยงานที่รับผิดชอบ</label>
+                                <div class="control">
+                                    {{ record.organization }}
+                                </div>
+                            </div>
+                        {% endif %}
                         <div class="field">
                             <label class="label">ระดับความรุนแรง</label>
                             <div class="control">
