@@ -36,7 +36,13 @@
             </div>
             <div class="columns">
                 <div class="column">
-                    <b-table :data="filteredServices" :paginated="true" :per-page="10" default-sort="date" default-sort-direction="dsc">
+                    <b-table
+                        :data="filteredServices"
+                        :loading="isLoading"
+                        :paginated="true"
+                        :per-page="10"
+                        default-sort="date"
+                        default-sort-direction="dsc">
                         <template slot-scope="props">
                             <b-table-column field="date" label="Date" centered>
                                 <% moment(props.row.date).format('ll') %>
@@ -107,7 +113,13 @@
                 return {
                     services: {{ services|tojson|safe }},
                     query: '',
+                    isLoading: true,
                 }
+            },
+            mounted() {
+                this.$nextTick(() => {
+                    this.isLoading = false;
+                });
             },
             computed: {
                 filteredServices() {

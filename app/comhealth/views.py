@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-import datetime
+import csv
+import datetime as dt_module
 import hashlib
 import io
 import json
@@ -15,7 +16,7 @@ import requests
 import pytz
 from bahttext import bahttext
 from flask import (render_template, flash, redirect,
-                   url_for, session, request, send_file,
+                   url_for, session, request, send_file, stream_with_context,
                    send_from_directory, make_response, current_app)
 from flask_admin import BaseView, expose
 from flask_cors import cross_origin
@@ -37,6 +38,7 @@ from reportlab.pdfgen import canvas
 from reportlab.platypus import (SimpleDocTemplate, Table, Image,
                                 Spacer, Paragraph, TableStyle, PageBreak, KeepTogether)
 from sqlalchemy import or_, case
+from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.sql import and_
 
@@ -57,6 +59,9 @@ GOOGLE_SCOPES = [
     'https://www.googleapis.com/auth/userinfo.profile',
     'openid',
 ]
+
+SPECIMENS_SUMMARY_PAGE_SIZE_MAX = 100
+SERVICE_CUSTOMERS_PAGE_SIZE_MAX = 100
 
 
 def _is_google_verification_enabled():
@@ -690,19 +695,32 @@ def show_finance_records(service_id):
 @comhealth.route('/customers')
 @login_required
 def index():
-
-    services = ComHealthService.query.all()
-    services_data = []
-    for sv in services:
-        d = {
-            'id': sv.id,
-            'date': sv.date,
-            'location': sv.location,
-            'registered': sv.records.count(),
-            'checkedin': sv.records.filter(ComHealthRecord.checkin_datetime != None).count()
-        }
-        services_data.append(d)
-    services_data = sorted(services_data, key=lambda x: x['date'], reverse=True)
+    registered_counts = db.session.query(
+        ComHealthRecord.service_id,
+        func.count(ComHealthRecord.id).label('registered')
+    ).group_by(ComHealthRecord.service_id).subquery()
+    checkedin_counts = db.session.query(
+        ComHealthRecord.service_id,
+        func.count(ComHealthRecord.id).label('checkedin')
+    ).filter(ComHealthRecord.checkin_datetime != None) \
+        .group_by(ComHealthRecord.service_id).subquery()
+    services = db.session.query(
+        ComHealthService.id,
+        ComHealthService.date,
+        ComHealthService.location,
+        func.coalesce(registered_counts.c.registered, 0).label('registered'),
+        func.coalesce(checkedin_counts.c.checkedin, 0).label('checkedin')
+    ).outerjoin(registered_counts, registered_counts.c.service_id == ComHealthService.id) \
+        .outerjoin(checkedin_counts, checkedin_counts.c.service_id == ComHealthService.id) \
+        .order_by(ComHealthService.date.desc()) \
+        .all()
+    services_data = [{
+        'id': sv.id,
+        'date': sv.date,
+        'location': sv.location,
+        'registered': sv.registered,
+        'checkedin': sv.checkedin
+    } for sv in services]
     return render_template('comhealth/index.html', services=services_data)
 
 
@@ -747,36 +765,68 @@ def register_customer_to_service_org(service_id, org_id):
 @login_required
 def display_service_customers(service_id):
     service = ComHealthService.query.get(service_id)
-    return render_template('comhealth/service_customers.html', service_id=service_id, service=service)
+    first_org = db.session.query(ComHealthCustomer.org_id) \
+        .join(ComHealthRecord, ComHealthRecord.customer_id == ComHealthCustomer.id) \
+        .filter(ComHealthRecord.service_id == service_id,
+                ComHealthCustomer.org_id != None) \
+        .first()
+    walkin_org_id = first_org[0] if first_org else None
+    return render_template('comhealth/service_customers.html',
+                           service_id=service_id,
+                           service=service,
+                           walkin_org_id=walkin_org_id)
 
 
 @comhealth.route('api/services/<int:service_id>/customers')
 @login_required
 def get_services_customers(service_id):
-    query = ComHealthRecord.query.filter_by(service_id=service_id)
-    records_total = query.count()
+    query = db.session.query(
+        ComHealthRecord.id,
+        ComHealthRecord.labno,
+        ComHealthRecord.checkin_datetime,
+        ComHealthRecord.customer_id,
+        ComHealthRecord.note,
+        ComHealthCustomer.firstname,
+        ComHealthCustomer.lastname,
+    ).join(ComHealthCustomer, ComHealthRecord.customer_id == ComHealthCustomer.id) \
+        .filter(ComHealthRecord.service_id == service_id)
+    records_total = ComHealthRecord.query.filter_by(service_id=service_id).count()
     search = request.args.get('search[value]')
     col_idx = request.args.get('order[0][column]')
     direction = request.args.get('order[0][dir]')
     col_name = request.args.get('columns[{}][data]'.format(col_idx))
-    query = query.join(ComHealthCustomer, aliased=True).filter(or_(
-        ComHealthCustomer.firstname.contains(search),
-        ComHealthCustomer.lastname.contains(search),
-        ComHealthRecord.labno.contains(search)))
-    try:
-        column = getattr(ComHealthCustomer, col_name)
-    except AttributeError:
-        column = getattr(ComHealthRecord, col_name)
+    if search:
+        query = query.filter(or_(
+            ComHealthCustomer.firstname.contains(search),
+            ComHealthCustomer.lastname.contains(search),
+            ComHealthRecord.labno.contains(search)))
+
+    order_columns = {
+        'firstname': ComHealthCustomer.firstname,
+        'lastname': ComHealthCustomer.lastname,
+        'labno': ComHealthRecord.labno,
+        'checkin_datetime': ComHealthRecord.checkin_datetime,
+    }
+    column = order_columns.get(col_name, ComHealthCustomer.firstname)
     if direction == 'desc':
         column = column.desc()
     query = query.order_by(column)
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    total_filtered = query.count()
+    start = request.args.get('start', 0, type=int)
+    length = request.args.get('length', 10, type=int)
+    if length < 0 or length > SERVICE_CUSTOMERS_PAGE_SIZE_MAX:
+        length = SERVICE_CUSTOMERS_PAGE_SIZE_MAX
+    total_filtered = query.count() if search else records_total
     query = query.offset(start).limit(length)
     data = []
     for item in query:
-        item_data = item.to_dict()
+        item_data = {
+            'id': item.id,
+            'labno': item.labno,
+            'firstname': item.firstname,
+            'lastname': item.lastname,
+            'checkin_datetime': item.checkin_datetime,
+            'note': item.note
+        }
         if item.checkin_datetime != None:
             item_data['checkin_datetime'] = item.checkin_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M")
             item_data[
@@ -1702,27 +1752,39 @@ def delete_service_group(service_id=None, group_id=None):
     return redirect(url_for('comhealth.edit_service', service_id=service.id))
 
 
+def _get_service_specimen_containers(service_id):
+    containers = {}
+    profile_containers = db.session.query(ComHealthContainer) \
+        .join(ComHealthTest, ComHealthTest.container_id == ComHealthContainer.id) \
+        .join(ComHealthTestItem, ComHealthTestItem.test_id == ComHealthTest.id) \
+        .join(profile_service_assoc_table,
+              profile_service_assoc_table.c.profile_id == ComHealthTestItem.profile_id) \
+        .filter(profile_service_assoc_table.c.service_id == service_id) \
+        .all()
+    group_containers = db.session.query(ComHealthContainer) \
+        .join(ComHealthTest, ComHealthTest.container_id == ComHealthContainer.id) \
+        .join(ComHealthTestItem, ComHealthTestItem.test_id == ComHealthTest.id) \
+        .join(group_service_assoc_table,
+              group_service_assoc_table.c.group_id == ComHealthTestItem.group_id) \
+        .filter(group_service_assoc_table.c.service_id == service_id) \
+        .all()
+
+    for container in profile_containers + group_containers:
+        if container:
+            containers[container.id] = container
+
+    return sorted(containers.values(), key=lambda container: container.name or '')
+
+
 @comhealth.route('/services/<int:service_id>/specimens-summary')
 @login_required
 def summarize_specimens(service_id):
-    containers = set()
     service = ComHealthService.query.get(service_id)
 
-    valid_records = ComHealthRecord.query.filter(
-        ComHealthRecord.service_id == service_id,
-        ComHealthRecord.labno != ''
-    ).all()
-
-    for record in valid_records:
-        for test_item in record.ordered_tests:
-            if test_item.test and test_item.test.container:
-                containers.add(test_item.test.container)
-
     columns = [{'data': 'labno', 'searchable': True}]
-    headers = []
-    for ct in sorted(containers, key=lambda x: x.name):
-        columns.append({'data': ct.id})
-        headers.append(ct)
+    headers = _get_service_specimen_containers(service_id)
+    for ct in headers:
+        columns.append({'data': str(ct.id)})
 
     return render_template('comhealth/specimens_checklist.html',
                            summary_date=datetime.now(tz=bangkok),
@@ -1731,28 +1793,33 @@ def summarize_specimens(service_id):
                            service=service)
 
 
-@comhealth.route('/api/services/<int:service_id>/specimens-summary')
+@comhealth.route('/api/services/<int:service_id>/specimens-summary', methods=['GET', 'POST'])
 @login_required
 def get_specimens_summary_data(service_id):
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    service = ComHealthService.query.get(service_id)
-    query = service.records.filter(ComHealthRecord.labno != '')
+    start = request.values.get('start', 0, type=int)
+    length = request.values.get('length', 10, type=int)
+    if length < 0 or length > SPECIMENS_SUMMARY_PAGE_SIZE_MAX:
+        length = SPECIMENS_SUMMARY_PAGE_SIZE_MAX
+
+    query = ComHealthRecord.query.filter(
+        ComHealthRecord.service_id == service_id,
+        ComHealthRecord.labno != ''
+    )
     total_count = query.count()
-    search = request.args.get('search[value]')
+    search = request.values.get('search[value]')
     if search:
         query = query.filter(ComHealthRecord.labno.like('%{}%'.format(search)))
+    filtered_count = query.count()
 
-    containers = set()
-    for profile in service.profiles:
-        for test_item in profile.test_items:
-            containers.add(test_item.test.container)
-    for group in service.groups:
-        for test_item in group.test_items:
-            containers.add(test_item.test.container)
+    containers = _get_service_specimen_containers(service_id)
+    records = query.options(
+        selectinload(ComHealthRecord.ordered_tests)
+        .joinedload(ComHealthTestItem.test)
+        .joinedload(ComHealthTest.container)
+    ).order_by(ComHealthRecord.labno).offset(start).limit(length)
 
     data = []
-    for rec in query.order_by('labno').offset(start).limit(length):
+    for rec in records:
         if rec.labno:
             d = {'labno': rec.labno}
             for ct in containers:
@@ -1763,9 +1830,9 @@ def get_specimens_summary_data(service_id):
                     d[str(ct.id)] = None
             data.append(d)
     return jsonify({'data': data,
-                    'recordsFiltered': query.count(),
+                    'recordsFiltered': filtered_count,
                     'recordsTotal': total_count,
-                    'draw': request.args.get('draw', type=int),
+                    'draw': request.values.get('draw', type=int),
                     })
 
 
@@ -2183,14 +2250,20 @@ def export_csv_page(service_id):
 def export_csv(service_id):
     # TODO: add employment types (number)
     # TODO: add organization + dept + unit
-    service = ComHealthService.query.get(service_id)
+    service = ComHealthService.query.get_or_404(service_id)
     export_date = request.form.get('export_date', '').strip()
     selected_date = None
     if export_date:
-        try:
-            selected_date = datetime.strptime(export_date, '%Y-%m-%d').date()
-        except ValueError:
-            selected_date = None
+        for date_format in ('%d/%m/%Y', '%Y-%m-%d'):
+            try:
+                selected_date = datetime.strptime(export_date, date_format).date()
+                break
+            except ValueError:
+                continue
+        if selected_date is None:
+            flash('รูปแบบวันที่ไม่ถูกต้อง', 'warning')
+            return redirect(url_for('comhealth.export_csv_page', service_id=service_id))
+
     def _to_bangkok(dt):
         if not dt:
             return None
@@ -2198,73 +2271,125 @@ def export_csv(service_id):
             dt = pytz.utc.localize(dt)
         return dt.astimezone(bangkok)
 
-    rows = []
-    for record in service.records:
+    query = (
+        ComHealthRecord.query
+        .execution_options(stream_results=True)
+        .options(
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.org),
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.dept),
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.division),
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.emptype),
+            joinedload(ComHealthRecord.finance_contact),
+            selectinload(ComHealthRecord.ordered_tests).joinedload(ComHealthTestItem.test),
+        )
+        .filter(
+            ComHealthRecord.service_id == service_id,
+            ComHealthRecord.labno.isnot(None),
+            ComHealthRecord.labno != ''
+        )
+        .order_by(ComHealthRecord.checkin_datetime.asc(), ComHealthRecord.id.asc())
+    )
+
+    if selected_date:
+        start_local = bangkok.localize(datetime.combine(selected_date, datetime.min.time()))
+        end_local = start_local + dt_module.timedelta(days=1)
+        query = query.filter(
+            ComHealthRecord.checkin_datetime >= start_local,
+            ComHealthRecord.checkin_datetime < end_local
+        )
+
+    headers = [
+        'labno',
+        'hn',
+        'title',
+        'firstname',
+        'lastname',
+        'age',
+        'dob',
+        'gender',
+        'phone',
+        'organization',
+        'department',
+        'division',
+        'unit',
+        'employmentType',
+        'emp_id',
+        'tests',
+        'urgent',
+        'note_to_lab',
+        'employment_note',
+        'finance_contact',
+        'checkin_datetime',
+    ]
+
+    def _serialize_row(record):
         local_checkin = _to_bangkok(record.checkin_datetime)
-        if selected_date:
-            if not local_checkin:
-                continue
-            if local_checkin.date() != selected_date:
-                continue
-        if not record.labno:
-            continue
-        tests = ','.join([item.test.code for item in record.ordered_tests])
-        department = record.customer.dept.name if record.customer.dept else ''
-        emptype = record.customer.emptype.name if record.customer.emptype else ''
+        customer = record.customer
+        department = customer.dept.name if customer and customer.dept else ''
+        emptype = customer.emptype.name if customer and customer.emptype else ''
         reason = record.finance_contact.reason if record.finance_contact else ''
-        division = record.customer.division.name if record.customer.division else ''
-        rows.append({'hn': u'{}'.format(record.customer.hn or ''),
-                     'title': u'{}'.format(record.customer.title),
-                     'firstname': u'{}'.format(record.customer.firstname),
-                     'lastname': u'{}'.format(record.customer.lastname),
-                     'employmentType': u'{}'.format(emptype),
-                     'emp_id': u'{}'.format(record.customer.emp_id or ''),
-                     'age': u'{}'.format(record.customer.age_years or ''),
-                     'dob': u'{}'.format(record.customer.dob or ''),
-                     'gender': u'{}'.format(record.customer.gender),
-                     'phone': u'{}'.format(record.customer.phone or ''),
-                     'organization': u'{}'.format(record.customer.org.name),
-                     'department': u'{}'.format(department),
-                     'division': u'{}'.format(division),
-                     'unit': u'{}'.format(record.customer.unit or ''),
-                     'labno': u'{}'.format(record.labno),
-                     'tests': u'{}'.format(tests),
-                     'urgent': record.urgent,
-                     'note_to_lab': u'{}'.format(record.comment),
-                     'employment_note': u'{}'.format(record.note),
-                     'finance_contact': u'{}'.format(reason),
-                     'checkin_datetime': u'{}'.format(
-                         local_checkin.strftime('%Y-%m-%d %H:%M:%S') if local_checkin else ''
-                     )})
-    if rows:
-        pd.DataFrame(rows).to_excel('export.xlsx',
-                                    header=True,
-                                    columns=['labno',
-                                             'hn',
-                                             'title',
-                                             'firstname',
-                                             'lastname',
-                                             'age',
-                                             'dob',
-                                             'gender',
-                                             'phone',
-                                             'organization',
-                                             'department',
-                                             'division',
-                                             'unit',
-                                             'employmentType',
-                                             'emp_id',
-                                             'tests',
-                                             'urgent',
-                                             'note_to_lab',
-                                             'employment_note',
-                                             'finance_contact',
-                                             'checkin_datetime'],
-                                    index=False,
-                                    encoding='utf-8')
-        return send_from_directory(os.getcwd(), path='export.xlsx')
-    else:
-        return 'Data is empty.'
+        division = customer.division.name if customer and customer.division else ''
+        organization = customer.org.name if customer and customer.org else ''
+        hn_value = customer.hn if customer and customer.hn else ''
+        tests = ','.join(
+            item.test.code for item in record.ordered_tests
+            if item.test and item.test.code
+        )
+        return [
+            u'{}'.format(record.labno or ''),
+            u'="{}"'.format(hn_value) if hn_value else '',
+            u'{}'.format(customer.title if customer else ''),
+            u'{}'.format(customer.firstname if customer else ''),
+            u'{}'.format(customer.lastname if customer else ''),
+            u'{}'.format(customer.age_years if customer and customer.age_years is not None else ''),
+            u'{}'.format(customer.dob if customer and customer.dob else ''),
+            u'{}'.format(customer.gender if customer and customer.gender is not None else ''),
+            u'{}'.format(customer.phone if customer else ''),
+            u'{}'.format(organization),
+            u'{}'.format(department),
+            u'{}'.format(division),
+            u'{}'.format(customer.unit if customer and customer.unit else ''),
+            u'{}'.format(emptype),
+            u'{}'.format(customer.emp_id if customer and customer.emp_id else ''),
+            u'{}'.format(tests),
+            bool(record.urgent),
+            u'{}'.format(record.comment or ''),
+            u'{}'.format(record.note or ''),
+            u'{}'.format(reason),
+            u'{}'.format(local_checkin.strftime('%Y-%m-%d %H:%M:%S') if local_checkin else ''),
+        ]
+
+    def _stream_csv():
+        rows_per_chunk = 500
+        rows_in_chunk = 0
+        buffer = io.StringIO()
+        writer = csv.writer(buffer, lineterminator='\n')
+        buffer.write(u'\ufeff')
+        writer.writerow(headers)
+        yield buffer.getvalue()
+        buffer.seek(0)
+        buffer.truncate(0)
+
+        for record in query.yield_per(1000):
+            writer.writerow(_serialize_row(record))
+            rows_in_chunk += 1
+            if rows_in_chunk >= rows_per_chunk:
+                yield buffer.getvalue()
+                buffer.seek(0)
+                buffer.truncate(0)
+                rows_in_chunk = 0
+
+        if rows_in_chunk:
+            yield buffer.getvalue()
+
+    date_suffix = selected_date.strftime('%Y%m%d') if selected_date else 'all'
+    filename = 'comhealth_export_{}_{}.csv'.format(service_id, date_suffix)
+    response = current_app.response_class(
+        stream_with_context(_stream_csv()),
+        mimetype='text/csv; charset=utf-8'
+    )
+    response.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
+    return response
 
 
 @comhealth.route('/organizations/add', methods=['GET', 'POST'])

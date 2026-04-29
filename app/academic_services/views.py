@@ -739,6 +739,7 @@ def login():
             pwd = form.password.data
             if user.verify_password(pwd):
                 login_user(user)
+                session['user_type'] = 'service_customer'
                 identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
                 next_url = request.args.get('next', url_for('academic_services.lab_index', menu='new'))
                 if not is_safe_url(next_url):
@@ -769,6 +770,7 @@ def login():
 @login_required
 def logout():
     logout_user()
+    session.pop('user_type', None)
 
     for key in ('identity.name', 'identity.auth_type'):
         session.pop(key, None)
@@ -853,6 +855,7 @@ def customer_index():
             pwd = form.password.data
             if user.verify_password(pwd):
                 login_user(user)
+                session['user_type'] = 'service_customer'
                 identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
                 next_url = request.args.get('next', url_for('academic_services.lab_index', menu='new'))
                 if not is_safe_url(next_url):

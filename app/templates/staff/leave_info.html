@@ -46,29 +46,6 @@
                 </div>
             </div>
         </div>
-        <div class="columns is-multiline leave-summary-row">
-            <div class="column is-4-desktop is-6-tablet">
-                <div class="leave-summary-card">
-                    <p class="leave-card-label">ลากิจ</p>
-                    <p class="leave-summary-value">{{ approved_request_counts['ลากิจ'] }}</p>
-                    <p class="leave-summary-caption">รายการอนุมัติแล้ว</p>
-                </div>
-            </div>
-            <div class="column is-4-desktop is-6-tablet">
-                <div class="leave-summary-card">
-                    <p class="leave-card-label">ลาป่วย</p>
-                    <p class="leave-summary-value">{{ approved_request_counts['ลาป่วย'] }}</p>
-                    <p class="leave-summary-caption">รายการอนุมัติแล้ว</p>
-                </div>
-            </div>
-            <div class="column is-4-desktop is-6-tablet">
-                <div class="leave-summary-card">
-                    <p class="leave-card-label">ลาพักร้อน</p>
-                    <p class="leave-summary-value">{{ approved_request_counts['ลาพักร้อน'] }}</p>
-                    <p class="leave-summary-caption">รายการอนุมัติแล้ว</p>
-                </div>
-            </div>
-        </div>
 
         <div class="leave-grid">
             {% for type, quota in quota_days.items()|sort %}

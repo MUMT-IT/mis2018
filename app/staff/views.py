@@ -279,11 +279,6 @@ def show_leave_info():
     cum_days = defaultdict(float)
     quota_days = defaultdict(float)
     pending_days = defaultdict(float)
-    approved_request_counts = {
-        'ลากิจ': 0,
-        'ลาป่วย': 0,
-        'ลาพักร้อน': 0,
-    }
     for req in current_user.leave_requests:
         used_quota = current_user.personal_info.get_total_leaves(req.quota.id,
                                                                  tz.localize(START_FISCAL_DATE),
@@ -293,12 +288,6 @@ def show_leave_info():
         pending_day = current_user.personal_info.get_total_pending_leaves_request \
             (req.quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
         pending_days[leave_type] = pending_day
-        if (req.start_datetime and tz.localize(START_FISCAL_DATE) <= req.start_datetime <= tz.localize(END_FISCAL_DATE)
-                and not req.cancelled_at and any(approval.is_approved for approval in req.approvals)):
-            if leave_type in ('ลากิจ', 'ลาป่วย'):
-                approved_request_counts[leave_type] += 1
-            elif leave_type == 'ลาพักผ่อน':
-                approved_request_counts['ลาพักร้อน'] += 1
     for quota in current_user.personal_info.employment.quota:
         quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, datetime.today())
         can_request = quota.leave_type.requester_self_added
@@ -310,7 +299,6 @@ def show_leave_info():
                            line_profile=session.get('line_profile'),
                            cum_days=cum_days,
                            pending_days=pending_days,
-                           approved_request_counts=approved_request_counts,
                            quota_days=quota_days,
                            is_approver=is_approver, approvers=approvers)
 
@@ -4160,9 +4148,10 @@ def seminar_attends_each_person():
 def seminar_attends_each_person_details(staff_account_id):
     account = StaffAccount.query.filter_by(id=staff_account_id).first()
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(and_(
-                StaffSeminarAttend.end_datetime >= START_FISCAL_DATE),
-                StaffSeminarAttend.start_datetime <= END_FISCAL_DATE).all()
+    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(
+        func.date(StaffSeminarAttend.end_datetime) >= START_FISCAL_DATE.date(),
+        func.date(StaffSeminarAttend.start_datetime) <= END_FISCAL_DATE.date()
+    ).all()
     current_fee = 0
     for a in attends:
         if a.budget:
@@ -4177,11 +4166,12 @@ def seminar_attends_each_person_details(staff_account_id):
         form = request.form
         selected_dates = request.form.get('dates', None)
         start_dt, end_dt = form.get('dates').split(' - ')
-        start_date = datetime.strptime(start_dt, '%d/%m/%Y')
-        end_date = datetime.strptime(end_dt, '%d/%m/%Y')
-        attends_query = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(and_(
-                                                                StaffSeminarAttend.end_datetime >= start_date,
-                                                                StaffSeminarAttend.start_datetime <= end_date))
+        start_date = datetime.strptime(start_dt, '%d/%m/%Y').date()
+        end_date = datetime.strptime(end_dt, '%d/%m/%Y').date()
+        attends_query = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(
+            func.date(StaffSeminarAttend.end_datetime) >= start_date,
+            func.date(StaffSeminarAttend.start_datetime) <= end_date
+        )
         total_fee = 0
         for attend in attends_query:
             if attend.budget:
@@ -4194,9 +4184,10 @@ def seminar_attends_each_person_details(staff_account_id):
 @login_required
 def current_seminar_attends(staff_account_id):
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(and_(
-                        StaffSeminarAttend.end_datetime >= START_FISCAL_DATE,
-                        StaffSeminarAttend.start_datetime <= END_FISCAL_DATE)).all()
+    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(
+        func.date(StaffSeminarAttend.end_datetime) >= START_FISCAL_DATE.date(),
+        func.date(StaffSeminarAttend.start_datetime) <= END_FISCAL_DATE.date()
+    ).all()
     total_fee = 0
     for a in attends:
         if a.budget:
@@ -4906,7 +4897,7 @@ def send_holidays_data():
         text_color = '#ffffff'
         bg_color = '#ff9f1a'
         border_color = '#ffffff'
-        holiday_date = rec.holiday_date.date().isoformat() if rec.holiday_date else None
+        holiday_date = rec.holiday_date.astimezone(tz).date().isoformat() if rec.holiday_date else None
         records.append({
             'id': rec.id,
             'start': holiday_date,
