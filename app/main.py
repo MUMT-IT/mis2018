@@ -1453,6 +1453,12 @@ def test_scb_auth(timeout):
     click.echo('Testing SCB auth')
     click.echo('URL: {}'.format(auth_url))
     click.echo('APP_KEY: {}'.format(app_key))
+    click.echo('Request headers:')
+    for key, value in headers.items():
+        click.echo('  {}: {}'.format(key, value))
+    click.echo('Request payload:')
+    click.echo('  applicationKey: {}'.format(app_key))
+    click.echo('  applicationSecret: {}'.format('[redacted]' if app_secret else None))
 
     try:
         response = requests.post(auth_url, headers=headers, json=payload, timeout=timeout)
@@ -1460,6 +1466,9 @@ def test_scb_auth(timeout):
         raise click.ClickException('SCB auth request failed: {}'.format(exc))
 
     click.echo('Status: {}'.format(response.status_code))
+    click.echo('Response headers:')
+    for key, value in response.headers.items():
+        click.echo('  {}: {}'.format(key, value))
     click.echo('Response body:')
     click.echo(response.text)
 
