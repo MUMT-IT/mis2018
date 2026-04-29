@@ -3,7 +3,7 @@ import arrow
 import os
 
 import requests
-from flask import jsonify, request, render_template, url_for
+from flask import jsonify, request, render_template, url_for, current_app
 from flask_jwt_extended import (create_access_token, get_jwt_identity, jwt_required, get_current_user,
                                 create_refresh_token)
 from werkzeug.security import check_password_hash
@@ -37,31 +37,94 @@ def generate_qrcode(amount, ref1, ref2, ref3, expired_at=None):
         'requestUId': str(uuid.uuid4()),
         'resourceOwnerId': APP_KEY
     }
-    response = requests.post(AUTH_URL, headers=headers, json={
-        'applicationKey': APP_KEY,
-        'applicationSecret': APP_SECRET
-    })
-    response_data = response.json()
-    access_token = response_data['data']['accessToken']
+    response = None
+    try:
+        response = requests.post(AUTH_URL, headers=headers, json={
+            'applicationKey': APP_KEY,
+            'applicationSecret': APP_SECRET
+        })
+        response.raise_for_status()
+        response_data = response.json()
+        access_token = response_data['data']['accessToken']
+    except requests.RequestException as exc:
+        current_app.logger.exception(
+            'SCB QR auth request failed for ref1=%s ref2=%s amount=%s status=%s body=%s',
+            ref1,
+            ref2,
+            amount,
+            getattr(response, 'status_code', None),
+            (response.text[:1000] if response is not None and getattr(response, 'text', None) else None)
+        )
+        return {
+            'message': 'Failed to authenticate with SCB before generating QR code.',
+            'details': str(exc)
+        }
+    except (KeyError, TypeError, ValueError) as exc:
+        current_app.logger.exception(
+            'SCB QR auth response malformed for ref1=%s ref2=%s amount=%s status=%s body=%s',
+            ref1,
+            ref2,
+            amount,
+            getattr(response, 'status_code', None),
+            (response.text[:1000] if response is not None and getattr(response, 'text', None) else None)
+        )
+        return {
+            'message': 'SCB authentication returned an unexpected response.',
+            'details': str(exc)
+        }
 
     headers['authorization'] = 'Bearer {}'.format(access_token)
 
-    qrcode_resp = requests.post(QRCODE_URL, headers=headers, json={
-        'qrType': 'PP',
-        'amount': '{}'.format(amount),
-        'ppType': 'BILLERID',
-        'ppId': BILLERID,
-        'ref1': ref1,
-        'ref2': ref2,
-        'ref3': ref3,
-        'expiryDate': expired_at,
-        'numberOfTimes': 1
-    })
+    try:
+        qrcode_resp = requests.post(QRCODE_URL, headers=headers, json={
+            'qrType': 'PP',
+            'amount': '{}'.format(amount),
+            'ppType': 'BILLERID',
+            'ppId': BILLERID,
+            'ref1': ref1,
+            'ref2': ref2,
+            'ref3': ref3,
+            'expiryDate': expired_at,
+            'numberOfTimes': 1
+        })
+    except requests.RequestException as exc:
+        current_app.logger.exception(
+            'SCB QR code request failed for ref1=%s ref2=%s amount=%s',
+            ref1, ref2, amount
+        )
+        return {
+            'message': 'Failed to request QR code from SCB.',
+            'details': str(exc)
+        }
     if qrcode_resp.status_code == 200:
-        qr_image = qrcode_resp.json()['data']['qrImage']
-        return {'qrImage': qr_image}
+        try:
+            qr_image = qrcode_resp.json()['data']['qrImage']
+            return {'qrImage': qr_image}
+        except (KeyError, TypeError, ValueError) as exc:
+            current_app.logger.exception(
+                'SCB QR code response malformed for ref1=%s ref2=%s amount=%s',
+                ref1, ref2, amount
+            )
+            return {
+                'message': 'SCB QR code response was malformed.',
+                'details': str(exc)
+            }
     else:
-        return qrcode_resp.json()
+        current_app.logger.error(
+            'SCB QR code request returned status=%s for ref1=%s ref2=%s amount=%s body=%s',
+            qrcode_resp.status_code,
+            ref1,
+            ref2,
+            amount,
+            qrcode_resp.text[:1000]
+        )
+        try:
+            return qrcode_resp.json()
+        except ValueError:
+            return {
+                'message': 'SCB QR code request failed with a non-JSON response.',
+                'status_code': qrcode_resp.status_code
+            }
 
 
 @scb_payment.route('/api/v1.0/login', methods=['POST'])
