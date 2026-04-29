@@ -5586,7 +5586,7 @@ def invoice_index():
         for item in query:
             item_data = item.to_dict()
             download_file = url_for('academic_services.download_file', key=item.file,
-                                    download_filename=f"{item.invoice_no}.pdf")
+                                    download_filename=f"Invoice {item.invoice_no}.pdf")
             item_data['file'] = f'''<div class="field has-addons">
                              <div class="control">
                                  <a class="button is-small is-light is-link is-rounded" href="{download_file}">
