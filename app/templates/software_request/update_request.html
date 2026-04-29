@@ -347,7 +347,7 @@
                                                         <td>{{ timeline.task }}</td>
                                                         <td>{{ timeline.issue.issue }}</td>
                                                         <td>
-                                                            <span class="tag {{ timeline.status_color }} is-light">
+                                                            <span class="tag {{ timeline.status_color }}">
                                                                 {{ timeline.status }}
                                                             </span>
                                                         </td>
@@ -424,11 +424,9 @@
                                                     <td>{{ test_result.issue.issue }}</td>
                                                     <td>
                                                         {% if test_result.status %}
-                                                            {% if test_result.status == 'ผ่าน' %}
-                                                                <span class="tag is-success">{{ test_result.status }}</span>
-                                                            {% else %}
-                                                                <span class="tag is-danger">{{ test_result.status }}</span>
-                                                            {% endif %}
+                                                            <span class="tag {{ test_result.status_color }}">
+                                                                {{ test_result.status }}
+                                                            </span>
                                                         {% endif %}
                                                     </td>
                                                     <td>{{ test_result.recorded_at|localdatetime or '' }}</td>

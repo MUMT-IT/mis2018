@@ -17,20 +17,7 @@
                         </div>
                         <div class="column has-text-right is-narrow">
                             <h1 class="title">
-                                <span {% if detail.status == 'ส่งคำขอแล้ว' %}
-                                    class="tag is-info is-medium"
-                                {% elif detail.status == 'อยู่ระหว่างพิจารณา' %}
-                                    class="tag is-warning is-medium"
-                                {% elif detail.status == 'อนุมัติ' %}
-                                    class="tag is-success is-medium"
-                                {% elif detail.status == 'ไม่อนุมัติ' %}
-                                    class="tag is-danger is-medium"
-                                {% elif detail.status == 'ยกเลิก' %}
-                                    class="tag is-dark is-medium"
-                                {% elif detail.status == 'เสร็จสิ้น' %}
-                                    class="tag is-info is-medium"
-                                {% endif %}
-                                >
+                                <span class="tag {{ detail.status_color }} is-medium">
                                     {{ detail.status }}
                                 </span>
                             </h1>
@@ -256,7 +243,7 @@
                                                             <td>{{ timeline.task }}</td>
                                                             <td>{{ timeline.issue.issue }}</td>
                                                             <td>
-                                                                <span class="tag {{ timeline.status_color }} is-light">
+                                                                <span class="tag {{ timeline.status_color }}">
                                                                     {{ timeline.status }}
                                                                 </span>
                                                             </td>

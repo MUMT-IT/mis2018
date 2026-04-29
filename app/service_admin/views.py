@@ -7638,6 +7638,7 @@ def edit_draft_result(result_item_id):
             tab = 'approve' if edited_all else 'edit'
             if edited_all:
                 result_item.result.is_edited = True
+                result_item.result.result_edit_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(result_item)
                 db.session.commit()
             scheme = 'http' if current_app.debug else 'https'
@@ -7771,7 +7772,7 @@ def get_invoice_payments():
     for item in query:
         item_data = item.to_dict()
         download_file = url_for('academic_services.download_file', key=item.file,
-                                download_filename=f"'Invoice {item.invoice_no}.pdf")
+                                download_filename=f"Invoice {item.invoice_no}.pdf")
         item_data['file'] = f'''<div class="field has-addons">
                         <div class="control">
                             <a class="button is-small is-outlined is-link is-rounded" href="{download_file}">

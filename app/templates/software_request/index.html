@@ -33,20 +33,7 @@
                                     <td>{{ detail.description }}</td>
                                     <td>{{ detail.created_date|localdatetime }}</td>
                                     <td>
-                                        <span {% if detail.status == 'ส่งคำขอแล้ว' %}
-                                                class="tag is-info"
-                                              {% elif detail.status == 'อยู่ระหว่างพิจารณา' %}
-                                                class="tag is-warning"
-                                              {% elif detail.status == 'อนุมัติ' %}
-                                                class="tag is-success"
-                                              {% elif detail.status == 'เสร็จสิ้น' %}
-                                                class="tag is-info"
-                                              {% elif detail.status == 'ไม่อนุมัติ' %}
-                                                class="tag is-danger"
-                                              {% elif detail.status == 'ยกเลิก' %}
-                                                class="tag is-dark"
-                                              {% endif %}
-                                        >
+                                        <span class="tag {{ detail.status_color }}">
                                             {{ detail.status }}
                                         </span>
                                     </td>

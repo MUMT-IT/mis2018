@@ -62,6 +62,7 @@ def condition_for_service_request():
 
 @software_request.route('/request/view/<int:detail_id>', methods=['GET', 'POST'])
 def view_request(detail_id):
+    count = 0
     detail = SoftwareRequestDetail.query.get(detail_id)
     if request.method == 'POST':
         note = request.form.get('note')
@@ -78,7 +79,20 @@ def view_request(detail_id):
                 test_result.recorder_id = current_user.id
                 db.session.add(test_result)
                 db.session.commit()
+                count += 1
         flash('บันทึกผลเรียบร้อยแล้ว', 'success')
+        if detail.staffs and count > 0:
+            scheme = 'http' if current_app.debug else 'https'
+            link = url_for("software_request.update_request", detail_id=detail_id, tab='approve', _external=True, _scheme=scheme)
+            title = f'''แจ้งผลการทดสอบ{detail.title}'''
+            message = f'''ผลการทดสอบ{detail.title} เสร็จสิ้นแล้ว\n'''
+            message += f'''โดยมีจำนวนรายการที่ทำการทดสอบทั้งหมด {count} รายการ\n'''
+            message += f'''กรุณาตรวจสอบรายละเอียดผลการทดสอบในระบบ\n'''
+            message += f'''{link}\n\n'''
+            message += f'''ขอบคุณค่ะ\n'''
+            message += f'''ระบบขอรับบริการพัฒนา Software\n'''
+            message += f'''คณะเทคนิคการแพทย์'''
+            send_mail([staff.email + '@mahidol.ac.th' for staff in detail.staffs], title, message)
     return render_template('software_request/view_request.html', detail=detail)
 
 

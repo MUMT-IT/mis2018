@@ -117,6 +117,21 @@ class SoftwareRequestDetail(db.Model):
     def num_timelines(self):
         return len([timeline for timeline in self.timelines if timeline.status != 'ยกเลิกการพัฒนา' or timeline.status != 'เสร็จสิ้น'])
 
+    @property
+    def status_color(self):
+        if self.status == 'ส่งคำขอแล้ว':
+            return 'is-link'
+        elif self.status == 'อยู่ระหว่างพิจารณา':
+            return 'is-warning'
+        elif self.status == 'อนุมัติ':
+            return 'is-success'
+        elif self.status == 'เสร็จสิ้น':
+            return 'is-info'
+        elif self.status == 'ไม่อนุมัติ':
+            return 'is-danger'
+        else:
+            return 'is-dark'
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -237,3 +252,10 @@ class SoftwareRequestTestResult(db.Model):
 
     def __str__(self):
         return self.detail
+
+    @property
+    def status_color(self):
+        if self.status == 'ผ่าน':
+            return 'is-success'
+        else:
+            return 'is-danger'
