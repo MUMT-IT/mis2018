@@ -7638,6 +7638,7 @@ def edit_draft_result(result_item_id):
             tab = 'approve' if edited_all else 'edit'
             if edited_all:
                 result_item.result.is_edited = True
+                result_item.result.result_edit_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(result_item)
                 db.session.commit()
             scheme = 'http' if current_app.debug else 'https'
