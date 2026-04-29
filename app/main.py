@@ -7,7 +7,7 @@ from sqlalchemy.orm import joinedload
 from flask_principal import Principal, PermissionDenied, Identity
 from flask.cli import AppGroup
 from dotenv import load_dotenv
-from flask import Flask, render_template, redirect, url_for, request, abort
+from flask import Flask, render_template, redirect, url_for, request, abort, session
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
@@ -199,10 +199,14 @@ def get_weekdays(req):
 
 @login.user_loader
 def load_user(user_id):
+    user_type = session.get('user_type')
+    if user_type == 'service_customer':
+        return ServiceCustomerAccount.query.get(int(user_id))
+    if user_type == 'staff':
+        return StaffAccount.query.get(int(user_id))
     if request.blueprint == 'academic_services':
         return ServiceCustomerAccount.query.get(int(user_id))
-    else:
-        return StaffAccount.query.get(int(user_id))
+    return StaffAccount.query.get(int(user_id))
 
 
 def get_homepage_role_flags(user):

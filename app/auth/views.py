@@ -98,6 +98,7 @@ def login():
                 if not status:
                     flash(u'Your account is inactive. บัญชีผู้ใช้นี้ไม่สามารถเข้าใช้งานได้', 'danger')
                     return redirect(url_for('auth.login'))
+                session['user_type'] = 'staff'
                 identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
                 # session.pop('_flashes', None)  # this line clears all unconsumed flash messages.
                 next_url = request.args.get('next', url_for('index'))
@@ -176,6 +177,7 @@ def reset_password():
 @login_required
 def logout():
     logout_user()
+    session.pop('user_type', None)
     # Remove session keys set by Flask-Principal
     for key in ('identity.name', 'identity.auth_type'):
         session.pop(key, None)
@@ -293,6 +295,7 @@ def google_callback():
     if not login_user(user, True):
         flash(u'Your account is inactive. บัญชีผู้ใช้นี้ไม่สามารถเข้าใช้งานได้', 'danger')
         return redirect(url_for('auth.login'))
+    session['user_type'] = 'staff'
     identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
     flash(u'You have just logged in with Google. ลงทะเบียนเข้าใช้งานเรียบร้อย', 'success')
 
@@ -360,6 +363,7 @@ def line_profile():
             if not login_user(line_user):
                 flash(u'Your account is inactive. บัญชีผู้ใช้นี้ไม่สามารถเข้าใช้งานได้', 'danger')
                 return redirect(url_for('auth.login'))
+            session['user_type'] = 'staff'
         return redirect(url_for('auth.account'))
     else:
         return render_template('auth/line_account.html',
