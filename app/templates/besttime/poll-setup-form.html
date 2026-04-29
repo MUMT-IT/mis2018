@@ -129,25 +129,33 @@
                         <label class="label">Admins</label>
                         <div class="control">{{form.admins(class='js-example-basic-multiple')}}</div>
                     </div>
+                    <div class="field">
+                        <p class="subtitle has-text-info is-hidden" id="progressMessage">กำลังดำเนินการ โปรดรอสักครู่</p>
+                    </div>
                     <div class="field is-grouped">
                         <div class="control">
-                            <button class="button is-success" type="submit">Submit</button>
+                            <button id="submitButton" class="button is-success" type="submit">
+                                <span>Submit</span>
+                                <span id="spinnerIcon" class="icon is-hidden">
+                                    <i class="fas fa-spinner fa-pulse"></i>
+                                </span>
+                            </button>
                         </div>
                         {% if poll_id %}
-                        <div class="control">
-                            <a class="button is-danger"
-                               hx-swap="none"
-                               hx-indicator="this"
-                               hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
-                               hx-confirm="ท่านต้องการลบการสำรวจนี้หรือไม่ หากลบแล้วจะไม่สามารถกู้คืนได้"
-                               hx-delete="{{url_for('besttime.delete_poll', poll_id=poll_id, tab=tab)}}">Delete</a>
-                        </div>
-                        <div class="control">
-                            <a class="button is-warning" href="{{url_for('besttime.close_poll', poll_id=poll_id, tab=tab)}}">Close</a>
-                        </div>
+                            <div class="control">
+                                <a id="deleteButton" class="button is-danger"
+                                   hx-swap="none"
+                                   hx-indicator="this"
+                                   hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                                   hx-confirm="ท่านต้องการลบการสำรวจนี้หรือไม่ หากลบแล้วจะไม่สามารถกู้คืนได้"
+                                   hx-delete="{{url_for('besttime.delete_poll', poll_id=poll_id, tab=tab)}}">Delete</a>
+                            </div>
+                            <div class="control">
+                                <a id="closeButton" class="button is-warning" href="{{url_for('besttime.close_poll', poll_id=poll_id, tab=tab)}}">Close</a>
+                            </div>
                         {% endif %}
                         <div class="control">
-                            <a class="button is-light" href="{{url_for('besttime.index', tab=tab)}}">Back</a>
+                            <a id="cancelButton" class="button is-light" href="{{url_for('besttime.index', tab=tab)}}">Back</a>
                         </div>
                     </div>
                 </div>
@@ -168,5 +176,53 @@
             })
             {#htmx.trigger('#start_date', 'change')#}
         })
+    </script>
+        <script>
+        function disablePollSetupActions() {
+            const idButton = ["submitButton", "deleteButton", "cancelButton", "closeButton"];
+            idButton.forEach((id) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+
+                if (el.tagName === "BUTTON") {
+                    el.disabled = true;
+                } else {
+                    el.setAttribute("aria-disabled", "true");
+                    el.style.pointerEvents = "none";
+                    el.style.opacity = "0.65";
+                }
+            });
+
+            const spinnerIcon = document.getElementById("spinnerIcon");
+            if (spinnerIcon) spinnerIcon.classList.remove("is-hidden");
+
+            const progressMessage = document.getElementById("progressMessage");
+            if (progressMessage) progressMessage.classList.remove("is-hidden");
+        }
+
+        function attachPollSetupSubmitHandler() {
+            const form = document.querySelector("form");
+            if (!form) return;
+            form.addEventListener("submit", () => disablePollSetupActions());
+        }
+
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", attachPollSetupSubmitHandler);
+        } else {
+            attachPollSetupSubmitHandler();
+        }
+
+        window.addEventListener("htmx:beforeRequest", (e) => {
+            const elt = (e.detail && e.detail.elt) ? e.detail.elt : e.target;
+            const id = elt && elt.id ? elt.id : null;
+            if (!id) return;
+            if (id !== "submitButton" && id !== "deleteButton" && id !== "closeButton") return;
+            disablePollSetupActions();
+        });
+
+        const closeBtn = document.getElementById("closeButton");
+        if (closeBtn) {
+            closeBtn.addEventListener("click", disablePollSetupActions);
+        }
     </script>
 {% endblock %}
