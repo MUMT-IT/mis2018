@@ -1,3 +1,5 @@
+import uuid
+
 import click
 import pandas
 import pandas as pd
@@ -1419,6 +1421,59 @@ def populate_districts():
 @app.cli.command()
 def populate_subdistricts():
     load_subdistricts()
+
+
+@app.cli.command('test-scb-auth')
+@click.option('--timeout', default=30, show_default=True, type=int)
+def test_scb_auth(timeout):
+    auth_url = os.environ.get('SCB_AUTH_URL')
+    app_key = os.environ.get('SCB_APP_KEY')
+    app_secret = os.environ.get('SCB_APP_SECRET')
+
+    missing = [name for name, value in (
+        ('SCB_AUTH_URL', auth_url),
+        ('SCB_APP_KEY', app_key),
+        ('SCB_APP_SECRET', app_secret),
+    ) if not value]
+    if missing:
+        raise click.ClickException(
+            'Missing required environment variables: {}'.format(', '.join(missing))
+        )
+
+    headers = {
+        'Content-Type': 'application/json',
+        'requestUId': str(uuid.uuid4()),
+        'resourceOwnerId': app_key,
+    }
+    payload = {
+        'applicationKey': app_key,
+        'applicationSecret': app_secret,
+    }
+
+    click.echo('Testing SCB auth')
+    click.echo('URL: {}'.format(auth_url))
+    click.echo('APP_KEY: {}'.format(app_key))
+
+    try:
+        response = requests.post(auth_url, headers=headers, json=payload, timeout=timeout)
+    except requests.RequestException as exc:
+        raise click.ClickException('SCB auth request failed: {}'.format(exc))
+
+    click.echo('Status: {}'.format(response.status_code))
+    click.echo('Response body:')
+    click.echo(response.text)
+
+    try:
+        response.raise_for_status()
+        response_data = response.json()
+        access_token = response_data['data']['accessToken']
+    except requests.RequestException as exc:
+        raise click.ClickException('SCB auth returned HTTP error: {}'.format(exc))
+    except (ValueError, TypeError, KeyError) as exc:
+        raise click.ClickException('SCB auth returned unexpected payload: {}'.format(exc))
+
+    click.echo('Access token received: yes')
+    click.echo('Access token prefix: {}...'.format(access_token[:12]))
 
 
 @dbutils.command('load_staff_list')
