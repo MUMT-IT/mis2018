@@ -4897,7 +4897,7 @@ def send_holidays_data():
         text_color = '#ffffff'
         bg_color = '#ff9f1a'
         border_color = '#ffffff'
-        holiday_date = rec.holiday_date.astimezone(tz).date().isoformat() if rec.holiday_date else None
+        holiday_date = rec.holiday_date.date().isoformat() if rec.holiday_date else None
         records.append({
             'id': rec.id,
             'start': holiday_date,
