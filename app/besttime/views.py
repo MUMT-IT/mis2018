@@ -269,14 +269,15 @@ def preview_master_datetime_slots():
     form = BestTimePollForm()
     poll_id = request.args.get('poll_id')
     start_date = form.start_date.data
-    # end_date = form.end_date.data
 
     if start_date or poll_id:
         dates = set()
         date_set = set()
+        selected_date = {}
         for slot in form.datetime_slots:
             if slot.date.data:
                 dates.add(slot.date.data)
+                selected_date[slot.date.data.strftime('%Y-%m-%d')] = list(slot.time_slots.data or [])
         if start_date:
             dates.add(start_date)
         if poll_id:
@@ -289,10 +290,16 @@ def preview_master_datetime_slots():
             form.datetime_slots.append_entry({'date': date})
         for _form_field in form.datetime_slots:
             selected = []
+            date_key = _form_field.date.data.strftime('%Y-%m-%d')
             choices = [dt for dt in
-                        [(_form_field.date.data.strftime('%Y-%m-%d') + '#09:00 - 12:00', '09:00 - 12:00'),
+                       [(_form_field.date.data.strftime('%Y-%m-%d') + '#09:00 - 12:00', '09:00 - 12:00'),
                         (_form_field.date.data.strftime('%Y-%m-%d') + '#13:00 - 16:00', '13:00 - 16:00')]]
             _form_field.time_slots.choices = choices
+
+            if date_key in selected_date:
+                _form_field.time_slots.data = selected_date[date_key]
+                continue
+
             for h in vote_hours:
                 hour_text = f'#{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
                 hour_display = f'{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
