@@ -66,6 +66,8 @@ class SoftwareRequestDetail(db.Model):
                                                 'choices': [('', 'กรุณาเลือกประเภทคำขอ'),
                                                             ('พัฒนาโปรแกรมใหม่', 'พัฒนาโปรแกรมใหม่'),
                                                             ('ปรับปรุงระบบที่มีอยู่', 'ปรับปรุงระบบที่มีอยู่')]})
+    system_id = db.Column('system_id', db.ForeignKey('software_request_systems.id'))
+    system = db.relationship(SoftwareRequestSystem, backref=db.backref('software_requests'))
     work_process_id = db.Column('work_process_id', db.ForeignKey('db_processes.id'))
     work_process = db.relationship(Process, backref=db.backref('software_requests'))
     activity_id = db.Column('activity_id', db.ForeignKey('strategy_activities.id'))
