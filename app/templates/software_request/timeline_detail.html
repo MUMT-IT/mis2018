@@ -11,6 +11,17 @@
             border: none;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1)
         }
+        .level {
+            flex-wrap: wrap;
+        }
+        .level-left {
+            flex: 1 1 70%;
+            min-width: 0;
+        }
+
+        .level-right {
+            flex: 0 0 30%;
+        }
     </style>
 {% endblock %}
 {% include "nav.html" %}
@@ -22,12 +33,12 @@
                     {% include "messages.html" %}
                 </div>
             </div>
-            <div class="columns">
-                <div class="column is-two-fifths is-offset-one-third" >
+            <div class="columns is-centered">
+                <div class="column is-5">
                     <div class="card custom-card">
                         <div class="has-background-link" style="height: 5px;"></div>
                         <div class="card-content">
-                            <div class="level is-mobile">
+                            <div class="level">
                                 <div class="level-left">
                                     <div>
                                         <h1 class="title is-4 has-text-link">{{ timeline.request.title }}</h1>
