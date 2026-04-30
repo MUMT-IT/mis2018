@@ -3,6 +3,7 @@ import datetime
 import arrow
 import os
 from collections import namedtuple
+from flask_wtf.csrf import generate_csrf
 from flask import render_template, request, redirect, url_for, current_app, make_response, flash
 from flask_login import login_required, current_user
 from flask_mail import Message
@@ -152,26 +153,40 @@ def leave_message(poll_id):
             message.created_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(message)
             db.session.commit()
+            delete_btn = ''
+            if message.voter_id == current_user.id:
+                delete_btn = f'''
+                    <a hx-delete="{url_for('besttime.delete_message', message_id=message.id)}"
+                       hx-confirm="ท่านต้องการลบรายการนี้หรือไม่"
+                       hx-headers='{{"X-CSRFToken": "{generate_csrf()}"}}'>
+                        <span class="icon">
+                            <i class="far fa-trash-alt has-text-danger"></i>
+                        </span>
+                    </a>
+                '''
+
             template = f'''
                         <article class="media">
                             <div class="media-content">
-                                <div class="tag is-large is-light is-warning">
-                                    {message.message}
+                                <div class="notification is-warning is-light">
+                                    <strong class="is-size-5">{message.message}</strong>
                                 </div>
-                                <br/>
                                 <p>
-                                    <strong><small>{message.voter.fullname}</small></strong> <small>{message.created_at.astimezone(BKK_TZ).strftime('%d/%m/%Y %H:%M:%S')}</small>
+                                    <strong><small>{message.voter.fullname}</small></strong> 
+                                    <small>{message.created_at.astimezone(BKK_TZ).strftime('%d/%m/%Y %H:%M:%S')}</small> 
+                                    {delete_btn}
                                 </p>
                             </div>
                         </article>
             '''
+            flash('บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
             return template
         else:
             print(form.errors)
             resp = make_response()
             resp.headers["HX-Swap"] = "none"
+            flash('บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
             return resp
-
     return render_template('besttime/poll-message-form.html', poll=poll, form=form, tab=tab)
 
 
@@ -254,14 +269,15 @@ def preview_master_datetime_slots():
     form = BestTimePollForm()
     poll_id = request.args.get('poll_id')
     start_date = form.start_date.data
-    # end_date = form.end_date.data
 
     if start_date or poll_id:
         dates = set()
         date_set = set()
+        selected_date = {}
         for slot in form.datetime_slots:
             if slot.date.data:
                 dates.add(slot.date.data)
+                selected_date[slot.date.data.strftime('%Y-%m-%d')] = list(slot.time_slots.data or [])
         if start_date:
             dates.add(start_date)
         if poll_id:
@@ -274,10 +290,16 @@ def preview_master_datetime_slots():
             form.datetime_slots.append_entry({'date': date})
         for _form_field in form.datetime_slots:
             selected = []
+            date_key = _form_field.date.data.strftime('%Y-%m-%d')
             choices = [dt for dt in
-                        [(_form_field.date.data.strftime('%Y-%m-%d') + '#09:00 - 12:00', '09:00 - 12:00'),
+                       [(_form_field.date.data.strftime('%Y-%m-%d') + '#09:00 - 12:00', '09:00 - 12:00'),
                         (_form_field.date.data.strftime('%Y-%m-%d') + '#13:00 - 16:00', '13:00 - 16:00')]]
             _form_field.time_slots.choices = choices
+
+            if date_key in selected_date:
+                _form_field.time_slots.data = selected_date[date_key]
+                continue
+
             for h in vote_hours:
                 hour_text = f'#{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
                 hour_display = f'{h.start.strftime("%H:%M")} - {h.end.strftime("%H:%M")}'
@@ -578,7 +600,7 @@ def vote_poll(poll_id):
                 print(f'Line sent to {poll.creator.line_id}. Message: {msg}')
                 print(f'Mail sent to {recipients}. Message: {message}')
             else:
-                send_mail(recp=recipients, title=title, message=message)
+                base_send_mail(recp=recipients, title=title, message=message)
                 try:
                     line_bot_api.push_message(to=poll.creator.line_id, messages=TextSendMessage(text=msg))
                 except LineBotApiError:
@@ -617,6 +639,18 @@ def vote_poll(poll_id):
                 _form_field.time_slots.data = [t[0] for t in choices if t[0] in voted_time_slots]
 
     return render_template('besttime/poll-form.html', form=form, poll=poll, tab=tab, message_form=message_form)
+
+
+@besttime_bp.route('/vote/message/delete/<int:message_id>', methods=['GET', 'DELETE'])
+@login_required
+def delete_message(message_id):
+    message = BestTimePollMessage.query.get(message_id)
+    db.session.delete(message)
+    db.session.commit()
+    flash('ลบข้อมูลเรียบร้อยแล้ว', 'success')
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
 
 
 @besttime_bp.route('/vote/<int:slot_id>/mail', methods=['GET', 'POST'])

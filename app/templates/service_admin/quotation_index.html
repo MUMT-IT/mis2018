@@ -244,7 +244,7 @@
                                         '</a>' +
                                         '</div>' +
                                         '</div>'
-                                } else if (row.status_id === 4 && supervisor == 'True') {
+                                } else if (row.status_id === 4 && supervisor == 'True' && row.disapproved_at == null) {
                                     var url = '/service_admin/quotation/supervisor/approve/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}';
                                     return '<div class="field has-addons">' +
                                         '<div class="control">' +

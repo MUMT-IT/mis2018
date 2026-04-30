@@ -73,12 +73,22 @@
                 {% for message in poll.messages %}
                     <article class="media">
                         <div class="media-content">
-                            <div class="tag is-large is-light is-warning">
-                                {{message.message}}
+                            <div class="notification is-warning is-light">
+                                <strong class="is-size-5">{{message.message}}</strong>
                             </div>
-                            <br/>
                             <p>
-                                <strong><small>{{message.voter.fullname}}</small></strong> <small>{{message.created_at|localdatetime}}</small>
+                                <strong><small>{{message.voter.fullname}}</small></strong>
+                                <small>{{message.created_at|localdatetime}}</small>
+                                {% if message.voter_id == current_user.id %}
+                                    <a hx-delete="{{ url_for('besttime.delete_message', message_id=message.id) }}"
+                                       hx-confirm="ท่านต้องการลบรายการนี้หรือไม่"
+                                       hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                                    >
+                                        <span class="icon">
+                                            <i class="far fa-trash-alt has-text-danger"></i>
+                                        </span>
+                                    </a>
+                                {% endif %}
                             </p>
                         </div>
                     </article>
