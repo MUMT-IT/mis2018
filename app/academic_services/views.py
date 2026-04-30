@@ -5375,6 +5375,7 @@ def create_sample_appointment(sample_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
+    date_now =arrow.now('Asia/Bangkok').date()
     request_data = request_data_paths[sample.request.sub_lab.code]
     datas = request_data(sample.request, type='form')
     form = ServiceSampleForm(obj=sample)
@@ -5486,8 +5487,8 @@ def create_sample_appointment(sample_id):
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-        return render_template('academic_services/create_sample_appointment.html', form=form, menu=menu,
-                               tab=tab, sample=sample, sample_id=sample_id, datas=datas, holidays=holidays)
+    return render_template('academic_services/create_sample_appointment.html', form=form, menu=menu,
+                           tab=tab, sample=sample, sample_id=sample_id, datas=datas, holidays=holidays, date_now=date_now)
 
 
 @academic_services.route('/customer/sample-appointment/confirm/page/<int:request_id>', methods=['GET', 'POST'])
