@@ -571,6 +571,7 @@ class ServiceQuotation(db.Model):
             'approved_at': self.approved_at if self.approved_at else None,
             'total_price': '{:,.2f}'.format(self.grand_total()),
             'status_id': self.request.status.status_id if self.request.status else None,
+            'disapproved_at': self.disapproved_at if self.disapproved_at else None,
             'customer_status': self.customer_status if self.customer_status else None,
             'customer_status_color': self.customer_status_color if self.customer_status_color else None,
             'admin_status': self.admin_status if self.admin_status else None,

@@ -5654,17 +5654,23 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         ('BOTTOMPADDING', (0, 1), (-1, 1), 0),
     ]))
 
-    qr_code_img = None
-    if qr_image_base64:
-        qr_bytes = b64decode(qr_image_base64)
-        qr_buffer = BytesIO(qr_bytes)
-        qr_code_img = Image(qr_buffer, width=90, height=90)
     scheme = 'http' if current_app.debug else 'https'
     qr_payment_buffer = BytesIO()
     qr_payment_img = qrcode.make(url_for('academic_services.add_payment', invoice_id=invoice.id, menu='invoice',
                                          tab='pending', _external=True, _scheme=scheme))
     qr_payment_img.save(qr_payment_buffer, format='PNG')
     qr_code_payment = Image(qr_payment_buffer, width=105, height=102)
+
+    qr_code_payment_text = Paragraph("QR Code<br/>แจ้งการโอนเงิน", style=style_sheet['ThaiStyleCenter'])
+    qr_code_payment_table = Table([[qr_code_payment], [qr_code_payment_text]], colWidths=[150])
+    qr_code_payment_table.hAlign = 'LEFT'
+
+    qr_code_payment_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (0, 0), -3),
+        ('TOPPADDING', (0, 1), (0, 1), -3),
+    ]))
 
     sign_style = ParagraphStyle(
         'SignStyle',
@@ -5702,7 +5708,11 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
     data.append(KeepTogether(item_table))
     data.append(KeepTogether(Spacer(1, 16)))
     data.append(KeepTogether(remark_table))
-    if qr_code_img:
+
+    if qr_image_base64:
+        qr_bytes = b64decode(qr_image_base64)
+        qr_buffer = BytesIO(qr_bytes)
+        qr_code_img = Image(qr_buffer, width=90, height=90)
         qr_code_text = Paragraph("QR Code<br/>ชำระเงิน", style=style_sheet['ThaiStyleCenter'])
         qr_code_table = Table([[qr_code_img], [qr_code_text]], colWidths=[150])
         qr_code_table.hAlign = 'LEFT'
@@ -5712,37 +5722,27 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
         ]))
 
-        qr_code_payment_text = Paragraph("QR Code<br/>แจ้งการโอนเงิน", style=style_sheet['ThaiStyleCenter'])
-        qr_code_payment_table = Table([[qr_code_payment], [qr_code_payment_text]], colWidths=[150])
-        qr_code_payment_table.hAlign = 'LEFT'
-
-        qr_code_payment_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('TOPPADDING', (0, 0), (0, 0), -3),
-            ('TOPPADDING', (0, 1), (0, 1), -3),
-        ]))
-
         combined_table = Table(
             [[qr_code_table, qr_code_payment_table, sign_table]],
             colWidths=[130, 130, 350]
         )
-        combined_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (0, 0), 'TOP'),
-            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-            ('VALIGN', (1, 0), (1, 0), 'TOP'),
-            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
-            ('LEFTPADDING', (2, 0), (2, 0), 60),
-        ]))
-
-        combined_table.hAlign = 'LEFT'
-        combined_table.leftIndent = 200
-
-        data.append(Spacer(1, 16))
-        data.append(KeepTogether(combined_table))
     else:
-        data.append(KeepTogether(Spacer(1, 16)))
-        data.append(KeepTogether(sign_table))
+        combined_table = Table(
+            [[qr_code_payment_table, '', sign_table]],
+            colWidths=[130, 130, 350]
+        )
+    combined_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (0, 0), 'TOP'),
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+        ('VALIGN', (1, 0), (1, 0), 'TOP'),
+        ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+        ('LEFTPADDING', (2, 0), (2, 0), 100),
+    ]))
+
+    combined_table.hAlign = 'LEFT'
+    combined_table.leftIndent = 200
+    data.append(Spacer(1, 16))
+    data.append(KeepTogether(combined_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
@@ -5759,7 +5759,7 @@ def export_invoice_pdf(invoice_id):
     ref2 = sub_lab.ref.upper()
     qrcode_data = generate_qrcode(amount=invoice.grand_total, ref1=ref1, ref2=ref2, ref3=None)
 
-    if qrcode_data:
+    if qrcode_data and 'qrImage' in qrcode_data:
         qr_image_base64 = qrcode_data['qrImage']
     else:
         qr_image_base64 = None
