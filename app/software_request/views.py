@@ -119,8 +119,10 @@ def create_request():
             detail.url = file_drive['id']
             detail.file_name = file_name
         if form.system.data:
-            system = SoftwareRequestSystem.query.get(request.form.getlist('system'))
+            system_id = request.form.getlist('system')
+            system = SoftwareRequestSystem.query.get(system_id)
             detail.title = system.system
+            detail.system_id = system.id
         detail.status = 'ส่งคำขอแล้ว'
         detail.created_date = arrow.now('Asia/Bangkok').datetime
         detail.created_id = current_user.id
