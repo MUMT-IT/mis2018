@@ -256,15 +256,14 @@
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        <table class="table is-fullwidth" id="issues">
+                                        <table class="table is-fullwidth" id="requirements">
                                             <thead>
                                             <tr>
                                                 <th>ประเภท</th>
                                                 <th>รายละเอียด</th>
                                                 <th>Phase</th>
                                                 <th>สภานะ</th>
-                                                <th>วันที่เริ่มต้น</th>
-                                                <th>วันที่สิ้นสุด</th>
+                                                <th>Deadline</th>
                                                 <th>ผู้รับผิดชอบ</th>
                                             </tr>
                                             </thead>
@@ -302,8 +301,7 @@
                                                             </span>
                                                         </a>
                                                     </td>
-                                                    <td>{{ issue.start|localdate }}</td>
-                                                    <td>{{ issue.end|localdate }}</td>
+                                                    <td>{{ issue.deadline|localdate or '' }}</td>
                                                     <td>{{ issue.staff.fullname }}</td>
                                                 </tr>
                                             {% endfor %}
@@ -331,7 +329,7 @@
                                 <div class="field-body">
                                     <div class="field is-expanded">
                                         <div class="control">
-                                            <table id="timeline" class="table is-fullwidth is-striped">
+                                            <table id="timelines" class="table is-fullwidth is-striped">
                                                 <thead>
                                                 <th>Task</th>
                                                 <th>Issue</th>
@@ -528,20 +526,19 @@
     <script>
         $(document).ready(function () {
             $.fn.dataTable.moment('DD/MM/YYYY');
-            $('#timeline').DataTable({
+            $('#timelines').DataTable({
                 order: [
-                    [4, 'asc'],
-                    [5, 'asc']
+                    [3, 'asc'],
+                    [4, 'asc']
                 ],
                 lengthChange: false,
                 searching: false,
                 paging: false,
                 info: false
             })
-            $('#issues').DataTable({
+            $('#requirements').DataTable({
                 order: [
-                    [4, 'asc'],
-                    [5, 'asc']
+                    [4, 'asc']
                 ],
                 lengthChange: false,
                 searching: false,
