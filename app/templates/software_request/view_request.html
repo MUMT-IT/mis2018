@@ -326,12 +326,6 @@
                                         {% endfor %}
                                     </tbody>
                                 </table>
-                                <div class="field">
-                                    <label class="label">ความคิดเห็นเพิ่มเติม</label>
-                                    <div class="control">
-                                        <textarea class="textarea" name="note">{{ detail.note or '' }}</textarea>
-                                    </div>
-                                </div>
                                 {% if detail.test_results %}
                                     <div class="field mt-1">
                                         <input type="submit" value="บันทีก" class="button is-info is-rounded">
