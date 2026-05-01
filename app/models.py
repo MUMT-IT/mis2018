@@ -26,7 +26,27 @@ class Org(db.Model):
 
     @property
     def active_staff(self):
-        return [s for s in self.staff if s.retired is not True]
+        return [
+            staff for staff in self.staff
+            if staff.staff_account and staff.staff_account.is_active
+        ]
+
+    @property
+    def active_staff_accounts(self):
+        return [staff.staff_account for staff in self.active_staff]
+
+    @property
+    def secretary_staff(self):
+        return [
+            staff.staff_account for staff in self.active_staff
+            if staff.staff_account
+            and any(
+                role.role_need == 'secretary'
+                and role.action_need is None
+                and role.resource_id is None
+                for role in staff.staff_account.roles
+            )
+        ]
 
 
 class OrgStructure(db.Model):

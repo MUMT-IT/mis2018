@@ -619,7 +619,7 @@ def get_compensation_rates(doc_id):
     entry_ = form.items.append_entry()
     entry_.compensation.choices = [(rate.id, rate) for rate in compensations]
     entry_.time_slots.choices = [(slot.id, slot) for slot in compensations[0].time_slots]
-    entry_.staff.choices = [(staff.id, staff.fullname) for staff in document.org.active_staff]
+    entry_.staff.choices = [(staff.id, staff.fullname) for staff in document.org.active_staff_accounts]
     template = f'''
     <div class="field">
         <div class="select">
