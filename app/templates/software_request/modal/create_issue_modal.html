@@ -4,9 +4,9 @@
         <header class="modal-card-head">
             <p class="modal-card-title" align="center">
                 {% if detail_id %}
-                    Add Issue
+                    Add Requirement
                 {% else %}
-                    Edit Issue
+                    Edit Requirement
                 {% endif %}
             </p>
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
@@ -49,7 +49,7 @@
                 {% endif %}
                 <div class="field" style="margin-top:0.5em">
                     <label class="label">
-                        {{ form.issue.label }}
+                        รายละเอียด
                         <span class="has-text-danger">*</span>
                     </label>
                     <div class="control">

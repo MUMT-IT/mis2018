@@ -50,7 +50,7 @@ def create_timeline_form(detail_id):
         estimate = DateField('วันที่คาดว่าจะแล้วเสร็จ', validators=[DataRequired()])
         status = SelectField('status', choices=[('รอดำเนินการ', 'รอดำเนินการ'), ('เสร็จสิ้น', 'เสร็จสิ้น'), ('ยกเลิกการพัฒนา', 'ยกเลิกการพัฒนา')],
                              validators=[DataRequired()])
-        issue = QuerySelectField('ปํญหาที่พบ', query_factory=lambda: SoftwareIssues.query.filter_by(software_request_detail_id=detail_id).all(), allow_blank=True,
+        issue = QuerySelectField('Requirement', query_factory=lambda: SoftwareIssues.query.filter_by(software_request_detail_id=detail_id).all(), allow_blank=True,
                                  blank_text='', get_label='issue')
         admin = QuerySelectField('ผู้รับผิดชอบ', query_factory=lambda: StaffAccount.get_it_unit(), get_label='fullname')
     return SoftwareRequestTimelineForm
