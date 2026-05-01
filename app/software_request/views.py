@@ -510,6 +510,7 @@ def create_issue(detail_id=None, issue_id=None):
 
             db.session.add(issue)
             db.session.commit()
+            issue.deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').date() if form.deadline.data else None
             issue.software_request_detail.updated_date = arrow.now('Asia/Bangkok').datetime
             issue.software_request_detail.approver_id = current_user.id
             db.session.add(issue)
