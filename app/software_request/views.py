@@ -64,11 +64,8 @@ def condition_for_service_request():
 def view_request(detail_id):
     count = 0
     detail = SoftwareRequestDetail.query.get(detail_id)
+    datetime_now = arrow.now('Asia/Bangkok').datetime
     if request.method == 'POST':
-        note = request.form.get('note')
-        detail.note = note
-        db.session.add(detail)
-        db.session.commit()
         for form in request.form:
             if form.startswith("result_"):
                 item_id = form.replace("result_", "")
@@ -79,7 +76,9 @@ def view_request(detail_id):
                 test_result.recorder_id = current_user.id
                 db.session.add(test_result)
                 db.session.commit()
-                count += 1
+                recorded_at = arrow.get(test_result.recorded_at, 'Asia/Bangkok').datetime
+                if datetime_now == recorded_at:
+                    count += 1
         flash('บันทึกผลเรียบร้อยแล้ว', 'success')
         if detail.staffs and count > 0:
             scheme = 'http' if current_app.debug else 'https'
