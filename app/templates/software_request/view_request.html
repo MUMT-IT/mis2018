@@ -273,10 +273,10 @@
                                 <table class="table is-fullwidth is-striped" id="test_results">
                                     <thead>
                                         <th>ผลการทดสอบ</th>
+                                        <th>หมายเหตุ</th>
                                         <th>รายละเอียด</th>
                                         <th>วันที่บันทึกผล</th>
                                         <th>ผู้บันทึกผล</th>
-                                        <th>หมายเหตุ</th>
                                     </thead>
                                     <tbody>
                                         {% for test_result in detail.test_results %}
@@ -297,30 +297,15 @@
                                                            {% if test_result.status == 'ไม่ผ่าน' %}checked{% endif %}>
                                                     <label for="notpass_{{ test_result.id }}">ไม่ผ่าน</label>
                                                 </td>
+                                                <td>
+                                                    <textarea class="textarea" name="note_{{ test_result.id }}">{{ test_result.note or '' }}</textarea>
+                                                </td>
                                                 <td>{{ test_result.issue.issue }}</td>
                                                 <td>{{ test_result.recorded_at|localdatetime or '' }}</td>
                                                 <td>
                                                     {% if test_result.recorder %}
                                                         {{ test_result.recorder.fullname }}
                                                     {% endif %}
-                                                </td>
-                                                <td id="notes_{{ test_result.id }}">
-                                                    {{ test_result.note or '' }}
-                                                    <div id="note_form"></div>
-                                                    <div class="field has-addons">
-                                                        <div class="control">
-                                                            <a class="is-info"
-                                                               hx-swap="innerHTML"
-                                                               hx-target="#note_form"
-                                                               hx-get="{{ url_for('software_request.create_note',
-                                                                       test_result_id=test_result.id) }}"
-                                                            >
-                                                                <span class="icon">
-                                                                    <i class="fas fa-pencil-alt"></i>
-                                                                </span>
-                                                            </a>
-                                                        </div>
-                                                    </div>
                                                 </td>
                                             </tr>
                                         {% endfor %}
@@ -362,6 +347,9 @@
                 info: false
             })
             $('#test_results').DataTable({
+                order: [
+                    [3, 'asc']
+                ],
                 lengthChange: false,
                 searching: false,
                 paging: false,
