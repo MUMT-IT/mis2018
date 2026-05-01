@@ -93,7 +93,7 @@ class QuerySelectFieldAppendable(QuerySelectField):
 class SoftwareRequestIssueForm(ModelForm):
     class Meta:
         model = SoftwareIssues
-        only = ['issue', 'label', 'start', 'end']
+        only = ['issue', 'label', 'deadline']
 
     status_ = SelectField('Status',
                           default='Draft',
