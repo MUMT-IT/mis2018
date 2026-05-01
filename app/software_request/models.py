@@ -194,6 +194,7 @@ class SoftwareIssues(db.Model):
         'choices': [(c,c) for c in ('Bug', 'Request', 'Enhancement')],
     })
     issue = db.Column('issue', db.Text(), nullable=False, info={'label': 'Issue/Request'})
+    deadline = db.Column('deadline', db.Date(), info={'label': 'Deadline'})
     phase_id = db.Column('phase_id', db.ForeignKey('software_request_phases.id'))
     phase = db.relationship(SoftwareRequestPhase, backref=db.backref('software_request_issues'))
     created_by = db.Column('created_by', db.ForeignKey('staff_account.id'))
