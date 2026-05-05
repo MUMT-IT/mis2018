@@ -41,7 +41,7 @@
                                                 </div>
                                                 <div class="control">
                                                     <a class="button is-warning is-outlined is-rounded"
-                                                       href="{{ url_for('comp_tracker.repair_approval', record_id=record.id,
+                                                       href="{{ url_for('comp_tracker.create_repair_approval', record_id=record.id,
                                                            repair_approval_id=rep_approval.id) }}"
                                                     >
                                                             <span class="icon">
@@ -54,7 +54,7 @@
                                         {% endfor %}
                                     {% else %}
                                         <a class="button is-info is-outlined is-rounded" style="margin-left: 1em"
-                                           href="{{ url_for('comp_tracker.repair_approval', record_id=record.id) }}"
+                                           href="{{ url_for('comp_tracker.create_repair_approval', record_id=record.id) }}"
                                         >
                                             <span class="icon">
                                                 <i class="fas fa-file-alt"></i>
