@@ -150,6 +150,8 @@ def new_record(topic_id, room=None, procurement=None):
     procurement_no = request.args.get('procurement_no')
     pro_number = request.args.get('pro_number')
     is_admin = False
+    if not current_user.is_authenticated and topic.topic == 'แจ้งครุภัณฑ์ชำรุด':
+        return redirect(url_for('auth.login'))
     if current_user.is_authenticated:
         is_admin = True if ComplaintAdmin.query.filter_by(admin=current_user, topic_id=topic_id).first() else False
     if room_number and location:
