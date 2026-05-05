@@ -977,10 +977,6 @@ def edit_committee(repair_approval_id):
 
 
 def generate_repair_approval_pdf(repair_approval):
-    def all_page_setup(canvas, doc):
-        canvas.saveState()
-        canvas.restoreState()
-
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer,
                             pagesize=A4,
@@ -992,13 +988,6 @@ def generate_repair_approval_pdf(repair_approval):
 
     data = []
 
-    header_style = ParagraphStyle(
-        'HeaderStyle',
-        parent=style_sheet['ThaiStyle'],
-        fontSize=16,
-        leading=20,
-        alignment=TA_RIGHT
-    )
     header_right_style = ParagraphStyle(
         'HeaderRightStyle',
         parent=style_sheet['ThaiStyle'],
@@ -1052,64 +1041,46 @@ def generate_repair_approval_pdf(repair_approval):
     )
 
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
-    org = Org.query.filter_by(name=current_user.personal_info.org.name).first()
+    org_name = repair_approval.record.complainant.personal_info.org.name if repair_approval.record.complainant \
+        else current_user.personal_info.org.name
+    org = Org.query.filter_by(name=org_name).first()
     staff = StaffAccount.query.filter_by(email=org.head).first()
-    head = repair_approval.name if repair_approval.name else staff.fullname
-    if current_user.personal_info.org.name == 'หน่วยข้อมูลและสารสนเทศ':
-        organization_text = "หน่วยข้อมูลและสารสนเทศ<br/>งานยุทธศาสตร์\u00A0และการบริหารพัฒนาทรัพยากร\u00A0สำนักงานคณบดี<br/>โทร 02-4414371-7 ต่อ 2320"
-        organization_info = Paragraph(organization_text, style=header_right_style)
-        mhesi_no = '''<font name="SarabunBold">ที่</font>'''
-
-        person = Table([
-            [Paragraph('ลงชื่อ', center_style), Paragraph('ผู้ขออนุมัติ', center_style)],
-            [Paragraph('({head})'.format(head=head), center_style), ''],
-            ['', ''],
-            ['', ''],
-            ['', ''],
-            [Paragraph('ลงชื่อ', center_style), Paragraph('หัวหน้าภาค / ศูนย์ฯ', center_style)],
-            [Paragraph('(ผู้ช่วยศาสตราจารย์ ดร.ลิขิต ปรียานนท์)', center_style), ''],
-        ], colWidths=[160, 160])
-        person.setStyle(TableStyle([
-            ('SPAN', (0, 1), (1, 1)),
-            ('SPAN', (0, 6), (1, 6)),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-            ('TOPPADDING', (0, 0), (-1, -1), 0),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-        ]))
+    mhesi_no = '''<font name="SarabunBold">ที่</font>'''
+    if org.name == 'หน่วยข้อมูลและสารสนเทศ':
+        head = "ผู้ช่วยศาสตราจารย์ ดร.ลิขิต ปรียานนท์"
+        organization_text = f"{org.name}<br/>งานยุทธศาสตร์\u00A0และการบริหารพัฒนาทรัพยากร\u00A0{org.parent.parent.name}<br/>โทร 02-4414371-7 ต่อ 2320"
+    elif org.name == 'หน่วยซ่อมบำรุง':
+        head = "รองศาสตราจารย์ ดร.กลมรัตน์ โพธิ์ปิ่น"
+        organization_text = f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>โทร 02-4414371-9 ต่อ 2115"
+    elif org.parent and org.parent.parent:
+        head = staff.fullname
+        organization_text = f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>โทร 02-4414371-9 ต่อ 2115"
+    elif org.parent and not org.parent.parent:
+        head = staff.fullname
+        organization_text = f"{org.name}<br/>{org.parent.name}<br/>โทร 02-4414371-9 ต่อ 2115"
     else:
-        organization_text = "หน่วยซ่อมบำรุง<br/>งานบริหารจัดการทั่วไป\u00A0สำนักงานคณบดี<br/>โทร 02-4414371-9 ต่อ 2115"
-        organization_info = Paragraph(organization_text, style=header_right_style)
-        mhesi_no = f'''<font name="SarabunBold">ที่</font>'''
-        person = Table([
-            ['', ''],
-            ['', ''],
-            ['', ''],
-            [Paragraph('({head})'.format(head=head), center_style), Paragraph('', center_style)],
-            [Paragraph('ตำแหน่งหัวหน้าหน่วยซ่อมบำรุง', center_style), Paragraph('', center_style)],
-            ['', ''],
-            ['', ''],
-            ['', ''],
-            ['', ''],
-            ['', ''],
-            ['', ''],
-            [Paragraph('(รองศาสตราจารย์ ดร.กลมรัตน์ โพธิ์ปิ่น)', center_style), Paragraph('', center_style)],
-            [Paragraph('ผู้ช่วยรองคณบดีฝ่ายบริหาร', center_style), Paragraph('', center_style)],
-        ], colWidths=[160, 160])
-        person.setStyle(TableStyle([
-            ('SPAN', (0, 3), (1, 3)),
-            ('SPAN', (0, 4), (1, 4)),
-            ('SPAN', (0, 11), (1, 11)),
-            ('SPAN', (0, 12), (1, 12)),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-            ('TOPPADDING', (0, 0), (-1, -1), 0),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-        ]))
+        head = staff.fullname
+        organization_text = f"{org.name}<br/>โทร 02-4414371-9 ต่อ 2115"
+    organization_info = Paragraph(organization_text, style=header_right_style)
+    person = Table([
+        [Paragraph('ลงชื่อ', center_style), Paragraph('ผู้ขออนุมัติ', center_style)],
+        [Paragraph(f'({repair_approval.name})', center_style), ''],
+        ['', ''],
+        ['', ''],
+        ['', ''],
+        [Paragraph('ลงชื่อ', center_style), Paragraph('หัวหน้าภาค / ศูนย์ฯ', center_style)],
+        [Paragraph(f'({head})', center_style), ''],
+    ], colWidths=[160, 160])
+    person.setStyle(TableStyle([
+        ('SPAN', (0, 1), (1, 1)),
+        ('SPAN', (0, 6), (1, 6)),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+    ]))
 
     purchase_type = f'<font name="DejaVuSans">☑</font> รายได้ส่วนงาน <font name="DejaVuSans">☐</font> เงินงบประมาณแผ่นดิน' if repair_approval.purchase_type == 'รายได้ส่วนงาน' else \
         f'<font name="DejaVuSans">☐</font> รายได้ส่วนงาน <font name="DejaVuSans">☑</font> เงินงบประมาณแผ่นดิน'
