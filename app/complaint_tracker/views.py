@@ -853,8 +853,8 @@ def create_repair_approval(record_id, repair_approval_id=None):
         form = ComplaintRepairApprovalForm(obj=rep_approval)
     else:
         form = ComplaintRepairApprovalForm()
-
-    org = Org.query.filter_by(name=current_user.personal_info.org.name).first()
+    org_name = record.complainant.personal_info.org.name if record.complainant else current_user.personal_info.org.name
+    org = Org.query.filter_by(name=org_name).first()
     if org.parent and org.parent.parent.name == 'สำนักงา่นคณบดี':
         staff = StaffAccount.query.filter_by(email=org.head).first()
         form.name.data = staff.fullname
@@ -902,8 +902,6 @@ def create_repair_approval(record_id, repair_approval_id=None):
             rep_approval.principle_approval_type = None
             rep_approval.purpose = None
         else:
-            rep_approval.name = None
-            rep_approval.position = None
             rep_approval.book_number = None
             rep_approval.receipt_number = None
             rep_approval.receipt_date = None
