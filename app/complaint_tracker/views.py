@@ -91,6 +91,15 @@ def generate_url(file_url):
     return url
 
 
+def get_organization(org, form):
+    if org.parent and org.parent.parent:
+        form.organization.data = f'{org.name} {org.parent} {org.parent.parent}'
+    elif org.parent and not org.parent.parent:
+        form.organization.data = f'{org.name} {org.parent}'
+    else:
+        form.organization.data = org.name
+
+
 def get_fiscal_date(date):
     if date.month >= 10:
         start_fiscal_date = datetime(date.year, 10, 1)
@@ -837,7 +846,7 @@ def admin_record_complaint_summary():
 
 @complaint_tracker.route('/admin/repair-approval/add/<int:record_id>', methods=['GET', 'POST'])
 @complaint_tracker.route('/admin/repair-approval/edit/<int:record_id>/<int:repair_approval_id>', methods=['GET', 'POST'])
-def repair_approval(record_id, repair_approval_id=None):
+def create_repair_approval(record_id, repair_approval_id=None):
     record = ComplaintRecord.query.get(record_id)
     if repair_approval_id:
         rep_approval = ComplaintRepairApproval.query.get(repair_approval_id)
@@ -846,9 +855,15 @@ def repair_approval(record_id, repair_approval_id=None):
         form = ComplaintRepairApprovalForm()
 
     org = Org.query.filter_by(name=current_user.personal_info.org.name).first()
-    staff = StaffAccount.query.filter_by(email=org.head).first()
-    form.name.data = staff.fullname
-    form.position.data = f"หัวหน้า{staff.personal_info.org.name}"
+    if org.parent and org.parent.parent.name == 'สำนักงา่นคณบดี':
+        staff = StaffAccount.query.filter_by(email=org.head).first()
+        form.name.data = staff.fullname
+        form.position.data = f"หัวหน้า{staff.personal_info.org.name}"
+        get_organization(org=staff.personal_info.org, form=form)
+    else:
+        form.name.data = record.complainant.fullname
+        form.position.data = record.complainant.personal_info.position
+        get_organization(org=record.complainant.personal_info.org, form=form)
 
     if not form.cost_center.data and record.cost_center:
         form.cost_center.data = record.cost_center
@@ -858,13 +873,6 @@ def repair_approval(record_id, repair_approval_id=None):
 
     if not form.product_code.data and record.product_code:
         form.product_code.data = record.product_code
-
-    if staff.personal_info.org.parent and staff.personal_info.org.parent.parent:
-        form.organization.data = f'{staff.personal_info.org.name} {staff.personal_info.org.parent} {staff.personal_info.org.parent.parent}'
-    elif staff.personal_info.org.parent and not staff.personal_info.org.parent.parent:
-        form.organization.data = f'{staff.personal_info.org.name} {staff.personal_info.org.parent}'
-    else:
-        form.organization.data = staff.personal_info.org.name
 
     if record.procurements and not form.item.data:
         for procurement in record.procurements:
