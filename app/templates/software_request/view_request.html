@@ -298,7 +298,11 @@
                                                     <label for="notpass_{{ test_result.id }}">ไม่ผ่าน</label>
                                                 </td>
                                                 <td>
-                                                    <textarea class="textarea" name="note_{{ test_result.id }}">{{ test_result.note or '' }}</textarea>
+                                                    <div class="field">
+                                                        <div class="control">
+                                                            <textarea class="textarea" name="note_{{ test_result.id }}">{{ detail.note or '' }}</textarea>
+                                                        </div>
+                                                    </div>
                                                 </td>
                                                 <td>{{ test_result.issue.issue }}</td>
                                                 <td>{{ test_result.recorded_at|localdatetime or '' }}</td>
