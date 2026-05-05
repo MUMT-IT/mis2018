@@ -1267,7 +1267,7 @@ def generate_repair_approval_pdf(repair_approval):
         detail_title = '<font name="SarabunBold">2. รายละเอียดการซ่อม</font>'
 
         price = ('<font name="SarabunBold">3. วงเงินที่ซ่อมในครั้งนี้เป็นเงิน</font> {price} บาท ({price_thai})'
-                 .format(price=repair_approval.price, price_thai=price_thai))
+                 .format(price=formatted_price, price_thai=price_thai))
 
         receipt = (
             '<font name="SarabunBold">4. โดยขอเบิกจ่ายจากเงิน</font> {purchase_type} ประจำปีงบประมาณ {budget_year}'
