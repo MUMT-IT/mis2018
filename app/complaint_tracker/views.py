@@ -855,7 +855,7 @@ def create_repair_approval(record_id, repair_approval_id=None):
         form = ComplaintRepairApprovalForm()
     org_name = record.complainant.personal_info.org.name if record.complainant else current_user.personal_info.org.name
     org = Org.query.filter_by(name=org_name).first()
-    if org.parent and org.parent.parent.name == 'สำนักงา่นคณบดี':
+    if org.parent and org.parent.parent.name == 'สำนักงานคณบดี':
         staff = StaffAccount.query.filter_by(email=org.head).first()
         form.name.data = staff.fullname
         form.position.data = f"หัวหน้า{staff.personal_info.org.name}"
@@ -1080,11 +1080,6 @@ def generate_repair_approval_pdf(repair_approval):
             ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
         ]))
     else:
-        # today = date.today()
-        # if today.month >= 10:
-        #     fiscal_year = today.year + 1
-        # else:
-        #     fiscal_year = today.year
         organization_text = "หน่วยซ่อมบำรุง<br/>งานบริหารจัดการทั่วไป\u00A0สำนักงานคณบดี<br/>โทร 02-4414371-9 ต่อ 2115"
         organization_info = Paragraph(organization_text, style=header_right_style)
         mhesi_no = f'''<font name="SarabunBold">ที่</font>'''
