@@ -1048,19 +1048,19 @@ def generate_repair_approval_pdf(repair_approval):
     mhesi_no = '''<font name="SarabunBold">ที่</font>'''
     if org.name == 'หน่วยข้อมูลและสารสนเทศ':
         head = "ผู้ช่วยศาสตราจารย์ ดร.ลิขิต ปรียานนท์"
-        organization_text = f"{org.name}<br/>งานยุทธศาสตร์\u00A0และการบริหารพัฒนาทรัพยากร\u00A0{org.parent.parent.name}<br/>โทร 02-4414371-7 ต่อ 2320"
+        organization_text = f"{org.name}<br/>งานยุทธศาสตร์\u00A0และการบริหารพัฒนาทรัพยากร\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number}"
     elif org.name == 'หน่วยซ่อมบำรุง':
         head = "รองศาสตราจารย์ ดร.กลมรัตน์ โพธิ์ปิ่น"
-        organization_text = f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>โทร 02-4414371-9 ต่อ 2115"
+        organization_text = f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number}"
     elif org.parent and org.parent.parent:
         head = staff.fullname
-        organization_text = f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>โทร 02-4414371-9 ต่อ 2115"
+        organization_text = f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number}"
     elif org.parent and not org.parent.parent:
         head = staff.fullname
-        organization_text = f"{org.name}<br/>{org.parent.name}<br/>โทร 02-4414371-9 ต่อ 2115"
+        organization_text = f"{org.name}<br/>{org.parent.name}<br/>โทร {org.phone_number}"
     else:
         head = staff.fullname
-        organization_text = f"{org.name}<br/>โทร 02-4414371-9 ต่อ 2115"
+        organization_text = f"{org.name}<br/>โทร {org.phone_number}"
     organization_info = Paragraph(organization_text, style=header_right_style)
     person = Table([
         [Paragraph('ลงชื่อ', center_style), Paragraph('ผู้ขออนุมัติ', center_style)],
