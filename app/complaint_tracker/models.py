@@ -394,6 +394,8 @@ class ComplaintRepairApproval(db.Model):
                               foreign_keys=[creator_id])
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
     record = db.relationship(ComplaintRecord, backref=db.backref('repair_approvals'))
+    owner_id = db.Column('owner_id', db.ForeignKey('staff_account.id'))
+    owner = db.relationship(StaffAccount, backref=db.backref('owned_repair_approvals'), foreign_keys=[owner_id])
 
     def __str__(self):
         return self.item
