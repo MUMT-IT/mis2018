@@ -859,15 +859,14 @@ def repair_approval_index():
             StaffPersonalInfo.org == org)
     ))
     if tab == 'new':
-        repair_approvals = query.filter(ComplaintRepairApproval.is_print == None)
+        repair_approvals = query.filter(ComplaintRepairApproval.is_print == False)
     elif tab == 'completed':
         repair_approvals = query.filter(ComplaintRepairApproval.is_print == True)
     else:
         repair_approvals = query
-    new_record_count = 0
-    for repair_approval in repair_approvals:
-        if not repair_approval.is_print:
-            new_record_count += 1
+    new_record_count = query.filter(
+        ComplaintRepairApproval.is_print == None
+    ).count()
     return render_template('complaint_tracker/repair_approval_index.html', tab=tab, menu=menu,
                            new_record_count=new_record_count, repair_approvals=repair_approvals)
 
