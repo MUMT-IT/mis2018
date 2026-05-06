@@ -916,6 +916,9 @@ def create_repair_approval(record_id, repair_approval_id=None):
             rep_approval.created_at = arrow.now('Asia/Bangkok').datetime
             rep_approval.creator_id = current_user.id
             rep_approval.owner_id = record.complainant_id if record.complainant else current_user.id
+        else:
+            rep_approval.updated_at = arrow.now('Asia/Bangkok').datetime
+
         if form.repair_type.data == 'เร่งด่วน':
             rep_approval.principle_approval_type = None
             rep_approval.purpose = None
