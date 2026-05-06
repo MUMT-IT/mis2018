@@ -1315,6 +1315,7 @@ def generate_repair_approval_pdf(repair_approval):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('ALIGN', (0, 0), (0, 0), 'CENTER'),
         ('ALIGN', (2, 0), (2, 0), 'CENTER'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 60)
     ]))
 
     data.append(header_table)
