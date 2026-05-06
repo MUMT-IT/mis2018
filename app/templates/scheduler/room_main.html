@@ -81,6 +81,14 @@
             padding: 1.5rem;
         }
 
+        .room-ai-cta {
+            margin-bottom: 1.25rem;
+        }
+
+        .room-ai-cta .button {
+            border-radius: 999px;
+        }
+
         .room-panel-header {
             align-items: flex-start;
             display: flex;
@@ -339,6 +347,14 @@
         <div class="columns is-variable is-5">
             <div class="column">
                 <div class="room-panel">
+                    <div class="room-ai-cta">
+                        <a class="button is-primary is-medium is-rounded" href="{{ url_for('room.ai_room_search') }}">
+                            <span class="icon">
+                                <i class="fas fa-robot"></i>
+                            </span>
+                            <span>ทดลองระบบจองห้องอัจฉริยะด้วย AI alpha version</span>
+                        </a>
+                    </div>
                     <div class="room-panel-header">
                         <div>
                             <h2 class="title is-4 mb-5">ค้นหาห้องที่ต้องการจอง</h2>
