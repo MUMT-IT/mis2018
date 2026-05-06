@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+
+{% block page_content %}
+{% include "complaint_tracker/index_nav.html" %}
+<section class="section">
+    <div class="container">
+        {% include 'messages.html' %}
+        <div class="columns">
+            <div class="column">
+                <h1 class="title has-text-centered">รายการคำขออนุมัติหลักการซ่อม</h1>
+                <div class="tabs is-boxed">
+                    <ul>
+                        <li {% if tab == 'new' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('comp_tracker.repair_approval_index', tab='new') }}">
+                                <span class="icon is-small"><i class="fas fa-times"></i></span>
+                                <span>ยังไม่ดำเนินการ</span>
+                                {% if new_record_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ new_record_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'completed' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('comp_tracker.repair_approval_index', tab='completed') }}">
+                                <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                <span>ดำเนินการเสร็จสิ้น</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('comp_tracker.repair_approval_index', tab='all') }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ทั้งหมด</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <table id="repair_approvals" class="table is-fullwidth">
+                    <thead>
+                        <th>วันที่ออก</th>
+                        <th>รายการ/ครุภัณฑ์</th>
+                        <th>ประเภท</th>
+                        <th>ประเภทการเบิกจ่าย</th>
+                        <th>วงเงิน</th>
+                        <th>ปีงบประมาณ</th>
+                        <th>เหตุผล</th>
+                        <th>สถานะ</th>
+                        <th>ใบอนุมัติ</th>
+                    </thead>
+                    <tbody>
+                        {% for repair_approval in repair_approvals %}
+                            <tr>
+                                <td>
+                                    {{ repair_approval.created_at|localdatetime }}
+                                </td>
+                                <td>{{ repair_approval.item }}</td>
+                                <td>
+                                    {% if repair_approval.principle_approval_type %}
+                                        <span class="tag is-success is-rounded">
+                                            {{ repair_approval.principle_approval_type }} - {{  repair_approval.repair_type }}
+                                        </span>
+                                    {% else %}
+                                        <span class="tag is-danger is-rounded">
+                                            {{  repair_approval.repair_type }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ repair_approval.purchase_type }}</td>
+                                <td>
+                                    {{ "{:,.2f}".format(repair_approval.price) }}
+                                </td>
+                                <td>{{ repair_approval.budget_year }}</td>
+                                <td>{{ repair_approval.reason }}</td>
+                                <td>
+                                    {% if repair_approval.is_print %}
+                                        <span class="tag is-success">
+                                             <span class="icon"><i class="fas fa-check"></i></span>
+                                            <span>ดำเนินการเสร็จสิ้น</span>
+                                        </span>
+                                    {% else %}
+                                        <span class="tag is-warning">
+                                             <span class="icon"><i class="fas fa-times"></i></span>
+                                            <span>รอดำเนินการ</span>
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="field has-addons">
+                                        <div class="control">
+                                            <a class="button is-small is-info is-outlined is-rounded"
+                                                @click="printRepairApproval({{ repair_approval.id }})"
+                                            >
+                                                <span class="icon"><i class="fas fa-file-pdf"></i></span>
+                                                <span>ใบอนุมัติหลักการซ่อม</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
+    <script type="text/javascript">
+        var vm = new Vue({
+            el: "#repair_approvals",
+            delimiters: ['<%', '%>'],
+            methods: {
+                printRepairApproval: function (repair_approval_id) {
+                    var url = "/complaint-tracker/admin/repair-approval/pdf/" + repair_approval_id ;
+                    printJS(url);
+                }
+            },
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            $.fn.dataTable.moment('%d/%m/%Y %X');
+            $('#repair_approvals').DataTable({
+                order: [[0, 'desc']]
+            });
+        });
+    </script>
+{% endblock %}
