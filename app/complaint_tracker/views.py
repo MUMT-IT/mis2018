@@ -850,13 +850,15 @@ def admin_record_complaint_summary():
 @complaint_tracker.route('/repair_approval/index')
 @login_required
 def repair_approval_index():
+    menu = request.args.get('menu')
     org = current_user.personal_info.org
-    repair_approval = (ComplaintRepairApproval.query.join(ComplaintRepairApproval.owner).join(StaffAccount.personal_info)
+    repair_approvals = (ComplaintRepairApproval.query.join(ComplaintRepairApproval.owner).join(StaffAccount.personal_info)
     .filter(
         or_(ComplaintRepairApproval.owner_id == current_user.id,
             StaffPersonalInfo.org == org)
     ))
-    return render_template('complaint_tracker/repair_approval_index.html', repair_approval=repair_approval)
+    return render_template('complaint_tracker/repair_approval_index.html', menu=menu,
+                           repair_approvals=repair_approvals)
 
 
 @complaint_tracker.route('/admin/repair-approval/add/<int:record_id>', methods=['GET', 'POST'])
