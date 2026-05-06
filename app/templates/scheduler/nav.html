@@ -5,7 +5,8 @@
     subtitle='ระบบจองห้อง',
     brand_href=url_for('room.index'),
     start_links=[
-        {'href': url_for('room.index'), 'label': 'หน้าหลัก', 'icon': 'fas fa-house', 'primary': True}
+        {'href': url_for('room.index'), 'label': 'หน้าหลัก', 'icon': 'fas fa-house', 'primary': True},
+        {'href': url_for('room.ai_room_search'), 'label': 'ค้นหาห้องด้วย AI', 'icon': 'fas fa-robot'}
     ],
     user_display=current_user.email,
     account_href=url_for('auth.account'),

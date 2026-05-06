@@ -1,8 +1,11 @@
 import calendar
 import dateutil.parser
 import arrow
+import json
 import os
 import pytz
+import re
+import requests
 from datetime import datetime, timedelta
 from dateutil import parser
 from flask import render_template, jsonify, request, flash, redirect, url_for, current_app, make_response
@@ -11,6 +14,7 @@ from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from psycopg2.extras import DateTimeRange
 from sqlalchemy import or_
+from sqlalchemy.sql import text
 from app.main import mail
 from .forms import RoomEventForm
 from ..auth.views import line_bot_api
@@ -24,6 +28,8 @@ from flask_mail import Message
 from ..staff.models import StaffAccount, StaffGroupDetail
 
 localtz = pytz.timezone('Asia/Bangkok')
+TYPHOON_API_URL = 'https://api.opentyphoon.ai/v1/chat/completions'
+TYPHOON_MODEL = os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct')
 
 
 def _ics_escape(value):
@@ -112,6 +118,663 @@ def send_mail(recp, title, message, attachments=None):
             headers=attachment.get('headers'),
         )
     mail.send(message)
+
+
+def _extract_json_payload(raw_text):
+    if not raw_text:
+        raise ValueError('Empty Typhoon response.')
+    payload = raw_text.strip()
+    if payload.startswith('```'):
+        payload = re.sub(r'^```(?:json)?\s*', '', payload)
+        payload = re.sub(r'\s*```$', '', payload)
+    match = re.search(r'\{.*\}', payload, flags=re.DOTALL)
+    if match:
+        payload = match.group(0)
+    return json.loads(payload)
+
+
+def _normalize_assumptions(value):
+    if not value:
+        return []
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if isinstance(value, (list, tuple, set)):
+        items = []
+        for item in value:
+            if item is None:
+                continue
+            text = str(item).strip()
+            if text:
+                items.append(text)
+        return list(dict.fromkeys(items))
+    text = str(value).strip()
+    return [text] if text else []
+
+
+def _safe_parse_date(date_value):
+    if not date_value:
+        return None
+    try:
+        return datetime.strptime(date_value, '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return None
+
+
+def _safe_parse_time(time_value):
+    if not time_value:
+        return None
+    cleaned = str(time_value).strip()
+    for fmt in ('%H:%M', '%H:%M:%S'):
+        try:
+            return datetime.strptime(cleaned, fmt).time()
+        except ValueError:
+            continue
+    return None
+
+
+def _parse_thai_relative_date(text_value):
+    if not text_value:
+        return None
+    text_lower = str(text_value).lower()
+    today = arrow.now('Asia/Bangkok').date()
+    if 'วันนี้' in text_lower:
+        return today
+    if 'พรุ่งนี้' in text_lower:
+        return today + timedelta(days=1)
+    if 'มะรืน' in text_lower or 'วันมะรืน' in text_lower:
+        return today + timedelta(days=2)
+    if 'สัปดาห์หน้า' in text_lower:
+        return today + timedelta(days=7)
+
+    weekday_map = {
+        'จันทร์': 0,
+        'อังคาร': 1,
+        'พุธ': 2,
+        'พฤหัส': 3,
+        'ศุกร์': 4,
+        'เสาร์': 5,
+        'อาทิตย์': 6,
+    }
+    for label, weekday in weekday_map.items():
+        if f'วัน{label}นี้' in text_value or f'{label}นี้' in text_value:
+            delta = weekday - today.weekday()
+            if delta < 0:
+                delta += 7
+            return today + timedelta(days=delta)
+        if f'วัน{label}หน้า' in text_value or f'{label}หน้า' in text_value:
+            delta = weekday - today.weekday()
+            if delta <= 0:
+                delta += 7
+            return today + timedelta(days=delta)
+    return None
+
+
+def _parse_message_date(text_value):
+    if not text_value:
+        return None
+    relative_date = _parse_thai_relative_date(text_value)
+    if relative_date:
+        return relative_date
+
+    iso_match = re.search(r'\b(\d{4}-\d{2}-\d{2})\b', text_value)
+    if iso_match:
+        return _safe_parse_date(iso_match.group(1))
+
+    thai_match = re.search(r'\b(\d{1,2})/(\d{1,2})/(\d{4})\b', text_value)
+    if thai_match:
+        day, month, year = [int(part) for part in thai_match.groups()]
+        if year > 2400:
+            year -= 543
+        try:
+            return datetime(year, month, day).date()
+        except ValueError:
+            return None
+    return None
+
+
+def _parse_duration_hours(text_value):
+    if not text_value:
+        return None
+    match = re.search(r'(\d+(?:\.\d+)?)\s*ชั่วโมง', text_value)
+    if match:
+        try:
+            return float(match.group(1))
+        except ValueError:
+            return None
+    if 'ครึ่งวัน' in text_value:
+        return 4.0
+    return None
+
+
+def _default_duration_hours():
+    return 3.0
+
+
+def _time_from_parts(hour_text, minute_text=None):
+    hour = int(hour_text)
+    minute = int(minute_text) if minute_text is not None else 0
+    if 0 <= hour <= 23 and 0 <= minute <= 59:
+        return datetime.strptime(f'{hour:02d}:{minute:02d}', '%H:%M').time()
+    return None
+
+
+def _parse_message_times(text_value):
+    if not text_value:
+        return None, None
+
+    range_match = re.search(
+        r'(\d{1,2})(?:[:\.](\d{2}))?\s*(?:-|ถึง|to)\s*(\d{1,2})(?:[:\.](\d{2}))?',
+        text_value
+    )
+    if range_match:
+        start_time = _time_from_parts(range_match.group(1), range_match.group(2))
+        end_time = _time_from_parts(range_match.group(3), range_match.group(4))
+        return start_time, end_time
+
+    single_time_match = re.search(r'(?:เวลา|เริ่ม|ตอน)\s*(\d{1,2})(?:[:\.](\d{2}))?', text_value)
+    if single_time_match:
+        start_time = _time_from_parts(single_time_match.group(1), single_time_match.group(2))
+        duration_hours = _parse_duration_hours(text_value) or _default_duration_hours()
+        if start_time and duration_hours:
+            start_dt = datetime.combine(datetime.today().date(), start_time)
+            end_dt = start_dt + timedelta(hours=duration_hours)
+            return start_time, end_dt.time()
+        return start_time, None
+
+    part_of_day_map = {
+        'ตอนเช้า': ('09:00', '12:00'),
+        'ช่วงเช้า': ('09:00', '12:00'),
+        'เช้า': ('09:00', '12:00'),
+        'ตอนบ่าย': ('13:00', '16:00'),
+        'ช่วงบ่าย': ('13:00', '16:00'),
+        'บ่าย': ('13:00', '16:00'),
+        'ตอนเย็น': ('16:00', '19:00'),
+        'ช่วงเย็น': ('16:00', '19:00'),
+        'เย็น': ('16:00', '19:00'),
+    }
+    for phrase, (start_text, end_text) in part_of_day_map.items():
+        if phrase in text_value:
+            return _safe_parse_time(start_text), _safe_parse_time(end_text)
+    return None, None
+
+
+def _parse_capacity_from_message(text_value):
+    if not text_value:
+        return None
+    match = re.search(r'(\d+)\s*(?:คน|ท่าน|ที่นั่ง)', text_value)
+    if match:
+        try:
+            return int(match.group(1))
+        except ValueError:
+            return None
+    return None
+
+
+def _parse_floor_from_message(text_value):
+    if not text_value:
+        return None
+
+    digit_match = re.search(r'ชั้น\s*(\d+)', text_value)
+    if digit_match:
+        return digit_match.group(1)
+
+    thai_number_map = {
+        'หนึ่ง': '1',
+        'สอง': '2',
+        'สาม': '3',
+        'สี่': '4',
+        'ห้า': '5',
+        'หก': '6',
+        'เจ็ด': '7',
+        'แปด': '8',
+        'เก้า': '9',
+        'สิบ': '10',
+    }
+    for thai_word, digit in thai_number_map.items():
+        if f'ชั้น{thai_word}' in text_value or f'ชั้น {thai_word}' in text_value:
+            return digit
+
+    floor_word_match = re.search(r'floor\s*(\d+)', str(text_value).lower())
+    if floor_word_match:
+        return floor_word_match.group(1)
+
+    return None
+
+
+def _infer_location_from_message(text_value, current_location=None):
+    if current_location:
+        return current_location
+    if not text_value:
+        return 'ศาลายา'
+    text_lower = str(text_value).lower()
+    if 'ศิริราช' in text_value or 'siriraj' in text_lower:
+        return 'ศิริราช'
+    if 'พญาไท' in text_value or 'phayathai' in text_lower or 'phyathai' in text_lower:
+        return 'พญาไท'
+    if 'ศาลายา' in text_value or 'salaya' in text_lower:
+        return 'ศาลายา'
+    return 'ศาลายา'
+
+
+def _location_is_explicitly_mentioned(text_value):
+    if not text_value:
+        return False
+    text_lower = str(text_value).lower()
+    return any(keyword in text_lower for keyword in ['ศาลายา', 'salaya', 'ศิริราช', 'siriraj', 'พญาไท', 'phayathai', 'phyathai'])
+
+
+def _infer_purpose_from_message(text_value, current_purpose=None):
+    user_text = (text_value or '').strip()
+    if not user_text and not current_purpose:
+        return None
+    purpose_patterns = [
+        ('สอน', r'ห้องเรียน|หาห้องเรียน|classroom'),
+        ('สอน', r'ห้องปฏิบัติการ|ห้องแลบ|lab room|laboratory'),
+        ('ประชุมคณะกรรมการ', r'ประชุมคณะกรรมการ'),
+        ('ประชุมทีมบริหาร', r'ประชุมทีมบริหาร|ทีมบริหาร'),
+        ('อบรมเชิงปฏิบัติการ', r'อบรมเชิงปฏิบัติการ|workshop'),
+        ('ประชุม', r'ประชุม|meeting'),
+        ('สอน', r'สอน|เรียน|class|lecture'),
+        ('อบรม', r'อบรม|training'),
+        ('สัมมนา', r'สัมมนา|seminar'),
+        ('สอบ', r'สอบ|exam'),
+        ('นำเสนอ', r'นำเสนอ|presentation|pitch'),
+    ]
+    for label, pattern in purpose_patterns:
+        if re.search(pattern, user_text, flags=re.IGNORECASE):
+            return label
+
+    source_text = current_purpose.strip() if current_purpose and len(current_purpose.strip()) <= 40 else user_text
+    for label, pattern in purpose_patterns:
+        if re.search(pattern, source_text, flags=re.IGNORECASE):
+            return label
+    return source_text.strip()[:80]
+
+
+def _normalize_location_terms(location_value):
+    location = (location_value or 'ศาลายา').strip() or 'ศาลายา'
+    location_lower = location.lower()
+    if 'ศาลายา' in location or 'salaya' in location_lower:
+        return location, '%ศาลายา%', '%salaya%'
+    if 'ศิริราช' in location or 'siriraj' in location_lower:
+        return location, '%ศิริราช%', '%siriraj%'
+    if 'พญาไท' in location or 'phayathai' in location_lower or 'phyathai' in location_lower:
+        return location, '%พญาไท%', '%phayathai%'
+    english_pattern = f'%{location}%' if re.search(r'[A-Za-z]', location) else None
+    return location, f'%{location}%', english_pattern
+
+
+def _tokenize_search_text(text_value):
+    if not text_value:
+        return []
+    tokens = []
+    for token in re.split(r'[\s,;/()]+', str(text_value).strip()):
+        token = token.strip()
+        if len(token) >= 2:
+            tokens.append(token)
+    return tokens[:5]
+
+
+def _expand_purpose_tokens(purpose):
+    tokens = _tokenize_search_text(purpose)
+    purpose_lower = (purpose or '').lower()
+    expansion_map = {
+        'ประชุม': ['meeting', 'conference', 'กรรมการ'],
+        'สอน': ['เรียน', 'class', 'lecture'],
+        'อบรม': ['training', 'workshop', 'ปฏิบัติการ'],
+        'สัมมนา': ['seminar'],
+        'สอบ': ['exam', 'test'],
+        'นำเสนอ': ['presentation', 'pitch'],
+    }
+    for key, related_tokens in expansion_map.items():
+        if key in (purpose or '') or key in purpose_lower:
+            tokens.extend(related_tokens)
+    deduped = []
+    seen = set()
+    for token in tokens:
+        normalized = token.lower()
+        if normalized not in seen:
+            deduped.append(token)
+            seen.add(normalized)
+    return deduped[:5]
+
+
+def _is_generic_purpose(purpose):
+    purpose_text = (purpose or '').strip().lower()
+    generic_purposes = {
+        'ประชุม', 'meeting',
+        'สอน', 'เรียน', 'class', 'lecture',
+        'อบรม', 'training',
+        'สัมมนา', 'seminar',
+        'สอบ', 'exam', 'test',
+        'นำเสนอ', 'presentation', 'pitch',
+        'ประชุมทีมบริหาร'
+    }
+    return purpose_text in generic_purposes
+
+
+def _derive_required_room_types(purpose):
+    purpose_text = (purpose or '').strip().lower()
+    if not purpose_text:
+        return []
+
+    if any(keyword in purpose for keyword in ['ประชุม']) or 'meeting' in purpose_text:
+        return ['%ประชุม%', '%meeting%', '%conference%']
+
+    if any(keyword in purpose for keyword in ['ห้องเรียน']) or 'classroom' in purpose_text:
+        return ['%เรียน%', '%class%', '%lecture%']
+
+    if any(keyword in purpose for keyword in ['ห้องปฏิบัติการ', 'ห้องแลบ']) or any(keyword in purpose_text for keyword in ['lab', 'laboratory']):
+        return ['%ปฏิบัติการ%', '%lab%', '%laboratory%']
+
+    if any(keyword in purpose for keyword in ['สอน', 'เรียน']) or any(keyword in purpose_text for keyword in ['class', 'lecture']):
+        return ['%เรียน%', '%class%', '%lecture%', '%ปฏิบัติการ%', '%lab%']
+
+    return []
+
+
+def _fallback_room_query_sql():
+    return text("""
+        SELECT
+            r.id,
+            r.number,
+            r.location,
+            r.floor,
+            r.occupancy,
+            COALESCE(r."desc", '') AS description,
+            COALESCE(a.availability, '') AS availability,
+            COALESCE(t.type, '') AS room_type,
+            r.business_hour_start,
+            r.business_hour_end
+        FROM scheduler_room_resources AS r
+        LEFT JOIN scheduler_room_avails AS a ON a.id = r.availability_id
+        LEFT JOIN scheduler_room_types AS t ON t.id = r.type_id
+        WHERE r.availability_id IS NOT NULL
+          AND (
+            :location_keyword IS NULL
+            OR COALESCE(r.location, '') ILIKE :location_keyword
+            OR COALESCE(r.location, '') ILIKE :location_keyword_en
+            OR COALESCE(r."desc", '') ILIKE :location_keyword
+            OR COALESCE(r."desc", '') ILIKE :location_keyword_en
+          )
+          AND (:capacity IS NULL OR r.occupancy >= :capacity)
+          AND (
+            :floor_keyword IS NULL
+            OR COALESCE(r.floor, '') ILIKE :floor_keyword
+          )
+          AND (
+            :start_time IS NULL
+            OR r.business_hour_start IS NULL
+            OR r.business_hour_start <= :start_time
+          )
+          AND (
+            :end_time IS NULL
+            OR r.business_hour_end IS NULL
+            OR r.business_hour_end >= :end_time
+          )
+          AND (
+            :purpose_keyword IS NULL
+            OR COALESCE(r.number, '') ILIKE :purpose_keyword
+            OR COALESCE(r.location, '') ILIKE :purpose_keyword
+            OR COALESCE(r."desc", '') ILIKE :purpose_keyword
+            OR COALESCE(t.type, '') ILIKE :purpose_keyword
+          )
+          AND (
+            :purpose_token_1 IS NULL
+            OR COALESCE(r.number, '') ILIKE :purpose_token_1
+            OR COALESCE(r."desc", '') ILIKE :purpose_token_1
+            OR COALESCE(t.type, '') ILIKE :purpose_token_1
+          )
+          AND (
+            :purpose_token_2 IS NULL
+            OR COALESCE(r.number, '') ILIKE :purpose_token_2
+            OR COALESCE(r."desc", '') ILIKE :purpose_token_2
+            OR COALESCE(t.type, '') ILIKE :purpose_token_2
+          )
+          AND (
+            :purpose_token_3 IS NULL
+            OR COALESCE(r.number, '') ILIKE :purpose_token_3
+            OR COALESCE(r."desc", '') ILIKE :purpose_token_3
+            OR COALESCE(t.type, '') ILIKE :purpose_token_3
+          )
+          AND (
+            :purpose_token_4 IS NULL
+            OR COALESCE(r.number, '') ILIKE :purpose_token_4
+            OR COALESCE(r."desc", '') ILIKE :purpose_token_4
+            OR COALESCE(t.type, '') ILIKE :purpose_token_4
+          )
+          AND (
+            :purpose_token_5 IS NULL
+            OR COALESCE(r.number, '') ILIKE :purpose_token_5
+            OR COALESCE(r."desc", '') ILIKE :purpose_token_5
+            OR COALESCE(t.type, '') ILIKE :purpose_token_5
+          )
+          AND (
+            :required_room_type_1 IS NULL
+            OR COALESCE(t.type, '') ILIKE :required_room_type_1
+            OR COALESCE(t.type, '') ILIKE :required_room_type_2
+            OR COALESCE(t.type, '') ILIKE :required_room_type_3
+            OR COALESCE(t.type, '') ILIKE :required_room_type_4
+            OR COALESCE(t.type, '') ILIKE :required_room_type_5
+          )
+          AND (
+            :start_at IS NULL
+            OR :end_at IS NULL
+            OR NOT EXISTS (
+                SELECT 1
+                FROM scheduler_room_reservations AS e
+                WHERE e.room_id = r.id
+                  AND e.cancelled_at IS NULL
+                  AND e.datetime && tsrange(:start_at, :end_at, '[]')
+            )
+          )
+        ORDER BY
+            r.occupancy ASC,
+            r.location ASC,
+            r.number ASC
+    """)
+
+
+def _format_room_rows(rows):
+    formatted = []
+    for row in rows:
+        formatted.append({
+            'id': row['id'],
+            'number': row['number'],
+            'location': row['location'],
+            'floor': row['floor'],
+            'occupancy': row['occupancy'],
+            'description': row['description'],
+            'availability': row['availability'],
+            'room_type': row['room_type'],
+            'business_hour_start': row['business_hour_start'].strftime('%H:%M') if row['business_hour_start'] else None,
+            'business_hour_end': row['business_hour_end'].strftime('%H:%M') if row['business_hour_end'] else None,
+            'reserve_url': url_for('room.room_reserve', room_id=row['id']),
+        })
+    return formatted
+
+
+def _enrich_room_criteria(user_message, criteria):
+    criteria = dict(criteria or {})
+    criteria['purpose'] = _infer_purpose_from_message(user_message, criteria.get('purpose'))
+    criteria['location'] = _infer_location_from_message(user_message, criteria.get('location'))
+    criteria['location_explicit'] = _location_is_explicitly_mentioned(user_message)
+    criteria['floor'] = criteria.get('floor') or _parse_floor_from_message(user_message)
+
+    parsed_date = _parse_message_date(user_message)
+    if parsed_date:
+        criteria['date'] = parsed_date.isoformat()
+
+    parsed_start_time, parsed_end_time = _parse_message_times(user_message)
+    if parsed_start_time:
+        criteria['start_time'] = parsed_start_time.strftime('%H:%M')
+    if parsed_end_time:
+        criteria['end_time'] = parsed_end_time.strftime('%H:%M')
+
+    if not criteria.get('capacity'):
+        parsed_capacity = _parse_capacity_from_message(user_message)
+        if parsed_capacity:
+            criteria['capacity'] = parsed_capacity
+
+    if criteria.get('start_time') and not criteria.get('end_time'):
+        start_time = _safe_parse_time(criteria.get('start_time'))
+        duration_hours = _parse_duration_hours(user_message) or _default_duration_hours()
+        if start_time and duration_hours:
+            start_dt = datetime.combine(datetime.today().date(), start_time)
+            criteria['end_time'] = (start_dt + timedelta(hours=duration_hours)).time().strftime('%H:%M')
+
+    assumptions = _normalize_assumptions(criteria.get('assumptions'))
+    if not criteria['location_explicit']:
+        assumptions.append('ไม่ได้ระบุสถานที่ จึงใช้ศาลายาเป็นค่าเริ่มต้น')
+    criteria['assumptions'] = _normalize_assumptions(assumptions)
+    return criteria
+
+
+def _build_room_query_params(criteria):
+    normalized_location, location_keyword, location_keyword_en = _normalize_location_terms(criteria.get('location'))
+    purpose = (criteria.get('purpose') or '').strip()
+    purpose_tokens = _expand_purpose_tokens(purpose)
+    required_room_types = _derive_required_room_types(purpose)
+    generic_purpose = _is_generic_purpose(purpose)
+    floor = str(criteria.get('floor')).strip() if criteria.get('floor') not in (None, '') else None
+    meeting_date = _safe_parse_date(criteria.get('date'))
+    start_time = _safe_parse_time(criteria.get('start_time'))
+    end_time = _safe_parse_time(criteria.get('end_time'))
+    capacity = criteria.get('capacity')
+    try:
+        capacity = int(capacity) if capacity not in (None, '', 0, '0') else None
+    except (TypeError, ValueError):
+        capacity = None
+
+    start_at = None
+    end_at = None
+    if meeting_date and start_time and end_time:
+        start_at = datetime.combine(meeting_date, start_time)
+        end_at = datetime.combine(meeting_date, end_time)
+
+    params = {
+        'location_keyword': location_keyword,
+        'location_keyword_en': location_keyword_en,
+        'purpose_keyword': f'%{purpose}%' if purpose and not generic_purpose else None,
+        'capacity': capacity,
+        'floor_keyword': f'%{floor}%' if floor else None,
+        'start_time': start_time,
+        'end_time': end_time,
+        'start_at': start_at,
+        'end_at': end_at,
+        'required_room_type_1': required_room_types[0] if len(required_room_types) > 0 else None,
+        'required_room_type_2': required_room_types[1] if len(required_room_types) > 1 else None,
+        'required_room_type_3': required_room_types[2] if len(required_room_types) > 2 else None,
+        'required_room_type_4': required_room_types[3] if len(required_room_types) > 3 else None,
+        'required_room_type_5': required_room_types[4] if len(required_room_types) > 4 else None,
+    }
+    for idx in range(5):
+        token = purpose_tokens[idx] if idx < len(purpose_tokens) and not generic_purpose else None
+        params[f'purpose_token_{idx + 1}'] = f'%{token}%' if token else None
+
+    criteria['location'] = normalized_location
+    criteria['capacity'] = capacity
+    criteria['floor'] = floor
+    criteria['date'] = meeting_date.isoformat() if meeting_date else None
+    criteria['start_time'] = start_time.strftime('%H:%M') if start_time else None
+    criteria['end_time'] = end_time.strftime('%H:%M') if end_time else None
+    return params
+
+
+def _build_typhoon_room_prompt(user_message):
+    return [
+        {
+            'role': 'system',
+            'content': (
+                'You convert Thai room-booking requests into structured search criteria. '
+                'Respond with JSON only and no markdown. '
+                'Use this schema: '
+                'scheduler_room_resources(id, location, number, floor, occupancy, desc, business_hour_start, business_hour_end, availability_id, type_id), '
+                'scheduler_room_avails(id, availability), '
+                'scheduler_room_types(id, type), '
+                'scheduler_room_reservations(room_id, datetime, cancelled_at). '
+                'Infer these fields from the user message: purpose, location, date, start_time, end_time, capacity. '
+                'Also infer floor when specified. '
+                'If location is missing, default to ศาลายา. '
+                'If number of people is mentioned, map it to capacity. '
+                'Purpose should reflect the meeting purpose. '
+                'Dates must use YYYY-MM-DD when known. '
+                'Times must use 24-hour HH:MM when known. '
+                'Return JSON with keys: purpose, location, date, start_time, end_time, capacity, floor, assumptions.'
+            )
+        },
+        {
+            'role': 'user',
+            'content': user_message
+        }
+    ]
+
+
+def _call_typhoon_room_query(user_message):
+    api_key = os.environ.get('SCB_TYPHOON_API_KEY')
+    if not api_key:
+        raise RuntimeError('SCB_TYPHOON_API_KEY is not configured.')
+
+    response = requests.post(
+        TYPHOON_API_URL,
+        headers={
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json',
+        },
+        json={
+            'model': TYPHOON_MODEL,
+            'temperature': 0.1,
+            'max_tokens': 900,
+            'messages': _build_typhoon_room_prompt(user_message),
+        },
+        timeout=45,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    content = payload['choices'][0]['message']['content']
+    print('TYPHOON_RAW_CONTENT:', content)
+    parsed = _extract_json_payload(content)
+    print('TYPHOON_PARSED_PAYLOAD:', json.dumps(parsed, ensure_ascii=False))
+    parsed['assumptions'] = _normalize_assumptions(parsed.get('assumptions'))
+    return parsed
+
+
+def _summarize_room_request(criteria, rooms):
+    segments = []
+    if criteria.get('purpose'):
+        segments.append(f"วัตถุประสงค์ '{criteria['purpose']}'")
+    if criteria.get('location'):
+        segments.append(f"สถานที่ {criteria['location']}")
+    if criteria.get('floor'):
+        segments.append(f"ชั้น {criteria['floor']}")
+    if criteria.get('date'):
+        segments.append(f"วันที่ {criteria['date']}")
+    if criteria.get('start_time') and criteria.get('end_time'):
+        segments.append(f"เวลา {criteria['start_time']}-{criteria['end_time']}")
+    if criteria.get('capacity'):
+        segments.append(f"รองรับอย่างน้อย {criteria['capacity']} คน")
+    criteria_text = ' | '.join(segments) if segments else 'ตามข้อความที่ส่งมา'
+    if rooms:
+        return f'พบห้องที่ตรงเงื่อนไข {len(rooms)} ห้อง สำหรับ {criteria_text}'
+    return f'ไม่พบห้องที่ตรงเงื่อนไข สำหรับ {criteria_text}'
+
+
+def _execute_ai_room_search(criteria):
+    params = _build_room_query_params(criteria)
+    rows = db.session.execute(_fallback_room_query_sql(), params).mappings().all()
+    rooms = _format_room_rows(rows)
+    fallback_used = False
+
+    if not rooms and not criteria.get('location_explicit'):
+        relaxed_params = dict(params)
+        relaxed_params['location_keyword'] = None
+        relaxed_params['location_keyword_en'] = None
+        rows = db.session.execute(_fallback_room_query_sql(), relaxed_params).mappings().all()
+        rooms = _format_room_rows(rows)
+        fallback_used = bool(rooms)
+
+    return rooms, fallback_used
 
 
 def create_event(startdatetime, enddatetime, repeat_end, master_id, room_id, form):
@@ -238,6 +901,51 @@ def index():
         .filter(RoomEvent.created_at >= cutoff) \
         .order_by(RoomEvent.created_at.desc())
     return render_template('scheduler/room_main.html', recent_reservations=recent_reservations)
+
+
+@room.route('/ai-room-search')
+@login_required
+def ai_room_search():
+    return render_template('scheduler/ai_room_search.html')
+
+
+@room.route('/api/ai-room-search', methods=['POST'])
+@login_required
+def ai_room_search_api():
+    payload = request.get_json(silent=True) or {}
+    user_message = (payload.get('message') or '').strip()
+    if not user_message:
+        return jsonify({'error': 'กรุณาระบุรายละเอียดที่ต้องการค้นหาห้อง'}), 400
+
+    try:
+        typhoon_result = _enrich_room_criteria(user_message, _call_typhoon_room_query(user_message))
+        rooms, fallback_used = _execute_ai_room_search(typhoon_result)
+    except requests.RequestException as exc:
+        return jsonify({'error': f'ไม่สามารถเชื่อมต่อ Typhoon API ได้: {exc}'}), 502
+    except RuntimeError as exc:
+        return jsonify({'error': str(exc)}), 503
+    except (KeyError, ValueError, TypeError) as exc:
+        return jsonify({'error': f'ระบบตีความคำขอไม่สำเร็จ: {exc}'}), 422
+
+    assumptions = _normalize_assumptions(typhoon_result.get('assumptions'))
+    if fallback_used:
+        assumptions.append('ไม่พบห้องในศาลายาตามเงื่อนไข จึงขยายผลลัพธ์ไปทุกวิทยาเขต')
+    typhoon_result['assumptions'] = _normalize_assumptions(assumptions)
+
+    return jsonify({
+        'assistant_message': _summarize_room_request(typhoon_result, rooms),
+        'requirements': {
+            'purpose': typhoon_result.get('purpose'),
+            'location': typhoon_result.get('location'),
+            'date': typhoon_result.get('date'),
+            'start_time': typhoon_result.get('start_time'),
+            'end_time': typhoon_result.get('end_time'),
+            'capacity': typhoon_result.get('capacity'),
+            'floor': typhoon_result.get('floor'),
+        },
+        'assumptions': typhoon_result.get('assumptions') or [],
+        'rooms': rooms,
+    })
 
 
 @room.route('/events/<list_type>')
