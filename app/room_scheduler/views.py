@@ -21,7 +21,7 @@ from ..auth.views import line_bot_api
 from ..complaint_tracker.models import ComplaintRecord, ComplaintStatus, ComplaintTopic
 from ..main import db
 from . import roombp as room
-from .models import RoomResource, RoomEvent, room_coordinator_assoc
+from .models import RoomResource, RoomEvent, EventCategory, room_coordinator_assoc
 from ..models import IOCode
 from flask_mail import Message
 
@@ -595,6 +595,80 @@ def _format_room_rows(rows):
     return formatted
 
 
+def _build_reserve_url(room_id, criteria):
+    query = {}
+    if criteria.get('purpose'):
+        query['title'] = criteria.get('purpose')
+    if criteria.get('capacity'):
+        query['occupancy'] = criteria.get('capacity')
+    if criteria.get('date') and criteria.get('start_time'):
+        query['start'] = f"{criteria['date']} {criteria['start_time']}"
+    if criteria.get('date') and criteria.get('end_time'):
+        query['end'] = f"{criteria['date']} {criteria['end_time']}"
+    return url_for('room.room_reserve', room_id=room_id, **query)
+
+
+def _attach_reserve_urls(rooms, criteria):
+    for room in rooms:
+        room['reserve_url'] = _build_reserve_url(room['id'], criteria)
+    return rooms
+
+
+def _prefill_room_reserve_form(form):
+    title = request.args.get('title', '').strip()
+    occupancy = request.args.get('occupancy', type=int)
+    start_value = request.args.get('start', '').strip()
+    end_value = request.args.get('end', '').strip()
+
+    if title:
+        form.title.data = title
+    if occupancy:
+        form.occupancy.data = occupancy
+
+    if start_value:
+        try:
+            form.start.data = datetime.strptime(start_value, '%Y-%m-%d %H:%M')
+        except ValueError:
+            pass
+
+    if end_value:
+        try:
+            form.end.data = datetime.strptime(end_value, '%Y-%m-%d %H:%M')
+        except ValueError:
+            pass
+
+    category = _infer_event_category(title)
+    if category:
+        form.category.data = category
+
+
+def _infer_event_category(purpose):
+    if not purpose:
+        return None
+
+    purpose_text = str(purpose).strip().lower()
+    category_preferences = []
+
+    if any(keyword in purpose for keyword in ['สอน', 'เรียน', 'ห้องเรียน', 'ห้องปฏิบัติการ']) or any(keyword in purpose_text for keyword in ['class', 'lecture', 'classroom', 'lab', 'laboratory']):
+        category_preferences = ['การเรียนการสอน', 'เรียน', 'สอน']
+    elif any(keyword in purpose for keyword in ['ประชุม']) or 'meeting' in purpose_text:
+        category_preferences = ['การประชุม', 'ประชุม']
+    elif any(keyword in purpose for keyword in ['อบรม']) or 'training' in purpose_text:
+        category_preferences = ['อบรม', 'การฝึกอบรม']
+    elif any(keyword in purpose for keyword in ['สัมมนา']) or 'seminar' in purpose_text:
+        category_preferences = ['สัมมนา']
+
+    if not category_preferences:
+        return None
+
+    categories = EventCategory.query.all()
+    for preferred in category_preferences:
+        for category in categories:
+            if preferred in (category.category or ''):
+                return category
+    return None
+
+
 def _enrich_room_criteria(user_message, criteria):
     criteria = dict(criteria or {})
     criteria['purpose'] = _infer_purpose_from_message(user_message, criteria.get('purpose'))
@@ -733,9 +807,7 @@ def _call_typhoon_room_query(user_message):
     response.raise_for_status()
     payload = response.json()
     content = payload['choices'][0]['message']['content']
-    print('TYPHOON_RAW_CONTENT:', content)
     parsed = _extract_json_payload(content)
-    print('TYPHOON_PARSED_PAYLOAD:', json.dumps(parsed, ensure_ascii=False))
     parsed['assumptions'] = _normalize_assumptions(parsed.get('assumptions'))
     return parsed
 
@@ -763,7 +835,7 @@ def _summarize_room_request(criteria, rooms):
 def _execute_ai_room_search(criteria):
     params = _build_room_query_params(criteria)
     rows = db.session.execute(_fallback_room_query_sql(), params).mappings().all()
-    rooms = _format_room_rows(rows)
+    rooms = _attach_reserve_urls(_format_room_rows(rows), criteria)
     fallback_used = False
 
     if not rooms and not criteria.get('location_explicit'):
@@ -771,7 +843,7 @@ def _execute_ai_room_search(criteria):
         relaxed_params['location_keyword'] = None
         relaxed_params['location_keyword_en'] = None
         rows = db.session.execute(_fallback_room_query_sql(), relaxed_params).mappings().all()
-        rooms = _format_room_rows(rows)
+        rooms = _attach_reserve_urls(_format_room_rows(rows), criteria)
         fallback_used = bool(rooms)
 
     return rooms, fallback_used
@@ -919,6 +991,16 @@ def ai_room_search_api():
 
     try:
         typhoon_result = _enrich_room_criteria(user_message, _call_typhoon_room_query(user_message))
+        print('AI_ROOM_SEARCH_CRITERIA:', json.dumps({
+            'purpose': typhoon_result.get('purpose'),
+            'location': typhoon_result.get('location'),
+            'location_explicit': typhoon_result.get('location_explicit'),
+            'floor': typhoon_result.get('floor'),
+            'date': typhoon_result.get('date'),
+            'start_time': typhoon_result.get('start_time'),
+            'end_time': typhoon_result.get('end_time'),
+            'capacity': typhoon_result.get('capacity'),
+        }, ensure_ascii=False))
         rooms, fallback_used = _execute_ai_room_search(typhoon_result)
     except requests.RequestException as exc:
         return jsonify({'error': f'ไม่สามารถเชื่อมต่อ Typhoon API ได้: {exc}'}), 502
@@ -1209,6 +1291,12 @@ def room_list():
 @login_required
 def room_reserve(room_id):
     form = RoomEventForm()
+    start = None
+    end = None
+    if request.method == 'GET':
+        _prefill_room_reserve_form(form)
+        start = form.start.data
+        end = form.end.data
     room = RoomResource.query.get(room_id)
     complaints = ComplaintRecord.query.filter(ComplaintRecord.topic.has(ComplaintTopic.code.in_(['room', 'runied'])),
                                               or_(ComplaintRecord.status.has(ComplaintStatus.code!='completed'),
@@ -1233,7 +1321,7 @@ def room_reserve(room_id):
         if room_id and startdatetime and enddatetime:
             if get_overlaps(room_id, startdatetime, enddatetime):
                 flash(f'ไม่สามารถจองได้เนื่องจากมีการจองในช่วงเวลาเดียวกัน', 'danger')
-                return render_template('scheduler/reserve_form.html', room=room, form=form)
+                return render_template('scheduler/reserve_form.html', room=room, form=form, start=start, end=end)
 
             form.populate_obj(new_event)
             repeat_end = arrow.get(form.repeat_end.data, 'Asia/Bangkok').date() if form.repeat_end.data else None
@@ -1330,7 +1418,7 @@ def room_reserve(room_id):
 
     if room:
         return render_template('scheduler/reserve_form.html',
-                               room=room, complaints=complaints, form=form)
+                               room=room, complaints=complaints, form=form, start=start, end=end)
     else:
         flash('Room not found.', 'danger')
 
