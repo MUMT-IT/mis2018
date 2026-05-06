@@ -18,6 +18,10 @@
                     menu='view') }}">
                     รายการแจ้งปัญหา
                 </a>
+                <a {% if menu=="new" %} class="is-active" {% endif %} href="{{ url_for('comp_tracker.repair_approval_index',
+                    menu='new') }}">
+                    รายการคำขออนุมัติหลักการซ่อม
+                </a>
             </li>
         </ul>
     </aside>
