@@ -37,6 +37,7 @@ from flask_mail import Message
 from ..models import Org
 from ..procurement.models import ProcurementDetail
 from ..roles import admin_permission
+from ..staff.models import StaffPersonalInfo
 
 sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
 pdfmetrics.registerFont(sarabun_font)
@@ -844,6 +845,18 @@ def admin_record_complaint_summary():
             code.append(t.code)
     return render_template('complaint_tracker/admin_record_complaint_summary.html', menu=menu, code=' '.join(code),
                            topic=' '.join(topic), topics=topics)
+
+
+@complaint_tracker.route('/repair_approval/index')
+@login_required
+def repair_approval_index():
+    org = current_user.personal_info.org
+    repair_approval = (ComplaintRepairApproval.query.join(ComplaintRepairApproval.owner).join(StaffAccount.personal_info)
+    .filter(
+        or_(ComplaintRepairApproval.owner_id == current_user.id,
+            StaffPersonalInfo.org == org)
+    ))
+    return render_template('complaint_tracker/repair_approval_index.html', repair_approval=repair_approval)
 
 
 @complaint_tracker.route('/admin/repair-approval/add/<int:record_id>', methods=['GET', 'POST'])
