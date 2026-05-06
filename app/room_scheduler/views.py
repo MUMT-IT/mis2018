@@ -176,7 +176,8 @@ def _safe_parse_time(time_value):
 def _parse_thai_relative_date(text_value):
     if not text_value:
         return None
-    text_lower = str(text_value).lower()
+    text_raw = str(text_value)
+    text_lower = text_raw.lower()
     today = arrow.now('Asia/Bangkok').date()
     if 'วันนี้' in text_lower:
         return today
@@ -188,23 +189,28 @@ def _parse_thai_relative_date(text_value):
         return today + timedelta(days=7)
 
     weekday_map = {
-        'จันทร์': 0,
-        'อังคาร': 1,
-        'พุธ': 2,
-        'พฤหัส': 3,
-        'ศุกร์': 4,
-        'เสาร์': 5,
-        'อาทิตย์': 6,
+        0: ['จันทร์', 'จันทร์บดี', 'monday'],
+        1: ['อังคาร', 'tuesday'],
+        2: ['พุธ', 'wednesday'],
+        3: ['พฤหัส', 'พฤหัสบดี', 'thursday'],
+        4: ['ศุกร์', 'friday'],
+        5: ['เสาร์', 'saturday'],
+        6: ['อาทิตย์', 'อาทิตย์์', 'sunday'],
     }
-    for label, weekday in weekday_map.items():
-        if f'วัน{label}นี้' in text_value or f'{label}นี้' in text_value:
+    for weekday, aliases in weekday_map.items():
+        if any((f'วัน{alias}นี้' in text_raw) or (f'{alias}นี้' in text_raw) or (f'this {alias}' in text_lower) for alias in aliases):
             delta = weekday - today.weekday()
             if delta < 0:
                 delta += 7
             return today + timedelta(days=delta)
-        if f'วัน{label}หน้า' in text_value or f'{label}หน้า' in text_value:
+        if any((f'วัน{alias}หน้า' in text_raw) or (f'{alias}หน้า' in text_raw) or (f'next {alias}' in text_lower) for alias in aliases):
             delta = weekday - today.weekday()
             if delta <= 0:
+                delta += 7
+            return today + timedelta(days=delta)
+        if any((f'วัน{alias}' in text_raw) or re.search(rf'\b{re.escape(alias)}\b', text_lower) for alias in aliases):
+            delta = weekday - today.weekday()
+            if delta < 0:
                 delta += 7
             return today + timedelta(days=delta)
     return None
@@ -231,6 +237,19 @@ def _parse_message_date(text_value):
         except ValueError:
             return None
     return None
+
+
+def _contains_relative_or_weekday_reference(text_value):
+    if not text_value:
+        return False
+    text_raw = str(text_value)
+    text_lower = text_raw.lower()
+    weekday_tokens = [
+        'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'พฤหัสบดี', 'ศุกร์', 'เสาร์', 'อาทิตย์',
+        'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'
+    ]
+    relative_tokens = ['วันนี้', 'พรุ่งนี้', 'มะรืน', 'วันมะรืน', 'สัปดาห์หน้า', 'this ', 'next ']
+    return any(token in text_raw for token in weekday_tokens) or any(token in text_lower for token in relative_tokens)
 
 
 def _parse_duration_hours(text_value):
@@ -675,6 +694,7 @@ def _enrich_room_criteria(user_message, criteria):
     criteria['location'] = _infer_location_from_message(user_message, criteria.get('location'))
     criteria['location_explicit'] = _location_is_explicitly_mentioned(user_message)
     criteria['floor'] = criteria.get('floor') or _parse_floor_from_message(user_message)
+    criteria['relative_date_explicit'] = _contains_relative_or_weekday_reference(user_message)
 
     parsed_date = _parse_message_date(user_message)
     if parsed_date:
@@ -773,7 +793,9 @@ def _build_typhoon_room_prompt(user_message):
                 'If location is missing, default to ศาลายา. '
                 'If number of people is mentioned, map it to capacity. '
                 'Purpose should reflect the meeting purpose. '
-                'Dates must use YYYY-MM-DD when known. '
+                'Dates must use YYYY-MM-DD only when the user explicitly gave an absolute calendar date. '
+                'If the user uses a relative or weekday phrase such as พรุ่งนี้, วันศุกร์นี้, this Thursday, next Monday, do not invent a calendar date. '
+                'In those cases set date to null and put the original phrase into assumptions. '
                 'Times must use 24-hour HH:MM when known. '
                 'Return JSON with keys: purpose, location, date, start_time, end_time, capacity, floor, assumptions.'
             )
