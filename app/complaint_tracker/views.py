@@ -850,15 +850,26 @@ def admin_record_complaint_summary():
 @complaint_tracker.route('/repair_approval/index')
 @login_required
 def repair_approval_index():
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     org = current_user.personal_info.org
-    repair_approvals = (ComplaintRepairApproval.query.join(ComplaintRepairApproval.owner).join(StaffAccount.personal_info)
+    query = (ComplaintRepairApproval.query.join(ComplaintRepairApproval.owner).join(StaffAccount.personal_info)
     .filter(
         or_(ComplaintRepairApproval.owner_id == current_user.id,
             StaffPersonalInfo.org == org)
     ))
-    return render_template('complaint_tracker/repair_approval_index.html', menu=menu,
-                           repair_approvals=repair_approvals)
+    if tab == 'new':
+        repair_approvals = query.filter(ComplaintRepairApproval.is_print == None)
+    elif tab == 'completed':
+        repair_approvals = query.filter(ComplaintRepairApproval.is_print == True)
+    else:
+        repair_approvals = query
+    new_record_count = 0
+    for repair_approval in repair_approvals:
+        if not repair_approval.is_print:
+            new_record_count += 1
+    return render_template('complaint_tracker/repair_approval_index.html', tab=tab, menu=menu,
+                           new_record_count=new_record_count, repair_approvals=repair_approvals)
 
 
 @complaint_tracker.route('/admin/repair-approval/add/<int:record_id>', methods=['GET', 'POST'])
