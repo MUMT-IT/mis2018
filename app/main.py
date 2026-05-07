@@ -328,6 +328,13 @@ app.register_blueprint(kpi_blueprint, url_prefix='/kpi')
 
 from app.complaint_tracker import complaint_tracker
 from app.complaint_tracker.models import *
+from app.complaint_tracker.views import (
+    _build_recipient_summary_package,
+    _get_high_level_admin_recipients,
+    _normalize_internal_email,
+    _render_summary_email_html,
+    send_mail as send_complaint_summary_mail,
+)
 
 app.register_blueprint(complaint_tracker)
 
@@ -1483,6 +1490,40 @@ def test_scb_auth(timeout):
 
     click.echo('Access token received: yes')
     click.echo('Access token prefix: {}...'.format(access_token[:12]))
+
+
+@app.cli.command('test-complaint-summary-email')
+@click.option('--email', 'admin_email', required=True, help='Supervisor admin email to target.')
+@click.option('--send', is_flag=True, help='Actually send the email instead of printing a preview.')
+def test_complaint_summary_email(admin_email, send):
+    normalized_email = _normalize_internal_email(admin_email)
+    recipients = _get_high_level_admin_recipients()
+    recipient = next((item for item in recipients if item['email'] == normalized_email), None)
+
+    if not recipient:
+        raise click.ClickException(
+            'No supervisor complaint admin found for email: {}'.format(normalized_email)
+        )
+
+    package = _build_recipient_summary_package(recipient)
+
+    click.echo('Target admin: {}'.format(recipient['staff_name']))
+    click.echo('Email: {}'.format(recipient['email']))
+    click.echo('Scope: {}'.format(package['scope_label']))
+    click.echo('Subject: {}'.format(package['subject']))
+
+    if not send:
+        click.echo('\nPreview mode only. Use --send to deliver the email.\n')
+        click.echo(package['message'])
+        return
+
+    send_complaint_summary_mail(
+        [recipient['email']],
+        package['subject'],
+        package['message'],
+        html=_render_summary_email_html(package),
+    )
+    click.echo('Email sent to {}'.format(recipient['email']))
 
 
 @dbutils.command('load_staff_list')

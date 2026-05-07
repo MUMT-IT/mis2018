@@ -1,13 +1,16 @@
 # -*- coding:utf-8 -*-
+from html import escape
+import json
+import os
 import uuid
 from collections import defaultdict
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from io import BytesIO
 import arrow
 import gviz_api
 import requests
 from bahttext import bahttext
-from flask import render_template, flash, redirect, url_for, request, make_response, jsonify, current_app, send_file
+from flask import render_template, flash, redirect, url_for, request, make_response, jsonify, current_app, send_file, abort
 from flask_login import current_user
 from flask_login import login_required
 from linebot.exceptions import LineBotApiError
@@ -49,6 +52,8 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', align
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 
 localtz = timezone('Asia/Bangkok')
+TYPHOON_API_URL = 'https://api.opentyphoon.ai/v1/chat/completions'
+TYPHOON_MODEL = os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct')
 
 # FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
 #
@@ -101,9 +106,571 @@ def get_fiscal_date(date):
     return start_fiscal_date, end_fiscal_date
 
 
-def send_mail(recp, title, message):
-    message = Message(subject=title, body=message, recipients=recp)
+def send_mail(recp, title, message, html=None):
+    message = Message(subject=title, body=message, recipients=recp, html=html)
     mail.send(message)
+
+
+def _normalize_internal_email(email_value):
+    if not email_value:
+        return None
+    email_value = email_value.strip()
+    if not email_value:
+        return None
+    if '@' not in email_value:
+        email_value = f'{email_value}@mahidol.ac.th'
+    return email_value
+
+
+def _request_flag(name, default=False):
+    raw_value = request.values.get(name)
+    if raw_value is None:
+        return default
+    return str(raw_value).strip().lower() in {'1', 'true', 'yes', 'y', 'on'}
+
+
+def _is_valid_summary_scheduler_request():
+    configured_token = os.environ.get('JOB_TOKEN')
+    request_token = request.values.get('job_token')
+    return bool(configured_token and request_token and request_token == configured_token)
+
+
+def _get_high_level_admin_recipients():
+    recipients = {}
+    for admin in ComplaintAdmin.query.filter_by(is_supervisor=True).all():
+        email = _normalize_internal_email(admin.admin.email if admin.admin else None)
+        if not email:
+            continue
+        if email not in recipients:
+            recipients[email] = {
+                'email': email,
+                'staff_name': admin.admin.fullname if admin.admin else email,
+                'topic_ids': set(),
+                'topic_names': set(),
+            }
+        if admin.topic_id:
+            recipients[email]['topic_ids'].add(admin.topic_id)
+        if admin.topic and admin.topic.topic:
+            recipients[email]['topic_names'].add(admin.topic.topic)
+
+    normalized = []
+    for recipient in recipients.values():
+        normalized.append({
+            'email': recipient['email'],
+            'staff_name': recipient['staff_name'],
+            'topic_ids': sorted(recipient['topic_ids']),
+            'topic_names': sorted(recipient['topic_names']),
+        })
+    return sorted(normalized, key=lambda item: item['email'])
+
+
+def _build_unfinished_records_snapshot(topic_ids=None):
+    now = arrow.now('Asia/Bangkok').datetime
+    due_soon_limit = now + timedelta(days=3)
+    completed_since = now - timedelta(days=7)
+    records_query = ComplaintRecord.query.filter(
+        ComplaintRecord.closed_at.is_(None),
+        or_(ComplaintRecord.status.has(ComplaintStatus.code != 'completed'),
+            ComplaintRecord.status == None)
+    )
+    completed_query = ComplaintRecord.query.filter(
+        ComplaintRecord.closed_at.isnot(None),
+        ComplaintRecord.closed_at >= completed_since,
+        ComplaintRecord.status.has(ComplaintStatus.code == 'completed')
+    )
+    if topic_ids:
+        records_query = records_query.filter(ComplaintRecord.topic_id.in_(topic_ids))
+        completed_query = completed_query.filter(ComplaintRecord.topic_id.in_(topic_ids))
+
+    records = records_query.all()
+    recently_completed_records = completed_query.all()
+
+    status_counts = defaultdict(int)
+    category_counts = defaultdict(int)
+    topic_counts = defaultdict(int)
+    org_counts = defaultdict(int)
+    priority_counts = defaultdict(int)
+    tag_counts = defaultdict(int)
+    completed_category_counts = defaultdict(int)
+    completed_topic_counts = defaultdict(int)
+    completed_org_counts = defaultdict(int)
+    completed_tag_counts = defaultdict(int)
+
+    overdue_count = 0
+    due_today_count = 0
+    due_soon_count = 0
+    no_deadline_count = 0
+    no_owner_count = 0
+    no_status_count = 0
+    aged_7_plus = 0
+    aged_14_plus = 0
+    aged_30_plus = 0
+    oldest_open_days = 0
+
+    for record in records:
+        status_label = record.status.status if record.status else 'ยังไม่ระบุสถานะ'
+        status_counts[status_label] += 1
+        category_counts[record.topic.category.category if record.topic and record.topic.category else 'ไม่ระบุหมวด'] += 1
+        topic_counts[record.topic.topic if record.topic else 'ไม่ระบุหัวข้อ'] += 1
+        org_counts[record.organization or 'ไม่ระบุหน่วยงาน'] += 1
+        priority_counts[record.priority.priority_text if record.priority else 'ไม่ระบุความเร่งด่วน'] += 1
+        for tag in record.tags or []:
+            if tag and tag.tag:
+                tag_counts[tag.tag] += 1
+
+        created_at = arrow.get(record.created_at).to('Asia/Bangkok').datetime
+        age_days = max((now.date() - created_at.date()).days, 0)
+        oldest_open_days = max(oldest_open_days, age_days)
+        if age_days >= 7:
+            aged_7_plus += 1
+        if age_days >= 14:
+            aged_14_plus += 1
+        if age_days >= 30:
+            aged_30_plus += 1
+
+        if not record.status:
+            no_status_count += 1
+
+        if not any([record.assignees, record.investigators, record.coordinators, record.handlers]):
+            no_owner_count += 1
+
+        if not record.deadline:
+            no_deadline_count += 1
+            continue
+
+        deadline = arrow.get(record.deadline).to('Asia/Bangkok').datetime
+        if deadline < now:
+            overdue_count += 1
+        elif deadline.date() == now.date():
+            due_today_count += 1
+        elif deadline <= due_soon_limit:
+            due_soon_count += 1
+
+    for record in recently_completed_records:
+        completed_category_counts[
+            record.topic.category.category if record.topic and record.topic.category else 'ไม่ระบุหมวด'
+        ] += 1
+        completed_topic_counts[record.topic.topic if record.topic else 'ไม่ระบุหัวข้อ'] += 1
+        completed_org_counts[record.organization or 'ไม่ระบุหน่วยงาน'] += 1
+        for tag in record.tags or []:
+            if tag and tag.tag:
+                completed_tag_counts[tag.tag] += 1
+
+    def _top_items(source, limit=5):
+        return [
+            {'label': key, 'count': value}
+            for key, value in sorted(source.items(), key=lambda item: (-item[1], item[0]))[:limit]
+        ]
+
+    return {
+        'generated_at': now.strftime('%Y-%m-%d %H:%M'),
+        'scope_topic_ids': topic_ids or [],
+        'total_open_records': len(records),
+        'completed_last_7_days': len(recently_completed_records),
+        'status_counts': dict(sorted(status_counts.items(), key=lambda item: (-item[1], item[0]))),
+        'category_counts': dict(sorted(category_counts.items(), key=lambda item: (-item[1], item[0]))),
+        'topic_counts': dict(sorted(topic_counts.items(), key=lambda item: (-item[1], item[0]))),
+        'organization_counts': dict(sorted(org_counts.items(), key=lambda item: (-item[1], item[0]))),
+        'priority_counts': dict(sorted(priority_counts.items(), key=lambda item: (-item[1], item[0]))),
+        'tag_counts': dict(sorted(tag_counts.items(), key=lambda item: (-item[1], item[0]))),
+        'overdue_count': overdue_count,
+        'due_today_count': due_today_count,
+        'due_soon_count': due_soon_count,
+        'no_deadline_count': no_deadline_count,
+        'no_owner_count': no_owner_count,
+        'no_status_count': no_status_count,
+        'aged_7_plus': aged_7_plus,
+        'aged_14_plus': aged_14_plus,
+        'aged_30_plus': aged_30_plus,
+        'oldest_open_days': oldest_open_days,
+        'top_categories': _top_items(category_counts),
+        'top_topics': _top_items(topic_counts),
+        'top_organizations': _top_items(org_counts),
+        'top_tags': _top_items(tag_counts),
+        'completed_top_categories': _top_items(completed_category_counts),
+        'completed_top_topics': _top_items(completed_topic_counts),
+        'completed_top_organizations': _top_items(completed_org_counts),
+        'completed_top_tags': _top_items(completed_tag_counts),
+    }
+
+
+def _build_typhoon_complaint_summary_prompt(snapshot):
+    return [
+        {
+            'role': 'system',
+            'content': (
+                'You are writing a short executive email summary in Thai for high-level administrators. '
+                'Summarize the overall picture of unfinished complaint/request handling and recently finished work. '
+                'Do not include complaint IDs, names, phone numbers, emails, raw descriptions, or case-by-case details. '
+                'Focus on risk, backlog shape, timing pressure, recent closure momentum, related tags that hint at specific issues, and what leadership should monitor. '
+                'Write plain Thai suitable for an internal email. '
+                'Keep it concise. '
+                'Use this structure only: '
+                '1) ภาพรวม 1 short paragraph, '
+                '2) ประเด็นที่ควรติดตาม 3 bullet points, '
+                '3) สิ่งที่ควรเฝ้าระวังวันนี้ 1 short paragraph. '
+                'Mention the number of requests completed within the last 7 days when relevant. '
+                'When tags show recurring patterns, mention the most relevant tags as hints for investigation. '
+                'If the backlog is small, say so plainly without overstating urgency.'
+            )
+        },
+        {
+            'role': 'user',
+            'content': (
+                'สรุปข้อมูลต่อไปนี้เป็นภาษาไทยสำหรับผู้บริหารระดับสูง โดยไม่ลงรายละเอียดรายกรณี:\n'
+                f'{json.dumps(snapshot, ensure_ascii=False, indent=2)}'
+            )
+        }
+    ]
+
+
+def _call_typhoon_complaint_summary(snapshot):
+    api_key = os.environ.get('SCB_TYPHOON_API_KEY')
+    if not api_key:
+        raise RuntimeError('SCB_TYPHOON_API_KEY is not configured.')
+
+    response = requests.post(
+        TYPHOON_API_URL,
+        headers={
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json',
+        },
+        json={
+            'model': TYPHOON_MODEL,
+            'temperature': 0.2,
+            'max_tokens': 900,
+            'messages': _build_typhoon_complaint_summary_prompt(snapshot),
+        },
+        timeout=45,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    content = payload['choices'][0]['message']['content']
+    if not content or not content.strip():
+        raise ValueError('Empty Typhoon summary response.')
+    return content.strip()
+
+
+def _build_fallback_complaint_summary(snapshot):
+    top_categories = ', '.join(
+        f"{item['label']} {item['count']} เรื่อง" for item in snapshot['top_categories'][:3]
+    ) or 'ไม่มีประเด็นค้าง'
+    top_orgs = ', '.join(
+        f"{item['label']} {item['count']} เรื่อง" for item in snapshot['top_organizations'][:3]
+    ) or 'ไม่มีข้อมูลหน่วยงาน'
+    top_tags = ', '.join(
+        f"{item['label']} {item['count']} เรื่อง" for item in snapshot['top_tags'][:5]
+    ) or 'ไม่มีแท็กเด่น'
+    completed_categories = ', '.join(
+        f"{item['label']} {item['count']} เรื่อง" for item in snapshot['completed_top_categories'][:3]
+    ) or 'ไม่มีเรื่องที่ปิดแล้วในช่วง 7 วันที่ผ่านมา'
+    completed_tags = ', '.join(
+        f"{item['label']} {item['count']} เรื่อง" for item in snapshot['completed_top_tags'][:5]
+    ) or 'ไม่มีแท็กจากงานที่ปิดล่าสุด'
+
+    return (
+        f"ภาพรวม\n"
+        f"ขณะนี้มีเรื่องที่ยังไม่แล้วเสร็จทั้งหมด {snapshot['total_open_records']} เรื่อง "
+        f"โดยกลุ่มประเด็นที่พบมากคือ {top_categories} และหน่วยงานที่มีภาระติดตามมากคือ {top_orgs} "
+        f"ขณะเดียวกันในช่วง 7 วันที่ผ่านมามีเรื่องที่ปิดแล้ว {snapshot['completed_last_7_days']} เรื่อง "
+        f"ซึ่งส่วนใหญ่เป็น {completed_categories} ส่วนแท็กที่พบซ้ำในงานคงค้างได้แก่ {top_tags}\n\n"
+        f"ประเด็นที่ควรติดตาม\n"
+        f"- เรื่องเกินกำหนดมี {snapshot['overdue_count']} เรื่อง และเรื่องที่จะถึงกำหนดภายใน 3 วันมี {snapshot['due_soon_count']} เรื่อง\n"
+        f"- เรื่องที่ยังไม่ระบุสถานะมี {snapshot['no_status_count']} เรื่อง และเรื่องที่ยังไม่พบผู้รับผิดชอบชัดเจนมี {snapshot['no_owner_count']} เรื่อง โดยแท็กที่อาจช่วยชี้ประเด็นคือ {top_tags}\n"
+        f"- เรื่องที่ไม่มี deadline มี {snapshot['no_deadline_count']} เรื่อง มีเรื่องค้างเกิน 14 วันจำนวน {snapshot['aged_14_plus']} เรื่อง และมีเรื่องปิดใน 7 วันล่าสุด {snapshot['completed_last_7_days']} เรื่อง โดยแท็กของงานที่ปิดแล้วล่าสุดได้แก่ {completed_tags}\n\n"
+        f"สิ่งที่ควรเฝ้าระวังวันนี้\n"
+        f"ควรติดตามเรื่องที่เกินกำหนดหรือใกล้ครบกำหนดก่อนเป็นลำดับแรก พร้อมตรวจสอบการกำหนดสถานะ "
+        f"deadline และผู้รับผิดชอบของเรื่องที่ยังเปิดอยู่ ควบคู่กับดูจังหวะการปิดงานในช่วง 7 วันที่ผ่านมา เพื่อให้ทุกคำขอเดินหน้าได้ทันเวลา."
+    )
+
+
+def _build_complaint_summary_email_body(snapshot, ai_summary):
+    scope_topics = snapshot.get('scope_topics') or []
+    scope_line = ', '.join(scope_topics) if scope_topics else 'ทุกหัวข้อที่รับผิดชอบ'
+    status_lines = '\n'.join(
+        f"- {label}: {count} เรื่อง" for label, count in snapshot['status_counts'].items()
+    ) or '- ไม่มีข้อมูล'
+    completed_lines = '\n'.join(
+        f"- {item['label']}: {item['count']} เรื่อง" for item in snapshot['completed_top_categories']
+    ) or '- ไม่มีข้อมูล'
+    tag_lines = '\n'.join(
+        f"- {item['label']}: {item['count']} เรื่อง" for item in snapshot['top_tags']
+    ) or '- ไม่มีข้อมูล'
+    return (
+        f"สรุปภาพรวมเรื่องร้องเรียน/คำขอที่ยังไม่แล้วเสร็จ ณ {snapshot['generated_at']}\n\n"
+        f"รายงานฉบับนี้จัดทำขึ้นโดยระบบอัตโนมัติร่วมกับ AI เพื่อช่วยสรุปภาพรวมสำหรับการติดตามงาน\n\n"
+        f"ขอบเขตความรับผิดชอบ: {scope_line}\n\n"
+        f"{ai_summary}\n\n"
+        f"ตัวเลขประกอบการติดตาม\n"
+        f"- เรื่องคงค้างทั้งหมด: {snapshot['total_open_records']} เรื่อง\n"
+        f"- ปิดงานแล้วในช่วง 7 วันที่ผ่านมา: {snapshot['completed_last_7_days']} เรื่อง\n"
+        f"- เกินกำหนด: {snapshot['overdue_count']} เรื่อง\n"
+        f"- ครบกำหนดวันนี้: {snapshot['due_today_count']} เรื่อง\n"
+        f"- จะครบกำหนดภายใน 3 วัน: {snapshot['due_soon_count']} เรื่อง\n"
+        f"- ยังไม่กำหนด deadline: {snapshot['no_deadline_count']} เรื่อง\n"
+        f"- ยังไม่ระบุสถานะ: {snapshot['no_status_count']} เรื่อง\n"
+        f"- ยังไม่พบผู้รับผิดชอบชัดเจน: {snapshot['no_owner_count']} เรื่อง\n"
+        f"- ค้างเกิน 7 วัน: {snapshot['aged_7_plus']} เรื่อง\n"
+        f"- ค้างเกิน 14 วัน: {snapshot['aged_14_plus']} เรื่อง\n"
+        f"- ค้างเกิน 30 วัน: {snapshot['aged_30_plus']} เรื่อง\n"
+        f"- อายุค้างนานที่สุด: {snapshot['oldest_open_days']} วัน\n\n"
+        f"สถานะปัจจุบัน\n"
+        f"{status_lines}\n\n"
+        f"แท็กที่พบซ้ำในงานคงค้าง\n"
+        f"{tag_lines}\n\n"
+        f"กลุ่มเรื่องที่ปิดแล้วใน 7 วันล่าสุด\n"
+        f"{completed_lines}\n"
+    )
+
+
+def _build_summary_scope_label(recipient):
+    topic_names = recipient.get('topic_names') or []
+    if not topic_names:
+        return 'หัวข้อที่อยู่ในความรับผิดชอบทั้งหมด'
+    if len(topic_names) <= 3:
+        return 'หัวข้อที่ครอบคลุม: {}'.format(', '.join(topic_names))
+    return 'หัวข้อที่ครอบคลุม: {} และอีก {} หัวข้อ'.format(
+        ', '.join(topic_names[:3]),
+        len(topic_names) - 3,
+    )
+
+
+def _build_recipient_summary_package(recipient):
+    snapshot = _build_unfinished_records_snapshot(topic_ids=recipient.get('topic_ids'))
+    snapshot['scope_topics'] = recipient.get('topic_names') or []
+    try:
+        ai_summary = _call_typhoon_complaint_summary(snapshot)
+    except Exception:
+        current_app.logger.exception(
+            'Failed to generate complaint summary with Typhoon AI for %s.',
+            recipient.get('email'),
+        )
+        ai_summary = _build_fallback_complaint_summary(snapshot)
+
+    scope_label = _build_summary_scope_label(recipient)
+    subject = (
+        'สรุปภาพรวมเรื่องร้องเรียน/คำขอที่ยังไม่แล้วเสร็จ '
+        f'({scope_label}) '
+        f"ณ {arrow.now('Asia/Bangkok').strftime('%d/%m/%Y %H:%M')}"
+    )
+    message = _build_complaint_summary_email_body(snapshot, ai_summary)
+    return {
+        'recipient': recipient,
+        'snapshot': snapshot,
+        'subject': subject,
+        'message': message,
+        'scope_label': scope_label,
+    }
+
+
+def _render_dry_run_chart(snapshot):
+    values = [
+        ('คงค้างทั้งหมด', snapshot['total_open_records'], '#1f77b4'),
+        ('รอดำเนินการ/ค้าง', snapshot['status_counts'].get('รับเรื่อง/รอดำเนินการ', 0), '#ff7f0e'),
+        ('ยังไม่ระบุสถานะ', snapshot['no_status_count'], '#d62728'),
+        ('เกินกำหนด', snapshot['overdue_count'], '#9467bd'),
+        ('ใกล้ครบกำหนด 3 วัน', snapshot['due_soon_count'], '#2ca02c'),
+    ]
+    max_value = max([value for _, value, _ in values] + [1])
+    chart_width = 360
+    bar_height = 20
+    gap = 16
+    rows = []
+    y = 0
+    for label, value, color in values:
+        bar_width = int((value / max_value) * chart_width) if max_value else 0
+        rows.append(
+            f'<text x="0" y="{y + 14}" font-size="13" fill="#334155">{escape(label)} ({value})</text>'
+            f'<rect x="170" y="{y}" width="{chart_width}" height="{bar_height}" rx="6" fill="#e2e8f0"></rect>'
+            f'<rect x="170" y="{y}" width="{bar_width}" height="{bar_height}" rx="6" fill="{color}"></rect>'
+        )
+        y += bar_height + gap
+    svg_height = max(y, 1)
+    return (
+        f'<svg viewBox="0 0 540 {svg_height}" width="100%" height="{svg_height}" role="img" '
+        f'aria-label="Unfinished request chart">{"".join(rows)}</svg>'
+    )
+
+
+def _get_unfinished_chart_values(snapshot):
+    return [
+        ('คงค้างทั้งหมด', snapshot['total_open_records'], '#1f77b4'),
+        ('รอดำเนินการ/ค้าง', snapshot['status_counts'].get('รับเรื่อง/รอดำเนินการ', 0), '#ff7f0e'),
+        ('ยังไม่ระบุสถานะ', snapshot['no_status_count'], '#d62728'),
+        ('เกินกำหนด', snapshot['overdue_count'], '#9467bd'),
+        ('ใกล้ครบกำหนด 3 วัน', snapshot['due_soon_count'], '#2ca02c'),
+    ]
+
+
+def _render_email_chart_html(snapshot):
+    values = _get_unfinished_chart_values(snapshot)
+    max_value = max([value for _, value, _ in values] + [1])
+    chart_width = 320
+    rows = []
+    for label, value, color in values:
+        bar_width = max(int((value / max_value) * chart_width), 0) if max_value else 0
+        if value > 0 and bar_width == 0:
+            bar_width = 12
+        remainder_width = max(chart_width - bar_width, 0)
+        rows.append(f'''
+        <tr>
+          <td style="padding:6px 12px 6px 0;font-size:13px;color:#334155;white-space:nowrap;">{escape(label)} ({value})</td>
+          <td style="padding:6px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="{chart_width}" style="width:{chart_width}px;border-collapse:collapse;">
+              <tr>
+                <td width="{bar_width}" bgcolor="{color}" style="width:{bar_width}px;height:16px;line-height:16px;font-size:0;">&nbsp;</td>
+                <td width="{remainder_width}" bgcolor="#e2e8f0" style="width:{remainder_width}px;height:16px;line-height:16px;font-size:0;">&nbsp;</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        ''')
+    return f'''
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+      {''.join(rows)}
+    </table>
+    '''
+
+
+def _render_dry_run_html(packages, should_send):
+    cards = []
+    for package in packages:
+        recipient = package['recipient']
+        snapshot = package['snapshot']
+        chart_html = _render_dry_run_chart(snapshot)
+        message_html = escape(package['message']).replace('\n', '<br>')
+        cards.append(f'''
+        <section class="card">
+            <div class="card-header">
+                <div class="pill">{escape(package['scope_label'])}</div>
+            </div>
+            <div class="summary-card">
+                <h3>ตัวเลขสำคัญ</h3>
+                <div class="summary-metrics">
+                    <span><strong>{snapshot['total_open_records']}</strong> เรื่องคงค้าง</span>
+                    <span><strong>{snapshot['overdue_count']}</strong> เกินกำหนด</span>
+                    <span><strong>{snapshot['due_soon_count']}</strong> ใกล้ครบกำหนด</span>
+                    <span><strong>{snapshot['completed_last_7_days']}</strong> ปิดใน 7 วัน</span>
+                </div>
+            </div>
+            <div class="chart-wrap">
+                <h3>ภาพรวมงานคงค้าง</h3>
+                {chart_html}
+            </div>
+            <div class="meta">
+                <p><strong>Subject:</strong> {escape(package['subject'])}</p>
+            </div>
+            <div class="message">
+                <h3>Message Preview</h3>
+                <div class="message-body">{message_html}</div>
+            </div>
+        </section>
+        ''')
+
+    return f'''<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Complaint Summary Dry Run</title>
+  <style>
+    :root {{
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --line: #dbe4ee;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #0f766e;
+    }}
+    body {{ margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }}
+    .page {{ max-width: 1100px; margin: 0 auto; padding: 32px 20px 60px; }}
+    .hero {{ margin-bottom: 24px; }}
+    .hero h1 {{ margin: 0 0 8px; font-size: 28px; }}
+    .hero p {{ margin: 0; color: var(--muted); }}
+    .notice {{ margin-top: 14px; background: #ecfeff; color: #115e59; border: 1px solid #99f6e4; border-radius: 14px; padding: 14px 16px; line-height: 1.6; }}
+    .grid {{ display: grid; gap: 20px; }}
+    .card {{ background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06); }}
+    .card-header {{ display: flex; justify-content: flex-start; gap: 16px; align-items: start; margin-bottom: 16px; }}
+    .muted {{ color: var(--muted); }}
+    .pill {{ background: #ecfeff; color: var(--accent); border: 1px solid #99f6e4; border-radius: 999px; padding: 8px 12px; font-size: 13px; }}
+    .summary-card {{ background: #f8fafc; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 18px; }}
+    .summary-card h3 {{ margin: 0 0 10px; font-size: 16px; }}
+    .summary-metrics {{ display: flex; flex-wrap: wrap; gap: 10px 18px; }}
+    .summary-metrics span {{ color: var(--muted); font-size: 14px; }}
+    .summary-metrics strong {{ color: var(--text); font-size: 20px; margin-right: 4px; }}
+    .chart-wrap h3, .message h3 {{ margin: 0 0 12px; font-size: 16px; }}
+    .meta {{ margin: 16px 0; font-size: 14px; }}
+    .message-body {{ background: #f8fafc; color: #0f172a; border: 1px solid var(--line); border-radius: 14px; padding: 16px; line-height: 1.65; font-size: 14px; }}
+    @media (max-width: 800px) {{
+      .card-header {{ flex-direction: column; }}
+    }}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <h1>Dry Run: Complaint Summary Email</h1>
+      <p>Send flag: {str(should_send)} | Recipient count: {len(packages)}</p>
+      <div class="notice">รายงานตัวอย่างนี้และเนื้อหาสรุปในอีเมลจัดทำขึ้นโดยระบบอัตโนมัติร่วมกับ AI เพื่อช่วยสรุปภาพรวมสำหรับการติดตามงาน</div>
+    </header>
+    <div class="grid">
+      {''.join(cards) if cards else '<section class="card"><p>No recipients found.</p></section>'}
+    </div>
+  </main>
+</body>
+</html>'''
+
+
+def _render_summary_email_html(package):
+    recipient = package['recipient']
+    snapshot = package['snapshot']
+    chart_html = _render_email_chart_html(snapshot)
+    message_html = escape(package['message']).replace('\n', '<br>')
+    return f'''<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{escape(package['subject'])}</title>
+</head>
+<body style="margin:0;padding:24px;background:#f8fafc;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:900px;margin:0 auto;">
+    <div style="margin-bottom:20px;">
+      <h1 style="margin:0 0 8px;font-size:28px;">สรุปรายงานเรื่องร้องเรียน/คำขอ</h1>
+      <div style="margin-top:14px;background:#ecfeff;color:#115e59;border:1px solid #99f6e4;border-radius:14px;padding:14px 16px;line-height:1.6;">
+        รายงานฉบับนี้จัดทำขึ้นโดยระบบอัตโนมัติร่วมกับ AI เพื่อช่วยสรุปภาพรวมสำหรับการติดตามงาน
+      </div>
+    </div>
+    <section style="background:#ffffff;border:1px solid #dbe4ee;border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(15,23,42,0.06);">
+      <div style="display:flex;justify-content:flex-start;gap:16px;align-items:flex-start;margin-bottom:16px;">
+        <div style="background:#ecfeff;color:#0f766e;border:1px solid #99f6e4;border-radius:999px;padding:8px 12px;font-size:13px;">
+          {escape(package['scope_label'])}
+        </div>
+      </div>
+      <div style="background:#f8fafc;border:1px solid #dbe4ee;border-radius:14px;padding:14px 16px;margin-bottom:18px;">
+        <h3 style="margin:0 0 10px;font-size:16px;">ตัวเลขสำคัญ</h3>
+        <div style="font-size:14px;color:#64748b;line-height:1.9;">
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['total_open_records']}</strong>เรื่องคงค้าง</span>
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['overdue_count']}</strong>เกินกำหนด</span>
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['due_soon_count']}</strong>ใกล้ครบกำหนด</span>
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['completed_last_7_days']}</strong>ปิดใน 7 วัน</span>
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <h3 style="margin:0 0 12px;font-size:16px;">ภาพรวมงานคงค้าง</h3>
+        {chart_html}
+      </div>
+      <div style="margin:16px 0;font-size:14px;">
+        <p style="margin:0 0 8px;"><strong>Subject:</strong> {escape(package['subject'])}</p>
+      </div>
+      <div>
+        <h3 style="margin:0 0 12px;font-size:16px;">รายงานสรุป</h3>
+        <div style="background:#f8fafc;color:#0f172a;border:1px solid #dbe4ee;border-radius:14px;padding:16px;line-height:1.65;font-size:14px;">{message_html}</div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>'''
 
 
 # def initialize_gdrive():
@@ -832,7 +1399,66 @@ def admin_record_complaint_summary():
             topic.append(t.topic)
             code.append(t.code)
     return render_template('complaint_tracker/admin_record_complaint_summary.html', menu=menu, code=' '.join(code),
-                           topic=' '.join(topic), topics=topics)
+                           topic=' '.join(topic), topics=topics,
+                           can_send_summary=current_user.is_authenticated and admin_permission.can())
+
+
+@complaint_tracker.route('/admin/email-unfinished-summary', methods=['GET', 'POST'])
+def email_unfinished_summary():
+    scheduler_request = _is_valid_summary_scheduler_request()
+    if not scheduler_request:
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login', next=request.url))
+        if not admin_permission.can():
+            abort(403)
+
+    recipients = _get_high_level_admin_recipients()
+    should_send = _request_flag('send')
+    dry_run = _request_flag('dry_run')
+
+    if dry_run:
+        packages = [_build_recipient_summary_package(recipient) for recipient in recipients]
+        response = make_response(_render_dry_run_html(packages, should_send))
+        response.mimetype = 'text/html'
+        return response
+
+    if not should_send:
+        response = make_response(
+            'Email was not sent. Add send=true to trigger delivery, or dry_run=true to preview recipients.\n',
+            400
+        )
+        response.mimetype = 'text/plain'
+        return response
+
+    if not recipients:
+        message = 'ไม่พบอีเมลของผู้บริหารระดับสูงสำหรับส่งสรุป'
+        if request.method == 'POST':
+            flash(message, 'danger')
+            return redirect(request.referrer or url_for('comp_tracker.admin_record_complaint_summary'))
+        response = make_response(message + '\n', 404)
+        response.mimetype = 'text/plain'
+        return response
+
+    for recipient in recipients:
+        package = _build_recipient_summary_package(recipient)
+        send_mail(
+            [recipient['email']],
+            package['subject'],
+            package['message'],
+            html=_render_summary_email_html(package),
+        )
+    success_message = f'ส่งอีเมลสรุปให้ผู้บริหารระดับสูงแล้ว {len(recipients)} ราย'
+    if request.method == 'GET':
+        response = make_response(success_message + '\n')
+        response.mimetype = 'text/plain'
+        return response
+    flash(success_message, 'success')
+
+    if request.headers.get('HX-Request'):
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return redirect(request.referrer or url_for('comp_tracker.admin_record_complaint_summary'))
 
 
 @complaint_tracker.route('/admin/repair-approval/add/<int:record_id>', methods=['GET', 'POST'])

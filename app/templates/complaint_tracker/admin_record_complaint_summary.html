@@ -3,7 +3,25 @@
 
 {% block page_content %}
     <section class="section">
-        <h1 class="title">สถิติการแจ้งปัญหาหรือข้อร้องเรียน</h1>
+        <div class="level">
+            <div class="level-left">
+                <h1 class="title">สถิติการแจ้งปัญหาหรือข้อร้องเรียน</h1>
+            </div>
+            <div class="level-right">
+                {% if can_send_summary %}
+                    <form method="post" action="{{ url_for('comp_tracker.email_unfinished_summary') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="send" value="true">
+                        <button type="submit" class="button is-info is-light">
+                            <span class="icon">
+                                <i class="fas fa-envelope"></i>
+                            </span>
+                            <span>ส่งสรุปเรื่องคงค้างให้ผู้บริหาร</span>
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
         <div class="columns">
             {% set topics = topics %}
             {% include 'complaint_tracker/conclusion_menu.html' %}
