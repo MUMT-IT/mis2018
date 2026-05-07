@@ -466,6 +466,43 @@ def _render_dry_run_chart(snapshot):
     )
 
 
+def _get_unfinished_chart_values(snapshot):
+    return [
+        ('คงค้างทั้งหมด', snapshot['total_open_records'], '#1f77b4'),
+        ('รอดำเนินการ/ค้าง', snapshot['status_counts'].get('รับเรื่อง/รอดำเนินการ', 0), '#ff7f0e'),
+        ('ยังไม่ระบุสถานะ', snapshot['no_status_count'], '#d62728'),
+        ('เกินกำหนด', snapshot['overdue_count'], '#9467bd'),
+        ('ใกล้ครบกำหนด 3 วัน', snapshot['due_soon_count'], '#2ca02c'),
+    ]
+
+
+def _render_email_chart_html(snapshot):
+    values = _get_unfinished_chart_values(snapshot)
+    max_value = max([value for _, value, _ in values] + [1])
+    rows = []
+    for label, value, color in values:
+        width_pct = int((value / max_value) * 100) if max_value else 0
+        rows.append(f'''
+        <tr>
+          <td style="padding:6px 12px 6px 0;font-size:13px;color:#334155;white-space:nowrap;">{escape(label)} ({value})</td>
+          <td style="padding:6px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+              <tr>
+                <td style="background:#e2e8f0;border-radius:6px;height:16px;">
+                  <div style="width:{width_pct}%;max-width:100%;min-width:{'16px' if value > 0 else '0'};height:16px;background:{color};border-radius:6px;"></div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        ''')
+    return f'''
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+      {''.join(rows)}
+    </table>
+    '''
+
+
 def _render_dry_run_html(packages, should_send):
     cards = []
     for package in packages:
@@ -560,7 +597,7 @@ def _render_dry_run_html(packages, should_send):
 def _render_summary_email_html(package):
     recipient = package['recipient']
     snapshot = package['snapshot']
-    chart_html = _render_dry_run_chart(snapshot)
+    chart_html = _render_email_chart_html(snapshot)
     message_html = escape(package['message']).replace('\n', '<br>')
     return f'''<!doctype html>
 <html lang="th">
