@@ -1362,7 +1362,12 @@ def record_each_request_leave_request(request_id):
     all_hr = StaffSpecialGroup.query.filter_by(group_code='hr').first()
     for hr in all_hr.staffs:
         is_hr = True if hr.id == current_user.id else False
+    if req.staff.personal_info.org.parent:
+        org_name = req.staff.personal_info.org.parent.name
+    else:
+        org_name = req.staff.personal_info.org.name
     return render_template('staff/leave_record_info.html', req=req, approvers=approvers,
+                           org_name=org_name,
                            upload_file_url=upload_file_url, is_hr=is_hr)
 
 
