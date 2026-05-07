@@ -190,9 +190,11 @@ def _build_unfinished_records_snapshot(topic_ids=None):
     topic_counts = defaultdict(int)
     org_counts = defaultdict(int)
     priority_counts = defaultdict(int)
+    tag_counts = defaultdict(int)
     completed_category_counts = defaultdict(int)
     completed_topic_counts = defaultdict(int)
     completed_org_counts = defaultdict(int)
+    completed_tag_counts = defaultdict(int)
 
     overdue_count = 0
     due_today_count = 0
@@ -212,6 +214,9 @@ def _build_unfinished_records_snapshot(topic_ids=None):
         topic_counts[record.topic.topic if record.topic else 'ไม่ระบุหัวข้อ'] += 1
         org_counts[record.organization or 'ไม่ระบุหน่วยงาน'] += 1
         priority_counts[record.priority.priority_text if record.priority else 'ไม่ระบุความเร่งด่วน'] += 1
+        for tag in record.tags or []:
+            if tag and tag.tag:
+                tag_counts[tag.tag] += 1
 
         created_at = arrow.get(record.created_at).to('Asia/Bangkok').datetime
         age_days = max((now.date() - created_at.date()).days, 0)
@@ -247,6 +252,9 @@ def _build_unfinished_records_snapshot(topic_ids=None):
         ] += 1
         completed_topic_counts[record.topic.topic if record.topic else 'ไม่ระบุหัวข้อ'] += 1
         completed_org_counts[record.organization or 'ไม่ระบุหน่วยงาน'] += 1
+        for tag in record.tags or []:
+            if tag and tag.tag:
+                completed_tag_counts[tag.tag] += 1
 
     def _top_items(source, limit=5):
         return [
@@ -264,6 +272,7 @@ def _build_unfinished_records_snapshot(topic_ids=None):
         'topic_counts': dict(sorted(topic_counts.items(), key=lambda item: (-item[1], item[0]))),
         'organization_counts': dict(sorted(org_counts.items(), key=lambda item: (-item[1], item[0]))),
         'priority_counts': dict(sorted(priority_counts.items(), key=lambda item: (-item[1], item[0]))),
+        'tag_counts': dict(sorted(tag_counts.items(), key=lambda item: (-item[1], item[0]))),
         'overdue_count': overdue_count,
         'due_today_count': due_today_count,
         'due_soon_count': due_soon_count,
@@ -277,9 +286,11 @@ def _build_unfinished_records_snapshot(topic_ids=None):
         'top_categories': _top_items(category_counts),
         'top_topics': _top_items(topic_counts),
         'top_organizations': _top_items(org_counts),
+        'top_tags': _top_items(tag_counts),
         'completed_top_categories': _top_items(completed_category_counts),
         'completed_top_topics': _top_items(completed_topic_counts),
         'completed_top_organizations': _top_items(completed_org_counts),
+        'completed_top_tags': _top_items(completed_tag_counts),
     }
 
 
@@ -291,7 +302,7 @@ def _build_typhoon_complaint_summary_prompt(snapshot):
                 'You are writing a short executive email summary in Thai for high-level administrators. '
                 'Summarize the overall picture of unfinished complaint/request handling and recently finished work. '
                 'Do not include complaint IDs, names, phone numbers, emails, raw descriptions, or case-by-case details. '
-                'Focus on risk, backlog shape, timing pressure, recent closure momentum, and what leadership should monitor. '
+                'Focus on risk, backlog shape, timing pressure, recent closure momentum, related tags that hint at specific issues, and what leadership should monitor. '
                 'Write plain Thai suitable for an internal email. '
                 'Keep it concise. '
                 'Use this structure only: '
@@ -299,6 +310,7 @@ def _build_typhoon_complaint_summary_prompt(snapshot):
                 '2) ประเด็นที่ควรติดตาม 3 bullet points, '
                 '3) สิ่งที่ควรเฝ้าระวังวันนี้ 1 short paragraph. '
                 'Mention the number of requests completed within the last 7 days when relevant. '
+                'When tags show recurring patterns, mention the most relevant tags as hints for investigation. '
                 'If the backlog is small, say so plainly without overstating urgency.'
             )
         },
@@ -346,20 +358,26 @@ def _build_fallback_complaint_summary(snapshot):
     top_orgs = ', '.join(
         f"{item['label']} {item['count']} เรื่อง" for item in snapshot['top_organizations'][:3]
     ) or 'ไม่มีข้อมูลหน่วยงาน'
+    top_tags = ', '.join(
+        f"{item['label']} {item['count']} เรื่อง" for item in snapshot['top_tags'][:5]
+    ) or 'ไม่มีแท็กเด่น'
     completed_categories = ', '.join(
         f"{item['label']} {item['count']} เรื่อง" for item in snapshot['completed_top_categories'][:3]
     ) or 'ไม่มีเรื่องที่ปิดแล้วในช่วง 7 วันที่ผ่านมา'
+    completed_tags = ', '.join(
+        f"{item['label']} {item['count']} เรื่อง" for item in snapshot['completed_top_tags'][:5]
+    ) or 'ไม่มีแท็กจากงานที่ปิดล่าสุด'
 
     return (
         f"ภาพรวม\n"
         f"ขณะนี้มีเรื่องที่ยังไม่แล้วเสร็จทั้งหมด {snapshot['total_open_records']} เรื่อง "
         f"โดยกลุ่มประเด็นที่พบมากคือ {top_categories} และหน่วยงานที่มีภาระติดตามมากคือ {top_orgs} "
         f"ขณะเดียวกันในช่วง 7 วันที่ผ่านมามีเรื่องที่ปิดแล้ว {snapshot['completed_last_7_days']} เรื่อง "
-        f"ซึ่งส่วนใหญ่เป็น {completed_categories}\n\n"
+        f"ซึ่งส่วนใหญ่เป็น {completed_categories} ส่วนแท็กที่พบซ้ำในงานคงค้างได้แก่ {top_tags}\n\n"
         f"ประเด็นที่ควรติดตาม\n"
         f"- เรื่องเกินกำหนดมี {snapshot['overdue_count']} เรื่อง และเรื่องที่จะถึงกำหนดภายใน 3 วันมี {snapshot['due_soon_count']} เรื่อง\n"
-        f"- เรื่องที่ยังไม่ระบุสถานะมี {snapshot['no_status_count']} เรื่อง และเรื่องที่ยังไม่พบผู้รับผิดชอบชัดเจนมี {snapshot['no_owner_count']} เรื่อง\n"
-        f"- เรื่องที่ไม่มี deadline มี {snapshot['no_deadline_count']} เรื่อง มีเรื่องค้างเกิน 14 วันจำนวน {snapshot['aged_14_plus']} เรื่อง และมีเรื่องปิดใน 7 วันล่าสุด {snapshot['completed_last_7_days']} เรื่อง\n\n"
+        f"- เรื่องที่ยังไม่ระบุสถานะมี {snapshot['no_status_count']} เรื่อง และเรื่องที่ยังไม่พบผู้รับผิดชอบชัดเจนมี {snapshot['no_owner_count']} เรื่อง โดยแท็กที่อาจช่วยชี้ประเด็นคือ {top_tags}\n"
+        f"- เรื่องที่ไม่มี deadline มี {snapshot['no_deadline_count']} เรื่อง มีเรื่องค้างเกิน 14 วันจำนวน {snapshot['aged_14_plus']} เรื่อง และมีเรื่องปิดใน 7 วันล่าสุด {snapshot['completed_last_7_days']} เรื่อง โดยแท็กของงานที่ปิดแล้วล่าสุดได้แก่ {completed_tags}\n\n"
         f"สิ่งที่ควรเฝ้าระวังวันนี้\n"
         f"ควรติดตามเรื่องที่เกินกำหนดหรือใกล้ครบกำหนดก่อนเป็นลำดับแรก พร้อมตรวจสอบการกำหนดสถานะ "
         f"deadline และผู้รับผิดชอบของเรื่องที่ยังเปิดอยู่ ควบคู่กับดูจังหวะการปิดงานในช่วง 7 วันที่ผ่านมา เพื่อให้ทุกคำขอเดินหน้าได้ทันเวลา."
@@ -374,6 +392,9 @@ def _build_complaint_summary_email_body(snapshot, ai_summary):
     ) or '- ไม่มีข้อมูล'
     completed_lines = '\n'.join(
         f"- {item['label']}: {item['count']} เรื่อง" for item in snapshot['completed_top_categories']
+    ) or '- ไม่มีข้อมูล'
+    tag_lines = '\n'.join(
+        f"- {item['label']}: {item['count']} เรื่อง" for item in snapshot['top_tags']
     ) or '- ไม่มีข้อมูล'
     return (
         f"สรุปภาพรวมเรื่องร้องเรียน/คำขอที่ยังไม่แล้วเสร็จ ณ {snapshot['generated_at']}\n\n"
@@ -395,6 +416,8 @@ def _build_complaint_summary_email_body(snapshot, ai_summary):
         f"- อายุค้างนานที่สุด: {snapshot['oldest_open_days']} วัน\n\n"
         f"สถานะปัจจุบัน\n"
         f"{status_lines}\n\n"
+        f"แท็กที่พบซ้ำในงานคงค้าง\n"
+        f"{tag_lines}\n\n"
         f"กลุ่มเรื่องที่ปิดแล้วใน 7 วันล่าสุด\n"
         f"{completed_lines}\n"
     )
@@ -479,18 +502,21 @@ def _get_unfinished_chart_values(snapshot):
 def _render_email_chart_html(snapshot):
     values = _get_unfinished_chart_values(snapshot)
     max_value = max([value for _, value, _ in values] + [1])
+    chart_width = 320
     rows = []
     for label, value, color in values:
-        width_pct = int((value / max_value) * 100) if max_value else 0
+        bar_width = max(int((value / max_value) * chart_width), 0) if max_value else 0
+        if value > 0 and bar_width == 0:
+            bar_width = 12
+        remainder_width = max(chart_width - bar_width, 0)
         rows.append(f'''
         <tr>
           <td style="padding:6px 12px 6px 0;font-size:13px;color:#334155;white-space:nowrap;">{escape(label)} ({value})</td>
           <td style="padding:6px 0;">
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="{chart_width}" style="width:{chart_width}px;border-collapse:collapse;">
               <tr>
-                <td style="background:#e2e8f0;border-radius:6px;height:16px;">
-                  <div style="width:{width_pct}%;max-width:100%;min-width:{'16px' if value > 0 else '0'};height:16px;background:{color};border-radius:6px;"></div>
-                </td>
+                <td width="{bar_width}" bgcolor="{color}" style="width:{bar_width}px;height:16px;line-height:16px;font-size:0;">&nbsp;</td>
+                <td width="{remainder_width}" bgcolor="#e2e8f0" style="width:{remainder_width}px;height:16px;line-height:16px;font-size:0;">&nbsp;</td>
               </tr>
             </table>
           </td>
@@ -519,11 +545,14 @@ def _render_dry_run_html(packages, should_send):
                 </div>
                 <div class="pill">{escape(package['scope_label'])}</div>
             </div>
-            <div class="stats">
-                <div class="stat"><span>{snapshot['total_open_records']}</span><label>เรื่องคงค้าง</label></div>
-                <div class="stat"><span>{snapshot['overdue_count']}</span><label>เกินกำหนด</label></div>
-                <div class="stat"><span>{snapshot['due_soon_count']}</span><label>ใกล้ครบกำหนด</label></div>
-                <div class="stat"><span>{snapshot['completed_last_7_days']}</span><label>ปิดใน 7 วัน</label></div>
+            <div class="summary-card">
+                <h3>ตัวเลขสำคัญ</h3>
+                <div class="summary-metrics">
+                    <span><strong>{snapshot['total_open_records']}</strong> เรื่องคงค้าง</span>
+                    <span><strong>{snapshot['overdue_count']}</strong> เกินกำหนด</span>
+                    <span><strong>{snapshot['due_soon_count']}</strong> ใกล้ครบกำหนด</span>
+                    <span><strong>{snapshot['completed_last_7_days']}</strong> ปิดใน 7 วัน</span>
+                </div>
             </div>
             <div class="chart-wrap">
                 <h3>ภาพรวมงานคงค้าง</h3>
@@ -566,15 +595,15 @@ def _render_dry_run_html(packages, should_send):
     .card-header h2 {{ margin: 0 0 4px; font-size: 20px; }}
     .muted {{ color: var(--muted); }}
     .pill {{ background: #ecfeff; color: var(--accent); border: 1px solid #99f6e4; border-radius: 999px; padding: 8px 12px; font-size: 13px; }}
-    .stats {{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }}
-    .stat {{ background: #f8fafc; border: 1px solid var(--line); border-radius: 14px; padding: 12px; }}
-    .stat span {{ display: block; font-size: 24px; font-weight: 700; }}
-    .stat label {{ display: block; margin-top: 4px; color: var(--muted); font-size: 13px; }}
+    .summary-card {{ background: #f8fafc; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 18px; }}
+    .summary-card h3 {{ margin: 0 0 10px; font-size: 16px; }}
+    .summary-metrics {{ display: flex; flex-wrap: wrap; gap: 10px 18px; }}
+    .summary-metrics span {{ color: var(--muted); font-size: 14px; }}
+    .summary-metrics strong {{ color: var(--text); font-size: 20px; margin-right: 4px; }}
     .chart-wrap h3, .message h3 {{ margin: 0 0 12px; font-size: 16px; }}
     .meta {{ margin: 16px 0; font-size: 14px; }}
     .message-body {{ background: #f8fafc; color: #0f172a; border: 1px solid var(--line); border-radius: 14px; padding: 16px; line-height: 1.65; font-size: 14px; }}
     @media (max-width: 800px) {{
-      .stats {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
       .card-header {{ flex-direction: column; }}
     }}
   </style>
@@ -625,11 +654,14 @@ def _render_summary_email_html(package):
           {escape(package['scope_label'])}
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px;">
-        <div style="background:#f8fafc;border:1px solid #dbe4ee;border-radius:14px;padding:12px;"><div style="font-size:24px;font-weight:700;">{snapshot['total_open_records']}</div><div style="margin-top:4px;color:#64748b;font-size:13px;">เรื่องคงค้าง</div></div>
-        <div style="background:#f8fafc;border:1px solid #dbe4ee;border-radius:14px;padding:12px;"><div style="font-size:24px;font-weight:700;">{snapshot['overdue_count']}</div><div style="margin-top:4px;color:#64748b;font-size:13px;">เกินกำหนด</div></div>
-        <div style="background:#f8fafc;border:1px solid #dbe4ee;border-radius:14px;padding:12px;"><div style="font-size:24px;font-weight:700;">{snapshot['due_soon_count']}</div><div style="margin-top:4px;color:#64748b;font-size:13px;">ใกล้ครบกำหนด</div></div>
-        <div style="background:#f8fafc;border:1px solid #dbe4ee;border-radius:14px;padding:12px;"><div style="font-size:24px;font-weight:700;">{snapshot['completed_last_7_days']}</div><div style="margin-top:4px;color:#64748b;font-size:13px;">ปิดใน 7 วัน</div></div>
+      <div style="background:#f8fafc;border:1px solid #dbe4ee;border-radius:14px;padding:14px 16px;margin-bottom:18px;">
+        <h3 style="margin:0 0 10px;font-size:16px;">ตัวเลขสำคัญ</h3>
+        <div style="font-size:14px;color:#64748b;line-height:1.9;">
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['total_open_records']}</strong>เรื่องคงค้าง</span>
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['overdue_count']}</strong>เกินกำหนด</span>
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['due_soon_count']}</strong>ใกล้ครบกำหนด</span>
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['completed_last_7_days']}</strong>ปิดใน 7 วัน</span>
+        </div>
       </div>
       <div style="margin-bottom:16px;">
         <h3 style="margin:0 0 12px;font-size:16px;">ภาพรวมงานคงค้าง</h3>
