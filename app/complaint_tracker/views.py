@@ -426,10 +426,13 @@ def _build_complaint_summary_email_body(snapshot, ai_summary):
 def _build_summary_scope_label(recipient):
     topic_names = recipient.get('topic_names') or []
     if not topic_names:
-        return 'ทุกหัวข้อที่รับผิดชอบ'
+        return 'หัวข้อที่อยู่ในความรับผิดชอบทั้งหมด'
     if len(topic_names) <= 3:
-        return ', '.join(topic_names)
-    return f"{', '.join(topic_names[:3])} และอีก {len(topic_names) - 3} หัวข้อ"
+        return 'หัวข้อที่ครอบคลุม: {}'.format(', '.join(topic_names))
+    return 'หัวข้อที่ครอบคลุม: {} และอีก {} หัวข้อ'.format(
+        ', '.join(topic_names[:3]),
+        len(topic_names) - 3,
+    )
 
 
 def _build_recipient_summary_package(recipient):
@@ -539,10 +542,6 @@ def _render_dry_run_html(packages, should_send):
         cards.append(f'''
         <section class="card">
             <div class="card-header">
-                <div>
-                    <h2>{escape(recipient['staff_name'])}</h2>
-                    <p class="muted">{escape(recipient['email'])}</p>
-                </div>
                 <div class="pill">{escape(package['scope_label'])}</div>
             </div>
             <div class="summary-card">
@@ -591,8 +590,7 @@ def _render_dry_run_html(packages, should_send):
     .notice {{ margin-top: 14px; background: #ecfeff; color: #115e59; border: 1px solid #99f6e4; border-radius: 14px; padding: 14px 16px; line-height: 1.6; }}
     .grid {{ display: grid; gap: 20px; }}
     .card {{ background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06); }}
-    .card-header {{ display: flex; justify-content: space-between; gap: 16px; align-items: start; margin-bottom: 16px; }}
-    .card-header h2 {{ margin: 0 0 4px; font-size: 20px; }}
+    .card-header {{ display: flex; justify-content: flex-start; gap: 16px; align-items: start; margin-bottom: 16px; }}
     .muted {{ color: var(--muted); }}
     .pill {{ background: #ecfeff; color: var(--accent); border: 1px solid #99f6e4; border-radius: 999px; padding: 8px 12px; font-size: 13px; }}
     .summary-card {{ background: #f8fafc; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 18px; }}
@@ -639,17 +637,12 @@ def _render_summary_email_html(package):
   <div style="max-width:900px;margin:0 auto;">
     <div style="margin-bottom:20px;">
       <h1 style="margin:0 0 8px;font-size:28px;">สรุปรายงานเรื่องร้องเรียน/คำขอ</h1>
-      <p style="margin:0;color:#64748b;">{escape(recipient['staff_name'])} | {escape(recipient['email'])}</p>
       <div style="margin-top:14px;background:#ecfeff;color:#115e59;border:1px solid #99f6e4;border-radius:14px;padding:14px 16px;line-height:1.6;">
         รายงานฉบับนี้จัดทำขึ้นโดยระบบอัตโนมัติร่วมกับ AI เพื่อช่วยสรุปภาพรวมสำหรับการติดตามงาน
       </div>
     </div>
     <section style="background:#ffffff;border:1px solid #dbe4ee;border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(15,23,42,0.06);">
-      <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:16px;">
-        <div>
-          <h2 style="margin:0 0 4px;font-size:20px;">{escape(recipient['staff_name'])}</h2>
-          <p style="margin:0;color:#64748b;">{escape(recipient['email'])}</p>
-        </div>
+      <div style="display:flex;justify-content:flex-start;gap:16px;align-items:flex-start;margin-bottom:16px;">
         <div style="background:#ecfeff;color:#0f766e;border:1px solid #99f6e4;border-radius:999px;padding:8px 12px;font-size:13px;">
           {escape(package['scope_label'])}
         </div>
