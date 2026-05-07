@@ -3891,22 +3891,22 @@ def seminar_upload_proposal(seminar_attend_id, proposal_id):
         else:
             upload_file_url = None
 
-        req_title = u'หนังสือขออนุมัติอบรมเรื่องใหม่มาแล้ว'
-        req_msg = u'{} ขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n โดย{}เป็นผู้บังคับบัญชาชั้นต้น \nคลิกที่ Link เพื่อดูเอกสาร{}' \
-                  u'\n\n\nหน่วยIT \nคณะเทคนิคการแพทย์'. \
-            format(seminar_attend.staff.personal_info, seminar_attend.seminar.topic_type,
-                   seminar_attend.seminar.topic, seminar_attend.start_datetime, seminar_attend.end_datetime,
-                   this_proposal.proposer.personal_info, upload_file_url)
-        general_account = StaffAccount.query.filter_by(email='natchaya.rit').first()
-        if not current_app.debug:
-            send_mail([general_account.email + "@mahidol.ac.th"], req_title, req_msg)
-            if general_account.line_id:
-                try:
-                    line_bot_api.push_message(to=general_account.line_id, messages=TextSendMessage(text=req_msg))
-                except LineBotApiError:
-                    flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
-        else:
-            print(req_msg, general_account.email)
+        # req_title = u'หนังสือขออนุมัติอบรมเรื่องใหม่มาแล้ว'
+        # req_msg = u'{} ขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n โดย{}เป็นผู้บังคับบัญชาชั้นต้น \nคลิกที่ Link เพื่อดูเอกสาร{}' \
+        #           u'\n\n\nหน่วยIT \nคณะเทคนิคการแพทย์'. \
+        #     format(seminar_attend.staff.personal_info, seminar_attend.seminar.topic_type,
+        #            seminar_attend.seminar.topic, seminar_attend.start_datetime, seminar_attend.end_datetime,
+        #            this_proposal.proposer.personal_info, upload_file_url)
+        # general_account = StaffAccount.query.filter_by(email='natchaya.rit').first()
+        # if not current_app.debug:
+        #     send_mail([general_account.email + "@mahidol.ac.th"], req_title, req_msg)
+        #     if general_account.line_id:
+        #         try:
+        #             line_bot_api.push_message(to=general_account.line_id, messages=TextSendMessage(text=req_msg))
+        #         except LineBotApiError:
+        #             flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
+        # else:
+        #     print(req_msg, general_account.email)
         flash('ระบบบันทึกการอนุมัติของท่านแล้ว', 'success')
         return redirect(url_for('staff.show_seminar_proposal_info'))
     return render_template('staff/seminar_upload_proposal.html', proposal=proposal, this_proposal=this_proposal,
@@ -4465,7 +4465,30 @@ def staff_edit_info(staff_id):
                 staff.resignation_date = None
         db.session.add(staff)
         db.session.commit()
-
+        if staff.retired:
+            last_working_day = staff.resignation_date or staff.retirement_date
+            job_position = staff.job_position.th_title if staff.job_position else '-'
+            org_name = staff.org.name if staff.org else '-'
+            retire_type = 'ลาออก' if staff.resignation_date else 'เกษียณอายุ'
+            staff_details = u'ชื่อ-นามสกุล: {}\n' \
+                            u'ตำแหน่ง: {}\n' \
+                            u'สังกัด: {}\n' \
+                            u'ประเภทการสิ้นสุดการทำงาน: {}\n' \
+                            u'วันสุดท้ายของการทำงาน: {}\n\n\nคณะเทคนิคการแพทย์'.format(
+                                staff.fullname,
+                                job_position,
+                                org_name, retire_type,
+                                last_working_day.strftime('%d/%m/%Y') if last_working_day else '-'
+                            )
+            req_msg = u'ระบบได้รับการบันทึกข้อมูลการลาออก/เกษียณอายุของบุคลากร โดยมีรายละเอียดดังนี้\n{}'.format(staff_details)
+            req_title = u'แจ้งบุคลากรลาออก/เกษียณอายุ ระบบ MIS'
+            responsible_org = Org.query.filter_by(name='หน่วยข้อมูลและสารสนเทศ').first()
+            responsible_person = StaffAccount.query.filter_by(email=responsible_org.head).first() if responsible_org and responsible_org.head else None
+            if responsible_person and req_msg:
+                if not current_app.debug:
+                    send_mail([responsible_person.email + "@mahidol.ac.th"], req_title, req_msg)
+                else:
+                    print(req_msg, responsible_person.email)
         flash('แก้ไขข้อมูลบุคลากรเรียบร้อย', 'success')
         return redirect(url_for('staff.staff_show_info', staff_id=staff_id))
     return render_template('staff/staff_index.html')
