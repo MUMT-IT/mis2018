@@ -236,6 +236,7 @@ def closing_page():
 def edit_record_admin(record_id):
     tab = request.args.get('tab')
     record = ComplaintRecord.query.get(record_id)
+    current_status = record.status
     if record:
         admins = True if ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first() else False
         investigators = []
@@ -295,6 +296,18 @@ def edit_record_admin(record_id):
                                 line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                             except LineBotApiError:
                                 pass
+            if record.status != current_status and record.complainant:
+                scheme = 'http' if current_app.debug else 'https'
+                link = url_for("comp_tracker.view_record_complaint", record_id=record_id, _external=True,
+                               _scheme=scheme)
+                title = f'''แจ้งอัปเดตสถานะคำร้องขอ{record.topic.topic}'''
+                message = f'''เจ้าหน้าที่ได้ทำการอัปเดตสถานะคำร้องขอ{record.topic.topic} ของ{record.desc}เป็น "{record.status or 'ยังไม่ดำเนินการ'}" เรียบร้อนแล้ว\n\n'''
+                message += f'''ท่านสามารถตรวจสอบรายละเอียดและความคืบหน้าเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
+                message += f'''{link}\n\n'''
+                message += f'''ขอบคุณค่ะ\n'''
+                message += f'''ระบบรับแจ้งปัญหาหรือข้อร้องเรียน\n'''
+                message += f'''คณะเทคนิคการแพทย์'''
+                send_mail([record.complainant.email + '@mahidol.ac.th'], title, message)
         return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
                                file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
                                repair_approval_id=repair_approval_id)
@@ -1039,7 +1052,7 @@ def edit_committee(repair_approval_id):
                 message += f'''ท่านสามารถดำเนินการพิมพ์เอกสารได้ที่ลิงก์ด้านล่าง\n{link}\n\n'''
                 message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
             else:
-                title = f'''แจ้งการออกใบอนุมัติหลักการซ่อม {rep_approval.item}'''
+                title = f'''แจ้งออกใบอนุมัติหลักการซ่อม {rep_approval.item}'''
                 message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} กรุณาดำเนินการในขั้นตอนถัดไปตามกระบวนการที่เกี่ยวข้อง\n'''
                 message += f'''ท่านสามารถดำเนินการพิมพ์เอกสารได้ที่ลิงก์ด้านล่าง\n{link}\n\n'''
                 message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
