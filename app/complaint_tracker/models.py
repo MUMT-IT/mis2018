@@ -394,9 +394,24 @@ class ComplaintRepairApproval(db.Model):
                               foreign_keys=[creator_id])
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
     record = db.relationship(ComplaintRecord, backref=db.backref('repair_approvals'))
+    owner_id = db.Column('owner_id', db.ForeignKey('staff_account.id'))
+    owner = db.relationship(StaffAccount, backref=db.backref('owned_repair_approvals'), foreign_keys=[owner_id])
 
     def __str__(self):
         return self.item
+
+    @property
+    def get_other_org(self):
+        if (self.owner.personal_info.org.parent and self.owner.personal_info.org.parent.parent
+                and self.owner.personal_info.org.parent.parent.name != 'สำนักงานคณบดี'):
+            other_org = True
+        elif self.owner.personal_info.org.parent and self.owner.personal_info.org.parent.name != 'สำนักงานคณบดี':
+            other_org = True
+        elif self.owner.personal_info.org.name != 'สำนักงานคณบดี':
+            other_org = True
+        else:
+            other_org = False
+        return other_org
 
 
 class ComplaintCommittee(db.Model):

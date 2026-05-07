@@ -50,7 +50,7 @@ def create_timeline_form(detail_id):
         estimate = DateField('วันที่คาดว่าจะแล้วเสร็จ', validators=[DataRequired()])
         status = SelectField('status', choices=[('รอดำเนินการ', 'รอดำเนินการ'), ('เสร็จสิ้น', 'เสร็จสิ้น'), ('ยกเลิกการพัฒนา', 'ยกเลิกการพัฒนา')],
                              validators=[DataRequired()])
-        issue = QuerySelectField('ปํญหาที่พบ', query_factory=lambda: SoftwareIssues.query.filter_by(software_request_detail_id=detail_id).all(), allow_blank=True,
+        issue = QuerySelectField('Requirement', query_factory=lambda: SoftwareIssues.query.filter_by(software_request_detail_id=detail_id).all(), allow_blank=True,
                                  blank_text='', get_label='issue')
         admin = QuerySelectField('ผู้รับผิดชอบ', query_factory=lambda: StaffAccount.get_it_unit(), get_label='fullname')
     return SoftwareRequestTimelineForm
@@ -93,7 +93,7 @@ class QuerySelectFieldAppendable(QuerySelectField):
 class SoftwareRequestIssueForm(ModelForm):
     class Meta:
         model = SoftwareIssues
-        only = ['issue', 'label', 'start', 'end']
+        only = ['issue', 'label', 'deadline']
 
     status_ = SelectField('Status',
                           default='Draft',
@@ -126,8 +126,7 @@ def create_test_result_form(detail_id, has_note=False):
             model = SoftwareRequestTestResult
         if not has_note:
             issue = QuerySelectFieldRequired('Requirement',
-                                             query_factory=lambda: SoftwareIssues.query.filter(SoftwareIssues.label == 'Request',
-                                                                                               SoftwareIssues.accepted_at != None,
+                                             query_factory=lambda: SoftwareIssues.query.filter(SoftwareIssues.accepted_at != None,
                                                                                                SoftwareIssues.software_request_detail_id==detail_id).all(),
                                              allow_blank=True,
                                              blank_text='กรุณาเลือก Requirement',

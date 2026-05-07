@@ -40,6 +40,7 @@ from flask_mail import Message
 from ..models import Org
 from ..procurement.models import ProcurementDetail
 from ..roles import admin_permission
+from ..staff.models import StaffPersonalInfo
 
 sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
 pdfmetrics.registerFont(sarabun_font)
@@ -94,6 +95,15 @@ def generate_url(file_url):
                                     Params={'Bucket': S3_BUCKET_NAME, 'Key': file_url},
                                     ExpiresIn=3600)
     return url
+
+
+def get_organization(org, form):
+    if org.parent and org.parent.parent:
+        form.organization.data = f'{org.name} {org.parent} {org.parent.parent}'
+    elif org.parent and not org.parent.parent:
+        form.organization.data = f'{org.name} {org.parent}'
+    else:
+        form.organization.data = org.name
 
 
 def get_fiscal_date(date):
@@ -708,6 +718,8 @@ def new_record(topic_id, room=None, procurement=None):
     procurement_no = request.args.get('procurement_no')
     pro_number = request.args.get('pro_number')
     is_admin = False
+    if not current_user.is_authenticated and topic.topic == 'แจ้งครุภัณฑ์ชำรุด':
+        return redirect(url_for('auth.login'))
     if current_user.is_authenticated:
         is_admin = True if ComplaintAdmin.query.filter_by(admin=current_user, topic_id=topic_id).first() else False
     if room_number and location:
@@ -791,6 +803,7 @@ def closing_page():
 def edit_record_admin(record_id):
     tab = request.args.get('tab')
     record = ComplaintRecord.query.get(record_id)
+    current_status = record.status
     if record:
         admins = True if ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first() else False
         investigators = []
@@ -850,6 +863,18 @@ def edit_record_admin(record_id):
                                 line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                             except LineBotApiError:
                                 pass
+            if record.status != current_status and record.complainant:
+                scheme = 'http' if current_app.debug else 'https'
+                link = url_for("comp_tracker.view_record_complaint", record_id=record_id, _external=True,
+                               _scheme=scheme)
+                title = f'''แจ้งอัปเดตสถานะคำร้องขอ{record.topic.topic}'''
+                message = f'''เจ้าหน้าที่ได้ทำการอัปเดตสถานะคำร้องขอ{record.topic.topic} ของ{record.desc}เป็น "{record.status or 'ยังไม่ดำเนินการ'}" เรียบร้อนแล้ว\n\n'''
+                message += f'''ท่านสามารถตรวจสอบรายละเอียดและความคืบหน้าเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
+                message += f'''{link}\n\n'''
+                message += f'''ขอบคุณค่ะ\n'''
+                message += f'''ระบบรับแจ้งปัญหาหรือข้อร้องเรียน\n'''
+                message += f'''คณะเทคนิคการแพทย์'''
+                send_mail([record.complainant.email + '@mahidol.ac.th'], title, message)
         return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
                                file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
                                repair_approval_id=repair_approval_id)
@@ -1461,20 +1486,50 @@ def email_unfinished_summary():
     return redirect(request.referrer or url_for('comp_tracker.admin_record_complaint_summary'))
 
 
+@complaint_tracker.route('/repair_approval/index')
+@login_required
+def repair_approval_index():
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    org = current_user.personal_info.org
+    query = (ComplaintRepairApproval.query.join(ComplaintRepairApproval.owner).join(StaffAccount.personal_info)
+    .filter(
+        or_(ComplaintRepairApproval.owner_id == current_user.id,
+            StaffPersonalInfo.org == org)
+    ))
+    if tab == 'new':
+        repair_approvals = query.filter(ComplaintRepairApproval.is_print == False)
+    elif tab == 'completed':
+        repair_approvals = query.filter(ComplaintRepairApproval.is_print == True)
+    else:
+        repair_approvals = query
+    new_record_count = query.filter(
+        ComplaintRepairApproval.is_print == None
+    ).count()
+    return render_template('complaint_tracker/repair_approval_index.html', tab=tab, menu=menu,
+                           new_record_count=new_record_count, repair_approvals=repair_approvals)
+
+
 @complaint_tracker.route('/admin/repair-approval/add/<int:record_id>', methods=['GET', 'POST'])
 @complaint_tracker.route('/admin/repair-approval/edit/<int:record_id>/<int:repair_approval_id>', methods=['GET', 'POST'])
-def repair_approval(record_id, repair_approval_id=None):
+def create_repair_approval(record_id, repair_approval_id=None):
     record = ComplaintRecord.query.get(record_id)
     if repair_approval_id:
         rep_approval = ComplaintRepairApproval.query.get(repair_approval_id)
         form = ComplaintRepairApprovalForm(obj=rep_approval)
     else:
         form = ComplaintRepairApprovalForm()
-
-    org = Org.query.filter_by(name=current_user.personal_info.org.name).first()
-    staff = StaffAccount.query.filter_by(email=org.head).first()
-    form.name.data = staff.fullname
-    form.position.data = f"หัวหน้า{staff.personal_info.org.name}"
+    org_name = record.complainant.personal_info.org.name if record.complainant else current_user.personal_info.org.name
+    org = Org.query.filter_by(name=org_name).first()
+    if org.parent and org.parent.parent.name == 'สำนักงานคณบดี':
+        staff = StaffAccount.query.filter_by(email=org.head).first()
+        form.name.data = staff.fullname
+        form.position.data = f"หัวหน้า{staff.personal_info.org.name}"
+        get_organization(org=staff.personal_info.org, form=form)
+    else:
+        form.name.data = record.complainant.fullname
+        form.position.data = record.complainant.personal_info.position
+        get_organization(org=record.complainant.personal_info.org, form=form)
 
     if not form.cost_center.data and record.cost_center:
         form.cost_center.data = record.cost_center
@@ -1484,13 +1539,6 @@ def repair_approval(record_id, repair_approval_id=None):
 
     if not form.product_code.data and record.product_code:
         form.product_code.data = record.product_code
-
-    if staff.personal_info.org.parent and staff.personal_info.org.parent.parent:
-        form.organization.data = f'{staff.personal_info.org.name} {staff.personal_info.org.parent} {staff.personal_info.org.parent.parent}'
-    elif staff.personal_info.org.parent and not staff.personal_info.org.parent.parent:
-        form.organization.data = f'{staff.personal_info.org.name} {staff.personal_info.org.parent}'
-    else:
-        form.organization.data = staff.personal_info.org.name
 
     if record.procurements and not form.item.data:
         for procurement in record.procurements:
@@ -1516,12 +1564,14 @@ def repair_approval(record_id, repair_approval_id=None):
             rep_approval.record_id = record_id
             rep_approval.created_at = arrow.now('Asia/Bangkok').datetime
             rep_approval.creator_id = current_user.id
+            rep_approval.owner_id = record.complainant_id if record.complainant else current_user.id
+        else:
+            rep_approval.updated_at = arrow.now('Asia/Bangkok').datetime
+
         if form.repair_type.data == 'เร่งด่วน':
             rep_approval.principle_approval_type = None
             rep_approval.purpose = None
         else:
-            rep_approval.name = None
-            rep_approval.position = None
             rep_approval.book_number = None
             rep_approval.receipt_number = None
             rep_approval.receipt_date = None
@@ -1530,6 +1580,36 @@ def repair_approval(record_id, repair_approval_id=None):
         db.session.add(rep_approval)
         db.session.commit()
         if rep_approval.repair_type == 'เร่งด่วน':
+            if rep_approval.get_other_org == True:
+                scheme = 'http' if current_app.debug else 'https'
+                link = url_for("comp_tracker.repair_approval_index", tab='new', _external=True, _scheme=scheme)
+                if repair_approval_id:
+                    title = f'''แจ้งแก้ไขใบอนุมัติหลักการซ่อม {rep_approval.item}'''
+                    message = f'''เจ้าหน้าที่ได้ดำเนินการแก้ไขข้อมูลใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} กรุณาดำเนินการในขั้นตอนถัดไปตามกระบวนการที่เกี่ยวข้อง\n'''
+                    message += f'''ท่านสามารถดำเนินการพิมพ์เอกสารได้ที่ลิงก์ด้านล่าง\n{link}\n\n'''
+                    message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
+                else:
+                    title = f'''แจ้งออกใบอนุมัติหลักการซ่อม {rep_approval.item}'''
+                    message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} กรุณาดำเนินการในขั้นตอนถัดไปตามกระบวนการที่เกี่ยวข้อง\n'''
+                    message += f'''ท่านสามารถดำเนินการพิมพ์เอกสารได้ที่ลิงก์ด้านล่าง\n{link}\n\n'''
+                    message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
+                    if rep_approval.record.complainant:
+                        msg = (f'เจ้าหน้าที่ได้ดำเนินการออกใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} เรียบร้อยแล้ว\n\n'
+                               f'ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์')
+                        message_for_complainant = f'''เจ้าหน้าที่ได้ดำเนินการออกใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} เรียบร้อยแล้ว\n\n'''
+                        message_for_complainant += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
+
+                        send_mail([rep_approval.record.complainant.email + '@mahidol.ac.th'], title,
+                                  message_for_complainant)
+                        if not current_app.debug:
+                            try:
+                                line_bot_api.push_message(to=rep_approval.record.complainant.line_id, messages=TextSendMessage(text=msg))
+                            except LineBotApiError:
+                                pass
+                        else:
+                            print('msg :', msg, 'line :', rep_approval.record.complainant.line_id)
+                send_mail([secretary.email + '@mahidol.ac.th' for secretary in rep_approval.owner.personal_info.org.secretary_staff],
+                          title, message)
             flash('บันทึกข้อมูลสำเร็จ', 'success')
             return redirect(url_for('comp_tracker.edit_record_admin', record_id=record_id))
         else:
@@ -1589,6 +1669,38 @@ def edit_committee(repair_approval_id):
             db.session.add(committee)
             db.session.commit()
         flash('บันทึกข้อมูลสำเร็จ', 'success')
+        if rep_approval.get_other_org == True:
+            scheme = 'http' if current_app.debug else 'https'
+            link = url_for("comp_tracker.repair_approval_index", tab='new', _external=True, _scheme=scheme)
+            if committees:
+                title = f'''แจ้งแก้ไขใบอนุมัติหลักการซ่อม {rep_approval.item}'''
+                message = f'''เจ้าหน้าที่ได้ดำเนินการแก้ไขข้อมูลใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} กรุณาดำเนินการในขั้นตอนถัดไปตามกระบวนการที่เกี่ยวข้อง\n'''
+                message += f'''ท่านสามารถดำเนินการพิมพ์เอกสารได้ที่ลิงก์ด้านล่าง\n{link}\n\n'''
+                message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
+            else:
+                title = f'''แจ้งออกใบอนุมัติหลักการซ่อม {rep_approval.item}'''
+                message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} กรุณาดำเนินการในขั้นตอนถัดไปตามกระบวนการที่เกี่ยวข้อง\n'''
+                message += f'''ท่านสามารถดำเนินการพิมพ์เอกสารได้ที่ลิงก์ด้านล่าง\n{link}\n\n'''
+                message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
+                if rep_approval.record.complainant:
+                    msg = (
+                        f'เจ้าหน้าที่ได้ดำเนินการออกใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} เรียบร้อยแล้ว\n\n'
+                        f'ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์')
+                    message_for_complainant = f'''เจ้าหน้าที่ได้ดำเนินการออกใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} เรียบร้อยแล้ว\n\n'''
+                    message_for_complainant += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
+
+                    send_mail([rep_approval.record.complainant.email + '@mahidol.ac.th'], title,
+                              message_for_complainant)
+                    if not current_app.debug:
+                        try:
+                            line_bot_api.push_message(to=rep_approval.record.complainant.line_id,
+                                                      messages=TextSendMessage(text=msg))
+                        except LineBotApiError:
+                            pass
+                    else:
+                        print('msg :', msg, 'line :', rep_approval.record.complainant.line_id)
+            send_mail([secretary.email + '@mahidol.ac.th' for secretary in rep_approval.owner.personal_info.org.secretary_staff],
+                      title, message)
         return redirect(url_for('comp_tracker.edit_record_admin', record_id=rep_approval.record_id))
     else:
         for er in form.errors:
@@ -1597,10 +1709,6 @@ def edit_committee(repair_approval_id):
 
 
 def generate_repair_approval_pdf(repair_approval):
-    def all_page_setup(canvas, doc):
-        canvas.saveState()
-        canvas.restoreState()
-
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer,
                             pagesize=A4,
@@ -1612,13 +1720,6 @@ def generate_repair_approval_pdf(repair_approval):
 
     data = []
 
-    header_style = ParagraphStyle(
-        'HeaderStyle',
-        parent=style_sheet['ThaiStyle'],
-        fontSize=16,
-        leading=20,
-        alignment=TA_RIGHT
-    )
     header_right_style = ParagraphStyle(
         'HeaderRightStyle',
         parent=style_sheet['ThaiStyle'],
@@ -1672,69 +1773,46 @@ def generate_repair_approval_pdf(repair_approval):
     )
 
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
-    org = Org.query.filter_by(name=current_user.personal_info.org.name).first()
+    org_name = repair_approval.record.complainant.personal_info.org.name if repair_approval.record.complainant \
+        else current_user.personal_info.org.name
+    org = Org.query.filter_by(name=org_name).first()
     staff = StaffAccount.query.filter_by(email=org.head).first()
-    head = repair_approval.name if repair_approval.name else staff.fullname
-    if current_user.personal_info.org.name == 'หน่วยข้อมูลและสารสนเทศ':
-        organization_text = "หน่วยข้อมูลและสารสนเทศ<br/>งานยุทธศาสตร์\u00A0และการบริหารพัฒนาทรัพยากร\u00A0สำนักงานคณบดี<br/>โทร 02-4414371-7 ต่อ 2320"
-        organization_info = Paragraph(organization_text, style=header_right_style)
-        mhesi_no = '''<font name="SarabunBold">ที่</font>'''
-
-        person = Table([
-            [Paragraph('ลงชื่อ', center_style), Paragraph('ผู้ขออนุมัติ', center_style)],
-            [Paragraph('({head})'.format(head=head), center_style), ''],
-            ['', ''],
-            ['', ''],
-            ['', ''],
-            [Paragraph('ลงชื่อ', center_style), Paragraph('หัวหน้าภาค / ศูนย์ฯ', center_style)],
-            [Paragraph('(ผู้ช่วยศาสตราจารย์ ดร.ลิขิต ปรียานนท์)', center_style), ''],
-        ], colWidths=[160, 160])
-        person.setStyle(TableStyle([
-            ('SPAN', (0, 1), (1, 1)),
-            ('SPAN', (0, 6), (1, 6)),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-            ('TOPPADDING', (0, 0), (-1, -1), 0),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-        ]))
+    mhesi_no = '''<font name="SarabunBold">ที่</font>'''
+    if org.name == 'หน่วยข้อมูลและสารสนเทศ':
+        head = "ผู้ช่วยศาสตราจารย์ ดร.ลิขิต ปรียานนท์"
+        organization_text = f"{org.name}<br/>งานยุทธศาสตร์\u00A0และการบริหารพัฒนาทรัพยากร\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number}"
+    elif org.name == 'หน่วยซ่อมบำรุง':
+        head = "รองศาสตราจารย์ ดร.กลมรัตน์ โพธิ์ปิ่น"
+        organization_text = f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number}"
+    elif org.parent and org.parent.parent:
+        head = staff.fullname
+        organization_text = f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number}"
+    elif org.parent and not org.parent.parent:
+        head = staff.fullname
+        organization_text = f"{org.name}<br/>{org.parent.name}<br/>โทร {org.phone_number}"
     else:
-        # today = date.today()
-        # if today.month >= 10:
-        #     fiscal_year = today.year + 1
-        # else:
-        #     fiscal_year = today.year
-        organization_text = "หน่วยซ่อมบำรุง<br/>งานบริหารจัดการทั่วไป\u00A0สำนักงานคณบดี<br/>โทร 02-4414371-9 ต่อ 2115"
-        organization_info = Paragraph(organization_text, style=header_right_style)
-        mhesi_no = f'''<font name="SarabunBold">ที่</font>'''
-        person = Table([
-            ['', ''],
-            ['', ''],
-            ['', ''],
-            [Paragraph('({head})'.format(head=head), center_style), Paragraph('', center_style)],
-            [Paragraph('ตำแหน่งหัวหน้าหน่วยซ่อมบำรุง', center_style), Paragraph('', center_style)],
-            ['', ''],
-            ['', ''],
-            ['', ''],
-            ['', ''],
-            ['', ''],
-            ['', ''],
-            [Paragraph('(รองศาสตราจารย์ ดร.กลมรัตน์ โพธิ์ปิ่น)', center_style), Paragraph('', center_style)],
-            [Paragraph('ผู้ช่วยรองคณบดีฝ่ายบริหาร', center_style), Paragraph('', center_style)],
-        ], colWidths=[160, 160])
-        person.setStyle(TableStyle([
-            ('SPAN', (0, 3), (1, 3)),
-            ('SPAN', (0, 4), (1, 4)),
-            ('SPAN', (0, 11), (1, 11)),
-            ('SPAN', (0, 12), (1, 12)),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-            ('TOPPADDING', (0, 0), (-1, -1), 0),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-        ]))
+        head = staff.fullname
+        organization_text = f"{org.name}<br/>โทร {org.phone_number}"
+    organization_info = Paragraph(organization_text, style=header_right_style)
+    person = Table([
+        [Paragraph('ลงชื่อ', center_style), Paragraph('ผู้ขออนุมัติ', center_style)],
+        [Paragraph(f'({repair_approval.name})', center_style), ''],
+        ['', ''],
+        ['', ''],
+        ['', ''],
+        [Paragraph('ลงชื่อ', center_style), Paragraph('หัวหน้าภาค / ศูนย์ฯ', center_style)],
+        [Paragraph(f'({head})', center_style), ''],
+    ], colWidths=[160, 160])
+    person.setStyle(TableStyle([
+        ('SPAN', (0, 1), (1, 1)),
+        ('SPAN', (0, 6), (1, 6)),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+    ]))
 
     purchase_type = f'<font name="DejaVuSans">☑</font> รายได้ส่วนงาน <font name="DejaVuSans">☐</font> เงินงบประมาณแผ่นดิน' if repair_approval.purchase_type == 'รายได้ส่วนงาน' else \
         f'<font name="DejaVuSans">☐</font> รายได้ส่วนงาน <font name="DejaVuSans">☑</font> เงินงบประมาณแผ่นดิน'
@@ -1893,7 +1971,7 @@ def generate_repair_approval_pdf(repair_approval):
         detail_title = '<font name="SarabunBold">2. รายละเอียดการซ่อม</font>'
 
         price = ('<font name="SarabunBold">3. วงเงินที่ซ่อมในครั้งนี้เป็นเงิน</font> {price} บาท ({price_thai})'
-                 .format(price=repair_approval.price, price_thai=price_thai))
+                 .format(price=formatted_price, price_thai=price_thai))
 
         receipt = (
             '<font name="SarabunBold">4. โดยขอเบิกจ่ายจากเงิน</font> {purchase_type} ประจำปีงบประมาณ {budget_year}'
@@ -1966,6 +2044,7 @@ def generate_repair_approval_pdf(repair_approval):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('ALIGN', (0, 0), (0, 0), 'CENTER'),
         ('ALIGN', (2, 0), (2, 0), 'CENTER'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 60)
     ]))
 
     data.append(header_table)

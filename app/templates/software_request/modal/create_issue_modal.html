@@ -4,9 +4,9 @@
         <header class="modal-card-head">
             <p class="modal-card-title" align="center">
                 {% if detail_id %}
-                    Add Issue
+                    Add Requirement
                 {% else %}
-                    Edit Issue
+                    Edit Requirement
                 {% endif %}
             </p>
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
@@ -49,7 +49,7 @@
                 {% endif %}
                 <div class="field" style="margin-top:0.5em">
                     <label class="label">
-                        {{ form.issue.label }}
+                        รายละเอียด
                         <span class="has-text-danger">*</span>
                     </label>
                     <div class="control">
@@ -68,20 +68,11 @@
                     </div>
                     <div class="field" style="margin-top:0.5em">
                         <label class="label">
-                            {{ form.start.label }}
+                            {{ form.deadline.label }}
                             <span class="has-text-danger">*</span>
                         </label>
                         <div class="control">
-                            {{ form.start(class='input', type='text', required=True) }}
-                        </div>
-                    </div>
-                    <div class="field" style="margin-top:0.5em">
-                        <label class="label">
-                            {{ form.end.label }}
-                            <span class="has-text-danger">*</span>
-                        </label>
-                        <div class="control">
-                            {{ form.end(class='input', type='text', required=True) }}
+                            {{ form.deadline(class='input', type='text', autocomplete="off") }}
                         </div>
                     </div>
                 </div>
@@ -121,40 +112,22 @@
             width: '100%',
             tags: true
         });
-        $('input[name="start"]').daterangepicker({
+        $('input[name="deadline"]').daterangepicker({
             singleDatePicker: true,
             showDropdowns: true,
             autoUpdateInput: false,
-            {% if form.start.data %}
-                startDate: {{ form.start.data.isoformat()|tojson|safe }},
+            {% if form.deadline.data %}
+                startDate: {{ form.deadline.data.isoformat()|tojson|safe }},
             {% endif %}
             locale: {
                 format: 'YYYY-MM-DD',
                 cancelLabel: 'Clear'
             },
         });
-        $('input[name="start"]').on('apply.daterangepicker', function (ev, picker) {
+        $('input[name="deadline"]').on('apply.daterangepicker', function (ev, picker) {
             $(this).val(picker.startDate.format('YYYY-MM-DD'));
         });
-        $('input[name="start"]').on('cancel.daterangepicker', function () {
-            $(this).val('');
-        });
-         $('input[name="end"]').daterangepicker({
-            singleDatePicker: true,
-            showDropdowns: true,
-            autoUpdateInput: false,
-            {% if form.end.data %}
-                startDate: {{ form.end.data.isoformat()|tojson|safe }},
-            {% endif %}
-            locale: {
-                format: 'YYYY-MM-DD',
-                cancelLabel: 'Clear'
-            },
-        });
-        $('input[name="end"]').on('apply.daterangepicker', function (ev, picker) {
-            $(this).val(picker.startDate.format('YYYY-MM-DD'));
-        });
-        $('input[name="end"]').on('cancel.daterangepicker', function () {
+        $('input[name="deadline"]').on('cancel.daterangepicker', function () {
             $(this).val('');
         });
     });

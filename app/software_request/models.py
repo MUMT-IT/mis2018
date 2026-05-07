@@ -66,6 +66,8 @@ class SoftwareRequestDetail(db.Model):
                                                 'choices': [('', 'กรุณาเลือกประเภทคำขอ'),
                                                             ('พัฒนาโปรแกรมใหม่', 'พัฒนาโปรแกรมใหม่'),
                                                             ('ปรับปรุงระบบที่มีอยู่', 'ปรับปรุงระบบที่มีอยู่')]})
+    system_id = db.Column('system_id', db.ForeignKey('software_request_systems.id'))
+    system = db.relationship(SoftwareRequestSystem, backref=db.backref('software_requests'))
     work_process_id = db.Column('work_process_id', db.ForeignKey('db_processes.id'))
     work_process = db.relationship(Process, backref=db.backref('software_requests'))
     activity_id = db.Column('activity_id', db.ForeignKey('strategy_activities.id'))
@@ -192,8 +194,7 @@ class SoftwareIssues(db.Model):
         'choices': [(c,c) for c in ('Bug', 'Request', 'Enhancement')],
     })
     issue = db.Column('issue', db.Text(), nullable=False, info={'label': 'Issue/Request'})
-    start = db.Column('start', db.Date(), info={'label': 'วันที่เริ่มต้น'})
-    end = db.Column('end', db.Date(), info={'label': 'วันที่สิ้นสุด'})
+    deadline = db.Column('deadline', db.Date(), info={'label': 'Deadline'})
     phase_id = db.Column('phase_id', db.ForeignKey('software_request_phases.id'))
     phase = db.relationship(SoftwareRequestPhase, backref=db.backref('software_request_issues'))
     created_by = db.Column('created_by', db.ForeignKey('staff_account.id'))
