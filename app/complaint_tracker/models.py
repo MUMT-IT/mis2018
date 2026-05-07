@@ -400,6 +400,19 @@ class ComplaintRepairApproval(db.Model):
     def __str__(self):
         return self.item
 
+    @property
+    def get_other_org(self):
+        if (self.owner.personal_info.org.parent and self.owner.personal_info.org.parent.parent
+                and self.owner.personal_info.org.parent.parent.name != 'สำนักงานคณบดี'):
+            other_org = True
+        elif self.owner.personal_info.org.parent and self.owner.personal_info.org.parent.name != 'สำนักงานคณบดี':
+            other_org = True
+        elif self.owner.personal_info.org.name != 'สำนักงานคณบดี':
+            other_org = True
+        else:
+            other_org = False
+        return other_org
+
 
 class ComplaintCommittee(db.Model):
     __tablename__ = 'complaint_committees'
