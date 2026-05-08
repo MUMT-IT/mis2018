@@ -114,7 +114,24 @@
             methods: {
                 printRepairApproval: function (repair_approval_id) {
                     var url = "/complaint-tracker/admin/repair-approval/pdf/" + repair_approval_id ;
-                    printJS(url);
+                    printJS({
+                        printable: url,
+                        type: 'pdf',
+                        onPrintDialogClose: () => {
+                            fetch("/complaint-tracker/repair-approval/print/" + repair_approval_id, {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "X-CSRFToken": "{{ csrf_token() }}"
+                                }
+                            }).then(response => response.text())
+                            .then(() => {
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 200);
+                            });
+                        }
+                    });
                 }
             },
         });
