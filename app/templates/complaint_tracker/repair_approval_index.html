@@ -84,13 +84,25 @@
                                     {% endif %}
                                 </td>
                                 <td>
+                                    <div id="note-form"></div>
                                     <div class="field has-addons">
                                         <div class="control">
                                             <a class="button is-small is-info is-outlined is-rounded"
                                                 @click="printRepairApproval({{ repair_approval.id }})"
                                             >
                                                 <span class="icon"><i class="fas fa-file-pdf"></i></span>
-                                                <span>ใบอนุมัติหลักการซ่อม</span>
+                                                <span>Print</span>
+                                            </a>
+                                        </div>
+                                        <div class="control">
+                                            <a class="button is-danger is-outlined is-rounded is-small"
+                                               hx-swap="innerHTML"
+                                               hx-target="#note-form"
+                                               hx-get="{{ url_for('comp_tracker.create_note',
+                                               repair_approval_id=repair_approval.id)}}"
+                                            >
+                                                <span class="icon"><i class="fas fa-times"></i></span>
+                                                <span>Cancel</span>
                                             </a>
                                         </div>
                                     </div>
