@@ -962,6 +962,8 @@ def create_repair_approval(record_id, repair_approval_id=None):
             rep_approval.receipt_date = None
             rep_approval.supplier = None
             rep_approval.loan_no = None
+        rep_approval.is_print = False
+        rep_approval.reviewed_at = None
         db.session.add(rep_approval)
         db.session.commit()
         if rep_approval.repair_type == 'เร่งด่วน':
@@ -1519,7 +1521,7 @@ def export_repair_approval_pdf(repair_approval_id):
     repair_approval = ComplaintRepairApproval.query.get(repair_approval_id)
     buffer = generate_repair_approval_pdf(repair_approval)
     if not repair_approval.reviewed_at:
-        repair_approval.is_true = True
+        repair_approval.is_print = True
         repair_approval.reviewed_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(repair_approval)
         db.session.commit()
