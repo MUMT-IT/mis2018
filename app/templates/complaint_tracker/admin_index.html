@@ -161,6 +161,12 @@
                                                 {% if record.repair_approvals %}
                                                     {% if record.get_print_of_repair_approval == True %}
                                                         <i class="far fa-check-circle has-text-success"></i>
+                                                        <br>
+                                                        {% for repair_approval in record.repair_approvals %}
+                                                            <div class="is-size-6 mt-1">
+                                                                ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime or '' }}
+                                                            </div>
+                                                        {% endfor %}
 {#                                                        <span class="tag is-success is-light">#}
 {#                                                            <span class="icon"><i class="fas fa-check"></i></span>#}
 {#                                                            <span>ออกเอกสารแล้ว</span>#}

@@ -352,6 +352,11 @@
                                                             <span class="icon"><i class="fas fa-check"></i></span>
                                                             <span>ออกเอกสารแล้ว</span>
                                                         </span>
+                                                        {% for repair_approval in record.repair_approvals %}
+                                                            <div class="is-size-6 mt-1">
+                                                                ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime or '' }}
+                                                            </div>
+                                                        {% endfor %}
                                                     {% else %}
                                                         <span class="tag is-danger is-light">
                                                             <span class="icon"><i class="fas fa-times"></i></span>
