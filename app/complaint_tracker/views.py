@@ -1518,6 +1518,11 @@ def generate_repair_approval_pdf(repair_approval):
 def export_repair_approval_pdf(repair_approval_id):
     repair_approval = ComplaintRepairApproval.query.get(repair_approval_id)
     buffer = generate_repair_approval_pdf(repair_approval)
+    if not repair_approval.reviewed_at:
+        repair_approval.is_true = True
+        repair_approval.reviewed_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(repair_approval)
+        db.session.commit()
     return send_file(buffer, download_name='Repair_approval_form.pdf', as_attachment=True)
 
 
