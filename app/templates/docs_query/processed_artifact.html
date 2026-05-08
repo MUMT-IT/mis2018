@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Processed Document Artifact{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-10-tablet is-9-desktop is-8-widescreen">
+                    {% include "messages.html" %}
+                    <div class="box docs-query-shell">
+                        <div class="level is-mobile mb-5">
+                            <div>
+                                <h1 class="title is-3">Processed Document Artifact</h1>
+                                <p class="subtitle is-6 has-text-grey">Local development JSON generated after extraction and chunking.</p>
+                            </div>
+                            <div>
+                                <a class="button is-light" href="{{ url_for('docs_query.index') }}">Back</a>
+                            </div>
+                        </div>
+
+                        <div class="content mb-5">
+                            <p><strong>Document title:</strong> {{ artifact.document_title }}</p>
+                            <p><strong>Filename:</strong> {{ artifact.filename }}</p>
+                            <p><strong>Document type:</strong> {{ artifact.document_type or '-' }}</p>
+                            <p><strong>Total characters:</strong> {{ artifact.statistics.total_characters }}</p>
+                            <p><strong>Total chunks:</strong> {{ artifact.statistics.total_chunks }}</p>
+                        </div>
+
+                        <div class="content">
+                            <h2 class="title is-5">JSON</h2>
+                            <pre class="artifact-preview">{{ artifact_json }}</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <style>
+        .docs-query-shell {
+            border-radius: 28px;
+            margin: 3rem auto;
+            padding: 2.75rem;
+        }
+
+        .artifact-preview {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 16px;
+            max-height: 40rem;
+            overflow: auto;
+            padding: 1rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+    </style>
+{% endblock %}

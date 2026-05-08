@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Extracted PDF Text{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-10-tablet is-9-desktop is-8-widescreen">
+                    {% include "messages.html" %}
+                    <div class="box docs-query-shell">
+                        <div class="level is-mobile mb-5">
+                            <div>
+                                <h1 class="title is-3">Extracted Text Preview</h1>
+                                <p class="subtitle is-6 has-text-grey">Review extraction quality before later chunking and indexing.</p>
+                            </div>
+                            <div>
+                                <a class="button is-light" href="{{ url_for('docs_query.index') }}">Back</a>
+                            </div>
+                        </div>
+
+                        <div class="content mb-5">
+                            <p><strong>Document title:</strong> {{ document_title }}</p>
+                            <p><strong>Filename:</strong> {{ filename }}</p>
+                            <p><strong>Status:</strong> {{ extraction_status }}</p>
+                            <p><strong>Chunking method:</strong> {{ chunking_method }}</p>
+                            <p><strong>Extracted character count:</strong> {{ extracted_char_count }}</p>
+                            <p><strong>Total chunk count:</strong> {{ total_chunk_count }}</p>
+                        </div>
+
+                        {% if warning_message %}
+                            <article class="message {% if extraction_status == 'error' %}is-danger{% else %}is-warning{% endif %} is-light">
+                                <div class="message-body">
+                                    {{ warning_message }}
+                                </div>
+                            </article>
+                        {% endif %}
+
+                        <div class="content">
+                            <h2 class="title is-5">Chunk Preview</h2>
+                            {% if chunk_previews %}
+                                {% for chunk in chunk_previews %}
+                                    <article class="message is-light">
+                                        <div class="message-header">
+                                            <p>Chunk {{ chunk.chunk_number }}</p>
+                                            <p>{{ chunk.character_count }} chars</p>
+                                        </div>
+                                        <div class="message-body">
+                                            <pre class="extract-preview">{{ chunk.text }}</pre>
+                                        </div>
+                                    </article>
+                                {% endfor %}
+                            {% else %}
+                                <p class="has-text-grey">No chunks could be generated from this PDF.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <style>
+        .docs-query-shell {
+            border-radius: 28px;
+            margin: 3rem auto;
+            padding: 2.75rem;
+        }
+
+        .extract-preview {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 16px;
+            max-height: 36rem;
+            overflow: auto;
+            padding: 1rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+    </style>
+{% endblock %}

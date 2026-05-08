@@ -1,9 +1,12 @@
 import os
 import tempfile
 import json
+import re
+from datetime import datetime, timezone
 
+import fitz
 import requests
-from flask import flash, redirect, render_template, request, url_for
+from flask import current_app, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pydrive.auth import GoogleAuth
@@ -45,6 +48,22 @@ def initialize_gdrive():
     return GoogleDrive(gauth)
 
 
+def _get_extracted_text_dir():
+    output_dir = os.path.join(current_app.instance_path, 'docs_query_extracted')
+    os.makedirs(output_dir, exist_ok=True)
+    return output_dir
+
+
+def _get_processed_artifact_dir():
+    output_dir = os.path.join(current_app.instance_path, 'docs_query_processed')
+    os.makedirs(output_dir, exist_ok=True)
+    return output_dir
+
+
+def _get_processed_artifact_path(file_id):
+    return os.path.join(_get_processed_artifact_dir(), '{}.json'.format(file_id))
+
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -80,6 +99,30 @@ def _read_drive_properties(file_item):
     return property_map
 
 
+def _get_google_drive_file(file_id):
+    drive = initialize_gdrive()
+    file_item = drive.CreateFile({'id': file_id})
+    file_item.FetchMetadata()
+    return file_item
+
+
+def save_processed_artifact(file_id, data):
+    artifact_path = _get_processed_artifact_path(file_id)
+    with open(artifact_path, 'w', encoding='utf-8') as artifact_file:
+        json.dump(data, artifact_file, ensure_ascii=False, indent=2)
+    return artifact_path
+
+
+def load_processed_artifact(file_id):
+    artifact_path = _get_processed_artifact_path(file_id)
+    with open(artifact_path, encoding='utf-8') as artifact_file:
+        return json.load(artifact_file)
+
+
+def processed_artifact_exists(file_id):
+    return os.path.exists(_get_processed_artifact_path(file_id))
+
+
 def upload_pdf_file(upload_file, metadata):
     original_filename = secure_filename(upload_file.filename)
     temp_path = None
@@ -104,6 +147,125 @@ def upload_pdf_file(upload_file, metadata):
             os.remove(temp_path)
 
 
+def download_google_drive_file(file_id):
+    file_item = _get_google_drive_file(file_id)
+    filename = secure_filename(file_item.get('title') or file_id) or file_id
+    if not filename.lower().endswith('.pdf'):
+        filename = '{}.pdf'.format(filename)
+    temp_path = os.path.join(tempfile.gettempdir(), '{}_{}'.format(file_id, filename))
+    file_item.GetContentFile(temp_path)
+    return file_item, temp_path
+
+
+def extract_pdf_text(pdf_path):
+    text_chunks = []
+    document = fitz.open(pdf_path)
+    try:
+        for page in document:
+            text_chunks.append(page.get_text())
+    finally:
+        document.close()
+
+    text = '\n'.join(text_chunks).strip()
+    if text:
+        return text
+
+    try:
+        import pdfplumber
+    except ImportError:
+        return text
+
+    fallback_chunks = []
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            fallback_chunks.append(page.extract_text() or '')
+    return '\n'.join(fallback_chunks).strip()
+
+
+def _normalize_text(text):
+    text = re.sub(r'\r\n?', '\n', text or '')
+    text = re.sub(r'[ \t]+', ' ', text)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
+
+
+def chunk_text(text, max_chars=1200, overlap_chars=200):
+    text = _normalize_text(text)
+    if not text:
+        return []
+
+    chunks = []
+    start = 0
+    text_length = len(text)
+    while start < text_length:
+        end = min(start + max_chars, text_length)
+        chunk = text[start:end].strip()
+        if chunk:
+            chunks.append(chunk)
+        if end >= text_length:
+            break
+        start = max(end - overlap_chars, start + 1)
+    return chunks
+
+
+def _chunk_from_units(units, max_chars=1200, overlap_chars=200):
+    chunks = []
+    current_parts = []
+    current_length = 0
+
+    for unit in units:
+        piece = unit.strip()
+        if not piece:
+            continue
+        extra_length = len(piece) + (1 if current_parts else 0)
+        if current_parts and current_length + extra_length > max_chars:
+            chunk = ' '.join(current_parts).strip()
+            if chunk:
+                chunks.append(chunk)
+            overlap_text = chunk[-overlap_chars:].strip() if overlap_chars else ''
+            current_parts = [overlap_text] if overlap_text else []
+            current_length = len(overlap_text)
+
+        current_parts.append(piece)
+        current_length += len(piece) + (1 if len(current_parts) > 1 else 0)
+
+    if current_parts:
+        chunk = ' '.join(current_parts).strip()
+        if chunk:
+            chunks.append(chunk)
+    return chunks
+
+
+def chunk_thai_text(text, max_chars=1200, overlap_chars=200):
+    normalized_text = _normalize_text(text)
+    if not normalized_text:
+        return [], 'empty'
+
+    try:
+        from pythainlp.tokenize import sent_tokenize
+
+        sentence_units = [unit.strip() for unit in sent_tokenize(normalized_text) if unit.strip()]
+        if sentence_units:
+            chunks = _chunk_from_units(sentence_units, max_chars=max_chars, overlap_chars=overlap_chars)
+            if chunks:
+                return chunks, 'thai_sentence'
+    except Exception:
+        pass
+
+    try:
+        from pythainlp.tokenize import word_tokenize
+
+        word_units = [unit.strip() for unit in word_tokenize(normalized_text) if unit.strip()]
+        if word_units:
+            chunks = _chunk_from_units(word_units, max_chars=max_chars, overlap_chars=overlap_chars)
+            if chunks:
+                return chunks, 'thai_word'
+    except Exception:
+        pass
+
+    return chunk_text(normalized_text, max_chars=max_chars, overlap_chars=overlap_chars), 'character_fallback'
+
+
 def list_pdf_files():
     drive = initialize_gdrive()
     query = "'{}' in parents and trashed=false".format(FOLDER_ID)
@@ -123,6 +285,7 @@ def list_pdf_files():
             'mime_type': mime_type,
             'modified_time': file_item.get('modifiedDate'),
             'web_view_link': file_item.get('webViewLink') or file_item.get('alternateLink'),
+            'is_processed': processed_artifact_exists(file_item.get('id')),
         })
     return sorted(pdf_files, key=lambda item: item.get('modified_time') or '', reverse=True)
 
@@ -177,3 +340,120 @@ def upload():
         pass
 
     return redirect(url_for('docs_query.index'))
+
+
+@docs_query.route('/extract/<file_id>', methods=['POST'])
+@login_required
+def extract(file_id):
+    pdf_path = None
+    extraction_status = 'success'
+    warning_message = None
+    try:
+        file_item, pdf_path = download_google_drive_file(file_id)
+        extracted_text = extract_pdf_text(pdf_path)
+        document_title = file_item.get('title') or 'Untitled document'
+        filename = file_item.get('originalFilename') or file_item.get('title') or '{}.pdf'.format(file_id)
+
+        output_dir = _get_extracted_text_dir()
+        output_path = os.path.join(output_dir, '{}.txt'.format(file_id))
+        with open(output_path, 'w', encoding='utf-8') as output_file:
+            output_file.write(extracted_text)
+
+        extracted_char_count = len(extracted_text)
+        if extracted_char_count < 50:
+            extraction_status = 'warning'
+            warning_message = 'Very little text was extracted. The PDF may be scanned or image-based.'
+
+        chunks, chunking_method = chunk_thai_text(extracted_text)
+        if not chunks and extracted_text:
+            chunks = chunk_text(extracted_text)
+            chunking_method = 'character_fallback'
+
+        if not extracted_text.strip():
+            extraction_status = 'warning'
+            warning_message = 'No readable text was extracted. The PDF may be scanned or image-based.'
+        elif extracted_char_count < 300 and not warning_message:
+            extraction_status = 'warning'
+            warning_message = 'Extracted text is very short. The PDF may be scanned or image-based.'
+
+        chunk_payload = [
+            {
+                'chunk_number': index + 1,
+                'character_count': len(chunk),
+                'text': chunk,
+            }
+            for index, chunk in enumerate(chunks)
+        ]
+        chunk_output_path = os.path.join(output_dir, '{}_chunks.json'.format(file_id))
+        with open(chunk_output_path, 'w', encoding='utf-8') as chunk_output_file:
+            json.dump(chunk_payload, chunk_output_file, ensure_ascii=False, indent=2)
+
+        processed_artifact = {
+            'file_id': file_id,
+            'document_title': document_title,
+            'filename': filename,
+            'department': '',
+            'document_type': (_read_drive_properties(file_item).get('document_type') if file_item else '') or '',
+            'processing': {
+                'extracted_at': datetime.now(timezone.utc).isoformat(),
+                'chunk_method': chunking_method,
+                'chunk_size': 1200,
+                'overlap': 200,
+            },
+            'statistics': {
+                'total_characters': extracted_char_count,
+                'total_chunks': len(chunks),
+            },
+            'chunks': [
+                {
+                    'chunk_index': index,
+                    'char_count': len(chunk),
+                    'text': chunk,
+                }
+                for index, chunk in enumerate(chunks)
+            ],
+        }
+        save_processed_artifact(file_id, processed_artifact)
+
+        return render_template(
+            'docs_query/extract_preview.html',
+            document_title=document_title,
+            filename=filename,
+            extraction_status=extraction_status,
+            chunking_method=chunking_method,
+            extracted_char_count=extracted_char_count,
+            total_chunk_count=len(chunks),
+            chunk_previews=chunk_payload[:5],
+            warning_message=warning_message,
+        )
+    except Exception as exc:
+        flash('Failed to extract text from the PDF: {}'.format(exc), 'danger')
+        return render_template(
+            'docs_query/extract_preview.html',
+            document_title='Unknown document',
+            filename='-',
+            extraction_status='error',
+            chunking_method='failed',
+            extracted_char_count=0,
+            total_chunk_count=0,
+            chunk_previews=[],
+            warning_message='Extraction failed: {}'.format(exc),
+        ), 500
+    finally:
+        if pdf_path and os.path.exists(pdf_path):
+            os.remove(pdf_path)
+
+
+@docs_query.route('/processed/<file_id>')
+@login_required
+def view_processed(file_id):
+    try:
+        if not processed_artifact_exists(file_id):
+            flash('Processed artifact does not exist for this document.', 'warning')
+            return redirect(url_for('docs_query.index'))
+        artifact = load_processed_artifact(file_id)
+    except Exception as exc:
+        flash('Failed to load processed artifact: {}'.format(exc), 'danger')
+        return redirect(url_for('docs_query.index'))
+
+    return render_template('docs_query/processed_artifact.html', artifact=artifact, artifact_json=json.dumps(artifact, ensure_ascii=False, indent=2))

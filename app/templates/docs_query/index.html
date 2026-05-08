@@ -99,8 +99,11 @@
                                         <tr>
                                             <th>Title</th>
                                             <th>Document Type</th>
+                                            <th>Processed</th>
                                             <th>Modified</th>
                                             <th>View</th>
+                                            <th>Extract</th>
+                                            <th>Artifact</th>
                                         </tr>
                                         </thead>
                                         <tbody>
@@ -112,12 +115,32 @@
                                                     <p class="is-size-7 has-text-grey">ID: {{ pdf.id }}</p>
                                                 </td>
                                                 <td>{{ pdf.document_type or '-' }}</td>
+                                                <td>
+                                                    {% if pdf.is_processed %}
+                                                        <span class="tag is-success is-light">Processed</span>
+                                                    {% else %}
+                                                        <span class="tag is-light">Not Processed</span>
+                                                    {% endif %}
+                                                </td>
                                                 <td>{{ pdf.modified_time or '-' }}</td>
                                                 <td>
                                                     {% if pdf.web_view_link %}
                                                         <a href="{{ pdf.web_view_link }}" target="_blank" rel="noopener noreferrer">Open</a>
                                                     {% else %}
                                                         -
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <form method="post" action="{{ url_for('docs_query.extract', file_id=pdf.id) }}">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                        <button class="button is-small is-info is-light" type="submit">Extract Text</button>
+                                                    </form>
+                                                </td>
+                                                <td>
+                                                    {% if pdf.is_processed %}
+                                                        <a class="button is-small is-success is-light" href="{{ url_for('docs_query.view_processed', file_id=pdf.id) }}">View JSON</a>
+                                                    {% else %}
+                                                        <span class="has-text-grey">-</span>
                                                     {% endif %}
                                                 </td>
                                             </tr>
