@@ -389,6 +389,8 @@ class ComplaintRepairApproval(db.Model):
     is_print = db.Column('is_print', db.Boolean(), default=False)
     created_at = db.Column('created_at', db.DateTime(timezone=True), info={'label': 'วันที่'})
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    reviewed_at = db.Column('reviewed_at', db.DateTime(timezone=True))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('repair_approvals'),
                               foreign_keys=[creator_id])
