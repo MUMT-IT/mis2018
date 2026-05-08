@@ -889,7 +889,7 @@ def repair_approval_index():
     else:
         repair_approvals = query
     new_record_count = query.filter(
-        ComplaintRepairApproval.is_print == None
+        ComplaintRepairApproval.is_print == False
     ).count()
     return render_template('complaint_tracker/repair_approval_index.html', tab=tab, menu=menu,
                            new_record_count=new_record_count, repair_approvals=repair_approvals)
