@@ -118,18 +118,19 @@
                         printable: url,
                         type: 'pdf',
                         onPrintDialogClose: () => {
-                            fetch("/complaint-tracker/repair-approval/print/" + repair_approval_id, {
-                                method: "POST",
-                                headers: {
-                                    "Content-Type": "application/json",
-                                    "X-CSRFToken": "{{ csrf_token() }}"
+                            fetch("/complaint-tracker/repair-approval/print/" + repair_approval_id,
+                                {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                        "X-CSRFToken": "{{ csrf_token() }}"
+                                    }
+                                }).then(() => {
+                                    setTimeout(() => {
+                                        window.location.reload();
+                                    }, 200);
                                 }
-                            }).then(response => response.text())
-                            .then(() => {
-                                setTimeout(() => {
-                                    window.location.reload();
-                                }, 200);
-                            });
+                            );
                         }
                     });
                 }
