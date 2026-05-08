@@ -1518,11 +1518,16 @@ def generate_repair_approval_pdf(repair_approval):
 def export_repair_approval_pdf(repair_approval_id):
     repair_approval = ComplaintRepairApproval.query.get(repair_approval_id)
     buffer = generate_repair_approval_pdf(repair_approval)
-    if not repair_approval.is_print:
-        repair_approval.is_print = True
-        db.session.add(repair_approval)
-        db.session.commit()
     return send_file(buffer, download_name='Repair_approval_form.pdf', as_attachment=True)
+
+
+@complaint_tracker.route('/repair-approval/print/<int:repair_approval_id>', methods=['GET', 'POST'])
+def print_repair_approval(repair_approval_id):
+    repair_approval = ComplaintRepairApproval.query.get(repair_approval_id)
+    repair_approval.is_print = True
+    db.session.add(repair_approval)
+    db.session.commit()
+    return ''
 
 
 @complaint_tracker.route('/api/admin/new-record-complaint')
