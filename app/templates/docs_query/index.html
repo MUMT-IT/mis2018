@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Docs Query{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-10-tablet is-8-desktop is-7-widescreen">
+                    {% include "messages.html" %}
+                    <div class="box docs-query-shell">
+                        <div class="has-text-centered mb-6">
+                            <h1 class="title is-2">Document Query</h1>
+                            <p class="subtitle is-5 has-text-grey">Search internal documents or upload a PDF for later use.</p>
+                        </div>
+
+                        <form method="post" action="{{ url_for('docs_query.index') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="field">
+                                <label class="label" for="query">Question or search</label>
+                                <div class="control">
+                                    <input
+                                        class="input is-large"
+                                        id="query"
+                                        name="query"
+                                        type="text"
+                                        placeholder="Search documents or ask a question..."
+                                        value="{{ query or '' }}"
+                                    >
+                                </div>
+                            </div>
+                            <div class="field has-text-centered mt-5">
+                                <button class="button is-info is-medium" type="submit">Search</button>
+                            </div>
+                        </form>
+
+                        {% if query %}
+                            <article class="message is-info is-light mt-5">
+                                <div class="message-header">
+                                    <p>Submitted Query</p>
+                                </div>
+                                <div class="message-body">
+                                    {{ query }}
+                                </div>
+                            </article>
+                        {% endif %}
+
+                        <hr>
+
+                        <form method="post" action="{{ url_for('docs_query.upload') }}" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="field">
+                                <label class="label" for="document_title">Document title</label>
+                                <div class="control">
+                                    <input class="input" id="document_title" name="document_title" type="text" required>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label" for="description">Description</label>
+                                <div class="control">
+                                    <textarea class="textarea" id="description" name="description" rows="3"></textarea>
+                                </div>
+                            </div>
+                            <div class="columns">
+                                <div class="column">
+                                    <div class="field">
+                                        <label class="label" for="document_type">Document type</label>
+                                        <div class="control">
+                                            <div class="select is-fullwidth">
+                                                <select id="document_type" name="document_type">
+                                                    <option value="">Select document type</option>
+                                                    <option value="ข้อบังคับ">ข้อบังคับ</option>
+                                                    <option value="ประกาศ">ประกาศ</option>
+                                                    <option value="อื่นๆ">อื่นๆ</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label" for="file">Upload PDF</label>
+                                <div class="control">
+                                    <input class="input" id="file" name="file" type="file" accept="application/pdf,.pdf">
+                                </div>
+                                <p class="help">Only PDF files are accepted.</p>
+                            </div>
+                            <div class="field has-text-centered mt-5">
+                                <button class="button is-success is-medium" type="submit">Upload PDF</button>
+                            </div>
+                        </form>
+
+                        <hr>
+
+                        <div class="mt-5">
+                            <h2 class="title is-4">PDF Files in Google Drive</h2>
+                            {% if pdf_files %}
+                                <div class="table-container">
+                                    <table class="table is-fullwidth is-hoverable">
+                                        <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Document Type</th>
+                                            <th>Modified</th>
+                                            <th>View</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for pdf in pdf_files %}
+                                            <tr>
+                                                <td>
+                                                    <p class="has-text-weight-semibold">{{ pdf.document_title }}</p>
+                                                    <p class="is-size-7 has-text-grey">{{ pdf.name }}</p>
+                                                    <p class="is-size-7 has-text-grey">ID: {{ pdf.id }}</p>
+                                                </td>
+                                                <td>{{ pdf.document_type or '-' }}</td>
+                                                <td>{{ pdf.modified_time or '-' }}</td>
+                                                <td>
+                                                    {% if pdf.web_view_link %}
+                                                        <a href="{{ pdf.web_view_link }}" target="_blank" rel="noopener noreferrer">Open</a>
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <p class="has-text-grey">No PDF files found in the configured Google Drive folder.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <style>
+        .docs-query-shell {
+            border-radius: 28px;
+            margin: 3rem auto;
+            padding: 2.75rem;
+        }
+    </style>
+{% endblock %}

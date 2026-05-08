@@ -971,6 +971,10 @@ from app.software_request import software_request as software_request_blueprint
 
 app.register_blueprint(software_request_blueprint)
 
+from app.docs_query import docs_query as docs_query_blueprint
+
+app.register_blueprint(docs_query_blueprint)
+
 from app.software_request.models import *
 
 admin.add_views(ModelView(SoftwareRequestNumberID, db.session, category='Software Request'))
