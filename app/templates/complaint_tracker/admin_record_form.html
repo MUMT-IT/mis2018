@@ -353,9 +353,15 @@
                                                             <span>ออกเอกสารแล้ว</span>
                                                         </span>
                                                         {% for repair_approval in record.repair_approvals %}
-                                                            <div class="is-size-6 mt-1">
-                                                                ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime or '' }}
-                                                            </div>
+                                                            {% if repair_approval.cancelled_at %}
+                                                                <div class="is-size-6 mt-1">
+                                                                    ยกเลิกเมื่อ {{ repair_approval.cancelled_at|localdatetime }}
+                                                                </div>
+                                                            {% elif repair_approval.reviewed_at %}
+                                                                <div class="is-size-6 mt-1">
+                                                                    ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime }}
+                                                                </div>
+                                                            {% endif %}
                                                         {% endfor %}
                                                     {% else %}
                                                         <span class="tag is-danger is-light">
