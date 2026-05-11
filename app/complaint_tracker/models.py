@@ -407,6 +407,36 @@ class ComplaintRepairApproval(db.Model):
         return self.item
 
     @property
+    def status(self):
+        if self.cancelled_at:
+            status = 'ยกเลิกใบอนุมัติ'
+        elif self.is_print:
+            status = 'พิมพ์แล้ว'
+        else:
+            status = 'ยังไม่พิมพ์'
+        return status
+
+    @property
+    def status_color(self):
+        if self.cancelled_at:
+            color = 'is-danger'
+        elif self.is_print:
+            color = 'is-success'
+        else:
+            color = 'is-light'
+        return color
+
+    @property
+    def status_icon(self):
+        if self.cancelled_at:
+            icon = '<i class="fas fa-times"></i>'
+        elif self.is_print:
+            icon = '<i class="fas fa-check"></i>'
+        else:
+            icon = '<i class="fas fa-ban"></i>'
+        return icon
+
+    @property
     def get_other_org(self):
         if (self.owner.personal_info.org.parent and self.owner.personal_info.org.parent.parent
                 and self.owner.personal_info.org.parent.parent.name != 'สำนักงานคณบดี'):
