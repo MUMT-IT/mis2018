@@ -409,31 +409,40 @@ class ComplaintRepairApproval(db.Model):
     @property
     def status(self):
         if self.cancelled_at:
-            status = 'ยกเลิกใบอนุมัติ'
-        elif self.is_print:
-            status = 'พิมพ์แล้ว'
+            status = 'ยกเลิก'
+        elif self.is_print and (self.record.status_id and self.record.status.code == 'completed'):
+            status = 'ดำเนินการเสร็จสิ้น'
+        elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
+                                                                self.record.status.code != 'completed')):
+            status = 'รออนุมัติ'
         else:
-            status = 'ยังไม่พิมพ์'
+            status = 'รอดำเนินการ'
         return status
 
     @property
     def status_color(self):
         if self.cancelled_at:
             color = 'is-danger'
-        elif self.is_print:
+        elif self.is_print and (self.record.status_id and self.record.status.code == 'completed'):
             color = 'is-success'
+        elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
+                                                                self.record.status.code != 'completed')):
+            color = 'is-warning'
         else:
-            color = 'is-light'
+            color = 'is-info'
         return color
 
     @property
     def status_icon(self):
         if self.cancelled_at:
             icon = '<i class="fas fa-times"></i>'
-        elif self.is_print:
+        elif self.is_print and (self.record.status_id and self.record.status.code == 'completed'):
             icon = '<i class="fas fa-check"></i>'
+        elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
+                                                           self.record.status.code != 'completed')):
+            icon = '<i class="fas fa-pen-fancy"></i>'
         else:
-            icon = '<i class="fas fa-ban"></i>'
+            icon = '<i class="fas fa-hourglass"></i>'
         return icon
 
     @property
