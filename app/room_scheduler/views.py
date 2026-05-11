@@ -22,14 +22,13 @@ from ..complaint_tracker.models import ComplaintRecord, ComplaintStatus, Complai
 from ..main import db
 from . import roombp as room
 from .models import RoomResource, RoomEvent, EventCategory, room_coordinator_assoc
+from .normalizer import normalize_user_request
 from ..models import IOCode
 from flask_mail import Message
 
 from ..staff.models import StaffAccount, StaffGroupDetail
 
 localtz = pytz.timezone('Asia/Bangkok')
-TYPHOON_API_URL = 'https://api.opentyphoon.ai/v1/chat/completions'
-TYPHOON_MODEL = os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct')
 
 
 def _ics_escape(value):
@@ -150,6 +149,14 @@ def _normalize_assumptions(value):
         return list(dict.fromkeys(items))
     text = str(value).strip()
     return [text] if text else []
+
+
+def _sanitize_room_query_text(value):
+    if not value:
+        return ''
+    text = re.sub(r'<[^>]+>', ' ', str(value))
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
 
 
 def _safe_parse_date(date_value):
@@ -688,37 +695,36 @@ def _infer_event_category(purpose):
     return None
 
 
-def _enrich_room_criteria(user_message, criteria):
-    criteria = dict(criteria or {})
-    criteria['purpose'] = _infer_purpose_from_message(user_message, criteria.get('purpose'))
-    criteria['location'] = _infer_location_from_message(user_message, criteria.get('location'))
-    criteria['location_explicit'] = _location_is_explicitly_mentioned(user_message)
-    criteria['floor'] = criteria.get('floor') or _parse_floor_from_message(user_message)
-    criteria['relative_date_explicit'] = _contains_relative_or_weekday_reference(user_message)
+def _parse_room_criteria(normalized_text):
+    criteria = {}
+    criteria['purpose'] = _infer_purpose_from_message(normalized_text)
+    criteria['location'] = _infer_location_from_message(normalized_text)
+    criteria['location_explicit'] = _location_is_explicitly_mentioned(normalized_text)
+    criteria['floor'] = _parse_floor_from_message(normalized_text)
+    criteria['relative_date_explicit'] = _contains_relative_or_weekday_reference(normalized_text)
 
-    parsed_date = _parse_message_date(user_message)
+    parsed_date = _parse_message_date(normalized_text)
     if parsed_date:
         criteria['date'] = parsed_date.isoformat()
 
-    parsed_start_time, parsed_end_time = _parse_message_times(user_message)
+    parsed_start_time, parsed_end_time = _parse_message_times(normalized_text)
     if parsed_start_time:
         criteria['start_time'] = parsed_start_time.strftime('%H:%M')
     if parsed_end_time:
         criteria['end_time'] = parsed_end_time.strftime('%H:%M')
 
-    if not criteria.get('capacity'):
-        parsed_capacity = _parse_capacity_from_message(user_message)
-        if parsed_capacity:
-            criteria['capacity'] = parsed_capacity
+    parsed_capacity = _parse_capacity_from_message(normalized_text)
+    if parsed_capacity:
+        criteria['capacity'] = parsed_capacity
 
     if criteria.get('start_time') and not criteria.get('end_time'):
         start_time = _safe_parse_time(criteria.get('start_time'))
-        duration_hours = _parse_duration_hours(user_message) or _default_duration_hours()
+        duration_hours = _parse_duration_hours(normalized_text) or _default_duration_hours()
         if start_time and duration_hours:
             start_dt = datetime.combine(datetime.today().date(), start_time)
             criteria['end_time'] = (start_dt + timedelta(hours=duration_hours)).time().strftime('%H:%M')
 
-    assumptions = _normalize_assumptions(criteria.get('assumptions'))
+    assumptions = []
     if not criteria['location_explicit']:
         assumptions.append('ไม่ได้ระบุสถานที่ จึงใช้ศาลายาเป็นค่าเริ่มต้น')
     criteria['assumptions'] = _normalize_assumptions(assumptions)
@@ -774,64 +780,6 @@ def _build_room_query_params(criteria):
     criteria['start_time'] = start_time.strftime('%H:%M') if start_time else None
     criteria['end_time'] = end_time.strftime('%H:%M') if end_time else None
     return params
-
-
-def _build_typhoon_room_prompt(user_message):
-    return [
-        {
-            'role': 'system',
-            'content': (
-                'You convert Thai room-booking requests into structured search criteria. '
-                'Respond with JSON only and no markdown. '
-                'Use this schema: '
-                'scheduler_room_resources(id, location, number, floor, occupancy, desc, business_hour_start, business_hour_end, availability_id, type_id), '
-                'scheduler_room_avails(id, availability), '
-                'scheduler_room_types(id, type), '
-                'scheduler_room_reservations(room_id, datetime, cancelled_at). '
-                'Infer these fields from the user message: purpose, location, date, start_time, end_time, capacity. '
-                'Also infer floor when specified. '
-                'If location is missing, default to ศาลายา. '
-                'If number of people is mentioned, map it to capacity. '
-                'Purpose should reflect the meeting purpose. '
-                'Dates must use YYYY-MM-DD only when the user explicitly gave an absolute calendar date. '
-                'If the user uses a relative or weekday phrase such as พรุ่งนี้, วันศุกร์นี้, this Thursday, next Monday, do not invent a calendar date. '
-                'In those cases set date to null and put the original phrase into assumptions. '
-                'Times must use 24-hour HH:MM when known. '
-                'Return JSON with keys: purpose, location, date, start_time, end_time, capacity, floor, assumptions.'
-            )
-        },
-        {
-            'role': 'user',
-            'content': user_message
-        }
-    ]
-
-
-def _call_typhoon_room_query(user_message):
-    api_key = os.environ.get('SCB_TYPHOON_API_KEY')
-    if not api_key:
-        raise RuntimeError('SCB_TYPHOON_API_KEY is not configured.')
-
-    response = requests.post(
-        TYPHOON_API_URL,
-        headers={
-            'Authorization': f'Bearer {api_key}',
-            'Content-Type': 'application/json',
-        },
-        json={
-            'model': TYPHOON_MODEL,
-            'temperature': 0.1,
-            'max_tokens': 900,
-            'messages': _build_typhoon_room_prompt(user_message),
-        },
-        timeout=45,
-    )
-    response.raise_for_status()
-    payload = response.json()
-    content = payload['choices'][0]['message']['content']
-    parsed = _extract_json_payload(content)
-    parsed['assumptions'] = _normalize_assumptions(parsed.get('assumptions'))
-    return parsed
 
 
 def _summarize_room_request(criteria, rooms):
@@ -1007,23 +955,33 @@ def ai_room_search():
 @login_required
 def ai_room_search_api():
     payload = request.get_json(silent=True) or {}
-    user_message = (payload.get('message') or '').strip()
+    user_message = _sanitize_room_query_text(payload.get('message'))
     if not user_message:
         return jsonify({'error': 'กรุณาระบุรายละเอียดที่ต้องการค้นหาห้อง'}), 400
 
     try:
-        typhoon_result = _enrich_room_criteria(user_message, _call_typhoon_room_query(user_message))
-        print('AI_ROOM_SEARCH_CRITERIA:', json.dumps({
-            'purpose': typhoon_result.get('purpose'),
-            'location': typhoon_result.get('location'),
-            'location_explicit': typhoon_result.get('location_explicit'),
-            'floor': typhoon_result.get('floor'),
-            'date': typhoon_result.get('date'),
-            'start_time': typhoon_result.get('start_time'),
-            'end_time': typhoon_result.get('end_time'),
-            'capacity': typhoon_result.get('capacity'),
+        current_app.logger.info('AI_ROOM_SEARCH_RAW_INPUT %s', json.dumps({
+            'raw_input': user_message,
         }, ensure_ascii=False))
-        rooms, fallback_used = _execute_ai_room_search(typhoon_result)
+        normalization_result = normalize_user_request(user_message)
+        current_app.logger.info('AI_ROOM_SEARCH_NORMALIZED %s', json.dumps({
+            'normalized_text': normalization_result.get('normalized_text'),
+            'inferred_context': normalization_result.get('inferred_context') or [],
+            'uncertain_items': normalization_result.get('uncertain_items') or [],
+        }, ensure_ascii=False))
+
+        parsed_criteria = _parse_room_criteria(normalization_result['normalized_text'])
+        current_app.logger.info('AI_ROOM_SEARCH_PARSER_OUTPUT %s', json.dumps({
+            'purpose': parsed_criteria.get('purpose'),
+            'location': parsed_criteria.get('location'),
+            'location_explicit': parsed_criteria.get('location_explicit'),
+            'floor': parsed_criteria.get('floor'),
+            'date': parsed_criteria.get('date'),
+            'start_time': parsed_criteria.get('start_time'),
+            'end_time': parsed_criteria.get('end_time'),
+            'capacity': parsed_criteria.get('capacity'),
+        }, ensure_ascii=False))
+        rooms, fallback_used = _execute_ai_room_search(parsed_criteria)
     except requests.RequestException as exc:
         return jsonify({'error': f'ไม่สามารถเชื่อมต่อ Typhoon API ได้: {exc}'}), 502
     except RuntimeError as exc:
@@ -1031,23 +989,25 @@ def ai_room_search_api():
     except (KeyError, ValueError, TypeError) as exc:
         return jsonify({'error': f'ระบบตีความคำขอไม่สำเร็จ: {exc}'}), 422
 
-    assumptions = _normalize_assumptions(typhoon_result.get('assumptions'))
+    assumptions = _normalize_assumptions(normalization_result.get('inferred_context'))
+    assumptions.extend(_normalize_assumptions(parsed_criteria.get('assumptions')))
     if fallback_used:
         assumptions.append('ไม่พบห้องในศาลายาตามเงื่อนไข จึงขยายผลลัพธ์ไปทุกวิทยาเขต')
-    typhoon_result['assumptions'] = _normalize_assumptions(assumptions)
+    parsed_criteria['assumptions'] = _normalize_assumptions(assumptions)
 
     return jsonify({
-        'assistant_message': _summarize_room_request(typhoon_result, rooms),
+        'assistant_message': _summarize_room_request(parsed_criteria, rooms),
         'requirements': {
-            'purpose': typhoon_result.get('purpose'),
-            'location': typhoon_result.get('location'),
-            'date': typhoon_result.get('date'),
-            'start_time': typhoon_result.get('start_time'),
-            'end_time': typhoon_result.get('end_time'),
-            'capacity': typhoon_result.get('capacity'),
-            'floor': typhoon_result.get('floor'),
+            'purpose': parsed_criteria.get('purpose'),
+            'location': parsed_criteria.get('location'),
+            'date': parsed_criteria.get('date'),
+            'start_time': parsed_criteria.get('start_time'),
+            'end_time': parsed_criteria.get('end_time'),
+            'capacity': parsed_criteria.get('capacity'),
+            'floor': parsed_criteria.get('floor'),
         },
-        'assumptions': typhoon_result.get('assumptions') or [],
+        'assumptions': parsed_criteria.get('assumptions') or [],
+        'uncertain_items': normalization_result.get('uncertain_items') or [],
         'rooms': rooms,
     })
 

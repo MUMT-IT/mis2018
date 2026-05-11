@@ -39,6 +39,14 @@
             color: #fff;
         }
 
+        .ai-room-hero-note {
+            color: #fff;
+        }
+
+        .ai-room-hero-note strong {
+            color: #fff;
+        }
+
         .ai-room-kicker {
             color: rgba(255, 255, 255, 0.74);
             display: block;
@@ -56,13 +64,49 @@
             margin-top: 1rem;
         }
 
+        .ai-room-examples-label {
+            align-items: center;
+            color: rgba(255, 255, 255, 0.9);
+            display: inline-flex;
+            font-size: 0.92rem;
+            font-weight: 700;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
         .ai-room-example {
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            align-items: center;
+            background: rgba(255, 255, 255, 0.16);
+            border: 1px solid rgba(255, 255, 255, 0.26);
             border-radius: 999px;
+            box-shadow: 0 10px 24px rgba(7, 20, 48, 0.2);
             color: #fff;
             cursor: pointer;
-            padding: 0.75rem 1rem;
+            display: inline-flex;
+            font-weight: 700;
+            gap: 0.55rem;
+            padding: 0.8rem 1.05rem;
+            transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .ai-room-example::before {
+            content: '\f061';
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            font-size: 0.78rem;
+        }
+
+        .ai-room-example:hover,
+        .ai-room-example:focus {
+            background: rgba(255, 255, 255, 0.24);
+            box-shadow: 0 14px 28px rgba(7, 20, 48, 0.24);
+            transform: translateY(-1px);
+        }
+
+        .ai-room-examples-hint {
+            color: rgba(255, 255, 255, 0.78);
+            font-size: 0.84rem;
+            margin-top: 0.55rem;
         }
 
         .ai-room-chat {
@@ -85,6 +129,30 @@
             align-self: flex-end;
             background: linear-gradient(135deg, rgba(26, 61, 124, 0.96), rgba(34, 85, 172, 0.94));
             color: #fff;
+        }
+
+        .ai-room-user-entry {
+            align-items: flex-end;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+
+        .ai-room-edit-query {
+            align-items: center;
+            background: transparent;
+            border: 0;
+            color: var(--theme-muted);
+            cursor: pointer;
+            display: inline-flex;
+            font-size: 0.85rem;
+            gap: 0.35rem;
+            padding: 0;
+        }
+
+        .ai-room-edit-query:hover,
+        .ai-room-edit-query:focus {
+            color: var(--theme-navy);
         }
 
         .ai-room-bubble.assistant {
@@ -213,10 +281,14 @@
     <div class="ai-room-shell">
         <div class="ai-room-panel ai-room-hero">
             <span class="ai-room-kicker">AI Room Finder</span>
-            <h1 class="title is-3">ทดลองระบบจองห้องอัจฉริยะด้วย AI alpha version</h1>
+            <h1 class="title is-3">ทดลองระบบหาห้องอัจฉริยะด้วย AI alpha version</h1>
             <p class="subtitle is-5">พิมพ์ความต้องการเป็นภาษาธรรมชาติ แล้วระบบจะใช้ Typhoon ช่วยตีความเป็นเงื่อนไขค้นหาห้อง</p>
             <div class="content">
-                <p>รองรับการระบุวัตถุประสงค์ จำนวนคน วันที่ เวลา และสถานที่ หากไม่ระบุสถานที่ ระบบจะใช้ <strong>ศาลายา</strong> เป็นค่าเริ่มต้น</p>
+                <p class="ai-room-hero-note">รองรับการระบุวัตถุประสงค์ จำนวนคน วันที่ เวลา และสถานที่ หากไม่ระบุสถานที่ ระบบจะใช้ <strong>ศาลายา</strong> เป็นค่าเริ่มต้น</p>
+            </div>
+            <div class="ai-room-examples-label">
+                <span class="icon is-small"><i class="fas fa-hand-pointer"></i></span>
+                <span>คลิกตัวอย่างด้านล่างเพื่อใส่ข้อความค้นหาอัตโนมัติ</span>
             </div>
             <div class="ai-room-examples">
                 <button class="ai-room-example" type="button" data-example="ขอห้องประชุมสำหรับประชุมคณะกรรมการ 12 คน วันที่ 2026-05-10 เวลา 13:00-15:00 ที่ศาลายา">ประชุมคณะกรรมการ 12 คน</button>
@@ -224,6 +296,7 @@
                 <button class="ai-room-example" type="button" data-example="หาห้องสำหรับอบรมเชิงปฏิบัติการ 25 คน วันที่ 2026-05-15 เวลา 08:30-16:30 ที่ศิริราช">อบรมเชิงปฏิบัติการ</button>
                 <button class="ai-room-example" type="button" data-example="ขอห้องประชุม 20 คน พรุ่งนี้ เวลา 10-12">พรุ่งนี้ 10-12</button>
             </div>
+            <p class="ai-room-examples-hint">เมื่อคลิก ระบบจะคัดลอกข้อความตัวอย่างไปยังช่องพิมพ์ด้านขวาทันที</p>
         </div>
 
         <div class="ai-room-workspace">
@@ -269,7 +342,41 @@
         const resultsContainer = document.getElementById('ai-room-results');
         const csrfToken = document.getElementById('csrf-token').value;
 
+        function sanitizeQueryText(value) {
+            const htmlText = String(value ?? '');
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+            const text = doc.body.textContent || '';
+            return text.replace(/\s+/g, ' ').trim();
+        }
+
         function appendBubble(role, text) {
+            if (role === 'user') {
+                const entry = document.createElement('div');
+                entry.className = 'ai-room-user-entry';
+
+                const bubble = document.createElement('div');
+                bubble.className = 'ai-room-bubble user';
+                bubble.textContent = text;
+
+                const editButton = document.createElement('button');
+                editButton.type = 'button';
+                editButton.className = 'ai-room-edit-query';
+                editButton.setAttribute('aria-label', 'แก้ไขข้อความค้นหา');
+                editButton.innerHTML = '<span class="icon is-small"><i class="fas fa-pencil-alt"></i></span><span>แก้ไขข้อความนี้</span>';
+                editButton.addEventListener('click', () => {
+                    messageInput.value = sanitizeQueryText(text);
+                    messageInput.focus();
+                    messageInput.setSelectionRange(messageInput.value.length, messageInput.value.length);
+                });
+
+                entry.appendChild(bubble);
+                entry.appendChild(editButton);
+                chatLog.appendChild(entry);
+                chatLog.scrollTop = chatLog.scrollHeight;
+                return;
+            }
+
             const bubble = document.createElement('div');
             bubble.className = `ai-room-bubble ${role}`;
             bubble.textContent = text;
@@ -383,7 +490,8 @@
         }
 
         async function submitMessage(message) {
-            appendBubble('user', message);
+            const sanitizedMessage = sanitizeQueryText(message);
+            appendBubble('user', sanitizedMessage);
             submitButton.classList.add('is-loading');
             submitButton.disabled = true;
             resultsContainer.innerHTML = '<div class="notification is-info is-light">กำลังค้นหาห้อง...</div>';
@@ -395,7 +503,7 @@
                         'Content-Type': 'application/json',
                         'X-CSRF-Token': csrfToken
                     },
-                    body: JSON.stringify({ message })
+                    body: JSON.stringify({ message: sanitizedMessage })
                 });
                 const data = await response.json();
                 if (!response.ok) {
@@ -414,17 +522,24 @@
 
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
-            const message = messageInput.value.trim();
+            const message = sanitizeQueryText(messageInput.value);
             if (!message) {
                 return;
             }
+            messageInput.value = message;
             messageInput.value = '';
             await submitMessage(message);
         });
 
+        messageInput.addEventListener('paste', () => {
+            window.setTimeout(() => {
+                messageInput.value = sanitizeQueryText(messageInput.value);
+            }, 0);
+        });
+
         document.querySelectorAll('[data-example]').forEach((button) => {
             button.addEventListener('click', () => {
-                messageInput.value = button.dataset.example;
+                messageInput.value = sanitizeQueryText(button.dataset.example);
                 messageInput.focus();
             });
         });
