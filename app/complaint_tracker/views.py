@@ -886,6 +886,8 @@ def repair_approval_index():
         repair_approvals = query.filter(ComplaintRepairApproval.is_print == False)
     elif tab == 'completed':
         repair_approvals = query.filter(ComplaintRepairApproval.is_print == True)
+    elif tab == 'cancel':
+        repair_approvals = query.filter(ComplaintRepairApproval.cancelled_at != None)
     else:
         repair_approvals = query
     new_record_count = query.filter(
