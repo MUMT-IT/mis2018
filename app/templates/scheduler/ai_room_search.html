@@ -61,26 +61,25 @@
             display: flex;
             flex-wrap: wrap;
             gap: 0.65rem;
-            margin-top: 1rem;
+            margin-top: 0.85rem;
         }
 
         .ai-room-examples-label {
             align-items: center;
-            color: rgba(255, 255, 255, 0.9);
+            color: var(--theme-navy);
             display: inline-flex;
             font-size: 0.92rem;
             font-weight: 700;
             gap: 0.5rem;
-            margin-top: 1rem;
         }
 
         .ai-room-example {
             align-items: center;
-            background: rgba(255, 255, 255, 0.16);
-            border: 1px solid rgba(255, 255, 255, 0.26);
+            background: rgba(238, 243, 255, 0.88);
+            border: 1px solid rgba(18, 39, 84, 0.12);
             border-radius: 999px;
-            box-shadow: 0 10px 24px rgba(7, 20, 48, 0.2);
-            color: #fff;
+            box-shadow: 0 8px 20px rgba(18, 39, 84, 0.08);
+            color: #10264c;
             cursor: pointer;
             display: inline-flex;
             font-weight: 700;
@@ -90,23 +89,38 @@
         }
 
         .ai-room-example::before {
-            content: '\f061';
+            content: '\f075';
             font-family: 'Font Awesome 5 Free';
-            font-weight: 900;
+            font-weight: 400;
             font-size: 0.78rem;
         }
 
         .ai-room-example:hover,
         .ai-room-example:focus {
-            background: rgba(255, 255, 255, 0.24);
-            box-shadow: 0 14px 28px rgba(7, 20, 48, 0.24);
+            background: rgba(225, 234, 255, 0.96);
+            box-shadow: 0 12px 24px rgba(18, 39, 84, 0.12);
             transform: translateY(-1px);
         }
 
         .ai-room-examples-hint {
-            color: rgba(255, 255, 255, 0.78);
+            color: var(--theme-muted);
             font-size: 0.84rem;
             margin-top: 0.55rem;
+        }
+
+        .ai-room-examples-copy {
+            color: var(--theme-muted);
+            font-size: 0.95rem;
+            line-height: 1.55;
+            margin-top: 0.6rem;
+        }
+
+        .ai-room-examples-panel {
+            background: rgba(246, 248, 255, 0.9);
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 20px;
+            margin-bottom: 1rem;
+            padding: 1rem;
         }
 
         .ai-room-chat {
@@ -309,18 +323,6 @@
             <div class="content">
                 <p class="ai-room-hero-note">รองรับการระบุวัตถุประสงค์ จำนวนคน วันที่ เวลา และสถานที่ หากไม่ระบุสถานที่ ระบบจะใช้ <strong>ศาลายา</strong> เป็นค่าเริ่มต้น</p>
             </div>
-            <div class="ai-room-examples-label">
-                <span class="icon is-small"><i class="fas fa-hand-pointer"></i></span>
-                <span>คลิกตัวอย่างด้านล่างเพื่อใส่ข้อความค้นหาอัตโนมัติ</span>
-            </div>
-            <div class="ai-room-examples">
-                <button class="ai-room-example" type="button" data-example="ขอห้องประชุมสำหรับประชุมคณะกรรมการ 12 คน วันที่ 2026-05-10 เวลา 13:00-15:00 ที่ศาลายา">ประชุมคณะกรรมการ 12 คน</button>
-                <button class="ai-room-example" type="button" data-example="ต้องการห้องสอนสำหรับ 40 คน พรุ่งนี้ 09:00-12:00">ห้องสอน 40 คน</button>
-                <button class="ai-room-example" type="button" data-example="ห้องเรียนสำหรับ 20 คน ชั้น 2 วันนี้บ่าย">ห้องเรียน 20 คน ชั้น 2 วันนี้บ่าย</button>
-                <button class="ai-room-example" type="button" data-example="ขอห้องประชุม 20 คน พรุ่งนี้ เวลา 10-12">พรุ่งนี้ 10-12</button>
-                <button class="ai-room-example" type="button" data-example="ขอห้องประชุม 10 คน วันศุกร์หน้า เวลา 13:00-15:00">วันศุกร์หน้า 13:00-15:00</button>
-            </div>
-            <p class="ai-room-examples-hint">เมื่อคลิก ระบบจะคัดลอกข้อความตัวอย่างไปยังช่องพิมพ์ด้านขวาทันที</p>
         </div>
 
         <div class="ai-room-workspace">
@@ -340,11 +342,21 @@
 
             <div class="ai-room-panel">
                 <input id="csrf-token" type="hidden" value="{{ csrf_token() }}">
-                <div id="chat-log" class="ai-room-chat">
-                    <div class="ai-room-bubble assistant">
-                        ระบุความต้องการได้เลย เช่น “หาห้องประชุม 20 คน วันที่ 2026-05-08 เวลา 10:00-12:00” หรือ “ขอห้องสอนพรุ่งนี้ 9-12 สำหรับ 40 คน”
+                <div class="ai-room-examples-panel">
+                    <div class="ai-room-examples-label">
+                        <span>คลิกตัวอย่างเพื่อใส่ข้อความค้นหาอัตโนมัติ</span>
                     </div>
+                    <p class="ai-room-examples-copy">พิมพ์ความต้องการได้เอง เช่น “หาห้องประชุม 20 คน วันที่ 2026-05-08 เวลา 10:00-12:00” หรือ “ขอห้องสอนพรุ่งนี้ 9-12 สำหรับ 40 คน” หรือคลิกตัวอย่างด้านล่างเพื่อใช้เป็นทางลัด</p>
+                    <div class="ai-room-examples">
+                        <button class="ai-room-example" type="button" data-example="ขอห้องประชุมสำหรับประชุมคณะกรรมการ 12 คน วันที่ 2026-05-10 เวลา 13:00-15:00 ที่ศาลายา">ประชุมคณะกรรมการ 12 คน</button>
+                        <button class="ai-room-example" type="button" data-example="ต้องการห้องสอนสำหรับ 40 คน พรุ่งนี้ 09:00-12:00">ห้องสอน 40 คน</button>
+                        <button class="ai-room-example" type="button" data-example="ห้องเรียนสำหรับ 20 คน ชั้น 2 วันนี้บ่าย">ห้องเรียน 20 คน ชั้น 2 วันนี้บ่าย</button>
+                        <button class="ai-room-example" type="button" data-example="ขอห้องประชุม 20 คน พรุ่งนี้ เวลา 10-12">พรุ่งนี้ 10-12</button>
+                        <button class="ai-room-example" type="button" data-example="ขอห้องประชุม 10 คน วันศุกร์หน้า เวลา 13:00-15:00">วันศุกร์หน้า 13:00-15:00</button>
+                    </div>
+                    <p class="ai-room-examples-hint">เมื่อคลิก ระบบจะคัดลอกข้อความตัวอย่างไปยังช่องพิมพ์ด้านล่างทันที</p>
                 </div>
+                <div id="chat-log" class="ai-room-chat"></div>
                 <form id="ai-room-form" class="ai-room-composer">
                     <textarea id="ai-room-message" class="textarea" placeholder="พิมพ์รายละเอียดที่ต้องการค้นหาห้อง"></textarea>
                     <div class="is-flex is-justify-content-space-between is-align-items-center is-flex-wrap-wrap" style="gap: 0.75rem;">
