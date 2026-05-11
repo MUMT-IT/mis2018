@@ -348,16 +348,20 @@
                                             <div class="control">
                                                 {% if record.repair_approvals %}
                                                     {% if record.get_print_of_repair_approval == True %}
-                                                        <span class="tag is-success">
-                                                            <span class="icon"><i class="fas fa-check"></i></span>
-                                                            <span>ออกเอกสารแล้ว</span>
-                                                        </span>
                                                         {% for repair_approval in record.repair_approvals %}
                                                             {% if repair_approval.cancelled_at %}
+                                                                <span class="tag is-danger">
+                                                                    <span class="icon"><i class="fas fa-times"></i></span>
+                                                                    <span>ยกเลิกใบอนุมัติ</span>
+                                                                </span>
                                                                 <div class="is-size-6 mt-1">
                                                                     ยกเลิกเมื่อ {{ repair_approval.cancelled_at|localdatetime }}
                                                                 </div>
                                                             {% elif repair_approval.reviewed_at %}
+                                                                <span class="tag is-success">
+                                                                    <span class="icon"><i class="fas fa-check"></i></span>
+                                                                    <span>ออกเอกสารแล้ว</span>
+                                                                </span>
                                                                 <div class="is-size-6 mt-1">
                                                                     ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime }}
                                                                 </div>
