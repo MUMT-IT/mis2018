@@ -352,7 +352,7 @@
                                                             {% if repair_approval.cancelled_at %}
                                                                 <span class="tag is-danger">
                                                                     <span class="icon"><i class="fas fa-times"></i></span>
-                                                                    <span>ยกเลิกใบอนุมัติ</span>
+                                                                    <span>ยกเลิก</span>
                                                                 </span>
                                                                 <div class="is-size-6 mt-1">
                                                                     ยกเลิกเมื่อ {{ repair_approval.cancelled_at|localdatetime }}
@@ -360,7 +360,7 @@
                                                             {% elif repair_approval.reviewed_at %}
                                                                 <span class="tag is-success">
                                                                     <span class="icon"><i class="fas fa-check"></i></span>
-                                                                    <span>ออกเอกสารแล้ว</span>
+                                                                    <span>พิมพ์แล้ว</span>
                                                                 </span>
                                                                 <div class="is-size-6 mt-1">
                                                                     ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime }}
@@ -368,9 +368,9 @@
                                                             {% endif %}
                                                         {% endfor %}
                                                     {% else %}
-                                                        <span class="tag is-danger">
-                                                            <span class="icon"><i class="fas fa-times"></i></span>
-                                                            <span>ยังไม่ออกเอกสาร</span>
+                                                        <span class="tag is-warning">
+                                                            <span class="icon"><i class="fas fa-clock"></i></span>
+                                                            <span>รอพิมพ์</span>
                                                         </span>
                                                     {% endif %}
                                                 {% else %}

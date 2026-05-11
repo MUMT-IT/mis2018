@@ -160,30 +160,38 @@
                                             <td class="has-text-centered">
                                                 {% if record.repair_approvals %}
                                                     {% if record.get_print_of_repair_approval == True %}
-                                                        <i class="far fa-check-circle has-text-success"></i>
                                                         {% for repair_approval in record.repair_approvals %}
                                                             {% if repair_approval.cancelled_at %}
+                                                                <span class="tag is-danger is-light">
+                                                                    <span class="icon">
+                                                                        <i class="fas fa-times"></i>
+                                                                    </span>
+                                                                    <span>ยกเลิก</span>
+                                                                </span>
                                                                 <br>
                                                                 <div class="is-size-6 mt-1">
                                                                     ยกเลิกเมื่อ {{ repair_approval.cancelled_at|localdatetime }}
                                                                 </div>
                                                             {% elif repair_approval.reviewed_at %}
+                                                                <span class="tag is-success is-light">
+                                                                    <span class="icon">
+                                                                        <i class="far fa-check"></i>
+                                                                    </span>
+                                                                    <span>พิมพ์แล้ว</span>
+                                                                </span>
                                                                 <br>
                                                                 <div class="is-size-6 mt-1">
                                                                     ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime }}
                                                                 </div>
                                                             {% endif %}
                                                         {% endfor %}
-{#                                                        <span class="tag is-success is-light">#}
-{#                                                            <span class="icon"><i class="fas fa-check"></i></span>#}
-{#                                                            <span>ออกเอกสารแล้ว</span>#}
-{#                                                        </span>#}
                                                     {% else %}
-                                                        <i class="fas fa-times has-text-danger"></i>
-{#                                                        <span class="tag is-danger is-light">#}
-{#                                                            <span class="icon"><i class="fas fa-times"></i></span>#}
-{#                                                            <span>ยังไม่ออกเอกสาร</span>#}
-{#                                                        </span>#}
+                                                        <span class="tag is-warning is-light">
+                                                            <span class="icon">
+                                                                <i class="far fa-clock"></i>
+                                                            </span>
+                                                            <span>รอพิมพ์</span>
+                                                        </span>
                                                     {% endif %}
                                                 {% endif %}
                                             </td>
