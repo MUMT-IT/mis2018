@@ -885,7 +885,8 @@ def repair_approval_index():
     if tab == 'new':
         repair_approvals = query.filter(ComplaintRepairApproval.is_print == False)
     elif tab == 'completed':
-        repair_approvals = query.filter(ComplaintRepairApproval.is_print == True)
+        repair_approvals = query.filter(ComplaintRepairApproval.is_print == True,
+                                        ComplaintRepairApproval.cancelled_at == None)
     elif tab == 'cancel':
         repair_approvals = query.filter(ComplaintRepairApproval.cancelled_at != None)
     else:
@@ -1104,10 +1105,12 @@ def create_note(repair_approval_id):
     form = ComplaintRepairApprovalForm(obj=repair_approval)
     if form.validate_on_submit():
         form.populate_obj(repair_approval)
+        repair_approval.is_print = True
         repair_approval.record.status = status
         repair_approval.canceller_id = current_user.id
         repair_approval.cancelled_at = arrow.now('Asia/Bangkok').datetime
         repair_approval.record.closed_at = arrow.now('Asia/Bangkok').datetime
+        repair_approval.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(repair_approval)
         db.session.commit()
         flash('ยกเลิกเรียบร้อยแล้ว', 'success')
@@ -1566,6 +1569,7 @@ def export_repair_approval_pdf(repair_approval_id):
     if not repair_approval.reviewed_at:
         repair_approval.is_print = True
         repair_approval.reviewed_at = arrow.now('Asia/Bangkok').datetime
+        repair_approval.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(repair_approval)
         db.session.commit()
     return send_file(buffer, download_name='Repair_approval_form.pdf', as_attachment=True)
