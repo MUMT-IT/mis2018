@@ -161,11 +161,18 @@
                                                 {% if record.repair_approvals %}
                                                     {% if record.get_print_of_repair_approval == True %}
                                                         <i class="far fa-check-circle has-text-success"></i>
-                                                        <br>
                                                         {% for repair_approval in record.repair_approvals %}
-                                                            <div class="is-size-6 mt-1">
-                                                                ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime or '' }}
-                                                            </div>
+                                                            {% if repair_approval.cancelled_at %}
+                                                                <br>
+                                                                <div class="is-size-6 mt-1">
+                                                                    ยกเลิกเมื่อ {{ repair_approval.cancelled_at|localdatetime }}
+                                                                </div>
+                                                            {% elif repair_approval.reviewed_at %}
+                                                                <br>
+                                                                <div class="is-size-6 mt-1">
+                                                                    ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime }}
+                                                                </div>
+                                                            {% endif %}
                                                         {% endfor %}
 {#                                                        <span class="tag is-success is-light">#}
 {#                                                            <span class="icon"><i class="fas fa-check"></i></span>#}
