@@ -73,7 +73,7 @@
                                 <td>{{ repair_approval.reason }}</td>
                                 <td>
                                     <span class="tag {{ repair_approval.status_color }}">
-                                        <span class="icon">{{ repair_approval.status_icon }}</span>
+                                        <span class="icon">{{ repair_approval.status_icon|safe }}</span>
                                         <span>{{ repair_approval.status }}</span>
                                     </span>
                                 </td>
@@ -99,17 +99,21 @@
                                                 <span>Print</span>
                                             </a>
                                         </div>
-                                        <div class="control">
-                                            <a class="button is-danger is-outlined is-rounded is-small"
-                                               hx-swap="innerHTML"
-                                               hx-target="#note-form"
-                                               hx-get="{{ url_for('comp_tracker.create_note',
-                                               repair_approval_id=repair_approval.id)}}"
-                                            >
-                                                <span class="icon"><i class="fas fa-times"></i></span>
-                                                <span>Cancel</span>
-                                            </a>
-                                        </div>
+                                        {% if not repair_approval.cancelled_at and ((not repair_approval.record.status)
+                                                or (repair_approval.record.status and
+                                                repair_approval.record.status.code != 'completed')) %}
+                                            <div class="control">
+                                                <a class="button is-danger is-outlined is-rounded is-small"
+                                                   hx-swap="innerHTML"
+                                                   hx-target="#note-form"
+                                                   hx-get="{{ url_for('comp_tracker.create_note',
+                                                   repair_approval_id=repair_approval.id)}}"
+                                                >
+                                                    <span class="icon"><i class="fas fa-times"></i></span>
+                                                    <span>Cancel</span>
+                                                </a>
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>
