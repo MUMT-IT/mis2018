@@ -13,8 +13,8 @@
                     <ul>
                         <li {% if tab == 'new' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('comp_tracker.repair_approval_index', tab='new') }}">
-                                <span class="icon is-small"><i class="fas fa-times"></i></span>
-                                <span>ยังไม่ดำเนินการ</span>
+                                <span class="icon is-small"><i class="fas fa-ban"></i></span>
+                                <span>ยังไม่พิมพ์</span>
                                 {% if new_record_count > 0 %}
                                     <span class="tag is-danger is-rounded is-size-7 ml-1">{{ new_record_count }}</span>
                                 {% endif %}
@@ -23,7 +23,13 @@
                         <li {% if tab == 'completed' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('comp_tracker.repair_approval_index', tab='completed') }}">
                                 <span class="icon is-small"><i class="fas fa-check"></i></span>
-                                <span>ดำเนินการเสร็จสิ้น</span>
+                                <span>พิมพ์แล้ว</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'cancel' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('comp_tracker.repair_approval_index', tab='cancel') }}">
+                                <span class="icon is-small"><i class="fas fa-times"></i></span>
+                                <span>ยกเลิก</span>
                             </a>
                         </li>
                         <li {% if tab == 'all' %}class="is-active"{% endif %}>
@@ -76,6 +82,11 @@
                                         <span class="icon">{{ repair_approval.status_icon|safe }}</span>
                                         <span>{{ repair_approval.status }}</span>
                                     </span>
+                                    {% if repair_approval.cancelled_at %}
+                                        <br>ยกเลิกเมื่อ {{ repair_approval.cancelled_at|localdatetime }}
+                                    {% elif repair_approval.reviewed_at %}
+                                        <br>ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime }}
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {% if repair_approval.record.status.status %}
