@@ -882,20 +882,43 @@ def repair_approval_index():
         or_(ComplaintRepairApproval.owner_id == current_user.id,
             StaffPersonalInfo.org == org)
     ))
-    if tab == 'new':
+    if tab == 'waiting_process':
         repair_approvals = query.filter(ComplaintRepairApproval.is_print == False)
+    elif tab == 'waiting_approval':
+        repair_approvals = (query.join(ComplaintRepairApproval.record)
+                            .outerjoin(ComplaintRecord.status)
+                            .filter(or_(
+                                        ComplaintStatus.code != 'completed',
+                                        ComplaintRecord.status_id == None
+                                    ),
+                                    ComplaintRepairApproval.is_print == True,
+                                    ComplaintRepairApproval.cancelled_at == None
+                                    )
+                            )
     elif tab == 'completed':
-        repair_approvals = query.filter(ComplaintRepairApproval.is_print == True,
-                                        ComplaintRepairApproval.cancelled_at == None)
-    elif tab == 'cancel':
+        repair_approvals = (query.join(ComplaintRepairApproval.record).join(ComplaintRecord.status)
+                            .filter(ComplaintStatus.code == 'completed',
+                                    ComplaintRepairApproval.is_print == True,
+                                    ComplaintRepairApproval.cancelled_at == None)
+                            )
+    elif tab == 'cancelled':
         repair_approvals = query.filter(ComplaintRepairApproval.cancelled_at != None)
     else:
         repair_approvals = query
-    new_record_count = query.filter(
-        ComplaintRepairApproval.is_print == False
-    ).count()
+    new_record_count = query.filter(ComplaintRepairApproval.is_print == False).count()
+    waiting_record_count = (query.join(ComplaintRepairApproval.record)
+                            .outerjoin(ComplaintRecord.status)
+                            .filter(or_(
+                                        ComplaintStatus.code != 'completed',
+                                        ComplaintRecord.status_id == None
+                                    ),
+                                    ComplaintRepairApproval.is_print == True,
+                                    ComplaintRepairApproval.cancelled_at == None
+                                    )
+                            ).count()
     return render_template('complaint_tracker/repair_approval_index.html', tab=tab, menu=menu,
-                           new_record_count=new_record_count, repair_approvals=repair_approvals)
+                           new_record_count=new_record_count, waiting_record_count=waiting_record_count,
+                           repair_approvals=repair_approvals)
 
 
 @complaint_tracker.route('/admin/repair-approval/add/<int:record_id>', methods=['GET', 'POST'])
