@@ -43,7 +43,8 @@
                         <th>วงเงิน</th>
                         <th>ปีงบประมาณ</th>
                         <th>เหตุผล</th>
-                        <th>สถานะ</th>
+                        <th>สถานะใบอนุมัติ</th>
+                        <th>สถานะการซ่อม</th>
                         <th>ใบอนุมัติ</th>
                     </thead>
                     <tbody>
@@ -71,15 +72,19 @@
                                 <td>{{ repair_approval.budget_year }}</td>
                                 <td>{{ repair_approval.reason }}</td>
                                 <td>
-                                    {% if repair_approval.is_print %}
-                                        <span class="tag is-success">
-                                             <span class="icon"><i class="fas fa-check"></i></span>
-                                            <span>ดำเนินการเสร็จสิ้น</span>
+                                    <span class="tag {{ repair_approval.status_color }}">
+                                        <span class="icon">{{ repair_approval.status_icon }}</span>
+                                        <span>{{ repair_approval.status }}</span>
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if repair_approval.record.status.status %}
+                                        <span class="tag {{ repair_approval.record.status.color }}">
+                                            {{ repair_approval.record.status.status }}
                                         </span>
                                     {% else %}
-                                        <span class="tag is-warning">
-                                             <span class="icon"><i class="fas fa-hourglass-half"></i></span>
-                                            <span>รอดำเนินการ</span>
+                                        <span class="tag is-danger">
+                                            ยังไม่ดำเนินการ
                                         </span>
                                     {% endif %}
                                 </td>
