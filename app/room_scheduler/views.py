@@ -204,17 +204,13 @@ def _parse_thai_relative_date(text_value):
         5: ['เสาร์', 'saturday'],
         6: ['อาทิตย์', 'อาทิตย์์', 'sunday'],
     }
+    current_week_start = today - timedelta(days=today.weekday())
+    next_week_start = current_week_start + timedelta(days=7)
     for weekday, aliases in weekday_map.items():
         if any((f'วัน{alias}นี้' in text_raw) or (f'{alias}นี้' in text_raw) or (f'this {alias}' in text_lower) for alias in aliases):
-            delta = weekday - today.weekday()
-            if delta < 0:
-                delta += 7
-            return today + timedelta(days=delta)
+            return current_week_start + timedelta(days=weekday)
         if any((f'วัน{alias}หน้า' in text_raw) or (f'{alias}หน้า' in text_raw) or (f'next {alias}' in text_lower) for alias in aliases):
-            delta = weekday - today.weekday()
-            if delta <= 0:
-                delta += 7
-            return today + timedelta(days=delta)
+            return next_week_start + timedelta(days=weekday)
         if any((f'วัน{alias}' in text_raw) or re.search(rf'\b{re.escape(alias)}\b', text_lower) for alias in aliases):
             delta = weekday - today.weekday()
             if delta < 0:
@@ -244,6 +240,19 @@ def _parse_message_date(text_value):
         except ValueError:
             return None
     return None
+
+
+def _resolve_room_request_date(normalized_text, resolved_date=None, raw_text=None):
+    raw_has_relative_reference = _contains_relative_or_weekday_reference(raw_text)
+    raw_parsed_date = _parse_message_date(raw_text) if raw_has_relative_reference else None
+    if raw_parsed_date:
+        return raw_parsed_date
+
+    parsed_resolved_date = _safe_parse_date(resolved_date) if resolved_date else None
+    if parsed_resolved_date:
+        return parsed_resolved_date
+
+    return _parse_message_date(normalized_text)
 
 
 def _contains_relative_or_weekday_reference(text_value):
@@ -695,7 +704,7 @@ def _infer_event_category(purpose):
     return None
 
 
-def _parse_room_criteria(normalized_text):
+def _parse_room_criteria(normalized_text, resolved_date=None, raw_text=None):
     criteria = {}
     criteria['purpose'] = _infer_purpose_from_message(normalized_text)
     criteria['location'] = _infer_location_from_message(normalized_text)
@@ -703,7 +712,7 @@ def _parse_room_criteria(normalized_text):
     criteria['floor'] = _parse_floor_from_message(normalized_text)
     criteria['relative_date_explicit'] = _contains_relative_or_weekday_reference(normalized_text)
 
-    parsed_date = _parse_message_date(normalized_text)
+    parsed_date = _resolve_room_request_date(normalized_text, resolved_date=resolved_date, raw_text=raw_text)
     if parsed_date:
         criteria['date'] = parsed_date.isoformat()
 
@@ -965,12 +974,19 @@ def ai_room_search_api():
         }, ensure_ascii=False))
         normalization_result = normalize_user_request(user_message)
         current_app.logger.info('AI_ROOM_SEARCH_NORMALIZED %s', json.dumps({
+            'current_date': normalization_result.get('current_date'),
+            'current_day': normalization_result.get('current_day'),
             'normalized_text': normalization_result.get('normalized_text'),
+            'resolved_date': normalization_result.get('resolved_date'),
             'inferred_context': normalization_result.get('inferred_context') or [],
             'uncertain_items': normalization_result.get('uncertain_items') or [],
         }, ensure_ascii=False))
 
-        parsed_criteria = _parse_room_criteria(normalization_result['normalized_text'])
+        parsed_criteria = _parse_room_criteria(
+            normalization_result['normalized_text'],
+            resolved_date=normalization_result.get('resolved_date'),
+            raw_text=user_message,
+        )
         current_app.logger.info('AI_ROOM_SEARCH_PARSER_OUTPUT %s', json.dumps({
             'purpose': parsed_criteria.get('purpose'),
             'location': parsed_criteria.get('location'),

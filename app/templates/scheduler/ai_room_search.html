@@ -181,6 +181,29 @@
             gap: 1rem;
         }
 
+        .ai-room-requirements-tags {
+            gap: 0.6rem;
+        }
+
+        .tags .tag.ai-room-tag-highlight {
+            align-items: center;
+            background: #fff4cc;
+            color: #10264c;
+            font-size: 1.08rem !important;
+            font-weight: 800 !important;
+            min-height: 2.65rem;
+            padding: 0.75rem 1rem;
+        }
+
+        .ai-room-tag-highlight .ai-room-tag-label {
+            font-weight: 700;
+        }
+
+        .ai-room-tag-highlight .ai-room-tag-value {
+            font-size: 1.12em;
+            font-weight: 900;
+        }
+
         .ai-room-results-heading .title {
             margin-bottom: 0.35rem;
         }
@@ -293,8 +316,9 @@
             <div class="ai-room-examples">
                 <button class="ai-room-example" type="button" data-example="ขอห้องประชุมสำหรับประชุมคณะกรรมการ 12 คน วันที่ 2026-05-10 เวลา 13:00-15:00 ที่ศาลายา">ประชุมคณะกรรมการ 12 คน</button>
                 <button class="ai-room-example" type="button" data-example="ต้องการห้องสอนสำหรับ 40 คน พรุ่งนี้ 09:00-12:00">ห้องสอน 40 คน</button>
-                <button class="ai-room-example" type="button" data-example="หาห้องสำหรับอบรมเชิงปฏิบัติการ 25 คน วันที่ 2026-05-15 เวลา 08:30-16:30 ที่ศิริราช">อบรมเชิงปฏิบัติการ</button>
+                <button class="ai-room-example" type="button" data-example="ห้องเรียนสำหรับ 20 คน ชั้น 2 วันนี้บ่าย">ห้องเรียน 20 คน ชั้น 2 วันนี้บ่าย</button>
                 <button class="ai-room-example" type="button" data-example="ขอห้องประชุม 20 คน พรุ่งนี้ เวลา 10-12">พรุ่งนี้ 10-12</button>
+                <button class="ai-room-example" type="button" data-example="ขอห้องประชุม 10 คน วันศุกร์หน้า เวลา 13:00-15:00">วันศุกร์หน้า 13:00-15:00</button>
             </div>
             <p class="ai-room-examples-hint">เมื่อคลิก ระบบจะคัดลอกข้อความตัวอย่างไปยังช่องพิมพ์ด้านขวาทันที</p>
         </div>
@@ -431,7 +455,7 @@
             if (requirements.purpose) chips.push(`<span class="tag is-light">วัตถุประสงค์: ${escapeHtml(requirements.purpose)}</span>`);
             if (requirements.location) chips.push(`<span class="tag is-light">สถานที่: ${escapeHtml(requirements.location)}</span>`);
             const thaiDateTime = formatThaiDateTimeSummary(requirements);
-            if (thaiDateTime) chips.push(`<span class="tag is-light">วันเวลา: ${escapeHtml(thaiDateTime)}</span>`);
+            if (thaiDateTime) chips.push(`<span class="tag ai-room-tag-highlight"><span class="ai-room-tag-label">วันเวลา:</span>&nbsp;<span class="ai-room-tag-value">${escapeHtml(thaiDateTime)}</span></span>`);
             if (requirements.capacity) chips.push(`<span class="tag is-light">จำนวนคน: ${escapeHtml(requirements.capacity)}</span>`);
             if (requirements.floor) chips.push(`<span class="tag is-light">ชั้น: ${escapeHtml(requirements.floor)}</span>`);
             return chips.join('');
@@ -482,7 +506,7 @@
             resultsContainer.innerHTML = `
                 <div class="notification is-light">
                     <p class="mb-3"><strong>เงื่อนไขที่ระบบตีความ</strong></p>
-                    <div class="tags">${renderRequirements(data.requirements || {})}</div>
+                    <div class="tags ai-room-requirements-tags">${renderRequirements(data.requirements || {})}</div>
                 </div>
                 ${roomsHtml}
                 ${assumptions ? `<div class="notification is-light"><div class="content"><p><strong>สมมติฐาน</strong></p><ul>${assumptions}</ul></div></div>` : ''}
