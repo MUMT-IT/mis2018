@@ -81,6 +81,53 @@
             padding: 1.5rem;
         }
 
+        .room-ai-cta {
+            margin-bottom: 1.25rem;
+        }
+
+        .room-ai-cta .button {
+            align-items: center;
+            background: linear-gradient(135deg, #1f7a4c, #2ea866);
+            border: 0;
+            box-shadow: 0 16px 34px rgba(31, 122, 76, 0.22);
+            border-radius: 999px;
+            color: #fff;
+            gap: 0.8rem;
+            min-height: 3.75rem;
+            padding: 0.85rem 1.25rem;
+        }
+
+        .room-ai-cta .button:hover,
+        .room-ai-cta .button:focus {
+            background: linear-gradient(135deg, #19633e, #258653);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .room-ai-badge {
+            background: linear-gradient(135deg, #f7d66a, #f0c419);
+            border-radius: 999px;
+            color: #10264c;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            padding: 0.35rem 0.7rem;
+            text-transform: uppercase;
+        }
+
+        .room-ai-copy {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            text-align: left;
+        }
+
+        .room-ai-copy small {
+            color: rgba(255, 255, 255, 0.82);
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
         .room-panel-header {
             align-items: flex-start;
             display: flex;
@@ -339,6 +386,18 @@
         <div class="columns is-variable is-5">
             <div class="column">
                 <div class="room-panel">
+                    <div class="room-ai-cta">
+                        <a class="button is-primary is-medium is-rounded" href="{{ url_for('room.ai_room_search') }}">
+                            <span class="icon">
+                                <i class="fas fa-robot"></i>
+                            </span>
+                            <span class="room-ai-copy">
+                                <span>ทดลองระบบหาห้องอัจฉริยะด้วย AI</span>
+                                <small>ค้นหาห้องด้วยภาษาธรรมชาติได้ทันที</small>
+                            </span>
+                            <span class="room-ai-badge">Alpha</span>
+                        </a>
+                    </div>
                     <div class="room-panel-header">
                         <div>
                             <h2 class="title is-4 mb-5">ค้นหาห้องที่ต้องการจอง</h2>
