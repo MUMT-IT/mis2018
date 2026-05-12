@@ -308,11 +308,13 @@ def _build_low_level_line_reminder_message(recipient, snapshot):
     topic_summary = ', '.join(
         f"{topic} {count} เรื่อง" for topic, count in list(snapshot['topic_counts'].items())[:3]
     ) or 'ไม่มีรายละเอียดหัวข้อ'
+    record_ids = ', '.join(str(item['id']) for item in snapshot['records'])
 
     return (
         f"แจ้งเตือนรายการแจ้งปัญหา/ซ่อมบำรุงใหม่ยังไม่ได้ตรวจสอบ วันที่ {snapshot['date_label']}\n"
         f"มีทั้งหมด {snapshot['total_records']} เรื่อง ในส่วนงานที่ท่านรับผิดชอบ\n"
-        f"หัวข้อหลัก: {topic_summary}"
+        f"หัวข้อหลัก: {topic_summary}\n"
+        f"รหัสรายการ: {record_ids}"
     )
 
 
