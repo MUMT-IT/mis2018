@@ -52,10 +52,14 @@
                                 <td>
                                     {% if record.status %}
                                         <span class="tag {{ record.status.color }}">
-                                            {{ record.status }}
+                                            <span class="icon">{{ record.status.icon|safe }}</span>
+                                            <span>{{ record.status }}</span>
                                         </span>
                                     {% else %}
-                                        <span class="tag is-danger">ยังไม่ดำเนินการ</span>
+                                        <span class="tag is-danger">
+                                            <span class="icon"><i class="fas fa-ban"></i></span>
+                                            <span>ยังไม่ดำเนินการ</span>
+                                        </span>
                                     {% endif %}
                                 </td>
                                 <td>

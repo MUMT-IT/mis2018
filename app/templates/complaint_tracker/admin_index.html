@@ -131,7 +131,7 @@
                                                     </span>
                                                 {% else %}
                                                     <span class="tag is-light is-warning">
-                                                        ผู้รร่วมตรวจสอบ
+                                                        ผู้ร่วมตรวจสอบ
                                                     </span>
                                                 {% endif %}
                                             </td>
@@ -146,14 +146,16 @@
                                             <td>
                                                 {% if record.status %}
                                                     <span class="tag {{ record.status.color }}">
-                                                        {{ record.status }}
+                                                        <span class="icon">{{ record.status.icon|safe }}</span>
+                                                        <span>{{ record.status }}</span>
                                                     </span>
                                                     {% if record.closed_at %}
                                                         {{ record.closed_at|localdatetime }}
                                                     {% endif %}
                                                 {% else %}
                                                     <span class="tag is-danger">
-                                                        ยังไม่ดำเนินการ
+                                                        <span class="icon"><i class="fas fa-ban"></i></span>
+                                                        <span>ยังไม่ดำเนินการ</span>
                                                     </span>
                                                 {% endif %}
                                             </td>

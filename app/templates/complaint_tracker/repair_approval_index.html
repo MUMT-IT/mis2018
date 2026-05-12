@@ -99,11 +99,13 @@
                                 <td>
                                     {% if repair_approval.record.status.status %}
                                         <span class="tag {{ repair_approval.record.status.color }}">
-                                            {{ repair_approval.record.status.status }}
+                                            <span class="icon">{{ repair_approval.record.status.icon|safe }}</span>
+                                            <span>{{ repair_approval.record.status.status }}</span>
                                         </span>
                                     {% else %}
                                         <span class="tag is-danger">
-                                            ยังไม่ดำเนินการ
+                                            <span class="icon"><i class="fas fa-ban"></i></span>
+                                            <span>ยังไม่ดำเนินการ</span>
                                         </span>
                                     {% endif %}
                                 </td>
