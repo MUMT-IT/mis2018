@@ -776,16 +776,17 @@ def view_performance_report(record_id):
     return render_template('complaint_tracker/modal/view_performance_report_modal.html', record=record)
 
 
-@complaint_tracker.route('/complaint/user/delete/<int:record_id>', methods=['DELETE'])
-def delete_complaint(record_id):
-    if record_id:
-        record = ComplaintRecord.query.get(record_id)
-        db.session.delete(record)
-        db.session.commit()
-        flash('ลบรายการแจ้งปัญหาสำเร็จ', 'success')
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
-        return resp
+@complaint_tracker.route('/complaint/user/cancel/<int:record_id>', methods=['POST'])
+def cancel_complaint(record_id):
+    status = ComplaintStatus.query.filter_by(code='cancelled').first()
+    record = ComplaintRecord.query.get(record_id)
+    record.status = status
+    db.session.add(record)
+    db.session.commit()
+    flash('ยกเลิกรายการแจ้งปัญหาสำเร็จ', 'success')
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
 
 
 @complaint_tracker.route('/admin/complaint/index')
