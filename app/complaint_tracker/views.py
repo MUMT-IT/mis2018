@@ -302,26 +302,17 @@ def _build_today_no_status_records_snapshot(topic_ids=None):
 
 
 def _build_low_level_line_reminder_message(recipient, snapshot):
-    admin_link = url_for('comp_tracker.admin_index', tab='new', _external=True, _scheme='https')
     if not snapshot['records']:
         return None
 
     topic_summary = ', '.join(
         f"{topic} {count} เรื่อง" for topic, count in list(snapshot['topic_counts'].items())[:3]
     ) or 'ไม่มีรายละเอียดหัวข้อ'
-    record_lines = '\n'.join(
-        f"- #{item['id']} {item['topic']} เวลา {item['created_at']}"
-        for item in snapshot['records'][:10]
-    )
-    more_count = max(snapshot['total_records'] - 10, 0)
-    more_line = f"\n- และอีก {more_count} เรื่อง" if more_count else ''
 
     return (
-        f"แจ้งเตือนคำขอใหม่ยังไม่ระบุสถานะ วันที่ {snapshot['date_label']}\n"
+        f"แจ้งเตือนรายการแจ้งปัญหา/ซ่อมบำรุงใหม่ยังไม่ได้ตรวจสอบ วันที่ {snapshot['date_label']}\n"
         f"มีทั้งหมด {snapshot['total_records']} เรื่อง ในส่วนงานที่ท่านรับผิดชอบ\n"
-        f"หัวข้อหลัก: {topic_summary}\n"
-        f"{record_lines}{more_line}\n"
-        f"กรุณาเข้าไปตรวจสอบและอัปเดตสถานะ {admin_link}"
+        f"หัวข้อหลัก: {topic_summary}"
     )
 
 
