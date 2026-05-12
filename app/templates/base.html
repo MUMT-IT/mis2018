@@ -116,6 +116,49 @@
             overflow: hidden;
         }
 
+        table.table.is-bordered {
+            border: 1px solid var(--theme-border);
+        }
+
+        table.table.is-bordered td,
+        table.table.is-bordered th {
+            border-color: var(--theme-border);
+        }
+
+        table.table.is-bordered > thead:first-child > tr:first-child > th:first-child,
+        table.table.is-bordered > tbody:first-child > tr:first-child > td:first-child,
+        table.table.is-bordered > tbody:first-child > tr:first-child > th:first-child,
+        table.table.is-bordered > tr:first-child > td:first-child,
+        table.table.is-bordered > tr:first-child > th:first-child {
+            border-top-left-radius: 18px;
+        }
+
+        table.table.is-bordered > thead:first-child > tr:first-child > th:last-child,
+        table.table.is-bordered > tbody:first-child > tr:first-child > td:last-child,
+        table.table.is-bordered > tbody:first-child > tr:first-child > th:last-child,
+        table.table.is-bordered > tr:first-child > td:last-child,
+        table.table.is-bordered > tr:first-child > th:last-child {
+            border-top-right-radius: 18px;
+        }
+
+        table.table.is-bordered > tfoot:last-child > tr:last-child > td:first-child,
+        table.table.is-bordered > tfoot:last-child > tr:last-child > th:first-child,
+        table.table.is-bordered > tbody:last-child > tr:last-child > td:first-child,
+        table.table.is-bordered > tbody:last-child > tr:last-child > th:first-child,
+        table.table.is-bordered > tr:last-child > td:first-child,
+        table.table.is-bordered > tr:last-child > th:first-child {
+            border-bottom-left-radius: 18px;
+        }
+
+        table.table.is-bordered > tfoot:last-child > tr:last-child > td:last-child,
+        table.table.is-bordered > tfoot:last-child > tr:last-child > th:last-child,
+        table.table.is-bordered > tbody:last-child > tr:last-child > td:last-child,
+        table.table.is-bordered > tbody:last-child > tr:last-child > th:last-child,
+        table.table.is-bordered > tr:last-child > td:last-child,
+        table.table.is-bordered > tr:last-child > th:last-child {
+            border-bottom-right-radius: 18px;
+        }
+
         .navbar,
         .navbar.is-info,
         .navbar.is-danger,

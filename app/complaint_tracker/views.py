@@ -21,7 +21,7 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from app.auth.views import line_bot_api
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
@@ -116,6 +116,38 @@ def get_fiscal_date(date):
     return start_fiscal_date, end_fiscal_date
 
 
+def _apply_topic_code_filter(query, code):
+    if code and code != 'null':
+        return query.join(ComplaintTopic, ComplaintRecord.topic_id == ComplaintTopic.id).filter(ComplaintTopic.code == code)
+    return query
+
+
+def _build_calendar_chart_json(date_column, status_code=None, include_unset_status=False, code=None):
+    description = {'date': ('date', 'Day'), 'heads': ('number', 'heads')}
+    start_fiscal_date, end_fiscal_date = get_fiscal_date(datetime.today())
+
+    query = db.session.query(
+        func.date(date_column).label('record_date'),
+        func.count(ComplaintRecord.id).label('heads')
+    ).filter(date_column.between(start_fiscal_date, end_fiscal_date))
+
+    query = _apply_topic_code_filter(query, code)
+
+    if include_unset_status:
+        query = query.filter(ComplaintRecord.status_id.is_(None))
+    elif status_code:
+        query = query.join(ComplaintStatus, ComplaintRecord.status_id == ComplaintStatus.id).filter(
+            ComplaintStatus.code == status_code
+        )
+
+    rows = query.group_by('record_date').order_by('record_date').all()
+    count_data = [{'date': row.record_date, 'heads': row.heads} for row in rows]
+
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_data)
+    return data_table.ToJSon(columns_order=('date', 'heads'))
+
+
 def send_mail(recp, title, message, html=None):
     message = Message(subject=title, body=message, recipients=recp, html=html)
     mail.send(message)
@@ -172,6 +204,216 @@ def _get_high_level_admin_recipients():
             'topic_names': sorted(recipient['topic_names']),
         })
     return sorted(normalized, key=lambda item: item['email'])
+
+
+def _get_low_level_line_recipients():
+    recipients = {}
+    admins = ComplaintAdmin.query.filter_by(is_supervisor=False).join(ComplaintAdmin.admin).all()
+    for admin in admins:
+        line_id = admin.admin.line_id if admin.admin else None
+        if not line_id:
+            continue
+        if line_id not in recipients:
+            recipients[line_id] = {
+                'line_id': line_id,
+                'staff_name': admin.admin.fullname if admin.admin else line_id,
+                'topic_ids': set(),
+                'topic_names': set(),
+            }
+        if admin.topic_id:
+            recipients[line_id]['topic_ids'].add(admin.topic_id)
+        if admin.topic and admin.topic.topic:
+            recipients[line_id]['topic_names'].add(admin.topic.topic)
+
+    normalized = []
+    for recipient in recipients.values():
+        normalized.append({
+            'line_id': recipient['line_id'],
+            'staff_name': recipient['staff_name'],
+            'topic_ids': sorted(recipient['topic_ids']),
+            'topic_names': sorted(recipient['topic_names']),
+        })
+    return sorted(normalized, key=lambda item: item['staff_name'])
+
+
+def _get_low_level_line_recipient_stats():
+    admins = ComplaintAdmin.query.filter_by(is_supervisor=False).join(ComplaintAdmin.admin).all()
+    total_admin_rows = len(admins)
+    admins_with_line = 0
+    unique_line_ids = set()
+    missing_line = []
+
+    for admin in admins:
+        line_id = admin.admin.line_id if admin.admin else None
+        if line_id:
+            admins_with_line += 1
+            unique_line_ids.add(line_id)
+        else:
+            missing_line.append(admin.admin.fullname if admin.admin else 'Unknown')
+
+    return {
+        'total_admin_rows': total_admin_rows,
+        'admins_with_line': admins_with_line,
+        'unique_recipients': len(unique_line_ids),
+        'missing_line_names': missing_line,
+    }
+
+
+def _build_today_no_status_records_snapshot(topic_ids=None):
+    now = arrow.now('Asia/Bangkok')
+    start_of_day = now.floor('day').datetime
+    end_of_day = now.ceil('day').datetime
+
+    if topic_ids is not None and not topic_ids:
+        return {
+            'date_label': now.strftime('%d/%m/%Y'),
+            'total_records': 0,
+            'records': [],
+            'topic_counts': {},
+        }
+
+    records_query = ComplaintRecord.query.filter(
+        ComplaintRecord.created_at >= start_of_day,
+        ComplaintRecord.created_at < end_of_day,
+        ComplaintRecord.status_id.is_(None)
+    )
+    if topic_ids:
+        records_query = records_query.filter(ComplaintRecord.topic_id.in_(topic_ids))
+
+    records = records_query.order_by(ComplaintRecord.created_at.asc()).all()
+    items = []
+    topic_counts = defaultdict(int)
+    for record in records:
+        topic_label = record.topic.topic if record.topic else 'ไม่ระบุหัวข้อ'
+        topic_counts[topic_label] += 1
+        items.append({
+            'id': record.id,
+            'topic': topic_label,
+            'created_at': record.created_at.astimezone(localtz).strftime('%H:%M') if record.created_at else '-',
+            'description': (record.desc or '').strip(),
+        })
+
+    return {
+        'date_label': now.strftime('%d/%m/%Y'),
+        'total_records': len(items),
+        'records': items,
+        'topic_counts': dict(sorted(topic_counts.items(), key=lambda item: (-item[1], item[0]))),
+    }
+
+
+def _build_low_level_line_reminder_message(recipient, snapshot):
+    if not snapshot['records']:
+        return None
+
+    topic_summary = ', '.join(
+        f"{topic} {count} เรื่อง" for topic, count in list(snapshot['topic_counts'].items())[:3]
+    ) or 'ไม่มีรายละเอียดหัวข้อ'
+
+    return (
+        f"แจ้งเตือนรายการแจ้งปัญหา/ซ่อมบำรุงใหม่ยังไม่ได้ตรวจสอบ วันที่ {snapshot['date_label']}\n"
+        f"มีทั้งหมด {snapshot['total_records']} เรื่อง ในส่วนงานที่ท่านรับผิดชอบ\n"
+        f"หัวข้อหลัก: {topic_summary}"
+    )
+
+
+def _build_low_level_line_reminder_package(recipient):
+    topic_ids = recipient.get('topic_ids')
+    if not topic_ids:
+        snapshot = {
+            'date_label': arrow.now('Asia/Bangkok').strftime('%d/%m/%Y'),
+            'total_records': 0,
+            'records': [],
+            'topic_counts': {},
+        }
+    else:
+        snapshot = _build_today_no_status_records_snapshot(topic_ids=topic_ids)
+    message = _build_low_level_line_reminder_message(recipient, snapshot)
+    return {
+        'recipient': recipient,
+        'snapshot': snapshot,
+        'message': message,
+    }
+
+
+def _render_line_reminder_dry_run_html(
+        packages,
+        matched_packages=None,
+        should_send=False,
+        stats=None,
+        global_snapshot=None):
+    matched_packages = matched_packages or []
+    stats = stats or {
+        'unique_recipients': len(packages),
+        'total_admin_rows': len(packages),
+        'admins_with_line': len(packages),
+        'missing_line_names': [],
+    }
+    global_snapshot = global_snapshot or {
+        'total_records': 0,
+        'date_label': arrow.now('Asia/Bangkok').strftime('%d/%m/%Y'),
+    }
+    cards = []
+    for package in packages:
+        recipient = package['recipient']
+        snapshot = package['snapshot']
+        records_html = ''.join(
+            f"<li>#{item['id']} {escape(item['topic'])} เวลา {item['created_at']}</li>"
+            for item in snapshot['records'][:10]
+        ) or '<li>ไม่มีรายการ</li>'
+        cards.append(f"""
+        <div class="summary-card">
+            <h3>{escape(recipient['staff_name'])}</h3>
+            <div class="summary-metrics">
+                <span><strong>{snapshot['total_records']}</strong> เรื่อง</span>
+                <span>LINE ID: {escape(recipient['line_id'])}</span>
+            </div>
+            <p><strong>ข้อความที่จะส่ง</strong></p>
+            <pre>{escape(package['message'] or 'ไม่มีข้อความ')}</pre>
+            <p><strong>รายการตัวอย่าง</strong></p>
+            <ul>{records_html}</ul>
+        </div>
+        """)
+
+    html = f"""
+    <!doctype html>
+    <html lang="th">
+    <head>
+      <meta charset="utf-8">
+      <title>Dry Run: Low-Level Line Reminder</title>
+      <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#f8fafc; color:#0f172a; margin:0; }}
+        .container {{ max-width: 1080px; margin: 0 auto; padding: 24px; }}
+        .summary-card {{ background: #ffffff; border: 1px solid #cbd5e1; border-radius: 14px; padding: 14px 16px; margin-bottom: 18px; }}
+        .summary-card h3 {{ margin: 0 0 10px; font-size: 16px; }}
+        .summary-metrics {{ display: flex; flex-wrap: wrap; gap: 10px 18px; margin-bottom: 10px; }}
+        .summary-metrics span {{ color: #475569; font-size: 14px; }}
+        .summary-metrics strong {{ color: #0f172a; font-size: 20px; margin-right: 4px; }}
+        pre {{ white-space: pre-wrap; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; }}
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>Dry Run: Low-Level Line Reminder</h1>
+        <p>Recipients with line_id: {stats['unique_recipients']} | matched recipients: {len(matched_packages)} | send={str(should_send).lower()}</p>
+        <div class="summary-card">
+            <h3>Diagnostic Summary</h3>
+            <div class="summary-metrics">
+                <span><strong>{stats['total_admin_rows']}</strong> admin rows</span>
+                <span><strong>{stats['admins_with_line']}</strong> admin rows with line_id</span>
+                <span><strong>{global_snapshot['total_records']}</strong> requests today with no status</span>
+                <span>Date: {global_snapshot['date_label']}</span>
+            </div>
+            <p><strong>Admins missing line_id</strong></p>
+            <pre>{escape(', '.join(stats['missing_line_names']) if stats['missing_line_names'] else 'None')}</pre>
+        </div>
+        {''.join(cards) if cards else '<p>ไม่พบผู้รับหรือไม่พบเรื่องที่เข้าเงื่อนไข</p>'}
+      </div>
+    </body>
+    </html>
+    """
+    response = make_response(html)
+    response.mimetype = 'text/html'
+    return response
 
 
 def _build_unfinished_records_snapshot(topic_ids=None):
@@ -1497,6 +1739,87 @@ def email_unfinished_summary():
     return redirect(request.referrer or url_for('comp_tracker.admin_record_complaint_summary'))
 
 
+@complaint_tracker.route('/admin/line-remind-no-status-today', methods=['GET', 'POST'])
+def line_remind_no_status_today():
+    scheduler_request = _is_valid_summary_scheduler_request()
+    if not scheduler_request:
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login', next=request.url))
+        if not admin_permission.can():
+            abort(403)
+
+    recipient_stats = _get_low_level_line_recipient_stats()
+    global_snapshot = _build_today_no_status_records_snapshot()
+    packages = []
+    matched_packages = []
+    for recipient in _get_low_level_line_recipients():
+        package = _build_low_level_line_reminder_package(recipient)
+        packages.append(package)
+        if package['snapshot']['total_records'] > 0 and package['message']:
+            matched_packages.append(package)
+
+    should_send = _request_flag('send')
+    dry_run = _request_flag('dry_run', default=(request.method == 'GET' and not should_send))
+
+    if dry_run:
+        return _render_line_reminder_dry_run_html(
+            packages,
+            matched_packages,
+            should_send,
+            recipient_stats,
+            global_snapshot,
+        )
+
+    if not should_send:
+        response = make_response(
+            'Line reminder was not sent. Add send=true to trigger delivery, or dry_run=true to preview recipients.\n',
+            400
+        )
+        response.mimetype = 'text/plain'
+        return response
+
+    if not matched_packages:
+        message = 'ไม่พบผู้รับหรือไม่พบเรื่องที่เข้าเงื่อนไขสำหรับส่ง Line reminder'
+        if request.method == 'POST':
+            flash(message, 'warning')
+            return redirect(request.referrer or url_for('comp_tracker.admin_record_complaint_summary', menu='all'))
+        response = make_response(message + '\n', 404)
+        response.mimetype = 'text/plain'
+        return response
+
+    sent_count = 0
+    failed_count = 0
+    for package in matched_packages:
+        try:
+            line_bot_api.push_message(
+                to=package['recipient']['line_id'],
+                messages=TextSendMessage(text=package['message'])
+            )
+            sent_count += 1
+        except LineBotApiError:
+            failed_count += 1
+            current_app.logger.exception(
+                'Failed to send no-status-today reminder to line_id=%s',
+                package['recipient']['line_id']
+            )
+
+    success_message = f'ส่ง Line reminder แล้ว {sent_count} ราย'
+    if failed_count:
+        success_message += f' และส่งไม่สำเร็จ {failed_count} ราย'
+
+    if request.method == 'GET':
+        response = make_response(success_message + '\n')
+        response.mimetype = 'text/plain'
+        return response
+
+    flash(success_message, 'success' if failed_count == 0 else 'warning')
+    if request.headers.get('HX-Request'):
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return redirect(request.referrer or url_for('comp_tracker.admin_record_complaint_summary', menu='all'))
+
+
 @complaint_tracker.route('/repair_approval/index')
 @login_required
 def repair_approval_index():
@@ -2155,104 +2478,44 @@ def export_repair_approval_pdf(repair_approval_id):
 @login_required
 def get_new_record_complaint():
     code = request.args.get('code')
-    description = {'date': ('date', 'Day'), 'heads': ('number', 'heads')}
-    data = defaultdict(int)
-    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    if code != 'null':
-        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
-                                               ComplaintRecord.topic.has(code=code))
-    else:
-        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE))
-    for record in records:
-        if not record.status:
-            data[record.created_at.date()] += 1
-    count_data = []
-    for date, heads in data.items():
-        count_data.append({
-            'date': date,
-            'heads': heads
-        })
-    data_table = gviz_api.DataTable(description)
-    data_table.LoadData(count_data)
-    return data_table.ToJSon(columns_order=('date', 'heads'))
+    return _build_calendar_chart_json(
+        ComplaintRecord.created_at,
+        include_unset_status=True,
+        code=code
+    )
 
 
 @complaint_tracker.route('/api/admin/pending-record-complaint')
 @login_required
 def get_pending_record_complaint():
     code = request.args.get('code')
-    description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
-    data = defaultdict(int)
-    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    if code != 'null':
-        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
-                                               ComplaintRecord.topic.has(code=code))
-    else:
-        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE))
-    for record in records:
-        if record.status is not None and (record.status.code == 'pending'):
-            data[record.created_at.date()] += 1
-    count_data = []
-    for date, heads in data.items():
-        count_data.append({
-            'date': date,
-            'heads': heads
-        })
-    data_table = gviz_api.DataTable(description)
-    data_table.LoadData(count_data)
-    return data_table.ToJSon(columns_order=('date', 'heads'))
+    return _build_calendar_chart_json(
+        ComplaintRecord.created_at,
+        status_code='pending',
+        code=code
+    )
 
 
 @complaint_tracker.route('/api/admin/progress-record-complaint')
 @login_required
 def get_progress_record_complaint():
     code = request.args.get('code')
-    description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
-    data = defaultdict(int)
-    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    if code != 'null':
-        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
-                                               ComplaintRecord.topic.has(code=code))
-    else:
-        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE))
-    for record in records:
-        if record.status is not None and record.status.code == 'progress':
-            data[record.created_at.date()] += 1
-    count_data = []
-    for date, heads in data.items():
-        count_data.append({
-            'date': date,
-            'heads': heads
-        })
-    data_table = gviz_api.DataTable(description)
-    data_table.LoadData(count_data)
-    return data_table.ToJSon(columns_order=('date', 'heads'))
+    return _build_calendar_chart_json(
+        ComplaintRecord.created_at,
+        status_code='progress',
+        code=code
+    )
 
 
 @complaint_tracker.route('/api/admin/success-record-complaint')
 @login_required
 def get_success_record_complaint():
     code = request.args.get('code')
-    description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
-    data = defaultdict(int)
-    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    if code != 'null':
-        records = ComplaintRecord.query.filter(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
-                                               ComplaintRecord.topic.has(code=code))
-    else:
-        records = ComplaintRecord.query.filter(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE))
-    for record in records:
-        if record.status is not None and record.status.code == 'completed':
-            data[record.closed_at.date()] += 1
-    count_data = []
-    for date, heads in data.items():
-        count_data.append({
-            'date': date,
-            'heads': heads
-        })
-    data_table = gviz_api.DataTable(description)
-    data_table.LoadData(count_data)
-    return data_table.ToJSon(columns_order=('date', 'heads'))
+    return _build_calendar_chart_json(
+        ComplaintRecord.closed_at,
+        status_code='completed',
+        code=code
+    )
 
 
 @complaint_tracker.route('/api/admin/pie-chart')
@@ -2260,27 +2523,24 @@ def get_success_record_complaint():
 def get_pie_chart_for_record_complaint():
     code = request.args.get('code')
     description = {'status': ("string", "Status"), 'heads': ("number", "heads")}
-    data = defaultdict(int)
-    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    if code != 'null':
-        records = ComplaintRecord.query.filter(
-            or_(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
-                ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)),
-            ComplaintRecord.topic.has(code=code))
-    else:
-        records = ComplaintRecord.query.filter(
-            or_(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
-                ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)))
-    for record in records:
-        if record.status is None:
-            data['ยังไม่ดำเนินการ'] += 1
-        else:
-            data[record.status] += 1
+    start_fiscal_date, end_fiscal_date = get_fiscal_date(datetime.today())
+    query = db.session.query(
+        ComplaintStatus.status.label('status'),
+        func.count(ComplaintRecord.id).label('heads')
+    ).outerjoin(ComplaintStatus, ComplaintRecord.status_id == ComplaintStatus.id).filter(
+        or_(
+            ComplaintRecord.closed_at.between(start_fiscal_date, end_fiscal_date),
+            ComplaintRecord.created_at.between(start_fiscal_date, end_fiscal_date)
+        )
+    )
+    query = _apply_topic_code_filter(query, code)
+    rows = query.group_by(ComplaintStatus.status).all()
+
     count_data = []
-    for status, heads in data.items():
+    for row in rows:
         count_data.append({
-            'status': status,
-            'heads': heads
+            'status': row.status or 'ยังไม่ดำเนินการ',
+            'heads': row.heads
         })
     data_table = gviz_api.DataTable(description)
     data_table.LoadData(count_data)
@@ -2291,38 +2551,43 @@ def get_pie_chart_for_record_complaint():
 @login_required
 def get_bar_chart_for_record_complaint():
     code = request.args.get('code')
-    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    start_fiscal_date, end_fiscal_date = get_fiscal_date(datetime.today())
+    month_expr = func.date_trunc('month', ComplaintRecord.created_at)
 
-    if code != 'null':
-        records = ComplaintRecord.query.filter(
-            or_(
-                ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
-                ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)
-            ),
-            ComplaintRecord.topic.has(code=code)
+    query = db.session.query(
+        month_expr.label('month_start'),
+        ComplaintStatus.status.label('status'),
+        func.count(ComplaintRecord.id).label('heads')
+    ).outerjoin(ComplaintStatus, ComplaintRecord.status_id == ComplaintStatus.id).filter(
+        or_(
+            ComplaintRecord.closed_at.between(start_fiscal_date, end_fiscal_date),
+            ComplaintRecord.created_at.between(start_fiscal_date, end_fiscal_date)
         )
-    else:
-        records = ComplaintRecord.query.filter(
-            or_(
-                ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
-                ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)
-            )
-        )
+    )
+    query = _apply_topic_code_filter(query, code)
+    rows = query.group_by('month_start', ComplaintStatus.status).order_by('month_start').all()
 
-    status_data = set()
-    data = defaultdict(lambda: defaultdict(int))
-    for record in records:
-        month = record.created_at.strftime('%B %Y')
-        status = record.status.status if record.status else 'ยังไม่ดำเนินการ'
-        status_data.add(status)
-        data[month][status] += 1
-    statuses = list(status_data)
+    statuses = []
+    status_seen = set()
     description = {'month': ('string', 'Month')}
+    data = defaultdict(dict)
+    month_order = []
+
+    for row in rows:
+        month_label = row.month_start.strftime('%B %Y')
+        status = row.status or 'ยังไม่ดำเนินการ'
+        if month_label not in data:
+            month_order.append(month_label)
+        data[month_label][status] = row.heads
+        if status not in status_seen:
+            status_seen.add(status)
+            statuses.append(status)
+
     for status in statuses:
         description[status] = ('number', status)
 
     count_data = []
-    for month in sorted(data.keys(), key=lambda x: datetime.strptime(x, '%B %Y').month):
+    for month in month_order:
         row = {'month': month}
         for status in statuses:
             row[status] = data[month].get(status, 0)
@@ -2336,15 +2601,59 @@ def get_bar_chart_for_record_complaint():
 @login_required
 def get_tag_bar_chart_for_record_complaint():
     description = {'tag': ("string", "Tag"), 'amount': ("number", "amount")}
-    count_data = []
-    for tag in ComplaintTag.query.all():
-        amount = len(tag.records)
-        count_data.append({
-            'tag': tag.tag,
-            'amount': amount
-        })
-    sort_data = sorted(count_data, key=lambda x: x['amount'], reverse=True)
-    count_sort_data = sort_data[:10]
+    rows = db.session.query(
+        ComplaintTag.tag.label('tag'),
+        func.count(complaint_record_tag_assoc.c.record_id).label('amount')
+    ).join(
+        complaint_record_tag_assoc,
+        complaint_record_tag_assoc.c.tag_id == ComplaintTag.id
+    ).group_by(
+        ComplaintTag.id,
+        ComplaintTag.tag
+    ).order_by(
+        func.count(complaint_record_tag_assoc.c.record_id).desc(),
+        ComplaintTag.tag
+    ).limit(10).all()
+
+    count_sort_data = [{'tag': row.tag, 'amount': row.amount} for row in rows]
     data_table = gviz_api.DataTable(description)
     data_table.LoadData(count_sort_data)
     return data_table.ToJSon(columns_order=('tag', 'amount'))
+
+
+@complaint_tracker.route('/api/admin/unfinished-repair-approval-chart')
+@login_required
+def get_unfinished_repair_approval_chart():
+    code = request.args.get('code')
+    description = {'status': ('string', 'Status'), 'heads': ('number', 'heads')}
+    start_fiscal_date, end_fiscal_date = get_fiscal_date(datetime.today())
+
+    query = db.session.query(
+        ComplaintStatus.status.label('status'),
+        func.count(func.distinct(ComplaintRecord.id)).label('heads')
+    ).join(
+        ComplaintRepairApproval, ComplaintRepairApproval.record_id == ComplaintRecord.id
+    ).outerjoin(
+        ComplaintStatus, ComplaintRecord.status_id == ComplaintStatus.id
+    ).filter(
+        ComplaintRecord.created_at.between(start_fiscal_date, end_fiscal_date),
+        or_(
+            ComplaintRecord.status_id.is_(None),
+            ComplaintStatus.code != 'completed'
+        )
+    )
+
+    query = _apply_topic_code_filter(query, code)
+    rows = query.group_by(ComplaintStatus.status).all()
+
+    count_data = [
+        {
+            'status': row.status or 'ยังไม่ดำเนินการ',
+            'heads': row.heads
+        }
+        for row in rows
+    ]
+
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_data)
+    return data_table.ToJSon(columns_order=('status', 'heads'))

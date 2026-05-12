@@ -11,7 +11,7 @@
                 </ul>
             </nav>
             <div class="columns">
-                <div class="column">
+                <div class="column box">
                     <h1 class="title has-text-centered is-size-4">รายละเอียด</h1>
                     <table class="table is-bordered is-fullwidth">
                         <tr>
@@ -22,7 +22,7 @@
                         {% if not process.parent_id %}
                             <td>กระบวนการย่อย</td>
                             <td>
-                                <table class="table">
+                                <table class="table is-bordered is-striped">
                                     <thead>
                                     <th>ชื่อ</th>
                                     <th>ผู้รับผิดชอบ</th>
@@ -34,12 +34,12 @@
                                         <td>
                                             <div class="tags">
                                                 {% for s in p.staff %}
-                                                    <span class="tag">{{ s.fullname }}</span>
+                                                    <span class="tag is-rounded">{{ s.fullname }}</span>
                                                 {% endfor %}
                                             </div>
                                         </td>
                                         <td>
-                                            <a class="button is-small" href="{{url_for('data_bp.process_detail', process_id=p.id)}}">
+                                            <a class="button is-small is-rounded" href="{{url_for('data_bp.process_detail', process_id=p.id)}}">
                                                 <span class="icon">
                                                     <i class="fas fa-info-circle"></i>
                                                 </span>
@@ -52,7 +52,7 @@
                         {% else %}
                             <td>กระบวนการหลัก</td>
                             <td>
-                                <table class="table">
+                                <table class="table is-bordered">
                                     <thead>
                                     <th>ชื่อ</th>
                                     <th>ผู้รับผิดชอบ</th>
@@ -63,12 +63,12 @@
                                         <td>
                                             <div class="tags">
                                                 {% for s in process.parent.staff %}
-                                                    <span class="tag">{{ s.fullname }}</span>
+                                                    <span class="tag is-rounded">{{ s.fullname }}</span>
                                                 {% endfor %}
                                             </div>
                                         </td>
                                         <td>
-                                            <a class="button is-small" href="{{url_for('data_bp.process_detail', process_id=process.parent_id)}}">
+                                            <a class="button is-small is-rounded" href="{{url_for('data_bp.process_detail', process_id=process.parent_id)}}">
                                             <span class="icon">
                                                 <i class="fas fa-info-circle"></i>
                                             </span>
@@ -88,7 +88,7 @@
                             <td>
                             <div class="tags">
                                 {% for staff in process.staff %}
-                                    <span class="tag">
+                                    <span class="tag is-rounded">
                                     {{ staff.personal_info.fullname }}
                                 </span>
                                 {% endfor %}
@@ -102,7 +102,7 @@
                         <tr>
                             <td>ตัวชี้วัด (KPI)</td>
                             <td>
-                                <table class="table is-striped is-fullwidth">
+                                <table class="table is-bordered is-striped is-fullwidth">
                                     <thead>
                                     <th>หมายเลข</th>
                                     <th>ชื่อตัวชี้วัด</th>
@@ -117,6 +117,7 @@
                                                 </a>
                                             </td>
                                             <td>
+                                                {% if kpi.type_ %}
                                                     {% if kpi.type_ == 'leading' %}
                                                         <span class="icon">
                                                             <i class="fa-solid fa-fire has-text-success"></i>
@@ -128,13 +129,14 @@
                                                         </span>
                                                         <span>{{ kpi.type_ }}</span>
                                                     {% endif %}
+                                                {% endif %}
                                             </td>
                                         </tr>
                                     {% endfor %}
                                     <tr>
                                         <td colspan="3">
                                             <a href="{{ url_for('data_bp.kpi_form', process_id=process.id) }}"
-                                               class="button is-small is-primary">
+                                               class="button is-small is-primary is-rounded">
                                             <span class="icon">
                                                 <i class="fas fa-plus-circle"></i>
                                             </span>
@@ -155,9 +157,9 @@
             <div class="columns">
                 <div class="column">
                     <div class="buttons is-centered">
-                         <a class="button" href="{{ url_for('data_bp.list_org_kpis', org_id=process.org.id) }}">
+                         <a class="button is-rounded" href="{{ url_for('data_bp.list_org_kpis', org_id=process.org.id) }}">
                             <span>กลับ</span></a>
-                        <a class="button is-info"
+                        <a class="button is-info is-rounded"
                            href="{{ url_for('data_bp.process_form', process_id=process.id) }}">
                             <span class="icon">
                                 <i class="fas fa-pencil-alt"></i>
@@ -225,4 +227,3 @@
         }
     </script>
 {% endblock %}
-
