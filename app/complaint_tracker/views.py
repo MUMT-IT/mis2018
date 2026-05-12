@@ -236,10 +236,41 @@ def _get_low_level_line_recipients():
     return sorted(normalized, key=lambda item: item['staff_name'])
 
 
+def _get_low_level_line_recipient_stats():
+    admins = ComplaintAdmin.query.filter_by(is_supervisor=False).join(ComplaintAdmin.admin).all()
+    total_admin_rows = len(admins)
+    admins_with_line = 0
+    unique_line_ids = set()
+    missing_line = []
+
+    for admin in admins:
+        line_id = admin.admin.line_id if admin.admin else None
+        if line_id:
+            admins_with_line += 1
+            unique_line_ids.add(line_id)
+        else:
+            missing_line.append(admin.admin.fullname if admin.admin else 'Unknown')
+
+    return {
+        'total_admin_rows': total_admin_rows,
+        'admins_with_line': admins_with_line,
+        'unique_recipients': len(unique_line_ids),
+        'missing_line_names': missing_line,
+    }
+
+
 def _build_today_no_status_records_snapshot(topic_ids=None):
     now = arrow.now('Asia/Bangkok')
     start_of_day = now.floor('day').datetime
     end_of_day = now.ceil('day').datetime
+
+    if topic_ids is not None and not topic_ids:
+        return {
+            'date_label': now.strftime('%d/%m/%Y'),
+            'total_records': 0,
+            'records': [],
+            'topic_counts': {},
+        }
 
     records_query = ComplaintRecord.query.filter(
         ComplaintRecord.created_at >= start_of_day,
@@ -295,7 +326,16 @@ def _build_low_level_line_reminder_message(recipient, snapshot):
 
 
 def _build_low_level_line_reminder_package(recipient):
-    snapshot = _build_today_no_status_records_snapshot(topic_ids=recipient.get('topic_ids'))
+    topic_ids = recipient.get('topic_ids')
+    if not topic_ids:
+        snapshot = {
+            'date_label': arrow.now('Asia/Bangkok').strftime('%d/%m/%Y'),
+            'total_records': 0,
+            'records': [],
+            'topic_counts': {},
+        }
+    else:
+        snapshot = _build_today_no_status_records_snapshot(topic_ids=topic_ids)
     message = _build_low_level_line_reminder_message(recipient, snapshot)
     return {
         'recipient': recipient,
@@ -304,7 +344,23 @@ def _build_low_level_line_reminder_package(recipient):
     }
 
 
-def _render_line_reminder_dry_run_html(packages, should_send):
+def _render_line_reminder_dry_run_html(
+        packages,
+        matched_packages=None,
+        should_send=False,
+        stats=None,
+        global_snapshot=None):
+    matched_packages = matched_packages or []
+    stats = stats or {
+        'unique_recipients': len(packages),
+        'total_admin_rows': len(packages),
+        'admins_with_line': len(packages),
+        'missing_line_names': [],
+    }
+    global_snapshot = global_snapshot or {
+        'total_records': 0,
+        'date_label': arrow.now('Asia/Bangkok').strftime('%d/%m/%Y'),
+    }
     cards = []
     for package in packages:
         recipient = package['recipient']
@@ -347,7 +403,18 @@ def _render_line_reminder_dry_run_html(packages, should_send):
     <body>
       <div class="container">
         <h1>Dry Run: Low-Level Line Reminder</h1>
-        <p>Recipients: {len(packages)} | send={str(should_send).lower()}</p>
+        <p>Recipients with line_id: {stats['unique_recipients']} | matched recipients: {len(matched_packages)} | send={str(should_send).lower()}</p>
+        <div class="summary-card">
+            <h3>Diagnostic Summary</h3>
+            <div class="summary-metrics">
+                <span><strong>{stats['total_admin_rows']}</strong> admin rows</span>
+                <span><strong>{stats['admins_with_line']}</strong> admin rows with line_id</span>
+                <span><strong>{global_snapshot['total_records']}</strong> requests today with no status</span>
+                <span>Date: {global_snapshot['date_label']}</span>
+            </div>
+            <p><strong>Admins missing line_id</strong></p>
+            <pre>{escape(', '.join(stats['missing_line_names']) if stats['missing_line_names'] else 'None')}</pre>
+        </div>
         {''.join(cards) if cards else '<p>ไม่พบผู้รับหรือไม่พบเรื่องที่เข้าเงื่อนไข</p>'}
       </div>
     </body>
@@ -1690,17 +1757,27 @@ def line_remind_no_status_today():
         if not admin_permission.can():
             abort(403)
 
-    recipients = []
+    recipient_stats = _get_low_level_line_recipient_stats()
+    global_snapshot = _build_today_no_status_records_snapshot()
+    packages = []
+    matched_packages = []
     for recipient in _get_low_level_line_recipients():
         package = _build_low_level_line_reminder_package(recipient)
+        packages.append(package)
         if package['snapshot']['total_records'] > 0 and package['message']:
-            recipients.append(package)
+            matched_packages.append(package)
 
     should_send = _request_flag('send')
     dry_run = _request_flag('dry_run', default=(request.method == 'GET' and not should_send))
 
     if dry_run:
-        return _render_line_reminder_dry_run_html(recipients, should_send)
+        return _render_line_reminder_dry_run_html(
+            packages,
+            matched_packages,
+            should_send,
+            recipient_stats,
+            global_snapshot,
+        )
 
     if not should_send:
         response = make_response(
@@ -1710,7 +1787,7 @@ def line_remind_no_status_today():
         response.mimetype = 'text/plain'
         return response
 
-    if not recipients:
+    if not matched_packages:
         message = 'ไม่พบผู้รับหรือไม่พบเรื่องที่เข้าเงื่อนไขสำหรับส่ง Line reminder'
         if request.method == 'POST':
             flash(message, 'warning')
@@ -1721,7 +1798,7 @@ def line_remind_no_status_today():
 
     sent_count = 0
     failed_count = 0
-    for package in recipients:
+    for package in matched_packages:
         try:
             line_bot_api.push_message(
                 to=package['recipient']['line_id'],
