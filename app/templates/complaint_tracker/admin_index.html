@@ -55,6 +55,12 @@
                                     <span>ดำเนินการเสร็จสิ้น</span>
                                 </a>
                             </li>
+                             <li {% if tab == 'cancelled' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('comp_tracker.admin_index', tab='cancelled') }}">
+                                    <span class="icon is-small"><i class="fas fa-times"></i></span>
+                                    <span>ยกเลิก</span>
+                                </a>
+                            </li>
                             <li {% if tab == 'repair_approval' %}class="is-active"{% endif %}>
                                 <a href="{{ url_for('comp_tracker.admin_index', tab='repair_approval') }}">
                                     <span class="icon is-small"><i class="fas fa-file-pdf"></i></span>
