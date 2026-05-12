@@ -781,6 +781,7 @@ def cancel_complaint(record_id):
     status = ComplaintStatus.query.filter_by(code='cancelled').first()
     record = ComplaintRecord.query.get(record_id)
     record.status = status
+    record.closed_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(record)
     db.session.commit()
     flash('ยกเลิกรายการแจ้งปัญหาสำเร็จ', 'success')
