@@ -1833,17 +1833,43 @@ def repair_approval_index():
         or_(ComplaintRepairApproval.owner_id == current_user.id,
             StaffPersonalInfo.org == org)
     ))
-    if tab == 'new':
+    if tab == 'waiting_process':
         repair_approvals = query.filter(ComplaintRepairApproval.is_print == False)
+    elif tab == 'waiting_approval':
+        repair_approvals = (query.join(ComplaintRepairApproval.record)
+                            .outerjoin(ComplaintRecord.status)
+                            .filter(or_(
+                                        ComplaintStatus.code != 'completed',
+                                        ComplaintRecord.status_id == None
+                                    ),
+                                    ComplaintRepairApproval.is_print == True,
+                                    ComplaintRepairApproval.cancelled_at == None
+                                    )
+                            )
     elif tab == 'completed':
-        repair_approvals = query.filter(ComplaintRepairApproval.is_print == True)
+        repair_approvals = (query.join(ComplaintRepairApproval.record).join(ComplaintRecord.status)
+                            .filter(ComplaintStatus.code == 'completed',
+                                    ComplaintRepairApproval.is_print == True,
+                                    ComplaintRepairApproval.cancelled_at == None)
+                            )
+    elif tab == 'cancelled':
+        repair_approvals = query.filter(ComplaintRepairApproval.cancelled_at != None)
     else:
         repair_approvals = query
-    new_record_count = query.filter(
-        ComplaintRepairApproval.is_print == None
-    ).count()
+    new_record_count = query.filter(ComplaintRepairApproval.is_print == False).count()
+    waiting_record_count = (query.join(ComplaintRepairApproval.record)
+                            .outerjoin(ComplaintRecord.status)
+                            .filter(or_(
+                                        ComplaintStatus.code != 'completed',
+                                        ComplaintRecord.status_id == None
+                                    ),
+                                    ComplaintRepairApproval.is_print == True,
+                                    ComplaintRepairApproval.cancelled_at == None
+                                    )
+                            ).count()
     return render_template('complaint_tracker/repair_approval_index.html', tab=tab, menu=menu,
-                           new_record_count=new_record_count, repair_approvals=repair_approvals)
+                           new_record_count=new_record_count, waiting_record_count=waiting_record_count,
+                           repair_approvals=repair_approvals)
 
 
 @complaint_tracker.route('/admin/repair-approval/add/<int:record_id>', methods=['GET', 'POST'])
@@ -1913,6 +1939,8 @@ def create_repair_approval(record_id, repair_approval_id=None):
             rep_approval.receipt_date = None
             rep_approval.supplier = None
             rep_approval.loan_no = None
+        rep_approval.is_print = False
+        rep_approval.reviewed_at = None
         db.session.add(rep_approval)
         db.session.commit()
         if rep_approval.repair_type == 'เร่งด่วน':
@@ -2042,6 +2070,49 @@ def edit_committee(repair_approval_id):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('complaint_tracker/committee_form.html', form=form, rep_approval=rep_approval)
+
+
+@complaint_tracker.route('/repair_approval/note/edit/<int:repair_approval_id>', methods=['GET', 'POST'])
+def create_note(repair_approval_id):
+    status = ComplaintStatus.query.filter_by(code='completed').first()
+    repair_approval = ComplaintRepairApproval.query.get(repair_approval_id)
+    form = ComplaintRepairApprovalForm(obj=repair_approval)
+    if form.validate_on_submit():
+        form.populate_obj(repair_approval)
+        repair_approval.is_print = True
+        repair_approval.record.status = status
+        repair_approval.canceller_id = current_user.id
+        repair_approval.cancelled_at = arrow.now('Asia/Bangkok').datetime
+        repair_approval.record.closed_at = arrow.now('Asia/Bangkok').datetime
+        repair_approval.updated_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(repair_approval)
+        db.session.commit()
+        flash('ยกเลิกเรียบร้อยแล้ว', 'success')
+        title = f'''แจ้งยกใบอนุมัติหลักการซ่อม {repair_approval.item}'''
+        message = f'''ใบอนุมัติหลักการซ่อมสำหรับรายการ {repair_approval.item} ได้ถูกยกเลิกเรียบร้อยแล้ว\n\n'''
+        message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
+        if not current_app.debug:
+            send_mail([admin.admin.email + '@mahidol.ac.th' for admin in repair_approval.record.topic.admins
+                       if admin.admin.email == 'adisak.nun' and admin.admin.email == 'thanapat.nop'], title,
+                      message)
+        else:
+            print('mail :', message, 'user :', [admin.admin.email + '@mahidol.ac.th' for admin in repair_approval.record.topic.admins
+                       if admin.admin.email == 'adisak.nun' or admin.admin.email == 'thanapat.nop'])
+        for admin in repair_approval.record.topic.admins:
+            if admin.admin.email == 'adisak.nun' or admin.admin.email == 'thanapat.nop':
+                if not current_app.debug:
+                    try:
+                        line_bot_api.push_message(to=admin.admin.line_id,
+                                                  messages=TextSendMessage(text=message))
+                    except LineBotApiError:
+                        pass
+                else:
+                    print('msg :', message, 'line :', repair_approval.record.complainant.line_id)
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('complaint_tracker/modal/create_note_modal.html',
+                           repair_approval_id=repair_approval_id, form=form)
 
 
 def generate_repair_approval_pdf(repair_approval):
@@ -2469,11 +2540,22 @@ def generate_repair_approval_pdf(repair_approval):
 def export_repair_approval_pdf(repair_approval_id):
     repair_approval = ComplaintRepairApproval.query.get(repair_approval_id)
     buffer = generate_repair_approval_pdf(repair_approval)
-    if not repair_approval.is_print:
+    if not repair_approval.reviewed_at:
         repair_approval.is_print = True
+        repair_approval.reviewed_at = arrow.now('Asia/Bangkok').datetime
+        repair_approval.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(repair_approval)
         db.session.commit()
     return send_file(buffer, download_name='Repair_approval_form.pdf', as_attachment=True)
+
+
+@complaint_tracker.route('/repair-approval/print/<int:repair_approval_id>', methods=['GET', 'POST'])
+def print_repair_approval(repair_approval_id):
+    repair_approval = ComplaintRepairApproval.query.get(repair_approval_id)
+    repair_approval.is_print = True
+    db.session.add(repair_approval)
+    db.session.commit()
+    return ''
 
 
 @complaint_tracker.route('/api/admin/new-record-complaint')

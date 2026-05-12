@@ -386,12 +386,18 @@ class ComplaintRepairApproval(db.Model):
     product_code = db.relationship(ProductCode, backref=db.backref('repair_approvals'))
     remark = db.Column('remark', db.Text())
     loan_no = db.Column('loan_no', db.String(), info={'label': 'เลขที่ใบยืม'})
+    note = db.Column('note', db.Text())
     is_print = db.Column('is_print', db.Boolean(), default=False)
     created_at = db.Column('created_at', db.DateTime(timezone=True), info={'label': 'วันที่'})
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    reviewed_at = db.Column('reviewed_at', db.DateTime(timezone=True))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('repair_approvals'),
                               foreign_keys=[creator_id])
+    canceller_id = db.Column('canceller_id', db.ForeignKey('staff_account.id'))
+    canceller = db.relationship(StaffAccount, backref=db.backref('cancelled_repair_approvals'),
+                                foreign_keys=[canceller_id])
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
     record = db.relationship(ComplaintRecord, backref=db.backref('repair_approvals'))
     owner_id = db.Column('owner_id', db.ForeignKey('staff_account.id'))
@@ -399,6 +405,45 @@ class ComplaintRepairApproval(db.Model):
 
     def __str__(self):
         return self.item
+
+    @property
+    def status(self):
+        if self.cancelled_at:
+            status = 'ยกเลิก'
+        elif self.is_print and (self.record.status_id and self.record.status.code == 'completed'):
+            status = 'ดำเนินการเสร็จสิ้น'
+        elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
+                                                                self.record.status.code != 'completed')):
+            status = 'รออนุมัติ'
+        else:
+            status = 'รอดำเนินการ'
+        return status
+
+    @property
+    def status_color(self):
+        if self.cancelled_at:
+            color = 'is-danger'
+        elif self.is_print and (self.record.status_id and self.record.status.code == 'completed'):
+            color = 'is-success'
+        elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
+                                                                self.record.status.code != 'completed')):
+            color = 'is-warning'
+        else:
+            color = 'is-info'
+        return color
+
+    @property
+    def status_icon(self):
+        if self.cancelled_at:
+            icon = '<i class="fas fa-times"></i>'
+        elif self.is_print and (self.record.status_id and self.record.status.code == 'completed'):
+            icon = '<i class="fas fa-check"></i>'
+        elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
+                                                           self.record.status.code != 'completed')):
+            icon = '<i class="fas fa-pen-fancy"></i>'
+        else:
+            icon = '<i class="fas fa-hourglass"></i>'
+        return icon
 
     @property
     def get_other_org(self):

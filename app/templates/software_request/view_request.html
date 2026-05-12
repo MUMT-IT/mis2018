@@ -300,7 +300,7 @@
                                                 <td>
                                                     <div class="field">
                                                         <div class="control">
-                                                            <textarea class="textarea" name="note_{{ test_result.id }}">{{ detail.note or '' }}</textarea>
+                                                            <textarea class="textarea" name="note_{{ test_result.id }}">{{ (test_result.note or '').strip() }}</textarea>
                                                         </div>
                                                     </div>
                                                 </td>

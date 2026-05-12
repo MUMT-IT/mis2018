@@ -18,8 +18,8 @@
                     menu='view') }}">
                     รายการแจ้งปัญหา
                 </a>
-                <a {% if menu=="new" %} class="is-active" {% endif %} href="{{ url_for('comp_tracker.repair_approval_index',
-                    menu='new') }}">
+                <a {% if menu=="report" %} class="is-active" {% endif %} href="{{ url_for('comp_tracker.repair_approval_index',
+                    menu='report', tab='waiting_process') }}">
                     รายการคำขออนุมัติหลักการซ่อม
                 </a>
             </li>

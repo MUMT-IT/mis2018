@@ -348,14 +348,29 @@
                                             <div class="control">
                                                 {% if record.repair_approvals %}
                                                     {% if record.get_print_of_repair_approval == True %}
-                                                        <span class="tag is-success is-light">
-                                                            <span class="icon"><i class="fas fa-check"></i></span>
-                                                            <span>ออกเอกสารแล้ว</span>
-                                                        </span>
+                                                        {% for repair_approval in record.repair_approvals %}
+                                                            {% if repair_approval.cancelled_at %}
+                                                                <span class="tag is-danger">
+                                                                    <span class="icon"><i class="fas fa-times"></i></span>
+                                                                    <span>ยกเลิก</span>
+                                                                </span>
+                                                                <div class="is-size-6 mt-1">
+                                                                    ยกเลิกเมื่อ {{ repair_approval.cancelled_at|localdatetime }}
+                                                                </div>
+                                                            {% elif repair_approval.reviewed_at %}
+                                                                <span class="tag is-success">
+                                                                    <span class="icon"><i class="fas fa-check"></i></span>
+                                                                    <span>พิมพ์แล้ว</span>
+                                                                </span>
+                                                                <div class="is-size-6 mt-1">
+                                                                    ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime }}
+                                                                </div>
+                                                            {% endif %}
+                                                        {% endfor %}
                                                     {% else %}
-                                                        <span class="tag is-danger is-light">
-                                                            <span class="icon"><i class="fas fa-times"></i></span>
-                                                            <span>ยังไม่ออกเอกสาร</span>
+                                                        <span class="tag is-warning">
+                                                            <span class="icon"><i class="fas fa-clock"></i></span>
+                                                            <span>รอพิมพ์</span>
                                                         </span>
                                                     {% endif %}
                                                 {% else %}
@@ -864,7 +879,13 @@
                 delimiters: ['<%', '%>'],
                 methods: {
                     printRepairApproval: function () {
-                        printJS({{ url_for('comp_tracker.export_repair_approval_pdf', repair_approval_id=repair_approval_id)|tojson|safe }});
+                        printJS({
+                            printable: {{ url_for('comp_tracker.export_repair_approval_pdf', repair_approval_id=repair_approval_id)|tojson|safe }},
+                            type: 'pdf',
+                            onPrintDialogClose: () => {
+                                window.location.reload();
+                            }
+                        });
                     }
                 },
             });
