@@ -1119,7 +1119,7 @@ def edit_record_admin(record_id):
                        f'สถานะปัจจุบัน : {record.status or "ยังไม่ดำเนินการ"}\n'
                        f'คลิกที่ Link เพื่อตรวจสอบ {link}')
                 title = f'''แจ้งอัปเดตสถานะคำร้องขอ{record.topic.topic}'''
-                message = f'''เจ้าหน้าที่ได้ทำการอัปเดตสถานะคำร้องขอ{record.topic.topic} ของ{record.desc}เป็น "{record.status or 'ยังไม่ดำเนินการ'}" เรียบร้อนแล้ว\n\n'''
+                message = f'''เจ้าหน้าที่ได้ทำการอัปเดตสถานะคำร้องขอ{record.topic.topic} ของ{record.desc}เป็น "{record.status or 'ยังไม่ดำเนินการ'}" เรียบร้อยแล้ว\n\n'''
                 message += f'''ท่านสามารถตรวจสอบรายละเอียดเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
                 message += f'''{link}\n\n'''
                 message += f'''ขอบคุณค่ะ\n'''
