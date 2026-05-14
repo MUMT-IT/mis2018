@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
 {% block page_content %}
 {% include "complaint_tracker/index_nav.html" %}
 <section class="section">
@@ -110,6 +114,7 @@
                                     {% endif %}
                                 </td>
                                 <td>
+                                    <div id="repair-approval-form"></div>
                                     <div id="note-form"></div>
                                     <div class="field has-addons">
                                         <div class="control">
@@ -124,6 +129,17 @@
                                                 or (repair_approval.record.status and
                                                 repair_approval.record.status.code != 'completed') or (repair_approval.record.status and
                                                 repair_approval.record.status.code != 'cancelled')) %}
+                                            <div class="control">
+                                                <a class="button is-warning is-outlined is-rounded is-small"
+                                                   hx-swap="innerHTML"
+                                                   hx-target="#repair-approval-form"
+                                                   hx-get="{{ url_for('comp_tracker.edit_repair_approval',
+                                                   repair_approval_id=repair_approval.id)}}"
+                                                >
+                                                    <span class="icon"><i class="fas fa-pen"></i></span>
+                                                    <span>Edit</span>
+                                                </a>
+                                            </div>
                                             <div class="control">
                                                 <a class="button is-danger is-outlined is-rounded is-small"
                                                    hx-swap="innerHTML"
@@ -150,6 +166,7 @@
 {% block scripts %}
     {{ super() }}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script type="text/javascript">
         var vm = new Vue({
             el: "#repair_approvals",
