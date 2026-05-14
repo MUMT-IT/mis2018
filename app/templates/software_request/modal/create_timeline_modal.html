@@ -9,7 +9,7 @@
                     Edit Timeline
                 {% endif %}
             </p>
-            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+            <button type="button" id="cancelTimelineButton" class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
             <form
@@ -91,7 +91,7 @@
     </div>
 </div>
 <script>
-    window.document.getElementById("cancelButton").addEventListener("click", function () {
+    window.document.getElementById("cancelTimelineButton").addEventListener("click", function () {
         htmx.addClass(htmx.find('#timeline-modal'), 'animate__fadeOut')
         htmx.removeClass(htmx.find('#timeline-modal'), "is-active", 500)
     })
