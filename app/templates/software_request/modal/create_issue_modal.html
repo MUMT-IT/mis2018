@@ -9,7 +9,7 @@
                     Edit Requirement
                 {% endif %}
             </p>
-            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+            <button type="button" id="cancelIssueButton" class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
             <form
@@ -18,7 +18,7 @@
                     {% else %}
                         hx-post="{{ url_for('software_request.create_issue', detail_id=detail_id, tab=tab) }}"
                     {% endif %}
-                        hx-target="#issues"
+                        hx-target="#requirements"
                         hx-indicator="#submit-form"
                         hx-swap="beforeend"
             >
@@ -95,7 +95,7 @@
     </div>
 </div>
 <script>
-    window.document.getElementById("cancelButton").addEventListener("click", function () {
+    window.document.getElementById("cancelIssueButton").addEventListener("click", function () {
         htmx.addClass(htmx.find('#issue-modal'), 'animate__fadeOut')
         htmx.removeClass(htmx.find('#issue-modal'), "is-active", 500)
     })

@@ -1006,8 +1006,9 @@ def new_record(topic_id, room=None, procurement=None):
             db.session.add(record)
             db.session.commit()
             flash('รับเรื่องแจ้งเรียบร้อย', 'success')
+            scheme = 'http' if current_app.debug else 'https'
             complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record.id, _external=True,
-                                     _scheme='https')
+                                     _scheme=scheme)
             msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
                    '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
                    '\nซึ่งมีรายละเอียด ดังนี้ {}' \
@@ -1024,6 +1025,8 @@ def new_record(topic_id, room=None, procurement=None):
                             line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                         except LineBotApiError:
                             pass
+            else:
+                print('msg:', msg, 'line_id', [a.admin.line_id for a in topic.admins if a.is_supervisor == False])
             if current_user.is_authenticated:
                 return redirect(url_for('comp_tracker.complainant_index'))
             else:
@@ -1047,8 +1050,8 @@ def closing_page():
 def edit_record_admin(record_id):
     tab = request.args.get('tab')
     record = ComplaintRecord.query.get(record_id)
-    current_status = record.status
     if record:
+        current_status = record.status
         admins = True if ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first() else False
         investigators = []
         coordinators = ComplaintCoordinator.query.filter_by(coordinator=current_user, record_id=record_id).first() \
@@ -1584,16 +1587,18 @@ def view_performance_report(record_id):
     return render_template('complaint_tracker/modal/view_performance_report_modal.html', record=record)
 
 
-@complaint_tracker.route('/complaint/user/delete/<int:record_id>', methods=['DELETE'])
-def delete_complaint(record_id):
-    if record_id:
-        record = ComplaintRecord.query.get(record_id)
-        db.session.delete(record)
-        db.session.commit()
-        flash('ลบรายการแจ้งปัญหาสำเร็จ', 'success')
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
-        return resp
+@complaint_tracker.route('/complaint/user/cancel/<int:record_id>', methods=['POST'])
+def cancel_complaint(record_id):
+    status = ComplaintStatus.query.filter_by(code='cancelled').first()
+    record = ComplaintRecord.query.get(record_id)
+    record.status = status
+    record.closed_at = arrow.now('Asia/Bangkok').datetime
+    db.session.add(record)
+    db.session.commit()
+    flash('ยกเลิกรายการแจ้งปัญหาสำเร็จ', 'success')
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
 
 
 @complaint_tracker.route('/admin/complaint/index')

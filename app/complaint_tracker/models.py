@@ -249,6 +249,8 @@ class ComplaintRecord(db.Model):
             'desc': self.desc,
             'organization': self.organization if self.organization else None,
             'status': self.status.status if self.status else None,
+            'status_color': self.status.color if self.status else None,
+            'status_icon': self.status.icon if self.status else None,
             'procurement':  [procurement.category.category if procurement.category else 'ไม่ระบุ' for procurement in self.procurements] if self.procurements else 'ไม่ระบุ'
         }
 

@@ -89,13 +89,17 @@
                     { data : 'desc' },
                     {
                         data : 'status',
-                        render: function (data) {
-                            var status_color = data == 'รับเรื่อง/รอดำเนินการ' ? 'is-link' : data == 'อยู่ระหว่างดำเนินการ' ?
-                                'is-warning' : 'is-success'
+                        render: function (data, type, row) {
                             if (data != null) {
-                                return '<span class="tag '+ status_color +'">' + data +'</span>'
+                                return '<span class="tag ' + row.status_color + '">' +
+                                            '<span class="icon">' + row.status_icon + '</span>' +
+                                            '<span>' + data + '</span>' +
+                                        '</span>'
                             } else {
-                                return '<span class="tag is-danger">ยังไม่ดำเนินการ</span>'
+                                return '<span class="tag is-danger">' +
+                                            '<span class="icon"><i class="fas fa-ban"></i></span>' +
+                                            '<span>ยังไม่ดำเนินการ</span>' +
+                                        '</span>'
                         }
                       }
                     },

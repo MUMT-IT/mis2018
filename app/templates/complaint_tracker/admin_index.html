@@ -55,6 +55,12 @@
                                     <span>ดำเนินการเสร็จสิ้น</span>
                                 </a>
                             </li>
+                             <li {% if tab == 'cancelled' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('comp_tracker.admin_index', tab='cancelled') }}">
+                                    <span class="icon is-small"><i class="fas fa-times"></i></span>
+                                    <span>ยกเลิก</span>
+                                </a>
+                            </li>
                             <li {% if tab == 'repair_approval' %}class="is-active"{% endif %}>
                                 <a href="{{ url_for('comp_tracker.admin_index', tab='repair_approval') }}">
                                     <span class="icon is-small"><i class="fas fa-file-pdf"></i></span>
@@ -131,7 +137,7 @@
                                                     </span>
                                                 {% else %}
                                                     <span class="tag is-light is-warning">
-                                                        ผู้รร่วมตรวจสอบ
+                                                        ผู้ร่วมตรวจสอบ
                                                     </span>
                                                 {% endif %}
                                             </td>
@@ -146,14 +152,16 @@
                                             <td>
                                                 {% if record.status %}
                                                     <span class="tag {{ record.status.color }}">
-                                                        {{ record.status }}
+                                                        <span class="icon">{{ record.status.icon|safe }}</span>
+                                                        <span>{{ record.status }}</span>
                                                     </span>
                                                     {% if record.closed_at %}
                                                         {{ record.closed_at|localdatetime }}
                                                     {% endif %}
                                                 {% else %}
                                                     <span class="tag is-danger">
-                                                        ยังไม่ดำเนินการ
+                                                        <span class="icon"><i class="fas fa-ban"></i></span>
+                                                        <span>ยังไม่ดำเนินการ</span>
                                                     </span>
                                                 {% endif %}
                                             </td>

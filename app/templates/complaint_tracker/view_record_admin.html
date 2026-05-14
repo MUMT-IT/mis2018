@@ -204,7 +204,17 @@
                     <div class="field">
                         <label class="label">สถานะ</label>
                         <div class="control">
-                            {{ record.status }}
+                            {% if record.status %}
+                                <span class="tag {{ record.status.color }}">
+                                    <span class="icon">{{ record.status.icon|safe }}</span>
+                                    <span>{{ record.status }}</span>
+                                </span>
+                            {% else %}
+                                <span class="tag is-danger">
+                                    <span class="icon"><i class="fas fa-ban"></i></span>
+                                    <span>ยังไม่ดำเนินการ</span>
+                                </span>
+                            {% endif %}
                         </div>
                     </div>
                     <div class="field">
