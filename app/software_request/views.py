@@ -6,7 +6,8 @@ import requests
 from dateutil import parser
 from app.main import mail
 from flask_mail import Message
-from sqlalchemy import or_
+from sqlalchemy import or_, func, case
+from sqlalchemy.orm import joinedload
 from flask import render_template, redirect, flash, url_for, jsonify, request, make_response, current_app
 from flask_login import login_required, current_user
 from app.roles import it_permission
@@ -52,6 +53,64 @@ def update_test_result(test_result, status, note):
     test_result.recorder_id = current_user.id
     db.session.add(test_result)
     db.session.commit()
+
+
+def _build_admin_request_query(tab):
+    query = SoftwareRequestDetail.query
+    if tab == 'pending':
+        return query.filter_by(status='ส่งคำขอแล้ว')
+    elif tab == 'consider':
+        return query.filter_by(status='อยู่ระหว่างพิจารณา')
+    elif tab == 'approve':
+        return query.filter_by(status='อนุมัติ')
+    elif tab == 'complete':
+        return query.filter_by(status='เสร็จสิ้น')
+    elif tab == 'disapprove':
+        return query.filter_by(status='ไม่อนุมัติ')
+    elif tab == 'cancel':
+        return query.filter_by(status='ยกเลิก')
+    elif tab == 'private':
+        return query.join(SoftwareRequestTimeline).filter(
+            SoftwareRequestTimeline.request_id == SoftwareRequestDetail.id,
+            SoftwareRequestTimeline.admin_id == current_user.id
+        ).distinct()
+    return query
+
+
+def _build_admin_request_listing_query(base_query):
+    # Aggregate counts in SQL so the admin table does not trigger N+1 queries for each row.
+    active_timeline_counts = db.session.query(
+        SoftwareRequestTimeline.request_id.label('request_id'),
+        func.count(SoftwareRequestTimeline.id).label('num_timelines')
+    ).filter(
+        SoftwareRequestTimeline.status.notin_(['ยกเลิกการพัฒนา', 'เสร็จสิ้น'])
+    ).group_by(SoftwareRequestTimeline.request_id).subquery()
+
+    open_issue_counts = db.session.query(
+        SoftwareIssues.software_request_detail_id.label('request_id'),
+        func.sum(
+            case(
+                [(SoftwareIssues.closed_at.is_(None), 1)],
+                else_=0
+            )
+        ).label('open_issues')
+    ).group_by(SoftwareIssues.software_request_detail_id).subquery()
+
+    return base_query.options(
+        # Eager-load requester/org data because the table always renders these fields.
+        joinedload(SoftwareRequestDetail.created_by)
+            .joinedload(StaffAccount.personal_info)
+            .joinedload('org')
+    ).outerjoin(
+        active_timeline_counts,
+        active_timeline_counts.c.request_id == SoftwareRequestDetail.id
+    ).outerjoin(
+        open_issue_counts,
+        open_issue_counts.c.request_id == SoftwareRequestDetail.id
+    ).add_columns(
+        func.coalesce(active_timeline_counts.c.num_timelines, 0).label('num_timelines'),
+        func.coalesce(open_issue_counts.c.open_issues, 0).label('open_issues')
+    )
 
 
 @software_request.route('/')
@@ -169,54 +228,61 @@ def get_systems():
 def admin_index():
     tab = request.args.get('tab')
     api = request.args.get('api', 'false')
-    query = SoftwareRequestDetail.query
     timelines = SoftwareRequestTimeline.query.filter_by(admin_id=current_user.id)
-    pending_query = query.filter_by(status='ส่งคำขอแล้ว')
-    consider_query = query.filter_by(status='อยู่ระหว่างพิจารณา')
-    approve_query = query.filter_by(status='อนุมัติ')
-    complete_query = query.filter_by(status='เสร็จสิ้น')
-    disapprove_query = query.filter_by(status='ไม่อนุมัติ')
-    cancel_query = query.filter_by(status='ยกเลิก')
-    private_query = query.join(SoftwareRequestTimeline).filter(SoftwareRequestTimeline.request_id==SoftwareRequestDetail.id,
-                                                               SoftwareRequestTimeline.admin_id==current_user.id)
+    pending_query = SoftwareRequestDetail.query.filter_by(status='ส่งคำขอแล้ว')
+    consider_query = SoftwareRequestDetail.query.filter_by(status='อยู่ระหว่างพิจารณา')
+    approve_query = SoftwareRequestDetail.query.filter_by(status='อนุมัติ')
+    complete_query = SoftwareRequestDetail.query.filter_by(status='เสร็จสิ้น')
+    disapprove_query = SoftwareRequestDetail.query.filter_by(status='ไม่อนุมัติ')
+    cancel_query = SoftwareRequestDetail.query.filter_by(status='ยกเลิก')
     if api == 'true':
-        tab = request.args.get('tab')
-        if tab == 'pending':
-            query = pending_query
-        elif tab == 'consider':
-            query = consider_query
-        elif tab == 'approve':
-            query = approve_query
-        elif tab == 'complete':
-            query = complete_query
-        elif tab == 'disapprove':
-            query = disapprove_query
-        elif tab == 'cancel':
-            query = cancel_query
-        elif tab == 'private':
-            query = private_query
-
+        query = _build_admin_request_query(tab)
         records_total = query.count()
         search = request.args.get('search[value]')
         if search:
-            query = query.filter(db.or_
-                                 (SoftwareRequestDetail.type.ilike(u'%{}%'.format(search)),
-                                  SoftwareRequestDetail.description.ilike(u'%{}%'.format(search)),
-                                  SoftwareRequestDetail.created_by.ilike(u'%{}%'.format(search)),
-                                  SoftwareRequestDetail.created_date.ilike(u'%{}%'.format(search)),
-                                  SoftwareRequestDetail.status.ilike(u'%{}%'.format(search))
-                                  ))
+            search_term = u'%{}%'.format(search)
+            query = query.filter(or_(
+                SoftwareRequestDetail.title.ilike(search_term),
+                SoftwareRequestDetail.type.ilike(search_term),
+                SoftwareRequestDetail.description.ilike(search_term),
+                SoftwareRequestDetail.status.ilike(search_term)
+            ))
+
         start = request.args.get('start', type=int)
         length = request.args.get('length', type=int)
         total_filtered = query.count()
-        query = query.offset(start).limit(length)
+        # Apply pagination after building the enriched query used by DataTables.
+        query = _build_admin_request_listing_query(query)
+
+        sort_columns = {
+            0: SoftwareRequestDetail.title,
+            1: SoftwareRequestDetail.type,
+            2: SoftwareRequestDetail.description,
+            5: SoftwareRequestDetail.created_date,
+        }
+        sort_column_index = request.args.get('order[0][column]', default=5, type=int)
+        sort_direction = request.args.get('order[0][dir]', default='desc')
+        sort_column = sort_columns.get(sort_column_index, SoftwareRequestDetail.created_date)
+        if sort_direction == 'asc':
+            query = query.order_by(sort_column.asc())
+        else:
+            query = query.order_by(sort_column.desc())
+
+        if start:
+            query = query.offset(start)
+        if length and length > 0:
+            query = query.limit(length)
+
         data = []
-        for item in query:
-            item_data = item.to_dict()
-            data.append(item_data)
+        for item, num_timelines, open_issues in query.all():
+            data.append(item.to_dict(
+                num_timelines=num_timelines,
+                open_issues=open_issues,
+                has_timeline=bool(num_timelines)
+            ))
         return jsonify({'data': data,
-                        'recordFiltered': total_filtered,
-                        'recordTotal': records_total,
+                        'recordsFiltered': total_filtered,
+                        'recordsTotal': records_total,
                         'draw': request.args.get('draw', type=int)
                         })
     return render_template('software_request/admin_index.html', tab=tab, pending_count=pending_query.count(),
@@ -237,22 +303,29 @@ def get_timelines(tab):
         end = parser.isoparse(end)
 
     all_timelines = []
-    timelines = SoftwareRequestTimeline.query.filter(SoftwareRequestTimeline.start <= end, SoftwareRequestTimeline.estimate >= start)
+    # Eager-load related objects used to render calendar labels to avoid per-event queries.
+    timelines = SoftwareRequestTimeline.query.options(
+        joinedload(SoftwareRequestTimeline.request),
+        joinedload(SoftwareRequestTimeline.admin).joinedload(StaffAccount.personal_info)
+    ).filter(
+        SoftwareRequestTimeline.start <= end,
+        SoftwareRequestTimeline.estimate >= start,
+        SoftwareRequestTimeline.status != 'ยกเลิกการพัฒนา'
+    )
     if tab == 'private':
         timelines = timelines.filter(SoftwareRequestTimeline.admin_id == current_user.id)
 
     for timeline in timelines:
-        if timeline.status != 'ยกเลิกการพัฒนา':
-            all_timelines.append({
-                'id': timeline.id,
-                'detail_id': timeline.request_id,
-                'title': '{} ({}) - {}'.format(timeline.task, timeline.request.title, timeline.admin.fullname),
-                'start': timeline.start.isoformat(),
-                'end': (timeline.estimate + timedelta(days=1)).isoformat(),
-                'borderColor': '#aed581' if timeline.status == 'เสร็จสิ้น' else '#b3e5fc',
-                'backgroundColor': '#aed581' if timeline.status == 'เสร็จสิ้น' else '#b3e5fc',
-                'textColor': '#000000',
-            })
+        all_timelines.append({
+            'id': timeline.id,
+            'detail_id': timeline.request_id,
+            'title': '{} ({}) - {}'.format(timeline.task, timeline.request.title, timeline.admin.fullname),
+            'start': timeline.start.isoformat(),
+            'end': (timeline.estimate + timedelta(days=1)).isoformat(),
+            'borderColor': '#aed581' if timeline.status == 'เสร็จสิ้น' else '#b3e5fc',
+            'backgroundColor': '#aed581' if timeline.status == 'เสร็จสิ้น' else '#b3e5fc',
+            'textColor': '#000000',
+        })
     return jsonify(all_timelines)
 
 
