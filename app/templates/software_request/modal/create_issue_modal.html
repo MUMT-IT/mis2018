@@ -18,7 +18,7 @@
                     {% else %}
                         hx-post="{{ url_for('software_request.create_issue', detail_id=detail_id, tab=tab) }}"
                     {% endif %}
-                        hx-target="#issues"
+                        hx-target="#requirements"
                         hx-indicator="#submit-form"
                         hx-swap="beforeend"
             >
