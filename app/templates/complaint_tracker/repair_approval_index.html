@@ -122,7 +122,8 @@
                                         </div>
                                         {% if not repair_approval.cancelled_at and ((not repair_approval.record.status)
                                                 or (repair_approval.record.status and
-                                                repair_approval.record.status.code != 'completed')) %}
+                                                repair_approval.record.status.code != 'completed') or (repair_approval.record.status and
+                                                repair_approval.record.status.code != 'cancelled')) %}
                                             <div class="control">
                                                 <a class="button is-danger is-outlined is-rounded is-small"
                                                    hx-swap="innerHTML"
