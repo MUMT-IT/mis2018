@@ -1990,6 +1990,23 @@ def create_repair_approval(record_id, repair_approval_id=None):
                            repair_approval_id=repair_approval_id)
 
 
+@complaint_tracker.route('/repair-approval/edit/<int:repair_approval_id>', methods=['GET', 'POST'])
+def edit_repair_approval(repair_approval_id):
+    repair_approval = ComplaintRepairApproval.query.get(repair_approval_id)
+    form = ComplaintRepairApprovalForm(obj=repair_approval)
+    if form.validate_on_submit():
+        form.populate_obj(repair_approval)
+        repair_approval.is_print = True
+        repair_approval.updated_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(repair_approval)
+        db.session.commit()
+        flash('แก้ไขข้อมูลสำเร็จ', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('complaint_tracker/modal/edit_repair_approval_modal.html',
+                           repair_approval_id=repair_approval_id, form=form)
+
 @complaint_tracker.route('/admin/repair-approval/committee/add/<int:repair_approval_id>', methods=['GET', 'POST'])
 def edit_committee(repair_approval_id):
     rep_approval = ComplaintRepairApproval.query.get(repair_approval_id)
