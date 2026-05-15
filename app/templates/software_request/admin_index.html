@@ -180,6 +180,11 @@
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
             $('#request').DataTable({
+                // This endpoint is paginated server-side; enabling serverSide avoids client-side reprocessing.
+                processing: true,
+                serverSide: true,
+                deferRender: true,
+                searchDelay: 400,
                 ajax: {
                     url: {{ url_for('software_request.admin_index', tab=tab, api='true')|tojson|safe}},
                 },
@@ -191,8 +196,8 @@
                         data: 'description',
                         width: "230px"
                     },
-                    {data: 'created_by'},
-                    {data: 'org'},
+                    {data: 'created_by', orderable: false},
+                    {data: 'org', orderable: false},
                     {
                         data: 'created_date',
                         render: function (data) {
@@ -206,6 +211,7 @@
                     },
                     {
                         data: 'status',
+                        orderable: false,
                         render: function (data, type, row) {
                             var text = data == 'เสร็จสิ้น' ? 'ดำเนินการเสร็จสิ้น' : row.has_timeline ? 'กำลังพัฒนา' : 'ยังไม่ดำเนินการ';
                             var status_color = data == 'เสร็จสิ้น' ? 'is-success' : row.has_timeline ? 'is-warning' : 'is-danger';
@@ -233,6 +239,7 @@
                     },
                     {
                         data: 'num_timelines',
+                        orderable: false,
                         render: function (data) {
                             if (data > 0) {
                                 return `<span class="tag is-rounded is-danger">${data}</span>`
@@ -243,6 +250,7 @@
                     },
                     {
                         data: 'open_issues',
+                        orderable: false,
                         render: function (data) {
                             if (data > 0) {
                                 return `<span class="tag is-rounded is-danger">${data}</span>`
@@ -253,6 +261,8 @@
                     },
                     {
                         data: 'id',
+                        orderable: false,
+                        searchable: false,
                         render: function (data) {
                             var url = '/software_request/admin/request/edit/' + data + '?tab=' + '{{ tab }}';
                             return `<div class="field">

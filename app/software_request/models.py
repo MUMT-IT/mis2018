@@ -117,7 +117,7 @@ class SoftwareRequestDetail(db.Model):
 
     @property
     def num_timelines(self):
-        return len([timeline for timeline in self.timelines if timeline.status != 'ยกเลิกการพัฒนา' or timeline.status != 'เสร็จสิ้น'])
+        return len([timeline for timeline in self.timelines if timeline.status != 'ยกเลิกการพัฒนา' and timeline.status != 'เสร็จสิ้น'])
 
     @property
     def status_color(self):
@@ -134,19 +134,23 @@ class SoftwareRequestDetail(db.Model):
         else:
             return 'is-dark'
 
-    def to_dict(self):
+    def to_dict(self, open_issues=None, num_timelines=None, has_timeline=None):
+        # Allow precomputed counts from the admin listing query to avoid per-row lazy loads.
+        open_issues = self.num_open_issues if open_issues is None else open_issues
+        num_timelines = self.num_timelines if num_timelines is None else num_timelines
+        has_timeline = bool(self.timelines) if has_timeline is None else has_timeline
         return {
             'id': self.id,
             'title': self.title,
             'type': self.type,
             'description': self.description,
-            'has_timeline': True if self.timelines else False,
+            'has_timeline': has_timeline,
             'created_by': self.created_by.fullname if self.created_by else None,
             'org': self.created_by.personal_info.org.name if self.created_by else None,
             'created_date': self.created_date,
             'status': self.status,
-            'open_issues': self.num_open_issues,
-            'num_timelines': self.num_timelines
+            'open_issues': open_issues,
+            'num_timelines': num_timelines
         }
 
 
