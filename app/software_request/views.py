@@ -592,6 +592,11 @@ def create_issue(detail_id=None, issue_id=None):
                     issue.cancelled_at = None
                     issue.accepted_at = None
                     issue.tested_at = None
+                    if issue.timelines:
+                        for timeline in issue.timelines:
+                            timeline.status = 'เสร็จสิ้น'
+                            db.session.add(timeline)
+                        db.session.commit()
                 elif form.status_.data == 'Working':
                     issue.accepted_at = arrow.now('Asia/Bangkok').datetime
                     issue.closed_at = None
