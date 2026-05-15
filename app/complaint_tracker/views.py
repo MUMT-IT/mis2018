@@ -1111,6 +1111,11 @@ def edit_record_admin(record_id):
                             except LineBotApiError:
                                 pass
             if record.status != current_status and record.complainant:
+                if record.status_id:
+                    rec = ComplaintRecordStatusAssociation(status_id=record.status_id, record_id=record_id,
+                                                           updated_at=arrow.now('Asia/Bangkok').datetime)
+                    db.session.add(rec)
+                    db.session.commit()
                 scheme = 'http' if current_app.debug else 'https'
                 link = url_for("comp_tracker.view_record_complaint", record_id=record_id, _external=True,
                                _scheme=scheme)
