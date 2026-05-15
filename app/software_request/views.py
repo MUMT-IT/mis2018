@@ -150,7 +150,7 @@ def view_request(detail_id):
                 item_id = form.replace("result_", "")
                 test_result = SoftwareRequestTestResult.query.get(item_id)
                 value = request.form.get(form)
-                update_test_result(test_result=test_result, status=value, note=test_result.note if test_result.note else None)
+                update_test_result(test_result=test_result, status=value, note=test_result.note if test_result.note else '')
                 recorded_at = arrow.get(test_result.recorded_at, 'Asia/Bangkok').datetime if test_result.recorded_at else None
                 if datetime_now == recorded_at:
                     count += 1
@@ -158,7 +158,7 @@ def view_request(detail_id):
                 item_id = form.replace("note_", "")
                 test_result = SoftwareRequestTestResult.query.get(item_id)
                 value = request.form.get(form)
-                update_test_result(test_result=test_result, status=test_result.status if test_result.status else None,
+                update_test_result(test_result=test_result, status=test_result.status if test_result.status else '',
                                    note=value)
         flash('บันทึกผลเรียบร้อยแล้ว', 'success')
         if detail.staffs and count > 0:
