@@ -116,8 +116,8 @@
                                 <td>
                                     <div id="repair-approval-form"></div>
                                     <div id="note-form"></div>
-                                    <div class="field has-addons">
-                                        <div class="control">
+                                    <div class="field">
+                                        <div class="control mb-2">
                                             <a class="button is-small is-info is-outlined is-rounded"
                                                 @click="printRepairApproval({{ repair_approval.id }})"
                                             >
@@ -129,7 +129,7 @@
                                                 or (repair_approval.record.status and
                                                 repair_approval.record.status.code != 'completed') or (repair_approval.record.status and
                                                 repair_approval.record.status.code != 'cancelled')) %}
-                                            <div class="control">
+                                            <div class="control mb-2">
                                                 <a class="button is-warning is-outlined is-rounded is-small"
                                                    hx-swap="innerHTML"
                                                    hx-target="#repair-approval-form"
