@@ -218,6 +218,8 @@ class SoftwareIssues(db.Model):
             return 'Closed'
         elif self.accepted_at:
             return 'Working'
+        elif self.tested_at:
+            return 'Testing'
         else:
             return 'Draft'
 
@@ -229,6 +231,8 @@ class SoftwareIssues(db.Model):
             return 'is-dark'
         elif self.accepted_at:
             return 'is-success'
+        elif self.tested_at:
+            return 'is-warning'
         else:
             return 'is-info'
 
