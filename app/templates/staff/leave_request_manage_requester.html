@@ -23,6 +23,8 @@
                     <th>สังกัดผู้อนุมัติ</th>
                     <th>สถานะการอนุมัติ</th>
                     <th>เปลี่ยนสถานะการอนุมัติ</th>
+                    <th>หัวหน้างาน</th>
+                    <th>คณบดี/รองคณบดี/ผู้ช่วย/หัวหน้าภาค-ศูนย์</th>
                     </thead>
                     <tbody>
                     {% for approver in approvers|sort(attribute='account.personal_info.fullname') %}
@@ -53,6 +55,32 @@
                         ,{{ approver.staff_account_id }})">
                                 แก้ไขสถานะ
                             </a>
+                        </td>
+                        <td>
+                            {% if approver.is_active %}
+                                {% if approver.is_lower_level %}
+                                    <span class="tag is-success">True</span>
+                                {% else %}
+                                    <span class="tag">False</span>
+                                {% endif %}
+                                <a class="button is-small is-light is-link"
+                                   @click="confirmChangeLowerLevelStatus({{ approver.approver_account_id }}, {{ approver.staff_account_id }})">
+                                    สลับสถานะ
+                                </a>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if approver.is_active %}
+                                {% if approver.is_middle_level %}
+                                    <span class="tag is-success">True</span>
+                                {% else %}
+                                    <span class="tag">False</span>
+                                {% endif %}
+                                <a class="button is-small is-light is-link"
+                                   @click="confirmChangeMiddleLevelStatus({{ approver.approver_account_id }}, {{ approver.staff_account_id }})">
+                                    สลับสถานะ
+                                </a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -152,6 +180,26 @@
                     type: 'is-warning',
                     hasIcon: true,
                     onConfirm: () => window.location.href = "/staff/for-hr/staff-info/approvers/edit/" + approver_id + "/" + requester_id + "/change-active-status"
+                })
+            },
+            confirmChangeLowerLevelStatus: function(approver_id, requester_id) {
+                this.$buefy.dialog.confirm({
+                    title: 'แก้ไขสถานะ Lower approver',
+                    message: 'แน่ใจหรือไม่ที่จะ<b>แก้ไข</b>สถานะ Lower approver ของบุคลากรท่านนี้',
+                    confirmText: 'Change lower level status',
+                    type: 'is-warning',
+                    hasIcon: true,
+                    onConfirm: () => window.location.href = "/staff/for-hr/staff-info/approvers/edit/" + approver_id + "/" + requester_id + "/change-lower-level-status"
+                })
+            },
+            confirmChangeMiddleLevelStatus: function(approver_id, requester_id) {
+                this.$buefy.dialog.confirm({
+                    title: 'แก้ไขสถานะ Middle approver',
+                    message: 'แน่ใจหรือไม่ที่จะ<b>แก้ไข</b>สถานะ Middle approver ของบุคลากรท่านนี้',
+                    confirmText: 'Change middle level status',
+                    type: 'is-warning',
+                    hasIcon: true,
+                    onConfirm: () => window.location.href = "/staff/for-hr/staff-info/approvers/edit/" + approver_id + "/" + requester_id + "/change-middle-level-status"
                 })
             }
         }

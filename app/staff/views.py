@@ -1366,9 +1366,32 @@ def record_each_request_leave_request(request_id):
         org_name = req.staff.personal_info.org.parent.name
     else:
         org_name = req.staff.personal_info.org.name
+    lower_approver = ''
+    lower_approver_position = ''
+    middle_approver = ''
+    middle_approver_position = ''
+
+    lower_approver_obj = StaffLeaveApprover.query.filter_by(staff_account_id=req.staff_account_id,
+                                                            is_active=True, is_lower_level=True).first()
+    if lower_approver_obj:
+        lower_approver = lower_approver_obj.account.personal_info.fullname
+        lower_head_position = StaffHeadPosition.query.filter_by(
+                                                        staff_account_id=lower_approver_obj.approver_account_id).first()
+        lower_approver_position = lower_head_position.position if lower_head_position else ''
+
+    middle_approver_obj = StaffLeaveApprover.query.filter_by(staff_account_id=req.staff_account_id,
+                                                             is_active=True, is_middle_level=True).first()
+    if middle_approver_obj:
+        middle_approver = middle_approver_obj.account.personal_info.fullname
+        middle_head_position = StaffHeadPosition.query.filter_by(
+                                                    staff_account_id=middle_approver_obj.approver_account_id).first()
+        middle_approver_position = middle_head_position.position if middle_head_position else ''
+
     return render_template('staff/leave_record_info.html', req=req, approvers=approvers,
                            org_name=org_name,
-                           upload_file_url=upload_file_url, is_hr=is_hr)
+                           upload_file_url=upload_file_url, is_hr=is_hr, lower_approver=lower_approver,
+                           lower_approver_position=lower_approver_position, middle_approver=middle_approver,
+                           middle_approver_position=middle_approver_position)
 
 
 @staff.route('/leave/requests/search')
@@ -4627,6 +4650,44 @@ def staff_approver_change_active_status(approver_id, requester_id):
     db.session.add(approver)
     db.session.commit()
     flash('แก้ไขสถานะการอนุมัติเรียบร้อยแล้ว', 'success')
+    return redirect(request.referrer)
+
+
+@staff.route('/for-hr/staff-info/approvers/edit/<int:approver_id>/<int:requester_id>/change-lower-level-status')
+@hr_permission.require()
+@login_required
+def staff_approver_change_lower_level_status(approver_id, requester_id):
+    approver = StaffLeaveApprover.query.filter_by(approver_account_id=approver_id,
+                                                  staff_account_id=requester_id).first()
+    if not approver:
+        flash('ไม่พบข้อมูลผู้อนุมัติ', 'warning')
+        return redirect(request.referrer)
+    if approver.is_lower_level:
+        approver.is_lower_level = False
+    else:
+        approver.is_lower_level = True
+    db.session.add(approver)
+    db.session.commit()
+    flash('แก้ไขสถานะหัวหน้างานเรียบร้อยแล้ว', 'success')
+    return redirect(request.referrer)
+
+
+@staff.route('/for-hr/staff-info/approvers/edit/<int:approver_id>/<int:requester_id>/change-middle-level-status')
+@hr_permission.require()
+@login_required
+def staff_approver_change_middle_level_status(approver_id, requester_id):
+    approver = StaffLeaveApprover.query.filter_by(approver_account_id=approver_id,
+                                                  staff_account_id=requester_id).first()
+    if not approver:
+        flash('ไม่พบข้อมูลผู้อนุมัติ', 'warning')
+        return redirect(request.referrer)
+    if approver.is_middle_level:
+        approver.is_middle_level = False
+    else:
+        approver.is_middle_level = True
+    db.session.add(approver)
+    db.session.commit()
+    flash('แก้ไขสถานะผู้บังคับบัญชาเรียบร้อยแล้ว', 'success')
     return redirect(request.referrer)
 
 

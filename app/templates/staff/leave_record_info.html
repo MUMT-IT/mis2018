@@ -159,22 +159,23 @@
                 </div>
             </div>
         </div>
-        {% if req.country %}{% endif %}
-        <div class="columns is-centered">
-            <div class="column is-half">
-                <div class="notification is-info is-light has-text-centered">
-                    <p>กรุณา Download File บันทึกขออนุมัติและ<b>แนบผลการอนุมัติ</b> <br> เพื่อส่งให้ธุรการเสนอผู้บังคับบัญชาลงนาม</p>
-                    <div class="buttons is-centered">
-                        <button @click="printPdf()" class="button is-warning">
-                            <span class="icon">
-                                <i class="fa-solid fa-print"></i>
-                            </span>
-                            <span>Download เอกสาร</span>
-                        </button>
+        {% if req.country %}
+            <div class="columns is-centered">
+                <div class="column is-half">
+                    <div class="notification is-info is-light has-text-centered">
+                        <p>กรุณา Download File บันทึกขออนุมัติและ<b>แนบผลการอนุมัติ</b> <br> เพื่อส่งให้ธุรการเสนอผู้บังคับบัญชาลงนาม</p>
+                        <div class="buttons is-centered">
+                            <button @click="printPdf()" class="button is-warning">
+                                <span class="icon">
+                                    <i class="fa-solid fa-print"></i>
+                                </span>
+                                <span>Download เอกสาร</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        {% endif %}
     </div>
 </section>
 {% endblock %}
@@ -218,46 +219,65 @@
                 layout: 'noBorders',
                 margin: [-13, 0, -57, -8]
             },
-            {text: 'ที่'},
+            {text: 'ที่    -'},
             {text: 'วันที่'},
             {text: 'เรื่อง   ' + {{ ('ขออนุมัติเดินทางไปต่างประเทศ โดยใช้วัน' ~ req.quota.leave_type.type_)|tojson|safe }}},
             {text: ' '},
-            {text: 'เรียน   ' + {{ middle_approver_position or ''|tojson|safe }}},
+            {text: 'เรียน   ' + {{ (middle_approver_position or '')|tojson|safe }}},
             {text: ' '},
             {
-                text: 'ด้วยข้าพเจ้า ' + {{ req.staff.personal_info.fullname|tojson|safe }}
-                +' ตำแหน่ง ' + {{ (req.staff.personal_info.job_position.th_title if req.staff.personal_info.job_position else req.staff.personal_info.position)|tojson|safe }}
-                    + ' สังกัด ' + {{ org_name|tojson|safe }}
-                    +'มีความประสงค์ขออนุมัติเดินทางไป ' + {{ req.country|tojson|safe }}
-                    + ' ระหว่างวันที่ ' + {{ ((req.start_travel_datetime|localdate) if req.start_travel_datetime else (req.start_datetime|localdate))|tojson|safe }}
-                    + ' - ' + {{ ((req.end_travel_datetime|localdate) if req.end_travel_datetime else (req.end_datetime|localdate))|tojson|safe }}
-                    + ' โดยใช้วันลาพักผ่อน(จำนวน ' + {{ req.total_leave_days|string|tojson|safe }} + ' วันทำการ)'
-                    + ' ทั้งนี้มีกำหนดเดินทางกลับถึงประเทศไทย ในวันที่ '
-                    + {{ ((req.end_travel_datetime|localdate) if req.end_travel_datetime else (req.end_datetime|localdate))|tojson|safe }},
-                lineHeight: 1.4
+                text: [
+                    {
+                        text: '\u00A0\t\u00A0\t\u00A0ด้วยข้าพเจ้า ' + {{ req.staff.personal_info.fullname|tojson|safe }}
+                            + ' ตำแหน่ง ' + {{ (req.staff.personal_info.job_position.th_title if req.staff.personal_info.job_position else req.staff.personal_info.position)|tojson|safe }}
+                            + ' สังกัด ' + {{ org_name|tojson|safe }}
+                            + ' มีความประสงค์ขออนุมัติเดินทางไป ' + {{ req.country|tojson|safe }}
+                            + ' ระหว่างวันที่ ' + {{ ((req.start_travel_datetime|localdate) if req.start_travel_datetime else (req.start_datetime|localdate))|tojson|safe }}
+                            + ' - ' + {{ ((req.end_travel_datetime|localdate) if req.end_travel_datetime else (req.end_datetime|localdate))|tojson|safe }}
+                            + ' โดยใช้วันลาพักผ่อน (จำนวน ' + {{ req.total_leave_days|string|tojson|safe }} + ' วันทำการ)'
+                            + ' ทั้งนี้มีกำหนดเดินทางกลับถึงประเทศไทย ในวันที่ '
+                            + {{ ((req.end_travel_datetime|localdate) if req.end_travel_datetime else (req.end_datetime|localdate))|tojson|safe }}
+                    }
+                ],
+                alignment: 'justify',
             },
             {text: ' '},
             {text: 'จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ จักเป็นพระคุณยิ่ง', margin: [30, 0, 0, 0]},
             {
-                text: '\n\n(' + {{ req.staff.personal_info.fullname|tojson|safe }} + ')\n'
+                text: '\n\n( ' + {{ req.staff.personal_info.fullname|tojson|safe }} + ' )\n'
                     + {{ (req.staff.personal_info.job_position.th_title if req.staff.personal_info.job_position else '')|tojson|safe }},
                 alignment: 'center',
                 margin: [250, 0, 0, 0]
             },
+            {% if lower_approver %}
             {
-                text: '\n\n(' + {{ lower_approver or ''|tojson|safe }} + ')\n'
-                    + {{ lower_approver_position or ''|tojson|safe }},
+                text: '\n\n(' + {{ (lower_approver or '')|tojson|safe }} + ' )\n',
                 alignment: 'center',
                 margin: [250, 0, 0, 0]
             },
+            {
+                text: {{ (lower_approver_position or '')|tojson|safe }},
+                alignment: 'center',
+                noWrap: true,
+                margin: [250, 0, 0, 0]
+            },
+            {% endif %}
             {text: '\nที่'},
             {text: 'เรียน   คณบดีคณะเทคนิคการแพทย์'},
             {text: ' '},
             {text: 'เพื่อโปรดพิจารณาอนุมัติ จักเป็นพระคุณยิ่ง', margin: [30, 0, 0, 0]},
+            {text: ' '},
+            {text: ' '},
             {
-                text: '\n\n(' + {{ middle_approver or ''|tojson|safe }} + ') \n' + {{ middle_approver_position or ''|tojson|safe }},
-                margin: [250, 0, 0, 0]
-            }
+                text: '( ' + {{ (middle_approver or '')|tojson|safe }} + ' ) \n',
+                alignment: 'center',
+                        noWrap: true
+            },
+            {
+                        text: {{ (middle_approver_position or '')|tojson|safe }},
+                        alignment: 'center',
+                        noWrap: true
+                    }
         ]
     };
 
