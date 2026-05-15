@@ -59,9 +59,9 @@
                         <td>
                             {% if approver.is_active %}
                                 {% if approver.is_lower_level %}
-                                    <span class="tag is-success">True</span>
+                                    True
                                 {% else %}
-                                    <span class="tag">False</span>
+                                    False
                                 {% endif %}
                                 <a class="button is-small is-light is-link"
                                    @click="confirmChangeLowerLevelStatus({{ approver.approver_account_id }}, {{ approver.staff_account_id }})">
@@ -72,9 +72,9 @@
                         <td>
                             {% if approver.is_active %}
                                 {% if approver.is_middle_level %}
-                                    <span class="tag is-success">True</span>
+                                    True
                                 {% else %}
-                                    <span class="tag">False</span>
+                                    False
                                 {% endif %}
                                 <a class="button is-small is-light is-link"
                                    @click="confirmChangeMiddleLevelStatus({{ approver.approver_account_id }}, {{ approver.staff_account_id }})">
