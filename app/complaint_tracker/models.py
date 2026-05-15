@@ -189,6 +189,9 @@ class ComplaintRecord(db.Model):
     file_name = db.Column('file_name', db.String(255))
     url = db.Column('url', db.String(255))
 
+    def __str__(self):
+        return self.desc
+
     @property
     def is_editable(self):
         return self.closed_at is None
@@ -253,6 +256,18 @@ class ComplaintRecord(db.Model):
             'status_icon': self.status.icon if self.status else None,
             'procurement':  [procurement.category.category if procurement.category else 'ไม่ระบุ' for procurement in self.procurements] if self.procurements else 'ไม่ระบุ'
         }
+
+
+class ComplaintRecordStatusAssociation(db.Model):
+    __tablename__ = 'complaint_record_status_associations'
+    record_id = db.Column(db.ForeignKey('complaint_records.id'), primary_key=True)
+    record = db.relationship(ComplaintRecord, backref=db.backref('record_status_updates', cascade='all, delete-orphan'))
+    status_id = db.Column(db.ForeignKey('complaint_statuses.id'), primary_key=True)
+    status = db.relationship(ComplaintStatus, backref=db.backref('record_status_updates'))
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+
+    def __str__(self):
+        return f'Status : {self.status.status}, updated_at : {self.updated_at}'
 
 
 class ComplaintActionRecord(db.Model):

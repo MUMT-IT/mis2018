@@ -97,7 +97,7 @@ class SoftwareRequestIssueForm(ModelForm):
 
     status_ = SelectField('Status',
                           default='Draft',
-                          choices=[(c,c) for c in ('Draft', 'Working', 'Cancelled', 'Closed')])
+                          choices=[(c,c) for c in ('Draft', 'Working', 'Testing', 'Cancelled', 'Closed')])
     phase = QuerySelectFieldAppendable('Phase', query_factory=lambda: SoftwareRequestPhase.query.all(),
                                        allow_blank=True,
                                        blank_text='กรุณาเลือก Phase',
@@ -126,7 +126,7 @@ def create_test_result_form(detail_id, has_note=False):
             model = SoftwareRequestTestResult
         if not has_note:
             issue = QuerySelectFieldRequired('Requirement',
-                                             query_factory=lambda: SoftwareIssues.query.filter(SoftwareIssues.accepted_at != None,
+                                             query_factory=lambda: SoftwareIssues.query.filter(SoftwareIssues.tested_at != None,
                                                                                                SoftwareIssues.software_request_detail_id==detail_id).all(),
                                              allow_blank=True,
                                              blank_text='กรุณาเลือก Requirement',

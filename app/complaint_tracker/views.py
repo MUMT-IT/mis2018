@@ -1111,6 +1111,11 @@ def edit_record_admin(record_id):
                             except LineBotApiError:
                                 pass
             if record.status != current_status and record.complainant:
+                if record.status_id:
+                    rec = ComplaintRecordStatusAssociation(status_id=record.status_id, record_id=record_id,
+                                                           updated_at=arrow.now('Asia/Bangkok').datetime)
+                    db.session.add(rec)
+                    db.session.commit()
                 scheme = 'http' if current_app.debug else 'https'
                 link = url_for("comp_tracker.view_record_complaint", record_id=record_id, _external=True,
                                _scheme=scheme)
@@ -1119,7 +1124,7 @@ def edit_record_admin(record_id):
                        f'สถานะปัจจุบัน : {record.status or "ยังไม่ดำเนินการ"}\n'
                        f'คลิกที่ Link เพื่อตรวจสอบ {link}')
                 title = f'''แจ้งอัปเดตสถานะคำร้องขอ{record.topic.topic}'''
-                message = f'''เจ้าหน้าที่ได้ทำการอัปเดตสถานะคำร้องขอ{record.topic.topic} ของ{record.desc}เป็น "{record.status or 'ยังไม่ดำเนินการ'}" เรียบร้อนแล้ว\n\n'''
+                message = f'''เจ้าหน้าที่ได้ทำการอัปเดตสถานะคำร้องขอ{record.topic.topic} ของ{record.desc}เป็น "{record.status or 'ยังไม่ดำเนินการ'}" เรียบร้อยแล้ว\n\n'''
                 message += f'''ท่านสามารถตรวจสอบรายละเอียดเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
                 message += f'''{link}\n\n'''
                 message += f'''ขอบคุณค่ะ\n'''
@@ -1989,6 +1994,23 @@ def create_repair_approval(record_id, repair_approval_id=None):
     return render_template('complaint_tracker/repair_approval_form.html', form=form, record_id=record_id,
                            repair_approval_id=repair_approval_id)
 
+
+@complaint_tracker.route('/repair-approval/edit/<int:repair_approval_id>', methods=['GET', 'POST'])
+def edit_repair_approval(repair_approval_id):
+    repair_approval = ComplaintRepairApproval.query.get(repair_approval_id)
+    form = ComplaintRepairApprovalForm(obj=repair_approval)
+    if form.validate_on_submit():
+        form.populate_obj(repair_approval)
+        repair_approval.is_print = True
+        repair_approval.updated_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(repair_approval)
+        db.session.commit()
+        flash('แก้ไขข้อมูลสำเร็จ', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('complaint_tracker/modal/edit_repair_approval_modal.html',
+                           repair_approval_id=repair_approval_id, form=form)
 
 @complaint_tracker.route('/admin/repair-approval/committee/add/<int:repair_approval_id>', methods=['GET', 'POST'])
 def edit_committee(repair_approval_id):

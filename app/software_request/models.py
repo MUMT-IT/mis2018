@@ -208,6 +208,7 @@ class SoftwareIssues(db.Model):
     updater = db.relationship(StaffAccount, foreign_keys=[updated_by])
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    tested_at = db.Column('tested_at', db.DateTime(timezone=True))
     closed_at = db.Column('closed_at', db.DateTime(timezone=True))
     accepted_at = db.Column('accepted_at', db.DateTime(timezone=True))
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
@@ -221,6 +222,8 @@ class SoftwareIssues(db.Model):
             return 'Closed'
         elif self.accepted_at:
             return 'Working'
+        elif self.tested_at:
+            return 'Testing'
         else:
             return 'Draft'
 
@@ -232,6 +235,8 @@ class SoftwareIssues(db.Model):
             return 'is-dark'
         elif self.accepted_at:
             return 'is-success'
+        elif self.tested_at:
+            return 'is-warning'
         else:
             return 'is-info'
 
