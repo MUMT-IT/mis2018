@@ -189,6 +189,9 @@ class ComplaintRecord(db.Model):
     file_name = db.Column('file_name', db.String(255))
     url = db.Column('url', db.String(255))
 
+    def __str__(self):
+        return self.desc
+
     @property
     def is_editable(self):
         return self.closed_at is None
