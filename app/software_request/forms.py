@@ -97,7 +97,7 @@ class SoftwareRequestIssueForm(ModelForm):
 
     status_ = SelectField('Status',
                           default='Draft',
-                          choices=[(c,c) for c in ('Draft', 'Working', 'Cancelled', 'Closed')])
+                          choices=[(c,c) for c in ('Draft', 'Working', 'Testing', 'Cancelled', 'Closed')])
     phase = QuerySelectFieldAppendable('Phase', query_factory=lambda: SoftwareRequestPhase.query.all(),
                                        allow_blank=True,
                                        blank_text='กรุณาเลือก Phase',
