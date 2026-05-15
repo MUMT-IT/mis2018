@@ -204,6 +204,7 @@ class SoftwareIssues(db.Model):
     updater = db.relationship(StaffAccount, foreign_keys=[updated_by])
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    tested_at = db.Column('tested_at', db.DateTime(timezone=True))
     closed_at = db.Column('closed_at', db.DateTime(timezone=True))
     accepted_at = db.Column('accepted_at', db.DateTime(timezone=True))
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
