@@ -55,6 +55,11 @@ def update_test_result(test_result, status, note):
     db.session.commit()
 
 
+def _get_drive_embed_url(file_id):
+    # Avoid a metadata round-trip just to render an already-known Drive file link.
+    return f'https://drive.google.com/file/d/{file_id}/preview'
+
+
 def _build_admin_request_query(tab):
     query = SoftwareRequestDetail.query
     if tab == 'pending':
@@ -347,9 +352,7 @@ def update_request(detail_id):
     SoftwareRequestDetailForm = create_request_form(detail_id=detail_id)
     form = SoftwareRequestDetailForm(obj=detail)
     if detail.url:
-        file_upload = drive.CreateFile({'id': detail.url})
-        file_upload.FetchMetadata()
-        file_url = file_upload.get('embedLink')
+        file_url = _get_drive_embed_url(detail.url)
     else:
         file_url = None
     appointment_date = form.appointment_date.data.astimezone(localtz) if form.appointment_date.data else None
@@ -363,43 +366,41 @@ def update_request(detail_id):
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
         link = url_for("software_request.view_request", detail_id=detail_id, _external=True, _scheme=scheme)
+
+        # Consolidate notifications so submit does not block on multiple synchronous mail sends.
+        message_sections = []
         if required_information != detail.required_information:
-            title = f'''แจ้งขอข้อมูลที่ต้องการขอเพิ่มเติมในการพัฒนา Software'''
-            message = f'''เรียน {detail.created_by.fullname}\n\n'''
-            message += f'''ตามที่ท่านได้ดำเนินการขอรับบริการพัฒนา Software สำหรับ{detail.title} นั้น'''
-            message += f'''ทางหน่วยงานไอทีมีความประสงค์ขอข้อมูลเพิ่มเติมเพื่อใช้ประกอบการดำเนินงาน ดังนี้ {detail.required_information}\n'''
-            message += f'''ท่านสามารถดูรายละเอียดเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
-            message += f'''{link}\n\n'''
-            message += f'''ขอบคุณค่ะ\n'''
-            message += f'''ระบบขอรับบริการพัฒนา Software\n'''
-            message += f'''คณะเทคนิคการแพทย์'''
-            send_mail([detail.created_by.email + '@mahidol.ac.th'], title, message)
+            message_sections.append(
+                f'''ทางหน่วยงานไอทีมีความประสงค์ขอข้อมูลเพิ่มเติมเพื่อใช้ประกอบการดำเนินงาน ดังนี้\n{detail.required_information}'''
+            )
         if suggestion != detail.suggestion:
-            title = f'''แจ้งข้อเสนอแนะในการพัฒนา Software'''
-            message = f'''เรียน {detail.created_by.fullname}\n\n'''
-            message += f'''ตามที่ท่านได้ดำเนินการขอรับบริการพัฒนา Software สำหรับ{detail.title} นั้น'''
-            message += f'''ทางหน่วยงานไอทีมีข้อเสนอแนะเพิ่มเติมเพื่อประกอบการพัฒนาระบบ ดังนี้ {detail.required_information}\n'''
-            message += f'''ท่านสามารถดูรายละเอียดเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
-            message += f'''{link}\n\n'''
-            message += f'''ขอบคุณค่ะ\n'''
-            message += f'''ระบบขอรับบริการพัฒนา Software\n'''
-            message += f'''คณะเทคนิคการแพทย์'''
-            send_mail([detail.created_by.email + '@mahidol.ac.th'], title, message)
+            message_sections.append(
+                f'''ทางหน่วยงานไอทีมีข้อเสนอแนะเพิ่มเติมเพื่อประกอบการพัฒนาระบบ ดังนี้\n{detail.suggestion}'''
+            )
         if form.status.data:
-            title = f'''แจ้งอัปเดตสถานะคำร้องขอรับบริการพัฒนา Software'''
+            message_sections.append(
+                f'''{detail.approver.fullname} ได้ทำการอัปเดตสถานะคำร้องขอรับบริการพัฒนา Software ของ {detail.title} เป็น "{detail.status}"'''
+            )
+
+        if message_sections:
+            title = f'''แจ้งอัปเดตคำร้องขอรับบริการพัฒนา Software'''
             message = f'''เรียน {detail.created_by.fullname}\n\n'''
-            message += f'''{detail.approver.fullname} ได้ทำการอัปเดตสถานะคำร้องขอรับบริการพัฒนา Software ของ{detail.title}เป็น "{detail.status}"\n\n'''
-            message += f'''ท่านสามารถตรวจสอบรายละเอียดและความคืบหน้าเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
+            message += f'''ตามที่ท่านได้ดำเนินการขอรับบริการพัฒนา Software สำหรับ {detail.title} นั้น มีการอัปเดตดังต่อไปนี้\n\n'''
+            message += '\n\n'.join(message_sections)
+            message += f'''\n\nท่านสามารถตรวจสอบรายละเอียดและความคืบหน้าเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
             message += f'''{link}\n\n'''
             message += f'''หากมีข้อสงสัยหรือต้องการสอบถามข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่รับผิดชอบ\n\n'''
             message += f'''ขอบคุณค่ะ\n'''
             message += f'''ระบบขอรับบริการพัฒนา Software\n'''
             message += f'''คณะเทคนิคการแพทย์'''
             send_mail([detail.created_by.email + '@mahidol.ac.th'], title, message)
+
+        # PRG avoids re-running the heavy page setup on POST and prevents duplicate submits on refresh.
+        if form.status.data:
             flash('อัพเดตสถานะสำเร็จ', 'success')
         else:
             flash('อัพเดตข้อมูลสำเร็จ  ', 'success')
-            return redirect(url_for('software_request.admin_index', tab=tab))
+        return redirect(url_for('software_request.update_request', detail_id=detail_id, tab=tab))
     else:
         for er in form.errors:
             flash(er, 'danger')
