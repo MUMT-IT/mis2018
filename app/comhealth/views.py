@@ -3755,22 +3755,24 @@ def cmslis_email(email):
         serviceno = row.get("serviceNo")
 
         #อายุตามวันที่ตรวจ
-        if not employee_dob:
-            age = "No birth date"
-        else:
-            birth_date = datetime.strptime(employee_dob, "%Y-%m-%dT%H:%M:%S").date()
+        birth_date = parse_cmslis_birth_date(employee_dob)
+        if birth_date:
             service_date = datetime.strptime(servicedate, "%Y-%m-%dT%H:%M:%S").date()
             age = service_date.year - birth_date.year - (
                     (service_date.month, service_date.day) < (birth_date.month, birth_date.day)
             )
+        else:
+            age = None
 
-        result_url = url_for(
-            'comhealth.customer_result',
-            serviceNo=serviceno,
-            email=email,
-            servicedate=servicedate,
-            age=age
-        )
+        result_params = {
+            'serviceNo': serviceno,
+            'email': email,
+            'servicedate': servicedate,
+        }
+        if age is not None:
+            result_params['age'] = age
+
+        result_url = url_for('comhealth.customer_result', **result_params)
 
         html += f"""
         <tr>
@@ -3832,6 +3834,17 @@ mapping_color_inp = {
         "AbH": ("has-text-danger")
     }
 
+
+def parse_cmslis_birth_date(birth_date):
+    if not birth_date or birth_date == "No birth date":
+        return None
+
+    try:
+        return datetime.strptime(birth_date, "%Y-%m-%dT%H:%M:%S").date()
+    except (TypeError, ValueError):
+        return None
+
+
 @comhealth.route('/result/<int:serviceNo>/<string:email>/<string:servicedate>')
 @comhealth.route('/result/<int:serviceNo>/<string:email>/<string:servicedate>/<string:age>')
 def customer_result(serviceNo, email, servicedate, age=None):
@@ -3855,13 +3868,16 @@ def customer_result(serviceNo, email, servicedate, age=None):
     servicedate_thai = dt.strftime("%d/%m/") + str(dt.year + 543)
 
     load_all_interpret()
+    age_for_api = age if age and str(age).isdigit() else 0
+    age_display = age if age and str(age).isdigit() else '-'
 
     return render_template(
         'comhealth/result.html',
         employee=employee,
         servicedate_thai=servicedate_thai,
         service_no=serviceNo,
-        age=age
+        age=age_display,
+        age_for_api=age_for_api
     )
 
 @comhealth.route('/api/physical/<int:serviceNo>')
