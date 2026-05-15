@@ -4176,8 +4176,11 @@ def seminar_attends_each_person():
 def seminar_attends_each_person_details(staff_account_id):
     account = StaffAccount.query.filter_by(id=staff_account_id).first()
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(
-        func.date(StaffSeminarAttend.end_datetime) >= START_FISCAL_DATE.date(),
+    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).join(
+        StaffSeminar, StaffSeminarAttend.seminar_id == StaffSeminar.id
+    ).filter(
+        StaffSeminar.cancelled_at == None,
+        func.date(func.coalesce(StaffSeminarAttend.end_datetime, StaffSeminarAttend.start_datetime)) >= START_FISCAL_DATE.date(),
         func.date(StaffSeminarAttend.start_datetime) <= END_FISCAL_DATE.date()
     ).all()
     current_fee = 0
@@ -4212,8 +4215,11 @@ def seminar_attends_each_person_details(staff_account_id):
 @login_required
 def current_seminar_attends(staff_account_id):
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(
-        func.date(StaffSeminarAttend.end_datetime) >= START_FISCAL_DATE.date(),
+    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).join(
+        StaffSeminar, StaffSeminarAttend.seminar_id == StaffSeminar.id
+    ).filter(
+        StaffSeminar.cancelled_at == None,
+        func.date(func.coalesce(StaffSeminarAttend.end_datetime, StaffSeminarAttend.start_datetime)) >= START_FISCAL_DATE.date(),
         func.date(StaffSeminarAttend.start_datetime) <= END_FISCAL_DATE.date()
     ).all()
     total_fee = 0
