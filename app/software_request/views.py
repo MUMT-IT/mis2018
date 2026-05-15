@@ -506,18 +506,27 @@ def create_issue(detail_id=None, issue_id=None):
                     issue.cancelled_at = arrow.now('Asia/Bangkok').datetime
                     issue.closed_at = None
                     issue.accepted_at = None
+                    issue.tested_at = None
                 elif form.status_.data == 'Closed':
                     issue.closed_at = arrow.now('Asia/Bangkok').datetime
                     issue.cancelled_at = None
                     issue.accepted_at = None
+                    issue.tested_at = None
                 elif form.status_.data == 'Working':
                     issue.accepted_at = arrow.now('Asia/Bangkok').datetime
+                    issue.closed_at = None
+                    issue.cancelled_at = None
+                    issue.tested_at = None
+                elif form.status_.data == 'Testing':
+                    issue.tested_at = arrow.now('Asia/Bangkok').datetime
+                    issue.accepted_at = None
                     issue.closed_at = None
                     issue.cancelled_at = None
                 else:
                     issue.accepted_at = None
                     issue.closed_at = None
                     issue.cancelled_at = None
+                    issue.tested_at = None
 
             db.session.add(issue)
             db.session.commit()
