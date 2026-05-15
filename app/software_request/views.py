@@ -53,9 +53,13 @@ def update_test_result(test_result, status, note):
     test_result.note = note
     if test_result.recorded_at and status == old_status and note == old_note:
         test_result.recorded_at = arrow.get(test_result.recorded_at, 'Asia/Bangkok').datetime
-    else:
+        test_result.recorder_id = current_user.id
+    elif status or note:
         test_result.recorded_at = arrow.now('Asia/Bangkok').datetime
-    test_result.recorder_id = current_user.id
+        test_result.recorder_id = current_user.id
+    else:
+        test_result.recorded_at = None
+        test_result.recorder_id = None
     db.session.add(test_result)
     db.session.commit()
 
