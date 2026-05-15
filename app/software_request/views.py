@@ -47,9 +47,14 @@ def initialize_gdrive():
 
 
 def update_test_result(test_result, status, note):
-    test_result.status = status if status else test_result.status
-    test_result.note = note if note else test_result.note
-    test_result.recorded_at = arrow.now('Asia/Bangkok').datetime
+    old_note = test_result.note
+    old_status = test_result.status
+    test_result.status = status
+    test_result.note = note
+    if test_result.recorded_at and status == old_status and note == old_note:
+        test_result.recorded_at = arrow.get(test_result.recorded_at, 'Asia/Bangkok').datetime
+    else:
+        test_result.recorded_at = arrow.now('Asia/Bangkok').datetime
     test_result.recorder_id = current_user.id
     db.session.add(test_result)
     db.session.commit()
@@ -145,15 +150,16 @@ def view_request(detail_id):
                 item_id = form.replace("result_", "")
                 test_result = SoftwareRequestTestResult.query.get(item_id)
                 value = request.form.get(form)
-                recorded_at = arrow.get(test_result.recorded_at, 'Asia/Bangkok').datetime
-                update_test_result(test_result=test_result, status=value, note=None)
+                update_test_result(test_result=test_result, status=value, note=test_result.note if test_result.note else None)
+                recorded_at = arrow.get(test_result.recorded_at, 'Asia/Bangkok').datetime if test_result.recorded_at else None
                 if datetime_now == recorded_at:
                     count += 1
             if form.startswith("note_") :
                 item_id = form.replace("note_", "")
                 test_result = SoftwareRequestTestResult.query.get(item_id)
                 value = request.form.get(form)
-                update_test_result(test_result=test_result, status=None, note=value)
+                update_test_result(test_result=test_result, status=test_result.status if test_result.status else None,
+                                   note=value)
         flash('บันทึกผลเรียบร้อยแล้ว', 'success')
         if detail.staffs and count > 0:
             scheme = 'http' if current_app.debug else 'https'
