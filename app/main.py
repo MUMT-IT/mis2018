@@ -318,11 +318,6 @@ def user_support_index():
     return render_template('support.html')
 
 
-from app.food import foodbp as food_blueprint
-
-app.register_blueprint(food_blueprint)
-from app.food.models import *
-
 from app.kpi import kpibp as kpi_blueprint
 
 app.register_blueprint(kpi_blueprint, url_prefix='/kpi')
@@ -667,10 +662,6 @@ class ProductCodeAdminModel(ModelView):
 
 
 admin.add_views(ProductCodeAdminModel(models.ProductCode, db.session, category='Finance'))
-
-from app.lisedu import lisedu as lis_blueprint
-
-app.register_blueprint(lis_blueprint, url_prefix='/lis')
 
 from app.eduqa import eduqa_bp as eduqa_blueprint
 from app.eduqa.models import *
@@ -2236,12 +2227,3 @@ from app.continuing_edu.admin.views import admin_bp as continuing_edu_admin_bp
 from app.continuing_edu.admin.certifications import cert_bp as continuing_edu_admin_cert_bp
 app.register_blueprint(continuing_edu_admin_bp)
 app.register_blueprint(continuing_edu_admin_cert_bp)
-
-if __name__ == '__main__':
-    import os
-    cert_file = os.path.join(os.path.dirname(__file__), '..', '..', 'cert.pem')
-    key_file = os.path.join(os.path.dirname(__file__), '..', '..', 'key.pem')
-    if os.path.exists(cert_file) and os.path.exists(key_file):
-        app.run(debug=True, port=5005, host="0.0.0.0", ssl_context=(cert_file, key_file))
-    else:
-        app.run(debug=True, port=5005, host="0.0.0.0")
