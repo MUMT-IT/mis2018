@@ -8,8 +8,8 @@
     <link rel="stylesheet" type="text/css"
           href="https://cdn.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
     <link href="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet"/>
 {% endblock %}
-
 {% block page_content %}
     {% include "nav.html" %}
     <section class="section" id="record">
@@ -20,6 +20,67 @@
                     {% include 'complaint_tracker/title.html' %}
                     {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
                     {{ user_evaluate('complaint_system_for_admin') }}
+                    <ul class="steps">
+                        <li class="steps-segment
+                            {% if not record.closed_at and not record.status %}
+                                is-active
+                            {% endif %}
+                        ">
+                            <span class="steps-marker">
+                                <span class="icon">
+                                    <i class="fa fa-ban"></i>
+                                </span>
+                            </span>
+                            <div class="steps-content">
+                                <p class="is-size-5">ยังไม่ดำเนินการ</p>
+                                <p>ส่งคำขอ {{ record.created_at|localdatetime }}</p>
+                            </div>
+                        </li>
+                        {% for status in statuses|sort(attribute='no') %}
+                            {% if status.code != 'cancelled' %}
+                                <li class="steps-segment
+                                    {% if not record.closed_at and record.status_id == status.id %}
+                                        is-active
+                                    {% endif %}
+                                ">
+                                    <span class="steps-marker">
+                                        <span class="icon">
+                                            {{ status.icon|safe }}
+                                        </span>
+                                    </span>
+                                    <div class="steps-content">
+                                        <p class="is-size-5">{{ status.status }}</p>
+                                        <p>
+                                            {% if record.record_status_updates %}
+                                                {% for rec in record.record_status_updates %}
+                                                    {% if rec.status_id == status.id %}
+                                                        {{ rec.updated_at|localdatetime }}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        <li class="steps-segment
+                            {% if record.closed_at %}
+                                is-active
+                            {% endif %}
+                        ">
+                            <span class="steps-marker">
+                                <span class="icon">
+                                    <i class="fa fa-lock"></i>
+                                </span>
+                            </span>
+                            <div class="steps-content">
+                                <p class="is-size-5">ปิดคำขอ</p>
+                                {% if record.closed_at %}
+                                    <p>{{ record.closed_at|localdatetime }}</p>
+                                {% endif %}
+                            </div>
+                        </li>
+                    </ul>
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="columns is-vcentered is-mobile is-flex">
@@ -93,7 +154,8 @@
                                 <div class="field">
                                     <label class="label">ห้อง</label>
                                     <div class="control">
-                                        <input class="input" disabled value="{% if record.room %}{{ record.room }}{% else %}{% for room in record.rooms %}{{ room }}{% endfor %}{% endif %}">
+                                        <input class="input" disabled value="
+                                                {% if record.room %}{{ record.room }}{% else %}{% for room in record.rooms %}{{ room }}{% endfor %}{% endif %}">
                                     </div>
                                 </div>
                             {% elif record.procurement_location %}
