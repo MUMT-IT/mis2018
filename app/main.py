@@ -128,6 +128,7 @@ def create_app():
     app.config['MAIL_PORT'] = 587
     app.config['MAIL_USE_TLS'] = True
     app.config['PREFERRED_URL_SCHEME'] = 'https'
+    app.config['PUBLIC_BASE_URL'] = os.environ.get('PUBLIC_BASE_URL')
     app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
     app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
     app.config['MAIL_DEFAULT_SENDER'] = ('MUMT-MIS',
