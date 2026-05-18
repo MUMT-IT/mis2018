@@ -106,6 +106,7 @@ class ComplaintPriority(db.Model):
 class ComplaintStatus(db.Model):
     __tablename__ = 'complaint_statuses'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    no = db.Column('no', db.Integer())
     status = db.Column('status', db.String(), nullable=False)
     code = db.Column('code', db.String())
     icon = db.Column('icon', db.String())
