@@ -1362,8 +1362,36 @@ def record_each_request_leave_request(request_id):
     all_hr = StaffSpecialGroup.query.filter_by(group_code='hr').first()
     for hr in all_hr.staffs:
         is_hr = True if hr.id == current_user.id else False
+    if req.staff.personal_info.org.parent:
+        org_name = req.staff.personal_info.org.parent.name
+    else:
+        org_name = req.staff.personal_info.org.name
+    lower_approver = ''
+    lower_approver_position = ''
+    middle_approver = ''
+    middle_approver_position = ''
+
+    lower_approver_obj = StaffLeaveApprover.query.filter_by(staff_account_id=req.staff_account_id,
+                                                            is_active=True, is_lower_level=True).first()
+    if lower_approver_obj:
+        lower_approver = lower_approver_obj.account.personal_info.fullname
+        lower_head_position = StaffHeadPosition.query.filter_by(
+                                                        staff_account_id=lower_approver_obj.approver_account_id).first()
+        lower_approver_position = lower_head_position.position if lower_head_position else ''
+
+    middle_approver_obj = StaffLeaveApprover.query.filter_by(staff_account_id=req.staff_account_id,
+                                                             is_active=True, is_middle_level=True).first()
+    if middle_approver_obj:
+        middle_approver = middle_approver_obj.account.personal_info.fullname
+        middle_head_position = StaffHeadPosition.query.filter_by(
+                                                    staff_account_id=middle_approver_obj.approver_account_id).first()
+        middle_approver_position = middle_head_position.position if middle_head_position else ''
+
     return render_template('staff/leave_record_info.html', req=req, approvers=approvers,
-                           upload_file_url=upload_file_url, is_hr=is_hr)
+                           org_name=org_name,
+                           upload_file_url=upload_file_url, is_hr=is_hr, lower_approver=lower_approver,
+                           lower_approver_position=lower_approver_position, middle_approver=middle_approver,
+                           middle_approver_position=middle_approver_position)
 
 
 @staff.route('/leave/requests/search')
@@ -4148,8 +4176,11 @@ def seminar_attends_each_person():
 def seminar_attends_each_person_details(staff_account_id):
     account = StaffAccount.query.filter_by(id=staff_account_id).first()
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(
-        func.date(StaffSeminarAttend.end_datetime) >= START_FISCAL_DATE.date(),
+    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).join(
+        StaffSeminar, StaffSeminarAttend.seminar_id == StaffSeminar.id
+    ).filter(
+        StaffSeminar.cancelled_at == None,
+        func.date(func.coalesce(StaffSeminarAttend.end_datetime, StaffSeminarAttend.start_datetime)) >= START_FISCAL_DATE.date(),
         func.date(StaffSeminarAttend.start_datetime) <= END_FISCAL_DATE.date()
     ).all()
     current_fee = 0
@@ -4184,8 +4215,11 @@ def seminar_attends_each_person_details(staff_account_id):
 @login_required
 def current_seminar_attends(staff_account_id):
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(
-        func.date(StaffSeminarAttend.end_datetime) >= START_FISCAL_DATE.date(),
+    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).join(
+        StaffSeminar, StaffSeminarAttend.seminar_id == StaffSeminar.id
+    ).filter(
+        StaffSeminar.cancelled_at == None,
+        func.date(func.coalesce(StaffSeminarAttend.end_datetime, StaffSeminarAttend.start_datetime)) >= START_FISCAL_DATE.date(),
         func.date(StaffSeminarAttend.start_datetime) <= END_FISCAL_DATE.date()
     ).all()
     total_fee = 0
@@ -4621,6 +4655,44 @@ def staff_approver_change_active_status(approver_id, requester_id):
     db.session.add(approver)
     db.session.commit()
     flash('แก้ไขสถานะการอนุมัติเรียบร้อยแล้ว', 'success')
+    return redirect(request.referrer)
+
+
+@staff.route('/for-hr/staff-info/approvers/edit/<int:approver_id>/<int:requester_id>/change-lower-level-status')
+@hr_permission.require()
+@login_required
+def staff_approver_change_lower_level_status(approver_id, requester_id):
+    approver = StaffLeaveApprover.query.filter_by(approver_account_id=approver_id,
+                                                  staff_account_id=requester_id).first()
+    if not approver:
+        flash('ไม่พบข้อมูลผู้อนุมัติ', 'warning')
+        return redirect(request.referrer)
+    if approver.is_lower_level:
+        approver.is_lower_level = False
+    else:
+        approver.is_lower_level = True
+    db.session.add(approver)
+    db.session.commit()
+    flash('แก้ไขสถานะหัวหน้างานเรียบร้อยแล้ว', 'success')
+    return redirect(request.referrer)
+
+
+@staff.route('/for-hr/staff-info/approvers/edit/<int:approver_id>/<int:requester_id>/change-middle-level-status')
+@hr_permission.require()
+@login_required
+def staff_approver_change_middle_level_status(approver_id, requester_id):
+    approver = StaffLeaveApprover.query.filter_by(approver_account_id=approver_id,
+                                                  staff_account_id=requester_id).first()
+    if not approver:
+        flash('ไม่พบข้อมูลผู้อนุมัติ', 'warning')
+        return redirect(request.referrer)
+    if approver.is_middle_level:
+        approver.is_middle_level = False
+    else:
+        approver.is_middle_level = True
+    db.session.add(approver)
+    db.session.commit()
+    flash('แก้ไขสถานะผู้บังคับบัญชาเรียบร้อยแล้ว', 'success')
     return redirect(request.referrer)
 
 
