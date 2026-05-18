@@ -47,10 +47,19 @@ def initialize_gdrive():
 
 
 def update_test_result(test_result, status, note):
-    test_result.status = status if status else test_result.status
-    test_result.note = note if note else test_result.note
-    test_result.recorded_at = arrow.now('Asia/Bangkok').datetime
-    test_result.recorder_id = current_user.id
+    old_note = test_result.note
+    old_status = test_result.status
+    test_result.status = status
+    test_result.note = note
+    if test_result.recorded_at and status == old_status and note == old_note:
+        test_result.recorded_at = arrow.get(test_result.recorded_at, 'Asia/Bangkok').datetime
+        test_result.recorder_id = current_user.id
+    elif status or note:
+        test_result.recorded_at = arrow.now('Asia/Bangkok').datetime
+        test_result.recorder_id = current_user.id
+    else:
+        test_result.recorded_at = None
+        test_result.recorder_id = None
     db.session.add(test_result)
     db.session.commit()
 
@@ -145,15 +154,16 @@ def view_request(detail_id):
                 item_id = form.replace("result_", "")
                 test_result = SoftwareRequestTestResult.query.get(item_id)
                 value = request.form.get(form)
-                recorded_at = arrow.get(test_result.recorded_at, 'Asia/Bangkok').datetime
-                update_test_result(test_result=test_result, status=value, note=None)
+                update_test_result(test_result=test_result, status=value, note=test_result.note if test_result.note else '')
+                recorded_at = arrow.get(test_result.recorded_at, 'Asia/Bangkok').datetime if test_result.recorded_at else None
                 if datetime_now == recorded_at:
                     count += 1
             if form.startswith("note_") :
                 item_id = form.replace("note_", "")
                 test_result = SoftwareRequestTestResult.query.get(item_id)
                 value = request.form.get(form)
-                update_test_result(test_result=test_result, status=None, note=value)
+                update_test_result(test_result=test_result, status=test_result.status if test_result.status else '',
+                                   note=value)
         flash('บันทึกผลเรียบร้อยแล้ว', 'success')
         if detail.staffs and count > 0:
             scheme = 'http' if current_app.debug else 'https'
@@ -581,11 +591,21 @@ def create_issue(detail_id=None, issue_id=None):
                     issue.closed_at = None
                     issue.accepted_at = None
                     issue.tested_at = None
+                    if issue.timelines:
+                        for timeline in issue.timelines:
+                            timeline.status = 'ยกเลิกการพัฒนา'
+                            db.session.add(timeline)
+                        db.session.commit()
                 elif form.status_.data == 'Closed':
                     issue.closed_at = arrow.now('Asia/Bangkok').datetime
                     issue.cancelled_at = None
                     issue.accepted_at = None
                     issue.tested_at = None
+                    if issue.timelines:
+                        for timeline in issue.timelines:
+                            timeline.status = 'เสร็จสิ้น'
+                            db.session.add(timeline)
+                        db.session.commit()
                 elif form.status_.data == 'Working':
                     issue.accepted_at = arrow.now('Asia/Bangkok').datetime
                     issue.closed_at = None

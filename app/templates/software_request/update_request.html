@@ -439,32 +439,34 @@
                                                     </td>
                                                     <td>{{ test_result.note or '' }}</td>
                                                     <td>
-                                                        {% if not test_result.status %}
-                                                            <div class="field has-addons">
-                                                                <div class="control">
-                                                                    <a class="button is-small is-rounded"
-                                                                       hx-swap="innerHTML"
-                                                                       hx-target="#timeline_form"
-                                                                       hx-get="{{ url_for('software_request.create_test_result',
-                                                                               test_result_id=test_result.id, tab=tab) }}"
-                                                                    >
-                                                                        <span class="icon">
-                                                                            <i class="fas fa-pencil-alt"></i>
-                                                                        </span>
-                                                                    </a>
+                                                        {% if detail.status == 'อนุมัติ' %}
+                                                            {% if not test_result.status %}
+                                                                <div class="field has-addons">
+                                                                    <div class="control">
+                                                                        <a class="button is-small is-rounded"
+                                                                           hx-swap="innerHTML"
+                                                                           hx-target="#timeline_form"
+                                                                           hx-get="{{ url_for('software_request.create_test_result',
+                                                                                   test_result_id=test_result.id, tab=tab) }}"
+                                                                        >
+                                                                            <span class="icon">
+                                                                                <i class="fas fa-pencil-alt"></i>
+                                                                            </span>
+                                                                        </a>
+                                                                    </div>
+                                                                    <div class="control">
+                                                                        <a class="button is-small is-rounded"
+                                                                           hx-delete="{{ url_for('software_request.delete_test_result',
+                                                                           test_result_id=test_result.id) }}"
+                                                                           hx-confirm="ท่านต้องการลบรายการนี้หรือไม่"
+                                                                        >
+                                                                            <span class="icon">
+                                                                                <i class="far fa-trash-alt has-text-danger"></i>
+                                                                            </span>
+                                                                        </a>
+                                                                    </div>
                                                                 </div>
-                                                                <div class="control">
-                                                                    <a class="button is-small is-rounded"
-                                                                       hx-delete="{{ url_for('software_request.delete_test_result',
-                                                                       test_result_id=test_result.id) }}"
-                                                                       hx-confirm="ท่านต้องการลบรายการนี้หรือไม่"
-                                                                    >
-                                                                        <span class="icon">
-                                                                            <i class="far fa-trash-alt has-text-danger"></i>
-                                                                        </span>
-                                                                    </a>
-                                                                </div>
-                                                            </div>
+                                                            {% endif %}
                                                         {% endif %}
                                                     </td>
                                                 </tr>

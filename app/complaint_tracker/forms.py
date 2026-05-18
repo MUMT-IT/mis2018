@@ -52,8 +52,8 @@ def create_record_form(record_id, topic_id):
             model = ComplaintRecord
             if record_id:
                 exclude = ['desc']
-        status = QuerySelectField('สถานะ', query_factory=lambda: ComplaintStatus.query.all(), allow_blank=True,
-                                  blank_text='กรุณาเลือกสถานะ')
+        status = QuerySelectField('สถานะ', query_factory=lambda: ComplaintStatus.query.order_by(ComplaintStatus.no).all(),
+                                  allow_blank=True, blank_text='กรุณาเลือกสถานะ')
         priority = QuerySelectField('ระดับความสำคัญ', query_factory=lambda: ComplaintPriority.query.all(), allow_blank=True,
                                     blank_text='กรุณาเลือกระดับความสำคัญ')
         topic = QuerySelectField('หัวข้อ', query_factory=lambda: ComplaintTopic.query.filter(ComplaintTopic.code!='misc'), allow_blank=True)
