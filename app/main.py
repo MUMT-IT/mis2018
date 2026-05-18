@@ -41,6 +41,18 @@ scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/au
 _json_keyfile = None
 
 
+def _env_flag(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.lower() in {'1', 'true', 'yes', 'on'}
+
+
+def _default_secure_cookies():
+    public_base_url = os.environ.get('PUBLIC_BASE_URL', '')
+    return public_base_url.startswith('https://')
+
+
 def get_json_keyfile():
     global _json_keyfile
     if _json_keyfile is None:
@@ -129,6 +141,12 @@ def create_app():
     app.config['MAIL_USE_TLS'] = True
     app.config['PREFERRED_URL_SCHEME'] = 'https'
     app.config['PUBLIC_BASE_URL'] = os.environ.get('PUBLIC_BASE_URL')
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = os.environ.get('SESSION_COOKIE_SAMESITE', 'Lax')
+    app.config['SESSION_COOKIE_SECURE'] = _env_flag('SESSION_COOKIE_SECURE', _default_secure_cookies())
+    app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+    app.config['REMEMBER_COOKIE_SAMESITE'] = os.environ.get('REMEMBER_COOKIE_SAMESITE', 'Lax')
+    app.config['REMEMBER_COOKIE_SECURE'] = _env_flag('REMEMBER_COOKIE_SECURE', _default_secure_cookies())
     app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
     app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
     app.config['MAIL_DEFAULT_SENDER'] = ('MUMT-MIS',
