@@ -977,7 +977,7 @@ def new_record(topic_id, room=None, procurement=None):
         file = form.file_upload.data
         record.topic = topic
         record.created_at = arrow.now('Asia/Bangkok').datetime
-        if (topic.code == 'runied' and procurement and
+        if (topic.code == 'runied' and
                 (not form.cost_center.data or not form.io_code.data or not form.product_code.data)):
             flash('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
             return render_template('complaint_tracker/record_form.html', form=form, topic=topic, room=room,
@@ -1049,6 +1049,7 @@ def closing_page():
 @login_required
 def edit_record_admin(record_id):
     tab = request.args.get('tab')
+    statuses = ComplaintStatus.query.all()
     record = ComplaintRecord.query.get(record_id)
     if record:
         current_status = record.status
@@ -1140,7 +1141,7 @@ def edit_record_admin(record_id):
                     print('line_id :', record.complainant.line_id, 'msg :', msg)
         return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
                                file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
-                               repair_approval_id=repair_approval_id)
+                               repair_approval_id=repair_approval_id, statuses=statuses)
     else:
         return render_template('complaint_tracker/record_cancelled_page.html', record_id=record_id, tab=tab)
 
@@ -1577,12 +1578,14 @@ def add_handler(record_id):
 
 @complaint_tracker.route('/complaint/user/view/<int:record_id>', methods=['GET'])
 def view_record_complaint(record_id):
+    statuses = ComplaintStatus.query.all()
     record = ComplaintRecord.query.get(record_id)
     if record.url and len(record.url) > 0:
         file_url = generate_url(record.url)
     else:
         file_url = None
-    return render_template('complaint_tracker/view_record_complaint.html', record=record, file_url=file_url)
+    return render_template('complaint_tracker/view_record_complaint.html', record=record, file_url=file_url,
+                           statuses=statuses)
 
 
 @complaint_tracker.route('/complaint/report/view/<int:record_id>')
@@ -1664,13 +1667,14 @@ def get_records():
 @complaint_tracker.route('/admin/complaint/view/<int:record_id>')
 def view_record_complaint_for_admin(record_id):
     menu = request.args.get('menu')
+    statuses = ComplaintStatus.query.all()
     record = ComplaintRecord.query.get(record_id)
     if record.url and len(record.url) > 0:
         file_url = generate_url(record.url)
     else:
         file_url = None
     return render_template('complaint_tracker/view_record_complaint_for_admin.html', file_url=file_url,
-                           record=record, menu=menu)
+                           record=record, menu=menu, statuses=statuses)
 
 
 @complaint_tracker.route('/add-procurement-number/complaint/<code>', methods=['GET', 'POST'])
