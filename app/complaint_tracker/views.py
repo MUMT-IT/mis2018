@@ -939,6 +939,7 @@ def _render_summary_email_html(package):
 
 
 @complaint_tracker.route('/api/committee/position')
+@login_required
 def get_position():
     staff_id = request.args.get('staff_id')
     staff = StaffAccount.query.filter_by(id=staff_id).first()
@@ -1239,6 +1240,7 @@ def scan_qr_code_complaint(code):
 
 @complaint_tracker.route('/issue/comment/add/<int:record_id>', methods=['GET', 'POST'])
 @complaint_tracker.route('/issue/comment/edit/<int:action_id>', methods=['GET', 'POST'])
+@login_required
 def edit_comment(record_id=None, action_id=None):
     if record_id:
         record = ComplaintRecord.query.get(record_id)
@@ -1274,6 +1276,7 @@ def edit_comment(record_id=None, action_id=None):
 
 
 @complaint_tracker.route('/issue/comment/delete/<int:action_id>', methods=['GET', 'DELETE'])
+@login_required
 def delete_comment(action_id):
     if request.method == 'DELETE':
         action = ComplaintActionRecord.query.get(action_id)
@@ -1288,6 +1291,7 @@ def delete_comment(action_id):
 @complaint_tracker.route('/issue/invited/add/<int:record_id>', methods=['GET', 'POST'])
 @complaint_tracker.route('/issue/invited/delete/<int:investigator_id>', methods=['GET', 'DELETE'])
 @complaint_tracker.route('/issue/coordinators/delete/<int:coordinator_id>', methods=['GET', 'DELETE'])
+@login_required
 def edit_invited(record_id=None, investigator_id=None, coordinator_id=None):
     form = ComplaintInvestigatorForm()
     if request.method == 'POST':
@@ -1382,6 +1386,7 @@ def check_priority():
 
 @complaint_tracker.route('/issue/report/add/<int:record_id>', methods=['GET', 'POST'])
 @complaint_tracker.route('/issue/report/edit/<int:report_id>', methods=['GET', 'POST'])
+@login_required
 def create_report(record_id=None, report_id=None):
     if record_id:
         record = ComplaintRecord.query.get(record_id)
@@ -1418,6 +1423,7 @@ def create_report(record_id=None, report_id=None):
 
 
 @complaint_tracker.route('/issue/report/delete/<int:report_id>', methods=['GET', 'DELETE'])
+@login_required
 def delete_report(report_id):
     if request.method == 'DELETE':
         report = ComplaintPerformanceReport.query.get(report_id)
@@ -1431,6 +1437,7 @@ def delete_report(report_id):
 
 @complaint_tracker.route('/issue/record/coordinator/complaint-acknowledgment/<int:coordinator_id>',
                          methods=['GET', 'POST'])
+@login_required
 def acknowledge_complaint(coordinator_id):
     if request.method == 'POST':
         coordinator = ComplaintCoordinator.query.get(coordinator_id)
@@ -1523,6 +1530,7 @@ def submit_note(coordinator_id):
 
 
 @complaint_tracker.route('/issue/complainant/email-sending/<int:record_id>', methods=['GET', 'POST'])
+@login_required
 def send_email(record_id):
     record = ComplaintRecord.query.get(record_id)
     form = request.form
@@ -1539,6 +1547,7 @@ def send_email(record_id):
 
 @complaint_tracker.route('/issue/report/assignee/add/<int:record_id>/<int:assignee_id>',
                          methods=['GET', 'POST', 'DELETE'])
+@login_required
 def edit_assignee(record_id, assignee_id):
     if request.method == 'POST':
         assignees = ComplaintAssignee(assignee_id=assignee_id, record_id=record_id,
@@ -1565,6 +1574,7 @@ def edit_assignee(record_id, assignee_id):
 
 
 @complaint_tracker.route('/issue/report/hendler/add/<int:record_id>', methods=['GET', 'POST'])
+@login_required
 def add_handler(record_id):
     ComplaintHandler.query.filter_by(record_id=record_id).delete()
     for h_id in request.form.getlist('handlers'):
@@ -1577,6 +1587,7 @@ def add_handler(record_id):
 
 
 @complaint_tracker.route('/complaint/user/view/<int:record_id>', methods=['GET'])
+@login_required
 def view_record_complaint(record_id):
     statuses = ComplaintStatus.query.all()
     record = ComplaintRecord.query.get(record_id)
@@ -1596,6 +1607,7 @@ def view_performance_report(record_id):
 
 
 @complaint_tracker.route('/complaint/user/cancel/<int:record_id>', methods=['POST'])
+@login_required
 def cancel_complaint(record_id):
     status = ComplaintStatus.query.filter_by(code='cancelled').first()
     record = ComplaintRecord.query.get(record_id)
@@ -1665,6 +1677,7 @@ def get_records():
 
 
 @complaint_tracker.route('/admin/complaint/view/<int:record_id>')
+@login_required
 def view_record_complaint_for_admin(record_id):
     menu = request.args.get('menu')
     statuses = ComplaintStatus.query.all()
@@ -1703,6 +1716,7 @@ def admin_record_complaint_summary():
 
 
 @complaint_tracker.route('/admin/email-unfinished-summary', methods=['GET', 'POST'])
+@login_required
 def email_unfinished_summary():
     scheduler_request = _is_valid_summary_scheduler_request()
     if not scheduler_request:
@@ -1761,6 +1775,7 @@ def email_unfinished_summary():
 
 
 @complaint_tracker.route('/admin/line-remind-no-status-today', methods=['GET', 'POST'])
+@login_required
 def line_remind_no_status_today():
     scheduler_request = _is_valid_summary_scheduler_request()
     if not scheduler_request:
@@ -1893,6 +1908,7 @@ def repair_approval_index():
 
 @complaint_tracker.route('/admin/repair-approval/add/<int:record_id>', methods=['GET', 'POST'])
 @complaint_tracker.route('/admin/repair-approval/edit/<int:record_id>/<int:repair_approval_id>', methods=['GET', 'POST'])
+@login_required
 def create_repair_approval(record_id, repair_approval_id=None):
     record = ComplaintRecord.query.get(record_id)
     if repair_approval_id:
@@ -2005,6 +2021,7 @@ def create_repair_approval(record_id, repair_approval_id=None):
 
 
 @complaint_tracker.route('/repair-approval/edit/<int:repair_approval_id>', methods=['GET', 'POST'])
+@login_required
 def edit_repair_approval(repair_approval_id):
     repair_approval = ComplaintRepairApproval.query.get(repair_approval_id)
     form = ComplaintRepairApprovalForm(obj=repair_approval)
@@ -2022,6 +2039,7 @@ def edit_repair_approval(repair_approval_id):
                            repair_approval_id=repair_approval_id, form=form)
 
 @complaint_tracker.route('/admin/repair-approval/committee/add/<int:repair_approval_id>', methods=['GET', 'POST'])
+@login_required
 def edit_committee(repair_approval_id):
     rep_approval = ComplaintRepairApproval.query.get(repair_approval_id)
     committees = ComplaintCommittee.query.filter_by(repair_approval_id=repair_approval_id).all()
@@ -2109,6 +2127,7 @@ def edit_committee(repair_approval_id):
 
 
 @complaint_tracker.route('/repair_approval/note/edit/<int:repair_approval_id>', methods=['GET', 'POST'])
+@login_required
 def create_note(repair_approval_id):
     status = ComplaintStatus.query.filter_by(code='completed').first()
     repair_approval = ComplaintRepairApproval.query.get(repair_approval_id)
@@ -2573,6 +2592,7 @@ def generate_repair_approval_pdf(repair_approval):
 
 
 @complaint_tracker.route('/admin/repair-approval/pdf/<int:repair_approval_id>', methods=['GET'])
+@login_required
 def export_repair_approval_pdf(repair_approval_id):
     repair_approval = ComplaintRepairApproval.query.get(repair_approval_id)
     buffer = generate_repair_approval_pdf(repair_approval)
@@ -2586,6 +2606,7 @@ def export_repair_approval_pdf(repair_approval_id):
 
 
 @complaint_tracker.route('/repair-approval/print/<int:repair_approval_id>', methods=['GET', 'POST'])
+@login_required
 def print_repair_approval(repair_approval_id):
     repair_approval = ComplaintRepairApproval.query.get(repair_approval_id)
     repair_approval.is_print = True
