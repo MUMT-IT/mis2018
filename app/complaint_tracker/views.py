@@ -1600,6 +1600,11 @@ def cancel_complaint(record_id):
     record.closed_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(record)
     db.session.commit()
+    if record.status_id:
+        rec = ComplaintRecordStatusAssociation(status_id=record.status_id, record_id=record_id,
+                                               updated_at=arrow.now('Asia/Bangkok').datetime)
+        db.session.add(rec)
+        db.session.commit()
     flash('ยกเลิกรายการแจ้งปัญหาสำเร็จ', 'success')
     resp = make_response()
     resp.headers['HX-Refresh'] = 'true'
