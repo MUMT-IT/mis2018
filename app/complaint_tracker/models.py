@@ -262,7 +262,7 @@ class ComplaintRecord(db.Model):
 class ComplaintRecordStatusAssociation(db.Model):
     __tablename__ = 'complaint_record_status_associations'
     record_id = db.Column(db.ForeignKey('complaint_records.id'), primary_key=True)
-    record = db.relationship(ComplaintRecord, backref=db.backref('record_status_updates', cascade='all, delete-orphan'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('record_status_updates'))
     status_id = db.Column(db.ForeignKey('complaint_statuses.id'), primary_key=True)
     status = db.relationship(ComplaintStatus, backref=db.backref('record_status_updates'))
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
