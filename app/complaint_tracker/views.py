@@ -1942,8 +1942,9 @@ def create_repair_approval(record_id, repair_approval_id=None):
         form = ComplaintRepairApprovalForm()
     org_name = record.complainant.personal_info.org.name if record.complainant else current_user.personal_info.org.name
     org = Org.query.filter_by(name=org_name).first()
-    if org.parent and org.parent.parent.name == 'สำนักงานคณบดี':
-        staff = StaffAccount.query.filter_by(email=org.head).first()
+    if ((org.parent and org.parent.parent and org.parent.parent.name == 'สำนักงานคณบดี') or
+            (org.parent and org.parent.name == 'สำนักงานคณบดี') or (org.name == 'สำนักงานคณบดี')):
+        staff = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
         form.name.data = staff.fullname
         form.position.data = f"หัวหน้า{staff.personal_info.org.name}"
         get_organization(org=staff.personal_info.org, form=form)
