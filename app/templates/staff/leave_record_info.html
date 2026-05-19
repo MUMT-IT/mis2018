@@ -130,8 +130,13 @@
                             </td>
                             <td>
                                 {% for approver in approvers %}
-                                    {{ approver.approver.account.personal_info }}:
-                                    <strong>"{{ approver.approval_comment }}"</strong>,
+                                    {{ approver.approver.account.personal_info }}
+                                    ({% if approver.is_approved %}อนุมัติ {% else %}ไม่อนุมัติ{% endif %}
+                                    {{ approver.updated_at |localdatetime }})
+                                    {% if approver.approval_comment %}
+                                    <strong>:"{{ approver.approval_comment }}"</strong>,
+                                    {% endif %}
+                                    <br>
                                 {% endfor %}
                             </td>
                         </tr>
