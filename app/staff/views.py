@@ -3283,7 +3283,7 @@ def create_seminar():
                 flash('Upload File เรียบร้อยแล้ว', 'success')
             else:
                 upload_file_url = None
-                flash('Upload File ไม่สำเร็จ/ ไม่มีเอกสารแนบ', 'warning')
+                # flash('Upload File ไม่สำเร็จ/ ไม่มีเอกสารแนบ', 'warning')
             seminar.upload_file_url = upload_file_url
             timedelta = form.end_datetime.data - form.start_datetime.data
             if timedelta.days < 0 and timedelta.seconds == 0:
@@ -3907,7 +3907,7 @@ def seminar_upload_proposal(seminar_attend_id, proposal_id):
             flash('Upload File เรียบร้อยแล้ว', 'success')
         else:
             upload_file_url = None
-            flash('Upload File ไม่สำเร็จ', 'warning')
+            # flash('Upload File ไม่สำเร็จ', 'warning')
         this_proposal.upload_file_url = upload_file_url
         db.session.add(this_proposal)
         db.session.commit()
