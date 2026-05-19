@@ -1053,7 +1053,7 @@ def edit_record_admin(record_id):
     statuses = ComplaintStatus.query.all()
     record = ComplaintRecord.query.get(record_id)
     if record:
-        current_status = record.status
+        old_status = record.status
         admins = True if ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first() else False
         investigators = []
         coordinators = ComplaintCoordinator.query.filter_by(coordinator=current_user, record_id=record_id).first() \
@@ -1087,6 +1087,30 @@ def edit_record_admin(record_id):
             return resp
         if form.validate_on_submit():
             old_priority = record.priority.priority if record.priority else None
+            new_status = form.status.data
+            if old_status and new_status:
+                if (old_status.no > new_status.no) or (old_status.no + 1 < new_status.no):
+                    form.status.data = old_status
+                    flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
+                    return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
+                                           tab=tab, file_url=file_url, admins=admins, investigators=investigators,
+                                           coordinators=coordinators, repair_approval_id=repair_approval_id, statuses=statuses)
+            elif old_status and not new_status:
+                print('n', new_status)
+                form.status.data = old_status
+                flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
+                return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
+                                       tab=tab, file_url=file_url, admins=admins, investigators=investigators,
+                                       coordinators=coordinators, repair_approval_id=repair_approval_id,
+                                       statuses=statuses)
+            elif not old_status and new_status:
+                first_status = ComplaintStatus.query.filter_by(no=1).first()
+                if (first_status.no != new_status.no):
+                    form.status.data = None
+                    flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
+                    return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
+                                           file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
+                                           repair_approval_id=repair_approval_id, statuses=statuses)
             form.populate_obj(record)
             record.deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
             db.session.add(record)
@@ -1112,7 +1136,7 @@ def edit_record_admin(record_id):
                                 line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                             except LineBotApiError:
                                 pass
-            if record.status != current_status and record.complainant:
+            if record.status != old_status and record.complainant:
                 if record.status_id:
                     rec = ComplaintRecordStatusAssociation(status_id=record.status_id, record_id=record_id,
                                                            updated_at=arrow.now('Asia/Bangkok').datetime)
