@@ -386,17 +386,14 @@ class ComplaintRepair(db.Model):
     def get_other_org(self):
         if self.record:
             if self.record.complainant:
-                if (self.record.complainant.personal_info.org.parent and
-                        self.record.complainant.personal_info.org.parent.parent and
-                        self.record.complainant.personal_info.org.parent.parent.name != 'สำนักงานคณบดี'):
-                    other_org = True
-                elif (self.record.complainant.personal_info.org.parent and
-                      self.record.complainant.personal_info.org.parent.name != 'สำนักงานคณบดี'):
-                    other_org = True
-                elif self.record.complainant.personal_info.org.name != 'สำนักงานคณบดี':
-                    other_org = True
-                else:
+                org = self.record.complainant.personal_info.org
+                if ((org.parent and org.parent.parent and org.parent.parent.name == 'สำนักงานคณบดี') or
+                        (org.parent and org.parent.name == 'สำนักงานคณบดี') or
+                        (org.name == 'สำนักงานคณบดี')
+                ):
                     other_org = False
+                else:
+                    other_org = True
             else:
                 other_org = False
         else:
@@ -506,15 +503,14 @@ class ComplaintRepairApproval(db.Model):
 
     @property
     def get_other_org(self):
-        if (self.owner.personal_info.org.parent and self.owner.personal_info.org.parent.parent
-                and self.owner.personal_info.org.parent.parent.name != 'สำนักงานคณบดี'):
-            other_org = True
-        elif self.owner.personal_info.org.parent and self.owner.personal_info.org.parent.name != 'สำนักงานคณบดี':
-            other_org = True
-        elif self.owner.personal_info.org.name != 'สำนักงานคณบดี':
-            other_org = True
-        else:
+        org = self.owner.personal_info.org
+        if ((org.parent and org.parent.parent and org.parent.parent.name == 'สำนักงานคณบดี') or
+                (org.parent and org.parent.name == 'สำนักงานคณบดี') or
+                (org.name == 'สำนักงานคณบดี')
+        ):
             other_org = False
+        else:
+            other_org = True
         return other_org
 
 
