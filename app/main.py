@@ -369,6 +369,7 @@ admin.add_views(ModelView(ComplaintPerformanceReport, db.session, category='Comp
 admin.add_views(ModelView(ComplaintInvestigator, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintCoordinator, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintAdminTypeAssociation, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintRepair, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintRepairApproval, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintCommittee, db.session, category='Complaint'))
 

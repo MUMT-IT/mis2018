@@ -8,8 +8,8 @@
     <link rel="stylesheet" type="text/css"
           href="https://cdn.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
     <link href="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet"/>
 {% endblock %}
-
 {% block page_content %}
     {% include "nav.html" %}
     <section class="section" id="record">
@@ -20,6 +20,67 @@
                     {% include 'complaint_tracker/title.html' %}
                     {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
                     {{ user_evaluate('complaint_system_for_admin') }}
+                    <ul class="steps">
+                        <li class="steps-segment
+                            {% if not record.closed_at and not record.status %}
+                                is-active
+                            {% endif %}
+                        ">
+                            <span class="steps-marker">
+                                <span class="icon">
+                                    <i class="fa fa-ban"></i>
+                                </span>
+                            </span>
+                            <div class="steps-content">
+                                <p class="is-size-5">ยังไม่ดำเนินการ</p>
+                                <p>ส่งคำขอ {{ record.created_at|localdatetime }}</p>
+                            </div>
+                        </li>
+                        {% for status in statuses|sort(attribute='no') %}
+                            {% if status.code != 'cancelled' %}
+                                <li class="steps-segment
+                                    {% if not record.closed_at and record.status_id == status.id %}
+                                        is-active
+                                    {% endif %}
+                                ">
+                                    <span class="steps-marker">
+                                        <span class="icon">
+                                            {{ status.icon|safe }}
+                                        </span>
+                                    </span>
+                                    <div class="steps-content">
+                                        <p class="is-size-5">{{ status.status }}</p>
+                                        <p>
+                                            {% if record.record_status_updates %}
+                                                {% for rec in record.record_status_updates %}
+                                                    {% if rec.status_id == status.id %}
+                                                        {{ rec.updated_at|localdatetime }}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        <li class="steps-segment
+                            {% if record.closed_at %}
+                                is-active
+                            {% endif %}
+                        ">
+                            <span class="steps-marker">
+                                <span class="icon">
+                                    <i class="fa fa-lock"></i>
+                                </span>
+                            </span>
+                            <div class="steps-content">
+                                <p class="is-size-5">ปิดคำขอ</p>
+                                {% if record.closed_at %}
+                                    <p>{{ record.closed_at|localdatetime }}</p>
+                                {% endif %}
+                            </div>
+                        </li>
+                    </ul>
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="columns is-vcentered is-mobile is-flex">
@@ -28,12 +89,32 @@
                             </div>
                             <div class="column has-text-right is-narrow">
                                 {% if record.topic.category.no == 1 %}
+{#                                    {% if record.repairs %}#}
+{#                                        {% for repair in record.repairs %}#}
+{#                                            <a class="button is-info is-outlined is-rounded"#}
+{#                                               @click="printRepair({{ repair.id }})"#}
+{#                                            >#}
+{#                                                <span class="icon"><i class="fas fa-file-pdf"></i></span>#}
+{#                                                <span>พิมพ์ใบแจ้งซ่อม</span>#}
+{#                                            </a>#}
+{#                                        {% endfor %}#}
+{#                                    {% else %}#}
+{#                                        <a hx-post="{{ url_for('comp_tracker.create_repair', record_id=record.id) }}"#}
+{#                                           hx-confirm="ท่านต้องการออกใบแจ้งซ่อมของรายการนี้ใช่หรือไม่"#}
+{#                                           class="button is-info is-outlined is-rounded"#}
+{#                                        >#}
+{#                                            <span class="icon">#}
+{#                                                <i class="fas fa-file-alt"></i>#}
+{#                                            </span>#}
+{#                                            <span>ออกใบแจ้งซ่อม</span>#}
+{#                                        </a>#}
+{#                                    {% endif %}#}
                                     {% if record.repair_approvals %}
                                         {% for rep_approval in record.repair_approvals %}
                                             <div class="field has-addons">
                                                 <div class="control">
                                                     <a class="button is-info is-outlined is-rounded"
-                                                       @click="printRepairApproval()"
+                                                       @click="printRepairApproval({{ repair_approval.id }})"
                                                     >
                                                         <span class="icon"><i class="fas fa-file-pdf"></i></span>
                                                         <span>พิมพ์ใบอนุมัติหลักการซ่อม</span>
@@ -53,11 +134,11 @@
                                             </div>
                                         {% endfor %}
                                     {% else %}
-                                        <a class="button is-info is-outlined is-rounded" style="margin-left: 1em"
+                                        <a class="button is-info is-outlined is-rounded" style="margin-left: .2em"
                                            href="{{ url_for('comp_tracker.create_repair_approval', record_id=record.id) }}"
                                         >
                                             <span class="icon">
-                                                <i class="fas fa-file-alt"></i>
+                                                <i class="fas fa-file-signature"></i>
                                             </span>
                                             <span>ออกใบอนุมัติหลักการซ่อม</span>
                                         </a>
@@ -93,7 +174,8 @@
                                 <div class="field">
                                     <label class="label">ห้อง</label>
                                     <div class="control">
-                                        <input class="input" disabled value="{% if record.room %}{{ record.room }}{% else %}{% for room in record.rooms %}{{ room }}{% endfor %}{% endif %}">
+                                        <input class="input" disabled value="
+                                                {% if record.room %}{{ record.room }}{% else %}{% for room in record.rooms %}{{ room }}{% endfor %}{% endif %}">
                                     </div>
                                 </div>
                             {% elif record.procurement_location %}
@@ -344,6 +426,34 @@
                                     </div>
                                     {% if record.topic.category.no == 1 %}
                                         <div class="field" style="margin-top: .8em">
+                                            <label class="label">ใบแจ้งซ่อม</label>
+                                            <div class="control">
+                                                {% if record.repairs %}
+                                                    {% if record.get_print_of_repair == True %}
+                                                        {% for repair in record.repairs %}
+                                                            <span class="tag is-success">
+                                                                <span class="icon"><i class="fas fa-check"></i></span>
+                                                                <span>พิมพ์แล้ว</span>
+                                                            </span>
+                                                            <div class="is-size-6 mt-1">
+                                                                ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime }}
+                                                            </div>
+                                                        {% endfor %}
+                                                    {% else %}
+                                                        <span class="tag is-warning">
+                                                            <span class="icon"><i class="fas fa-clock"></i></span>
+                                                            <span>รอพิมพ์</span>
+                                                        </span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="tag is-light">
+                                                        <span class="icon"><i class="fas fa-ban"></i></span>
+                                                        <span>ไม่มีใบแจ้งซ่อม</span>
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="field" style="margin-top: .8em">
                                             <label class="label">ใบอนุมัติหลักการซ่อม</label>
                                             <div class="control">
                                                 {% if record.repair_approvals %}
@@ -580,7 +690,7 @@
                                     {% endif %}
                                 </div>
                                 {% if record.is_editable or record.comments %}
-                                    <h5 class="title is-size-5">สาเหตุของปัญหา/ความเห็น/ข้อเสนอแนะ</h5>
+                                    <h5 class="title is-size-5">สาเหตุของปัญหา/การตรวจสอบ/ความเห็น/ข้อเสนอแนะ</h5>
                                     <hr style="background-color: gainsboro">
                                     <div class="container" style="margin-left: 1em">
                                         <div class="field">
@@ -630,14 +740,14 @@
                                                 <i class="fas fa-plus"></i>
                                             </span>
                                                 <span>
-                                                เพิ่มสาเหตุของปัญหา/ความเห็น/ข้อเสนอแนะ
+                                                เพิ่ม
                                             </span>
                                             </a>
                                         {% endif %}
                                     </div>
                                 {% endif %}
                                 {% if record.is_editable or record.reports %}
-                                    <h5 class="title is-size-5">แนวทางการป้องกัน/รายงานผลการดำเนินงาน</h5>
+                                    <h5 class="title is-size-5">แนวทางการป้องกัน/รายงานผลการดำเนินงาน/รายละเอียดการซ่อม</h5>
                                     <hr style="background-color: gainsboro">
                                     <div class="container" style="margin-left: 1em">
                                         <div class="field">
@@ -688,7 +798,7 @@
                                                 <i class="fas fa-plus"></i>
                                             </span>
                                                 <span>
-                                                เพิ่มแนวทางการป้องกัน/รายงานผลการดำเนินงาน
+                                                เพิ่ม
                                             </span>
                                             </a>
                                         {% endif %}
@@ -872,25 +982,34 @@
             src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
-    {% if repair_approval_id %}
-        <script type="text/javascript">
-            var vm = new Vue({
-                el: "#record",
-                delimiters: ['<%', '%>'],
-                methods: {
-                    printRepairApproval: function () {
-                        printJS({
-                            printable: {{ url_for('comp_tracker.export_repair_approval_pdf', repair_approval_id=repair_approval_id)|tojson|safe }},
-                            type: 'pdf',
-                            onPrintDialogClose: () => {
-                                window.location.reload();
-                            }
-                        });
-                    }
+    <script type="text/javascript">
+        var vm = new Vue({
+            el: "#record",
+            delimiters: ['<%', '%>'],
+            methods: {
+                printRepair: function (repair_id) {
+                    var url = '/complaint-tracker/admin/repair/pdf/' + repair_id
+                    printJS({
+                        printable: url,
+                        type: 'pdf',
+                        onPrintDialogClose: () => {
+                            window.location.reload();
+                        }
+                    });
                 },
-            });
-        </script>
-    {% endif %}
+                printRepairApproval: function (repair_approval_id) {
+                    var url = '/complaint-tracker/admin/repair-approval/pdf/' + repair_approval_id
+                    printJS({
+                        printable: url,
+                        type: 'pdf',
+                        onPrintDialogClose: () => {
+                            window.location.reload();
+                        }
+                    });
+                }
+            },
+        });
+    </script>
     <script>
         $(document).ready(function () {
             moment.locale('th');
