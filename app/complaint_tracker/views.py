@@ -1181,7 +1181,7 @@ def admin_index():
     new_record_count = 0
     pending_record_count = 0
     progress_record_count = 0
-    repair_approval_count = 0
+    repair_record_count = 0
 
     for admin in admins:
         if admin.investigators:
@@ -1193,12 +1193,13 @@ def admin_index():
                 elif investigator.record.status.code == 'progress':
                     progress_record_count += 1
 
-                if investigator.record.repair_approvals and investigator.record.get_print_of_repair_approval == False:
-                    repair_approval_count += 1
+                if ((investigator.record.repair_approvals and investigator.record.get_print_of_repair_approval == False)
+                        or (investigator.record.repairs and investigator.record.get_print_of_repair == False)):
+                    repair_record_count += 1
 
                 if tab == 'new' and investigator.record.status is None:
                     records.append(investigator.record)
-                elif tab == 'repair_approval' and investigator.record.repair_approvals:
+                elif tab == 'repair_record' and (investigator.record.repair_approvals or investigator.record.repairs):
                     records.append(investigator.record)
                 else:
                     rec = investigator.get_record_by_status(tab)
@@ -1214,12 +1215,13 @@ def admin_index():
                 elif record.status.code == 'progress':
                     progress_record_count += 1
 
-                if record.repair_approvals and record.get_print_of_repair_approval == False:
-                    repair_approval_count += 1
+                if ((record.repair_approvals and record.get_print_of_repair_approval == False) or
+                        (record.repairs and record.get_print_of_repair == False)):
+                    repair_record_count += 1
 
                 if tab == 'new' and record.status is None:
                     records.append(record)
-                elif tab == 'repair_approval' and record.repair_approvals:
+                elif tab == 'repair_record' and (record.repair_approvals or record.repairs):
                     records.append(record)
                 else:
                     rec = record.get_record_by_status(tab)
@@ -1233,12 +1235,13 @@ def admin_index():
         elif c.record.status.code == 'progress':
             progress_record_count += 1
 
-        if c.record.repair_approvals and c.record.get_print_of_repair_approval == False:
-            repair_approval_count += 1
+        if ((c.record.repair_approvals and c.record.get_print_of_repair_approval == False) or
+                (c.record.repairs and c.record.get_print_of_repair == False)):
+            repair_record_count += 1
 
         if tab == 'new' and c.record.status is None:
             records.append(c.record)
-        elif tab == 'repair_approval' and c.record.repair_approvals:
+        elif tab == 'repair_record' and (c.record.repair_approvals or c.record.repairs):
             records.append(c.record)
         else:
             rec = c.get_record_by_status(tab)
@@ -1246,7 +1249,7 @@ def admin_index():
                 records.append(rec)
     return render_template('complaint_tracker/admin_index.html', records=records, tab=tab,
                            new_record_count=new_record_count, pending_record_count=pending_record_count,
-                           progress_record_count=progress_record_count, repair_approval_count=repair_approval_count)
+                           progress_record_count=progress_record_count, repair_record_count=repair_record_count)
 
 
 @complaint_tracker.route('/topics/<code>')
