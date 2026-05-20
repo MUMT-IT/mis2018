@@ -233,6 +233,17 @@ class ComplaintRecord(db.Model):
         return None
 
     @property
+    def get_print_of_repair(self):
+        if self.repairs:
+            for repair in self.repairs:
+                if repair.is_print:
+                    return True
+                else:
+                    return False
+        else:
+            return False
+
+    @property
     def get_print_of_repair_approval(self):
         if self.repair_approvals:
             for repair_approval in self.repair_approvals:
