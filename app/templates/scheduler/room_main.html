@@ -143,6 +143,19 @@
             max-width: 120px;
         }
 
+        .room-search-illustration.is-searching {
+            animation: robot-sway 0.9s ease-in-out infinite;
+            transform-origin: 50% 80%;
+        }
+
+        @keyframes robot-sway {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-14px); }
+            50% { transform: translateX(0); }
+            75% { transform: translateX(14px); }
+            100% { transform: translateX(0); }
+        }
+
         .room-panel-header .title {
             margin-bottom: 0.25rem;
         }
@@ -586,6 +599,7 @@
             const input = document.getElementById('roomSearchInput');
             const resultsContainer = document.getElementById('roomTable');
             const csrfInput = form.querySelector('input[name="csrf_token"]');
+            const robotImage = document.querySelector('.room-search-illustration');
             let searchTimer = null;
 
             function sanitizeQueryText(value) {
@@ -689,14 +703,22 @@
                     return;
                 }
                 resultsContainer.innerHTML = '<div class="notification is-info is-light">กำลังค้นหา...</div>';
+                const shouldAnimateRobot = !isRoomNumberQuery(query);
                 try {
-                    if (isRoomNumberQuery(query)) {
+                    if (shouldAnimateRobot && robotImage) {
+                        robotImage.classList.add('is-searching');
+                    }
+                    if (!shouldAnimateRobot) {
                         await searchRoomNumber(query);
                     } else {
                         await searchWithAi(query);
                     }
                 } catch (error) {
                     resultsContainer.innerHTML = `<div class="notification is-danger is-light">${escapeHtml(error.message || 'ค้นหาไม่สำเร็จ')}</div>`;
+                } finally {
+                    if (robotImage) {
+                        robotImage.classList.remove('is-searching');
+                    }
                 }
             }
 
