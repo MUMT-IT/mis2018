@@ -90,7 +90,7 @@
                                 <th>วันที่สร้าง</th>
                                 <th>ระดับความรุนแรง</th>
                                 <th>สถานะ</th>
-                                <th style="width: 3em">ใบอนุมัติซ่อม</th>
+                                <th style="width: 3em">ใบแจ้งซ่อม/ใบอนุมัติซ่อม</th>
                                 <th style="width: 2.5em">ตรวจสอบ</th>
                             </thead>
                                 <tbody>
@@ -166,7 +166,29 @@
                                                 {% endif %}
                                             </td>
                                             <td class="has-text-centered">
-                                                {% if record.repair_approvals %}
+                                                {% if record.repairs %}
+                                                    {% if record.get_print_of_repair == True %}
+                                                        {% for repair in record.repairs %}
+                                                            <span class="tag is-success is-light">
+                                                                <span class="icon">
+                                                                    <i class="fas fa-check"></i>
+                                                                </span>
+                                                                <span>พิมพ์แล้ว</span>
+                                                            </span>
+                                                            <br>
+                                                            <div class="is-size-6 mt-1">
+                                                                ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime }}
+                                                            </div>
+                                                        {% endfor %}
+                                                    {% else %}
+                                                        <span class="tag is-warning is-light">
+                                                            <span class="icon">
+                                                                <i class="far fa-clock"></i>
+                                                            </span>
+                                                            <span>รอพิมพ์</span>
+                                                        </span>
+                                                    {% endif %}
+                                                {% elif record.repair_approvals %}
                                                     {% if record.get_print_of_repair_approval == True %}
                                                         {% for repair_approval in record.repair_approvals %}
                                                             {% if repair_approval.cancelled_at %}
