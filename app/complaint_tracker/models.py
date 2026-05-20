@@ -233,6 +233,17 @@ class ComplaintRecord(db.Model):
         return None
 
     @property
+    def get_print_of_repair(self):
+        if self.repairs:
+            for repair in self.repairs:
+                if repair.is_print:
+                    return True
+                else:
+                    return False
+        else:
+            return False
+
+    @property
     def get_print_of_repair_approval(self):
         if self.repair_approvals:
             for repair_approval in self.repair_approvals:
@@ -262,7 +273,7 @@ class ComplaintRecord(db.Model):
 class ComplaintRecordStatusAssociation(db.Model):
     __tablename__ = 'complaint_record_status_associations'
     record_id = db.Column(db.ForeignKey('complaint_records.id'), primary_key=True)
-    record = db.relationship(ComplaintRecord, backref=db.backref('record_status_updates', cascade='all, delete-orphan'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('record_status_updates'))
     status_id = db.Column(db.ForeignKey('complaint_statuses.id'), primary_key=True)
     status = db.relationship(ComplaintStatus, backref=db.backref('record_status_updates'))
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
@@ -361,6 +372,33 @@ class ComplaintCoordinator(db.Model):
         if self.record.status and self.record.status.code == status:
             return self.record
         return None
+
+
+class ComplaintRepair(db.Model):
+    __tablename__ = 'complaint_repairs'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    is_print = db.Column('is_print', db.Boolean(), default=False)
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('repairs'))
+
+    @property
+    def get_other_org(self):
+        if self.record:
+            if self.record.complainant:
+                org = self.record.complainant.personal_info.org
+                if ((org.parent and org.parent.parent and org.parent.parent.name == 'สำนักงานคณบดี') or
+                        (org.parent and org.parent.name == 'สำนักงานคณบดี') or
+                        (org.name == 'สำนักงานคณบดี')
+                ):
+                    other_org = False
+                else:
+                    other_org = True
+            else:
+                other_org = False
+        else:
+            other_org = False
+        return other_org
 
 
 class ComplaintRepairApproval(db.Model):
@@ -465,15 +503,14 @@ class ComplaintRepairApproval(db.Model):
 
     @property
     def get_other_org(self):
-        if (self.owner.personal_info.org.parent and self.owner.personal_info.org.parent.parent
-                and self.owner.personal_info.org.parent.parent.name != 'สำนักงานคณบดี'):
-            other_org = True
-        elif self.owner.personal_info.org.parent and self.owner.personal_info.org.parent.name != 'สำนักงานคณบดี':
-            other_org = True
-        elif self.owner.personal_info.org.name != 'สำนักงานคณบดี':
-            other_org = True
-        else:
+        org = self.owner.personal_info.org
+        if ((org.parent and org.parent.parent and org.parent.parent.name == 'สำนักงานคณบดี') or
+                (org.parent and org.parent.name == 'สำนักงานคณบดี') or
+                (org.name == 'สำนักงานคณบดี')
+        ):
             other_org = False
+        else:
+            other_org = True
         return other_org
 
 

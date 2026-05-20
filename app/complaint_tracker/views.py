@@ -1053,7 +1053,7 @@ def edit_record_admin(record_id):
     statuses = ComplaintStatus.query.all()
     record = ComplaintRecord.query.get(record_id)
     if record:
-        current_status = record.status
+        old_status = record.status
         admins = True if ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first() else False
         investigators = []
         coordinators = ComplaintCoordinator.query.filter_by(coordinator=current_user, record_id=record_id).first() \
@@ -1087,6 +1087,30 @@ def edit_record_admin(record_id):
             return resp
         if form.validate_on_submit():
             old_priority = record.priority.priority if record.priority else None
+            new_status = form.status.data
+            if old_status and new_status:
+                if (old_status.no > new_status.no) or (old_status.no + 1 < new_status.no):
+                    form.status.data = old_status
+                    flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
+                    return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
+                                           tab=tab, file_url=file_url, admins=admins, investigators=investigators,
+                                           coordinators=coordinators, repair_approval_id=repair_approval_id, statuses=statuses)
+            elif old_status and not new_status:
+                print('n', new_status)
+                form.status.data = old_status
+                flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
+                return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
+                                       tab=tab, file_url=file_url, admins=admins, investigators=investigators,
+                                       coordinators=coordinators, repair_approval_id=repair_approval_id,
+                                       statuses=statuses)
+            elif not old_status and new_status:
+                first_status = ComplaintStatus.query.filter_by(no=1).first()
+                if (first_status.no != new_status.no):
+                    form.status.data = None
+                    flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
+                    return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
+                                           file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
+                                           repair_approval_id=repair_approval_id, statuses=statuses)
             form.populate_obj(record)
             record.deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
             db.session.add(record)
@@ -1112,7 +1136,7 @@ def edit_record_admin(record_id):
                                 line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                             except LineBotApiError:
                                 pass
-            if record.status != current_status and record.complainant:
+            if record.status != old_status and record.complainant:
                 if record.status_id:
                     rec = ComplaintRecordStatusAssociation(status_id=record.status_id, record_id=record_id,
                                                            updated_at=arrow.now('Asia/Bangkok').datetime)
@@ -1157,7 +1181,7 @@ def admin_index():
     new_record_count = 0
     pending_record_count = 0
     progress_record_count = 0
-    repair_approval_count = 0
+    repair_record_count = 0
 
     for admin in admins:
         if admin.investigators:
@@ -1169,12 +1193,13 @@ def admin_index():
                 elif investigator.record.status.code == 'progress':
                     progress_record_count += 1
 
-                if investigator.record.repair_approvals and investigator.record.get_print_of_repair_approval == False:
-                    repair_approval_count += 1
+                if ((investigator.record.repair_approvals and investigator.record.get_print_of_repair_approval == False)
+                        or (investigator.record.repairs and investigator.record.get_print_of_repair == False)):
+                    repair_record_count += 1
 
                 if tab == 'new' and investigator.record.status is None:
                     records.append(investigator.record)
-                elif tab == 'repair_approval' and investigator.record.repair_approvals:
+                elif tab == 'repair_record' and (investigator.record.repair_approvals or investigator.record.repairs):
                     records.append(investigator.record)
                 else:
                     rec = investigator.get_record_by_status(tab)
@@ -1190,12 +1215,13 @@ def admin_index():
                 elif record.status.code == 'progress':
                     progress_record_count += 1
 
-                if record.repair_approvals and record.get_print_of_repair_approval == False:
-                    repair_approval_count += 1
+                if ((record.repair_approvals and record.get_print_of_repair_approval == False) or
+                        (record.repairs and record.get_print_of_repair == False)):
+                    repair_record_count += 1
 
                 if tab == 'new' and record.status is None:
                     records.append(record)
-                elif tab == 'repair_approval' and record.repair_approvals:
+                elif tab == 'repair_record' and (record.repair_approvals or record.repairs):
                     records.append(record)
                 else:
                     rec = record.get_record_by_status(tab)
@@ -1209,12 +1235,13 @@ def admin_index():
         elif c.record.status.code == 'progress':
             progress_record_count += 1
 
-        if c.record.repair_approvals and c.record.get_print_of_repair_approval == False:
-            repair_approval_count += 1
+        if ((c.record.repair_approvals and c.record.get_print_of_repair_approval == False) or
+                (c.record.repairs and c.record.get_print_of_repair == False)):
+            repair_record_count += 1
 
         if tab == 'new' and c.record.status is None:
             records.append(c.record)
-        elif tab == 'repair_approval' and c.record.repair_approvals:
+        elif tab == 'repair_record' and (c.record.repair_approvals or c.record.repairs):
             records.append(c.record)
         else:
             rec = c.get_record_by_status(tab)
@@ -1222,7 +1249,7 @@ def admin_index():
                 records.append(rec)
     return render_template('complaint_tracker/admin_index.html', records=records, tab=tab,
                            new_record_count=new_record_count, pending_record_count=pending_record_count,
-                           progress_record_count=progress_record_count, repair_approval_count=repair_approval_count)
+                           progress_record_count=progress_record_count, repair_record_count=repair_record_count)
 
 
 @complaint_tracker.route('/topics/<code>')
@@ -1263,11 +1290,11 @@ def edit_comment(record_id=None, action_id=None):
         db.session.add(action)
         db.session.commit()
         if record_id:
-            flash('เพิ่มความคิดเห็น/ข้อเสนอแนะสำเร็จ', 'success')
+            flash('เพิ่มข้อมูลสำเร็จ', 'success')
             resp = make_response(render_template('complaint_tracker/comment_template.html', action=action))
             resp.headers['HX-Trigger'] = 'closeModal'
         else:
-            flash('แก้ไขความคิดเห็น/ข้อเสนอแนะสำเร็จ', 'success')
+            flash('แก้ไขข้อมูลสำเร็จ', 'success')
             resp = make_response()
             resp.headers['HX-Refresh'] = 'true'
         return resp
@@ -1282,7 +1309,7 @@ def delete_comment(action_id):
         action = ComplaintActionRecord.query.get(action_id)
         db.session.delete(action)
         db.session.commit()
-        flash('ลบความคิดเห็น/ข้อเสนอแนะสำเร็จ', 'success')
+        flash('ลบข้อมูลสำเร็จ', 'success')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
@@ -1409,12 +1436,12 @@ def create_report(record_id=None, report_id=None):
         db.session.add(report)
         db.session.commit()
         if record_id:
-            flash('เพิ่มรายงานผลการดำเนินงานสำเร็จ', 'success')
+            flash('เพิ่มข้อมูลสำเร็จ', 'success')
             resp = make_response(render_template('complaint_tracker/performance_report_template.html',
                                                  report=report))
             resp.headers['HX-Trigger'] = 'closeReport'
         else:
-            flash('แก้ไขรายงานผลการดำเนินงานสำเร็จ', 'success')
+            flash('แก้ไขข้อมูลสำเร็จ', 'success')
             resp = make_response()
             resp.headers['HX-Refresh'] = 'true'
         return resp
@@ -1429,7 +1456,7 @@ def delete_report(report_id):
         report = ComplaintPerformanceReport.query.get(report_id)
         db.session.delete(report)
         db.session.commit()
-        flash('ลบรายงานผลการดำเนินงานสำเร็จ', 'success')
+        flash('ลบข้อมูลสำเร็จ', 'success')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
@@ -1856,6 +1883,45 @@ def line_remind_no_status_today():
     return redirect(request.referrer or url_for('comp_tracker.admin_record_complaint_summary', menu='all'))
 
 
+@complaint_tracker.route('/admin/repair/add/<int:record_id>', methods=['GET', 'POST'])
+@login_required
+def create_repair(record_id):
+    repair = ComplaintRepair(record_id=record_id, created_at=arrow.now('Asia/Bangkok').datetime)
+    db.session.add(repair)
+    db.session.commit()
+    if repair.get_other_org == True:
+        scheme = 'http' if current_app.debug else 'https'
+        link = url_for("comp_tracker.repair_approval_index", tab='new', _external=True, _scheme=scheme)
+        title = f'''แจ้งออกใบแจ้งซ่อมรายการเลขที่ {repair.record.id}'''
+        message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งซ่อมสำหรับรายการเลขที่ {repair.record.id} เรียบร้อยแล้ว กรุณาดำเนินการในขั้นตอนถัดไปตามกระบวนการที่เกี่ยวข้อง\n'''
+        message += f'''ท่านสามารถดำเนินการพิมพ์เอกสารได้ที่ลิงก์ด้านล่าง\n{link}\n\n'''
+        message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
+        if repair.record.complainant:
+            msg = (
+                f'เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งซ่อมสำหรับรายการเลขที่ {repair.record.id} เรียบร้อยแล้ว\n\n'
+                f'ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์')
+            message_for_complainant = f'''เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งซ่อมสำหรับรายการเลขที่ {repair.record.id} เรียบร้อยแล้ว\n\n'''
+            message_for_complainant += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
+
+            send_mail([repair.record.complainant.email + '@mahidol.ac.th'], title,
+                          message_for_complainant)
+            if not current_app.debug:
+                try:
+                    line_bot_api.push_message(to=repair.record.complainant.line_id,
+                                                messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
+            else:
+                print('msg :', msg, 'line :', repair.record.complainant.line_id)
+        send_mail(
+            [secretary.email + '@mahidol.ac.th' for secretary in repair.record.complainant.personal_info.org.secretary_staff],
+            title, message)
+    flash('ออกใบแจ้งซ่อมสำเร็จ', 'success')
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
+
+
 @complaint_tracker.route('/repair_approval/index')
 @login_required
 def repair_approval_index():
@@ -1918,8 +1984,9 @@ def create_repair_approval(record_id, repair_approval_id=None):
         form = ComplaintRepairApprovalForm()
     org_name = record.complainant.personal_info.org.name if record.complainant else current_user.personal_info.org.name
     org = Org.query.filter_by(name=org_name).first()
-    if org.parent and org.parent.parent.name == 'สำนักงานคณบดี':
-        staff = StaffAccount.query.filter_by(email=org.head).first()
+    if ((org.parent and org.parent.parent and org.parent.parent.name == 'สำนักงานคณบดี') or
+            (org.parent and org.parent.name == 'สำนักงานคณบดี') or (org.name == 'สำนักงานคณบดี')):
+        staff = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
         form.name.data = staff.fullname
         form.position.data = f"หัวหน้า{staff.personal_info.org.name}"
         get_organization(org=staff.personal_info.org, form=form)
@@ -1984,12 +2051,12 @@ def create_repair_approval(record_id, repair_approval_id=None):
                 link = url_for("comp_tracker.repair_approval_index", tab='new', _external=True, _scheme=scheme)
                 if repair_approval_id:
                     title = f'''แจ้งแก้ไขใบอนุมัติหลักการซ่อม {rep_approval.item}'''
-                    message = f'''เจ้าหน้าที่ได้ดำเนินการแก้ไขข้อมูลใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} กรุณาดำเนินการในขั้นตอนถัดไปตามกระบวนการที่เกี่ยวข้อง\n'''
+                    message = f'''เจ้าหน้าที่ได้ดำเนินการแก้ไขข้อมูลใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} เรียบร้อยแล้ว กรุณาดำเนินการในขั้นตอนถัดไปตามกระบวนการที่เกี่ยวข้อง\n'''
                     message += f'''ท่านสามารถดำเนินการพิมพ์เอกสารได้ที่ลิงก์ด้านล่าง\n{link}\n\n'''
                     message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
                 else:
                     title = f'''แจ้งออกใบอนุมัติหลักการซ่อม {rep_approval.item}'''
-                    message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} กรุณาดำเนินการในขั้นตอนถัดไปตามกระบวนการที่เกี่ยวข้อง\n'''
+                    message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} เรียบร้อยแล้ว กรุณาดำเนินการในขั้นตอนถัดไปตามกระบวนการที่เกี่ยวข้อง\n'''
                     message += f'''ท่านสามารถดำเนินการพิมพ์เอกสารได้ที่ลิงก์ด้านล่าง\n{link}\n\n'''
                     message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
                     if rep_approval.record.complainant:
