@@ -452,7 +452,7 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="room-query-row">
                             <div class="room-query-examples">
-                                <button class="room-query-example" type="button" data-example="ขอห้องประชุมสำหรับประชุมคณะกรรมการ 12 คน วันที่ 2026-05-10 เวลา 13:00-15:00 ที่ศาลายา">ประชุมคณะกรรมการ 12 คน</button>
+                                <button class="room-query-example" type="button" data-example="ขอห้องประชุมสำหรับประชุมคณะกรรมการ 12 คน วันที่ __TODAY_BE__ เวลา 13:00-15:00 ที่ศาลายา">ประชุมคณะกรรมการ 12 คน</button>
                                 <button class="room-query-example" type="button" data-example="ต้องการห้องสอนสำหรับ 40 คน พรุ่งนี้ 09:00-12:00">ห้องสอน 40 คน</button>
                                 <button class="room-query-example" type="button" data-example="ห้องเรียนสำหรับ 20 คน ชั้น 2 วันนี้บ่าย">ห้องเรียน 20 คน ชั้น 2 วันนี้บ่าย</button>
                                 <button class="room-query-example" type="button" data-example="ขอห้องประชุม 20 คน พรุ่งนี้ เวลา 10-12">พรุ่งนี้ 10-12</button>
@@ -718,6 +718,21 @@
                     clearTimeout(searchTimer);
                     runSearch();
                 });
+            });
+
+            function formatTodayBuddhistDate() {
+                const now = new Date();
+                const day = String(now.getDate()).padStart(2, '0');
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const year = now.getFullYear() + 543;
+                return `${day}/${month}/${year}`;
+            }
+
+            const todayBe = formatTodayBuddhistDate();
+            document.querySelectorAll('.room-query-example[data-example]').forEach((button) => {
+                if (button.dataset.example && button.dataset.example.includes('__TODAY_BE__')) {
+                    button.dataset.example = button.dataset.example.replace('__TODAY_BE__', todayBe);
+                }
             });
         })();
     </script>

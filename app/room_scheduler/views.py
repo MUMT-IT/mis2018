@@ -230,9 +230,11 @@ def _parse_message_date(text_value):
     if iso_match:
         return _safe_parse_date(iso_match.group(1))
 
-    thai_match = re.search(r'\b(\d{1,2})/(\d{1,2})/(\d{4})\b', text_value)
+    thai_match = re.search(r'\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})\b', text_value)
     if thai_match:
         day, month, year = [int(part) for part in thai_match.groups()]
+        if year < 100:
+            year += 2000
         if year > 2400:
             year -= 543
         try:
@@ -243,8 +245,7 @@ def _parse_message_date(text_value):
 
 
 def _resolve_room_request_date(normalized_text, resolved_date=None, raw_text=None):
-    raw_has_relative_reference = _contains_relative_or_weekday_reference(raw_text)
-    raw_parsed_date = _parse_message_date(raw_text) if raw_has_relative_reference else None
+    raw_parsed_date = _parse_message_date(raw_text)
     if raw_parsed_date:
         return raw_parsed_date
 
@@ -406,7 +407,7 @@ def _infer_purpose_from_message(text_value, current_purpose=None):
     purpose_patterns = [
         ('สอน', r'ห้องเรียน|หาห้องเรียน|classroom'),
         ('สอน', r'ห้องปฏิบัติการ|ห้องแลบ|lab room|laboratory'),
-        ('ประชุมคณะกรรมการ', r'ประชุมคณะกรรมการ'),
+        ('ประชุม', r'ประชุมคณะกรรมการ'),
         ('ประชุมทีมบริหาร', r'ประชุมทีมบริหาร|ทีมบริหาร'),
         ('อบรมเชิงปฏิบัติการ', r'อบรมเชิงปฏิบัติการ|workshop'),
         ('ประชุม', r'ประชุม|meeting'),
