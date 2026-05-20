@@ -171,6 +171,14 @@ def _request_flag(name, default=False):
     return str(raw_value).strip().lower() in {'1', 'true', 'yes', 'y', 'on'}
 
 
+def _mask_line_id(line_id):
+    if not line_id:
+        return None
+    if len(line_id) <= 6:
+        return '***'
+    return f'{line_id[:3]}***{line_id[-3:]}'
+
+
 def _is_valid_summary_scheduler_request():
     configured_token = os.environ.get('JOB_TOKEN')
     request_token = request.values.get('job_token')
@@ -1695,6 +1703,11 @@ def admin_record_complaint_summary():
 
 @complaint_tracker.route('/admin/email-unfinished-summary', methods=['GET', 'POST'])
 def email_unfinished_summary():
+    current_app.logger.info(
+        'complaint_email_unfinished_summary_start method=%s remote_addr=%s',
+        request.method,
+        request.remote_addr,
+    )
     scheduler_request = _is_valid_summary_scheduler_request()
     if not scheduler_request:
         if not current_user.is_authenticated:
@@ -1705,6 +1718,13 @@ def email_unfinished_summary():
     recipients = _get_high_level_admin_recipients()
     should_send = _request_flag('send')
     dry_run = _request_flag('dry_run')
+    current_app.logger.info(
+        'complaint_email_unfinished_summary_checkpoint scheduler_request=%s recipients=%s should_send=%s dry_run=%s',
+        scheduler_request,
+        len(recipients),
+        should_send,
+        dry_run,
+    )
 
     if dry_run:
         packages = [_build_recipient_summary_package(recipient) for recipient in recipients]
@@ -1729,15 +1749,27 @@ def email_unfinished_summary():
         response.mimetype = 'text/plain'
         return response
 
+    sent_count = 0
     for recipient in recipients:
         package = _build_recipient_summary_package(recipient)
-        send_mail(
-            [recipient['email']],
-            package['subject'],
-            package['message'],
-            html=_render_summary_email_html(package),
-        )
+        try:
+            current_app.logger.info('complaint_email_send_start recipient=%s', recipient['email'])
+            send_mail(
+                [recipient['email']],
+                package['subject'],
+                package['message'],
+                html=_render_summary_email_html(package),
+            )
+            sent_count += 1
+        except Exception:
+            current_app.logger.exception('complaint_email_send_failed recipient=%s', recipient['email'])
+            raise
     success_message = f'ส่งอีเมลสรุปให้ผู้บริหารระดับสูงแล้ว {len(recipients)} ราย'
+    current_app.logger.info(
+        'complaint_email_unfinished_summary_end sent_count=%s total_recipients=%s',
+        sent_count,
+        len(recipients),
+    )
     if request.method == 'GET':
         response = make_response(success_message + '\n')
         response.mimetype = 'text/plain'
@@ -1753,6 +1785,11 @@ def email_unfinished_summary():
 
 @complaint_tracker.route('/admin/line-remind-no-status-today', methods=['GET', 'POST'])
 def line_remind_no_status_today():
+    current_app.logger.info(
+        'complaint_line_reminder_start method=%s remote_addr=%s',
+        request.method,
+        request.remote_addr,
+    )
     scheduler_request = _is_valid_summary_scheduler_request()
     if not scheduler_request:
         if not current_user.is_authenticated:
@@ -1772,6 +1809,14 @@ def line_remind_no_status_today():
 
     should_send = _request_flag('send')
     dry_run = _request_flag('dry_run', default=(request.method == 'GET' and not should_send))
+    current_app.logger.info(
+        'complaint_line_reminder_checkpoint scheduler_request=%s recipients=%s matched_recipients=%s should_send=%s dry_run=%s',
+        scheduler_request,
+        len(packages),
+        len(matched_packages),
+        should_send,
+        dry_run,
+    )
 
     if dry_run:
         return _render_line_reminder_dry_run_html(
@@ -1803,6 +1848,10 @@ def line_remind_no_status_today():
     failed_count = 0
     for package in matched_packages:
         try:
+            current_app.logger.info(
+                'complaint_line_reminder_push_start line_id=%s',
+                _mask_line_id(package['recipient']['line_id']),
+            )
             line_bot_api.push_message(
                 to=package['recipient']['line_id'],
                 messages=TextSendMessage(text=package['message'])
@@ -1812,7 +1861,7 @@ def line_remind_no_status_today():
             failed_count += 1
             current_app.logger.exception(
                 'Failed to send no-status-today reminder to line_id=%s',
-                package['recipient']['line_id']
+                _mask_line_id(package['recipient']['line_id'])
             )
 
     success_message = f'ส่ง Line reminder แล้ว {sent_count} ราย'
@@ -1825,6 +1874,11 @@ def line_remind_no_status_today():
         return response
 
     flash(success_message, 'success' if failed_count == 0 else 'warning')
+    current_app.logger.info(
+        'complaint_line_reminder_end sent_count=%s failed_count=%s',
+        sent_count,
+        failed_count,
+    )
     if request.headers.get('HX-Request'):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
