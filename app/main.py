@@ -1445,6 +1445,13 @@ def populate_subdistricts():
 @app.cli.command('test-scb-auth')
 @click.option('--timeout', default=30, show_default=True, type=int)
 def test_scb_auth(timeout):
+    def get_fixie_proxies():
+        fixie_host = os.environ.get("FIXIE_SOCKS_HOST")
+        if not fixie_host:
+            return None
+        proxy_url = f"socks5h://{fixie_host}"
+        return {"http": proxy_url, "https": proxy_url}
+
     auth_url = os.environ.get('SCB_AUTH_URL')
     app_key = os.environ.get('SCB_APP_KEY')
     app_secret = os.environ.get('SCB_APP_SECRET')
@@ -1478,11 +1485,22 @@ def test_scb_auth(timeout):
     click.echo('Request payload:')
     click.echo('  applicationKey: {}'.format(app_key))
     click.echo('  applicationSecret: {}'.format('[redacted]' if app_secret else None))
+    click.echo('Fixie proxy: {}'.format('enabled' if get_fixie_proxies() else 'disabled'))
 
     try:
-        response = requests.post(auth_url, headers=headers, json=payload, timeout=timeout)
+        response = requests.post(
+            auth_url,
+            headers=headers,
+            json=payload,
+            proxies=get_fixie_proxies(),
+            timeout=30
+        )
     except requests.RequestException as exc:
         raise click.ClickException('SCB auth request failed: {}'.format(exc))
+
+    content_type = (response.headers.get('Content-Type') or '').lower()
+    if response.status_code == 403 and 'html' in content_type:
+        click.echo('SCB request blocked by CloudFront/WAF. Check Fixie proxy and SCB allowlist.')
 
     click.echo('Status: {}'.format(response.status_code))
     click.echo('Response headers:')
