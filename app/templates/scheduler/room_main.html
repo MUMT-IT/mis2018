@@ -152,6 +152,10 @@
             margin-bottom: 0;
         }
 
+        .room-panel-header > div {
+            width: 100%;
+        }
+
         .room-search-form .input,
         .room-control-input {
             background: rgba(255, 255, 255, 0.98);
@@ -203,6 +207,13 @@
             font-weight: 700;
             gap: 0.5rem;
             padding: 0.7rem 1rem;
+        }
+
+        .room-query-example::before {
+            content: '\f075';
+            font-family: 'Font Awesome 5 Free';
+            font-size: 0.78rem;
+            font-weight: 400;
         }
 
         .room-query-example:hover,
@@ -383,7 +394,7 @@
                                 <h1 class="title is-2">
                                     <a href="{{ url_for('room.index') }}">Room Self-Booking System</a>
                                 </h1>
-                                <p class="subtitle is-5">ระบบการจองห้องสำหรับการประชุมหรือการเรียนการสอน รุ่น 2.0</p>
+                                <p class="subtitle is-5">ระบบการจองห้องสำหรับการประชุมหรือการเรียนการสอน รุ่น 2.2</p>
                                 <div class="buttons">
                                     <a class="button is-warning is-medium is-rounded"
                                        href="{{ url_for('room.room_event_list') }}">
@@ -433,8 +444,8 @@
                     <div class="room-panel-header">
                         <div>
                             <img class="room-search-illustration" src="{{ url_for('static', filename='img/search.png') }}" alt="Search">
-                            <h2 class="title is-4 mb-5">ค้นหาห้องที่ต้องการจอง หรือพิมพ์รายละเอียดกิจกรรม วันที่ เวลา เพื่อให้ AI ช่วยหาห้องที่ว่างและเหมาะสมโดยอัตโนมัติ</h2>
-                            <p class="subtitle is-6">พิมพ์หมายเลขห้องเพื่อดูรายละเอียด ความพร้อมใช้ และเริ่มจองได้ทันที หรือคลิกตัวอย่างด้านล่างเพื่อให้ AI ช่วยค้นหาห้องว่าง</p>
+                            <h2 class="title is-4 mb-5">ค้นหาห้องที่ต้องการจอง หรือพิมพ์รายละเอียดกิจกรรม วันที่ เวลา เพื่อให้น้อง AI ช่วยหาห้องว่าง</h2>
+                            <p class="subtitle is-6">คลิกตัวอย่างด้านล่างเพื่อให้น้อง AI ช่วยค้นหาห้องที่เหมาะสม</p>
                         </div>
                     </div>
                     <form class="room-search-form" method="post" action="{{ url_for('room.room_list') }}">
@@ -454,7 +465,7 @@
                                        type="text"
                                        name="room_number"
                                        id="roomSearchInput"
-                                       placeholder="เช่น 801 หรือ ประชุมภาควิชาวันศุกร์หน้า 13:00-15:00">
+                                       placeholder="เช่น 801 หรือ ประชุมภาควิชาวันศุกร์หน้าช่วงเช้า">
                                 <span class="icon is-right">
                                     <i class="fas fa-search"></i>
                                 </span>
