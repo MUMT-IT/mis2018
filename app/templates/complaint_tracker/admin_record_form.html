@@ -415,6 +415,34 @@
                                     </div>
                                     {% if record.topic.category.no == 1 %}
                                         <div class="field" style="margin-top: .8em">
+                                            <label class="label">ใบแจ้งซ่อม</label>
+                                            <div class="control">
+                                                {% if record.repairs %}
+                                                    {% if record.get_print_of_repair == True %}
+                                                        {% for repair in record.repairs %}
+                                                            <span class="tag is-success">
+                                                                <span class="icon"><i class="fas fa-check"></i></span>
+                                                                <span>พิมพ์แล้ว</span>
+                                                            </span>
+                                                            <div class="is-size-6 mt-1">
+                                                                ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime }}
+                                                            </div>
+                                                        {% endfor %}
+                                                    {% else %}
+                                                        <span class="tag is-warning">
+                                                            <span class="icon"><i class="fas fa-clock"></i></span>
+                                                            <span>รอพิมพ์</span>
+                                                        </span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="tag is-light">
+                                                        <span class="icon"><i class="fas fa-ban"></i></span>
+                                                        <span>ไม่มีใบแจ้งซ่อม</span>
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="field" style="margin-top: .8em">
                                             <label class="label">ใบอนุมัติหลักการซ่อม</label>
                                             <div class="control">
                                                 {% if record.repair_approvals %}
