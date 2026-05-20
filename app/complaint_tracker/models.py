@@ -363,6 +363,15 @@ class ComplaintCoordinator(db.Model):
         return None
 
 
+class ComplaintRepair(db.Model):
+    __tablename__ = 'complaint_repairs'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    is_print = db.Column('is_print', db.Boolean(), default=False)
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('repairs'))
+
+
 class ComplaintRepairApproval(db.Model):
     __tablename__ = 'complaint_repair_approvals'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
