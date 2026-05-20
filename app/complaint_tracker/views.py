@@ -1880,6 +1880,45 @@ def line_remind_no_status_today():
     return redirect(request.referrer or url_for('comp_tracker.admin_record_complaint_summary', menu='all'))
 
 
+@complaint_tracker.route('/admin/repair/add/<int:record_id>', methods=['GET', 'POST'])
+@login_required
+def create_repair(record_id):
+    repair = ComplaintRepair(record_id=record_id, created_at=arrow.now('Asia/Bangkok').datetime)
+    db.session.add(repair)
+    db.session.commit()
+    if repair.get_other_org == True:
+        scheme = 'http' if current_app.debug else 'https'
+        link = url_for("comp_tracker.repair_approval_index", tab='new', _external=True, _scheme=scheme)
+        title = f'''แจ้งออกใบแจ้งซ่อมรายการเลขที่ {repair.record.id}'''
+        message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งซ่อมสำหรับรายการเลขที่ {repair.record.id} เรียบร้อยแล้ว กรุณาดำเนินการในขั้นตอนถัดไปตามกระบวนการที่เกี่ยวข้อง\n'''
+        message += f'''ท่านสามารถดำเนินการพิมพ์เอกสารได้ที่ลิงก์ด้านล่าง\n{link}\n\n'''
+        message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
+        if repair.record.complainant:
+            msg = (
+                f'เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งซ่อมสำหรับรายการเลขที่ {repair.record.id} เรียบร้อยแล้ว\n\n'
+                f'ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์')
+            message_for_complainant = f'''เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งซ่อมสำหรับรายการเลขที่ {repair.record.id} เรียบร้อยแล้ว\n\n'''
+            message_for_complainant += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
+
+            send_mail([repair.record.complainant.email + '@mahidol.ac.th'], title,
+                          message_for_complainant)
+            if not current_app.debug:
+                try:
+                    line_bot_api.push_message(to=repair.record.complainant.line_id,
+                                                messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
+            else:
+                print('msg :', msg, 'line :', repair.record.complainant.line_id)
+        send_mail(
+            [secretary.email + '@mahidol.ac.th' for secretary in repair.owner.personal_info.org.secretary_staff],
+            title, message)
+    flash('ออกใบแจ้งซ่อมสำเร็จ', 'success')
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
+
+
 @complaint_tracker.route('/repair_approval/index')
 @login_required
 def repair_approval_index():
@@ -2009,12 +2048,12 @@ def create_repair_approval(record_id, repair_approval_id=None):
                 link = url_for("comp_tracker.repair_approval_index", tab='new', _external=True, _scheme=scheme)
                 if repair_approval_id:
                     title = f'''แจ้งแก้ไขใบอนุมัติหลักการซ่อม {rep_approval.item}'''
-                    message = f'''เจ้าหน้าที่ได้ดำเนินการแก้ไขข้อมูลใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} กรุณาดำเนินการในขั้นตอนถัดไปตามกระบวนการที่เกี่ยวข้อง\n'''
+                    message = f'''เจ้าหน้าที่ได้ดำเนินการแก้ไขข้อมูลใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} เรียบร้อยแล้ว กรุณาดำเนินการในขั้นตอนถัดไปตามกระบวนการที่เกี่ยวข้อง\n'''
                     message += f'''ท่านสามารถดำเนินการพิมพ์เอกสารได้ที่ลิงก์ด้านล่าง\n{link}\n\n'''
                     message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
                 else:
                     title = f'''แจ้งออกใบอนุมัติหลักการซ่อม {rep_approval.item}'''
-                    message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} กรุณาดำเนินการในขั้นตอนถัดไปตามกระบวนการที่เกี่ยวข้อง\n'''
+                    message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} เรียบร้อยแล้ว กรุณาดำเนินการในขั้นตอนถัดไปตามกระบวนการที่เกี่ยวข้อง\n'''
                     message += f'''ท่านสามารถดำเนินการพิมพ์เอกสารได้ที่ลิงก์ด้านล่าง\n{link}\n\n'''
                     message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
                     if rep_approval.record.complainant:
