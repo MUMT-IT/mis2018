@@ -1287,11 +1287,11 @@ def edit_comment(record_id=None, action_id=None):
         db.session.add(action)
         db.session.commit()
         if record_id:
-            flash('เพิ่มความคิดเห็น/ข้อเสนอแนะสำเร็จ', 'success')
+            flash('เพิ่มข้อมูลสำเร็จ', 'success')
             resp = make_response(render_template('complaint_tracker/comment_template.html', action=action))
             resp.headers['HX-Trigger'] = 'closeModal'
         else:
-            flash('แก้ไขความคิดเห็น/ข้อเสนอแนะสำเร็จ', 'success')
+            flash('แก้ไขข้อมูลสำเร็จ', 'success')
             resp = make_response()
             resp.headers['HX-Refresh'] = 'true'
         return resp
@@ -1306,7 +1306,7 @@ def delete_comment(action_id):
         action = ComplaintActionRecord.query.get(action_id)
         db.session.delete(action)
         db.session.commit()
-        flash('ลบความคิดเห็น/ข้อเสนอแนะสำเร็จ', 'success')
+        flash('ลบข้อมูลสำเร็จ', 'success')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
@@ -1433,12 +1433,12 @@ def create_report(record_id=None, report_id=None):
         db.session.add(report)
         db.session.commit()
         if record_id:
-            flash('เพิ่มรายงานผลการดำเนินงานสำเร็จ', 'success')
+            flash('เพิ่มข้อมูลสำเร็จ', 'success')
             resp = make_response(render_template('complaint_tracker/performance_report_template.html',
                                                  report=report))
             resp.headers['HX-Trigger'] = 'closeReport'
         else:
-            flash('แก้ไขรายงานผลการดำเนินงานสำเร็จ', 'success')
+            flash('แก้ไขข้อมูลสำเร็จ', 'success')
             resp = make_response()
             resp.headers['HX-Refresh'] = 'true'
         return resp
@@ -1453,7 +1453,7 @@ def delete_report(report_id):
         report = ComplaintPerformanceReport.query.get(report_id)
         db.session.delete(report)
         db.session.commit()
-        flash('ลบรายงานผลการดำเนินงานสำเร็จ', 'success')
+        flash('ลบข้อมูลสำเร็จ', 'success')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
