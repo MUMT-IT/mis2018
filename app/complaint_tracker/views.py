@@ -1914,7 +1914,7 @@ def create_repair(record_id):
             else:
                 print('msg :', msg, 'line :', repair.record.complainant.line_id)
         send_mail(
-            [secretary.email + '@mahidol.ac.th' for secretary in repair.owner.personal_info.org.secretary_staff],
+            [secretary.email + '@mahidol.ac.th' for secretary in repair.record.complainant.personal_info.org.secretary_staff],
             title, message)
     flash('ออกใบแจ้งซ่อมสำเร็จ', 'success')
     resp = make_response()
