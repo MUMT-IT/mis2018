@@ -41,6 +41,18 @@ scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/au
 _json_keyfile = None
 
 
+def _env_flag(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.lower() in {'1', 'true', 'yes', 'on'}
+
+
+def _default_secure_cookies():
+    public_base_url = os.environ.get('PUBLIC_BASE_URL', '')
+    return public_base_url.startswith('https://')
+
+
 def get_json_keyfile():
     global _json_keyfile
     if _json_keyfile is None:
@@ -128,6 +140,13 @@ def create_app():
     app.config['MAIL_PORT'] = 587
     app.config['MAIL_USE_TLS'] = True
     app.config['PREFERRED_URL_SCHEME'] = 'https'
+    app.config['PUBLIC_BASE_URL'] = os.environ.get('PUBLIC_BASE_URL')
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = os.environ.get('SESSION_COOKIE_SAMESITE', 'Lax')
+    app.config['SESSION_COOKIE_SECURE'] = _env_flag('SESSION_COOKIE_SECURE', _default_secure_cookies())
+    app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+    app.config['REMEMBER_COOKIE_SAMESITE'] = os.environ.get('REMEMBER_COOKIE_SAMESITE', 'Lax')
+    app.config['REMEMBER_COOKIE_SECURE'] = _env_flag('REMEMBER_COOKIE_SECURE', _default_secure_cookies())
     app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
     app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
     app.config['MAIL_DEFAULT_SENDER'] = ('MUMT-MIS',
@@ -316,11 +335,6 @@ def home_dashboard():
 def user_support_index():
     return render_template('support.html')
 
-
-from app.food import foodbp as food_blueprint
-
-app.register_blueprint(food_blueprint)
-from app.food.models import *
 
 from app.kpi import kpibp as kpi_blueprint
 
@@ -667,10 +681,6 @@ class ProductCodeAdminModel(ModelView):
 
 
 admin.add_views(ProductCodeAdminModel(models.ProductCode, db.session, category='Finance'))
-
-from app.lisedu import lisedu as lis_blueprint
-
-app.register_blueprint(lis_blueprint, url_prefix='/lis')
 
 from app.eduqa import eduqa_bp as eduqa_blueprint
 from app.eduqa.models import *
@@ -1435,6 +1445,13 @@ def populate_subdistricts():
 @app.cli.command('test-scb-auth')
 @click.option('--timeout', default=30, show_default=True, type=int)
 def test_scb_auth(timeout):
+    def get_fixie_proxies():
+        fixie_host = os.environ.get("FIXIE_SOCKS_HOST")
+        if not fixie_host:
+            return None
+        proxy_url = f"socks5h://{fixie_host}"
+        return {"http": proxy_url, "https": proxy_url}
+
     auth_url = os.environ.get('SCB_AUTH_URL')
     app_key = os.environ.get('SCB_APP_KEY')
     app_secret = os.environ.get('SCB_APP_SECRET')
@@ -1468,11 +1485,22 @@ def test_scb_auth(timeout):
     click.echo('Request payload:')
     click.echo('  applicationKey: {}'.format(app_key))
     click.echo('  applicationSecret: {}'.format('[redacted]' if app_secret else None))
+    click.echo('Fixie proxy: {}'.format('enabled' if get_fixie_proxies() else 'disabled'))
 
     try:
-        response = requests.post(auth_url, headers=headers, json=payload, timeout=timeout)
+        response = requests.post(
+            auth_url,
+            headers=headers,
+            json=payload,
+            proxies=get_fixie_proxies(),
+            timeout=30
+        )
     except requests.RequestException as exc:
         raise click.ClickException('SCB auth request failed: {}'.format(exc))
+
+    content_type = (response.headers.get('Content-Type') or '').lower()
+    if response.status_code == 403 and 'html' in content_type:
+        click.echo('SCB request blocked by CloudFront/WAF. Check Fixie proxy and SCB allowlist.')
 
     click.echo('Status: {}'.format(response.status_code))
     click.echo('Response headers:')
@@ -2236,12 +2264,3 @@ from app.continuing_edu.admin.views import admin_bp as continuing_edu_admin_bp
 from app.continuing_edu.admin.certifications import cert_bp as continuing_edu_admin_cert_bp
 app.register_blueprint(continuing_edu_admin_bp)
 app.register_blueprint(continuing_edu_admin_cert_bp)
-
-if __name__ == '__main__':
-    import os
-    cert_file = os.path.join(os.path.dirname(__file__), '..', '..', 'cert.pem')
-    key_file = os.path.join(os.path.dirname(__file__), '..', '..', 'key.pem')
-    if os.path.exists(cert_file) and os.path.exists(key_file):
-        app.run(debug=True, port=5005, host="0.0.0.0", ssl_context=(cert_file, key_file))
-    else:
-        app.run(debug=True, port=5005, host="0.0.0.0")

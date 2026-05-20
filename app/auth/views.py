@@ -8,6 +8,7 @@ from flask_admin.helpers import is_safe_url
 from . import authbp as auth
 from app.main import db, mail
 from app.main import app
+from app.url_utils import external_url
 from flask_mail import Message
 from flask import (render_template, redirect, request,
                    url_for, flash, abort, session, current_app)
@@ -40,7 +41,7 @@ def _is_google_login_enabled():
 
 
 def _google_redirect_uri():
-    return os.getenv('GOOGLE_REDIRECT_URI') or urljoin(request.host_url, '/auth/google/callback')
+    return os.getenv('GOOGLE_REDIRECT_URI') or external_url('auth.google_callback')
 
 
 def _google_oauth_session(state=None):
@@ -202,7 +203,7 @@ def forgot_password():
                 return render_template('auth/forgot_password.html', form=form, errors=form.errors)
             serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
             token = serializer.dumps({'email': form.email.data})
-            url = url_for('auth.reset_password', token=token, email=form.email.data, _external=True)
+            url = external_url('auth.reset_password', token=token, email=form.email.data)
             message = u'Click the link below to reset the password.'\
                       u' กรุณาคลิกที่ลิงค์เพื่อทำการตั้งค่ารหัสผ่านใหม่\n\n{}'.format(url)
             try:
@@ -308,7 +309,7 @@ def google_callback():
 @auth.route('/line/login')
 def line_login():
     line_auth_url = 'https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id={}&redirect_uri={}&state=494959&scope=profile'
-    line_auth_url = line_auth_url.format(LINE_CLIENT_ID, url_for('auth.line_callback', _external=True, _scheme='https'))
+    line_auth_url = line_auth_url.format(LINE_CLIENT_ID, external_url('auth.line_callback'))
     return redirect(line_auth_url)
 
 
@@ -322,7 +323,7 @@ def line_callback():
         data = {'Content-Type': 'application/x-www-form-urlencoded',
                 'grant_type': 'authorization_code',
                 'code': code,
-                'redirect_uri': url_for('auth.line_callback', _external=True, _scheme='https'),
+                'redirect_uri': external_url('auth.line_callback'),
                 'client_id': LINE_CLIENT_ID,
                 'client_secret': LINE_CLIENT_SECRET
                 }
