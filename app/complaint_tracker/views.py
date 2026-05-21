@@ -1091,7 +1091,6 @@ def edit_record_admin(record_id):
                                            tab=tab, file_url=file_url, admins=admins, investigators=investigators,
                                            coordinators=coordinators, repair_approval_id=repair_approval_id, statuses=statuses)
             elif old_status and not new_status:
-                print('n', new_status)
                 form.status.data = old_status
                 flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
                 return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
@@ -2131,7 +2130,7 @@ def edit_repair_approval(repair_approval_id):
                                    repair_approval_id=repair_approval_id, form=form, record_id=repair_approval.record_id,
                                    tamp=temp, tab=tab, menu=menu)
     return render_template('complaint_tracker/edit_repair_approval.html',
-                           repair_approval_id=repair_approval_id, form=form, record_id=repair_approval.record_id, tamp=temp,
+                           repair_approval_id=repair_approval_id, form=form, record_id=repair_approval.record_id, temp=temp,
                            tab=tab, menu=menu)
 
 
