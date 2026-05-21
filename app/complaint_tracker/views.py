@@ -1922,6 +1922,34 @@ def create_repair(record_id):
     return resp
 
 
+def generate_repair_pdf(repair):
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer,
+                            pagesize=A4,
+                            rightMargin=38,
+                            leftMargin=38,
+                            topMargin=38,
+                            bottomMargin=38
+                            )
+    data = []
+    doc.build(data, canvasmaker=NumberedCanvas)
+    buffer.seek(0)
+    return buffer
+
+
+@complaint_tracker.route('/admin/repair/pdf/<int:repair_id>', methods=['GET'])
+@login_required
+def export_repair_pdf(repair_id):
+    repair = ComplaintRepair.query.get(repair_id)
+    buffer = generate_repair_pdf(repair)
+    # if not repair.reviewed_at:
+    #     repair.is_print = True
+    #     # repair.reviewed_at = arrow.now('Asia/Bangkok').datetime
+    #     db.session.add(repair)
+    #     db.session.commit()
+    return send_file(buffer, download_name='Repair_form.pdf', as_attachment=True)
+
+
 @complaint_tracker.route('/repair_approval/index')
 @login_required
 def repair_approval_index():
@@ -1987,11 +2015,14 @@ def create_repair_approval(record_id, repair_approval_id=None):
     if ((org.parent and org.parent.parent and org.parent.parent.name == 'สำนักงานคณบดี') or
             (org.parent and org.parent.name == 'สำนักงานคณบดี') or (org.name == 'สำนักงานคณบดี')):
         staff = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
+        owner_id = staff.id
         form.name.data = staff.fullname
         form.position.data = f"หัวหน้า{staff.personal_info.org.name}"
         get_organization(org=staff.personal_info.org, form=form)
     else:
-        form.name.data = record.complainant.fullname
+        user = record.complainant or current_user
+        owner_id = user.id
+        form.name.data = user.fullname
         form.position.data = record.complainant.personal_info.position
         get_organization(org=record.complainant.personal_info.org, form=form)
 
@@ -2028,7 +2059,7 @@ def create_repair_approval(record_id, repair_approval_id=None):
             rep_approval.record_id = record_id
             rep_approval.created_at = arrow.now('Asia/Bangkok').datetime
             rep_approval.creator_id = current_user.id
-            rep_approval.owner_id = record.complainant_id if record.complainant else current_user.id
+            rep_approval.owner_id = owner_id
         else:
             rep_approval.updated_at = arrow.now('Asia/Bangkok').datetime
 
@@ -2302,26 +2333,25 @@ def generate_repair_approval_pdf(repair_approval):
     )
 
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
-    org_name = repair_approval.record.complainant.personal_info.org.name if repair_approval.record.complainant \
-        else current_user.personal_info.org.name
+    org_name = repair_approval.owner.personal_info.org.name
     org = Org.query.filter_by(name=org_name).first()
     staff = StaffAccount.query.filter_by(email=org.head).first()
     mhesi_no = '''<font name="SarabunBold">ที่</font>'''
     if org.name == 'หน่วยข้อมูลและสารสนเทศ':
         head = "ผู้ช่วยศาสตราจารย์ ดร.ลิขิต ปรียานนท์"
-        organization_text = f"{org.name}<br/>งานยุทธศาสตร์\u00A0และการบริหารพัฒนาทรัพยากร\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number}"
+        organization_text = f"{org.name}<br/>งานยุทธศาสตร์\u00A0และการบริหารพัฒนาทรัพยากร\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number or ''}"
     elif org.name == 'หน่วยซ่อมบำรุง':
         head = "รองศาสตราจารย์ ดร.กลมรัตน์ โพธิ์ปิ่น"
-        organization_text = f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number}"
+        organization_text = f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number or ''}"
     elif org.parent and org.parent.parent:
         head = staff.fullname
-        organization_text = f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number}"
+        organization_text = f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number or ''}"
     elif org.parent and not org.parent.parent:
         head = staff.fullname
-        organization_text = f"{org.name}<br/>{org.parent.name}<br/>โทร {org.phone_number}"
+        organization_text = f"{org.name}<br/>{org.parent.name}<br/>โทร {org.phone_number or ''}"
     else:
         head = staff.fullname
-        organization_text = f"{org.name}<br/>โทร {org.phone_number}"
+        organization_text = f"{org.name}<br/>โทร {org.phone_number or ''}"
     organization_info = Paragraph(organization_text, style=header_right_style)
     person = Table([
         [Paragraph('ลงชื่อ', center_style), Paragraph('ผู้ขออนุมัติ', center_style)],
