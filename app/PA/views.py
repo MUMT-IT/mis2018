@@ -708,7 +708,9 @@ def show_committee():
     if org_id is None:
         committee_list = PACommittee.query.all()
     else:
-        committee_list = PACommittee.query.filter_by(org_id=org_id).all()
+        selected_org = Org.query.get(org_id)
+        org_ids = get_org_and_children_ids(selected_org) if selected_org else [org_id]
+        committee_list = PACommittee.query.filter(PACommittee.org_id.in_(org_ids)).all()
     return render_template('staff/HR/PA/hr_show_committee.html',
                            sel_dept=org_id,
                            committee_list=committee_list,
@@ -808,16 +810,25 @@ def consensus_scoresheets_for_hr():
         rounds = PARound.query.order_by(PARound.id.desc()).all()
         employment_id = request.args.get('empid', type=int)
         round_id = request.args.get('roundid', type=int)
+        org_id = request.args.get('deptid', type=int)
         employments = StaffEmployment.query.all()
-        if employment_id is None:
-            scoresheet_list = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True)
-        else:
-            employment_scoresheets = []
-            scoresheet_list = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True).all()
-            for scoresheet in scoresheet_list:
-                if scoresheet.pa.staff.personal_info.employment_id == employment_id:
-                    employment_scoresheets.append(scoresheet)
-            scoresheet_list = employment_scoresheets
+        departments = Org.query.order_by(Org.id.asc()).all()
+        scoresheet_list = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True).all()
+
+        if employment_id is not None:
+            scoresheet_list = [
+                scoresheet for scoresheet in scoresheet_list
+                if scoresheet.pa.staff.personal_info.employment_id == employment_id
+            ]
+
+        if org_id is not None:
+            selected_org = Org.query.get(org_id)
+            org_ids = get_org_and_children_ids(selected_org) if selected_org else [org_id]
+            scoresheet_list = [
+                scoresheet for scoresheet in scoresheet_list
+                if scoresheet.pa.staff.personal_info.org_id in org_ids
+            ]
+
         if round_id:
             scoresheets = []
             for scoresheet in scoresheet_list:
@@ -829,7 +840,9 @@ def consensus_scoresheets_for_hr():
 
         return render_template('staff/HR/PA/hr_all_consensus_scores.html', all_rounds=all_rounds,
                                sel_emp=employment_id,
+                               sel_dept=org_id,
                                scoresheet_list=scoresheet_list,
+                               departments=[{'id': d.id, 'name': d.name} for d in departments],
                                employments=[{'id': e.id, 'title': e.title} for e in employments],
                                round=round_id,
                                rounds=[{'id': r.id,

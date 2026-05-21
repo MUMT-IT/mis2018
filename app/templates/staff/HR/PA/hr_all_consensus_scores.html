@@ -46,6 +46,11 @@
                     <option v-for="e in employments" v-bind:value="e.id" key="e.id"><% e.title %></option>
                 </select>
             </div>
+            <div class="select">
+                <select v-model="department" v-on:change="proceed()">
+                    <option v-for="d in departments" v-bind:value="d.id" key="d.id"><% d.name %></option>
+                </select>
+            </div>
         </div>
     {% include "messages.html" %}
         <div class="columns">
@@ -154,21 +159,26 @@
             return {
                 employments : {{ employments|tojson|safe }},
                 employment : {{ sel_emp|tojson|safe }},
+                departments : {{ departments|tojson|safe }},
+                department : {{ sel_dept|tojson|safe }},
                 rounds : {{ rounds|tojson|safe }},
                 round : {{ round|tojson|safe }},
             }
         },
         methods: {
             proceed: function() {
-                if (this.round === null && this.employment !== null){
-                    window.location.href = "/pa/hr/all-consensus-scoresheets?empid="+this.employment;
+                const params = new URLSearchParams()
+                if (this.employment !== null && this.employment !== '') {
+                    params.append('empid', this.employment)
                 }
-                if (this.round !== null && this.employment !== null){
-                    window.location.href = "/pa/hr/all-consensus-scoresheets?empid="+this.employment+"&roundid="+this.round;
+                if (this.round !== null && this.round !== '') {
+                    params.append('roundid', this.round)
                 }
-                if (this.round != null && this.employment == null){
-                    window.location.href = "/pa/hr/all-consensus-scoresheets?"+"&roundid="+this.round;
+                if (this.department !== null && this.department !== '') {
+                    params.append('deptid', this.department)
                 }
+                const query = params.toString()
+                window.location.href = "/pa/hr/all-consensus-scoresheets" + (query ? "?" + query : "")
             }
         }
     })
