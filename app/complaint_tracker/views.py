@@ -1161,9 +1161,10 @@ def edit_record_admin(record_id):
                     print('line_id :', record.complainant.line_id, 'msg :', msg)
         return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
                                file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
-                               repair_approval_id=repair_approval_id, statuses=statuses)
+                               statuses=statuses)
     else:
-        return render_template('complaint_tracker/record_cancelled_page.html', record_id=record_id, tab=tab)
+        return render_template('complaint_tracker/record_cancelled_page.html', record_id=record_id,
+                               tab=tab)
 
 
 @complaint_tracker.route('/admin', methods=['GET', 'POST'])
@@ -2107,20 +2108,32 @@ def create_repair_approval(record_id, repair_approval_id=None):
 @complaint_tracker.route('/repair-approval/edit/<int:repair_approval_id>', methods=['GET', 'POST'])
 @login_required
 def edit_repair_approval(repair_approval_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    temp = request.args.get('temp')
     repair_approval = ComplaintRepairApproval.query.get(repair_approval_id)
     form = ComplaintRepairApprovalForm(obj=repair_approval)
     if form.validate_on_submit():
         form.populate_obj(repair_approval)
-        repair_approval.is_print = True
-        repair_approval.updated_at = arrow.now('Asia/Bangkok').datetime
-        db.session.add(repair_approval)
-        db.session.commit()
-        flash('แก้ไขข้อมูลสำเร็จ', 'success')
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
-        return resp
-    return render_template('complaint_tracker/modal/edit_repair_approval_modal.html',
-                           repair_approval_id=repair_approval_id, form=form)
+        if form.cost_center.data and form.io_code.data and form.product_code.data:
+            repair_approval.is_print = True
+            repair_approval.updated_at = arrow.now('Asia/Bangkok').datetime
+            db.session.add(repair_approval)
+            db.session.commit()
+            flash('แก้ไขข้อมูลสำเร็จ', 'success')
+            if temp == 'index':
+                return redirect(url_for('comp_tracker.repair_approval_index', tab=tab, menu=menu))
+            else:
+                return redirect(url_for('comp_tracker.edit_record_admin', record_id=repair_approval.record_id, tab=tab))
+        else:
+            flash('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
+            return render_template('complaint_tracker/edit_repair_approval.html',
+                                   repair_approval_id=repair_approval_id, form=form, record_id=repair_approval.record_id,
+                                   tamp=temp, tab=tab, menu=menu)
+    return render_template('complaint_tracker/edit_repair_approval.html',
+                           repair_approval_id=repair_approval_id, form=form, record_id=repair_approval.record_id, tamp=temp,
+                           tab=tab, menu=menu)
+
 
 @complaint_tracker.route('/admin/repair-approval/committee/add/<int:repair_approval_id>', methods=['GET', 'POST'])
 @login_required
