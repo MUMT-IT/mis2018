@@ -214,6 +214,39 @@ def _get_high_level_admin_recipients():
     return sorted(normalized, key=lambda item: item['email'])
 
 
+def _group_high_level_admin_recipients_by_topic_scope(recipients):
+    grouped = {}
+    for recipient in recipients:
+        topic_ids = tuple(recipient.get('topic_ids') or [])
+        if topic_ids not in grouped:
+            grouped[topic_ids] = {
+                'email': recipient['email'],
+                'emails': [],
+                'staff_name': '',
+                'staff_names': [],
+                'topic_ids': list(topic_ids),
+                'topic_names': set(),
+            }
+        grouped_recipient = grouped[topic_ids]
+        grouped_recipient['emails'].append(recipient['email'])
+        grouped_recipient['staff_names'].append(recipient['staff_name'])
+        grouped_recipient['topic_names'].update(recipient.get('topic_names') or [])
+
+    normalized = []
+    for grouped_recipient in grouped.values():
+        emails = sorted(set(grouped_recipient['emails']))
+        staff_names = sorted(set(grouped_recipient['staff_names']))
+        normalized.append({
+            'email': emails[0],
+            'emails': emails,
+            'staff_name': ', '.join(staff_names),
+            'staff_names': staff_names,
+            'topic_ids': grouped_recipient['topic_ids'],
+            'topic_names': sorted(grouped_recipient['topic_names']),
+        })
+    return sorted(normalized, key=lambda item: (item['topic_ids'], item['email']))
+
+
 def _get_low_level_line_recipients():
     recipients = {}
     admins = ComplaintAdmin.query.filter_by(is_supervisor=False).join(ComplaintAdmin.admin).all()
@@ -288,22 +321,25 @@ def _build_today_no_status_records_snapshot(topic_ids=None):
     if topic_ids:
         records_query = records_query.filter(ComplaintRecord.topic_id.in_(topic_ids))
 
-    records = records_query.order_by(ComplaintRecord.created_at.asc()).all()
+    records = records_query.order_by(ComplaintRecord.created_at.asc()).yield_per(200)
     items = []
     topic_counts = defaultdict(int)
+    total_records = 0
+    preview_limit = 200
     for record in records:
+        total_records += 1
         topic_label = record.topic.topic if record.topic else 'ไม่ระบุหัวข้อ'
         topic_counts[topic_label] += 1
-        items.append({
-            'id': record.id,
-            'topic': topic_label,
-            'created_at': record.created_at.astimezone(localtz).strftime('%H:%M') if record.created_at else '-',
-            'description': (record.desc or '').strip(),
-        })
+        if len(items) < preview_limit:
+            items.append({
+                'id': record.id,
+                'topic': topic_label,
+                'created_at': record.created_at.astimezone(localtz).strftime('%H:%M') if record.created_at else '-',
+            })
 
     return {
         'date_label': now.strftime('%d/%m/%Y'),
-        'total_records': len(items),
+        'total_records': total_records,
         'records': items,
         'topic_counts': dict(sorted(topic_counts.items(), key=lambda item: (-item[1], item[0]))),
     }
@@ -316,7 +352,11 @@ def _build_low_level_line_reminder_message(recipient, snapshot):
     topic_summary = ', '.join(
         f"{topic} {count} เรื่อง" for topic, count in list(snapshot['topic_counts'].items())[:3]
     ) or 'ไม่มีรายละเอียดหัวข้อ'
-    record_ids = ', '.join(str(item['id']) for item in snapshot['records'])
+    record_ids_preview_limit = 50
+    preview_ids = [str(item['id']) for item in snapshot['records'][:record_ids_preview_limit]]
+    record_ids = ', '.join(preview_ids)
+    if snapshot['total_records'] > record_ids_preview_limit:
+        record_ids += f" ... และอีก {snapshot['total_records'] - record_ids_preview_limit} รายการ"
 
     return (
         f"แจ้งเตือนรายการแจ้งปัญหา/ซ่อมบำรุงใหม่ยังไม่ได้ตรวจสอบ วันที่ {snapshot['date_label']}\n"
@@ -326,7 +366,8 @@ def _build_low_level_line_reminder_message(recipient, snapshot):
     )
 
 
-def _build_low_level_line_reminder_package(recipient):
+def _build_low_level_line_reminder_package(recipient, snapshot_cache=None):
+    snapshot_cache = snapshot_cache if snapshot_cache is not None else {}
     topic_ids = recipient.get('topic_ids')
     if not topic_ids:
         snapshot = {
@@ -336,7 +377,11 @@ def _build_low_level_line_reminder_package(recipient):
             'topic_counts': {},
         }
     else:
-        snapshot = _build_today_no_status_records_snapshot(topic_ids=topic_ids)
+        cache_key = tuple(topic_ids)
+        snapshot = snapshot_cache.get(cache_key)
+        if snapshot is None:
+            snapshot = _build_today_no_status_records_snapshot(topic_ids=topic_ids)
+            snapshot_cache[cache_key] = snapshot
     message = _build_low_level_line_reminder_message(recipient, snapshot)
     return {
         'recipient': recipient,
@@ -444,9 +489,6 @@ def _build_unfinished_records_snapshot(topic_ids=None):
         records_query = records_query.filter(ComplaintRecord.topic_id.in_(topic_ids))
         completed_query = completed_query.filter(ComplaintRecord.topic_id.in_(topic_ids))
 
-    records = records_query.all()
-    recently_completed_records = completed_query.all()
-
     status_counts = defaultdict(int)
     category_counts = defaultdict(int)
     topic_counts = defaultdict(int)
@@ -468,8 +510,11 @@ def _build_unfinished_records_snapshot(topic_ids=None):
     aged_14_plus = 0
     aged_30_plus = 0
     oldest_open_days = 0
+    total_open_records = 0
+    completed_last_7_days = 0
 
-    for record in records:
+    for record in records_query.yield_per(200):
+        total_open_records += 1
         status_label = record.status.status if record.status else 'ยังไม่ระบุสถานะ'
         status_counts[status_label] += 1
         category_counts[record.topic.category.category if record.topic and record.topic.category else 'ไม่ระบุหมวด'] += 1
@@ -508,7 +553,8 @@ def _build_unfinished_records_snapshot(topic_ids=None):
         elif deadline <= due_soon_limit:
             due_soon_count += 1
 
-    for record in recently_completed_records:
+    for record in completed_query.yield_per(200):
+        completed_last_7_days += 1
         completed_category_counts[
             record.topic.category.category if record.topic and record.topic.category else 'ไม่ระบุหมวด'
         ] += 1
@@ -527,8 +573,8 @@ def _build_unfinished_records_snapshot(topic_ids=None):
     return {
         'generated_at': now.strftime('%Y-%m-%d %H:%M'),
         'scope_topic_ids': topic_ids or [],
-        'total_open_records': len(records),
-        'completed_last_7_days': len(recently_completed_records),
+        'total_open_records': total_open_records,
+        'completed_last_7_days': completed_last_7_days,
         'status_counts': dict(sorted(status_counts.items(), key=lambda item: (-item[1], item[0]))),
         'category_counts': dict(sorted(category_counts.items(), key=lambda item: (-item[1], item[0]))),
         'topic_counts': dict(sorted(topic_counts.items(), key=lambda item: (-item[1], item[0]))),
@@ -697,14 +743,28 @@ def _build_summary_scope_label(recipient):
     )
 
 
-def _build_recipient_summary_package(recipient):
-    snapshot = _build_unfinished_records_snapshot(topic_ids=recipient.get('topic_ids'))
+def _build_recipient_summary_package(recipient, snapshot_cache=None):
+    snapshot_cache = snapshot_cache if snapshot_cache is not None else {}
+    topic_ids = recipient.get('topic_ids') or []
+    cache_key = tuple(topic_ids)
+    snapshot = snapshot_cache.get(cache_key)
+    if snapshot is None:
+        snapshot = _build_unfinished_records_snapshot(topic_ids=topic_ids)
+        snapshot_cache[cache_key] = snapshot
+    snapshot = dict(snapshot)
     snapshot['scope_topics'] = recipient.get('topic_names') or []
-    try:
-        ai_summary = _call_typhoon_complaint_summary(snapshot)
-    except Exception:
-        current_app.logger.exception(
-            'Failed to generate complaint summary with Typhoon AI for %s.',
+    if _should_call_typhoon_summary(snapshot):
+        try:
+            ai_summary = _call_typhoon_complaint_summary(snapshot)
+        except Exception:
+            current_app.logger.exception(
+                'Failed to generate complaint summary with Typhoon AI for %s.',
+                recipient.get('email'),
+            )
+            ai_summary = _build_fallback_complaint_summary(snapshot)
+    else:
+        current_app.logger.info(
+            'skip_typhoon_summary recipient=%s reason=all_key_metrics_zero',
             recipient.get('email'),
         )
         ai_summary = _build_fallback_complaint_summary(snapshot)
@@ -764,6 +824,17 @@ def _get_unfinished_chart_values(snapshot):
     ]
 
 
+def _should_call_typhoon_summary(snapshot):
+    key_values = [
+        snapshot.get('total_open_records', 0),
+        snapshot.get('status_counts', {}).get('รับเรื่อง/รอดำเนินการ', 0),
+        snapshot.get('no_status_count', 0),
+        snapshot.get('overdue_count', 0),
+        snapshot.get('due_soon_count', 0),
+    ]
+    return any(value > 0 for value in key_values)
+
+
 def _render_email_chart_html(snapshot):
     values = _get_unfinished_chart_values(snapshot)
     max_value = max([value for _, value, _ in values] + [1])
@@ -801,6 +872,8 @@ def _render_dry_run_html(packages, should_send):
         snapshot = package['snapshot']
         chart_html = _render_dry_run_chart(snapshot)
         message_html = escape(package['message']).replace('\n', '<br>')
+        recipient_emails = recipient.get('emails') or [recipient.get('email')]
+        recipients_label = ', '.join(email for email in recipient_emails if email)
         cards.append(f'''
         <section class="card">
             <div class="card-header">
@@ -821,6 +894,7 @@ def _render_dry_run_html(packages, should_send):
             </div>
             <div class="meta">
                 <p><strong>Subject:</strong> {escape(package['subject'])}</p>
+                <p><strong>Recipients:</strong> {escape(recipients_label)}</p>
             </div>
             <div class="message">
                 <h3>Message Preview</h3>
@@ -872,7 +946,7 @@ def _render_dry_run_html(packages, should_send):
   <main class="page">
     <header class="hero">
       <h1>Dry Run: Complaint Summary Email</h1>
-      <p>Send flag: {str(should_send)} | Recipient count: {len(packages)}</p>
+      <p>Send flag: {str(should_send)} | Email group count: {len(packages)}</p>
       <div class="notice">รายงานตัวอย่างนี้และเนื้อหาสรุปในอีเมลจัดทำขึ้นโดยระบบอัตโนมัติร่วมกับ AI เพื่อช่วยสรุปภาพรวมสำหรับการติดตามงาน</div>
     </header>
     <div class="grid">
@@ -1766,18 +1840,25 @@ def email_unfinished_summary():
             abort(403)
 
     recipients = _get_high_level_admin_recipients()
+    recipient_groups = _group_high_level_admin_recipients_by_topic_scope(recipients)
     should_send = _request_flag('send')
     dry_run = _request_flag('dry_run')
     current_app.logger.info(
-        'complaint_email_unfinished_summary_checkpoint scheduler_request=%s recipients=%s should_send=%s dry_run=%s',
+        'complaint_email_unfinished_summary_checkpoint scheduler_request=%s recipients=%s recipient_groups=%s should_send=%s dry_run=%s',
         scheduler_request,
         len(recipients),
+        len(recipient_groups),
         should_send,
         dry_run,
     )
 
+    snapshot_cache = {}
+
     if dry_run:
-        packages = [_build_recipient_summary_package(recipient) for recipient in recipients]
+        packages = [
+            _build_recipient_summary_package(recipient_group, snapshot_cache=snapshot_cache)
+            for recipient_group in recipient_groups
+        ]
         response = make_response(_render_dry_run_html(packages, should_send))
         response.mimetype = 'text/html'
         return response
@@ -1790,7 +1871,7 @@ def email_unfinished_summary():
         response.mimetype = 'text/plain'
         return response
 
-    if not recipients:
+    if not recipient_groups:
         message = 'ไม่พบอีเมลของผู้บริหารระดับสูงสำหรับส่งสรุป'
         if request.method == 'POST':
             flash(message, 'danger')
@@ -1799,25 +1880,33 @@ def email_unfinished_summary():
         response.mimetype = 'text/plain'
         return response
 
-    sent_count = 0
-    for recipient in recipients:
-        package = _build_recipient_summary_package(recipient)
+    sent_group_count = 0
+    sent_recipient_count = 0
+    for recipient_group in recipient_groups:
+        package = _build_recipient_summary_package(recipient_group, snapshot_cache=snapshot_cache)
+        recipient_emails = recipient_group.get('emails') or [recipient_group['email']]
         try:
-            current_app.logger.info('complaint_email_send_start recipient=%s', recipient['email'])
+            current_app.logger.info(
+                'complaint_email_send_start recipient_group=%s recipient_count=%s',
+                recipient_group['email'],
+                len(recipient_emails),
+            )
             send_mail(
-                [recipient['email']],
+                recipient_emails,
                 package['subject'],
                 package['message'],
                 html=_render_summary_email_html(package),
             )
-            sent_count += 1
+            sent_group_count += 1
+            sent_recipient_count += len(recipient_emails)
         except Exception:
-            current_app.logger.exception('complaint_email_send_failed recipient=%s', recipient['email'])
+            current_app.logger.exception('complaint_email_send_failed recipient_group=%s', recipient_group['email'])
             raise
     success_message = f'ส่งอีเมลสรุปให้ผู้บริหารระดับสูงแล้ว {len(recipients)} ราย'
     current_app.logger.info(
-        'complaint_email_unfinished_summary_end sent_count=%s total_recipients=%s',
-        sent_count,
+        'complaint_email_unfinished_summary_end sent_group_count=%s sent_recipient_count=%s total_recipients=%s',
+        sent_group_count,
+        sent_recipient_count,
         len(recipients),
     )
     if request.method == 'GET':
@@ -1852,8 +1941,9 @@ def line_remind_no_status_today():
     global_snapshot = _build_today_no_status_records_snapshot()
     packages = []
     matched_packages = []
+    snapshot_cache = {}
     for recipient in _get_low_level_line_recipients():
-        package = _build_low_level_line_reminder_package(recipient)
+        package = _build_low_level_line_reminder_package(recipient, snapshot_cache=snapshot_cache)
         packages.append(package)
         if package['snapshot']['total_records'] > 0 and package['message']:
             matched_packages.append(package)
