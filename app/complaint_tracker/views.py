@@ -978,11 +978,6 @@ def new_record(topic_id, room=None, procurement=None):
         file = form.file_upload.data
         record.topic = topic
         record.created_at = arrow.now('Asia/Bangkok').datetime
-        if (topic.code == 'runied' and
-                (not form.cost_center.data or not form.io_code.data or not form.product_code.data)):
-            flash('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
-            return render_template('complaint_tracker/record_form.html', form=form, topic=topic, room=room,
-                                   is_admin=is_admin, procurement=procurement)
         if current_user.is_authenticated:
             record.complainant = current_user
         if file and allowed_file(file.filename):
@@ -2025,15 +2020,6 @@ def create_repair_approval(record_id, repair_approval_id=None):
         form.name.data = user.fullname
         form.position.data = record.complainant.personal_info.position
         get_organization(org=record.complainant.personal_info.org, form=form)
-
-    if not form.cost_center.data and record.cost_center:
-        form.cost_center.data = record.cost_center
-
-    if not form.io_code.data and record.io_code:
-        form.io_code.data = record.io_code
-
-    if not form.product_code.data and record.product_code:
-        form.product_code.data = record.product_code
 
     if record.procurements and not form.item.data:
         for procurement in record.procurements:
