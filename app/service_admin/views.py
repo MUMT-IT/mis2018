@@ -6214,10 +6214,13 @@ def generate_virus_disinfection_quotation():
                 if not required_cols.issubset(present_cols):
                     continue
                 sorted_field_label = ''.join(sorted(field.label.text)).replace(' ', '')
-                sorted_key_ = sorted(''.join([v for _, v in record]))
+                sorted_key_ = sorted(''.join([value if ('organism' in label or 'test_method' in label or 'product_type' in label) else '' for label, value in record]))
                 p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
-                values = ', '.join(
-                    [f"<i>{v}</i>" if "organism" in n and v != "None" else v for n, v in record])
+                values = ', '.join([
+                    f"<i>{value}</i>" if "organism" in label and value != "None" else value
+                    for label, value in record
+                    if value and value != "None"
+                ])
                 if p_key in quote_prices:
                     prices = quote_prices[p_key]
                     quote_details.append({"value": values, "price": prices, "quantity": 1})
@@ -6303,10 +6306,15 @@ def generate_virus_air_disinfection_quotation():
                 if not required_cols.issubset(present_cols):
                     continue
                 sorted_field_label = ''.join(sorted(field.label.text)).replace(' ', '')
-                sorted_key_ = sorted(''.join([v for _, v in record]))
+                sorted_key_ = sorted(''.join(
+                    [value if ('organism' in label or 'test_method' in label or 'product_type' in label) else '' for
+                     label, value in record]))
                 p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
-                values = ', '.join(
-                    [f"<i>{v}</i>" if "organism" in n and v != "None" else v for n, v in record])
+                values = ', '.join([
+                    f"<i>{value}</i>" if "organism" in label and value != "None" else value
+                    for label, value in record
+                    if value and value != "None"
+                ])
                 if p_key in quote_prices:
                     prices = quote_prices[p_key]
                     quote_details.append({"value": values, "price": prices, "quantity": 1})
