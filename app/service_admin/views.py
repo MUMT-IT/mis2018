@@ -6186,7 +6186,7 @@ def generate_virus_disinfection_quotation():
         sheet_price = wksp.worksheet(service_request.sub_lab.code)
         df_price = pandas.DataFrame(sheet_price.get_all_records())
         quote_column_names = {}
-        quote_details = {}
+        quote_details = []
         quote_prices = {}
         data = service_request.data
         form = VirusDisinfectionRequestForm(data=data)
@@ -6220,7 +6220,7 @@ def generate_virus_disinfection_quotation():
                     [f"<i>{v}</i>" if "organism" in n and v != "None" else v for n, v in record])
                 if p_key in quote_prices:
                     prices = quote_prices[p_key]
-                    quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
+                    quote_details.append({"value": values, "price": prices, "quantity": 1})
         quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
                                      name=service_request.quotation_name,
@@ -6234,7 +6234,7 @@ def generate_virus_disinfection_quotation():
         db.session.add(service_request)
         db.session.commit()
         sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
-        for _, (_, item) in enumerate(quote_details.items()):
+        for item in quote_details:
             quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
                                                   item=item['value'],
                                                   quantity=item['quantity'],
@@ -6275,7 +6275,7 @@ def generate_virus_air_disinfection_quotation():
         sheet_price = wksp.worksheet(service_request.sub_lab.code)
         df_price = pandas.DataFrame(sheet_price.get_all_records())
         quote_column_names = {}
-        quote_details = {}
+        quote_details = []
         quote_prices = {}
         data = service_request.data
         form = VirusAirDisinfectionRequestForm(data=data)
@@ -6309,7 +6309,7 @@ def generate_virus_air_disinfection_quotation():
                     [f"<i>{v}</i>" if "organism" in n and v != "None" else v for n, v in record])
                 if p_key in quote_prices:
                     prices = quote_prices[p_key]
-                    quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
+                    quote_details.append({"value": values, "price": prices, "quantity": 1})
         quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
                                      name=service_request.quotation_name,
@@ -6323,7 +6323,7 @@ def generate_virus_air_disinfection_quotation():
         db.session.add(service_request)
         db.session.commit()
         sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
-        for _, (_, item) in enumerate(quote_details.items()):
+        for item in quote_details:
             quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
                                                   item=item['value'],
                                                   quantity=item['quantity'],
