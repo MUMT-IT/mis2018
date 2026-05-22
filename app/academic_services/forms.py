@@ -507,6 +507,28 @@ class VirusLiquidConditionForm(FlaskForm):
                                             validators=[Optional()])
     liquid_organism_fields = FieldList(FormField(VirusLiquidTestConditionForm), min_entries=1)
 
+    def validate(self, extra_validators=None):
+        is_valid = super().validate(extra_validators=extra_validators)
+        if not is_valid:
+            return False
+
+        preparation = (self.liquid_product_preparation.data or '').strip()
+        requires_dilution_ratio = ('เจือจาง' in preparation) or ('ละลาย' in preparation)
+        if not requires_dilution_ratio:
+            return True
+
+        ok = True
+        for entry in self.liquid_organism_fields:
+            ratio_field = entry.form.liquid_ratio
+            has_any_data = bool((entry.form.liquid_organism.data or '').strip()) or bool(
+                (entry.form.liquid_time_duration.data or '').strip()
+            ) or bool((ratio_field.data or '').strip())
+
+            if has_any_data and not (ratio_field.data or '').strip():
+                ratio_field.errors.append('กรุณากรอกอัตราส่วนเจือจางผลิตภัณฑ์')
+                ok = False
+        return ok
+
 
 class VirusSprayTestConditionForm(FlaskForm):
     spray_organism = SelectField('เชื้อ', choices=[(c, c) for c in virus_liquid_organisms], validators=[Optional()])
@@ -542,6 +564,30 @@ class VirusSprayConditionForm(FlaskForm):
                                                      'ต้องมีการเจือจางหรือละลายด้วยน้ำก่อนใช้งาน (แนบขวดสเปรย์มาด้วย)')],
                                            validators=[Optional()])
     spray_organism_fields = FieldList(FormField(VirusSprayTestConditionForm), min_entries=1)
+
+    def validate(self, extra_validators=None):
+        is_valid = super().validate(extra_validators=extra_validators)
+        if not is_valid:
+            return False
+
+        preparation = (self.spray_product_preparation.data or '').strip()
+        requires_dilution_ratio = ('เจือจาง' in preparation) or ('ละลาย' in preparation)
+        if not requires_dilution_ratio:
+            return True
+
+        ok = True
+        for entry in self.spray_organism_fields:
+            ratio_field = entry.form.spray_ratio
+            has_any_data = bool((entry.form.spray_organism.data or '').strip()) or bool(
+                (entry.form.spray_time_duration.data or '').strip()
+            ) or bool((entry.form.spray_distance.data or '').strip()) or bool(
+                (entry.form.spray_of_time.data or '').strip()
+            ) or bool((ratio_field.data or '').strip())
+
+            if has_any_data and not (ratio_field.data or '').strip():
+                ratio_field.errors.append('กรุณากรอกอัตราส่วนเจือจางผลิตภัณฑ์')
+                ok = False
+        return ok
 
 
 class VirusCoatTestConditionForm(FlaskForm):
