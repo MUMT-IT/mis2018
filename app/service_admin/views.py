@@ -6195,14 +6195,19 @@ def generate_virus_disinfection_quotation():
             if row['field_group'] not in quote_column_names:
                 quote_column_names[row['field_group']] = set()
             for field_name in row['field_name'].split(','):
+                if 'product_type' in field_name:
+                    field_name = '_'.join(field_name.split('_')[-2:])
                 quote_column_names[row['field_group']].add(field_name.strip())
             sorted_field_group = ''.join(sorted(row['field_group'])).replace(' ', '')
-            key = sorted_field_group + ''.join(sorted(row[4:].str.cat())).replace(' ', '')
+            keys = [
+                '_'.join(field_name.split('_')[-2:]) if 'product_type' in r else r
+                for r in row[4:].astype(str)
+            ]
+            key = sorted_field_group + ''.join(sorted(''.join(keys))).replace(' ', '')
             if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
                 quote_prices[key] = row['government_price']
             else:
                 quote_prices[key] = row['other_price']
-
         for field in form:
             if field.label.text not in quote_column_names:
                 continue
@@ -6287,9 +6292,15 @@ def generate_virus_air_disinfection_quotation():
             if row['field_group'] not in quote_column_names:
                 quote_column_names[row['field_group']] = set()
             for field_name in row['field_name'].split(','):
+                if 'product_type' in field_name:
+                    field_name = '_'.join(field_name.split('_')[-2:])
                 quote_column_names[row['field_group']].add(field_name.strip())
             sorted_field_group = ''.join(sorted(row['field_group'])).replace(' ', '')
-            key = sorted_field_group + ''.join(sorted(row[4:].str.cat())).replace(' ', '')
+            keys = [
+                '_'.join(field_name.split('_')[-2:]) if 'product_type' in r else r
+                for r in row[4:].astype(str)
+            ]
+            key = sorted_field_group + ''.join(sorted(''.join(keys))).replace(' ', '')
             if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
                 quote_prices[key] = row['government_price']
             else:
