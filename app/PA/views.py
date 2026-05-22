@@ -77,7 +77,7 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
             supervisor = StaffAccount.query.filter_by(email=head_individual.staff.email).first()
             if supervisor:
                 if supervisor == current_user:
-                    flash('ไม่พบประธานกรรมการประเมิน PA กรุณาติดต่อ HR', 'danger')
+                    flash('ไม่พบประธานกรรมการประเมิน PA กรุณาติดต่อ HR (Only supervisor role was found)', 'danger')
                     return redirect(url_for('pa.user_performance'))
                 else:
                     pa = PAAgreement(round_id=round_id,
@@ -87,7 +87,7 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
                     db.session.add(pa)
                     db.session.commit()
             else:
-                flash('ไม่พบประธานกรรมการประเมิน PA กรุณาแจ้ง HR', 'danger')
+                flash('ไม่พบประธานกรรมการประเมิน PA กรุณาแจ้ง HR (Only Head individual role assigned)', 'danger')
                 return redirect(url_for('pa.user_performance'))
         elif head_committee:
             supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
@@ -103,10 +103,10 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
                     db.session.add(pa)
                     db.session.commit()
             else:
-                flash('ไม่พบประธานกรรมการประเมิน PA กรุณาแจ้ง HR', 'danger')
+                flash('ไม่พบประธานกรรมการประเมิน PA กรุณาแจ้ง HR (Only Head committee role assigned)', 'danger')
                 return redirect(url_for('pa.user_performance'))
         else:
-            flash('ไม่พบประธานกรรมการประเมิน PA กรุณาดำเนินการติดต่อ HR', 'danger')
+            flash('ไม่พบประธานกรรมการประเมิน PA กรุณาดำเนินการติดต่อ HR (No role assigned)', 'danger')
             return redirect(url_for('pa.user_performance'))
 
         if not pa.updated_at and pa_round.is_closed != True:
@@ -875,7 +875,7 @@ def create_request(pa_id):
     elif head_committee:
         supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
     else:
-        flash('ไม่พบกรรมการประเมิน กรุณาติดต่อหน่วย HR', 'warning')
+        flash('ไม่พบกรรมการประเมิน กรุณาติดต่อหน่วย HR (Head committee and Head individual not found)', 'warning')
         return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
     if form.validate_on_submit():
         new_request = PARequest()
