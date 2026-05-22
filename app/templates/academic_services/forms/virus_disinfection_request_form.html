@@ -271,12 +271,14 @@
                                                                                             <th style="border: none">
                                                                                         {% endif %}
                                                                                             {{ _field.label.text }}
-                                                                                            {% if _field.label.text != 'อัตราส่วนเจือจางผลิตภัณฑ์' and _field.label.text != 'ต่อน้ำ' %}
+                                                                                            {% if _field.name.endswith('ratio') or _field.name.endswith('per_water') %}
+                                                                                                <span class="has-text-danger dilution-required-asterisk" style="display:none">*</span>
+                                                                                            {% else %}
                                                                                                 <span class="has-text-danger">*</span>
                                                                                             {% endif %}
                                                                                         </th>
-                                                                                        {% endif %}
-                                                                                    {% endfor %}
+                                                                                    {% endif %}
+                                                                                {% endfor %}
                                                                                 {% endif %}
                                                                             {% endfor %}
                                                                         </thead>
@@ -552,18 +554,28 @@
         function toggleTable(subform) {
             const table = subform.find('table');
 
+            function requiresDilutionRatio() {
+                const preparation = subform.find('input[type="radio"][name$="product_preparation"]:checked').val() || '';
+                return preparation.includes('เจือจาง') || preparation.includes('ละลาย');
+            }
+
             function validateInput() {
+                const dilutionRequired = requiresDilutionRatio();
+                subform.find('.dilution-required-asterisk').toggle(dilutionRequired);
+
                 table.find('tbody tr').each(function () {
                     const textInputs = $(this).find('input[type="text"]');
 
                     textInputs.each(function () {
                         const name = $(this).attr('name');
-                        const isOptional = name.endsWith('ratio');
+                        const isDilutionField = name.endsWith('ratio') || name.endsWith('per_water');
+                        const required = !isDilutionField || dilutionRequired;
 
-                        if (!isOptional) {
+                        if (required) {
+                            const message = isDilutionField ? 'กรุณากรอกอัตราส่วนเจือจางผลิตภัณฑ์' : 'กรุณากรอกข้อมูล';
                             $(this)
                                 .prop('required', true)
-                                .attr('oninvalid', "this.setCustomValidity('กรุณากรอกข้อมูล')")
+                                .attr('oninvalid', `this.setCustomValidity('${message}')`)
                                 .attr('oninput', "this.setCustomValidity('')");
                         } else {
                             $(this).prop('required', false);
@@ -573,6 +585,8 @@
                 });
             }
             validateInput();
+
+            subform.on('change', 'input[type=\"radio\"][name$=\"product_preparation\"]', validateInput);
         }
         function addRequiredField(subform) {
             const testMethodInput = subform.find('input[name$="test_method"]');

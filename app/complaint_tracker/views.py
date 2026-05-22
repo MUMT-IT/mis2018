@@ -1060,11 +1060,6 @@ def new_record(topic_id, room=None, procurement=None):
         file = form.file_upload.data
         record.topic = topic
         record.created_at = arrow.now('Asia/Bangkok').datetime
-        if (topic.code == 'runied' and
-                (not form.cost_center.data or not form.io_code.data or not form.product_code.data)):
-            flash('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
-            return render_template('complaint_tracker/record_form.html', form=form, topic=topic, room=room,
-                                   is_admin=is_admin, procurement=procurement)
         if current_user.is_authenticated:
             record.complainant = current_user
         if file and allowed_file(file.filename):
@@ -1178,7 +1173,6 @@ def edit_record_admin(record_id):
                                            tab=tab, file_url=file_url, admins=admins, investigators=investigators,
                                            coordinators=coordinators, repair_approval_id=repair_approval_id, statuses=statuses)
             elif old_status and not new_status:
-                print('n', new_status)
                 form.status.data = old_status
                 flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
                 return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
@@ -1248,9 +1242,10 @@ def edit_record_admin(record_id):
                     print('line_id :', record.complainant.line_id, 'msg :', msg)
         return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
                                file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
-                               repair_approval_id=repair_approval_id, statuses=statuses)
+                               statuses=statuses)
     else:
-        return render_template('complaint_tracker/record_cancelled_page.html', record_id=record_id, tab=tab)
+        return render_template('complaint_tracker/record_cancelled_page.html', record_id=record_id,
+                               tab=tab)
 
 
 @complaint_tracker.route('/admin', methods=['GET', 'POST'])
@@ -2066,6 +2061,34 @@ def create_repair(record_id):
     return resp
 
 
+def generate_repair_pdf(repair):
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer,
+                            pagesize=A4,
+                            rightMargin=38,
+                            leftMargin=38,
+                            topMargin=38,
+                            bottomMargin=38
+                            )
+    data = []
+    doc.build(data, canvasmaker=NumberedCanvas)
+    buffer.seek(0)
+    return buffer
+
+
+@complaint_tracker.route('/admin/repair/pdf/<int:repair_id>', methods=['GET'])
+@login_required
+def export_repair_pdf(repair_id):
+    repair = ComplaintRepair.query.get(repair_id)
+    buffer = generate_repair_pdf(repair)
+    # if not repair.reviewed_at:
+    #     repair.is_print = True
+    #     # repair.reviewed_at = arrow.now('Asia/Bangkok').datetime
+    #     db.session.add(repair)
+    #     db.session.commit()
+    return send_file(buffer, download_name='Repair_form.pdf', as_attachment=True)
+
+
 @complaint_tracker.route('/repair_approval/index')
 @login_required
 def repair_approval_index():
@@ -2131,22 +2154,16 @@ def create_repair_approval(record_id, repair_approval_id=None):
     if ((org.parent and org.parent.parent and org.parent.parent.name == 'สำนักงานคณบดี') or
             (org.parent and org.parent.name == 'สำนักงานคณบดี') or (org.name == 'สำนักงานคณบดี')):
         staff = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
+        owner_id = staff.id
         form.name.data = staff.fullname
         form.position.data = f"หัวหน้า{staff.personal_info.org.name}"
         get_organization(org=staff.personal_info.org, form=form)
     else:
-        form.name.data = record.complainant.fullname
+        user = record.complainant or current_user
+        owner_id = user.id
+        form.name.data = user.fullname
         form.position.data = record.complainant.personal_info.position
         get_organization(org=record.complainant.personal_info.org, form=form)
-
-    if not form.cost_center.data and record.cost_center:
-        form.cost_center.data = record.cost_center
-
-    if not form.io_code.data and record.io_code:
-        form.io_code.data = record.io_code
-
-    if not form.product_code.data and record.product_code:
-        form.product_code.data = record.product_code
 
     if record.procurements and not form.item.data:
         for procurement in record.procurements:
@@ -2172,7 +2189,7 @@ def create_repair_approval(record_id, repair_approval_id=None):
             rep_approval.record_id = record_id
             rep_approval.created_at = arrow.now('Asia/Bangkok').datetime
             rep_approval.creator_id = current_user.id
-            rep_approval.owner_id = record.complainant_id if record.complainant else current_user.id
+            rep_approval.owner_id = owner_id
         else:
             rep_approval.updated_at = arrow.now('Asia/Bangkok').datetime
 
@@ -2234,20 +2251,32 @@ def create_repair_approval(record_id, repair_approval_id=None):
 @complaint_tracker.route('/repair-approval/edit/<int:repair_approval_id>', methods=['GET', 'POST'])
 @login_required
 def edit_repair_approval(repair_approval_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    temp = request.args.get('temp')
     repair_approval = ComplaintRepairApproval.query.get(repair_approval_id)
     form = ComplaintRepairApprovalForm(obj=repair_approval)
     if form.validate_on_submit():
         form.populate_obj(repair_approval)
-        repair_approval.is_print = True
-        repair_approval.updated_at = arrow.now('Asia/Bangkok').datetime
-        db.session.add(repair_approval)
-        db.session.commit()
-        flash('แก้ไขข้อมูลสำเร็จ', 'success')
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
-        return resp
-    return render_template('complaint_tracker/modal/edit_repair_approval_modal.html',
-                           repair_approval_id=repair_approval_id, form=form)
+        if form.cost_center.data and form.io_code.data and form.product_code.data:
+            repair_approval.is_print = True
+            repair_approval.updated_at = arrow.now('Asia/Bangkok').datetime
+            db.session.add(repair_approval)
+            db.session.commit()
+            flash('แก้ไขข้อมูลสำเร็จ', 'success')
+            if temp == 'index':
+                return redirect(url_for('comp_tracker.repair_approval_index', tab=tab, menu=menu))
+            else:
+                return redirect(url_for('comp_tracker.edit_record_admin', record_id=repair_approval.record_id, tab=tab))
+        else:
+            flash('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
+            return render_template('complaint_tracker/edit_repair_approval.html',
+                                   repair_approval_id=repair_approval_id, form=form, record_id=repair_approval.record_id,
+                                   tamp=temp, tab=tab, menu=menu)
+    return render_template('complaint_tracker/edit_repair_approval.html',
+                           repair_approval_id=repair_approval_id, form=form, record_id=repair_approval.record_id, temp=temp,
+                           tab=tab, menu=menu)
+
 
 @complaint_tracker.route('/admin/repair-approval/committee/add/<int:repair_approval_id>', methods=['GET', 'POST'])
 @login_required
@@ -2446,26 +2475,25 @@ def generate_repair_approval_pdf(repair_approval):
     )
 
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
-    org_name = repair_approval.record.complainant.personal_info.org.name if repair_approval.record.complainant \
-        else current_user.personal_info.org.name
+    org_name = repair_approval.owner.personal_info.org.name
     org = Org.query.filter_by(name=org_name).first()
     staff = StaffAccount.query.filter_by(email=org.head).first()
     mhesi_no = '''<font name="SarabunBold">ที่</font>'''
     if org.name == 'หน่วยข้อมูลและสารสนเทศ':
         head = "ผู้ช่วยศาสตราจารย์ ดร.ลิขิต ปรียานนท์"
-        organization_text = f"{org.name}<br/>งานยุทธศาสตร์\u00A0และการบริหารพัฒนาทรัพยากร\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number}"
+        organization_text = f"{org.name}<br/>งานยุทธศาสตร์\u00A0และการบริหารพัฒนาทรัพยากร\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number or ''}"
     elif org.name == 'หน่วยซ่อมบำรุง':
         head = "รองศาสตราจารย์ ดร.กลมรัตน์ โพธิ์ปิ่น"
-        organization_text = f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number}"
+        organization_text = f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number or ''}"
     elif org.parent and org.parent.parent:
         head = staff.fullname
-        organization_text = f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number}"
+        organization_text = f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number or ''}"
     elif org.parent and not org.parent.parent:
         head = staff.fullname
-        organization_text = f"{org.name}<br/>{org.parent.name}<br/>โทร {org.phone_number}"
+        organization_text = f"{org.name}<br/>{org.parent.name}<br/>โทร {org.phone_number or ''}"
     else:
         head = staff.fullname
-        organization_text = f"{org.name}<br/>โทร {org.phone_number}"
+        organization_text = f"{org.name}<br/>โทร {org.phone_number or ''}"
     organization_info = Paragraph(organization_text, style=header_right_style)
     person = Table([
         [Paragraph('ลงชื่อ', center_style), Paragraph('ผู้ขออนุมัติ', center_style)],
