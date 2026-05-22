@@ -6220,10 +6220,7 @@ def generate_virus_disinfection_quotation():
                     [f"<i>{v}</i>" if "organism" in n and v != "None" else v for n, v in record])
                 if p_key in quote_prices:
                     prices = quote_prices[p_key]
-                    if p_key in quote_details:
-                        quote_details[p_key]["quantity"] += 1
-                    else:
-                        quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
+                    quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
         quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
                                      name=service_request.quotation_name,
@@ -6312,10 +6309,7 @@ def generate_virus_air_disinfection_quotation():
                     [f"<i>{v}</i>" if "organism" in n and v != "None" else v for n, v in record])
                 if p_key in quote_prices:
                     prices = quote_prices[p_key]
-                    if p_key in quote_details:
-                        quote_details[p_key]["quantity"] += 1
-                    else:
-                        quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
+                    quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
         quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
                                      name=service_request.quotation_name,
