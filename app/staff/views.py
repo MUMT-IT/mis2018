@@ -1442,19 +1442,21 @@ def wfh_request_info():
         else:
             requests = StaffWorkFromHomeRequest.query.all()
     else:
+        query = StaffWorkFromHomeRequest.query
+        selected_org = Org.query.get(org_id)
+        org_ids = get_org_and_children_ids(selected_org) if selected_org else [org_id]
+        all_wfh = query.join(StaffWorkFromHomeRequest.staff).join(StaffAccount.personal_info) \
+            .join(StaffPersonalInfo.org).filter(StaffPersonalInfo.org_id.in_(org_ids))
         if round_year:
             wfh = []
             requests = []
             start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(round_year)
-            all_wfh = StaffWorkFromHomeRequest.query.join(StaffAccount).filter(
-                StaffAccount.personal_info.has(org_id=org_id))
             for req in all_wfh:
                 if req.start_datetime.date() >= start_fiscal_date and req.start_datetime.date() <= end_fiscal_date:
                     wfh.append(req)
                     requests = wfh
         else:
-            requests = StaffWorkFromHomeRequest.query.join(StaffAccount).filter(
-                StaffAccount.personal_info.has(org_id=org_id))
+            requests = all_wfh
     return render_template('staff/wfh_list.html', requests=requests, sel_dep=org_id,
                            departments=[{'id': d.id, 'name': d.name} for d in departments],
                            rounds=[{'value': r} for r in rounds],
@@ -1493,7 +1495,9 @@ def leave_request_result_by_person():
     if org_id is None:
         account_query = StaffAccount.query.all()
     else:
-        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id)) \
+        selected_org = Org.query.get(org_id)
+        org_ids = get_org_and_children_ids(selected_org) if selected_org else [org_id]
+        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(StaffPersonalInfo.org_id.in_(org_ids))) \
             .filter(or_(StaffAccount.personal_info.has(retired=False),
                         StaffAccount.personal_info.has(retired=None)))
     for account in account_query:
@@ -1986,7 +1990,9 @@ def show_wfh_approvers():
     if org_id is None:
         account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(retired=False))
     else:
-        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id)) \
+        selected_org = Org.query.get(org_id)
+        org_ids = get_org_and_children_ids(selected_org) if selected_org else [org_id]
+        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(StaffPersonalInfo.org_id.in_(org_ids))) \
             .filter(or_(StaffAccount.personal_info.has(retired=False),
                         StaffAccount.personal_info.has(retired=None)))
 
@@ -3283,7 +3289,7 @@ def create_seminar():
                 flash('Upload File เรียบร้อยแล้ว', 'success')
             else:
                 upload_file_url = None
-                flash('Upload File ไม่สำเร็จ/ ไม่มีเอกสารแนบ', 'warning')
+                # flash('Upload File ไม่สำเร็จ/ ไม่มีเอกสารแนบ', 'warning')
             seminar.upload_file_url = upload_file_url
             timedelta = form.end_datetime.data - form.start_datetime.data
             if timedelta.days < 0 and timedelta.seconds == 0:
@@ -3907,7 +3913,7 @@ def seminar_upload_proposal(seminar_attend_id, proposal_id):
             flash('Upload File เรียบร้อยแล้ว', 'success')
         else:
             upload_file_url = None
-            flash('Upload File ไม่สำเร็จ', 'warning')
+            # flash('Upload File ไม่สำเร็จ', 'warning')
         this_proposal.upload_file_url = upload_file_url
         db.session.add(this_proposal)
         db.session.commit()
