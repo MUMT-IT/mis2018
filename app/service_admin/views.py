@@ -6066,6 +6066,17 @@ def quotation_index():
 #         return render_template('service_admin/quotation_created_confirmation_page.html',
 #                                quotation_id=quotation.id, request_no=service_request.request_no, menu=menu)
 
+label_map = {
+    "liquid_ratio": "อัตราส่วนเจือจางผลิตภัณฑ์",
+    "liquid_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)",
+    "spray_ratio": "อัตราส่วนเจือจางผลิตภัณฑ์",
+    "spray_distance": "ระยะห่างในการฉีดพ่น (cm)",
+    "spray_of_time": "ระยะเวลาฉีดพ่น (วินาที)",
+    "spray_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)",
+    "coat_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)",
+    "surface_disinfection_period_test": "ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (นาที/ชั่วโมง)"
+}
+
 
 @service_admin.route('/quotation/generate')
 @login_required
@@ -6221,11 +6232,15 @@ def generate_virus_disinfection_quotation():
                 sorted_field_label = ''.join(sorted(field.label.text)).replace(' ', '')
                 sorted_key_ = sorted(''.join([value if ('organism' in label or 'test_method' in label or 'product_type' in label) else '' for label, value in record]))
                 p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
-                values = ', '.join([
-                    f"<i>{value}</i>" if "organism" in label and value != "None" else value
+                values = ('<br/>'
+                .join(
+                    [
+                     f"<i>{value}</i>" if "organism" in label and value != "None"
+                    else value if ("product_type" in label or "test_method" in label) and value != "None"
+                    else f"{label_map[label]} : {value}"
                     for label, value in record
                     if value and value != "None"
-                ])
+                ]))
                 if p_key in quote_prices:
                     prices = quote_prices[p_key]
                     quote_details.append({"value": values, "price": prices, "quantity": 1})
@@ -6318,14 +6333,19 @@ def generate_virus_air_disinfection_quotation():
                     continue
                 sorted_field_label = ''.join(sorted(field.label.text)).replace(' ', '')
                 sorted_key_ = sorted(''.join(
-                    [value if ('organism' in label or 'test_method' in label or 'product_type' in label) else '' for
+                    [value if ('organism' in label or 'clean_type' in label or 'product_type' in label) else '' for
                      label, value in record]))
                 p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
-                values = ', '.join([
-                    f"<i>{value}</i>" if "organism" in label and value != "None" else value
-                    for label, value in record
-                    if value and value != "None"
-                ])
+                values = ('<br/>'
+                    .join(
+                        [
+                            f"<i>{value}</i>" if "organism" in label and value != "None"
+                            else value if ("product_type" in label or "clean_type" in label) and value != "None"
+                            else f"{label_map[label]} : {value}"
+                            for label, value in record
+                            if value and value != "None"
+                        ])
+                )
                 if p_key in quote_prices:
                     prices = quote_prices[p_key]
                     quote_details.append({"value": values, "price": prices, "quantity": 1})
