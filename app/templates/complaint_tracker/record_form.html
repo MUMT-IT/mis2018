@@ -156,37 +156,6 @@
                                 </div>
                             </div>
                         {% endif %}
-                        {% if topic.code == 'runied' %}
-                            <div class="field-body" style="margin-bottom: .8em; margin-top: .8em">
-                                <div class="field">
-                                    <label class="label">
-                                        รหัสศูนย์ต้นทุน
-                                        <span class="has-text-danger">*</span>
-                                    </label>
-                                    <div class="control">
-                                        {{ form.cost_center(class='js-example-basic-single') }}
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">
-                                        รหัสใบสั่งงานภายใน
-                                        <span class="has-text-danger">*</span>
-                                    </label>
-                                    <div class="control">
-                                        {{ form.io_code(class='js-example-basic-single') }}
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">
-                                        ผลผลิต
-                                        <span class="has-text-danger">*</span>
-                                    </label>
-                                    <div class="control">
-                                        {{ form.product_code(class='js-example-basic-single') }}
-                                    </div>
-                                </div>
-                            </div>
-                        {% endif %}
                         <div class="field">
                             <label class="label">{{ form.desc.label }}</label>
                             <div class="control">

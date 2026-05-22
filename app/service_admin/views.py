@@ -6066,6 +6066,17 @@ def quotation_index():
 #         return render_template('service_admin/quotation_created_confirmation_page.html',
 #                                quotation_id=quotation.id, request_no=service_request.request_no, menu=menu)
 
+label_map = {
+    "liquid_ratio": "อัตราส่วนเจือจางผลิตภัณฑ์",
+    "liquid_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)",
+    "spray_ratio": "อัตราส่วนเจือจางผลิตภัณฑ์",
+    "spray_distance": "ระยะห่างในการฉีดพ่น (cm)",
+    "spray_of_time": "ระยะเวลาฉีดพ่น (วินาที)",
+    "spray_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)",
+    "coat_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)",
+    "surface_disinfection_period_test": "ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (นาที/ชั่วโมง)"
+}
+
 
 @service_admin.route('/quotation/generate')
 @login_required
@@ -6186,7 +6197,7 @@ def generate_virus_disinfection_quotation():
         sheet_price = wksp.worksheet(service_request.sub_lab.code)
         df_price = pandas.DataFrame(sheet_price.get_all_records())
         quote_column_names = {}
-        quote_details = {}
+        quote_details = []
         quote_prices = {}
         data = service_request.data
         form = VirusDisinfectionRequestForm(data=data)
@@ -6195,14 +6206,19 @@ def generate_virus_disinfection_quotation():
             if row['field_group'] not in quote_column_names:
                 quote_column_names[row['field_group']] = set()
             for field_name in row['field_name'].split(','):
+                if 'product_type' in field_name:
+                    field_name = '_'.join(field_name.split('_')[-2:])
                 quote_column_names[row['field_group']].add(field_name.strip())
             sorted_field_group = ''.join(sorted(row['field_group'])).replace(' ', '')
-            key = sorted_field_group + ''.join(sorted(row[4:].str.cat())).replace(' ', '')
+            keys = [
+                '_'.join(r.split('_')[-2:]) if 'product_type' in r else r
+                for r in row[4:].astype(str)
+            ]
+            key = sorted_field_group + ''.join(sorted(''.join(keys))).replace(' ', '')
             if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
                 quote_prices[key] = row['government_price']
             else:
                 quote_prices[key] = row['other_price']
-
         for field in form:
             if field.label.text not in quote_column_names:
                 continue
@@ -6214,16 +6230,20 @@ def generate_virus_disinfection_quotation():
                 if not required_cols.issubset(present_cols):
                     continue
                 sorted_field_label = ''.join(sorted(field.label.text)).replace(' ', '')
-                sorted_key_ = sorted(''.join([v for _, v in record]))
+                sorted_key_ = sorted(''.join([value if ('organism' in label or 'test_method' in label or 'product_type' in label) else '' for label, value in record]))
                 p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
-                values = ', '.join(
-                    [f"<i>{v}</i>" if "organism" in n and v != "None" else v for n, v in record])
+                values = ('<br/>'
+                .join(
+                    [
+                     f"<i>{value}</i>" if "organism" in label and value != "None"
+                    else value if ("product_type" in label or "test_method" in label) and value != "None"
+                    else f"{label_map[label]} : {value}"
+                    for label, value in record
+                    if value and value != "None"
+                ]))
                 if p_key in quote_prices:
                     prices = quote_prices[p_key]
-                    if p_key in quote_details:
-                        quote_details[p_key]["quantity"] += 1
-                    else:
-                        quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
+                    quote_details.append({"value": values, "price": prices, "quantity": 1})
         quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
                                      name=service_request.quotation_name,
@@ -6237,7 +6257,7 @@ def generate_virus_disinfection_quotation():
         db.session.add(service_request)
         db.session.commit()
         sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
-        for _, (_, item) in enumerate(quote_details.items()):
+        for item in quote_details:
             quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
                                                   item=item['value'],
                                                   quantity=item['quantity'],
@@ -6278,7 +6298,7 @@ def generate_virus_air_disinfection_quotation():
         sheet_price = wksp.worksheet(service_request.sub_lab.code)
         df_price = pandas.DataFrame(sheet_price.get_all_records())
         quote_column_names = {}
-        quote_details = {}
+        quote_details = []
         quote_prices = {}
         data = service_request.data
         form = VirusAirDisinfectionRequestForm(data=data)
@@ -6287,9 +6307,15 @@ def generate_virus_air_disinfection_quotation():
             if row['field_group'] not in quote_column_names:
                 quote_column_names[row['field_group']] = set()
             for field_name in row['field_name'].split(','):
+                if 'product_type' in field_name:
+                    field_name = '_'.join(field_name.split('_')[-2:])
                 quote_column_names[row['field_group']].add(field_name.strip())
             sorted_field_group = ''.join(sorted(row['field_group'])).replace(' ', '')
-            key = sorted_field_group + ''.join(sorted(row[4:].str.cat())).replace(' ', '')
+            keys = [
+                '_'.join(r.split('_')[-2:]) if 'product_type' in r else r
+                for r in row[4:].astype(str)
+            ]
+            key = sorted_field_group + ''.join(sorted(''.join(keys))).replace(' ', '')
             if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
                 quote_prices[key] = row['government_price']
             else:
@@ -6306,16 +6332,23 @@ def generate_virus_air_disinfection_quotation():
                 if not required_cols.issubset(present_cols):
                     continue
                 sorted_field_label = ''.join(sorted(field.label.text)).replace(' ', '')
-                sorted_key_ = sorted(''.join([v for _, v in record]))
+                sorted_key_ = sorted(''.join(
+                    [value if ('organism' in label or 'clean_type' in label or 'product_type' in label) else '' for
+                     label, value in record]))
                 p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
-                values = ', '.join(
-                    [f"<i>{v}</i>" if "organism" in n and v != "None" else v for n, v in record])
+                values = ('<br/>'
+                    .join(
+                        [
+                            f"<i>{value}</i>" if "organism" in label and value != "None"
+                            else value if ("product_type" in label or "clean_type" in label) and value != "None"
+                            else f"{label_map[label]} : {value}"
+                            for label, value in record
+                            if value and value != "None"
+                        ])
+                )
                 if p_key in quote_prices:
                     prices = quote_prices[p_key]
-                    if p_key in quote_details:
-                        quote_details[p_key]["quantity"] += 1
-                    else:
-                        quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
+                    quote_details.append({"value": values, "price": prices, "quantity": 1})
         quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
                                      name=service_request.quotation_name,
@@ -6329,7 +6362,7 @@ def generate_virus_air_disinfection_quotation():
         db.session.add(service_request)
         db.session.commit()
         sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
-        for _, (_, item) in enumerate(quote_details.items()):
+        for item in quote_details:
             quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
                                                   item=item['value'],
                                                   quantity=item['quantity'],

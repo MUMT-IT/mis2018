@@ -83,6 +83,7 @@
                     </ul>
                     <form method="post">
                         {{ form.hidden_tag() }}
+                        <div id="repair-approval-form"></div>
                         <div class="columns is-vcentered is-mobile is-flex">
                             <div class="column has-text-left">
                                 <h5 class="title is-size-4">รายละเอียดข้อมูลผู้แจ้ง</h5>
@@ -114,23 +115,30 @@
                                             <div class="field has-addons">
                                                 <div class="control">
                                                     <a class="button is-info is-outlined is-rounded"
-                                                       @click="printRepairApproval({{ repair_approval.id }})"
+                                                       {% if rep_approval.cost_center and rep_approval.io_code and
+                                                            rep_approval.product_code %}
+                                                            @click="printRepairApproval({{ rep_approval.id }})"
+                                                       {% else %}
+                                                            @click="warnAlert({{ rep_approval.id }})"
+                                                       {% endif %}
                                                     >
                                                         <span class="icon"><i class="fas fa-file-pdf"></i></span>
                                                         <span>พิมพ์ใบอนุมัติหลักการซ่อม</span>
                                                     </a>
                                                 </div>
-                                                <div class="control">
-                                                    <a class="button is-warning is-outlined is-rounded"
-                                                       href="{{ url_for('comp_tracker.create_repair_approval', record_id=record.id,
-                                                           repair_approval_id=rep_approval.id) }}"
-                                                    >
-                                                            <span class="icon">
-                                                                <i class="fas fa-edit"></i>
-                                                            </span>
-                                                        <span>แก้ไขใบอนุมัติหลักการซ่อม</span>
-                                                    </a>
-                                                </div>
+                                                {% if not record.closed_at %}
+                                                    <div class="control">
+                                                        <a class="button is-warning is-outlined is-rounded"
+                                                           href="{{ url_for('comp_tracker.create_repair_approval', record_id=record.id,
+                                                               repair_approval_id=rep_approval.id) }}"
+                                                        >
+                                                                <span class="icon">
+                                                                    <i class="fas fa-edit"></i>
+                                                                </span>
+                                                            <span>แก้ไขใบอนุมัติหลักการซ่อม</span>
+                                                        </a>
+                                                    </div>
+                                                {% endif %}
                                             </div>
                                         {% endfor %}
                                     {% else %}
@@ -976,6 +984,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
     <script type="text/javascript"
@@ -987,6 +996,24 @@
             el: "#record",
             delimiters: ['<%', '%>'],
             methods: {
+                warnAlert: function (repair_approval_id) {
+                    Swal.fire({
+                        title: 'กรุณากรอกข้อมูลเพิ่มเติม',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: "#3085d6",
+                        cancelButtonColor: "#d33",
+                        cancelButtonText: "ยกเลิก",
+                        confirmButtonText: "กรอกข้อมูล",
+                        text: 'กรุณาดำเนินการกรอกข้อมูล Cost Center (รหัสศูนย์ต้นทุน), IO Code (รหัสใบสั่งงานภายใน) และ Product Code (ผลผลิต) ให้ครบถ้วนก่อนดำเนินการพิมพ์ใบอนุมัติหลักการซ่อม'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            var tab = '{{ tab }}';
+                            window.location.href = '/complaint-tracker/repair-approval/edit/' + repair_approval_id +
+                                '?tab=' + tab + '&temp=detail';
+                        }
+                    })
+                },
                 printRepair: function (repair_id) {
                     var url = '/complaint-tracker/admin/repair/pdf/' + repair_id
                     printJS({

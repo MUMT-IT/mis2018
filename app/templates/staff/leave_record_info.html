@@ -130,8 +130,13 @@
                             </td>
                             <td>
                                 {% for approver in approvers %}
-                                    {{ approver.approver.account.personal_info }}:
-                                    <strong>"{{ approver.approval_comment }}"</strong>,
+                                    {{ approver.approver.account.personal_info }}
+                                    ({% if approver.is_approved %}อนุมัติ {% else %}ไม่อนุมัติ{% endif %}
+                                    {{ approver.updated_at |localdatetime }})
+                                    {% if approver.approval_comment %}
+                                    <strong>:"{{ approver.approval_comment }}"</strong>,
+                                    {% endif %}
+                                    <br>
                                 {% endfor %}
                             </td>
                         </tr>
@@ -192,6 +197,30 @@
         },
     }
 
+    function formatThaiDate(dateStr) {
+        if (!dateStr) {
+            return '';
+        }
+        const months = [
+            'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+            'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+        ];
+        const parts = String(dateStr).split('/');
+        if (parts.length !== 3) {
+            return dateStr;
+        }
+        const day = parseInt(parts[0], 10);
+        const monthIdx = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        if (Number.isNaN(day) || Number.isNaN(monthIdx) || Number.isNaN(year) || monthIdx < 0 || monthIdx > 11) {
+            return dateStr;
+        }
+        return day + ' ' + months[monthIdx] + ' ' + (year + 543);
+    }
+
+    const travelStartDateThai = formatThaiDate({{ ((req.start_travel_datetime|localdate) if req.start_travel_datetime else (req.start_datetime|localdate))|tojson|safe }});
+    const travelEndDateThai = formatThaiDate({{ ((req.end_travel_datetime|localdate) if req.end_travel_datetime else (req.end_datetime|localdate))|tojson|safe }});
+
     const leaveDocDefinition = {
         pageSize: 'A4',
         pageMargins: [70, 28, 57, 0],
@@ -232,11 +261,11 @@
                             + ' ตำแหน่ง ' + {{ (req.staff.personal_info.job_position.th_title if req.staff.personal_info.job_position else req.staff.personal_info.position)|tojson|safe }}
                             + ' สังกัด ' + {{ org_name|tojson|safe }}
                             + ' มีความประสงค์ขออนุมัติเดินทางไป ' + {{ req.country|tojson|safe }}
-                            + ' ระหว่างวันที่ ' + {{ ((req.start_travel_datetime|localdate) if req.start_travel_datetime else (req.start_datetime|localdate))|tojson|safe }}
-                            + ' - ' + {{ ((req.end_travel_datetime|localdate) if req.end_travel_datetime else (req.end_datetime|localdate))|tojson|safe }}
+                            + ' ระหว่างวันที่ ' + travelStartDateThai
+                            + ' - ' + travelEndDateThai
                             + ' โดยใช้วันลาพักผ่อน (จำนวน ' + {{ req.total_leave_days|string|tojson|safe }} + ' วันทำการ)'
                             + ' ทั้งนี้มีกำหนดเดินทางกลับถึงประเทศไทย ในวันที่ '
-                            + {{ ((req.end_travel_datetime|localdate) if req.end_travel_datetime else (req.end_datetime|localdate))|tojson|safe }}
+                            + travelEndDateThai
                     }
                 ],
                 alignment: 'justify',
