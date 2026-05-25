@@ -176,9 +176,11 @@
                                                                 <span>พิมพ์แล้ว</span>
                                                             </span>
                                                             <br>
-                                                            <div class="is-size-6 mt-1">
-                                                                ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime }}
-                                                            </div>
+                                                            {% if repair.reviewed_at %}
+                                                                <div class="is-size-6 mt-1">
+                                                                    ดูเมื่อ {{ repair.reviewed_at|localdatetime }}
+                                                                </div>
+                                                            {% endif %}
                                                         {% endfor %}
                                                     {% else %}
                                                         <span class="tag is-warning is-light">
