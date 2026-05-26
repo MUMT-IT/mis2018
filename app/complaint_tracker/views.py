@@ -1,7 +1,6 @@
 # -*- coding:utf-8 -*-
 from html import escape
 import json
-import os
 import uuid
 from collections import defaultdict
 from datetime import datetime, date, timedelta
@@ -21,7 +20,7 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
-from sqlalchemy import or_, func
+from sqlalchemy import or_, and_, func
 from app.auth.views import line_bot_api
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
@@ -1896,9 +1895,12 @@ def repair_index():
     elif tab == 'waiting_approval':
         repairs = (query.join(ComplaintRepair.record)
                             .outerjoin(ComplaintRecord.status)
-                            .filter(or_(ComplaintStatus.code != 'cancelled',
-                                        ComplaintStatus.code != 'completed',
-                                        ComplaintRecord.status_id == None
+                            .filter(or_(
+                                        ComplaintRecord.status_id == None,
+                                        and_(
+                                            ComplaintStatus.code != 'cancelled',
+                                            ComplaintStatus.code != 'completed'
+                                        )
                                     ),
                                     ComplaintRepair.is_print == True
                                     )
@@ -1906,18 +1908,20 @@ def repair_index():
     elif tab == 'completed':
         repairs = (query.join(ComplaintRepair.record).join(ComplaintRecord.status)
                             .filter(or_(ComplaintStatus.code == 'cancelled',
-                                        ComplaintStatus.code == 'completed'
-                                    ),
-                                    ComplaintRepairApproval.is_print == True)
+                                        ComplaintStatus.code == 'completed'),
+                                    ComplaintRepair.is_print == True)
                             )
     else:
         repairs = query
     new_record_count = query.filter(ComplaintRepair.is_print == False).count()
     waiting_record_count = (query.join(ComplaintRepair.record)
                             .outerjoin(ComplaintRecord.status)
-                            .filter(or_(ComplaintStatus.code != 'cancelled',
-                                        ComplaintStatus.code != 'completed',
-                                        ComplaintRecord.status_id == None
+                            .filter(or_(
+                                        ComplaintRecord.status_id == None,
+                                        and_(
+                                            ComplaintStatus.code != 'cancelled',
+                                            ComplaintStatus.code != 'completed'
+                                        )
                                     ),
                                     ComplaintRepair.is_print == True
                                     )
@@ -2229,9 +2233,11 @@ def repair_approval_index():
     elif tab == 'waiting_approval':
         repair_approvals = (query.join(ComplaintRepairApproval.record)
                             .outerjoin(ComplaintRecord.status)
-                            .filter(or_(ComplaintStatus.code != 'cancelled',
-                                        ComplaintStatus.code != 'completed',
-                                        ComplaintRecord.status_id == None
+                            .filter(or_(ComplaintRecord.status_id == None,
+                                        and_(
+                                            ComplaintStatus.code != 'cancelled',
+                                            ComplaintStatus.code != 'completed'
+                                        )
                                     ),
                                     ComplaintRepairApproval.is_print == True,
                                     ComplaintRepairApproval.cancelled_at == None
@@ -2240,8 +2246,7 @@ def repair_approval_index():
     elif tab == 'completed':
         repair_approvals = (query.join(ComplaintRepairApproval.record).join(ComplaintRecord.status)
                             .filter(or_(ComplaintStatus.code == 'cancelled',
-                                        ComplaintStatus.code == 'completed'
-                                    ),
+                                        ComplaintStatus.code == 'completed'),
                                     ComplaintRepairApproval.is_print == True,
                                     ComplaintRepairApproval.cancelled_at == None)
                             )
