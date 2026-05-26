@@ -3,8 +3,8 @@ import os
 import boto3
 from pytz import timezone
 from sqlalchemy import func
-
 from app.main import db
+from flask_login import current_user
 from app.models import CostCenter, IOCode, ProductCode
 from app.procurement.models import ProcurementDetail
 from app.room_scheduler.models import RoomResource
@@ -401,6 +401,29 @@ class ComplaintRepair(db.Model):
             other_org = False
         return other_org
 
+    @property
+    def get_head_org(self):
+        if self.record.complainant:
+            if self.record.complainant.personal_info.org.head:
+                staff = StaffAccount.query.filter_by(email=self.record.complainant.personal_info.org.head).first()
+                head = staff.fullname
+            elif (not self.record.complainant.personal_info.org.head and self.record.complainant.personal_info.org.parent
+                and self.record.complainant.personal_info.org.parent.head):
+                staff = StaffAccount.query.filter_by(email= self.record.complainant.personal_info.org.parent.head).first()
+                head = staff.fullname
+            else:
+                head = None
+        else:
+            if current_user.personal_info.org.head:
+                staff = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
+                head = staff.fullname
+            elif (not current_user.personal_info.org.head and current_user.personal_info.org.parent
+                    and current_user.personal_info.org.parent.head):
+                staff = StaffAccount.query.filter_by(email=current_user.personal_info.org.parent.head).first()
+                head = staff.fullname
+            else:
+                head = None
+        return head
 
 class ComplaintRepairApproval(db.Model):
     __tablename__ = 'complaint_repair_approvals'
