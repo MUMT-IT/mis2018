@@ -384,6 +384,45 @@ class ComplaintRepair(db.Model):
     record = db.relationship(ComplaintRecord, backref=db.backref('repairs'))
 
     @property
+    def status(self):
+        if self.is_print and (self.record.status_id and (self.record.status.code == 'completed' or
+                                                           self.record.status.code == 'cancelled')):
+            status = 'ดำเนินการเสร็จสิ้น'
+        elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
+                                                                (self.record.status.code != 'completed' or
+                                                                 self.record.status.code != 'cancelled'))):
+            status = 'รออนุมัติ'
+        else:
+            status = 'รอดำเนินการ'
+        return status
+
+    @property
+    def status_color(self):
+        if self.is_print and (self.record.status_id and (self.record.status.code == 'completed' or
+                                                           self.record.status.code == 'cancelled')):
+            color = 'is-success'
+        elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
+                                                                (self.record.status.code != 'completed' or
+                                                                 self.record.status.code != 'cancelled'))):
+            color = 'is-warning'
+        else:
+            color = 'is-info'
+        return color
+
+    @property
+    def status_icon(self):
+        if self.is_print and (self.record.status_id and (self.record.status.code == 'completed' or
+                                                           self.record.status.code == 'cancelled')):
+            icon = '<i class="fas fa-check"></i>'
+        elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
+                                                                (self.record.status.code != 'completed' or
+                                                                 self.record.status.code != 'cancelled'))):
+            icon = '<i class="fas fa-pen-fancy"></i>'
+        else:
+            icon = '<i class="fas fa-hourglass"></i>'
+        return icon
+
+    @property
     def get_other_org(self):
         if self.record:
             if self.record.complainant:
@@ -424,6 +463,7 @@ class ComplaintRepair(db.Model):
             else:
                 head = None
         return head
+
 
 class ComplaintRepairApproval(db.Model):
     __tablename__ = 'complaint_repair_approvals'
@@ -490,10 +530,12 @@ class ComplaintRepairApproval(db.Model):
     def status(self):
         if self.cancelled_at:
             status = 'ยกเลิก'
-        elif self.is_print and (self.record.status_id and self.record.status.code == 'completed'):
+        elif self.is_print and (self.record.status_id and (self.record.status.code == 'completed' or
+                                                           self.record.status.code == 'cancelled')):
             status = 'ดำเนินการเสร็จสิ้น'
         elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
-                                                                self.record.status.code != 'completed')):
+                                                                (self.record.status.code != 'completed' or
+                                                                 self.record.status.code != 'cancelled'))):
             status = 'รออนุมัติ'
         else:
             status = 'รอดำเนินการ'
@@ -503,10 +545,12 @@ class ComplaintRepairApproval(db.Model):
     def status_color(self):
         if self.cancelled_at:
             color = 'is-danger'
-        elif self.is_print and (self.record.status_id and self.record.status.code == 'completed'):
+        elif self.is_print and (self.record.status_id and (self.record.status.code == 'completed' or
+                                                               self.record.status.code == 'cancelled')):
             color = 'is-success'
         elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
-                                                                self.record.status.code != 'completed')):
+                                                                    (self.record.status.code != 'completed' or
+                                                                     self.record.status.code != 'cancelled'))):
             color = 'is-warning'
         else:
             color = 'is-info'
@@ -516,10 +560,12 @@ class ComplaintRepairApproval(db.Model):
     def status_icon(self):
         if self.cancelled_at:
             icon = '<i class="fas fa-times"></i>'
-        elif self.is_print and (self.record.status_id and self.record.status.code == 'completed'):
+        elif self.is_print and (self.record.status_id and (self.record.status.code == 'completed' or
+                                                               self.record.status.code == 'cancelled')):
             icon = '<i class="fas fa-check"></i>'
         elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
-                                                           self.record.status.code != 'completed')):
+                                                                    (self.record.status.code != 'completed' or
+                                                                     self.record.status.code != 'cancelled'))):
             icon = '<i class="fas fa-pen-fancy"></i>'
         else:
             icon = '<i class="fas fa-hourglass"></i>'
