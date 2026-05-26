@@ -997,8 +997,7 @@ def new_record(topic_id, room=None, procurement=None):
             record.procurements.append(procurement)
         if (((form.is_contact.data and form.fl_name.data and (form.telephone.data or form.email.data)) or
              (not form.is_contact.data and (form.fl_name.data or form.telephone.data or form.email.data))) or
-                (
-                        not form.is_contact.data and not form.fl_name.data and not form.telephone.data and not form.email.data)):
+                (not form.is_contact.data and not form.fl_name.data and not form.telephone.data and not form.email.data)):
             db.session.add(record)
             db.session.commit()
             flash('รับเรื่องแจ้งเรียบร้อย', 'success')
