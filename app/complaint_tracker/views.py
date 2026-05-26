@@ -29,7 +29,8 @@ from app.complaint_tracker import complaint_tracker
 from app.complaint_tracker.forms import (create_record_form, ComplaintActionRecordForm, ComplaintInvestigatorForm,
                                          ComplaintPerformanceReportForm, ComplaintCoordinatorForm,
                                          ComplaintRepairApprovalForm, ComplaintCommitteeGroupForm)
-from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, PageBreak, TableStyle, Table, Spacer, KeepTogether
+from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, PageBreak, TableStyle, Table, Spacer, KeepTogether, \
+    HRFlowable
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from app.complaint_tracker.models import *
@@ -1083,28 +1084,29 @@ def edit_record_admin(record_id):
         if form.validate_on_submit():
             old_priority = record.priority.priority if record.priority else None
             new_status = form.status.data
-            if old_status and new_status:
-                if (old_status.no > new_status.no) or (old_status.no + 1 < new_status.no):
+            if new_status and new_status.no != 4:
+                if old_status and new_status:
+                    if (old_status.no > new_status.no) or (old_status.no + 1 < new_status.no):
+                        form.status.data = old_status
+                        flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
+                        return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
+                                               tab=tab, file_url=file_url, admins=admins, investigators=investigators,
+                                               coordinators=coordinators, repair_approval_id=repair_approval_id, statuses=statuses)
+                elif old_status and not new_status:
                     form.status.data = old_status
                     flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
                     return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
                                            tab=tab, file_url=file_url, admins=admins, investigators=investigators,
-                                           coordinators=coordinators, repair_approval_id=repair_approval_id, statuses=statuses)
-            elif old_status and not new_status:
-                form.status.data = old_status
-                flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
-                return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
-                                       tab=tab, file_url=file_url, admins=admins, investigators=investigators,
-                                       coordinators=coordinators, repair_approval_id=repair_approval_id,
-                                       statuses=statuses)
-            elif not old_status and new_status:
-                first_status = ComplaintStatus.query.filter_by(no=1).first()
-                if (first_status.no != new_status.no):
-                    form.status.data = None
-                    flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
-                    return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
-                                           file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
-                                           repair_approval_id=repair_approval_id, statuses=statuses)
+                                           coordinators=coordinators, repair_approval_id=repair_approval_id,
+                                           statuses=statuses)
+                elif not old_status and new_status:
+                    first_status = ComplaintStatus.query.filter_by(no=1).first()
+                    if (first_status.no != new_status.no):
+                        form.status.data = None
+                        flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
+                        return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
+                                               file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
+                                               repair_approval_id=repair_approval_id, statuses=statuses)
             form.populate_obj(record)
             record.deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
             db.session.add(record)
@@ -1921,12 +1923,221 @@ def generate_repair_pdf(repair):
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer,
                             pagesize=A4,
-                            rightMargin=38,
-                            leftMargin=38,
-                            topMargin=38,
-                            bottomMargin=38
+                            rightMargin=45,
+                            leftMargin=50,
+                            topMargin=30,
+                            bottomMargin=30
                             )
+
     data = []
+
+    header_style = ParagraphStyle(
+        'HeaderStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=14,
+        leading=25,
+        alignment=TA_LEFT,
+    )
+
+    detail_style = ParagraphStyle(
+        'DetailStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=16,
+        leading=25,
+        alignment=TA_LEFT,
+    )
+
+    received_at = None
+
+    for record in repair.record.record_status_updates:
+        if record.status.no == 1:
+            received_at = arrow.get(record.updated_at.astimezone(localtz)).format(fmt='DD/MM/YYYY', locale='th-th')
+        else:
+            received_at = None
+
+    code = f"เลขที่&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{repair.record_id}<br/>วันที่รับเรื่อง {received_at}"
+
+    code_table = Table(
+        [[Paragraph(code, style=header_style)]],
+        colWidths=[123],
+        rowHeights=[62]
+    )
+    code_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 1, colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 13),
+        ('TOPPADDING', (0, 0), (-1, -1), 15),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10)
+    ]))
+    code_table.hAlign = 'RIGHT'
+
+    title = Paragraph(
+        '<para align=center><font size=18>ใบส่งซ่อมและการให้บริการ</font></para>',
+        style=style_sheet['ThaiStyleBold']
+    )
+
+    if repair.record.complainant:
+        org_name = repair.record.complainant.personal_info.org.name
+        complainant = repair.record.complainant.fullname
+        phone_number = repair.record.complainant.personal_info.org.phone_number or ''
+        head = repair.get_head_org
+    else:
+        org_name = current_user.personal_info.org.name
+        complainant = current_user.fullname
+        phone_number = current_user.personal_info.org.phone_number or ''
+        head = repair.get_head_org
+
+    created_at = arrow.get(repair.record.created_at.astimezone(localtz)).format(fmt='DD/MM/YYYY', locale='th-th')
+    erp_code = ''
+    procurement_name = ''
+    location = ''
+    floor = ''
+    room = ''
+
+    if repair.record.procurements:
+        for procurement in repair.record.procurements:
+            erp_code = procurement.erp_code
+            procurement_name = procurement.name
+            if procurement.records:
+                for record in procurement.records:
+                    location = record.location.location or ''
+                    floor = record.location.floor or ''
+                    room = record.location.number or ''
+            else:
+                location = ''
+                floor = ''
+                room = ''
+    else:
+        erp_code = ''
+        procurement_name = ''
+        location = ''
+        floor = ''
+        room = ''
+
+    detail_table =  Table([
+        [
+            Paragraph(f'ภาควิชา/หน่วยงาน&nbsp;&nbsp;{org_name}', style=detail_style),
+            Paragraph(f'วันที่แจ้ง&nbsp;&nbsp;{created_at}', style=detail_style)
+        ],
+        [
+            Paragraph(f'ผู้แจ้ง&nbsp;&nbsp;{complainant}', style=detail_style),
+            Paragraph(f'โทร&nbsp;&nbsp;{phone_number}', style=detail_style)
+        ],
+    ], colWidths=[240, 260])
+    detail_table.hAlign = 'LEFT'
+
+    procurement_table = Table([
+        [
+            Paragraph(f'หมายเลขครุภัณฑ์&nbsp;&nbsp;{erp_code}', style=detail_style)
+        ],
+        [
+            Paragraph(f'ชื่อเครื่อง/บริการ&nbsp;&nbsp;{procurement_name}', style=detail_style)
+        ],
+    ], colWidths=[500])
+
+    procurement_table.hAlign = 'LEFT'
+
+    location_table = Table([
+        [
+            Paragraph(f'สถานที่ตั้ง&nbsp;&nbsp;{location}', style=detail_style),
+            Paragraph(f'ชั้น&nbsp;&nbsp;{floor}', style=detail_style),
+            Paragraph(f'ห้อง&nbsp;&nbsp;{room}', style=detail_style)
+        ],
+    ], colWidths=[160, 80, 100])
+    location_table.hAlign = 'LEFT'
+
+    description_table =  Table([
+        [
+            Paragraph(f'รายละเอียดการแจ้ง&nbsp;&nbsp;{repair.record.desc}', style=detail_style),
+        ]
+    ], colWidths=[500])
+    description_table.hAlign = 'LEFT'
+
+    head_org_table = Table([
+        [
+            Paragraph(f'หัวหน้าภาควิชา/หน่วยงาน&nbsp;&nbsp;{head}', style=detail_style),
+            Paragraph(f'วันที่&nbsp;&nbsp;.............................................................', style=detail_style)
+        ],
+    ], colWidths=[250, 250])
+    head_org_table.hAlign = 'CENTER'
+
+    comment = ''
+    if repair.record.comments:
+        for index, c in enumerate(repair.record.comments):
+            if len(repair.record.comments) > 1:
+                comment += (f'- {c.review_comment}<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+                            f'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;')
+            else:
+                comment = c.review_comment
+    else:
+        comment = ''
+
+    report = ''
+    if repair.record.reports:
+        report_date = arrow.get(repair.record.reports[-1].report_datetime.astimezone(localtz)).format(fmt='DD/MM/YYYY', locale='th-th')
+        for index, r in enumerate(repair.record.reports):
+            if len(repair.record.reports) > 1:
+                report += (f'- {r.report_comment}<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+                           f'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;')
+            else:
+                report = r.report_comment
+    else:
+        report_date = ''
+        report = ''
+
+    survey_table = Table([
+        [
+            Paragraph(f'การตรวจสอบ&nbsp;&nbsp;{comment}', style=detail_style),
+        ]
+    ], colWidths=[500])
+    survey_table.hAlign = 'LEFT'
+
+    report_table = Table([
+        [
+            Paragraph(f'รายละเอียดการซ่อม&nbsp;&nbsp;{report}', style=detail_style),
+        ]
+    ], colWidths=[500])
+    report_table.hAlign = 'LEFT'
+
+    report_date_table = Table([
+        [
+            Paragraph(f'วันที่ซ่อม&nbsp;&nbsp;{report_date}', style=detail_style),
+        ]
+    ], colWidths=[500])
+    report_date_table.hAlign = 'LEFT'
+
+    staff = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
+    head_repair_table =  Table([
+        [
+            Paragraph(f'ลงชื่อ&nbsp;&nbsp;{staff.fullname} (หัวหน้า{staff.personal_info.org.name})', style=detail_style),
+        ]
+    ], colWidths=[500])
+    head_repair_table.hAlign = 'LEFT'
+
+    data.append(code_table)
+    data.append(KeepTogether(Spacer(20, 20)))
+    data.append(KeepTogether(title))
+    data.append(KeepTogether(Spacer(24, 24)))
+    data.append(detail_table)
+    data.append(KeepTogether(Spacer(1, 1)))
+    data.append(procurement_table)
+    data.append(KeepTogether(Spacer(1, 1)))
+    data.append(location_table)
+    data.append(KeepTogether(Spacer(1, 1)))
+    data.append(description_table)
+    data.append(KeepTogether(Spacer(37, 37)))
+    data.append(head_org_table)
+    data.append((KeepTogether(Spacer(15, 15))))
+    data.append(HRFlowable(width="100%", color=colors.black, thickness=1))
+    data.append((KeepTogether(Spacer(15, 15))))
+    data.append(survey_table)
+    data.append((KeepTogether(Spacer(40, 40))))
+    data.append(report_table)
+    data.append((KeepTogether(Spacer(50, 50))))
+    data.append(report_date_table)
+    data.append(KeepTogether(Spacer(1, 1)))
+    data.append(head_repair_table)
     doc.build(data, canvasmaker=NumberedCanvas)
     buffer.seek(0)
     return buffer
@@ -1937,12 +2148,12 @@ def generate_repair_pdf(repair):
 def export_repair_pdf(repair_id):
     repair = ComplaintRepair.query.get(repair_id)
     buffer = generate_repair_pdf(repair)
-    # if not repair.reviewed_at:
-    #     repair.is_print = True
-    #     # repair.reviewed_at = arrow.now('Asia/Bangkok').datetime
-    #     db.session.add(repair)
-    #     db.session.commit()
-    return send_file(buffer, download_name='Repair_form.pdf', as_attachment=True)
+    if not repair.reviewed_at:
+        repair.is_print = True
+        repair.reviewed_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(repair)
+        db.session.commit()
+    return send_file(buffer, download_name=f'Repair Form {repair.record_id}.pdf', as_attachment=True)
 
 
 @complaint_tracker.route('/repair_approval/index')
