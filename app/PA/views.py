@@ -454,6 +454,7 @@ def add_kpi(pa_id):
         for head_item in PAKPIJobPosition.query.filter(PAKPIJobPosition.job_position is None).all():
             all_current_job_kpi.append(head_item)
     form = PAKPIForm()
+    pa_levels = PALevel.query.order_by(PALevel.id.asc()).all()
     if form.validate_on_submit():
         new_kpi = PAKPI()
         form.populate_obj(new_kpi)
@@ -466,7 +467,7 @@ def add_kpi(pa_id):
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
     return render_template('PA/add_kpi.html', form=form, round_id=round_id, pa_id=pa_id,
-                           all_current_job_kpi=all_current_job_kpi)
+                           all_current_job_kpi=all_current_job_kpi, pa_levels=pa_levels)
 
 
 @pa.route('/api/job-kpi-details/<int:pa_id>', methods=['POST'])
@@ -542,6 +543,7 @@ def edit_kpi(pa_id, kpi_id, job_kpi_id=None):
     kpi = PAKPI.query.get(kpi_id)
     pa = PAAgreement.query.get(pa_id)
     form = PAKPIForm(obj=kpi)
+    pa_levels = PALevel.query.order_by(PALevel.id.asc()).all()
     if form.validate_on_submit():
         form.populate_obj(kpi)
         db.session.add(kpi)
@@ -551,7 +553,8 @@ def edit_kpi(pa_id, kpi_id, job_kpi_id=None):
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-    return render_template('PA/add_kpi.html', form=form, round_id=pa.round_id, kpi_id=kpi_id, job_kpi_id=job_kpi_id)
+    return render_template('PA/add_kpi.html', form=form, round_id=pa.round_id, kpi_id=kpi_id,
+                           job_kpi_id=job_kpi_id, pa_levels=pa_levels)
 
 
 @pa.route('/kpis/<int:kpi_id>/delete', methods=['DELETE'])
