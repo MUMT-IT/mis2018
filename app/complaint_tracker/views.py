@@ -1880,6 +1880,53 @@ def line_remind_no_status_today():
     return redirect(request.referrer or url_for('comp_tracker.admin_record_complaint_summary', menu='all'))
 
 
+@complaint_tracker.route('/repair/index')
+@login_required
+def repair_index():
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    org = current_user.personal_info.org
+    query = (ComplaintRepair.query.join(ComplaintRepair.owner).join(StaffAccount.personal_info)
+    .filter(
+        or_(ComplaintRepair.owner_id == current_user.id,
+            StaffPersonalInfo.org == org)
+    ))
+    if tab == 'waiting_process':
+        repairs = query.filter(ComplaintRepair.is_print == False)
+    elif tab == 'waiting_approval':
+        repairs = (query.join(ComplaintRepair.record)
+                            .outerjoin(ComplaintRecord.status)
+                            .filter(or_(ComplaintStatus.code != 'cancelled',
+                                        ComplaintStatus.code != 'completed',
+                                        ComplaintRecord.status_id == None
+                                    ),
+                                    ComplaintRepair.is_print == True
+                                    )
+                            )
+    elif tab == 'completed':
+        repairs = (query.join(ComplaintRepair.record).join(ComplaintRecord.status)
+                            .filter(or_(ComplaintStatus.code == 'cancelled',
+                                        ComplaintStatus.code == 'completed'
+                                    ),
+                                    ComplaintRepairApproval.is_print == True)
+                            )
+    else:
+        repairs = query
+    new_record_count = query.filter(ComplaintRepair.is_print == False).count()
+    waiting_record_count = (query.join(ComplaintRepair.record)
+                            .outerjoin(ComplaintRecord.status)
+                            .filter(or_(ComplaintStatus.code != 'cancelled',
+                                        ComplaintStatus.code != 'completed',
+                                        ComplaintRecord.status_id == None
+                                    ),
+                                    ComplaintRepair.is_print == True
+                                    )
+                            ).count()
+    return render_template('complaint_tracker/repair_index.html', tab=tab, menu=menu,
+                           new_record_count=new_record_count, waiting_record_count=waiting_record_count,
+                           repairs=repairs)
+
+
 @complaint_tracker.route('/admin/repair/add/<int:record_id>', methods=['GET', 'POST'])
 @login_required
 def create_repair(record_id):
@@ -1888,7 +1935,7 @@ def create_repair(record_id):
     db.session.commit()
     if repair.get_other_org == True:
         scheme = 'http' if current_app.debug else 'https'
-        link = url_for("comp_tracker.repair_approval_index", tab='new', _external=True, _scheme=scheme)
+        link = url_for("comp_tracker.repair_index", tab='new', _external=True, _scheme=scheme)
         title = f'''แจ้งออกใบแจ้งซ่อมรายการเลขที่ {repair.record.id}'''
         message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งซ่อมสำหรับรายการเลขที่ {repair.record.id} เรียบร้อยแล้ว กรุณาดำเนินการในขั้นตอนถัดไปตามกระบวนการที่เกี่ยวข้อง\n'''
         message += f'''ท่านสามารถดำเนินการพิมพ์เอกสารได้ที่ลิงก์ด้านล่าง\n{link}\n\n'''
@@ -2044,7 +2091,7 @@ def generate_repair_pdf(repair):
             Paragraph(f'ชั้น&nbsp;&nbsp;{floor}', style=detail_style),
             Paragraph(f'ห้อง&nbsp;&nbsp;{room}', style=detail_style)
         ],
-    ], colWidths=[160, 80, 100])
+    ], colWidths=[220, 120, 160])
     location_table.hAlign = 'LEFT'
 
     description_table =  Table([
@@ -2172,7 +2219,7 @@ def repair_approval_index():
     elif tab == 'waiting_approval':
         repair_approvals = (query.join(ComplaintRepairApproval.record)
                             .outerjoin(ComplaintRecord.status)
-                            .filter(or_(
+                            .filter(or_(ComplaintStatus.code != 'cancelled',
                                         ComplaintStatus.code != 'completed',
                                         ComplaintRecord.status_id == None
                                     ),
@@ -2182,7 +2229,9 @@ def repair_approval_index():
                             )
     elif tab == 'completed':
         repair_approvals = (query.join(ComplaintRepairApproval.record).join(ComplaintRecord.status)
-                            .filter(ComplaintStatus.code == 'completed',
+                            .filter(or_(ComplaintStatus.code == 'cancelled',
+                                        ComplaintStatus.code == 'completed'
+                                    ),
                                     ComplaintRepairApproval.is_print == True,
                                     ComplaintRepairApproval.cancelled_at == None)
                             )
@@ -2193,7 +2242,7 @@ def repair_approval_index():
     new_record_count = query.filter(ComplaintRepairApproval.is_print == False).count()
     waiting_record_count = (query.join(ComplaintRepairApproval.record)
                             .outerjoin(ComplaintRecord.status)
-                            .filter(or_(
+                            .filter(or_(ComplaintStatus.code != 'cancelled',
                                         ComplaintStatus.code != 'completed',
                                         ComplaintRecord.status_id == None
                                     ),
