@@ -1930,7 +1930,17 @@ def repair_index():
 @complaint_tracker.route('/admin/repair/add/<int:record_id>', methods=['GET', 'POST'])
 @login_required
 def create_repair(record_id):
-    repair = ComplaintRepair(record_id=record_id, created_at=arrow.now('Asia/Bangkok').datetime)
+    record = ComplaintRecord.query.get(record_id)
+    org_name = record.complainant.personal_info.org.name if record.complainant else current_user.personal_info.org.name
+    org = Org.query.filter_by(name=org_name).first()
+    if ((org.parent and org.parent.parent and org.parent.parent.name == 'สำนักงานคณบดี') or
+            (org.parent and org.parent.name == 'สำนักงานคณบดี') or (org.name == 'สำนักงานคณบดี')):
+        staff = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
+        owner_id = staff.id
+    else:
+        user = record.complainant or current_user
+        owner_id = user.id
+    repair = ComplaintRepair(record_id=record_id, created_at=arrow.now('Asia/Bangkok').datetime, owner_id=owner_id)
     db.session.add(repair)
     db.session.commit()
     if repair.get_other_org == True:
