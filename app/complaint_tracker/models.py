@@ -382,6 +382,8 @@ class ComplaintRepair(db.Model):
     is_print = db.Column('is_print', db.Boolean(), default=False)
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
     record = db.relationship(ComplaintRecord, backref=db.backref('repairs'))
+    owner_id = db.Column('owner_id', db.ForeignKey('staff_account.id'))
+    owner = db.relationship(StaffAccount, backref=db.backref('owned_repairs'), foreign_keys=[owner_id])
 
     @property
     def status(self):
