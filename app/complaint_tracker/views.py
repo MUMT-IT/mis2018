@@ -2256,9 +2256,11 @@ def repair_approval_index():
     new_record_count = query.filter(ComplaintRepairApproval.is_print == False).count()
     waiting_record_count = (query.join(ComplaintRepairApproval.record)
                             .outerjoin(ComplaintRecord.status)
-                            .filter(or_(ComplaintStatus.code != 'cancelled',
-                                        ComplaintStatus.code != 'completed',
-                                        ComplaintRecord.status_id == None
+                            .filter(or_(ComplaintRecord.status_id == None,
+                                        and_(
+                                            ComplaintStatus.code != 'cancelled',
+                                            ComplaintStatus.code != 'completed'
+                                        )
                                     ),
                                     ComplaintRepairApproval.is_print == True,
                                     ComplaintRepairApproval.cancelled_at == None
