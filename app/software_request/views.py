@@ -131,10 +131,70 @@ def _build_admin_request_listing_query(base_query):
 @login_required
 def index():
     org = current_user.personal_info.org
-    details = SoftwareRequestDetail.query.filter(or_(SoftwareRequestDetail.created_id == current_user.id,
-                                                     SoftwareRequestDetail.created_by.has(
-                                                         StaffAccount.personal_info.has(org=org))))
-    return render_template('software_request/index.html', details=details, org=org)
+    api = request.args.get('api', 'false')
+    query = SoftwareRequestDetail.query.filter(or_(
+        SoftwareRequestDetail.created_id == current_user.id,
+        SoftwareRequestDetail.created_by.has(
+            StaffAccount.personal_info.has(org=org)
+        )
+    ))
+
+    if api == 'true':
+        records_total = query.count()
+        search = request.args.get('search[value]')
+        if search:
+            search_term = u'%{}%'.format(search)
+            query = query.filter(or_(
+                SoftwareRequestDetail.title.ilike(search_term),
+                SoftwareRequestDetail.type.ilike(search_term),
+                SoftwareRequestDetail.description.ilike(search_term),
+                SoftwareRequestDetail.status.ilike(search_term)
+            ))
+
+        start = request.args.get('start', type=int)
+        length = request.args.get('length', type=int)
+        total_filtered = query.count()
+
+        sort_columns = {
+            0: SoftwareRequestDetail.title,
+            1: SoftwareRequestDetail.type,
+            2: SoftwareRequestDetail.description,
+            3: SoftwareRequestDetail.created_date,
+            4: SoftwareRequestDetail.status,
+        }
+        sort_column_index = request.args.get('order[0][column]', default=3, type=int)
+        sort_direction = request.args.get('order[0][dir]', default='desc')
+        sort_column = sort_columns.get(sort_column_index, SoftwareRequestDetail.created_date)
+        if sort_direction == 'asc':
+            query = query.order_by(sort_column.asc())
+        else:
+            query = query.order_by(sort_column.desc())
+
+        if start:
+            query = query.offset(start)
+        if length and length > 0:
+            query = query.limit(length)
+
+        data = []
+        for item in query.all():
+            data.append({
+                'id': item.id,
+                'title': item.title,
+                'type': item.type,
+                'description': item.description,
+                'created_date': item.created_date,
+                'status': item.status,
+                'status_color': item.status_color,
+            })
+
+        return jsonify({
+            'data': data,
+            'recordsFiltered': total_filtered,
+            'recordsTotal': records_total,
+            'draw': request.args.get('draw', type=int)
+        })
+
+    return render_template('software_request/index.html', org=org)
 
 
 @software_request.route('/condition')
