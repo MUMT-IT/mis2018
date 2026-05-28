@@ -430,6 +430,16 @@
                                     </div>
                                     {% if record.topic.category.no == 1 %}
                                         <div class="field" style="margin-top: .8em">
+                                            <label class="label">สถานะการแทงจำหน่าย</label>
+                                            <div class="field">
+                                                {% if record.is_editable %}
+                                                    <label class="checkbox"> {{ form.is_disposed() }} แทงจำหน่าย</label>
+                                                {% else %}
+                                                    {{ record.has_disposed }}
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="field" style="margin-top: .8em">
                                             <label class="label">ใบแจ้งซ่อม</label>
                                             <div class="control">
                                                 {% if record.repairs %}
