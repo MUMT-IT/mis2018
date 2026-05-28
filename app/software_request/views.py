@@ -10,7 +10,7 @@ from sqlalchemy import or_, func, case
 from sqlalchemy.orm import joinedload
 from flask import render_template, redirect, flash, url_for, jsonify, request, make_response, current_app
 from flask_login import login_required, current_user
-from app.roles import it_permission
+from app.roles import it_permission, software_request_permission
 from app.software_request import software_request
 from app.software_request.forms import create_request_form, create_timeline_form, SoftwareRequestIssueForm, \
     create_test_result_form
@@ -298,7 +298,7 @@ def get_systems():
 
 
 @software_request.route('/admin/index')
-@it_permission.require()
+@software_request_permission.require()
 @login_required
 def admin_index():
     tab = request.args.get('tab')
