@@ -260,7 +260,7 @@
                         text: '\u00A0\t\u00A0\t\u00A0ด้วยข้าพเจ้า ' + {{ req.staff.personal_info.fullname|tojson|safe }}
                             + ' ตำแหน่ง ' + {{ (req.staff.personal_info.job_position.th_title if req.staff.personal_info.job_position else req.staff.personal_info.position)|tojson|safe }}
                             + ' สังกัด ' + {{ org_name|tojson|safe }}
-                            + ' มีความประสงค์ขออนุมัติเดินทางไป ' + {{ req.country|tojson|safe }}
+                            + ' มีความประสงค์ขออนุมัติเดินทางไปประเทศ ' + {{ req.country|tojson|safe }}
                             + ' ระหว่างวันที่ ' + travelStartDateThai
                             + ' - ' + travelEndDateThai
                             + ' โดยใช้วันลาพักผ่อน (จำนวน ' + {{ req.total_leave_days|string|tojson|safe }} + ' วันทำการ)'
@@ -280,7 +280,7 @@
             },
             {% if lower_approver %}
             {
-                text: '\n\n(' + {{ (lower_approver or '')|tojson|safe }} + ' )\n',
+                text: '\n\n( ' + {{ (lower_approver or '')|tojson|safe }} + ' )\n',
                 alignment: 'center',
                 margin: [250, 0, 0, 0]
             },
