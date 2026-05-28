@@ -202,6 +202,10 @@ class ComplaintRecord(db.Model):
     def to_link(self):
         return self.generate_presigned_url(s3, S3_BUCKET_NAME)
 
+    @property
+    def has_disposed(self):
+        return 'แทงจำหน่าย' if self.is_disposed else 'ไม่แทงจำหน่าย'
+
     def generate_presigned_url(self):
 
         if self.url:
