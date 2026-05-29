@@ -46,6 +46,11 @@ class QuerySelectMultipleFieldAppendable(QuerySelectMultipleField):
                             self._data.append(tag)
 
 
+class ComplaintRepairCompanyForm(ModelForm):
+    class Meta:
+        model = ComplaintRepairCompany
+
+
 def create_record_form(record_id, topic_id):
     class ComplaintRecordForm(ModelForm):
         class Meta:
@@ -69,6 +74,7 @@ def create_record_form(record_id, topic_id):
         room = QuerySelectField('ห้อง', query_factory=lambda: RoomResource.query.order_by(RoomResource.number.asc()),
                                                     allow_blank=True, blank_text='กรุณาเลือกห้อง')
         file_upload = FileField('File Upload')
+        repair_companies = FieldList(FormField(ComplaintRepairCompanyForm, default=ComplaintRepairCompany), min_entries=1)
     return ComplaintRecordForm
 
 
