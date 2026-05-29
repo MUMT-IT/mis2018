@@ -381,11 +381,11 @@ class ComplaintCoordinator(db.Model):
 class ComplaintRepairCompany(db.Model):
     __tablename__ = 'complaint_repair_companies'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    company_name = db.Column('name', db.String())
-    contact_name = db.Column('contact_name', db.String())
-    contact_phone_number = db.Column('contact_phone_number', db.String())
-    repair_offer_price = db.Column('repair_offer_price', db.Numeric())
-    detail = db.Column('detail', db.Text())
+    company_name = db.Column('name', db.String(), info={'label': 'ชื่อบริษัทที่ส่งซ่อม'})
+    contact_name = db.Column('contact_name', db.String(), info={'label': 'ชื่อผู้ที่สามารติดต่อได้'})
+    contact_phone_number = db.Column('contact_phone_number', db.String(), info={'label': 'เบอร์โทร'})
+    repair_offer_price = db.Column('repair_offer_price', db.Numeric(), info={'label': 'ราคาซ่อมที่เสนอ'})
+    detail = db.Column('detail', db.Text(), info={'label': 'รายละเอียดการซ่อมจากบริษัท'})
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
     record = db.relationship(ComplaintRecord, backref=db.backref('repair_companies'))
     created_at = db.Column('created_at', db.DateTime(timezone=True))
