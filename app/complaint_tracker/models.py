@@ -378,6 +378,21 @@ class ComplaintCoordinator(db.Model):
             return self.record
         return None
 
+class ComplaintRepairCompany(db.Model):
+    __tablename__ = 'complaint_repair_companies'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    company_name = db.Column('name', db.String())
+    contact_name = db.Column('contact_name', db.String())
+    contact_phone_number = db.Column('contact_phone_number', db.String())
+    repair_offer_price = db.Column('repair_offer_price', db.Numeric())
+    detail = db.Column('detail', db.Text())
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('repair_companies'))
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+
+    def __str__(self):
+        return f'บริษัทที่ส่งซ่อม : {self.company_name}, ราคาซ่อมที่เสนอ : {self.repair_offer_price}, รายละเอียด : {self.detail}'
+
 
 class ComplaintRepair(db.Model):
     __tablename__ = 'complaint_repairs'
