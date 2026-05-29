@@ -1182,6 +1182,17 @@ def edit_record_admin(record_id):
                                            statuses=statuses)
                 elif not old_status and new_status:
                     first_status = ComplaintStatus.query.filter_by(no=1).first()
+                    if not first_status:
+                        current_app.logger.error(
+                            'complaint_status_config_missing_first_status record_id=%s new_status_id=%s',
+                            record_id,
+                            new_status.id,
+                        )
+                        form.status.data = None
+                        flash('ไม่พบสถานะแรกของกระบวนการ กรุณาติดต่อผู้ดูแลระบบ', 'danger')
+                        return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
+                                               file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
+                                               repair_approval_id=repair_approval_id, statuses=statuses)
                     if (first_status.no != new_status.no):
                         form.status.data = None
                         flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
