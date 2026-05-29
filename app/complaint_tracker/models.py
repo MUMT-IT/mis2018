@@ -397,18 +397,28 @@ class ComplaintRepairCompany(db.Model):
 class ComplaintSparePart(db.Model):
     __tablename__ = 'complaint_spare_parts'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    item = db.Column('item', db.String())
-    quantity = db.Column('quantity', db.Integer())
-    unit = db.Column('unit', db.String())
-    unit_price = db.Column('unit_price', db.Numeric())
-    total_price = db.Column('total_price', db.Numeric())
-    store_name = db.Column('store_name', db.String())
-    vendor_name = db.Column('vendor_name', db.String())
-    vendor_phone_number = db.Column('vendor_phone_number', db.String())
+    item = db.Column('item', db.String(), info={'label': 'ชื่ออะไหล่'})
+    quantity = db.Column('quantity', db.Integer(), info={'label': 'จำนวน'})
+    unit = db.Column('unit', db.String(), info={'label': 'หน่วยนับ'})
+    unit_price = db.Column('unit_price', db.Numeric(), info={'label': 'ราคาต่อหน่วย'})
+    total_price = db.Column('total_price', db.Numeric(), info={'label': 'ราคารวม'})
+    store_name = db.Column('store_name', db.String(), info={'label': 'ชื่อร้านค้า'})
+    vendor_name = db.Column('vendor_name', db.String(), info={'label': 'ชื่อผู้ขาย'})
+    vendor_phone_number = db.Column('vendor_phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์ผู้ขาย'})
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     repair_company_id = db.Column('repair_company_id', db.ForeignKey('complaint_repair_companies.id'))
     repair_company = db.relationship(ComplaintRepairCompany, backref=db.backref('spare_parts'),
                                      foreign_keys=[repair_company_id])
 
+    def __str__(self):
+        return self.item
+
+    @property
+    def grand_total(self):
+        total_price = 0
+        total_price += self.total_price
+        return total_price
 
 
 class ComplaintRepair(db.Model):
