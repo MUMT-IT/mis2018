@@ -826,6 +826,71 @@
                                 {% endif %}
                             </div>
                         {% endif %}
+                        {% if record.topic.category.no == 1 %}
+                            <div id="repair_company_field">
+                                <h5 class="title is-size-4">รายละเอียดบริษัทที่ส่งซ่อม</h5>
+                                <div class="box">
+                                    <h5 class="title is-size-5">ข้อมูลบริษัทที่ส่งซ่อม</h5>
+                                    <hr style="background-color: gainsboro">
+                                    <div class="container" style="margin-left: 1em; margin-bottom: 1.2em">
+                                        {% for company_form in form.repair_companies %}
+                                            <div class="field-body">
+                                                <div class="field">
+                                                    <label class="label">{{ company_form.company_name.label }}</label>
+                                                    <div class="control">
+                                                        {% if record.is_editable %}
+                                                            {{ company_form.company_name(class="input") }}
+                                                        {% else %}
+                                                            {{ company_form.company_name.data or '-' }}
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                <div class="field">
+                                                    <label class="label">{{ company_form.contact_name.label }}</label>
+                                                    <div class="control">
+                                                        {% if record.is_editable %}
+                                                            {{ company_form.contact_name(class="input") }}
+                                                        {% else %}
+                                                            {{ company_form.contact_name.data or '-' }}
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                <div class="field">
+                                                    <label class="label">{{ company_form.contact_phone_number.label }}</label>
+                                                    <div class="control">
+                                                        {% if record.is_editable %}
+                                                            {{ company_form.contact_phone_number(class="input") }}
+                                                        {% else %}
+                                                            {{ company_form.contact_phone_number.data or '-' }}
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="field" style="margin-top: 0.75em;">
+                                                <label class="label">{{ company_form.repair_offer_price.label }}</label>
+                                                <div class="control">
+                                                    {% if record.is_editable %}
+                                                        {{ company_form.repair_offer_price(class='input') }}
+                                                    {% else %}
+                                                        {{ company_form.repair_offer_price.data or '-' }} บาท
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="field">
+                                                <label class="label">{{ company_form.detail.label }}</label>
+                                                <div class="control">
+                                                    {% if record.is_editable %}
+                                                        {{ company_form.detail(class='textarea') }}
+                                                    {% else %}
+                                                        {{ company_form.detail.data or '-' }}
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
                         {% if record.coordinators %}
                             {% if record.comments %}
                                 <h5 class="title is-size-4">ความเห็น/ข้อเสนอแนะของ Admin</h5>
