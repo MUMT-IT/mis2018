@@ -394,6 +394,23 @@ class ComplaintRepairCompany(db.Model):
         return f'บริษัทที่ส่งซ่อม : {self.company_name}, ราคาซ่อมที่เสนอ : {self.repair_offer_price}, รายละเอียด : {self.detail}'
 
 
+class ComplaintSparePart(db.Model):
+    __tablename__ = 'complaint_spare_parts'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    item = db.Column('item', db.String())
+    quantity = db.Column('quantity', db.Integer())
+    unit = db.Column('unit', db.String())
+    unit_price = db.Column('unit_price', db.Numeric())
+    total_price = db.Column('total_price', db.Numeric())
+    store_name = db.Column('store_name', db.String())
+    vendor_name = db.Column('vendor_name', db.String())
+    vendor_phone_number = db.Column('vendor_phone_number', db.String())
+    repair_company_id = db.Column('repair_company_id', db.ForeignKey('complaint_repair_companies.id'))
+    repair_company = db.relationship(ComplaintRepairCompany, backref=db.backref('spare_parts'),
+                                     foreign_keys=[repair_company_id])
+
+
+
 class ComplaintRepair(db.Model):
     __tablename__ = 'complaint_repairs'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
