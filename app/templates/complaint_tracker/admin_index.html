@@ -131,7 +131,7 @@
                                                     </span>
                                                 {% endif %}</td>
                                             <td>
-                                                {% if record.id in admin_record_ids %}
+                                                 {% if record.has_admin(current_user) %}
                                                     <span class="tag is-light is-link">
                                                         ผู้รับผิดชอบ
                                                     </span>
