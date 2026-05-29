@@ -122,8 +122,19 @@ class StaffAccount(db.Model):
 
     @classmethod
     def get_it_unit(cls):
-        return [account for account in cls.query.all() if (not account.personal_info.retired and account.personal_info.org.name == 'หน่วยข้อมูลและสารสนเทศ')
+        return [account for account in cls.query.all() if (account.is_active and not account.personal_info.retired and
+                                                           account.personal_info.org.name == 'หน่วยข้อมูลและสารสนเทศ')
                 or account.email == 'likit.pre']
+
+    @classmethod
+    def get_software_request_role(cls):
+        return [account for account in cls.query.all()
+                if (account.is_active and not account.personal_info.retired and account.roles and
+                    any(role.role_need == 'software_request'
+                        for role in account.roles
+                        )
+                    )
+                ]
 
     @property
     def fullname(self):
