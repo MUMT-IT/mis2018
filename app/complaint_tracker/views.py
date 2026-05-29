@@ -21,6 +21,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 from sqlalchemy import or_, and_, func
+from sqlalchemy.orm import joinedload, selectinload
 from app.auth.views import line_bot_api
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
@@ -1170,81 +1171,98 @@ def edit_record_admin(record_id):
 @login_required
 def admin_index():
     tab = request.args.get('tab')
-    admins = ComplaintAdmin.query.filter_by(admin=current_user)
-    coordinators = ComplaintCoordinator.query.filter_by(coordinator=current_user)
+    admin_rows = ComplaintAdmin.query.with_entities(
+        ComplaintAdmin.id,
+        ComplaintAdmin.topic_id
+    ).filter(ComplaintAdmin.staff_account == current_user.id).all()
+    admin_ids = {admin_id for admin_id, _ in admin_rows}
+    admin_topic_ids = {topic_id for _, topic_id in admin_rows if topic_id}
+
+    record_ids = set()
+    if admin_topic_ids:
+        record_ids.update(
+            record_id for record_id, in db.session.query(ComplaintRecord.id)
+            .filter(ComplaintRecord.topic_id.in_(admin_topic_ids))
+            .all()
+        )
+    if admin_ids:
+        record_ids.update(
+            record_id for record_id, in db.session.query(ComplaintInvestigator.record_id)
+            .filter(ComplaintInvestigator.admin_id.in_(admin_ids))
+            .all()
+            if record_id
+        )
+    record_ids.update(
+        record_id for record_id, in db.session.query(ComplaintCoordinator.record_id)
+        .filter(ComplaintCoordinator.coordinator_id == current_user.id)
+        .all()
+        if record_id
+    )
+
     records = []
     new_record_count = 0
     pending_record_count = 0
     progress_record_count = 0
     repair_record_count = 0
+    admin_record_ids = set()
 
-    for admin in admins:
-        if admin.investigators:
-            for investigator in admin.investigators:
-                if investigator.record.status is None:
-                    new_record_count += 1
-                elif investigator.record.status.code == 'pending':
-                    pending_record_count += 1
-                elif investigator.record.status.code == 'progress':
-                    progress_record_count += 1
+    if record_ids:
+        status_counts = dict(
+            db.session.query(ComplaintStatus.code, func.count(ComplaintRecord.id))
+            .outerjoin(ComplaintRecord.status)
+            .filter(ComplaintRecord.id.in_(record_ids))
+            .group_by(ComplaintStatus.code)
+            .all()
+        )
+        new_record_count = status_counts.get(None, 0)
+        pending_record_count = status_counts.get('pending', 0)
+        progress_record_count = status_counts.get('progress', 0)
 
-                if ((investigator.record.repair_approvals and investigator.record.get_print_of_repair_approval == False)
-                        or (investigator.record.repairs and investigator.record.get_print_of_repair == False)):
-                    repair_record_count += 1
+        repair_record_count = db.session.query(
+            func.count(func.distinct(ComplaintRecord.id))
+        ).outerjoin(
+            ComplaintRepair, ComplaintRepair.record_id == ComplaintRecord.id
+        ).outerjoin(
+            ComplaintRepairApproval, ComplaintRepairApproval.record_id == ComplaintRecord.id
+        ).filter(
+            ComplaintRecord.id.in_(record_ids),
+            or_(
+                and_(ComplaintRepair.id.isnot(None), ComplaintRepair.is_print.is_(False)),
+                and_(ComplaintRepairApproval.id.isnot(None), ComplaintRepairApproval.is_print.is_(False))
+            )
+        ).scalar() or 0
 
-                if tab == 'new' and investigator.record.status is None:
-                    records.append(investigator.record)
-                elif tab == 'repair_record' and (investigator.record.repair_approvals or investigator.record.repairs):
-                    records.append(investigator.record)
-                else:
-                    rec = investigator.get_record_by_status(tab)
-                    if rec:
-                        records.append(rec)
+        query = ComplaintRecord.query.options(
+            selectinload(ComplaintRecord.topic)
+            .selectinload(ComplaintTopic.admins)
+            .selectinload(ComplaintAdmin.admin),
+            joinedload(ComplaintRecord.type),
+            joinedload(ComplaintRecord.priority),
+            joinedload(ComplaintRecord.status),
+            selectinload(ComplaintRecord.tags),
+            selectinload(ComplaintRecord.repairs),
+            selectinload(ComplaintRecord.repair_approvals)
+        ).filter(ComplaintRecord.id.in_(record_ids))
 
-        if admin.topic.records:
-            for record in admin.topic.records:
-                if record.status is None:
-                    new_record_count += 1
-                elif record.status.code == 'pending':
-                    pending_record_count += 1
-                elif record.status.code == 'progress':
-                    progress_record_count += 1
-
-                if ((record.repair_approvals and record.get_print_of_repair_approval == False) or
-                        (record.repairs and record.get_print_of_repair == False)):
-                    repair_record_count += 1
-
-                if tab == 'new' and record.status is None:
-                    records.append(record)
-                elif tab == 'repair_record' and (record.repair_approvals or record.repairs):
-                    records.append(record)
-                else:
-                    rec = record.get_record_by_status(tab)
-                    if rec:
-                        records.append(rec)
-    for c in coordinators:
-        if c.record.status is None:
-            new_record_count += 1
-        elif c.record.status.code == 'pending':
-            pending_record_count += 1
-        elif c.record.status.code == 'progress':
-            progress_record_count += 1
-
-        if ((c.record.repair_approvals and c.record.get_print_of_repair_approval == False) or
-                (c.record.repairs and c.record.get_print_of_repair == False)):
-            repair_record_count += 1
-
-        if tab == 'new' and c.record.status is None:
-            records.append(c.record)
-        elif tab == 'repair_record' and (c.record.repair_approvals or c.record.repairs):
-            records.append(c.record)
+        if tab == 'new':
+            query = query.filter(ComplaintRecord.status_id.is_(None))
+        elif tab == 'repair_record':
+            query = query.filter(or_(ComplaintRecord.repairs.any(), ComplaintRecord.repair_approvals.any()))
+        elif tab in ('pending', 'progress', 'completed', 'cancelled'):
+            query = query.join(ComplaintStatus).filter(ComplaintStatus.code == tab)
         else:
-            rec = c.get_record_by_status(tab)
-            if rec:
-                records.append(rec)
+            query = query.filter(ComplaintRecord.id.is_(None))
+
+        records = query.order_by(ComplaintRecord.id.desc()).all()
+        if admin_topic_ids and records:
+            admin_record_ids = {
+                record.id for record in records
+                if record.topic_id in admin_topic_ids
+            }
     return render_template('complaint_tracker/admin_index.html', records=records, tab=tab,
                            new_record_count=new_record_count, pending_record_count=pending_record_count,
-                           progress_record_count=progress_record_count, repair_record_count=repair_record_count)
+                           progress_record_count=progress_record_count, repair_record_count=repair_record_count,
+                           admin_record_ids=admin_record_ids)
 
 
 @complaint_tracker.route('/topics/<code>')
