@@ -97,6 +97,11 @@ class ComplaintCoordinatorForm(ModelForm):
     coordinators = QuerySelectMultipleField(query_factory=lambda: StaffAccount.get_active_accounts(), get_label='fullname')
 
 
+class ComplaintSparePartForm(ModelForm):
+    class Meta:
+        model = ComplaintSparePart
+
+
 class QuerySelectFieldRequired(QuerySelectField):
     def iter_choices(self):
         for value, label, selected in super().iter_choices():
