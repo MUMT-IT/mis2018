@@ -3,8 +3,8 @@ import os
 import boto3
 from pytz import timezone
 from sqlalchemy import func
-
 from app.main import db
+from flask_login import current_user
 from app.models import CostCenter, IOCode, ProductCode
 from app.procurement.models import ProcurementDetail
 from app.room_scheduler.models import RoomResource
@@ -189,6 +189,7 @@ class ComplaintRecord(db.Model):
     complainant = db.relationship(StaffAccount, backref=db.backref('my_complaints', lazy='dynamic'))
     file_name = db.Column('file_name', db.String(255))
     url = db.Column('url', db.String(255))
+    is_disposed = db.Column('is_disposed', db.Boolean(), default=False)
 
     def __str__(self):
         return self.desc
@@ -200,6 +201,10 @@ class ComplaintRecord(db.Model):
     @property
     def to_link(self):
         return self.generate_presigned_url(s3, S3_BUCKET_NAME)
+
+    @property
+    def has_disposed(self):
+        return 'แทงจำหน่าย' if self.is_disposed else 'ไม่แทงจำหน่าย'
 
     def generate_presigned_url(self):
 
@@ -378,9 +383,51 @@ class ComplaintRepair(db.Model):
     __tablename__ = 'complaint_repairs'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     created_at = db.Column('created_at', db.DateTime(timezone=True))
+    reviewed_at = db.Column('reviewed_at', db.DateTime(timezone=True))
     is_print = db.Column('is_print', db.Boolean(), default=False)
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
     record = db.relationship(ComplaintRecord, backref=db.backref('repairs'))
+    owner_id = db.Column('owner_id', db.ForeignKey('staff_account.id'))
+    owner = db.relationship(StaffAccount, backref=db.backref('owned_repairs'), foreign_keys=[owner_id])
+
+    @property
+    def status(self):
+        if self.is_print and (self.record.status_id and (self.record.status.code == 'completed' or
+                                                           self.record.status.code == 'cancelled')):
+            status = 'ดำเนินการเสร็จสิ้น'
+        elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
+                                                                (self.record.status.code != 'completed' or
+                                                                 self.record.status.code != 'cancelled'))):
+            status = 'รออนุมัติ'
+        else:
+            status = 'รอดำเนินการ'
+        return status
+
+    @property
+    def status_color(self):
+        if self.is_print and (self.record.status_id and (self.record.status.code == 'completed' or
+                                                           self.record.status.code == 'cancelled')):
+            color = 'is-success'
+        elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
+                                                                (self.record.status.code != 'completed' or
+                                                                 self.record.status.code != 'cancelled'))):
+            color = 'is-warning'
+        else:
+            color = 'is-info'
+        return color
+
+    @property
+    def status_icon(self):
+        if self.is_print and (self.record.status_id and (self.record.status.code == 'completed' or
+                                                           self.record.status.code == 'cancelled')):
+            icon = '<i class="fas fa-check"></i>'
+        elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
+                                                                (self.record.status.code != 'completed' or
+                                                                 self.record.status.code != 'cancelled'))):
+            icon = '<i class="fas fa-pen-fancy"></i>'
+        else:
+            icon = '<i class="fas fa-hourglass"></i>'
+        return icon
 
     @property
     def get_other_org(self):
@@ -399,6 +446,30 @@ class ComplaintRepair(db.Model):
         else:
             other_org = False
         return other_org
+
+    @property
+    def get_head_org(self):
+        if self.record.complainant:
+            if self.record.complainant.personal_info.org.head:
+                staff = StaffAccount.query.filter_by(email=self.record.complainant.personal_info.org.head).first()
+                head = staff.fullname
+            elif (not self.record.complainant.personal_info.org.head and self.record.complainant.personal_info.org.parent
+                and self.record.complainant.personal_info.org.parent.head):
+                staff = StaffAccount.query.filter_by(email= self.record.complainant.personal_info.org.parent.head).first()
+                head = staff.fullname
+            else:
+                head = None
+        else:
+            if current_user.personal_info.org.head:
+                staff = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
+                head = staff.fullname
+            elif (not current_user.personal_info.org.head and current_user.personal_info.org.parent
+                    and current_user.personal_info.org.parent.head):
+                staff = StaffAccount.query.filter_by(email=current_user.personal_info.org.parent.head).first()
+                head = staff.fullname
+            else:
+                head = None
+        return head
 
 
 class ComplaintRepairApproval(db.Model):
@@ -466,10 +537,12 @@ class ComplaintRepairApproval(db.Model):
     def status(self):
         if self.cancelled_at:
             status = 'ยกเลิก'
-        elif self.is_print and (self.record.status_id and self.record.status.code == 'completed'):
+        elif self.is_print and (self.record.status_id and (self.record.status.code == 'completed' or
+                                                           self.record.status.code == 'cancelled')):
             status = 'ดำเนินการเสร็จสิ้น'
         elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
-                                                                self.record.status.code != 'completed')):
+                                                                (self.record.status.code != 'completed' or
+                                                                 self.record.status.code != 'cancelled'))):
             status = 'รออนุมัติ'
         else:
             status = 'รอดำเนินการ'
@@ -479,10 +552,12 @@ class ComplaintRepairApproval(db.Model):
     def status_color(self):
         if self.cancelled_at:
             color = 'is-danger'
-        elif self.is_print and (self.record.status_id and self.record.status.code == 'completed'):
+        elif self.is_print and (self.record.status_id and (self.record.status.code == 'completed' or
+                                                               self.record.status.code == 'cancelled')):
             color = 'is-success'
         elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
-                                                                self.record.status.code != 'completed')):
+                                                                    (self.record.status.code != 'completed' or
+                                                                     self.record.status.code != 'cancelled'))):
             color = 'is-warning'
         else:
             color = 'is-info'
@@ -492,10 +567,12 @@ class ComplaintRepairApproval(db.Model):
     def status_icon(self):
         if self.cancelled_at:
             icon = '<i class="fas fa-times"></i>'
-        elif self.is_print and (self.record.status_id and self.record.status.code == 'completed'):
+        elif self.is_print and (self.record.status_id and (self.record.status.code == 'completed' or
+                                                               self.record.status.code == 'cancelled')):
             icon = '<i class="fas fa-check"></i>'
         elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
-                                                           self.record.status.code != 'completed')):
+                                                                    (self.record.status.code != 'completed' or
+                                                                     self.record.status.code != 'cancelled'))):
             icon = '<i class="fas fa-pen-fancy"></i>'
         else:
             icon = '<i class="fas fa-hourglass"></i>'
