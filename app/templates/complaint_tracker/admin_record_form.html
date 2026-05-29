@@ -83,34 +83,22 @@
                     </ul>
                     <form method="post">
                         {{ form.hidden_tag() }}
-                        <div id="repair-approval-form"></div>
                         <div class="columns is-vcentered is-mobile is-flex">
                             <div class="column has-text-left">
                                 <h5 class="title is-size-4">รายละเอียดข้อมูลผู้แจ้ง</h5>
                             </div>
                             <div class="column has-text-right is-narrow">
-                                {% if record.topic.category.no == 1 %}
-{#                                    {% if record.repairs %}#}
-{#                                        {% for repair in record.repairs %}#}
-{#                                            <a class="button is-info is-outlined is-rounded"#}
-{#                                               @click="printRepair({{ repair.id }})"#}
-{#                                            >#}
-{#                                                <span class="icon"><i class="fas fa-file-pdf"></i></span>#}
-{#                                                <span>พิมพ์ใบแจ้งซ่อม</span>#}
-{#                                            </a>#}
-{#                                        {% endfor %}#}
-{#                                    {% else %}#}
-{#                                        <a hx-post="{{ url_for('comp_tracker.create_repair', record_id=record.id) }}"#}
-{#                                           hx-confirm="ท่านต้องการออกใบแจ้งซ่อมของรายการนี้ใช่หรือไม่"#}
-{#                                           class="button is-info is-outlined is-rounded"#}
-{#                                        >#}
-{#                                            <span class="icon">#}
-{#                                                <i class="fas fa-file-alt"></i>#}
-{#                                            </span>#}
-{#                                            <span>ออกใบแจ้งซ่อม</span>#}
-{#                                        </a>#}
-{#                                    {% endif %}#}
-                                    {% if record.repair_approvals %}
+                                {% if record.topic.category.no == 1 and record.comments and record.reports %}
+                                    {% if record.repairs %}
+                                        {% for repair in record.repairs %}
+                                            <a class="button is-info is-outlined is-rounded"
+                                               @click="printRepair({{ repair.id }})"
+                                            >
+                                                <span class="icon"><i class="fas fa-file-pdf"></i></span>
+                                                <span>พิมพ์ใบแจ้งซ่อม</span>
+                                            </a>
+                                        {% endfor %}
+                                    {% elif record.repair_approvals %}
                                         {% for rep_approval in record.repair_approvals %}
                                             <div class="field has-addons">
                                                 <div class="control">
@@ -132,9 +120,7 @@
                                                            href="{{ url_for('comp_tracker.create_repair_approval', record_id=record.id,
                                                                repair_approval_id=rep_approval.id) }}"
                                                         >
-                                                                <span class="icon">
-                                                                    <i class="fas fa-edit"></i>
-                                                                </span>
+                                                            <span class="icon"><i class="fas fa-edit"></i></span>
                                                             <span>แก้ไขใบอนุมัติหลักการซ่อม</span>
                                                         </a>
                                                     </div>
@@ -142,14 +128,25 @@
                                             </div>
                                         {% endfor %}
                                     {% else %}
-                                        <a class="button is-info is-outlined is-rounded" style="margin-left: .2em"
-                                           href="{{ url_for('comp_tracker.create_repair_approval', record_id=record.id) }}"
-                                        >
-                                            <span class="icon">
-                                                <i class="fas fa-file-signature"></i>
-                                            </span>
-                                            <span>ออกใบอนุมัติหลักการซ่อม</span>
-                                        </a>
+                                        {% if not record.closed_at %}
+                                            <a hx-post="{{ url_for('comp_tracker.create_repair', record_id=record.id) }}"
+                                               hx-confirm="ท่านต้องการออกใบแจ้งซ่อมของรายการนี้ใช่หรือไม่"
+                                               class="button is-info is-outlined is-rounded"
+                                            >
+                                                <span class="icon">
+                                                    <i class="fas fa-file-alt"></i>
+                                                </span>
+                                                <span>ออกใบแจ้งซ่อม</span>
+                                            </a>
+                                            <a class="button is-info is-outlined is-rounded" style="margin-left: .2em"
+                                               href="{{ url_for('comp_tracker.create_repair_approval', record_id=record.id) }}"
+                                            >
+                                                <span class="icon">
+                                                    <i class="fas fa-file-signature"></i>
+                                                </span>
+                                                <span>ออกใบอนุมัติหลักการซ่อม</span>
+                                            </a>
+                                        {% endif %}
                                     {% endif %}
                                 {% endif %}
                             </div>
@@ -182,8 +179,7 @@
                                 <div class="field">
                                     <label class="label">ห้อง</label>
                                     <div class="control">
-                                        <input class="input" disabled value="
-                                                {% if record.room %}{{ record.room }}{% else %}{% for room in record.rooms %}{{ room }}{% endfor %}{% endif %}">
+                                        <input class="input" disabled value="{% if record.room %}{{ record.room }}{% else %}{% for room in record.rooms %}{{ room }}{% endfor %}{% endif %}">
                                     </div>
                                 </div>
                             {% elif record.procurement_location %}
@@ -434,6 +430,16 @@
                                     </div>
                                     {% if record.topic.category.no == 1 %}
                                         <div class="field" style="margin-top: .8em">
+                                            <label class="label">สถานะการแทงจำหน่าย</label>
+                                            <div class="field">
+                                                {% if record.is_editable %}
+                                                    <label class="checkbox"> {{ form.is_disposed() }} แทงจำหน่าย</label>
+                                                {% else %}
+                                                    {{ record.has_disposed }}
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="field" style="margin-top: .8em">
                                             <label class="label">ใบแจ้งซ่อม</label>
                                             <div class="control">
                                                 {% if record.repairs %}
@@ -444,7 +450,7 @@
                                                                 <span>พิมพ์แล้ว</span>
                                                             </span>
                                                             <div class="is-size-6 mt-1">
-                                                                ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime }}
+                                                                ดูเมื่อ {{ repair.reviewed_at|localdatetime }}
                                                             </div>
                                                         {% endfor %}
                                                     {% else %}
