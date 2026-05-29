@@ -1988,9 +1988,10 @@ def create_repair(record_id):
                     pass
             else:
                 print('msg :', msg, 'line :', repair.record.complainant.line_id)
-        send_mail(
-            [secretary.email + '@mahidol.ac.th' for secretary in repair.record.complainant.personal_info.org.secretary_staff],
-            title, message)
+        if repair.record.complainant.personal_info.org.secretary_staff:
+            send_mail(
+                [secretary.email + '@mahidol.ac.th' for secretary in repair.record.complainant.personal_info.org.secretary_staff],
+                title, message)
     flash('ออกใบแจ้งซ่อมสำเร็จ', 'success')
     resp = make_response()
     resp.headers['HX-Refresh'] = 'true'
@@ -2385,8 +2386,9 @@ def create_repair_approval(record_id, repair_approval_id=None):
                                 pass
                         else:
                             print('msg :', msg, 'line :', rep_approval.record.complainant.line_id)
-                send_mail([secretary.email + '@mahidol.ac.th' for secretary in rep_approval.owner.personal_info.org.secretary_staff],
-                          title, message)
+                if rep_approval.owner.personal_info.org.secretary_staff:
+                    send_mail([secretary.email + '@mahidol.ac.th' for secretary in rep_approval.owner.personal_info.org.secretary_staff],
+                              title, message)
             flash('บันทึกข้อมูลสำเร็จ', 'success')
             return redirect(url_for('comp_tracker.edit_record_admin', record_id=record_id))
         else:
@@ -2507,8 +2509,9 @@ def edit_committee(repair_approval_id):
                             pass
                     else:
                         print('msg :', msg, 'line :', rep_approval.record.complainant.line_id)
-            send_mail([secretary.email + '@mahidol.ac.th' for secretary in rep_approval.owner.personal_info.org.secretary_staff],
-                      title, message)
+            if rep_approval.owner.personal_info.org.secretary_staff:
+                send_mail([secretary.email + '@mahidol.ac.th' for secretary in rep_approval.owner.personal_info.org.secretary_staff],
+                          title, message)
         return redirect(url_for('comp_tracker.edit_record_admin', record_id=rep_approval.record_id))
     else:
         for er in form.errors:
