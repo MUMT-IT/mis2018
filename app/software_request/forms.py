@@ -25,7 +25,7 @@ def create_request_form(detail_id):
         if detail_id:
             room = QuerySelectField('ห้อง', query_factory=lambda: RoomResource.query.order_by(RoomResource.number.asc()),
                                 allow_blank=True, blank_text='กรุณาเลือกห้อง')
-            staffs = QuerySelectMultipleField('ผู้รับผิดชอบ', query_factory=lambda: StaffAccount.get_it_unit(),
+            staffs = QuerySelectMultipleField('ผู้รับผิดชอบ', query_factory=lambda: StaffAccount.get_software_request_role(),
                                               get_label='fullname')
         else:
             file_upload = FileField('File Upload')
@@ -52,7 +52,7 @@ def create_timeline_form(detail_id):
                              validators=[DataRequired()])
         issue = QuerySelectField('Requirement', query_factory=lambda: SoftwareIssues.query.filter_by(software_request_detail_id=detail_id).all(), allow_blank=True,
                                  blank_text='', get_label='issue')
-        admin = QuerySelectField('ผู้รับผิดชอบ', query_factory=lambda: StaffAccount.get_it_unit(), get_label='fullname')
+        admin = QuerySelectField('ผู้รับผิดชอบ', query_factory=lambda: StaffAccount.get_software_request_role(), get_label='fullname')
     return SoftwareRequestTimelineForm
 
 
@@ -103,7 +103,7 @@ class SoftwareRequestIssueForm(ModelForm):
                                        blank_text='กรุณาเลือก Phase',
                                        get_label='phase',
                                        render_kw={'required': True})
-    staff = QuerySelectField('ผู้รับผิดชอบ', query_factory=lambda: StaffAccount.get_it_unit(), get_label='fullname')
+    staff = QuerySelectField('ผู้รับผิดชอบ', query_factory=lambda: StaffAccount.get_software_request_role(), get_label='fullname')
 
 
 class QuerySelectFieldRequired(QuerySelectField):
