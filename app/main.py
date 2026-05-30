@@ -336,6 +336,12 @@ def user_support_index():
     return render_template('support.html')
 
 
+@app.route('/teacher-tools')
+@login_required
+def teacher_tools_index():
+    return render_template('edu/teacher_tools.html')
+
+
 from app.kpi import kpibp as kpi_blueprint
 
 app.register_blueprint(kpi_blueprint, url_prefix='/kpi')

@@ -1848,8 +1848,9 @@ def admin_record_complaint_summary():
                            can_send_summary=current_user.is_authenticated and admin_permission.can())
 
 
+# External scheduler endpoint: must remain accessible to token-authenticated
+# background jobs and should not be protected with @login_required.
 @complaint_tracker.route('/admin/email-unfinished-summary', methods=['GET', 'POST'])
-@login_required
 def email_unfinished_summary():
     current_app.logger.info(
         'complaint_email_unfinished_summary_start method=%s remote_addr=%s',
@@ -1946,8 +1947,9 @@ def email_unfinished_summary():
     return redirect(request.referrer or url_for('comp_tracker.admin_record_complaint_summary'))
 
 
+# External scheduler endpoint: must remain accessible to token-authenticated
+# background jobs and should not be protected with @login_required.
 @complaint_tracker.route('/admin/line-remind-no-status-today', methods=['GET', 'POST'])
-@login_required
 def line_remind_no_status_today():
     current_app.logger.info(
         'complaint_line_reminder_start method=%s remote_addr=%s',

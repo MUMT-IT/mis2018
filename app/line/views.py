@@ -1,4 +1,5 @@
 from collections import defaultdict
+import os
 
 import dateutil.parser
 import arrow
@@ -44,6 +45,14 @@ def _mask_line_id(line_id):
     if len(line_id) <= 6:
         return '***'
     return f'{line_id[:3]}***{line_id[-3:]}'
+
+
+def _is_valid_scheduler_request():
+    configured_token = os.environ.get('JOB_TOKEN')
+    if not configured_token:
+        return True
+    request_token = request.values.get('job_token')
+    return bool(request_token and request_token == configured_token)
 
 
 @line.route('/message/callback', methods=['POST'])
@@ -230,8 +239,12 @@ def handle_message(event):
             )
 
 
+# External scheduler endpoint: called by background jobs and should not be
+# protected with @login_required.
 @line.route('/events/notification')
 def notify_events():
+    if not _is_valid_scheduler_request():
+        return jsonify({'message': 'forbidden'}), 403
     app.logger.info('line_notify_events_start')
     try:
         start = arrow.now('Asia/Bangkok')
@@ -283,8 +296,12 @@ def notify_events():
         return jsonify({'message': 'internal_error'}), 500
 
 
+# External scheduler endpoint: called by background jobs and should not be
+# protected with @login_required.
 @line.route('/rooms/notification')
 def notify_room_booking():
+    if not _is_valid_scheduler_request():
+        return jsonify({'message': 'forbidden'}), 403
     when = request.args.get('when', 'today')
     app.logger.info('line_notify_rooms_start when=%s', when)
 
