@@ -157,10 +157,8 @@ def main():
     min_processed_id = None
     max_processed_id = None
 
-    sql = """
-        SELECT id, erp_code, image, image_url
-        FROM procurement_details
-        WHERE id >= :start_id
+    where_clause = """
+        id >= :start_id
           AND (
                 (
                     (image_url IS NULL OR image_url = '')
@@ -173,7 +171,18 @@ def main():
                     AND (image_thumbnail_url IS NULL OR image_thumbnail_url = '')
                 )
           )
+    """
+
+    sql = f"""
+        SELECT id, erp_code, image, image_url
+        FROM procurement_details
+        WHERE {where_clause}
         ORDER BY id ASC
+    """
+    count_sql = f"""
+        SELECT COUNT(*)
+        FROM procurement_details
+        WHERE {where_clause}
     """
     if args.limit > 0:
         sql += " LIMIT :limit_n"
@@ -185,7 +194,15 @@ def main():
         params = {"start_id": args.start_id}
         if args.limit > 0:
             params["limit_n"] = args.limit
-        rows = db.session.execute(text(sql), params).mappings().all()
+        total_match = db.session.execute(text(count_sql), {"start_id": args.start_id}).scalar()
+        print(f"Matched rows (before limit): {total_match}", flush=True)
+        if args.limit > 0:
+            print(f"Run limit: {args.limit}", flush=True)
+
+        result = db.session.execute(
+            text(sql).execution_options(stream_results=True),
+            params
+        ).mappings()
 
         with open(args.report_csv, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(
@@ -203,7 +220,7 @@ def main():
             )
             writer.writeheader()
 
-            for row in rows:
+            for row in result:
                 processed += 1
                 row_id = int(row["id"])
                 if min_processed_id is None or row_id < min_processed_id:
