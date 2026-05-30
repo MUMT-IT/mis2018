@@ -1,4 +1,4 @@
-"""drop image column from procurement_details
+"""placeholder migration for procurement_details image column
 
 Revision ID: 7b0d1f6c2a9e
 Revises: 49b45fefcab4
@@ -17,8 +17,9 @@ depends_on = None
 
 
 def upgrade():
-    op.drop_column('procurement_details', 'image')
+    # Keep the legacy column until data migration to S3 is fully complete.
+    pass
 
 
 def downgrade():
-    op.add_column('procurement_details', sa.Column('image', sa.Text(), nullable=True))
+    pass

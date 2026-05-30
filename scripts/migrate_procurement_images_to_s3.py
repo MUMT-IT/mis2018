@@ -1,0 +1,208 @@
+#!/usr/bin/env python3
+"""Backfill procurement_details.image to S3 for rows missing image_url.
+
+This script only processes rows where image_url is NULL/empty.
+It reads legacy image text directly from DB and updates image_url after upload.
+"""
+
+import argparse
+import base64
+import csv
+import hashlib
+import imghdr
+import re
+import sys
+from datetime import datetime
+
+from sqlalchemy import text
+
+from app.main import app, db, s3, S3_BUCKET_NAME
+
+
+DATA_URL_RE = re.compile(r"^data:(?P<mime>[-\w.+/]+);base64,(?P<data>.+)$", re.DOTALL)
+
+MIME_TO_EXT = {
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/webp": "webp",
+    "image/bmp": "bmp",
+}
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Upload legacy procurement image text to S3 only for rows without image_url."
+    )
+    parser.add_argument("--prefix", default="procurement/images", help="S3 key prefix")
+    parser.add_argument("--start-id", type=int, default=0, help="Only process id >= start-id")
+    parser.add_argument("--limit", type=int, default=0, help="Max rows to process (0 means all)")
+    parser.add_argument("--skip-existing", action="store_true", help="Skip upload if target key already exists")
+    parser.add_argument("--dry-run", action="store_true", help="Do not upload/update DB")
+    parser.add_argument(
+        "--report-csv",
+        default=f"/tmp/procurement_image_migration_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+        help="Write per-record report CSV",
+    )
+    return parser.parse_args()
+
+
+def decode_image_text(raw_text):
+    if not raw_text:
+        return None, None
+    raw_text = raw_text.strip()
+
+    m = DATA_URL_RE.match(raw_text)
+    if m:
+        mime = m.group("mime").lower()
+        b64_data = m.group("data")
+        return base64.b64decode(b64_data), mime
+
+    try:
+        return base64.b64decode(raw_text), None
+    except Exception:
+        return None, None
+
+
+def detect_extension(data, mime=None):
+    if mime and mime in MIME_TO_EXT:
+        return MIME_TO_EXT[mime]
+    detected = imghdr.what(None, h=data)
+    if detected == "jpeg":
+        return "jpg"
+    return detected or "bin"
+
+
+def sha256_digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def s3_key(prefix, row_id, erp_code, ext):
+    safe_code = (erp_code or f"id-{row_id}").replace("/", "-").strip()
+    return f"{prefix.rstrip('/')}/{safe_code}.{ext}"
+
+
+def object_exists(bucket, key):
+    try:
+        s3.head_object(Bucket=bucket, Key=key)
+        return True
+    except Exception:
+        return False
+
+
+def main():
+    args = parse_args()
+    if not S3_BUCKET_NAME:
+        print("Missing S3 bucket config (BUCKETEER_BUCKET_NAME).", file=sys.stderr)
+        return 2
+
+    processed = 0
+    uploaded = 0
+    updated = 0
+    skipped = 0
+    failed = 0
+
+    sql = """
+        SELECT id, erp_code, image, image_url
+        FROM procurement_details
+        WHERE id >= :start_id
+          AND (image_url IS NULL OR image_url = '')
+          AND image IS NOT NULL
+          AND image <> ''
+        ORDER BY id ASC
+    """
+    if args.limit > 0:
+        sql += " LIMIT :limit_n"
+
+    with app.app_context():
+        params = {"start_id": args.start_id}
+        if args.limit > 0:
+            params["limit_n"] = args.limit
+        rows = db.session.execute(text(sql), params).mappings().all()
+
+        with open(args.report_csv, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=[
+                    "id",
+                    "erp_code",
+                    "s3_key",
+                    "sha256",
+                    "action",
+                    "status",
+                    "error",
+                ],
+            )
+            writer.writeheader()
+
+            for row in rows:
+                processed += 1
+                action = "upload+update_image_url"
+                status = "ok"
+                error = ""
+                key = ""
+                digest = ""
+                try:
+                    image_bytes, mime = decode_image_text(row["image"])
+                    if not image_bytes:
+                        raise RuntimeError("Cannot decode image text (not base64/data URL)")
+                    ext = detect_extension(image_bytes, mime)
+                    key = s3_key(args.prefix, row["id"], row["erp_code"], ext)
+                    digest = sha256_digest(image_bytes)
+
+                    if args.skip_existing and object_exists(S3_BUCKET_NAME, key):
+                        skipped += 1
+                        action = "skip_existing+update_image_url"
+                    elif not args.dry_run:
+                        s3.put_object(
+                            Bucket=S3_BUCKET_NAME,
+                            Key=key,
+                            Body=image_bytes,
+                            ContentType=mime or "application/octet-stream",
+                        )
+                        uploaded += 1
+
+                    if not args.dry_run:
+                        db.session.execute(
+                            text(
+                                """
+                                UPDATE procurement_details
+                                SET image_url = :image_url
+                                WHERE id = :id
+                                """
+                            ),
+                            {"id": row["id"], "image_url": key},
+                        )
+                        db.session.commit()
+                        updated += 1
+                except Exception as exc:
+                    db.session.rollback()
+                    failed += 1
+                    status = "failed"
+                    error = str(exc)
+
+                writer.writerow(
+                    {
+                        "id": row["id"],
+                        "erp_code": row["erp_code"],
+                        "s3_key": key,
+                        "sha256": digest,
+                        "action": action,
+                        "status": status,
+                        "error": error,
+                    }
+                )
+
+    print(f"Bucket: {S3_BUCKET_NAME}")
+    print(f"Processed: {processed}")
+    print(f"Uploaded: {uploaded}")
+    print(f"Updated image_url: {updated}")
+    print(f"Skipped existing: {skipped}")
+    print(f"Failed: {failed}")
+    print(f"Report: {args.report_csv}")
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
