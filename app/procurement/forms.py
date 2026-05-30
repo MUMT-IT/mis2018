@@ -66,7 +66,7 @@ class DatePickerField(Field):
 class ProcurementDetailForm(ModelForm):
     class Meta:
         model = ProcurementDetail
-        exclude = ['image']
+        exclude = ['image_url']
 
     image_file_upload = FileField(u'อัพโหลดรูปภาพ')
     cost_center = SelectField(u'ศูนย์ต้นทุน',
@@ -169,10 +169,6 @@ class ProcurementApprovalForm(ModelForm):
 
 
 class ProcurementAddImageForm(ModelForm):
-    class Meta:
-        model = ProcurementDetail
-        only = ['image']
-
     image_upload = FileField(u'อัพโหลดรูปภาพ')
 
 
