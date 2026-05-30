@@ -40,6 +40,7 @@ def parse_args():
     parser.add_argument("--limit", type=int, default=0, help="Max rows to process (0 means all)")
     parser.add_argument("--skip-existing", action="store_true", help="Skip upload if target key already exists")
     parser.add_argument("--dry-run", action="store_true", help="Do not upload/update DB")
+    parser.add_argument("--progress-every", type=int, default=100, help="Print progress every N processed rows")
     parser.add_argument(
         "--report-csv",
         default=f"/tmp/procurement_image_migration_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
@@ -102,6 +103,8 @@ def main():
     updated = 0
     skipped = 0
     failed = 0
+    min_processed_id = None
+    max_processed_id = None
 
     sql = """
         SELECT id, erp_code, image, image_url
@@ -138,6 +141,11 @@ def main():
 
             for row in rows:
                 processed += 1
+                row_id = int(row["id"])
+                if min_processed_id is None or row_id < min_processed_id:
+                    min_processed_id = row_id
+                if max_processed_id is None or row_id > max_processed_id:
+                    max_processed_id = row_id
                 action = "upload+update_image_url"
                 status = "ok"
                 error = ""
@@ -194,12 +202,26 @@ def main():
                     }
                 )
 
+                if args.progress_every > 0 and processed % args.progress_every == 0:
+                    print(
+                        f"[progress] processed={processed} uploaded={uploaded} "
+                        f"updated={updated} skipped={skipped} failed={failed} "
+                        f"last_id={row_id}",
+                        flush=True,
+                    )
+
     print(f"Bucket: {S3_BUCKET_NAME}")
     print(f"Processed: {processed}")
     print(f"Uploaded: {uploaded}")
     print(f"Updated image_url: {updated}")
     print(f"Skipped existing: {skipped}")
     print(f"Failed: {failed}")
+    print(f"Min processed ID: {min_processed_id}")
+    print(f"Max processed ID: {max_processed_id}")
+    if max_processed_id is not None:
+        next_start_id = max_processed_id + 1
+        print(f"Suggested next start-id: {next_start_id}")
+        print(f"Next command example: python scripts/migrate_procurement_images_to_s3.py --skip-existing --start-id {next_start_id}")
     print(f"Report: {args.report_csv}")
     return 1 if failed else 0
 
