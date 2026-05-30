@@ -41,9 +41,14 @@ def parse_args():
         description="Upload procurement full images/thumbnails to S3 and backfill URL fields."
     )
     parser.add_argument(
-        "--prefix",
+        "--full-prefix",
+        default="",
+        help="S3 key prefix for full-size images (default: no prefix, match existing app behavior)",
+    )
+    parser.add_argument(
+        "--thumbnail-prefix",
         default="procurements/thumbnails",
-        help="S3 key prefix where both full image and thumbnail will be uploaded",
+        help="S3 key prefix for thumbnails",
     )
     parser.add_argument("--start-id", type=int, default=0, help="Only process id >= start-id")
     parser.add_argument("--limit", type=int, default=0, help="Max rows to process (0 means all)")
@@ -189,7 +194,8 @@ def main():
 
     with app.app_context():
         if not args.dry_run:
-            ensure_s3_prefix(S3_BUCKET_NAME, args.prefix)
+            ensure_s3_prefix(S3_BUCKET_NAME, args.full_prefix)
+            ensure_s3_prefix(S3_BUCKET_NAME, args.thumbnail_prefix)
 
         params = {"start_id": args.start_id}
         if args.limit > 0:
@@ -246,7 +252,7 @@ def main():
                         image_bytes = full_obj["Body"].read()
                         mime = full_obj.get("ContentType")
                         ext = detect_extension(image_bytes, mime)
-                        thumb_key = thumbnail_s3_key(args.prefix, row["id"], row["erp_code"], ext)
+                        thumb_key = thumbnail_s3_key(args.thumbnail_prefix, row["id"], row["erp_code"], ext)
                         action = "upload_thumbnail+update_image_thumbnail_url"
                     else:
                         # Legacy DB image or thumbnail-only image_url: upload full image and thumbnail.
@@ -254,8 +260,8 @@ def main():
                         if not image_bytes:
                             raise RuntimeError("Cannot decode image text (not base64/data URL)")
                         ext = detect_extension(image_bytes, mime)
-                        full_key = s3_key(args.prefix, row["id"], row["erp_code"], ext)
-                        thumb_key = thumbnail_s3_key(args.prefix, row["id"], row["erp_code"], ext)
+                        full_key = s3_key(args.full_prefix, row["id"], row["erp_code"], ext)
+                        thumb_key = thumbnail_s3_key(args.thumbnail_prefix, row["id"], row["erp_code"], ext)
                         action = "upload_full+upload_thumbnail+update_urls"
                         if thumbnail_only_in_image_url:
                             action = "repair_thumbnail_only_image_url"
