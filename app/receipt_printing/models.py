@@ -37,6 +37,7 @@ class ElectronicReceiptDetail(db.Model):
     issuer = db.relationship(StaffAccount, foreign_keys=[issuer_id])
     print_number = db.Column('print_number', db.Integer, default=0, info={'label': u'จำนวนพิมพ์'})
     pdf_file = db.Column('pdf_file', LargeBinary)
+    pdf_url = db.Column('pdf_url', db.String(), info={'label': u'ที่อยู่ไฟล์ PDF'})
     invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
     invoice = db.relationship(ServiceInvoice, backref=db.backref('receipts'))
 
@@ -63,6 +64,7 @@ class ElectronicReceiptDetail(db.Model):
             'number': self.number,
             'created_datetime': self.created_datetime,
             'print_number': self.print_number,
+            'pdf_url': self.pdf_url,
             'comment': self.comment,
             'cancelled': self.cancelled,
             'cancel_comment': self.cancel_comment,
@@ -145,4 +147,3 @@ class ElectronicReceiptBankName(db.Model):
 
     def __str__(self):
         return u'{}: {}'.format(self.bank_name, self.bank_type)
-
