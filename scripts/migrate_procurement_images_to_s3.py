@@ -2,7 +2,10 @@
 """Backfill procurement_details.image to S3 for rows missing image_url.
 
 This script only processes rows where image_url is NULL/empty.
-It reads legacy image text directly from DB and updates image_url after upload.
+It reads legacy image text directly from DB and uploads both:
+- full image
+- thumbnail image
+to an S3 folder, then updates image_url and image_thumbnail_url.
 """
 
 import argparse
@@ -10,11 +13,13 @@ import base64
 import csv
 import hashlib
 import imghdr
+import io
 import re
 import sys
 from datetime import datetime
 
 from sqlalchemy import text
+from PIL import Image
 
 from app.main import app, db, s3, S3_BUCKET_NAME
 
@@ -35,7 +40,11 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Upload legacy procurement image text to S3 only for rows without image_url."
     )
-    parser.add_argument("--prefix", default="procurement/images", help="S3 key prefix")
+    parser.add_argument(
+        "--prefix",
+        default="procurements/thumbnails",
+        help="S3 key prefix where both full image and thumbnail will be uploaded",
+    )
     parser.add_argument("--start-id", type=int, default=0, help="Only process id >= start-id")
     parser.add_argument("--limit", type=int, default=0, help="Max rows to process (0 means all)")
     parser.add_argument("--skip-existing", action="store_true", help="Skip upload if target key already exists")
@@ -84,12 +93,47 @@ def s3_key(prefix, row_id, erp_code, ext):
     return f"{prefix.rstrip('/')}/{safe_code}.{ext}"
 
 
+def thumbnail_s3_key(prefix, row_id, erp_code, ext):
+    safe_code = (erp_code or f"id-{row_id}").replace("/", "-").strip()
+    return f"{prefix.rstrip('/')}/{safe_code}_thumbnail.{ext}"
+
+
 def object_exists(bucket, key):
     try:
         s3.head_object(Bucket=bucket, Key=key)
         return True
     except Exception:
         return False
+
+
+def ensure_s3_prefix(bucket, prefix):
+    marker_key = f"{prefix.rstrip('/')}/"
+    if object_exists(bucket, marker_key):
+        return
+    s3.put_object(Bucket=bucket, Key=marker_key, Body=b"")
+
+
+def create_thumbnail_bytes(image_bytes, ext, size=(256, 256)):
+    image = Image.open(io.BytesIO(image_bytes))
+    if image.mode not in ("RGB", "RGBA"):
+        image = image.convert("RGB")
+    image.thumbnail(size)
+    out = io.BytesIO()
+    format_map = {
+        "jpg": "JPEG",
+        "jpeg": "JPEG",
+        "png": "PNG",
+        "gif": "GIF",
+        "webp": "WEBP",
+        "bmp": "BMP",
+    }
+    output_format = format_map.get(ext.lower(), "PNG")
+    save_kwargs = {}
+    if output_format == "JPEG":
+        save_kwargs["quality"] = 85
+        save_kwargs["optimize"] = True
+    image.save(out, format=output_format, **save_kwargs)
+    return out.getvalue(), output_format
 
 
 def main():
@@ -119,6 +163,9 @@ def main():
         sql += " LIMIT :limit_n"
 
     with app.app_context():
+        if not args.dry_run:
+            ensure_s3_prefix(S3_BUCKET_NAME, args.prefix)
+
         params = {"start_id": args.start_id}
         if args.limit > 0:
             params["limit_n"] = args.limit
@@ -130,7 +177,8 @@ def main():
                 fieldnames=[
                     "id",
                     "erp_code",
-                    "s3_key",
+                    "full_s3_key",
+                    "thumbnail_s3_key",
                     "sha256",
                     "action",
                     "status",
@@ -149,38 +197,56 @@ def main():
                 action = "upload+update_image_url"
                 status = "ok"
                 error = ""
-                key = ""
+                full_key = ""
+                thumb_key = ""
                 digest = ""
                 try:
                     image_bytes, mime = decode_image_text(row["image"])
                     if not image_bytes:
                         raise RuntimeError("Cannot decode image text (not base64/data URL)")
                     ext = detect_extension(image_bytes, mime)
-                    key = s3_key(args.prefix, row["id"], row["erp_code"], ext)
+                    full_key = s3_key(args.prefix, row["id"], row["erp_code"], ext)
+                    thumb_key = thumbnail_s3_key(args.prefix, row["id"], row["erp_code"], ext)
                     digest = sha256_digest(image_bytes)
+                    thumbnail_bytes, thumbnail_format = create_thumbnail_bytes(image_bytes, ext)
+                    thumbnail_content_type = f"image/{thumbnail_format.lower()}"
 
-                    if args.skip_existing and object_exists(S3_BUCKET_NAME, key):
+                    if args.skip_existing and object_exists(S3_BUCKET_NAME, full_key) and object_exists(S3_BUCKET_NAME, thumb_key):
                         skipped += 1
-                        action = "skip_existing+update_image_url"
-                    elif not args.dry_run:
-                        s3.put_object(
-                            Bucket=S3_BUCKET_NAME,
-                            Key=key,
-                            Body=image_bytes,
-                            ContentType=mime or "application/octet-stream",
-                        )
-                        uploaded += 1
+                        action = "skip_existing+update_image_urls"
+                    else:
+                        if not args.dry_run and (not args.skip_existing or not object_exists(S3_BUCKET_NAME, full_key)):
+                            s3.put_object(
+                                Bucket=S3_BUCKET_NAME,
+                                Key=full_key,
+                                Body=image_bytes,
+                                ContentType=mime or "application/octet-stream",
+                            )
+                            uploaded += 1
+                        if not args.dry_run and (not args.skip_existing or not object_exists(S3_BUCKET_NAME, thumb_key)):
+                            s3.put_object(
+                                Bucket=S3_BUCKET_NAME,
+                                Key=thumb_key,
+                                Body=thumbnail_bytes,
+                                ContentType=thumbnail_content_type,
+                            )
+                            uploaded += 1
 
                     if not args.dry_run:
                         db.session.execute(
                             text(
                                 """
                                 UPDATE procurement_details
-                                SET image_url = :image_url
+                                SET image_url = :image_url,
+                                    image_thumbnail_url = :image_thumbnail_url
                                 WHERE id = :id
                                 """
                             ),
-                            {"id": row["id"], "image_url": key},
+                            {
+                                "id": row["id"],
+                                "image_url": full_key,
+                                "image_thumbnail_url": thumb_key,
+                            },
                         )
                         db.session.commit()
                         updated += 1
@@ -194,7 +260,8 @@ def main():
                     {
                         "id": row["id"],
                         "erp_code": row["erp_code"],
-                        "s3_key": key,
+                        "full_s3_key": full_key,
+                        "thumbnail_s3_key": thumb_key,
                         "sha256": digest,
                         "action": action,
                         "status": status,
