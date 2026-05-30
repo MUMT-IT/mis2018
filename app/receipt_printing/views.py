@@ -74,6 +74,20 @@ def get_receipt_pdf_bytes(receipt):
     return receipt.pdf_file
 
 
+def upload_receipt_pdf_to_s3(receipt, pdf_bytes, tag="signed"):
+    number = (receipt.number or f"id-{receipt.id}").strip().replace("/", "-")
+    key = f"receipt-printing/pdfs/{receipt.id}_{number}_{tag}.pdf"
+    s3.put_object(
+        Bucket=S3_BUCKET_NAME,
+        Key=key,
+        Body=pdf_bytes,
+        ContentType="application/pdf",
+    )
+    receipt.pdf_url = f"s3://{S3_BUCKET_NAME}/{key}"
+    # Keep legacy field empty for new writes.
+    receipt.pdf_file = None
+
+
 @receipt_printing.route('/landing')
 def landing():
     return render_template('receipt_printing/landing.html')
@@ -493,7 +507,8 @@ def export_receipt_pdf(receipt_id):
             except (ValueError, AttributeError):
                 flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger" )
             else:
-                receipt.pdf_file = sign_pdf.read()
+                signed_pdf_bytes = sign_pdf.read()
+                upload_receipt_pdf_to_s3(receipt, signed_pdf_bytes, tag="signed")
                 sign_pdf.seek(0)
                 db.session.add(receipt)
                 db.session.commit()
@@ -528,7 +543,8 @@ def cancel_receipt(receipt_id):
         except (ValueError, AttributeError):
             flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger")
         else:
-            receipt.pdf_file = sign_pdf.read()
+            cancelled_pdf_bytes = sign_pdf.read()
+            upload_receipt_pdf_to_s3(receipt, cancelled_pdf_bytes, tag="cancelled")
             sign_pdf.seek(0)
             db.session.add(receipt)
             db.session.commit()
