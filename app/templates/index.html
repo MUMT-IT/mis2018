@@ -558,7 +558,7 @@
                             </span>
                             <span>Continue with Google</span>
                         </a>
-                        <a href="{{ url_for('auth.line_login') }}" class="button is-rounded is-medium is-fullwidth home-line-signin-btn">
+                        <a href="{{ url_for('auth.line_login', next=request.path) }}" class="button is-rounded is-medium is-fullwidth home-line-signin-btn">
                             <span class="icon">
                                 <i class="fab fa-line"></i>
                             </span>

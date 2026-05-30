@@ -135,7 +135,7 @@
                         {% if not linking_line %}
                         <div class="field">
                             <div class="control">
-                                <a href="{{ url_for('auth.line_login') }}" class="button is-rounded is-fullwidth line-signin-btn">
+                                <a href="{{ url_for('auth.line_login', next=request.path) }}" class="button is-rounded is-fullwidth line-signin-btn">
                                     <span class="icon line-signin-logo">
                                         <i class="fab fa-line"></i>
                                     </span>

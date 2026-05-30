@@ -308,6 +308,11 @@ def google_callback():
 @auth.route('/line')
 @auth.route('/line/login')
 def line_login():
+    next_url = request.args.get('next') or request.referrer
+    if next_url and not is_safe_url(next_url):
+        return abort(400)
+    if next_url:
+        session['auth_line_oauth_next'] = next_url
     line_auth_url = 'https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id={}&redirect_uri={}&state=494959&scope=profile'
     line_auth_url = line_auth_url.format(LINE_CLIENT_ID, external_url('auth.line_callback'))
     return redirect(line_auth_url)
@@ -353,6 +358,10 @@ def line_profile():
     if 'line_profile' not in session:
         return redirect('auth.line_login')
 
+    next_url = session.pop('auth_line_oauth_next', None)
+    if next_url and not is_safe_url(next_url):
+        return abort(400)
+
     userId = session['line_profile'].get('userId')
     line_user = StaffAccount.query.filter_by(line_id=userId).first()
     if line_user:
@@ -365,7 +374,7 @@ def line_profile():
                 flash(u'Your account is inactive. บัญชีผู้ใช้นี้ไม่สามารถเข้าใช้งานได้', 'danger')
                 return redirect(url_for('auth.login'))
             session['user_type'] = 'staff'
-        return redirect(url_for('auth.account'))
+        return redirect(next_url or url_for('index'))
     else:
         return render_template('auth/line_account.html',
                                profile=session['line_profile'],
