@@ -198,6 +198,48 @@
             white-space: nowrap;
         }
 
+        .home-login-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+            margin: 0 auto;
+            max-width: 380px;
+        }
+
+        .home-google-signin-btn {
+            background: #ffffff;
+            border: 1px solid #dadce0;
+            color: #3c4043;
+            font-weight: 600;
+        }
+
+        .home-google-signin-btn:hover,
+        .home-google-signin-btn:focus {
+            background: #f8f9fa;
+            border-color: #c6c9cc;
+            color: #202124;
+        }
+
+        .home-google-signin-logo {
+            display: inline-block;
+            height: 18px;
+            width: 18px;
+        }
+
+        .home-line-signin-btn {
+            background: #06c755;
+            border: 1px solid #06b24c;
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        .home-line-signin-btn:hover,
+        .home-line-signin-btn:focus {
+            background: #05b24c;
+            border-color: #049643;
+            color: #ffffff;
+        }
+
         .home-feed {
             display: flex;
             flex-direction: column;
@@ -504,10 +546,25 @@
                 <div class="home-panel home-login-card">
                     <p class="home-panel-title">เริ่มต้นใช้งานระบบ</p>
                     <p class="home-panel-subtitle mb-4">ลงชื่อเข้าใช้เพื่อดูงานที่เกี่ยวข้องกับคุณและเข้าถึงบริการภายในทั้งหมด</p>
-                    <a class="button is-info is-medium" href="{{ url_for('auth.login') }}">
-                        <span class="icon"><i class="fas fa-sign-in-alt"></i></span>
-                        <span>ลงชื่อเข้าใช้</span>
-                    </a>
+                    <div class="home-login-actions">
+                        <a href="{{ url_for('auth.google_login', next=request.path) }}" class="button is-rounded is-medium is-fullwidth home-google-signin-btn">
+                            <span class="icon home-google-signin-logo">
+                                <svg viewBox="0 0 18 18" width="18" height="18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                                    <path fill="#EA4335" d="M9 7.35v3.3h4.63c-.2 1.06-.8 1.96-1.7 2.57l2.75 2.14c1.6-1.48 2.52-3.65 2.52-6.23 0-.6-.05-1.18-.15-1.74H9z"/>
+                                    <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.17l-2.75-2.14c-.77.52-1.75.83-3.2.83-2.45 0-4.52-1.65-5.26-3.87H.9v2.23A9 9 0 0 0 9 18z"/>
+                                    <path fill="#FBBC05" d="M3.74 10.65A5.4 5.4 0 0 1 3.45 9c0-.57.1-1.12.29-1.65V5.12H.9A9 9 0 0 0 0 9c0 1.45.35 2.83.9 3.88l2.84-2.23z"/>
+                                    <path fill="#4285F4" d="M9 3.58c1.33 0 2.52.46 3.46 1.36l2.6-2.6C13.46.86 11.43 0 9 0A9 9 0 0 0 .9 5.12l2.84 2.23C4.48 5.23 6.55 3.58 9 3.58z"/>
+                                </svg>
+                            </span>
+                            <span>Continue with Google</span>
+                        </a>
+                        <a href="{{ url_for('auth.line_login') }}" class="button is-rounded is-medium is-fullwidth home-line-signin-btn">
+                            <span class="icon">
+                                <i class="fab fa-line"></i>
+                            </span>
+                            <span>Continue with LINE</span>
+                        </a>
+                    </div>
                 </div>
             {% endif %}
         </div>
