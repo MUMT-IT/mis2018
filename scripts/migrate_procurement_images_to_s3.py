@@ -106,6 +106,12 @@ def object_exists(bucket, key):
         return False
 
 
+def is_thumbnail_only_path(key):
+    if not key:
+        return False
+    return "thumbnails/" in key.lower()
+
+
 def ensure_s3_prefix(bucket, prefix):
     marker_key = f"{prefix.rstrip('/')}/"
     if object_exists(bucket, marker_key):
@@ -147,6 +153,7 @@ def main():
     updated = 0
     skipped = 0
     failed = 0
+    repaired_thumbnail_only = 0
     min_processed_id = None
     max_processed_id = None
 
@@ -210,13 +217,15 @@ def main():
                 thumb_key = ""
                 digest = ""
                 try:
-                    has_full_image_url = bool((row["image_url"] or "").strip())
+                    raw_image_url = (row["image_url"] or "").strip()
+                    has_full_image_url = bool(raw_image_url) and not is_thumbnail_only_path(raw_image_url)
+                    thumbnail_only_in_image_url = bool(raw_image_url) and is_thumbnail_only_path(raw_image_url)
                     image_bytes = None
                     mime = None
 
                     if has_full_image_url:
                         # Existing full image is already on S3: only generate/upload thumbnail.
-                        full_key = row["image_url"]
+                        full_key = raw_image_url
                         full_obj = s3.get_object(Bucket=S3_BUCKET_NAME, Key=full_key)
                         image_bytes = full_obj["Body"].read()
                         mime = full_obj.get("ContentType")
@@ -224,7 +233,7 @@ def main():
                         thumb_key = thumbnail_s3_key(args.prefix, row["id"], row["erp_code"], ext)
                         action = "upload_thumbnail+update_image_thumbnail_url"
                     else:
-                        # Legacy DB image: upload full image and thumbnail.
+                        # Legacy DB image or thumbnail-only image_url: upload full image and thumbnail.
                         image_bytes, mime = decode_image_text(row["image"])
                         if not image_bytes:
                             raise RuntimeError("Cannot decode image text (not base64/data URL)")
@@ -232,6 +241,8 @@ def main():
                         full_key = s3_key(args.prefix, row["id"], row["erp_code"], ext)
                         thumb_key = thumbnail_s3_key(args.prefix, row["id"], row["erp_code"], ext)
                         action = "upload_full+upload_thumbnail+update_urls"
+                        if thumbnail_only_in_image_url:
+                            action = "repair_thumbnail_only_image_url"
 
                     digest = sha256_digest(image_bytes)
                     thumbnail_bytes, thumbnail_format = create_thumbnail_bytes(image_bytes, ext)
@@ -292,6 +303,8 @@ def main():
                                     "image_thumbnail_url": thumb_key,
                                 },
                             )
+                            if thumbnail_only_in_image_url:
+                                repaired_thumbnail_only += 1
                         db.session.commit()
                         updated += 1
                 except Exception as exc:
@@ -327,6 +340,7 @@ def main():
     print(f"Updated image_url: {updated}")
     print(f"Skipped existing: {skipped}")
     print(f"Failed: {failed}")
+    print(f"Repaired thumbnail-only image_url rows: {repaired_thumbnail_only}")
     print(f"Min processed ID: {min_processed_id}")
     print(f"Max processed ID: {max_processed_id}")
     if max_processed_id is not None:
