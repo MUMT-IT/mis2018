@@ -270,14 +270,15 @@ def main():
                     thumbnail_bytes, thumbnail_format = create_thumbnail_bytes(image_bytes, ext)
                     thumbnail_content_type = f"image/{thumbnail_format.lower()}"
 
-                    if args.skip_existing and (
-                        (has_full_image_url and object_exists(S3_BUCKET_NAME, thumb_key)) or
-                        ((not has_full_image_url) and object_exists(S3_BUCKET_NAME, full_key) and object_exists(S3_BUCKET_NAME, thumb_key))
-                    ):
-                        skipped += 1
-                        action = "skip_existing"
-                    else:
-                        if not has_full_image_url and not args.dry_run and (not args.skip_existing or not object_exists(S3_BUCKET_NAME, full_key)):
+                    full_exists = object_exists(S3_BUCKET_NAME, full_key) if full_key else False
+                    thumb_exists = object_exists(S3_BUCKET_NAME, thumb_key) if thumb_key else False
+
+                    # --skip-existing skips upload only; DB fields are still updated below.
+                    if not has_full_image_url and not args.dry_run:
+                        if args.skip_existing and full_exists:
+                            skipped += 1
+                            action = f"{action}+skip_full_upload"
+                        else:
                             s3.put_object(
                                 Bucket=S3_BUCKET_NAME,
                                 Key=full_key,
@@ -285,7 +286,12 @@ def main():
                                 ContentType=mime or "application/octet-stream",
                             )
                             uploaded += 1
-                        if not args.dry_run and (not args.skip_existing or not object_exists(S3_BUCKET_NAME, thumb_key)):
+
+                    if not args.dry_run:
+                        if args.skip_existing and thumb_exists:
+                            skipped += 1
+                            action = f"{action}+skip_thumbnail_upload"
+                        else:
                             s3.put_object(
                                 Bucket=S3_BUCKET_NAME,
                                 Key=thumb_key,
