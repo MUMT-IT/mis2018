@@ -99,20 +99,20 @@ def _send_admin_error_email(job_name, err, response_info=None):
 
 def _request_or_raise(job_name, method, url, params=None, timeout=60):
     logger.info('job_checkpoint job=%s step=http_request_start method=%s url=%s', job_name, method, url)
-    response = requests.request(method=method, url=url, params=params, timeout=timeout)
-    if response.status_code >= 400:
+    response = requests.request(method=method, url=url, params=params, timeout=timeout, allow_redirects=False)
+    if response.status_code >= 300:
         logger.error(
             'job_http_failed job=%s status_code=%s url=%s body=%s',
             job_name,
             response.status_code,
-            url,
+            response.url,
             _safe_text(response.text, 4000),
         )
-        error = requests.HTTPError(f'HTTP {response.status_code} from {url}')
+        error = requests.HTTPError(f'HTTP {response.status_code} from {response.url}')
         setattr(error, 'response_info', {
             'status_code': response.status_code,
             'body': _safe_text(response.text, 4000),
-            'url': url,
+            'url': response.url,
         })
         raise error
     logger.info(
@@ -139,37 +139,64 @@ def _run_job(job_name, fn):
 
 def send_event_notification():
     job_name = 'send_event_notification'
+
+    def _job():
+        params = {}
+        if JOB_TOKEN:
+            params['job_token'] = JOB_TOKEN
+        _request_or_raise(
+            job_name,
+            'GET',
+            f'{BASE_URL}/linebot/events/notification',
+            params=params or None,
+            timeout=60,
+        )
+
     _run_job(
         job_name,
-        lambda: _request_or_raise(job_name, 'GET', f'{BASE_URL}/linebot/events/notification', timeout=60),
+        _job,
     )
 
 
 def send_room_notification_today():
     job_name = 'send_room_notification_today'
-    _run_job(
-        job_name,
-        lambda: _request_or_raise(
+
+    def _job():
+        params = {'when': 'today'}
+        if JOB_TOKEN:
+            params['job_token'] = JOB_TOKEN
+        _request_or_raise(
             job_name,
             'GET',
             f'{BASE_URL}/linebot/rooms/notification',
-            params={'when': 'today'},
+            params=params,
             timeout=60,
-        ),
+        )
+
+    _run_job(
+        job_name,
+        _job,
     )
 
 
 def send_room_notification_tomorrow():
     job_name = 'send_room_notification_tomorrow'
-    _run_job(
-        job_name,
-        lambda: _request_or_raise(
+
+    def _job():
+        params = {'when': 'tomorrow'}
+        if JOB_TOKEN:
+            params['job_token'] = JOB_TOKEN
+        _request_or_raise(
             job_name,
             'GET',
             f'{BASE_URL}/linebot/rooms/notification',
-            params={'when': 'tomorrow'},
+            params=params,
             timeout=60,
-        ),
+        )
+
+    _run_job(
+        job_name,
+        _job,
     )
 
 
