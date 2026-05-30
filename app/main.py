@@ -342,6 +342,102 @@ def teacher_tools_index():
     return render_template('edu/teacher_tools.html')
 
 
+@app.route('/management/s3-storage')
+@login_required
+def s3_storage_management_index():
+    if not admin_permission.can():
+        return abort(403)
+    region = (
+        os.environ.get('BUCKETEER_AWS_REGION')
+        or os.environ.get('AWS_DEFAULT_REGION')
+        or os.environ.get('AWS_REGION')
+        or '-'
+    )
+    endpoint_url = os.environ.get('AWS_S3_ENDPOINT_URL') or 'AWS default endpoint'
+    bucket_name = os.environ.get('BUCKETEER_BUCKET_NAME')
+    connection_status = 'Connected'
+    error_message = None
+    bucket_region = '-'
+    bucket_access = 'Unavailable'
+    objects = []
+    object_count = 0
+    total_size_bytes = 0
+
+    capacity_gb_raw = os.environ.get('S3_STORAGE_CAPACITY_GB', '15')
+    try:
+        storage_capacity_gb = float(capacity_gb_raw)
+    except (TypeError, ValueError):
+        storage_capacity_gb = 15.0
+    if storage_capacity_gb <= 0:
+        storage_capacity_gb = 15.0
+    storage_capacity_bytes = int(storage_capacity_gb * (1024 ** 3))
+
+    try:
+        access_key_id = os.environ.get('BUCKETEER_AWS_ACCESS_KEY_ID')
+        secret_access_key = os.environ.get('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+        session_token = os.environ.get('BUCKETEER_AWS_SESSION_TOKEN')
+
+        s3_client = boto3.client(
+            's3',
+            endpoint_url=os.environ.get('AWS_S3_ENDPOINT_URL') or None,
+            region_name=region if region != '-' else None,
+            aws_access_key_id=access_key_id,
+            aws_secret_access_key=secret_access_key,
+            aws_session_token=session_token,
+        )
+
+        if not bucket_name:
+            connection_status = 'Unavailable'
+            error_message = 'BUCKETEER_BUCKET_NAME is not configured.'
+        else:
+            s3_client.head_bucket(Bucket=bucket_name)
+            bucket_access = 'Available'
+
+            location_resp = s3_client.get_bucket_location(Bucket=bucket_name)
+            # AWS may return None for us-east-1.
+            bucket_region = location_resp.get('LocationConstraint') or 'us-east-1'
+
+            paginator = s3_client.get_paginator('list_objects_v2')
+            for page in paginator.paginate(Bucket=bucket_name):
+                for obj in page.get('Contents', []):
+                    total_size_bytes += obj.get('Size', 0) or 0
+
+            list_resp = s3_client.list_objects_v2(Bucket=bucket_name, MaxKeys=20)
+            object_count = list_resp.get('KeyCount', 0)
+            for obj in list_resp.get('Contents', []):
+                last_modified = obj.get('LastModified')
+                if last_modified:
+                    last_modified = last_modified.strftime('%Y-%m-%d %H:%M:%S')
+                objects.append({
+                    'key': obj.get('Key', '-'),
+                    'size': obj.get('Size', 0),
+                    'last_modified': last_modified or '-',
+                })
+    except (NoCredentialsError, ClientError, Exception) as err:
+        connection_status = 'Unavailable'
+        error_message = str(err)
+
+    used_storage_gb = total_size_bytes / (1024 ** 3)
+    storage_usage_percent = round((total_size_bytes / storage_capacity_bytes) * 100, 2) if storage_capacity_bytes else 0
+
+    return render_template(
+        'management/s3_storage_management.html',
+        region=region,
+        endpoint_url=endpoint_url,
+        connection_status=connection_status,
+        error_message=error_message,
+        bucket_name=bucket_name or '-',
+        bucket_region=bucket_region,
+        bucket_access=bucket_access,
+        objects=objects,
+        object_count=object_count,
+        total_size_bytes=total_size_bytes,
+        used_storage_gb=used_storage_gb,
+        storage_capacity_gb=storage_capacity_gb,
+        storage_usage_percent=storage_usage_percent,
+    )
+
+
 from app.kpi import kpibp as kpi_blueprint
 
 app.register_blueprint(kpi_blueprint, url_prefix='/kpi')

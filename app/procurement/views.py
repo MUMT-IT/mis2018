@@ -997,8 +997,9 @@ def get_procurement_image_data():
     data = []
     for item in query:
         item_data = item.to_dict()
+        item_data['image_thumbnail_url'] = item_data.get('image_thumbnail_url') or item_data.get('image_url')
         item_data['view_img'] = ('<img style="display:block; width:128px;height:128px;" id="base64image"'
-                                 'src="{}">').format(item_data['image_url'])
+                                 'src="{}">').format(item_data['image_thumbnail_url'])
         item_data['img'] = '<a href="{}"><i class="fas fa-image"></a>'.format(
             url_for('procurement.add_img_procurement', procurement_id=item.id))
         item_data['edit'] = '<a href="{}"><i class="fas fa-edit"></i></a>'.format(
@@ -2254,6 +2255,7 @@ def get_procurement_data_guarantee():
             'received_date': item.received_date.strftime('%d/%m/%Y') if item.received_date else '',
             'start_guarantee_date': item.start_guarantee_date.strftime('%d/%m/%Y') if item.start_guarantee_date else '',
             'end_guarantee_date': item.end_guarantee_date.strftime('%d/%m/%Y') if item.end_guarantee_date else '',
+            'image_thumbnail_url': item.image_thumbnail_url or (item.generate_presigned_url() if item.image_url else None),
             'location': location_name,
             'view': f'<a href="{url_for("procurement.view_procurement_info", procurement_id=item.id)}"><i class="fas fa-eye"></i></a>'
         }
