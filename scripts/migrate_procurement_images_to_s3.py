@@ -199,10 +199,9 @@ def main():
         if args.limit > 0:
             print(f"Run limit: {args.limit}", flush=True)
 
-        result = db.session.execute(
-            text(sql).execution_options(stream_results=True),
-            params
-        ).mappings()
+        # Avoid server-side named cursor here because we commit inside the loop.
+        # Server-side cursor becomes invalid after commit on PostgreSQL.
+        result = db.session.execute(text(sql), params).mappings().all()
 
         with open(args.report_csv, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(
