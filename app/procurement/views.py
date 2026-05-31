@@ -520,7 +520,7 @@ def get_procurement_search_data():
 
     data = []
     for item in results:
-        image_thumbnail_url = item.image_thumbnail_url
+        image_thumbnail_url = item.generate_thumbnail_presigned_url()
         if not image_thumbnail_url and item.image_url:
             image_thumbnail_url = item.generate_presigned_url()
 
@@ -618,7 +618,7 @@ def get_procurement_data():
 
     data = []
     for item in results:
-        image_thumbnail_url = item.image_thumbnail_url
+        image_thumbnail_url = item.generate_thumbnail_presigned_url()
         if not image_thumbnail_url and item.image_url:
             image_thumbnail_url = item.generate_presigned_url()
 
@@ -2349,7 +2349,7 @@ def get_procurement_data_guarantee():
             'received_date': item.received_date.strftime('%d/%m/%Y') if item.received_date else '',
             'start_guarantee_date': item.start_guarantee_date.strftime('%d/%m/%Y') if item.start_guarantee_date else '',
             'end_guarantee_date': item.end_guarantee_date.strftime('%d/%m/%Y') if item.end_guarantee_date else '',
-            'image_thumbnail_url': item.image_thumbnail_url or (item.generate_presigned_url() if item.image_url else None),
+            'image_thumbnail_url': item.generate_thumbnail_presigned_url() or (item.generate_presigned_url() if item.image_url else None),
             'location': location_name,
             'view': f'<a href="{url_for("procurement.view_procurement_info", procurement_id=item.id)}"><i class="fas fa-eye"></i></a>'
         }
