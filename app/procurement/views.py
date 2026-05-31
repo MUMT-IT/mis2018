@@ -987,7 +987,8 @@ def list_qrcode():
         canvas.restoreState()
 
     if request.method == "POST":
-        doc = SimpleDocTemplate("app/qrcode.pdf",
+        pdf_buffer = io.BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer,
                                 rightMargin=7,
                                 leftMargin=5,
                                 topMargin=32,
@@ -995,8 +996,19 @@ def list_qrcode():
                                 pagesize=(170, 150)
                                 )
         data = []
-        for item_id in request.form.getlist('selected_items'):
+        selected_item_ids = []
+        seen_item_ids = set()
+        for raw_item_id in request.form.getlist('selected_items'):
+            item_id = str(raw_item_id).strip()
+            if not item_id or item_id in seen_item_ids:
+                continue
+            seen_item_ids.add(item_id)
+            selected_item_ids.append(item_id)
+
+        for item_id in selected_item_ids:
             item = ProcurementDetail.query.get(int(item_id))
+            if not item:
+                continue
 
             base64_qr = item.generate_qrcode()
             img_ = io.BytesIO(b64decode(base64_qr))
@@ -1013,10 +1025,19 @@ def list_qrcode():
                                   .format(item.procurement_no),
                                   style=style_sheet['ThaiStyle']))
             data.append(PageBreak())
+        if not data:
+            flash(u'กรุณาเลือกรายการอย่างน้อย 1 รายการ', 'warning')
+            return redirect(url_for('procurement.list_qrcode'))
         doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
         if 'selected_procurement_items_printing' in session:
             del session['selected_procurement_items_printing']
-        return send_file('qrcode.pdf')
+        pdf_buffer.seek(0)
+        return send_file(
+            pdf_buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name='qrcode.pdf'
+        )
 
     return render_template('procurement/list_qrcode.html')
 
@@ -1026,31 +1047,121 @@ def select_items_for_printing_qrcode():
     if request.method == 'POST':
         items = ''
         print_items = session.get('selected_procurement_items_printing', [])
+        selected_ids = []
         for _id in request.form.getlist('selected_items'):
             if _id not in print_items:
                 print_items.append(_id)
-                item = ProcurementDetail.query.get(int(_id))
-                items += (u'<tr><td><input class="is-checkradio" id="pro_no{}_selected" type="checkbox"'
-                          u'name="selected_items" checked value="{}"><label for="pro_no{}_selected"></label></td>'
-                          u'<td>{}</td><td>{}</td><td>{}</td></tr>').format(_id, _id, _id, item.name,
-                                                                            item.procurement_no, item.erp_code)
+                selected_ids.append(int(_id))
+        session['selected_procurement_items_printing'] = print_items
+
+        if not selected_ids:
+            return items
+
+        selected_items = ProcurementDetail.query.options(
+            load_only(
+                ProcurementDetail.id,
+                ProcurementDetail.name,
+                ProcurementDetail.procurement_no,
+                ProcurementDetail.erp_code
+            )
+        ).filter(ProcurementDetail.id.in_(selected_ids)).all()
+        item_by_id = {item.id: item for item in selected_items}
+
+        for selected_id in selected_ids:
+            item = item_by_id.get(selected_id)
+            if not item:
+                continue
+            _id = str(selected_id)
+            items += (u'<tr id="selected_row_{}" data-item-id="{}"><td>'
+                      u'<a class="delete-selected-item has-text-danger" data-item-id="{}" title="Remove">'
+                      u'<i class="fas fa-times"></i></a></td>'
+                      u'<td>{}</td><td>{}</td><td>{}</td></tr>').format(_id, _id, _id, _id, item.name,
+                                                                        item.procurement_no, item.erp_code)
         return items
+
+
+@procurement.route('/api/data/selected-items/list')
+def list_selected_items_for_printing_qrcode():
+    print_items = session.get('selected_procurement_items_printing', [])
+    if not print_items:
+        return ''
+
+    selected_ids = [int(_id) for _id in print_items if str(_id).isdigit()]
+    if not selected_ids:
+        return ''
+
+    selected_items = ProcurementDetail.query.options(
+        load_only(
+            ProcurementDetail.id,
+            ProcurementDetail.name,
+            ProcurementDetail.procurement_no,
+            ProcurementDetail.erp_code
+        )
+    ).filter(ProcurementDetail.id.in_(selected_ids)).all()
+    item_by_id = {item.id: item for item in selected_items}
+
+    rows = ''
+    for selected_id in selected_ids:
+        item = item_by_id.get(selected_id)
+        if not item:
+            continue
+        _id = str(selected_id)
+        rows += (u'<tr id="selected_row_{}" data-item-id="{}"><td>'
+                 u'<a class="delete-selected-item has-text-danger" data-item-id="{}" title="Remove">'
+                 u'<i class="fas fa-times"></i></a></td>'
+                 u'<td>{}</td><td>{}</td><td>{}</td></tr>').format(_id, _id, _id, _id, item.name,
+                                                                   item.procurement_no, item.erp_code)
+    return rows
+
+
+@procurement.route('/api/data/selected-items/remove', methods=['POST'])
+def remove_selected_items_for_printing_qrcode():
+    print_items = session.get('selected_procurement_items_printing', [])
+    remove_ids = set(request.form.getlist('selected_items'))
+    if remove_ids:
+        print_items = [item_id for item_id in print_items if item_id not in remove_ids]
+        session['selected_procurement_items_printing'] = print_items
+    return '', 204
+
+
+@procurement.route('/api/data/selected-items/clear', methods=['POST'])
+def clear_selected_items_for_printing_qrcode():
+    session['selected_procurement_items_printing'] = []
+    return '', 204
 
 
 @procurement.route('/api/data/qrcode/list')
 def get_procurement_data_qrcode_list():
-    query = ProcurementDetail.query
-    search = request.args.get('search[value]')
-    query = query.filter(db.or_(
-        ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
-        ProcurementDetail.name.like(u'%{}%'.format(search)),
-        ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
-        ProcurementDetail.budget_year.like(u'%{}%'.format(search)),
-        ProcurementDetail.available.like(u'%{}%'.format(search))
-    ))
-    direction = request.args.get('order[0][dir]')
+    draw = request.args.get('draw', type=int)
+    start = request.args.get('start', type=int, default=0)
+    length = request.args.get('length', type=int, default=10)
+    search = (request.args.get('search[value]') or '').strip()
+    direction = request.args.get('order[0][dir]', 'asc')
     col_idx = request.args.get('order[0][column]')
     col_name = request.args.get('columns[{}][data]'.format(col_idx))
+
+    base_query = ProcurementDetail.query.options(
+        load_only(
+            ProcurementDetail.id,
+            ProcurementDetail.name,
+            ProcurementDetail.procurement_no,
+            ProcurementDetail.erp_code,
+            ProcurementDetail.budget_year,
+            ProcurementDetail.received_date,
+            ProcurementDetail.available
+        )
+    )
+    query = base_query
+    if search:
+        search_pattern = u'%{}%'.format(search)
+        query = query.filter(db.or_(
+            ProcurementDetail.procurement_no.ilike(search_pattern),
+            ProcurementDetail.name.ilike(search_pattern),
+            ProcurementDetail.erp_code.ilike(search_pattern),
+            ProcurementDetail.budget_year.ilike(search_pattern),
+            ProcurementDetail.available.ilike(search_pattern)
+        ))
+
     try:
         column = getattr(ProcurementDetail, col_name)
     except AttributeError:
@@ -1058,26 +1169,35 @@ def get_procurement_data_qrcode_list():
 
     if direction == 'desc':
         column = column.desc()
+    else:
+        column = column.asc()
     query = query.order_by(column)
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    total_filtered = query.count()
-    query = query.offset(start).limit(length)
+
+    records_total = base_query.order_by(None).count()
+    records_filtered = query.order_by(None).count() if search else records_total
+    results = query.offset(start).limit(length).all()
+
     data = []
-    for item in query:
-        item_data = item.to_dict()
-        item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data[
-            'received_date'] else ''
-        item_data['select_item'] = (
-            '<input class="is-checkradio" id="pro_no{}" type="checkbox" name="selected_items" value="{}">'
-            '<label for="pro_no{}"></label>').format(item.id, item.id, item.id)
-        item_data['print'] = '<a href="{}"><i class="fas fa-print"></i></a>'.format(
-            url_for('procurement.export_qrcode_pdf', procurement_id=item.id))
-        data.append(item_data)
+    selected_items = set(session.get('selected_procurement_items_printing', []))
+    for item in results:
+        checked = ' checked' if str(item.id) in selected_items else ''
+        data.append({
+            'name': item.name,
+            'procurement_no': item.procurement_no,
+            'erp_code': item.erp_code,
+            'budget_year': item.budget_year,
+            'received_date': item.received_date.strftime('%d/%m/%Y') if item.received_date else '',
+            'available': item.available,
+            'select_item': (
+            '<input class="is-checkradio qtable-checkbox" id="pro_no{}" type="checkbox" name="selected_items" value="{}"{}>'
+            '<label for="pro_no{}"></label>').format(item.id, item.id, checked, item.id),
+            'print': '<a href="{}"><i class="fas fa-print"></i></a>'.format(
+                url_for('procurement.export_qrcode_pdf', procurement_id=item.id))
+        })
     return jsonify({'data': data,
-                    'recordsFiltered': total_filtered,
-                    'recordsTotal': ProcurementDetail.query.count(),
-                    'draw': request.args.get('draw', type=int),
+                    'recordsFiltered': records_filtered,
+                    'recordsTotal': records_total,
+                    'draw': draw,
                     })
 
 
@@ -1091,7 +1211,8 @@ def export_qrcode_pdf(procurement_id):
         # canvas.drawImage(logo_image, 10, 700, width=250, height=100)
         canvas.restoreState()
 
-    doc = SimpleDocTemplate("app/qrcode.pdf",
+    pdf_buffer = io.BytesIO()
+    doc = SimpleDocTemplate(pdf_buffer,
                             rightMargin=7,
                             leftMargin=5,
                             topMargin=32,
@@ -1116,7 +1237,13 @@ def export_qrcode_pdf(procurement_id):
     procurement.qrcode = 'GENERATE'
     db.session.commit()
 
-    return send_file('qrcode.pdf')
+    pdf_buffer.seek(0)
+    return send_file(
+        pdf_buffer,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name='qrcode.pdf'
+    )
 
 
 @procurement.route('/scan-qrcode', methods=['GET'])
@@ -2031,27 +2158,64 @@ def view_all_procurement_to_check_instruments():
 
 @procurement.route('api/check-instruments/all')
 def get_procurement_to_check_instruments():
-    query = ProcurementDetail.query
-    search = request.args.get('search[value]')
-    query = query.filter(db.or_(
-        ProcurementDetail.erp_code.ilike(u'%{}%'.format(search)),
-        ProcurementDetail.procurement_no.ilike(u'%{}%'.format(search)),
-        ProcurementDetail.name.ilike(u'%{}%'.format(search))
-    ))
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    total_filtered = query.count()
-    query = query.offset(start).limit(length)
+    draw = request.args.get('draw', type=int)
+    start = request.args.get('start', type=int, default=0)
+    length = request.args.get('length', type=int, default=10)
+    search = (request.args.get('search[value]') or '').strip()
+    only_instruments = request.args.get('only_instruments', '1') == '1'
+
+    base_query = ProcurementDetail.query.options(
+        load_only(
+            ProcurementDetail.id,
+            ProcurementDetail.name,
+            ProcurementDetail.erp_code,
+            ProcurementDetail.procurement_no,
+            ProcurementDetail.image_url,
+            ProcurementDetail.image_thumbnail_url,
+            ProcurementDetail.is_instruments
+        )
+    )
+    if only_instruments:
+        base_query = base_query.filter(ProcurementDetail.is_instruments.is_(True))
+
+    query = base_query
+    if search:
+        search_pattern = u'%{}%'.format(search)
+        query = query.filter(db.or_(
+            ProcurementDetail.erp_code.ilike(search_pattern),
+            ProcurementDetail.procurement_no.ilike(search_pattern),
+            ProcurementDetail.name.ilike(search_pattern)
+        ))
+
+    records_total = base_query.order_by(None).count()
+    records_filtered = query.order_by(None).count() if search else records_total
+    results = query.offset(start).limit(length).all()
+
     data = []
-    for item in query:
-        item_data = item.to_dict()
-        item_data['add'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">View</a>'.format(
-            url_for('procurement.view_desc_procurement_to_check_instruments', procurement_id=item.id))
-        data.append(item_data)
+    for item in results:
+        image_thumbnail_url = item.generate_thumbnail_presigned_url()
+        if not image_thumbnail_url and item.image_url:
+            image_thumbnail_url = item.generate_presigned_url()
+
+        thumbnail = (
+            '<div class="thumbnail-wrapper">'
+            '<div class="thumbnail-loader"></div>'
+            '<img class="thumbnail-image" style="display:block; width:56px; height:56px; object-fit:cover;" '
+            'src="{}" alt="thumbnail">'
+            '</div>'
+        ).format(image_thumbnail_url) if image_thumbnail_url else ''
+
+        data.append({
+            'thumbnail': thumbnail,
+            'name': item.name,
+            'erp_code': item.erp_code,
+            'add': '<a href="{}" class="button is-small is-rounded is-info is-outlined">View</a>'.format(
+                url_for('procurement.view_desc_procurement_to_check_instruments', procurement_id=item.id))
+        })
     return jsonify({'data': data,
-                    'recordsFiltered': total_filtered,
-                    'recordsTotal': ProcurementDetail.query.count(),
-                    'draw': request.args.get('draw', type=int),
+                    'recordsFiltered': records_filtered,
+                    'recordsTotal': records_total,
+                    'draw': draw,
                     })
 
 
@@ -2079,27 +2243,65 @@ def view_all_procurement_for_audio_visual_equipment():
 
 @procurement.route('api/audio-visual-equipment/list')
 def get_procurement_for_audio_visual_equipment():
-    query = ProcurementDetail.query
-    search = request.args.get('search[value]')
-    query = query.filter(db.or_(
-        ProcurementDetail.erp_code.ilike(u'%{}%'.format(search)),
-        ProcurementDetail.procurement_no.ilike(u'%{}%'.format(search)),
-        ProcurementDetail.name.ilike(u'%{}%'.format(search))
-    ))
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    total_filtered = query.count()
-    query = query.offset(start).limit(length)
+    draw = request.args.get('draw', type=int)
+    start = request.args.get('start', type=int, default=0)
+    length = request.args.get('length', type=int, default=10)
+    search = (request.args.get('search[value]') or '').strip()
+    only_audio_visual = request.args.get('only_audio_visual', '1') == '1'
+
+    base_query = ProcurementDetail.query.options(
+        load_only(
+            ProcurementDetail.id,
+            ProcurementDetail.name,
+            ProcurementDetail.erp_code,
+            ProcurementDetail.procurement_no,
+            ProcurementDetail.image_url,
+            ProcurementDetail.image_thumbnail_url,
+            ProcurementDetail.is_audio_visual_equipment
+        )
+    )
+    if only_audio_visual:
+        base_query = base_query.filter(ProcurementDetail.is_audio_visual_equipment.is_(True))
+
+    query = base_query
+    if search:
+        search_pattern = u'%{}%'.format(search)
+        query = query.filter(db.or_(
+            ProcurementDetail.erp_code.ilike(search_pattern),
+            ProcurementDetail.procurement_no.ilike(search_pattern),
+            ProcurementDetail.name.ilike(search_pattern)
+        ))
+
+    records_total = base_query.order_by(None).count()
+    records_filtered = query.order_by(None).count() if search else records_total
+    results = query.offset(start).limit(length).all()
+
     data = []
-    for item in query:
-        item_data = item.to_dict()
-        item_data['add'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">View</a>'.format(
-            url_for('procurement.view_desc_procurement_for_audio_visual_equipment', procurement_id=item.id))
-        data.append(item_data)
+    for item in results:
+        image_thumbnail_url = item.generate_thumbnail_presigned_url()
+        if not image_thumbnail_url and item.image_url:
+            image_thumbnail_url = item.generate_presigned_url()
+
+        thumbnail = (
+            '<div class="thumbnail-wrapper">'
+            '<div class="thumbnail-loader"></div>'
+            '<img class="thumbnail-image" style="display:block; width:56px; height:56px; object-fit:cover;" '
+            'src="{}" alt="thumbnail">'
+            '</div>'
+        ).format(image_thumbnail_url) if image_thumbnail_url else ''
+
+        data.append({
+            'thumbnail': thumbnail,
+            'name': item.name,
+            'erp_code': item.erp_code,
+            'is_audio_visual_equipment': 'Yes' if item.is_audio_visual_equipment else 'No',
+            'add': '<a href="{}" class="button is-small is-rounded is-info is-outlined">View</a>'.format(
+                url_for('procurement.view_desc_procurement_for_audio_visual_equipment', procurement_id=item.id))
+        })
     return jsonify({'data': data,
-                    'recordsFiltered': total_filtered,
-                    'recordsTotal': ProcurementDetail.query.count(),
-                    'draw': request.args.get('draw', type=int),
+                    'recordsFiltered': records_filtered,
+                    'recordsTotal': records_total,
+                    'draw': draw,
                     })
 
 
@@ -2298,7 +2500,8 @@ def search_all_procurement():
 @login_required
 def procurement_item():
     if request.method == 'GET':
-        procurements = ProcurementDetail.query.yield_per(200)
+        erp_code = request.args.get('erp_code', '').strip()
+        return render_template('procurement/procurement_item.html', erp_code=erp_code)
     else:
         erp_code = request.form.get('erp_code', None)
         if len(erp_code) > 4:
@@ -2307,7 +2510,98 @@ def procurement_item():
             procurements = []
         if request.headers.get('HX-Request') == 'true':
             return render_template('procurement/partials/procurement_item.html', procurements=procurements)
-    return render_template('procurement/procurement_item.html', procurements=procurements)
+    return render_template('procurement/procurement_item.html', erp_code=(erp_code or '').strip())
+
+
+@procurement.route('/transfer/list/data')
+@login_required
+def procurement_item_data():
+    draw = request.args.get('draw', type=int)
+    start = request.args.get('start', type=int, default=0)
+    length = request.args.get('length', type=int, default=10)
+    search = (request.args.get('search[value]') or '').strip()
+    erp_code = (request.args.get('erp_code') or '').strip()
+
+    base_query = ProcurementDetail.query.options(
+        load_only(
+            ProcurementDetail.id,
+            ProcurementDetail.erp_code,
+            ProcurementDetail.procurement_no,
+            ProcurementDetail.name,
+            ProcurementDetail.received_date,
+            ProcurementDetail.available,
+            ProcurementDetail.image_url,
+            ProcurementDetail.image_thumbnail_url
+        )
+    )
+    query = base_query
+
+    if erp_code:
+        query = query.filter(ProcurementDetail.erp_code.ilike(f'%{erp_code}%'))
+
+    if search:
+        search_pattern = f'%{search}%'
+        query = query.filter(db.or_(
+            ProcurementDetail.erp_code.ilike(search_pattern),
+            ProcurementDetail.procurement_no.ilike(search_pattern),
+            ProcurementDetail.name.ilike(search_pattern),
+            ProcurementDetail.available.ilike(search_pattern)
+        ))
+
+    direction = request.args.get('order[0][dir]', 'asc')
+    col_idx = request.args.get('order[0][column]')
+    col_name = request.args.get(f'columns[{col_idx}][data]')
+    order_map = {
+        'erp_code': ProcurementDetail.erp_code,
+        'procurement_no': ProcurementDetail.procurement_no,
+        'name': ProcurementDetail.name,
+        'received_date': ProcurementDetail.received_date,
+        'available': ProcurementDetail.available,
+    }
+    column = order_map.get(col_name, ProcurementDetail.received_date)
+    query = query.order_by(column.desc() if direction == 'desc' else column.asc())
+
+    records_total = base_query.order_by(None).count()
+    if erp_code:
+        records_total = base_query.filter(ProcurementDetail.erp_code.ilike(f'%{erp_code}%')).order_by(None).count()
+    records_filtered = query.order_by(None).count() if search else records_total
+    results = query.offset(start).limit(length).all()
+
+    data = []
+    for item in results:
+        image_thumbnail_url = item.generate_thumbnail_presigned_url()
+        if not image_thumbnail_url and item.image_url:
+            image_thumbnail_url = item.generate_presigned_url()
+
+        thumbnail = (
+            '<div class="thumbnail-wrapper">'
+            '<div class="thumbnail-loader"></div>'
+            '<img class="thumbnail-image" style="display:block; width:56px; height:56px; object-fit:cover;" '
+            'src="{}" alt="thumbnail">'
+            '</div>'
+        ).format(image_thumbnail_url) if image_thumbnail_url else ''
+
+        data.append({
+            'thumbnail': thumbnail,
+            'erp_code': item.erp_code,
+            'procurement_no': item.procurement_no,
+            'name': item.name,
+            'received_date': item.received_date.strftime('%d/%m/%Y') if item.received_date else '',
+            'available': item.available,
+            'edit': (
+                '<a class="button is-rounded is-link is-light is-small" href="{}">'
+                '<span class="icon"><i class="fas fa-pencil-alt"></i></span>'
+                '<span>แก้ไขสถานที่</span>'
+                '</a>'
+            ).format(url_for('procurement.edit_location_procurement', procurement_id=item.id))
+        })
+
+    return jsonify({
+        'data': data,
+        'recordsFiltered': records_filtered,
+        'recordsTotal': records_total,
+        'draw': draw
+    })
 
 
 @procurement.route('/transfer/location/edit/<int:procurement_id>', methods=['POST', 'GET'])
