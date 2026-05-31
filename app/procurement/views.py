@@ -21,7 +21,7 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from sqlalchemy import cast, Date, or_, String
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, load_only
 from sqlalchemy.sql import func
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
@@ -482,25 +482,29 @@ def get_procurement_data():
     length = request.args.get('length', type=int, default=10)
     search = request.args.get('search[value]', '').strip()
 
-    # ถ้ายังไม่ได้ค้นหา ไม่ต้อง query database
-    if not search:
-        return jsonify({
-            'data': [],
-            'recordsFiltered': 0,
-            'recordsTotal': 0,
-            'draw': draw
-        })
-
-    base_query = ProcurementDetail.query
+    base_query = ProcurementDetail.query.options(
+        load_only(
+            ProcurementDetail.id,
+            ProcurementDetail.name,
+            ProcurementDetail.procurement_no,
+            ProcurementDetail.erp_code,
+            ProcurementDetail.budget_year,
+            ProcurementDetail.received_date,
+            ProcurementDetail.available,
+            ProcurementDetail.image_thumbnail_url,
+            ProcurementDetail.image_url
+        )
+    )
     query = base_query
 
     # search
     if search:
+        search_pattern = f'%{search}%'
         query = query.filter(db.or_(
-            ProcurementDetail.procurement_no.ilike(f'%{search}%'),
-            ProcurementDetail.name.ilike(f'%{search}%'),
-            ProcurementDetail.erp_code.ilike(f'%{search}%'),
-            ProcurementDetail.available.ilike(f'%{search}%')
+            ProcurementDetail.procurement_no.ilike(search_pattern),
+            ProcurementDetail.name.ilike(search_pattern),
+            ProcurementDetail.erp_code.ilike(search_pattern),
+            ProcurementDetail.available.ilike(search_pattern)
         ))
 
     # order
@@ -521,34 +525,43 @@ def get_procurement_data():
     query = query.order_by(column)
 
     # count
-    records_filtered = query.count()
+    if search:
+        records_filtered = query.order_by(None).count()
+        records_total = base_query.order_by(None).count()
+    else:
+        records_total = base_query.order_by(None).count()
+        records_filtered = records_total
 
     # pagination
     results = query.offset(start).limit(length).all()
 
     data = []
     for item in results:
-        item_data = item.to_dict()
+        image_thumbnail_url = item.image_thumbnail_url
+        if not image_thumbnail_url and item.image_url:
+            image_thumbnail_url = item.generate_presigned_url()
 
-        item_data['view'] = '<a href="{}"><i class="fas fa-eye"></i></a>'.format(
-            url_for('procurement.view_qrcode', procurement_id=item.id)
-        )
-
-        item_data['edit'] = '<a href="{}"><i class="fas fa-edit"></i></a>'.format(
-            url_for('procurement.edit_procurement', procurement_id=item.id)
-        )
-
-        if item_data.get('received_date'):
-            item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y')
-        else:
-            item_data['received_date'] = ''
-
-        data.append(item_data)
+        data.append({
+            'thumbnail': ('<img style="display:block; width:56px; height:56px; object-fit:cover;" '
+                          'src="{}" alt="thumbnail">'.format(image_thumbnail_url)) if image_thumbnail_url else '',
+            'view': '<a href="{}"><i class="fas fa-eye"></i></a>'.format(
+                url_for('procurement.view_qrcode', procurement_id=item.id)
+            ),
+            'edit': '<a href="{}"><i class="fas fa-edit"></i></a>'.format(
+                url_for('procurement.edit_procurement', procurement_id=item.id)
+            ),
+            'name': item.name,
+            'procurement_no': item.procurement_no,
+            'erp_code': item.erp_code,
+            'budget_year': item.budget_year,
+            'received_date': item.received_date.strftime('%d/%m/%Y') if item.received_date else '',
+            'available': item.available
+        })
 
     return jsonify({
         'data': data,
         'recordsFiltered': records_filtered,
-        'recordsTotal': base_query.count(),
+        'recordsTotal': records_total,
         'draw': draw
     })
 

@@ -13,6 +13,7 @@
                 <div class="column">
                     <table id="data" class="table is-fullwidth is-striped">
                         <thead>
+                        <th>Image</th>
                         <th>View</th>
                         <th>Edit</th>
                         <th>รายการ</th>
@@ -51,11 +52,8 @@
             searchDelay: 1000,
             ajax: '{{ url_for("procurement.get_procurement_data") }}',
 
-            language: {
-                emptyTable: "กรุณาพิมพ์คำค้นหาอย่างน้อย 4 ตัวอักษร"
-            },
-
             columns: [
+                {data: 'thumbnail', orderable: false, searchable: false},
                 {data: 'view', orderable: false, searchable: false},
                 {data: 'edit', orderable: false, searchable: false},
                 {data: 'name'},
@@ -65,15 +63,6 @@
                 {data: 'received_date'},
                 {data: 'available'}
             ]
-            });
-
-            $('#data_filter input').unbind();
-
-            $('#data_filter input').on('keyup', function () {
-                var value = this.value;
-                if (value.length >= 4 || value.length === 0) {
-                    table.search(value).draw();
-                }
             });
         });
     </script>
