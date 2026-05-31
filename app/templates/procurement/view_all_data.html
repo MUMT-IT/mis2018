@@ -2,6 +2,39 @@
 {% include "procurement/nav.html" %}
 {% block page_content %}
     <section class="section">
+        <style>
+            .thumbnail-wrapper {
+                position: relative;
+                display: inline-block;
+                width: 56px;
+                height: 56px;
+            }
+            .thumbnail-loader {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.85);
+            }
+            .thumbnail-loader::after {
+                content: "";
+                width: 16px;
+                height: 16px;
+                border: 2px solid #d9d9d9;
+                border-top-color: #3273dc;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+            }
+            .thumbnail-loader.is-hidden {
+                display: none;
+            }
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
         {% include "messages.html" %}
         <div class="container">
             <div class="columns">
@@ -46,6 +79,24 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
+            const bindThumbnailLoaders = function () {
+                document.querySelectorAll('.thumbnail-wrapper').forEach(function (wrapper) {
+                    const img = wrapper.querySelector('.thumbnail-image');
+                    const loader = wrapper.querySelector('.thumbnail-loader');
+                    if (!img || !loader) {
+                        return;
+                    }
+                    const hideLoader = function () {
+                        loader.classList.add('is-hidden');
+                    };
+                    if (img.complete) {
+                        hideLoader();
+                    } else {
+                        img.addEventListener('load', hideLoader, {once: true});
+                        img.addEventListener('error', hideLoader, {once: true});
+                    }
+                });
+            };
 
             var table = $('#data').DataTable({
             serverSide: true,
@@ -64,6 +115,8 @@
                 {data: 'available'}
             ]
             });
+
+            table.on('draw', bindThumbnailLoaders);
         });
     </script>
 {% endblock %}
