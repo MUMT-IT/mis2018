@@ -1077,32 +1077,62 @@ def view_img_procurement():
 
 @procurement.route('/api/data/image/view')
 def get_procurement_image_data():
-    query = ProcurementDetail.query
-    search = request.args.get('search[value]')
-    query = query.filter(db.or_(
-        ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
-        ProcurementDetail.name.like(u'%{}%'.format(search)),
-        ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
-    ))
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    total_filtered = query.count()
-    query = query.offset(start).limit(length)
+    draw = request.args.get('draw', type=int)
+    start = request.args.get('start', type=int, default=0)
+    length = request.args.get('length', type=int, default=10)
+    search = (request.args.get('search[value]') or '').strip()
+
+    base_query = ProcurementDetail.query.options(
+        load_only(
+            ProcurementDetail.id,
+            ProcurementDetail.name,
+            ProcurementDetail.procurement_no,
+            ProcurementDetail.erp_code,
+            ProcurementDetail.image_url,
+            ProcurementDetail.image_thumbnail_url
+        )
+    )
+    query = base_query
+
+    if search:
+        search_pattern = u'%{}%'.format(search)
+        query = query.filter(db.or_(
+            ProcurementDetail.procurement_no.ilike(search_pattern),
+            ProcurementDetail.name.ilike(search_pattern),
+            ProcurementDetail.erp_code.ilike(search_pattern),
+        ))
+
+    records_total = base_query.order_by(None).count()
+    records_filtered = query.order_by(None).count() if search else records_total
+    results = query.offset(start).limit(length).all()
+
     data = []
-    for item in query:
-        item_data = item.to_dict()
-        item_data['image_thumbnail_url'] = item_data.get('image_thumbnail_url') or item_data.get('image_url')
-        item_data['view_img'] = ('<img style="display:block; width:128px;height:128px;" id="base64image"'
-                                 'src="{}">').format(item_data['image_thumbnail_url'])
-        item_data['img'] = '<a href="{}"><i class="fas fa-image"></a>'.format(
-            url_for('procurement.add_img_procurement', procurement_id=item.id))
-        item_data['edit'] = '<a href="{}"><i class="fas fa-edit"></i></a>'.format(
-            url_for('procurement.edit_procurement', procurement_id=item.id))
-        data.append(item_data)
+    for item in results:
+        full_image_url = item.generate_presigned_url()
+        thumbnail_url = item.generate_thumbnail_presigned_url() or full_image_url
+        view_img = (
+            '<div class="thumbnail-wrapper">'
+            '<div class="thumbnail-loader"></div>'
+            '<img class="thumbnail-image" style="display:block; width:56px; height:56px; object-fit:cover;" '
+            'id="base64image" src="{}" alt="thumbnail">'
+            '</div>'
+        ).format(thumbnail_url) if thumbnail_url else ''
+
+        data.append({
+            'view_img': view_img,
+            'name': item.name,
+            'procurement_no': item.procurement_no,
+            'erp_code': item.erp_code,
+            'img': '<a href="{}"><i class="fas fa-image"></a>'.format(
+                url_for('procurement.add_img_procurement', procurement_id=item.id)),
+            'edit': '<a href="{}"><i class="fas fa-edit"></i></a>'.format(
+                url_for('procurement.edit_procurement', procurement_id=item.id)),
+        })
+
     return jsonify({'data': data,
-                    'recordsFiltered': total_filtered,
-                    'recordsTotal': ProcurementDetail.query.count(),
-                    'draw': request.args.get('draw', type=int),
+                    'recordsFiltered': records_filtered,
+                    'recordsTotal': records_total,
+                    'draw': draw,
                     })
 
 
