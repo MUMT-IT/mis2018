@@ -395,31 +395,73 @@ def view_procurement_by_committee():
 
 @procurement.route('/api/data/committee')
 def get_procurement_data_to_committee():
-    query = ProcurementDetail.query
-    search = request.args.get('search[value]')
-    query = query.filter(db.or_(
-        ProcurementDetail.procurement_no.ilike(u'%{}%'.format(search)),
-        ProcurementDetail.name.ilike(u'%{}%'.format(search)),
-        ProcurementDetail.erp_code.ilike(u'%{}%'.format(search))
-    ))
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    total_filtered = query.count()
-    query = query.offset(start).limit(length)
+    draw = request.args.get('draw', type=int)
+    start = request.args.get('start', type=int, default=0)
+    length = request.args.get('length', type=int, default=10)
+    search = (request.args.get('search[value]') or '').strip()
+
+    latest_record_sq = db.session.query(
+        ProcurementRecord.item_id.label('item_id'),
+        func.max(ProcurementRecord.id).label('latest_record_id')
+    ).group_by(ProcurementRecord.item_id).subquery()
+
+    current_record = aliased(ProcurementRecord)
+    approval_alias = aliased(ProcurementCommitteeApproval)
+    approver_model = ProcurementCommitteeApproval.approver.property.mapper.class_
+    approver_alias = aliased(approver_model)
+    approver_personal_info_model = approver_model.personal_info.property.mapper.class_
+    approver_personal_info_alias = aliased(approver_personal_info_model)
+
+    base_query = db.session.query(
+        ProcurementDetail,
+        approval_alias,
+        approver_personal_info_alias
+    ).outerjoin(
+        latest_record_sq,
+        latest_record_sq.c.item_id == ProcurementDetail.id
+    ).outerjoin(
+        current_record,
+        current_record.id == latest_record_sq.c.latest_record_id
+    ).outerjoin(
+        approval_alias,
+        approval_alias.record_id == current_record.id
+    ).outerjoin(
+        approver_alias,
+        approver_alias.id == approval_alias.approver_id
+    ).outerjoin(
+        approver_personal_info_alias,
+        approver_personal_info_alias.id == approver_alias.personal_info_id
+    )
+    query = base_query
+
+    if search:
+        search_pattern = u'%{}%'.format(search)
+        query = query.filter(db.or_(
+            ProcurementDetail.procurement_no.ilike(search_pattern),
+            ProcurementDetail.name.ilike(search_pattern),
+            ProcurementDetail.erp_code.ilike(search_pattern)
+        ))
+
+    records_total = db.session.query(ProcurementDetail.id).count()
+    records_filtered = query.order_by(None).count() if search else records_total
+    results = query.offset(start).limit(length).all()
+
     data = []
-    for item in query:
-        current_record = item.current_record
-        item_data = item.to_dict()
-        item_data['updated_at'] = current_record.approval.updated_at.strftime('%d/%m/%Y') if current_record and current_record.approval else ''
-        item_data['checking_result'] = current_record.approval.checking_result if current_record and current_record.approval else ''
-        item_data['approver'] = current_record.approval.approver.personal_info.fullname if current_record and current_record.approval else ''
-        item_data['status'] = current_record.approval.asset_status if current_record and current_record.approval else ''
-        item_data['approver_comment'] = current_record.approval.approval_comment if current_record and current_record.approval else ''
-        data.append(item_data)
+    for item, approval, approver_personal_info in results:
+        data.append({
+            'name': item.name,
+            'procurement_no': item.procurement_no,
+            'erp_code': item.erp_code,
+            'updated_at': approval.updated_at.strftime('%d/%m/%Y') if approval and approval.updated_at else '',
+            'checking_result': approval.checking_result if approval else '',
+            'approver': approver_personal_info.fullname if approver_personal_info else '',
+            'status': approval.asset_status if approval else '',
+            'approver_comment': approval.approval_comment if approval else ''
+        })
     return jsonify({'data': data,
-                    'recordsFiltered': total_filtered,
-                    'recordsTotal': ProcurementDetail.query.count(),
-                    'draw': request.args.get('draw', type=int),
+                    'recordsFiltered': records_filtered,
+                    'recordsTotal': records_total,
+                    'draw': draw,
                     })
 
 
@@ -623,8 +665,13 @@ def get_procurement_data():
             image_thumbnail_url = item.generate_presigned_url()
 
         data.append({
-            'thumbnail': ('<img style="display:block; width:56px; height:56px; object-fit:cover;" '
-                          'src="{}" alt="thumbnail">'.format(image_thumbnail_url)) if image_thumbnail_url else '',
+            'thumbnail': (
+                '<div class="thumbnail-wrapper">'
+                '<div class="thumbnail-loader"></div>'
+                '<img class="thumbnail-image" style="display:block; width:56px; height:56px; object-fit:cover;" '
+                'src="{}" alt="thumbnail">'
+                '</div>'
+            ).format(image_thumbnail_url) if image_thumbnail_url else '',
             'view': '<a href="{}"><i class="fas fa-eye"></i></a>'.format(
                 url_for('procurement.view_qrcode', procurement_id=item.id)
             ),
@@ -658,10 +705,43 @@ def get_procurement_data_is_updated():
     draw = request.args.get('draw', type=int)
     start = request.args.get('start', type=int, default=0)
     length = request.args.get('length', type=int, default=10)
+    latest_record_sq = db.session.query(
+        ProcurementRecord.item_id.label('item_id'),
+        func.max(ProcurementRecord.id).label('latest_record_id')
+    ).group_by(ProcurementRecord.item_id).subquery()
 
-    query = ProcurementDetail.query \
-        .outerjoin(ProcurementRecord, ProcurementDetail.id == ProcurementRecord.item_id) \
-        .outerjoin(RoomResource, ProcurementRecord.location_id == RoomResource.id)
+    current_record = aliased(ProcurementRecord)
+    status_model = ProcurementRecord.status.property.mapper.class_
+    updater_model = ProcurementRecord.updater.property.mapper.class_
+    location_model = ProcurementRecord.location.property.mapper.class_
+    status_alias = aliased(status_model)
+    updater_alias = aliased(updater_model)
+    location_alias = aliased(location_model)
+
+    base_query = db.session.query(
+        ProcurementDetail,
+        current_record,
+        location_alias,
+        status_alias,
+        updater_alias
+    ).outerjoin(
+        latest_record_sq,
+        latest_record_sq.c.item_id == ProcurementDetail.id
+    ).outerjoin(
+        current_record,
+        current_record.id == latest_record_sq.c.latest_record_id
+    ).outerjoin(
+        location_alias,
+        location_alias.id == current_record.location_id
+    ).outerjoin(
+        status_alias,
+        status_alias.id == current_record.status_id
+    ).outerjoin(
+        updater_alias,
+        updater_alias.id == current_record.updater_id
+    )
+
+    query = base_query
 
     # 3. Individual Column Search
     i = 0
@@ -681,10 +761,14 @@ def get_procurement_data_is_updated():
             # ค้นหาในส่วน Location (อ้างอิงตาม Model RoomResource)
             elif col_data == 'location':
                 query = query.filter(or_(
-                    RoomResource.number.ilike(f'%{col_search_val}%'),
-                    RoomResource.location.ilike(f'%{col_search_val}%'),
-                    RoomResource.desc.ilike(f'%{col_search_val}%')
+                    location_alias.number.ilike(f'%{col_search_val}%'),
+                    location_alias.location.ilike(f'%{col_search_val}%'),
+                    location_alias.desc.ilike(f'%{col_search_val}%')
                 ))
+            elif col_data == 'status':
+                query = query.filter(status_alias.status.ilike(f'%{col_search_val}%'))
+            elif col_data == 'updater':
+                query = query.filter(updater_alias.email.ilike(f'%{col_search_val}%'))
 
         i += 1
 
@@ -693,10 +777,18 @@ def get_procurement_data_is_updated():
     col_idx = request.args.get('order[0][column]')
     col_name = request.args.get(f'columns[{col_idx}][data]')
 
-    try:
-        column = getattr(ProcurementDetail, col_name)
-    except AttributeError:
-        column = ProcurementDetail.received_date
+    order_map = {
+        'received_date': ProcurementDetail.received_date,
+        'name': ProcurementDetail.name,
+        'procurement_no': ProcurementDetail.procurement_no,
+        'erp_code': ProcurementDetail.erp_code,
+        'budget_year': ProcurementDetail.budget_year,
+        'location': location_alias.location,
+        'status': status_alias.status,
+        'updater': updater_alias.email,
+        'updated_at': current_record.updated_at,
+    }
+    column = order_map.get(col_name, ProcurementDetail.received_date)
 
     if direction == 'desc':
         column = column.desc()
@@ -706,39 +798,42 @@ def get_procurement_data_is_updated():
     query = query.order_by(column)
 
     # count
-    records_filtered = query.count()
+    records_total = db.session.query(ProcurementDetail.id).count()
+    records_filtered = query.order_by(None).count()
 
     # pagination
     results = query.offset(start).limit(length).all()
 
     data = []
-    for item in results:
+    for item, record, location, status, updater in results:
+        image_thumbnail_url = item.generate_thumbnail_presigned_url()
+        if not image_thumbnail_url and item.image_url:
+            image_thumbnail_url = item.generate_presigned_url()
 
-        item_data = item.to_dict()
-        current_record = item.current_record
-
-        if current_record:
-            item_data['location'] = str(current_record.location or '')
-            item_data['status'] = str(current_record.status or '')
-            item_data['updater'] = str(current_record.updater or '')
-            item_data['updated_at'] = str(current_record.updated_at or '')
-        else:
-            item_data['location'] = ''
-            item_data['status'] = ''
-            item_data['updater'] = ''
-            item_data['updated_at'] = ''
-
-        if item_data.get('received_date'):
-            item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y')
-        else:
-            item_data['received_date'] = ''
-
-        data.append(item_data)
+        thumbnail = (
+            '<div class="thumbnail-wrapper">'
+            '<div class="thumbnail-loader"></div>'
+            '<img class="thumbnail-image" style="display:block; width:56px; height:56px; object-fit:cover;" '
+            'src="{}" alt="thumbnail">'
+            '</div>'
+        ).format(image_thumbnail_url) if image_thumbnail_url else ''
+        data.append({
+            'thumbnail': thumbnail,
+            'received_date': item.received_date.strftime('%d/%m/%Y') if item.received_date else '',
+            'name': item.name,
+            'procurement_no': item.procurement_no,
+            'erp_code': item.erp_code,
+            'budget_year': item.budget_year,
+            'location': str(location or ''),
+            'status': str(status or ''),
+            'updater': str(updater or ''),
+            'updated_at': str(record.updated_at or '') if record else '',
+        })
 
     return jsonify({
         'data': data,
         'recordsFiltered': records_filtered,
-        'recordsTotal': records_filtered,
+        'recordsTotal': records_total,
         'draw': draw
     })
 
@@ -756,9 +851,10 @@ def edit_procurement(procurement_id):
     form = ProcurementDetailForm(obj=procurement)
     if request.method == 'POST':
         form.populate_obj(procurement)
-        record = procurement.current_record
-        record.updated_at = bangkok.localize(datetime.now())
-        db.session.add(record)
+        current_record = procurement.current_record
+        if current_record:
+            current_record.updated_at = bangkok.localize(datetime.now())
+            db.session.add(current_record)
 
         file = form.image_file_upload.data
 
@@ -812,7 +908,8 @@ def gen_image_url(procurement_image_url):
 @login_required
 def add_record(item_id):
     item = ProcurementDetail.query.get(item_id)
-    form = ProcurementUpdateRecordForm(obj=item.current_record)
+    current_record = item.current_record
+    form = ProcurementUpdateRecordForm(obj=current_record)
     if request.method == 'POST':
         if form.validate_on_submit():
             new_record = ProcurementRecord()
@@ -1051,7 +1148,8 @@ def view_procurement_on_scan(procurement_no=None):
 @login_required
 def check_procurement(procurement_id):
     procurement = ProcurementDetail.query.get(procurement_id)
-    approval = procurement.current_record.approval
+    current_record = procurement.current_record
+    approval = current_record.approval if current_record else None
     if approval:
         form = ProcurementApprovalForm(obj=approval)
     else:
@@ -1062,7 +1160,11 @@ def check_procurement(procurement_id):
             form.populate_obj(approval)
             approval.approver = current_user
             approval.updated_at = datetime.now(tz=bangkok)
-            approval.record = procurement.current_record
+            if current_record:
+                approval.record = current_record
+            else:
+                flash(u'ไม่พบประวัติรายการล่าสุด กรุณาเพิ่มรายการบันทึกก่อนตรวจสอบ', 'danger')
+                return redirect(url_for('procurement.view_procurement_on_scan', procurement_no=procurement.procurement_no))
             db.session.add(approval)
             db.session.commit()
             flash(u'ตรวจสอบเรียบร้อย.', 'success')
