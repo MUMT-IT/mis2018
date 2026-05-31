@@ -11,7 +11,7 @@
                     <p class="panel-heading">Services</p>
                     <a class="panel-block" href="{{ url_for('procurement.first_page') }}">
                     <span class="panel-icon">
-                        <i class="fas fa-user-circle"></i>
+                        <i class="fas fa-boxes"></i>
                     </span>
                         <span class="is-size-5">ระบบครุภัณฑ์และซ่อมบำรุง</span><br>
                     </a>
@@ -24,7 +24,7 @@
                     {% if finance_permission.can() %}
                         <a href="{{ url_for('receipt_printing.landing') }}" class="panel-block">
                         <span class="panel-icon">
-                            <i class="fas fa-comments-dollar"></i>
+                            <i class="fas fa-dollar-sign"></i>
                         </span>
                             <span class="is-size-5">ระบบพิมพ์ใบเสร็จรับเงิน</span><br>
                         </a>
@@ -32,12 +32,12 @@
                         <span class="panel-icon">
                             <i class="fas fa-receipt"></i>
                         </span>
-                            <span class="is-size-5">ระบบตรวจสอบการชำระเงินบริการวิชาการ</span><br>
+                            <span class="is-size-5">ระบบตรวจสอบการชำระเงินงานบริการตรวจวิเคราะห์</span><br>
                         </a>
                         <a href="{{ url_for('receipt_printing.select_btw_io_code_and_cost_center') }}"
                            class="panel-block">
                         <span class="panel-icon">
-                            <i class="fas fa-user-alt"></i>
+                            <i class="fas fa-cog"></i>
                         </span>
                             <span class="is-size-5">IO/Cost Center/GL</span>
                         </a>
@@ -45,16 +45,13 @@
                    {% if finance_permission.can() and center_standardization_product_validation_permission.can() %}
                         <a href="{{ url_for('scb_payment.verify_slip') }}" class="panel-block">
                         <span class="panel-icon">
-                            <i class="fas fa-qrcode"></i>
+                            <i class="fas fa-cog"></i>
                         </span>
                             <span class="is-size-5">ระบบ QR Payment Service</span><br>
                         </a>
                   {% endif %}
                 </nav>
             </div>
-        </div>
-        <div class="has-text-right">
-            <span>พบปัญหาเกี่ยวกับระบบ <br>ติดต่อ yada.boo@mahidol.ac.th หรือโทรศัพท์ภายใน 2845</span>
         </div>
     </section>
 {% endblock %}
