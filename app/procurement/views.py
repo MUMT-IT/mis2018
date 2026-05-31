@@ -310,7 +310,66 @@ def landing():
 @login_required
 @procurement_committee_permission.require()
 def committee_first():
-    return render_template('procurement/committee_first_page.html', name=current_user)
+    today_bkk = datetime.now(bangkok).date()
+    year_expr = func.extract('year', func.timezone('Asia/Bangkok', ProcurementCommitteeApproval.updated_at))
+
+    total_approvals = ProcurementCommitteeApproval.query.order_by(None).count()
+    approvals_today = ProcurementCommitteeApproval.query.filter(
+        cast(func.timezone('Asia/Bangkok', ProcurementCommitteeApproval.updated_at), Date) == today_bkk
+    ).order_by(None).count()
+    pending_records = ProcurementRecord.query.outerjoin(ProcurementCommitteeApproval).filter(
+        ProcurementCommitteeApproval.id.is_(None)
+    ).order_by(None).count()
+    flagged_assets = ProcurementCommitteeApproval.query.filter(
+        ProcurementCommitteeApproval.asset_status.in_([u'เสื่อมสภาพ/รอจำหน่าย', u'หมดความจำเป็น'])
+    ).order_by(None).count()
+
+    yearly_approval_rows = db.session.query(
+        year_expr.label('year'),
+        func.count(ProcurementCommitteeApproval.id).label('total')
+    ).filter(
+        ProcurementCommitteeApproval.updated_at.isnot(None)
+    ).group_by(
+        year_expr
+    ).order_by(
+        year_expr.asc()
+    ).all()
+
+    yearly_flagged_rows = db.session.query(
+        year_expr.label('year'),
+        func.count(ProcurementCommitteeApproval.id).label('flagged')
+    ).filter(
+        ProcurementCommitteeApproval.updated_at.isnot(None),
+        ProcurementCommitteeApproval.asset_status.in_([u'เสื่อมสภาพ/รอจำหน่าย', u'หมดความจำเป็น'])
+    ).group_by(
+        year_expr
+    ).order_by(
+        year_expr.asc()
+    ).all()
+
+    yearly_flagged_map = {int(row.year): int(row.flagged) for row in yearly_flagged_rows}
+    yearly_stats = []
+    for row in yearly_approval_rows:
+        year_value = int(row.year)
+        yearly_stats.append({
+            'year': year_value,
+            'approved': int(row.total),
+            'flagged': yearly_flagged_map.get(year_value, 0)
+        })
+
+    stats = {
+        'total_approvals': total_approvals,
+        'approvals_today': approvals_today,
+        'pending_records': pending_records,
+        'flagged_assets': flagged_assets
+    }
+
+    return render_template(
+        'procurement/committee_first_page.html',
+        name=current_user,
+        stats=stats,
+        yearly_stats=yearly_stats
+    )
 
 
 # @procurement.route('/info/by-committee/view', methods=['GET', 'POST'])
@@ -432,38 +491,60 @@ def get_procurement_search_data():
     length = request.args.get('length', type=int, default=10)
     search = request.args.get('search[value]', '').strip()
 
-    # ถ้ายังไม่ได้ค้นหา ไม่ต้อง query database
-    if not search:
-        return jsonify({
-            'data': [],
-            'recordsFiltered': 0,
-            'recordsTotal': 0,
-            'draw': draw
-        })
-
-    query = ProcurementDetail.query.filter(
-        ProcurementDetail.erp_code.ilike(f'%{search}%')
+    base_query = ProcurementDetail.query.options(
+        load_only(
+            ProcurementDetail.id,
+            ProcurementDetail.name,
+            ProcurementDetail.procurement_no,
+            ProcurementDetail.erp_code,
+            ProcurementDetail.budget_year,
+            ProcurementDetail.received_date,
+            ProcurementDetail.available,
+            ProcurementDetail.image_thumbnail_url,
+            ProcurementDetail.image_url
+        )
     )
+    query = base_query
 
-    records_filtered = query.count()
+    if search:
+        query = query.filter(ProcurementDetail.erp_code.ilike(f'%{search}%'))
+
+    if search:
+        records_filtered = query.order_by(None).count()
+        records_total = base_query.order_by(None).count()
+    else:
+        records_total = base_query.order_by(None).count()
+        records_filtered = records_total
 
     results = query.offset(start).limit(length).all()
 
     data = []
     for item in results:
-        item_data = item.to_dict()
-        item_data['check'] = '<a href="{}"><i class="far fa-check-circle"></i></a>'.format(
-            url_for(
-                'procurement.view_procurement_on_scan',
-                procurement_no=item.procurement_no
-            )
-        )
-        data.append(item_data)
+        image_thumbnail_url = item.image_thumbnail_url
+        if not image_thumbnail_url and item.image_url:
+            image_thumbnail_url = item.generate_presigned_url()
+
+        data.append({
+            'thumbnail': ('<img style="display:block; width:56px; height:56px; object-fit:cover;" '
+                          'src="{}" alt="thumbnail">'.format(image_thumbnail_url)) if image_thumbnail_url else '',
+            'check': '<a href="{}"><i class="far fa-check-circle"></i></a>'.format(
+                url_for(
+                    'procurement.view_procurement_on_scan',
+                    procurement_no=item.procurement_no
+                )
+            ),
+            'name': item.name,
+            'procurement_no': item.procurement_no,
+            'erp_code': item.erp_code,
+            'budget_year': item.budget_year,
+            'received_date': item.received_date.strftime('%d/%m/%Y') if item.received_date else '',
+            'available': item.available
+        })
 
     return jsonify({
         'data': data,
         'recordsFiltered': records_filtered,
-        'recordsTotal': records_filtered,
+        'recordsTotal': records_total,
         'draw': draw
     })
 
