@@ -78,7 +78,8 @@
                             <div class="field">
                                 <label class="label">{{ form.vendor_phone_number.label }}</label>
                                 <div class="control">
-                                    {{ form.vendor_phone_number(class='input') }}
+                                    {{ form.vendor_phone_number(class='input',
+                                        oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
                                 </div>
                             </div>
                         </div>
