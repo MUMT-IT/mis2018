@@ -207,7 +207,6 @@ class ComplaintRecord(db.Model):
         return 'แทงจำหน่าย' if self.is_disposed else 'ไม่แทงจำหน่าย'
 
     def generate_presigned_url(self):
-
         if self.url:
             try:
                 return s3.generate_presigned_url(
@@ -236,6 +235,11 @@ class ComplaintRecord(db.Model):
         if self.status and self.status.code == status:
                 return self
         return None
+
+    @property
+    def grand_total(self):
+        return sum(spare_part.total_price or 0 for repair_company in self.repair_companies
+                   for spare_part in repair_company.spare_parts)
 
     @property
     def get_print_of_repair(self):
@@ -413,12 +417,6 @@ class ComplaintSparePart(db.Model):
 
     def __str__(self):
         return self.item
-
-    @property
-    def grand_total(self):
-        total_price = 0
-        total_price += self.total_price
-        return total_price
 
 
 class ComplaintRepair(db.Model):
