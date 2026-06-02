@@ -4393,11 +4393,14 @@ def staff_create_info():
 
         db.session.add(createstaff)
         db.session.commit()
-
+        # create_email = StaffAccount(
+        #     personal_id=createstaff.id,
+        #     email=form.get('email'),
+        #     password=form.get('password')
+        # )
         create_email = StaffAccount(
             personal_id=createstaff.id,
-            email=form.get('email'),
-            password=form.get('password')
+            email=form.get('email')
         )
         db.session.add(create_email)
         db.session.commit()
