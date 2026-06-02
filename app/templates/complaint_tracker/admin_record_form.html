@@ -909,7 +909,7 @@
                                                 </thead>
                                                 <tbody id="spare_parts">
                                                     {% for repair_company in record.repair_companies %}
-                                                        {% for spare_part in repair_company.spare_parts %}
+                                                        {% for spare_part in repair_company.spare_parts|sort(attribute='created_at') %}
                                                             <tr>
                                                                 <td>{{ spare_part.item or '' }}</td>
                                                                 <td>{{ spare_part.quantity or '' }}</td>
