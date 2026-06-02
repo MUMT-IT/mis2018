@@ -1436,6 +1436,7 @@ def create_spare_part(repair_company_id=None, spare_part_id=None):
             spare_part = ComplaintSparePart()
         form.populate_obj(spare_part)
         if repair_company_id:
+            spare_part.repair_company_id = repair_company_id
             spare_part.created_at = arrow.now('Asia/Bangkok').datetime
         else:
             spare_part.updated_at = arrow.now('Asia/Bangkok').datetime
@@ -1445,7 +1446,7 @@ def create_spare_part(repair_company_id=None, spare_part_id=None):
             flash('เพิ่มข้อมูลสำเร็จ', 'success')
             resp = make_response(render_template('complaint_tracker/spare_part_template.html',
                                                  spare_part=spare_part))
-            resp.headers['HX-Trigger'] = 'closeSparePartModal'
+            resp.headers['HX-Trigger'] = 'closeSparePart'
         else:
             flash('แก้ไขข้อมูลสำเร็จ', 'success')
             resp = make_response()
