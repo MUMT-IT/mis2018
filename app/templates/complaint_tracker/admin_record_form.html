@@ -830,7 +830,7 @@
                             <div id="repair_company_field">
                                 <h5 class="title is-size-4">รายละเอียดบริษัทที่ส่งซ่อม</h5>
                                 <div class="box">
-                                    <h5 class="title is-size-5">ข้อมูลบริษัทที่ส่งซ่อม</h5>
+                                    <h5 class="title is-size-5">บริษัทที่ส่งซ่อม</h5>
                                     <hr style="background-color: gainsboro">
                                     <div class="container" style="margin-left: 1em; margin-bottom: 1.2em">
                                         {% for company_form in form.repair_companies %}
@@ -859,7 +859,8 @@
                                                     <label class="label">{{ company_form.contact_phone_number.label }}</label>
                                                     <div class="control">
                                                         {% if record.is_editable %}
-                                                            {{ company_form.contact_phone_number(class="input") }}
+                                                            {{ company_form.contact_phone_number(class="input",
+                                                            oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
                                                         {% else %}
                                                             {{ company_form.contact_phone_number.data or '-' }}
                                                         {% endif %}
@@ -887,6 +888,115 @@
                                                 </div>
                                             </div>
                                         {% endfor %}
+                                    </div>
+                                    <h5 class="title is-size-5">อะไหล่ที่ใช้</h5>
+                                    <hr style="background-color: gainsboro">
+                                    <div class="container" style="margin-left: 1em; margin-bottom: 1.2em">
+                                        <div class="field">
+                                            <table class="table is-striped">
+                                                <thead>
+                                                <th>ชื่ออะไหล่</th>
+                                                <th>จำนวน</th>
+                                                <th>หน่วยนับ</th>
+                                                <th>ราคาต่อหน่วย</th>
+                                                <th>ราคารวม (ราคาxจำนวน)</th>
+                                                <th>ชื่อร้านค้า</th>
+                                                <th>ชื่อผู้ขาย</th>
+                                                <th>เบอร์โทรผู้ชาย</th>
+                                                {% if record.is_editable %}
+                                                    <th></th>
+                                                {% endif %}
+                                                </thead>
+                                                <tbody id="spare_parts">
+                                                    {% for repair_company in record.repair_companies %}
+                                                        {% for spare_part in repair_company.spare_parts %}
+                                                            <tr>
+                                                                <td>{{ spare_part.item or '' }}</td>
+                                                                <td>{{ spare_part.quantity or '' }}</td>
+                                                                <td>{{ spare_part.unit or '' }}</td>
+                                                                <td>
+                                                                    {% if spare_part.unit_price %}
+                                                                        {{ "{:,.2f}".format(spare_part.unit_price) }}
+                                                                    {% else %}
+                                                                        {{ '' }}
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td>
+                                                                    {% if spare_part.total_price %}
+                                                                        {{ "{:,.2f}".format(spare_part.total_price) }}
+                                                                    {% else %}
+                                                                        {{ '' }}
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td>{{ spare_part.store_name or '' }}</td>
+                                                                <td>{{ spare_part.vendor_name or '' }}</td>
+                                                                <td>{{ spare_part.vendor_phone_number or '' }}</td>
+                                                                <td>
+                                                                    {% if record.is_editable %}
+                                                                        <div class="field has-addons">
+                                                                            <div class="control">
+                                                                                <a class='button is-warning is-small is-rounded is-outlined'
+                                                                                   style="margin-bottom: 1.5em"
+                                                                                   hx-swap="innerHTML"
+                                                                                   hx-target="#spare-part-form"
+                                                                                   hx-get="{{ url_for('comp_tracker.create_spare_part',
+                                                                                   spare_part_id=spare_part.id) }}"
+                                                                                >
+                                                                                    <span class="icon">
+                                                                                        <i class="fas fa-pencil-alt has-text-warning"></i>
+                                                                                    </span>
+                                                                                </a>
+                                                                            </div>
+                                                                            <div class="control">
+                                                                                <a hx-delete="{{ url_for('comp_tracker.delete_spare_part', spare_part_id=spare_part.id) }}"
+                                                                                   hx-confirm="ท่านต้องการลบรายการนี้ใช่หรือไม่"
+                                                                                   class="button is-danger is-small is-rounded is-outlined"
+                                                                                >
+                                                                                    <span class="icon">
+                                                                                        <i class="far fa-trash-alt has-text-danger"></i>
+                                                                                    </span>
+                                                                                </a>
+                                                                            </div>
+                                                                        </div>
+                                                                    {% endif %}
+                                                                </td>
+                                                            </tr>
+                                                        {% endfor %}
+                                                    {% endfor %}
+                                                </tbody>
+                                                <tfoot>
+                                                    <tr id="spare_part_footer" class="has-background-info">
+                                                        <td colspan="4" class="has-text-centered has-text-white
+                                                            has-text-weight-bold">
+                                                            ค่าใช้จ่ายทั้งหมด
+                                                        </td>
+                                                        <td class="has-text-centered has-text-white has-text-weight-bold">
+                                                            {% if record.grand_total %}
+                                                                {{ "{:,.2f}".format(record.grand_total or 0) }} บาท
+                                                            {% else %}
+                                                                0.00 บาท
+                                                            {% endif %}
+                                                        </td>
+                                                        <td colspan="4"></td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                        <div id="spare-part-form"></div>
+                                        {% if record.is_editable %}
+                                            {% for repair_company in record.repair_companies %}
+                                                <a class='button is-link is-rounded'
+                                                   style="margin-bottom: 1.5em"
+                                                   hx-swap="innerHTML"
+                                                   hx-target="#spare-part-form"
+                                                   hx-get="{{ url_for('comp_tracker.create_spare_part',
+                                                           repair_company_id=repair_company.id) }}"
+                                                >
+                                                    <span class="icon"><i class="fas fa-plus"></i></span>
+                                                    <span>เพิ่ม</span>
+                                                </a>
+                                            {% endfor %}
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
@@ -1192,6 +1302,9 @@
         })
         window.document.addEventListener("closeCoordinator", function () {
             htmx.removeClass(htmx.find('#coordinator-modal'), "is-active")
+        })
+        window.document.addEventListener("closeSparePart", function () {
+            htmx.removeClass(htmx.find('#spare-part-modal'), "is-active")
         })
     </script>
     <script>
