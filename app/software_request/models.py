@@ -134,6 +134,63 @@ class SoftwareRequestDetail(db.Model):
         else:
             return 'is-dark'
 
+    @property
+    def workflow_status(self):
+        tested = any(issue.tested_at for issue in self.issues)
+        worked = any(issue.accepted_at for issue in self.issues)
+        draft = any(not issue.tested_at
+                    and not issue.closed_at
+                    and not issue.accepted_at
+                    for issue in self.issues)
+        if self.status == 'เสร็จสิ้น':
+            return 'ดำเนินการเสร็จสิ้น'
+        elif self.status == 'ยกเลิก':
+            return 'ยกเลิกการพัฒนา'
+        elif tested:
+            return 'รอทดสอบ'
+        elif worked or draft:
+            return 'กำลังพัฒนา'
+        else:
+            return 'ยังไม่ดำเนินการ'
+
+    @property
+    def workflow_status_color(self):
+        tested = any(issue.tested_at for issue in self.issues)
+        worked = any(issue.accepted_at for issue in self.issues)
+        draft = any(not issue.tested_at
+                    and not issue.closed_at
+                    and not issue.accepted_at
+                    for issue in self.issues)
+        if self.status == 'เสร็จสิ้น':
+            return 'is-success'
+        elif self.status == 'ยกเลิก':
+            return 'is-dark'
+        elif tested:
+            return 'is-warning'
+        elif worked or draft:
+            return 'is-info'
+        else:
+            return 'is-danger'
+
+    @property
+    def workflow_status_icon(self):
+        tested = any(issue.tested_at for issue in self.issues)
+        worked = any(issue.accepted_at for issue in self.issues)
+        draft = any(not issue.tested_at
+                    and not issue.closed_at
+                    and not issue.accepted_at
+                    for issue in self.issues)
+        if self.status == 'เสร็จสิ้น':
+            return '<i class="fas fa-check"></i>'
+        elif self.status == 'ยกเลิก':
+            return '<i class="fas fa-ban"></i>'
+        elif tested:
+            return '<i class="fas fa-hourglass-start"></i>'
+        elif worked or draft:
+            return '<i class="fas fa-spinner"></i>'
+        else:
+            return '<i class="fas fa-times"></i>'
+
     def to_dict(self, open_issues=None, num_timelines=None, has_timeline=None):
         # Allow precomputed counts from the admin listing query to avoid per-row lazy loads.
         open_issues = self.num_open_issues if open_issues is None else open_issues
@@ -149,6 +206,9 @@ class SoftwareRequestDetail(db.Model):
             'org': self.created_by.personal_info.org.name if self.created_by else None,
             'created_date': self.created_date,
             'status': self.status,
+            'workflow_status': self.workflow_status,
+            'workflow_status_color': self.workflow_status_color,
+            'workflow_status_icon': self.workflow_status_icon,
             'open_issues': open_issues,
             'num_timelines': num_timelines
         }
