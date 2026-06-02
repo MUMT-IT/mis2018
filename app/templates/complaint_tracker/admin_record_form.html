@@ -114,7 +114,7 @@
                                                         <span>พิมพ์ใบอนุมัติหลักการซ่อม</span>
                                                     </a>
                                                 </div>
-                                                {% if not record.closed_at %}
+                                                {% if record.is_editable %}
                                                     <div class="control">
                                                         <a class="button is-warning is-outlined is-rounded"
                                                            href="{{ url_for('comp_tracker.create_repair_approval', record_id=record.id,
@@ -128,24 +128,27 @@
                                             </div>
                                         {% endfor %}
                                     {% else %}
-                                        {% if not record.closed_at %}
-                                            <a hx-post="{{ url_for('comp_tracker.create_repair', record_id=record.id) }}"
-                                               hx-confirm="ท่านต้องการออกใบแจ้งซ่อมของรายการนี้ใช่หรือไม่"
-                                               class="button is-info is-outlined is-rounded"
-                                            >
-                                                <span class="icon">
-                                                    <i class="fas fa-file-alt"></i>
-                                                </span>
-                                                <span>ออกใบแจ้งซ่อม</span>
-                                            </a>
-                                            <a class="button is-info is-outlined is-rounded" style="margin-left: .2em"
-                                               href="{{ url_for('comp_tracker.create_repair_approval', record_id=record.id) }}"
-                                            >
-                                                <span class="icon">
-                                                    <i class="fas fa-file-signature"></i>
-                                                </span>
-                                                <span>ออกใบอนุมัติหลักการซ่อม</span>
-                                            </a>
+                                        {% if record.is_editable %}
+                                            {% if record.is_disposed %}
+                                                <a hx-post="{{ url_for('comp_tracker.create_repair', record_id=record.id) }}"
+                                                   hx-confirm="ท่านต้องการออกใบแจ้งซ่อมของรายการนี้ใช่หรือไม่"
+                                                   class="button is-info is-outlined is-rounded"
+                                                >
+                                                    <span class="icon">
+                                                        <i class="fas fa-file-alt"></i>
+                                                    </span>
+                                                    <span>ออกใบแจ้งซ่อม</span>
+                                                </a>
+                                            {% else %}
+                                                <a class="button is-info is-outlined is-rounded" style="margin-left: .2em"
+                                                   href="{{ url_for('comp_tracker.create_repair_approval', record_id=record.id) }}"
+                                                >
+                                                    <span class="icon">
+                                                        <i class="fas fa-file-signature"></i>
+                                                    </span>
+                                                    <span>ออกใบอนุมัติหลักการซ่อม</span>
+                                                </a>
+                                            {% endif %}
                                         {% endif %}
                                     {% endif %}
                                 {% endif %}
@@ -439,72 +442,75 @@
                                                 {% endif %}
                                             </div>
                                         </div>
-                                        <div class="field" style="margin-top: .8em">
-                                            <label class="label">ใบแจ้งซ่อม</label>
-                                            <div class="control">
-                                                {% if record.repairs %}
-                                                    {% if record.get_print_of_repair == True %}
-                                                        {% for repair in record.repairs %}
-                                                            <span class="tag is-success">
-                                                                <span class="icon"><i class="fas fa-check"></i></span>
-                                                                <span>พิมพ์แล้ว</span>
-                                                            </span>
-                                                            <div class="is-size-6 mt-1">
-                                                                ดูเมื่อ {{ repair.reviewed_at|localdatetime }}
-                                                            </div>
-                                                        {% endfor %}
-                                                    {% else %}
-                                                        <span class="tag is-warning">
-                                                            <span class="icon"><i class="fas fa-clock"></i></span>
-                                                            <span>รอพิมพ์</span>
-                                                        </span>
-                                                    {% endif %}
-                                                {% else %}
-                                                    <span class="tag is-light">
-                                                        <span class="icon"><i class="fas fa-ban"></i></span>
-                                                        <span>ไม่มีใบแจ้งซ่อม</span>
-                                                    </span>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                        <div class="field" style="margin-top: .8em">
-                                            <label class="label">ใบอนุมัติหลักการซ่อม</label>
-                                            <div class="control">
-                                                {% if record.repair_approvals %}
-                                                    {% if record.get_print_of_repair_approval == True %}
-                                                        {% for repair_approval in record.repair_approvals %}
-                                                            {% if repair_approval.cancelled_at %}
-                                                                <span class="tag is-danger">
-                                                                    <span class="icon"><i class="fas fa-times"></i></span>
-                                                                    <span>ยกเลิก</span>
-                                                                </span>
-                                                                <div class="is-size-6 mt-1">
-                                                                    ยกเลิกเมื่อ {{ repair_approval.cancelled_at|localdatetime }}
-                                                                </div>
-                                                            {% elif repair_approval.reviewed_at %}
+                                        {% if record.is_disposed %}
+                                            <div class="field" style="margin-top: .8em">
+                                                <label class="label">ใบแจ้งซ่อม</label>
+                                                <div class="control">
+                                                    {% if record.repairs %}
+                                                        {% if record.get_print_of_repair == True %}
+                                                            {% for repair in record.repairs %}
                                                                 <span class="tag is-success">
                                                                     <span class="icon"><i class="fas fa-check"></i></span>
                                                                     <span>พิมพ์แล้ว</span>
                                                                 </span>
                                                                 <div class="is-size-6 mt-1">
-                                                                    ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime }}
+                                                                    ดูเมื่อ {{ repair.reviewed_at|localdatetime }}
                                                                 </div>
-                                                            {% endif %}
-                                                        {% endfor %}
+                                                            {% endfor %}
+                                                        {% else %}
+                                                            <span class="tag is-warning">
+                                                                <span class="icon"><i class="fas fa-clock"></i></span>
+                                                                <span>รอพิมพ์</span>
+                                                            </span>
+                                                        {% endif %}
                                                     {% else %}
-                                                        <span class="tag is-warning">
-                                                            <span class="icon"><i class="fas fa-clock"></i></span>
-                                                            <span>รอพิมพ์</span>
+                                                        <span class="tag is-light">
+                                                            <span class="icon"><i class="fas fa-ban"></i></span>
+                                                            <span>ไม่มีใบแจ้งซ่อม</span>
                                                         </span>
                                                     {% endif %}
-                                                {% else %}
-                                                    <span class="tag is-light">
-                                                        <span class="icon"><i class="fas fa-ban"></i></span>
-                                                        <span>ไม่มีใบอนุมัติ</span>
-                                                    </span>
-                                                {% endif %}
+                                                </div>
                                             </div>
-                                        </div>
+                                        {% else %}
+                                            <div class="field" style="margin-top: .8em">
+                                                <label class="label">ใบอนุมัติหลักการซ่อม</label>
+                                                <div class="control">
+                                                    {% if record.repair_approvals %}
+                                                        {% if record.get_print_of_repair_approval == True %}
+                                                            {% for repair_approval in record.repair_approvals %}
+                                                                {% if repair_approval.cancelled_at %}
+                                                                    <span class="tag is-danger">
+                                                                        <span class="icon"><i class="fas fa-times"></i></span>
+                                                                        <span>ยกเลิก</span>
+                                                                    </span>
+                                                                    <div class="is-size-6 mt-1">
+                                                                        ยกเลิกเมื่อ {{ repair_approval.cancelled_at|localdatetime }}
+                                                                    </div>
+                                                                {% elif repair_approval.reviewed_at %}
+                                                                    <span class="tag is-success">
+                                                                        <span class="icon"><i class="fas fa-check"></i></span>
+                                                                        <span>พิมพ์แล้ว</span>
+                                                                    </span>
+                                                                    <div class="is-size-6 mt-1">
+                                                                        ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime }}
+                                                                    </div>
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                        {% else %}
+                                                            <span class="tag is-warning">
+                                                                <span class="icon"><i class="fas fa-clock"></i></span>
+                                                                <span>รอพิมพ์</span>
+                                                            </span>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <span class="tag is-light">
+                                                            <span class="icon"><i class="fas fa-ban"></i></span>
+                                                            <span>ไม่มีใบอนุมัติ</span>
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        {% endif %}
                                     {% endif %}
                                     <div class="field">
                                         <label class="label">วันที่คาดว่าจะเสร็จ</label>
@@ -820,6 +826,181 @@
                                 {% endif %}
                             </div>
                         {% endif %}
+                        {% if record.topic.category.no == 1 %}
+                            <div id="repair_company_field">
+                                <h5 class="title is-size-4">รายละเอียดบริษัทที่ส่งซ่อม</h5>
+                                <div class="box">
+                                    <h5 class="title is-size-5">บริษัทที่ส่งซ่อม</h5>
+                                    <hr style="background-color: gainsboro">
+                                    <div class="container" style="margin-left: 1em; margin-bottom: 1.2em">
+                                        {% for company_form in form.repair_companies %}
+                                            <div class="field-body">
+                                                <div class="field">
+                                                    <label class="label">{{ company_form.company_name.label }}</label>
+                                                    <div class="control">
+                                                        {% if record.is_editable %}
+                                                            {{ company_form.company_name(class="input") }}
+                                                        {% else %}
+                                                            {{ company_form.company_name.data or '-' }}
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                <div class="field">
+                                                    <label class="label">{{ company_form.contact_name.label }}</label>
+                                                    <div class="control">
+                                                        {% if record.is_editable %}
+                                                            {{ company_form.contact_name(class="input") }}
+                                                        {% else %}
+                                                            {{ company_form.contact_name.data or '-' }}
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                <div class="field">
+                                                    <label class="label">{{ company_form.contact_phone_number.label }}</label>
+                                                    <div class="control">
+                                                        {% if record.is_editable %}
+                                                            {{ company_form.contact_phone_number(class="input",
+                                                            oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
+                                                        {% else %}
+                                                            {{ company_form.contact_phone_number.data or '-' }}
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="field" style="margin-top: 0.75em;">
+                                                <label class="label">{{ company_form.repair_offer_price.label }}</label>
+                                                <div class="control">
+                                                    {% if record.is_editable %}
+                                                        {{ company_form.repair_offer_price(class='input') }}
+                                                    {% else %}
+                                                        {{ company_form.repair_offer_price.data or '-' }} บาท
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="field">
+                                                <label class="label">{{ company_form.detail.label }}</label>
+                                                <div class="control">
+                                                    {% if record.is_editable %}
+                                                        {{ company_form.detail(class='textarea') }}
+                                                    {% else %}
+                                                        {{ company_form.detail.data or '-' }}
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                    <h5 class="title is-size-5">อะไหล่ที่ใช้</h5>
+                                    <hr style="background-color: gainsboro">
+                                    <div class="container" style="margin-left: 1em; margin-bottom: 1.2em">
+                                        <div class="field">
+                                            <table class="table is-striped">
+                                                <thead>
+                                                <th>ชื่ออะไหล่</th>
+                                                <th>จำนวน</th>
+                                                <th>หน่วยนับ</th>
+                                                <th>ราคาต่อหน่วย</th>
+                                                <th>ราคารวม (ราคาxจำนวน)</th>
+                                                <th>ชื่อร้านค้า</th>
+                                                <th>ชื่อผู้ขาย</th>
+                                                <th>เบอร์โทรผู้ชาย</th>
+                                                {% if record.is_editable %}
+                                                    <th></th>
+                                                {% endif %}
+                                                </thead>
+                                                <tbody id="spare_parts">
+                                                    {% for repair_company in record.repair_companies %}
+                                                        {% for spare_part in repair_company.spare_parts|sort(attribute='created_at') %}
+                                                            <tr>
+                                                                <td>{{ spare_part.item or '' }}</td>
+                                                                <td>{{ spare_part.quantity or '' }}</td>
+                                                                <td>{{ spare_part.unit or '' }}</td>
+                                                                <td>
+                                                                    {% if spare_part.unit_price %}
+                                                                        {{ "{:,.2f}".format(spare_part.unit_price) }}
+                                                                    {% else %}
+                                                                        {{ '' }}
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td>
+                                                                    {% if spare_part.total_price %}
+                                                                        {{ "{:,.2f}".format(spare_part.total_price) }}
+                                                                    {% else %}
+                                                                        {{ '' }}
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td>{{ spare_part.store_name or '' }}</td>
+                                                                <td>{{ spare_part.vendor_name or '' }}</td>
+                                                                <td>{{ spare_part.vendor_phone_number or '' }}</td>
+                                                                <td>
+                                                                    {% if record.is_editable %}
+                                                                        <div class="field has-addons">
+                                                                            <div class="control">
+                                                                                <a class='button is-warning is-small is-rounded is-outlined'
+                                                                                   style="margin-bottom: 1.5em"
+                                                                                   hx-swap="innerHTML"
+                                                                                   hx-target="#spare-part-form"
+                                                                                   hx-get="{{ url_for('comp_tracker.create_spare_part',
+                                                                                   spare_part_id=spare_part.id) }}"
+                                                                                >
+                                                                                    <span class="icon">
+                                                                                        <i class="fas fa-pencil-alt has-text-warning"></i>
+                                                                                    </span>
+                                                                                </a>
+                                                                            </div>
+                                                                            <div class="control">
+                                                                                <a hx-delete="{{ url_for('comp_tracker.delete_spare_part', spare_part_id=spare_part.id) }}"
+                                                                                   hx-confirm="ท่านต้องการลบรายการนี้ใช่หรือไม่"
+                                                                                   class="button is-danger is-small is-rounded is-outlined"
+                                                                                >
+                                                                                    <span class="icon">
+                                                                                        <i class="far fa-trash-alt has-text-danger"></i>
+                                                                                    </span>
+                                                                                </a>
+                                                                            </div>
+                                                                        </div>
+                                                                    {% endif %}
+                                                                </td>
+                                                            </tr>
+                                                        {% endfor %}
+                                                    {% endfor %}
+                                                </tbody>
+                                                <tfoot>
+                                                    <tr id="spare_part_footer" class="has-background-info">
+                                                        <td colspan="4" class="has-text-centered has-text-white
+                                                            has-text-weight-bold">
+                                                            ค่าใช้จ่ายทั้งหมด
+                                                        </td>
+                                                        <td class="has-text-centered has-text-white has-text-weight-bold">
+                                                            {% if record.grand_total %}
+                                                                {{ "{:,.2f}".format(record.grand_total or 0) }} บาท
+                                                            {% else %}
+                                                                0.00 บาท
+                                                            {% endif %}
+                                                        </td>
+                                                        <td colspan="4"></td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                        <div id="spare-part-form"></div>
+                                        {% if record.is_editable %}
+                                            {% for repair_company in record.repair_companies %}
+                                                <a class='button is-link is-rounded'
+                                                   style="margin-bottom: 1.5em"
+                                                   hx-swap="innerHTML"
+                                                   hx-target="#spare-part-form"
+                                                   hx-get="{{ url_for('comp_tracker.create_spare_part',
+                                                           repair_company_id=repair_company.id) }}"
+                                                >
+                                                    <span class="icon"><i class="fas fa-plus"></i></span>
+                                                    <span>เพิ่ม</span>
+                                                </a>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
                         {% if record.coordinators %}
                             {% if record.comments %}
                                 <h5 class="title is-size-4">ความเห็น/ข้อเสนอแนะของ Admin</h5>
@@ -1121,6 +1302,9 @@
         })
         window.document.addEventListener("closeCoordinator", function () {
             htmx.removeClass(htmx.find('#coordinator-modal'), "is-active")
+        })
+        window.document.addEventListener("closeSparePart", function () {
+            htmx.removeClass(htmx.find('#spare-part-modal'), "is-active")
         })
     </script>
     <script>

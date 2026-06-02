@@ -207,7 +207,6 @@ class ComplaintRecord(db.Model):
         return 'แทงจำหน่าย' if self.is_disposed else 'ไม่แทงจำหน่าย'
 
     def generate_presigned_url(self):
-
         if self.url:
             try:
                 return s3.generate_presigned_url(
@@ -236,6 +235,11 @@ class ComplaintRecord(db.Model):
         if self.status and self.status.code == status:
                 return self
         return None
+
+    @property
+    def grand_total(self):
+        return sum(spare_part.total_price or 0 for repair_company in self.repair_companies
+                   for spare_part in repair_company.spare_parts)
 
     @property
     def get_print_of_repair(self):
@@ -377,6 +381,42 @@ class ComplaintCoordinator(db.Model):
         if self.record.status and self.record.status.code == status:
             return self.record
         return None
+
+class ComplaintRepairCompany(db.Model):
+    __tablename__ = 'complaint_repair_companies'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    company_name = db.Column('name', db.String(), info={'label': 'ชื่อบริษัทที่ส่งซ่อม'})
+    contact_name = db.Column('contact_name', db.String(), info={'label': 'ชื่อผู้ที่สามารติดต่อได้'})
+    contact_phone_number = db.Column('contact_phone_number', db.String(), info={'label': 'เบอร์โทร'})
+    repair_offer_price = db.Column('repair_offer_price', db.Numeric(), info={'label': 'ราคาซ่อมที่เสนอ'})
+    detail = db.Column('detail', db.Text(), info={'label': 'รายละเอียดการซ่อมจากบริษัท'})
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('repair_companies'))
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+
+    def __str__(self):
+        return f'บริษัทที่ส่งซ่อม : {self.company_name}, ราคาซ่อมที่เสนอ : {self.repair_offer_price}, รายละเอียด : {self.detail}'
+
+
+class ComplaintSparePart(db.Model):
+    __tablename__ = 'complaint_spare_parts'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    item = db.Column('item', db.String(), info={'label': 'ชื่ออะไหล่'})
+    quantity = db.Column('quantity', db.Integer(), info={'label': 'จำนวน'})
+    unit = db.Column('unit', db.String(), info={'label': 'หน่วยนับ'})
+    unit_price = db.Column('unit_price', db.Numeric(), info={'label': 'ราคาต่อหน่วย'})
+    total_price = db.Column('total_price', db.Numeric(), info={'label': 'ราคารวม'})
+    store_name = db.Column('store_name', db.String(), info={'label': 'ชื่อร้านค้า'})
+    vendor_name = db.Column('vendor_name', db.String(), info={'label': 'ชื่อผู้ขาย'})
+    vendor_phone_number = db.Column('vendor_phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์ผู้ขาย'})
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    repair_company_id = db.Column('repair_company_id', db.ForeignKey('complaint_repair_companies.id'))
+    repair_company = db.relationship(ComplaintRepairCompany, backref=db.backref('spare_parts'),
+                                     foreign_keys=[repair_company_id])
+
+    def __str__(self):
+        return self.item
 
 
 class ComplaintRepair(db.Model):

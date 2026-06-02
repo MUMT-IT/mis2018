@@ -224,6 +224,12 @@
                                     {% endif %}
                                 </div>
                             </div>
+                            <div class="field">
+                                <label class="label">สถานะการแทงจำหน่าย</label>
+                                <div class="control">
+                                    {{ record.has_disposed }}
+                                </div>
+                            </div>
                             {% if record.deadline %}
                                 <div class="field">
                                     <label class="label">วันที่คาดว่าจะเสร็จ</label>

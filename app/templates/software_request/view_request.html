@@ -272,7 +272,7 @@
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <table class="table is-fullwidth is-striped" id="test_results">
                                     <thead>
-                                        <th>ผลการทดสอบ</th>
+                                        <th style="width: 10.5em">ผลการทดสอบ</th>
                                         <th>หมายเหตุ</th>
                                         <th>รายละเอียด</th>
                                         <th>วันที่บันทึกผล</th>
@@ -281,29 +281,40 @@
                                     <tbody>
                                         {% for test_result in detail.test_results %}
                                             <tr>
-                                                <td>
-                                                    <input class="is-checkradio"
-                                                           id="pass_{{ test_result.id }}"
-                                                           type="radio"
-                                                           name="result_{{ test_result.id }}"
-                                                           value="ผ่าน"
-                                                           {% if test_result.status == 'ผ่าน' %}checked{% endif %}>
-                                                    <label for="pass_{{ test_result.id }}">ผ่าน</label>
-                                                    <input class="is-checkradio"
-                                                           id="notpass_{{ test_result.id }}"
-                                                           type="radio"
-                                                           name="result_{{ test_result.id }}"
-                                                           value="ไม่ผ่าน"
-                                                           {% if test_result.status == 'ไม่ผ่าน' %}checked{% endif %}>
-                                                    <label for="notpass_{{ test_result.id }}">ไม่ผ่าน</label>
-                                                </td>
-                                                <td>
-                                                    <div class="field">
-                                                        <div class="control">
-                                                            <textarea class="textarea" name="note_{{ test_result.id }}">{{ (test_result.note or '').strip() }}</textarea>
+                                                {% if detail.status == 'อนุมัติ' %}
+                                                    <td>
+                                                        <input class="is-checkradio"
+                                                               id="pass_{{ test_result.id }}"
+                                                               type="radio"
+                                                               name="result_{{ test_result.id }}"
+                                                               value="ผ่าน"
+                                                               {% if test_result.status == 'ผ่าน' %}checked{% endif %}>
+                                                        <label for="pass_{{ test_result.id }}">ผ่าน</label>
+                                                        <input class="is-checkradio"
+                                                               id="notpass_{{ test_result.id }}"
+                                                               type="radio"
+                                                               name="result_{{ test_result.id }}"
+                                                               value="ไม่ผ่าน"
+                                                               {% if test_result.status == 'ไม่ผ่าน' %}checked{% endif %}>
+                                                        <label for="notpass_{{ test_result.id }}">ไม่ผ่าน</label>
+                                                    </td>
+                                                    <td>
+                                                        <div class="field">
+                                                            <div class="control">
+                                                                <textarea class="textarea" name="note_{{ test_result.id }}">{{ (test_result.note or '').strip() }}</textarea>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </td>
+                                                    </td>
+                                                {% else %}
+                                                    <td>
+                                                        {% if test_result.status %}
+                                                            <span class="tag {{ test_result.status_color }}">
+                                                                {{ test_result.status }}
+                                                            </span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ test_result.note or '' }}</td>
+                                                {% endif %}
                                                 <td>{{ test_result.issue.issue }}</td>
                                                 <td>{{ test_result.recorded_at|localdatetime or '' }}</td>
                                                 <td>
@@ -315,7 +326,7 @@
                                         {% endfor %}
                                     </tbody>
                                 </table>
-                                {% if detail.test_results %}
+                                {% if detail.test_results and detail.status == 'อนุมัติ' %}
                                     <div class="field mt-1">
                                         <input type="submit" value="บันทีก" class="button is-info is-rounded">
                                     </div>
