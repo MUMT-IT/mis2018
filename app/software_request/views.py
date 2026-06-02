@@ -671,11 +671,21 @@ def create_issue(detail_id=None, issue_id=None):
                     issue.closed_at = None
                     issue.cancelled_at = None
                     issue.tested_at = None
+                    if issue.timelines:
+                        for timeline in issue.timelines:
+                            timeline.status = 'รอดำเนินการ'
+                            db.session.add(timeline)
+                        db.session.commit()
                 elif form.status_.data == 'Testing':
                     issue.tested_at = arrow.now('Asia/Bangkok').datetime
                     issue.accepted_at = None
                     issue.closed_at = None
                     issue.cancelled_at = None
+                    if issue.timelines:
+                        for timeline in issue.timelines:
+                            timeline.status = 'เสร็จสิ้น'
+                            db.session.add(timeline)
+                        db.session.commit()
                 else:
                     issue.accepted_at = None
                     issue.closed_at = None
