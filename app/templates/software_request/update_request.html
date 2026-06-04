@@ -249,49 +249,205 @@
                                 </div>
                             </div>
                         {% endif %}
-                        {% if detail.status == 'อนุมัติ' or detail.status == 'ยกเลิก' or detail.status == 'เสร็จสิ้น'%}
-                            <div class="field is-horizontal">
-                                <div class="field-label">
-                                    <label class="label">Timeline</label>
-                                </div>
-                                <div class="field-body">
-                                    <div class="field is-expanded">
-                                        <div class="control">
-                                            <table id="timeline" class="table is-fullwidth is-striped">
-                                                <thead>
-                                                    <th>Sequence</th>
-                                                    <th>Task</th>
-                                                    <th>Issue</th>
-                                                    <th>สถานะ</th>
-                                                    <th>Phase</th>
-                                                    <th>วันที่เริ่มต้น</th>
-                                                    <th>วันที่คาดว่าจะแล้วเสร็จ</th>
-                                                    <th>ผู้รับผิดชอบ</th>
-                                                    <th></th>
-                                                </thead>
-                                                <tbody id="timelines">
-                                                    {% for timeline in detail.timelines|sort(attribute='sequence') %}
-                                                        <tr>
-                                                            <td>{{ timeline.sequence }}</td>
-                                                            <td>{{ timeline.task }}</td>
-                                                            <td>{{ timeline.issue.issue }}</td>
-                                                            <td>
-                                                                <span class="tag {{ timeline.status_color }} is-light">
-                                                                    {{ timeline.status }}
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">Requirement</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        <table class="table is-fullwidth" id="requirements">
+                                            <thead>
+                                            <tr>
+                                                <th>ประเภท</th>
+                                                <th>รายละเอียด</th>
+                                                <th>Phase</th>
+                                                <th>สถานะ</th>
+                                                <th>Deadline</th>
+                                                <th>ผู้รับผิดชอบ</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {% for issue in detail.issues %}
+                                                <tr>
+                                                    <td>
+                                                        {% if issue.label == 'Bug' %}
+                                                            <span class="tag is-rounded is-danger">
+                                                            {{ issue.label }}
+                                                        </span>
+                                                        {% elif issue.label == 'Request' %}
+                                                            <span class="tag is-rounded is-success">
+                                                            {{ issue.label }}
+                                                        </span>
+                                                        {% elif issue.label == 'Enhancement' %}
+                                                            <span class="tag is-rounded is-primary">
+                                                            {{ issue.label }}
+                                                        </span>
+                                                        {% else %}
+                                                            <span class="tag is-rounded">
+                                                            {{ issue.label }}
+                                                        </span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ issue.issue }}</td>
+                                                    <td>{{ issue.phase.phase }}</td>
+                                                    <td>
+                                                        <span class="tag {{ issue.status_color }}">{{ issue.status }}</span>
+                                                        {% if detail.status == 'อนุมัติ' %}
+                                                            <a hx-swap="innerHTML"
+                                                               hx-target="#issue_form"
+                                                               hx-get="{{ url_for('software_request.create_issue', issue_id=issue.id) }}">
+                                                                <span class="icon">
+                                                                    <i class="fas fa-pencil-alt"></i>
                                                                 </span>
-                                                            </td>
-                                                            <td>{{ timeline.phase }}</td>
-                                                            <td>{{ timeline.start.strftime('%d/%m/%Y') }}</td>
-                                                            <td>{{ timeline.estimate.strftime('%d/%m/%Y') }}</td>
-                                                            <td>{{ timeline.admin.fullname }}</td>
-                                                            <td>
+                                                            </a>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ issue.deadline|localdate or '' }}</td>
+                                                    <td>{{ issue.staff.fullname }}</td>
+                                                </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                        {% if detail.status == 'อนุมัติ' %}
+                                            <div id="issue_form"></div>
+                                            <a class="button is-info is-rounded"
+                                               hx-swap="innerHTML"
+                                               hx-target="#issue_form"
+                                               hx-get="{{ url_for('software_request.create_issue', detail_id=detail.id, tab=tab) }}">
+                                                <span class="icon">
+                                                    <i class="fas fa-plus"></i>
+                                                </span>
+                                                <span>เพิ่ม</span>
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">Timeline</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field is-expanded">
+                                    <div class="control">
+                                        <table id="timelines" class="table is-fullwidth is-striped">
+                                            <thead>
+                                            <th>Task</th>
+                                            <th>Requirement</th>
+                                            <th>สถานะ</th>
+                                            <th>วันที่เริ่มต้น</th>
+                                            <th>วันที่คาดว่าจะแล้วเสร็จ</th>
+                                            <th>ผู้รับผิดชอบ</th>
+                                            <th></th>
+                                            </thead>
+                                            <tbody id="timelines">
+                                            {% for timeline in detail.timelines %}
+                                                <tr>
+                                                    <td>{{ timeline.task }}</td>
+                                                    <td>{{ timeline.issue.issue }}</td>
+                                                    <td>
+                                                            <span class="tag {{ timeline.status_color }}">
+                                                                {{ timeline.status }}
+                                                            </span>
+                                                    </td>
+                                                    <td>{{ timeline.start|localdate }}</td>
+                                                    <td>{{ timeline.estimate|localdate }}</td>
+                                                    <td>{{ timeline.admin.fullname }}</td>
+                                                    <td>
+                                                        {% if detail.status == 'อนุมัติ' %}
+                                                            <div class="field has-addons">
+                                                                <div class="control">
+                                                                    <a class="button is-small is-rounded"
+                                                                       hx-swap="innerHTML"
+                                                                       hx-target="#timeline_form"
+                                                                       hx-get="{{ url_for('software_request.create_timeline',
+                                                                               timeline_id=timeline.id, tab=tab, template='update') }}"
+                                                                    >
+                                                                            <span class="icon">
+                                                                                <i class="fas fa-pencil-alt"></i>
+                                                                            </span>
+                                                                    </a>
+                                                                </div>
+                                                                <div class="control">
+                                                                    <a class="button is-small is-rounded"
+                                                                       hx-delete="{{ url_for('software_request.delete_timeline', timeline_id=timeline.id) }}"
+                                                                       hx-confirm="ท่านต้องการลบรายการนี้หรือไม่"
+                                                                    >
+                                                                        <span class="icon">
+                                                                            <i class="far fa-trash-alt has-text-danger"></i>
+                                                                        </span>
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                        {% if detail.status == 'อนุมัติ' %}
+                                            <div id="timeline_form"></div>
+                                            <a class="button is-info is-rounded"
+                                               hx-swap="innerHTML"
+                                               hx-target="#timeline_form"
+                                               hx-get="{{ url_for('software_request.create_timeline',
+                                                         detail_id=detail.id, tab=tab, template='update') }}">
+                                                    <span class="icon">
+                                                        <i class="fas fa-plus"></i>
+                                                    </span>
+                                                <span>เพิ่ม</span>
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">บันทึกผลการทดสอบ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        <table class="table is-fullwidth is-striped" id="test_results">
+                                            <thead>
+                                            <th>รายละเอียด</th>
+                                            <th>ผลการทดสอบ</th>
+                                            <th>วันที่บันทึกผล</th>
+                                            <th>ผู้บันทึกผล</th>
+                                            <th>หมายเหตุ</th>
+                                            <th></th>
+                                            </thead>
+                                            <tbody id="test_results">
+                                            {% for test_result in detail.test_results %}
+                                                <tr>
+                                                    <td>{{ test_result.issue.issue }}</td>
+                                                    <td>
+                                                        {% if test_result.status %}
+                                                            <span class="tag {{ test_result.status_color }}">
+                                                                {{ test_result.status }}
+                                                            </span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ test_result.recorded_at|localdatetime or '' }}</td>
+                                                    <td>
+                                                        {% if test_result.recorder %}
+                                                            {{ test_result.recorder.fullname }}
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ test_result.note or '' }}</td>
+                                                    <td>
+                                                        {% if detail.status == 'อนุมัติ' %}
+                                                            {% if not test_result.status %}
                                                                 <div class="field has-addons">
                                                                     <div class="control">
                                                                         <a class="button is-small is-rounded"
                                                                            hx-swap="innerHTML"
                                                                            hx-target="#timeline_form"
-                                                                           hx-get="{{ url_for('software_request.create_timeline',
-                                                                                      timeline_id=timeline.id, tab=tab) }}"
+                                                                           hx-get="{{ url_for('software_request.create_test_result',
+                                                                                   test_result_id=test_result.id, tab=tab) }}"
                                                                         >
                                                                             <span class="icon">
                                                                                 <i class="fas fa-pencil-alt"></i>
@@ -300,7 +456,8 @@
                                                                     </div>
                                                                     <div class="control">
                                                                         <a class="button is-small is-rounded"
-                                                                           hx-delete="{{ url_for('software_request.delete_timeline', timeline_id=timeline.id) }}"
+                                                                           hx-delete="{{ url_for('software_request.delete_test_result',
+                                                                           test_result_id=test_result.id) }}"
                                                                            hx-confirm="ท่านต้องการลบรายการนี้หรือไม่"
                                                                         >
                                                                             <span class="icon">
@@ -309,102 +466,36 @@
                                                                         </a>
                                                                     </div>
                                                                 </div>
-                                                            </td>
-                                                        </tr>
-                                                    {% endfor %}
-                                                </tbody>
-                                            </table>
-                                            <div id="timeline_form"></div>
-                                            <div class="mt-2">
-                                                <a class="button is-link is-rounded"
-                                                   hx-swap="innerHTML"
-                                                   hx-target="#timeline_form"
-                                                   hx-get="{{ url_for('software_request.create_timeline', detail_id=detail.id, tab=tab) }}">
-                                                    <span class="icon">
-                                                        <i class="fas fa-plus"></i>
-                                                    </span>
-                                                    <span>เพิ่ม</span>
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endif %}
-                        <div class="field is-horizontal">
-                            <div class="field-label">
-                                <label class="label">Issues</label>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <div class="control">
-                                        <table class="table is-fullwidth" id="issues">
-                                            <thead>
-                                                <tr>
-                                                    <th>Label</th>
-                                                    <th>Detail</th>
-                                                    <th>Status</th>
-                                                    <th>Created By</th>
-                                                    <th>Created At</th>
-                                                    <th>Updated By</th>
-                                                    <th>Updated At</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                            {% for issue in detail.issues %}
-                                                <tr>
-                                                    <td>
-                                                        {% if issue.label == 'Bug' %}
-                                                        <span class="tag is-rounded is-danger">
-                                                            {{ issue.label }}
-                                                        </span>
-                                                        {% elif issue.label == 'Request' %}
-                                                        <span class="tag is-rounded is-success">
-                                                            {{ issue.label }}
-                                                        </span>
-                                                        {% elif issue.label == 'Enhancement' %}
-                                                            <span class="tag is-rounded is-primary">
-                                                            {{ issue.label }}
-                                                        </span>
-                                                        {% else %}
-                                                        <span class="tag is-rounded">
-                                                            {{ issue.label }}
-                                                        </span>
+                                                            {% endif %}
                                                         {% endif %}
                                                     </td>
-                                                    <td>{{ issue.issue }}</td>
-                                                    <td>
-                                                        <span class="tag {{ issue.status_color }}">{{ issue.status }}</span>
-                                                        <a hx-swap="innerHTML"
-                                                           hx-target="#issue_form"
-                                                           hx-get="{{ url_for('software_request.create_issue', issue_id=issue.id) }}">
-                                                            <span class="icon">
-                                                                <i class="fas fa-pencil-alt"></i>
-                                                            </span>
-                                                        </a>
-                                                    </td>
-                                                    <td>{{ issue.creator.fullname }}</td>
-                                                    <td>{{ issue.created_at|localdatetime }}</td>
-                                                    <td>{{ issue.updater.fullname or '' }}</td>
-                                                    <td>{{ issue.updated_at|localdatetime or '' }}</td>
                                                 </tr>
                                             {% endfor %}
                                             </tbody>
                                         </table>
-                                        <div id="issue_form"></div>
-                                        <div class="mt-2">
+                                        {% if detail.status == 'อนุมัติ' %}
+                                            <div id="test_result_form"></div>
                                             <a class="button is-info is-rounded"
                                                hx-swap="innerHTML"
-                                               hx-target="#issue_form"
-                                               hx-get="{{ url_for('software_request.create_issue', detail_id=detail.id, tab=tab) }}">
-                                                    <span class="icon">
-                                                        <i class="fas fa-plus"></i>
-                                                    </span>
-                                                <span>Issue</span>
+                                               hx-target="#test_result_form"
+                                               hx-get="{{ url_for('software_request.create_test_result', detail_id=detail.id,
+                                                  tab=tab) }}">
+                                               <span class="icon">
+                                                   <i class="fas fa-plus"></i>
+                                               </span>
+                                                <span>เพิ่ม</span>
                                             </a>
-                                        </div>
+                                        {% endif %}
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">ความคิดเห็นเพิ่มเติม</label>
+                            </div>
+                            <div class="field-body">
+                                {{ detail.note or '' }}
                             </div>
                         </div>
                         <div class="field is-horizontal">
@@ -442,8 +533,27 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
         $(document).ready(function () {
-            $('#timeline').DataTable({
-                order: [[0, 'asc']],
+            $.fn.dataTable.moment('DD/MM/YYYY');
+            $('#timelines').DataTable({
+                order: [
+                    [3, 'asc'],
+                    [4, 'asc']
+                ],
+                lengthChange: false,
+                searching: false,
+                paging: false,
+                info: false
+            })
+            $('#requirements').DataTable({
+                order: [
+                    [4, 'asc']
+                ],
+                lengthChange: false,
+                searching: false,
+                paging: false,
+                info: false
+            })
+            $('#test_results').DataTable({
                 lengthChange: false,
                 searching: false,
                 paging: false,
@@ -458,6 +568,7 @@
                 document.querySelector("form").submit();
             }
         }
+
         $(document).ready(function () {
             $('.js-example-basic-multiple').select2({
                 width: '100%',
@@ -475,20 +586,23 @@
                     startDate: {{ appointment_date.isoformat()|tojson|safe }},
                 {% endif %}
                 locale:
-                {
-                    format: 'YYYY-MM-DD HH:mm:ss',
-                    cancelLabel: 'Clear'
-                }
+                    {
+                        format: 'YYYY-MM-DD HH:mm:ss',
+                        cancelLabel: 'Clear'
+                    }
             });
-            $('input[name="appointment_date"]').on('apply.daterangepicker', function(ev, picker) {
+            $('input[name="appointment_date"]').on('apply.daterangepicker', function (ev, picker) {
                 $(this).val(picker.startDate.format('YYYY-MM-DD HH:mm:ss'));
             });
-            $('input[name="appointment_date"]').on('cancel.daterangepicker', function(ev, picker) {
+            $('input[name="appointment_date"]').on('cancel.daterangepicker', function (ev, picker) {
                 $(this).val('');
             });
         });
-        window.document.addEventListener("closeTimeline", function () {
+        window.document.addEventListener("closeTimelineModal", function () {
             htmx.removeClass(htmx.find('#timeline-modal'), "is-active")
+        })
+        window.document.addEventListener("closeTestResultModal", function () {
+            htmx.removeClass(htmx.find('#test-result-modal'), "is-active")
         })
     </script>
 {% endblock %}

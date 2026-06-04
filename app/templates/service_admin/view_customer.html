@@ -6,8 +6,8 @@
     <div class="container">
         <h1 class="title has-text-centered">รายชื่อลูกค้า</h1>
         {% include 'messages.html' %}
-        <div class="columns">
-            <div class="column">
+        <div class="columns is-centered">
+            <div class="column is-full">
                 <div class="buttons is-centered">
                     <a class="button is-info" href="{{ url_for('service_admin.create_customer') }}">
                         <span class="icon">
@@ -16,7 +16,7 @@
                         <span>เพิ่มลูกค้า</span>
                     </a>
                 </div>
-                <table id="customer" class="table is-fullwidth">
+                <table id="customer" class="table is-fullwidth is-narrow">
                     <thead>
                         <th style="width: 5em">ลำดับ</th>
                         <th>รายชื่อลูกค้า</th>

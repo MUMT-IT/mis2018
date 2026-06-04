@@ -50,6 +50,10 @@
             color: inherit;
         }
 
+        .title + .subtitle {
+            margin-top: 0.55rem;
+        }
+
         .button.is-info,
         .tag.is-info,
         .message.is-info > .message-header {
@@ -114,6 +118,49 @@
             border-spacing: 0;
             border-radius: 18px;
             overflow: hidden;
+        }
+
+        table.table.is-bordered {
+            border: 1px solid var(--theme-border);
+        }
+
+        table.table.is-bordered td,
+        table.table.is-bordered th {
+            border-color: var(--theme-border);
+        }
+
+        table.table.is-bordered > thead:first-child > tr:first-child > th:first-child,
+        table.table.is-bordered > tbody:first-child > tr:first-child > td:first-child,
+        table.table.is-bordered > tbody:first-child > tr:first-child > th:first-child,
+        table.table.is-bordered > tr:first-child > td:first-child,
+        table.table.is-bordered > tr:first-child > th:first-child {
+            border-top-left-radius: 18px;
+        }
+
+        table.table.is-bordered > thead:first-child > tr:first-child > th:last-child,
+        table.table.is-bordered > tbody:first-child > tr:first-child > td:last-child,
+        table.table.is-bordered > tbody:first-child > tr:first-child > th:last-child,
+        table.table.is-bordered > tr:first-child > td:last-child,
+        table.table.is-bordered > tr:first-child > th:last-child {
+            border-top-right-radius: 18px;
+        }
+
+        table.table.is-bordered > tfoot:last-child > tr:last-child > td:first-child,
+        table.table.is-bordered > tfoot:last-child > tr:last-child > th:first-child,
+        table.table.is-bordered > tbody:last-child > tr:last-child > td:first-child,
+        table.table.is-bordered > tbody:last-child > tr:last-child > th:first-child,
+        table.table.is-bordered > tr:last-child > td:first-child,
+        table.table.is-bordered > tr:last-child > th:first-child {
+            border-bottom-left-radius: 18px;
+        }
+
+        table.table.is-bordered > tfoot:last-child > tr:last-child > td:last-child,
+        table.table.is-bordered > tfoot:last-child > tr:last-child > th:last-child,
+        table.table.is-bordered > tbody:last-child > tr:last-child > td:last-child,
+        table.table.is-bordered > tbody:last-child > tr:last-child > th:last-child,
+        table.table.is-bordered > tr:last-child > td:last-child,
+        table.table.is-bordered > tr:last-child > th:last-child {
+            border-bottom-right-radius: 18px;
         }
 
         .navbar,
@@ -565,16 +612,23 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="htmx-config" content='{"requestClass": "is-loading"}'>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-        <link rel="stylesheet" href="//cdn.materialdesignicons.com/2.5.94/css/materialdesignicons.min.css"/>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/buefy@0.9.23/dist/buefy.min.css"/>
-        <link rel="stylesheet" href="https://unpkg.com/bulmaswatch/default/bulmaswatch.min.css">
-        <link rel="stylesheet" href="https://cdn.datatables.net/1.12.0/css/dataTables.bulma.min.css"/>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css"/>
-        <link href="https://cdn.datatables.net/fixedcolumns/4.2.1/css/fixedColumns.dataTables.min.css"/>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+        {% block vendor_styles %}
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <link rel="stylesheet" href="//cdn.materialdesignicons.com/2.5.94/css/materialdesignicons.min.css"/>
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/buefy@0.9.23/dist/buefy.min.css"/>
+            <link rel="stylesheet" href="https://unpkg.com/bulmaswatch/default/bulmaswatch.min.css">
+            <link rel="stylesheet" href="https://cdn.datatables.net/1.12.0/css/dataTables.bulma.min.css"/>
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css"/>
+            <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/4.2.1/css/fixedColumns.dataTables.min.css"/>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+            <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+        {% endblock %}
+        <style>
+            .title:not(.is-spaced) + .subtitle {
+                margin-top: 0.7rem !important;
+            }
+        </style>
     {% endblock %}
 </head>
 <body>
@@ -603,9 +657,9 @@
                 </h1>
                 <p>
                     <figure class="image is-128x128 is-inline-block">
-                        <img src="https://qr-official.line.me/gs/M_030btotn_BW.png?oat_content=qr">
+                        <img src="https://qr-official.line.me/gs/M_030btotn_BW.png?oat_content=qr" alt="MUMT-IT User Support QR code" loading="lazy" decoding="async">
                         <a href="https://lin.ee/Z1QovqT">
-                            <img src="https://scdn.line-apps.com/n/line_add_friends/btn/th.png" alt="เพิ่มเพื่อน" height="36" border="0">
+                            <img src="https://scdn.line-apps.com/n/line_add_friends/btn/th.png" alt="เพิ่มเพื่อน" height="36" border="0" loading="lazy" decoding="async">
                         </a>
                     </figure>
                 </p>
@@ -633,39 +687,63 @@
     </div>
 {% endblock %}
 {% block scripts %}
-    <script src="https://unpkg.com/@popperjs/core@2"></script>
-    <script src="https://unpkg.com/tippy.js@6"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.3/moment-with-locales.min.js" integrity="sha512-vFABRuf5oGUaztndx4KoAEUVQnOvAIFs59y4tO0DILGWhQiFnFHiR+ZJfxLDyJlXgeut9Z07Svuvm+1Jv89w5g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.3/locale/th.min.js" integrity="sha512-IiSJKJyOVydT9/jfVcnpg7PIUM41Be6YzR5bTiAEAEQxTVtnUhbhiSNtgGXmOTFoxYpYs+LdxWlELOK7iRVVBg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/plug-ins/1.13.6/sorting/datetime-moment.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.12/vue.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
-    <script src="{{ url_for('static', filename='js/buefy.min.js') }}"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout.mapping/2.4.1/knockout.mapping.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/print-js@1.0.61/dist/print.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.5.8/cleave.min.js"
-            integrity="sha256-F/xzCMjFU6UaVTw7IPk3dDxJ5mvvonjQxVfIPqbJDmA=" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bulma-extensions@6.2.7/dist/js/bulma-extensions.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bulma-accordion@2.0.1/dist/js/bulma-accordion.min.js"></script>
-    <script src="https://cdn.datatables.net/1.12.0/js/dataTables.bulma.min.js"></script>
-    <script src="https://cdn.datatables.net/fixedcolumns/4.2.1/js/dataTables.fixedColumns.min.js"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="{{ url_for('static', filename='js/navbar.js') }}"></script>
+    {% block vendor_scripts %}
+        <script src="https://unpkg.com/@popperjs/core@2"></script>
+        <script src="https://unpkg.com/tippy.js@6"></script>
+        <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+        <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.3/moment-with-locales.min.js" integrity="sha512-vFABRuf5oGUaztndx4KoAEUVQnOvAIFs59y4tO0DILGWhQiFnFHiR+ZJfxLDyJlXgeut9Z07Svuvm+1Jv89w5g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.3/locale/th.min.js" integrity="sha512-IiSJKJyOVydT9/jfVcnpg7PIUM41Be6YzR5bTiAEAEQxTVtnUhbhiSNtgGXmOTFoxYpYs+LdxWlELOK7iRVVBg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.datatables.net/plug-ins/1.13.6/sorting/datetime-moment.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.12/vue.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
+        <script src="{{ url_for('static', filename='js/buefy.min.js') }}"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout.mapping/2.4.1/knockout.mapping.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/print-js@1.0.61/dist/print.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.5.8/cleave.min.js"
+                integrity="sha256-F/xzCMjFU6UaVTw7IPk3dDxJ5mvvonjQxVfIPqbJDmA=" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bulma-extensions@6.2.7/dist/js/bulma-extensions.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bulma-accordion@2.0.1/dist/js/bulma-accordion.min.js"></script>
+        <script src="https://cdn.datatables.net/1.12.0/js/dataTables.bulma.min.js"></script>
+        <script src="https://cdn.datatables.net/fixedcolumns/4.2.1/js/dataTables.fixedColumns.min.js"></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script src="{{ url_for('static', filename='js/navbar.js') }}"></script>
+    {% endblock %}
     <script>
-        moment.locale('th');
-        $(document).ready(function () {
-            let accordions = bulmaAccordion.attach();
-        });
+        if (window.moment) {
+            moment.locale('th');
+        }
+        if (window.$ && window.bulmaAccordion) {
+            $(document).ready(function () {
+                bulmaAccordion.attach();
+            });
+        }
     </script>
     <script>
+        function showToastAlert(icon, msg) {
+            if (!window.Swal) {
+                return;
+            }
+            Swal.fire({
+                title: msg,
+                icon: icon,
+                toast: true,
+                position: 'top',
+                iconColor: 'white',
+                customClass: {
+                    popup: 'colored-toast'
+                },
+                showConfirmButton: false,
+                timer: 1500,
+            });
+        }
+
         document.addEventListener('DOMContentLoaded',
             () => {
                 (document.querySelectorAll('.notification .delete') || []).forEach(($delete) => {
@@ -678,48 +756,15 @@
             })
         document.body.addEventListener('successAlert', function(evt) {
             let msg = evt.detail.value
-            Swal.fire({
-                title: msg,
-                icon: "success",
-                toast: true,
-                position: 'top',
-                iconColor: 'white',
-                customClass: {
-                    popup: 'colored-toast'
-                },
-                showConfirmButton: false,
-                timer: 1500,
-            })
+            showToastAlert('success', msg)
         })
         document.addEventListener('dangerAlert', function(evt) {
             let msg = evt.detail.value
-            Swal.fire({
-                title: msg,
-                icon: "error",
-                toast: true,
-                position: 'top',
-                iconColor: 'white',
-                customClass: {
-                    popup: 'colored-toast'
-                },
-                showConfirmButton: false,
-                timer: 1500,
-            })
+            showToastAlert('error', msg)
         })
         document.addEventListener('htmx:responseError', function(evt) {
             let msg = evt.detail.xhr.statusText
-            Swal.fire({
-                title: msg,
-                icon: "error",
-                toast: true,
-                position: 'top',
-                iconColor: 'white',
-                customClass: {
-                    popup: 'colored-toast'
-                },
-                showConfirmButton: false,
-                timer: 1500,
-            })
+            showToastAlert('error', msg)
         })
     </script>
 {% endblock %}

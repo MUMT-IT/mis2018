@@ -3,7 +3,42 @@
 
 {% block page_content %}
     <section class="section">
-        <h1 class="title">สถิติการแจ้งปัญหาหรือข้อร้องเรียน</h1>
+        <div class="level">
+            <div class="level-left">
+                <h1 class="title">สถิติการแจ้งปัญหาหรือข้อร้องเรียน</h1>
+            </div>
+            <div class="level-right">
+                {% if can_send_summary %}
+                    <a href="{{ url_for('comp_tracker.line_remind_no_status_today', dry_run='true') }}"
+                       class="button is-warning is-light is-rounded mr-2">
+                        <span class="icon">
+                            <i class="fab fa-line"></i>
+                        </span>
+                        <span>ทดสอบ Line reminder</span>
+                    </a>
+                    <form method="post" action="{{ url_for('comp_tracker.line_remind_no_status_today') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="send" value="true">
+                        <button type="submit" class="button is-warning is-rounded mr-2">
+                            <span class="icon">
+                                <i class="fab fa-line"></i>
+                            </span>
+                            <span>ส่ง Line reminder ให้ผู้ดูแล</span>
+                        </button>
+                    </form>
+                    <form method="post" action="{{ url_for('comp_tracker.email_unfinished_summary') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="send" value="true">
+                        <button type="submit" class="button is-rounded is-info">
+                            <span class="icon">
+                                <i class="fas fa-envelope"></i>
+                            </span>
+                            <span>ส่งสรุปเรื่องคงค้างให้ผู้บริหาร</span>
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
         <div class="columns">
             {% set topics = topics %}
             {% include 'complaint_tracker/conclusion_menu.html' %}
@@ -23,6 +58,8 @@
                     <hr style="margin-bottom: 4em">
                     <div id="bar_chart"></div>
                     <hr style="margin-bottom: 4em">
+                    <div id="unfinished_repair_approval_chart"></div>
+                    <hr style="margin-bottom: 4em">
                     <div id="calendar_new"></div>
                     <div id="calendar_pending"></div>
                     <div id="calendar_progress"></div>
@@ -37,7 +74,7 @@
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     {% if menu == 'tag' %}
         <script type="text/javascript">
-            google.charts.load('current', {'packages':['bar']});
+            google.charts.load('current', {'packages':['corechart']});
             google.charts.setOnLoadCallback(drawChart);
 
             function drawChart() {
@@ -209,6 +246,8 @@
                         status_colors[status] = '#f6c709'
                     } else if (status == 'ดำเนินการเสร็จสิ้น') {
                         status_colors[status] = '#21a30a'
+                    } else if (status == 'ยกเลิก') {
+                        status_colors[status] = '#2D2D2D'
                     } else {
                         status_colors['ยังไม่ดำเนินการ'] = '#d90b0b'
                     }
@@ -230,7 +269,7 @@
             {% else %}
                 var code = '{{ code }}';
             {% endif %}
-            google.charts.load('current', {'packages':['bar']});
+            google.charts.load('current', {'packages':['corechart']});
             google.charts.setOnLoadCallback(drawChart);
 
             function drawChart() {
@@ -260,6 +299,8 @@
                         status_colors[status] = '#f6c709'
                     } else if (status == 'ดำเนินการเสร็จสิ้น') {
                         status_colors[status] = '#21a30a'
+                    } else if (status == 'ยกเลิก') {
+                        status_colors[status] = '#2D2D2D'
                     } else {
                         status_colors['ยังไม่ดำเนินการ'] = '#d90b0b'
                     }
@@ -281,6 +322,62 @@
                     },
                     series: colors
                 };
+                chart.draw(data, options);
+            }
+        </script>
+        <script type="text/javascript">
+            {% if menu == 'all' %}
+                var code = null;
+            {% else %}
+                var code = '{{ code }}';
+            {% endif %}
+            google.charts.load('current', {'packages':['bar']});
+            google.charts.setOnLoadCallback(drawChart);
+
+            function drawChart() {
+                var jsonData = $.ajax({
+                    url: "{{ url_for('comp_tracker.get_unfinished_repair_approval_chart') }}?code=" + code,
+                    dataType: "json",
+                    async: false,
+                }).responseText;
+                var data = new google.visualization.DataTable(jsonData)
+
+                if (data.getNumberOfRows() === 0) {
+                    document.getElementById('unfinished_repair_approval_chart').innerHTML =
+                        "<p style='text-align: center; color: black;'>No unfinished repair approval jobs</p>";
+                    return;
+                }
+
+                var chart = new google.visualization.PieChart(
+                    document.getElementById('unfinished_repair_approval_chart')
+                );
+
+                var status_colors = {}
+                var colors = [];
+
+                for (var i = 0; i < data.getNumberOfRows(); i++) {
+                    var status = data.getValue(i, 0);
+                    if (status == 'รับเรื่อง/รอดำเนินการ') {
+                        status_colors[status] = '#45afd6';
+                    } else if (status == 'อยู่ระหว่างดำเนินการ') {
+                        status_colors[status] = '#f6c709'
+                    } else if (status == 'ดำเนินการเสร็จสิ้น') {
+                        status_colors[status] = '#21a30a'
+                    } else if (status == 'ยกเลิก') {
+                        status_colors[status] = '#2D2D2D'
+                    } else {
+                        status_colors['ยังไม่ดำเนินการ'] = '#d90b0b'
+                    }
+                    colors.push({color: status_colors[status]});
+                }
+
+                var options = {
+                    title: 'งานที่มีใบอนุมัติหลักการซ่อมและยังไม่เสร็จสิ้น',
+                    height: 450,
+                    is3D: true,
+                    slices: colors
+                };
+
                 chart.draw(data, options);
             }
         </script>

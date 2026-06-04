@@ -1,0 +1,41 @@
+<div class="modal is-active animate__animated" id="note-modal">
+    <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title" align="center">
+                    อัพเดตหมายเหตุ
+                </p>
+                <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+                <form hx-post="{{ url_for('software_request.create_note', test_result_id=test_result_id) }}"
+                      hx-target="#notes_{{ test_result_id }}"
+                      hx-swap="innerHTML"
+                >
+                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                    <div class="field" id="note">
+                        <label class="label">
+                            หมายเหตุ
+                            <span class="has-text-danger">*</span>
+                        </label>
+                    </div>
+                    <div class="field">
+                        <div class="control">
+                            {{ form.note(class='textarea', required=true) }}
+                        </div>
+                    </div>
+                    <div class="field mt-2">
+                        <div class="control">
+                            <input type="submit" id="submit-form" class="button is-success" value="บันทึก">
+                        </div>
+                    </div>
+                </form>
+            </section>
+        </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function() {
+        htmx.addClass(htmx.find('#note-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#note-modal'), "is-active", 500)
+    })
+</script>

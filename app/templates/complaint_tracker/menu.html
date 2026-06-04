@@ -18,6 +18,14 @@
                     menu='view') }}">
                     รายการแจ้งปัญหา
                 </a>
+                <a {% if menu=="repair" %} class="is-active" {% endif %} href="{{ url_for('comp_tracker.repair_index',
+                    menu='repair', tab='waiting_process') }}">
+                    รายการคำขอแจ้งซ่อม
+                </a>
+                <a {% if menu=="repair_approval" %} class="is-active" {% endif %} href="{{ url_for('comp_tracker.repair_approval_index',
+                    menu='repair_approval', tab='waiting_process') }}">
+                    รายการคำขออนุมัติหลักการซ่อม
+                </a>
             </li>
         </ul>
     </aside>

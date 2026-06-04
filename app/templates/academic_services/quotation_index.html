@@ -67,6 +67,7 @@
                     url: {{ url_for('academic_services.quotation_index', tab=tab, api='true')|tojson|safe}},
                 },
                 order: [[1, 'desc']],
+                scrollX: true,
                 columns: [
                     { data : 'quotation_no' },
                     {

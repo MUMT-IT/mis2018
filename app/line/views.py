@@ -1,4 +1,5 @@
 from collections import defaultdict
+import os
 
 import dateutil.parser
 import arrow
@@ -35,7 +36,23 @@ if today.month >= 10:
     END_FISCAL_DATE = datetime(today.year + 1, 9, 30)
 else:
     START_FISCAL_DATE = datetime(today.year - 1, 10, 1)
-    END_FISCAL_DATE = datetime(today.year, 9, 30)
+END_FISCAL_DATE = datetime(today.year, 9, 30)
+
+
+def _mask_line_id(line_id):
+    if not line_id:
+        return None
+    if len(line_id) <= 6:
+        return '***'
+    return f'{line_id[:3]}***{line_id[-3:]}'
+
+
+def _is_valid_scheduler_request():
+    configured_token = os.environ.get('JOB_TOKEN')
+    if not configured_token:
+        return True
+    request_token = request.values.get('job_token')
+    return bool(request_token and request_token == configured_token)
 
 
 @line.route('/message/callback', methods=['POST'])
@@ -222,15 +239,27 @@ def handle_message(event):
             )
 
 
+# External scheduler endpoint: called by background jobs and should not be
+# protected with @login_required.
 @line.route('/events/notification')
 def notify_events():
-    start = arrow.now('Asia/Bangkok')
-    end = start.shift(hours=+8)
-    for evt in RoomEvent.query\
-            .filter(RoomEvent.datetime.op('&&')(DateTimeRange(lower=start.datetime, upper=end.datetime, bounds='[]')))\
-            .filter(RoomEvent.cancelled_at == None):
-        for par in evt.participants:
-            if par.line_id:
+    if not _is_valid_scheduler_request():
+        return jsonify({'message': 'forbidden'}), 403
+    app.logger.info('line_notify_events_start')
+    try:
+        start = arrow.now('Asia/Bangkok')
+        end = start.shift(hours=+8)
+        events = RoomEvent.query \
+            .filter(RoomEvent.datetime.op('&&')(DateTimeRange(lower=start.datetime, upper=end.datetime, bounds='[]'))) \
+            .filter(RoomEvent.cancelled_at == None).all()
+        app.logger.info('line_notify_events_checkpoint events_in_window=%s', len(events))
+
+        sent_count = 0
+        failed_count = 0
+        for evt in events:
+            for par in evt.participants:
+                if not par.line_id:
+                    continue
                 try:
                     message = 'คุณได้รับเชิญเข้าร่วม{} ({})\nห้อง {}\nเวลา {} - {}'.format(
                         evt.title,
@@ -239,42 +268,92 @@ def notify_events():
                         tz.localize(evt.datetime.lower).strftime('%H:%M'),
                         tz.localize(evt.datetime.upper).strftime('%H:%M'),
                     )
-                    line_bot_api.push_message(to=par.line_id,
-                                              messages=TextSendMessage(text=message))
-                except LineBotApiError as e:
-                    return jsonify({'message': str(e)})
-    return jsonify({'message': 'success'}), 200
+                    app.logger.info(
+                        'line_notify_events_push_start event_id=%s line_id=%s',
+                        evt.id,
+                        _mask_line_id(par.line_id),
+                    )
+                    line_bot_api.push_message(to=par.line_id, messages=TextSendMessage(text=message))
+                    sent_count += 1
+                except LineBotApiError:
+                    failed_count += 1
+                    app.logger.exception(
+                        'line_notify_events_push_failed event_id=%s line_id=%s',
+                        evt.id,
+                        _mask_line_id(par.line_id),
+                    )
+
+        app.logger.info(
+            'line_notify_events_end sent_count=%s failed_count=%s',
+            sent_count,
+            failed_count,
+        )
+        if failed_count:
+            return jsonify({'message': 'partial_failure', 'sent': sent_count, 'failed': failed_count}), 500
+        return jsonify({'message': 'success', 'sent': sent_count}), 200
+    except Exception:
+        app.logger.exception('line_notify_events_unhandled_error')
+        return jsonify({'message': 'internal_error'}), 500
 
 
+# External scheduler endpoint: called by background jobs and should not be
+# protected with @login_required.
 @line.route('/rooms/notification')
 def notify_room_booking():
+    if not _is_valid_scheduler_request():
+        return jsonify({'message': 'forbidden'}), 403
     when = request.args.get('when', 'today')
+    app.logger.info('line_notify_rooms_start when=%s', when)
 
-    start = arrow.now('Asia/Bangkok')
-    if when == 'tomorrow':
-        start = start.shift(hours=+15)
-    end = start.shift(hours=+8)
-    coords = defaultdict(list)
-    for evt in RoomEvent.query \
+    try:
+        start = arrow.now('Asia/Bangkok')
+        if when == 'tomorrow':
+            start = start.shift(hours=+15)
+        end = start.shift(hours=+8)
+        coords = defaultdict(list)
+        events = RoomEvent.query \
             .filter(RoomEvent.datetime.op('&&')
                         (DateTimeRange(lower=start.datetime, upper=end.datetime, bounds='[]'))) \
-            .filter(RoomEvent.cancelled_at == None):
-        for co in evt.room.coordinators:
-            coords[co].append((evt.room.number, evt.datetime,
-                               evt.creator.personal_info.fullname, evt.comment))
-    for co in coords:
-        if when == 'today':
-            message = 'รายการจองห้องที่ท่านดูแลในวันนี้:\n'
-        elif when == 'tomorrow':
-            message = 'รายการจองห้องที่ท่านดูแลในวันพรุ่งนี้:\n'
-        for room_number, datetime, creator, comment in coords[co]:
-            start = tz.localize(datetime.lower).strftime("%H:%M")
-            end = tz.localize(datetime.upper).strftime('%H:%M')
-            message += f'ห้อง {room_number} เวลา {start} - {end} ผู้จอง {creator} ' + (f'({comment})' if comment else '')+'\n'
-        if co.line_id:
-            try:
-                line_bot_api.push_message(to=co.line_id, messages=TextSendMessage(text=message))
-            except LineBotApiError as e:
-                return jsonify({'message': str(e)})
+            .filter(RoomEvent.cancelled_at == None).all()
+        app.logger.info('line_notify_rooms_checkpoint events_in_window=%s', len(events))
 
-    return jsonify({'message': 'success'}), 200
+        for evt in events:
+            for co in evt.room.coordinators:
+                coords[co].append((evt.room.number, evt.datetime,
+                                   evt.creator.personal_info.fullname, evt.comment))
+
+        sent_count = 0
+        failed_count = 0
+        for co in coords:
+            if when == 'today':
+                message = 'รายการจองห้องที่ท่านดูแลในวันนี้:\n'
+            elif when == 'tomorrow':
+                message = 'รายการจองห้องที่ท่านดูแลในวันพรุ่งนี้:\n'
+            else:
+                message = f'รายการจองห้องที่ท่านดูแล ({when}):\n'
+            for room_number, datetime, creator, comment in coords[co]:
+                start_time = tz.localize(datetime.lower).strftime("%H:%M")
+                end_time = tz.localize(datetime.upper).strftime('%H:%M')
+                message += f'ห้อง {room_number} เวลา {start_time} - {end_time} ผู้จอง {creator} ' + (f'({comment})' if comment else '') + '\n'
+            if co.line_id:
+                try:
+                    app.logger.info('line_notify_rooms_push_start line_id=%s', _mask_line_id(co.line_id))
+                    line_bot_api.push_message(to=co.line_id, messages=TextSendMessage(text=message))
+                    sent_count += 1
+                except LineBotApiError:
+                    failed_count += 1
+                    app.logger.exception('line_notify_rooms_push_failed line_id=%s', _mask_line_id(co.line_id))
+
+        app.logger.info(
+            'line_notify_rooms_end when=%s recipients=%s sent_count=%s failed_count=%s',
+            when,
+            len(coords),
+            sent_count,
+            failed_count,
+        )
+        if failed_count:
+            return jsonify({'message': 'partial_failure', 'sent': sent_count, 'failed': failed_count}), 500
+        return jsonify({'message': 'success', 'sent': sent_count}), 200
+    except Exception:
+        app.logger.exception('line_notify_rooms_unhandled_error when=%s', when)
+        return jsonify({'message': 'internal_error'}), 500

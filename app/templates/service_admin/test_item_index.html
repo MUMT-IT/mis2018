@@ -77,7 +77,7 @@
                         </li>
                     </ul>
                 </div>
-                <table id='samples' class="table is-fullwidth">
+                <table id='samples' class="table is-fullwidth is-narrow">
                     <thead>
                         <th>เลขใบคำขอรับบริการ</th>
                         <th>วัน-เวลาที่รับตัวอย่าง</th>
@@ -103,6 +103,7 @@
                     url: {{ url_for('service_admin.test_item_index', tab=tab, api='true')|tojson|safe}},
                 },
                 order: [[1, 'desc']],
+                scrollX: true,
                 columns: [
                     {
                         data: 'request_id',

@@ -1,19 +1,23 @@
+import uuid
+
 import click
 import pandas
 import pandas as pd
 import requests
+from sqlalchemy import or_
+from sqlalchemy.orm import joinedload
 from flask_principal import Principal, PermissionDenied, Identity
 from flask.cli import AppGroup
 from dotenv import load_dotenv
-from flask import Flask, render_template, redirect, url_for, request
+from flask import Flask, render_template, redirect, url_for, request, abort, session
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
-from flask_login import LoginManager, current_user
+from flask_login import LoginManager, current_user, login_required
 from flask_admin import Admin, AdminIndexView
-from flask_admin.contrib.sqla import ModelView
+from flask_admin.contrib.sqla import ModelView as FlaskAdminModelView
 from flask_wtf.csrf import CSRFProtect
 from flask_qrcode import QRcode
 from pydrive.auth import GoogleAuth
@@ -22,6 +26,7 @@ from flask_mail import Mail
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from flask_restful import Api
+from wtforms.validators import InputRequired
 
 import os
 import re
@@ -33,9 +38,34 @@ import base64
 #     BestTimePollMessage
 
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+_json_keyfile = None
 
 
-def get_credential(json_keyfile):
+def _env_flag(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.lower() in {'1', 'true', 'yes', 'on'}
+
+
+def _default_secure_cookies():
+    public_base_url = os.environ.get('PUBLIC_BASE_URL', '')
+    return public_base_url.startswith('https://')
+
+
+def get_json_keyfile():
+    global _json_keyfile
+    if _json_keyfile is None:
+        json_keyfile_url = os.environ.get('JSON_KEYFILE')
+        if not json_keyfile_url:
+            raise RuntimeError('JSON_KEYFILE environment variable is not set')
+        _json_keyfile = requests.get(json_keyfile_url, timeout=10).json()
+    return _json_keyfile
+
+
+def get_credential(json_keyfile=None):
+    if json_keyfile is None:
+        json_keyfile = get_json_keyfile()
     credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scope)
     return gspread.authorize(credentials)
 
@@ -46,6 +76,24 @@ BASEDIR = os.path.abspath(os.path.dirname(__file__))
 class MyAdminIndexView(AdminIndexView):
     def is_accessible(self):
         return current_user.is_authenticated and admin_permission.can()
+
+    def inaccessible_callback(self, name, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login', next=request.url))
+        return abort(403)
+
+
+class AdminOnlyModelView(FlaskAdminModelView):
+    def is_accessible(self):
+        return current_user.is_authenticated and admin_permission.can()
+
+    def inaccessible_callback(self, name, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login', next=request.url))
+        return abort(403)
+
+
+ModelView = AdminOnlyModelView
 
 
 load_dotenv()
@@ -92,6 +140,13 @@ def create_app():
     app.config['MAIL_PORT'] = 587
     app.config['MAIL_USE_TLS'] = True
     app.config['PREFERRED_URL_SCHEME'] = 'https'
+    app.config['PUBLIC_BASE_URL'] = os.environ.get('PUBLIC_BASE_URL')
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = os.environ.get('SESSION_COOKIE_SAMESITE', 'Lax')
+    app.config['SESSION_COOKIE_SECURE'] = _env_flag('SESSION_COOKIE_SECURE', _default_secure_cookies())
+    app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+    app.config['REMEMBER_COOKIE_SAMESITE'] = os.environ.get('REMEMBER_COOKIE_SAMESITE', 'Lax')
+    app.config['REMEMBER_COOKIE_SECURE'] = _env_flag('REMEMBER_COOKIE_SECURE', _default_secure_cookies())
     app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
     app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
     app.config['MAIL_DEFAULT_SENDER'] = ('MUMT-MIS',
@@ -126,12 +181,12 @@ def user_lookup_callback(identity, payload):
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('errors/404.html', error=e), 404
+    return render_template('errors/404.html', blueprint=request.blueprint, error=e), 404
 
 
 @app.errorhandler(500)
 def internal_server_error(e):
-    return render_template('errors/500.html', error=e), 500
+    return render_template('errors/500.html', blueprint=request.blueprint, error=e), 500
 
 
 @app.errorhandler(PermissionDenied)
@@ -165,30 +220,115 @@ def get_weekdays(req):
 
 @login.user_loader
 def load_user(user_id):
+    user_type = session.get('user_type')
+    if user_type == 'service_customer':
+        return ServiceCustomerAccount.query.get(int(user_id))
+    if user_type == 'staff':
+        return StaffAccount.query.get(int(user_id))
     if request.blueprint == 'academic_services':
         return ServiceCustomerAccount.query.get(int(user_id))
-    else:
-        return StaffAccount.query.get(int(user_id))
+    return StaffAccount.query.get(int(user_id))
 
 
-@app.route('/')
-def index():
+def get_homepage_role_flags(user):
     central_admin = False
     assistant = False
-    if current_user.is_authenticated:
-        admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
+    if user.is_authenticated:
+        admins = ServiceAdmin.query.filter_by(admin_id=user.id).first()
         if admins and admins.is_central_admin:
             central_admin = True
         elif admins and admins.is_assistant:
             assistant = True
-        else:
-            central_admin = False
-            assistant = False
-    else:
-        central_admin = False
-        assistant = False
-    return render_template('index.html', central_admin=central_admin, assistant=assistant,
-                           now=datetime.now(tz=timezone('Asia/Bangkok')))
+    return central_admin, assistant
+
+
+def get_homepage_dashboard_context(user, now):
+    upcoming_invitations_query = (
+        MeetingInvitation.query
+        .options(joinedload(MeetingInvitation.meeting))
+        .join(MeetingEvent, MeetingInvitation.meeting_event_id == MeetingEvent.id)
+        .filter(
+            MeetingInvitation.staff_id == user.id,
+            MeetingEvent.start >= now,
+        )
+        .order_by(MeetingEvent.start.asc())
+    )
+    upcoming_invitations_count = upcoming_invitations_query.count()
+    upcoming_invitations = upcoming_invitations_query.limit(6).all()
+
+    upcoming_polls_query = (
+        MeetingPoll.query
+        .join(meeting_poll_participant_assoc,
+              MeetingPoll.id == meeting_poll_participant_assoc.c.poll_id)
+        .filter(
+            meeting_poll_participant_assoc.c.staff_id == user.id,
+            or_(MeetingPoll.start_vote >= now, MeetingPoll.close_vote > now),
+        )
+        .order_by(MeetingPoll.close_vote.asc())
+    )
+    upcoming_polls_count = upcoming_polls_query.count()
+    upcoming_polls = upcoming_polls_query.limit(6).all()
+
+    upcoming_events = (
+        RoomEvent.query
+        .options(joinedload(RoomEvent.room))
+        .join(event_participant_assoc, RoomEvent.id == event_participant_assoc.c.event_id)
+        .filter(
+            event_participant_assoc.c.staff_id == user.id,
+            RoomEvent.start >= now,
+            RoomEvent.cancelled_at.is_(None),
+        )
+        .order_by(RoomEvent.start.asc())
+        .limit(6)
+        .all()
+    )
+
+    upcoming_pre_registers = (
+        StaffSeminarPreRegister.query
+        .options(joinedload(StaffSeminarPreRegister.seminar))
+        .join(StaffSeminar, StaffSeminarPreRegister.seminar_id == StaffSeminar.id)
+        .filter(
+            StaffSeminarPreRegister.staff_account_id == user.id,
+            StaffSeminar.end_datetime >= now,
+        )
+        .order_by(StaffSeminar.start_datetime.asc())
+        .limit(6)
+        .all()
+    )
+    return {
+        'now': now,
+        'upcoming_events': upcoming_events,
+        'upcoming_invitations': upcoming_invitations,
+        'upcoming_invitations_count': upcoming_invitations_count,
+        'upcoming_polls': upcoming_polls,
+        'upcoming_polls_count': upcoming_polls_count,
+        'upcoming_pre_registers': upcoming_pre_registers,
+    }
+
+
+@app.route('/')
+def index():
+    now = datetime.now(tz=timezone('Asia/Bangkok'))
+    central_admin, assistant = get_homepage_role_flags(current_user)
+    return render_template(
+        'index.html',
+        assistant=assistant,
+        central_admin=central_admin,
+        now=now,
+    )
+
+
+@app.route('/home/dashboard')
+@login_required
+def home_dashboard():
+    now = datetime.now(tz=timezone('Asia/Bangkok'))
+    central_admin, assistant = get_homepage_role_flags(current_user)
+    context = get_homepage_dashboard_context(current_user, now)
+    context.update({
+        'assistant': assistant,
+        'central_admin': central_admin,
+    })
+    return render_template('partials/home_dashboard.html', **context)
 
 
 @app.route('/user-support')
@@ -196,13 +336,107 @@ def user_support_index():
     return render_template('support.html')
 
 
-json_keyfile = requests.get(os.environ.get('JSON_KEYFILE')).json()
+@app.route('/teacher-tools')
+@login_required
+def teacher_tools_index():
+    return render_template('edu/teacher_tools.html')
 
 
-from app.food import foodbp as food_blueprint
+@app.route('/management/s3-storage')
+@login_required
+def s3_storage_management_index():
+    if not admin_permission.can():
+        return abort(403)
+    region = (
+        os.environ.get('BUCKETEER_AWS_REGION')
+        or os.environ.get('AWS_DEFAULT_REGION')
+        or os.environ.get('AWS_REGION')
+        or '-'
+    )
+    endpoint_url = os.environ.get('AWS_S3_ENDPOINT_URL') or 'AWS default endpoint'
+    bucket_name = os.environ.get('BUCKETEER_BUCKET_NAME')
+    connection_status = 'Connected'
+    error_message = None
+    bucket_region = '-'
+    bucket_access = 'Unavailable'
+    objects = []
+    object_count = 0
+    total_size_bytes = 0
 
-app.register_blueprint(food_blueprint)
-from app.food.models import *
+    capacity_gb_raw = os.environ.get('S3_STORAGE_CAPACITY_GB', '15')
+    try:
+        storage_capacity_gb = float(capacity_gb_raw)
+    except (TypeError, ValueError):
+        storage_capacity_gb = 15.0
+    if storage_capacity_gb <= 0:
+        storage_capacity_gb = 15.0
+    storage_capacity_bytes = int(storage_capacity_gb * (1024 ** 3))
+
+    try:
+        access_key_id = os.environ.get('BUCKETEER_AWS_ACCESS_KEY_ID')
+        secret_access_key = os.environ.get('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+        session_token = os.environ.get('BUCKETEER_AWS_SESSION_TOKEN')
+
+        s3_client = boto3.client(
+            's3',
+            endpoint_url=os.environ.get('AWS_S3_ENDPOINT_URL') or None,
+            region_name=region if region != '-' else None,
+            aws_access_key_id=access_key_id,
+            aws_secret_access_key=secret_access_key,
+            aws_session_token=session_token,
+        )
+
+        if not bucket_name:
+            connection_status = 'Unavailable'
+            error_message = 'BUCKETEER_BUCKET_NAME is not configured.'
+        else:
+            s3_client.head_bucket(Bucket=bucket_name)
+            bucket_access = 'Available'
+
+            location_resp = s3_client.get_bucket_location(Bucket=bucket_name)
+            # AWS may return None for us-east-1.
+            bucket_region = location_resp.get('LocationConstraint') or 'us-east-1'
+
+            paginator = s3_client.get_paginator('list_objects_v2')
+            for page in paginator.paginate(Bucket=bucket_name):
+                for obj in page.get('Contents', []):
+                    total_size_bytes += obj.get('Size', 0) or 0
+
+            list_resp = s3_client.list_objects_v2(Bucket=bucket_name, MaxKeys=20)
+            object_count = list_resp.get('KeyCount', 0)
+            for obj in list_resp.get('Contents', []):
+                last_modified = obj.get('LastModified')
+                if last_modified:
+                    last_modified = last_modified.strftime('%Y-%m-%d %H:%M:%S')
+                objects.append({
+                    'key': obj.get('Key', '-'),
+                    'size': obj.get('Size', 0),
+                    'last_modified': last_modified or '-',
+                })
+    except (NoCredentialsError, ClientError, Exception) as err:
+        connection_status = 'Unavailable'
+        error_message = str(err)
+
+    used_storage_gb = total_size_bytes / (1024 ** 3)
+    storage_usage_percent = round((total_size_bytes / storage_capacity_bytes) * 100, 2) if storage_capacity_bytes else 0
+
+    return render_template(
+        'management/s3_storage_management.html',
+        region=region,
+        endpoint_url=endpoint_url,
+        connection_status=connection_status,
+        error_message=error_message,
+        bucket_name=bucket_name or '-',
+        bucket_region=bucket_region,
+        bucket_access=bucket_access,
+        objects=objects,
+        object_count=object_count,
+        total_size_bytes=total_size_bytes,
+        used_storage_gb=used_storage_gb,
+        storage_capacity_gb=storage_capacity_gb,
+        storage_usage_percent=storage_usage_percent,
+    )
+
 
 from app.kpi import kpibp as kpi_blueprint
 
@@ -210,6 +444,13 @@ app.register_blueprint(kpi_blueprint, url_prefix='/kpi')
 
 from app.complaint_tracker import complaint_tracker
 from app.complaint_tracker.models import *
+from app.complaint_tracker.views import (
+    _build_recipient_summary_package,
+    _get_high_level_admin_recipients,
+    _normalize_internal_email,
+    _render_summary_email_html,
+    send_mail as send_complaint_summary_mail,
+)
 
 app.register_blueprint(complaint_tracker)
 
@@ -222,13 +463,17 @@ admin.add_views(ModelView(ComplaintTag, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintType, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintPriority, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintRecord, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintRecordStatusAssociation, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintActionRecord, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintAssignee, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintHandler, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintPerformanceReport, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintInvestigator, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintCoordinator, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintRepairCompany,  db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintSparePart, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintAdminTypeAssociation, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintRepair, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintRepairApproval, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintCommittee, db.session, category='Complaint'))
 
@@ -541,10 +786,6 @@ class ProductCodeAdminModel(ModelView):
 
 admin.add_views(ProductCodeAdminModel(models.ProductCode, db.session, category='Finance'))
 
-from app.lisedu import lisedu as lis_blueprint
-
-app.register_blueprint(lis_blueprint, url_prefix='/lis')
-
 from app.eduqa import eduqa_bp as eduqa_blueprint
 from app.eduqa.models import *
 
@@ -849,10 +1090,12 @@ app.register_blueprint(software_request_blueprint)
 from app.software_request.models import *
 
 admin.add_views(ModelView(SoftwareRequestNumberID, db.session, category='Software Request'))
+admin.add_views(ModelView(SoftwareRequestPhase, db.session, category='Software Request'))
 admin.add_views(ModelView(SoftwareRequestSystem, db.session, category='Software Request'))
 admin.add_views(ModelView(SoftwareRequestDetail, db.session, category='Software Request'))
 admin.add_views(ModelView(SoftwareRequestTimeline, db.session, category='Software Request'))
 admin.add_views(ModelView(SoftwareIssues, db.session, category='Software Request'))
+admin.add_views(ModelView(SoftwareRequestTestResult, db.session, category='Software Request'))
 
 from app.models import Dataset, DataFile
 
@@ -914,7 +1157,7 @@ from app.database import load_students
 def add_update_staff_finger_print_gsheet():
     sheetid = '13_wlcGpl5BWtCdqMi9WxXXJL_CfPnd5t54gCjA6mYtE'
     print('Authorizing with Google..')
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     wks = gc.open_by_key(sheetid)
     sheet = wks.worksheet("Sheet1")
     df = pandas.DataFrame(sheet.get_all_records())
@@ -938,7 +1181,7 @@ def import_leave_data():
 
     sheetid = '1cM3T-kj1qgn24gZIUpOT3SGUQeIGhDdLdsCjgwj4Pgo'
     print('Authorizing with Google..')
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     wks = gc.open_by_key(sheetid)
     sheet = wks.worksheet("leave")
     df = pandas.DataFrame(sheet.get_all_records())
@@ -1006,7 +1249,7 @@ def import_procurement_data():
 
     sheetid = '165tgZytipxxy5jY2ZOY5EaBJwxt3ZVRDwaBqggqmccY'
     print('Authorizing with Google..')
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     wb = gc.open_by_key(sheetid)
     sheet = wb.worksheet("Data")
     df = pandas.DataFrame(sheet.get_all_records())
@@ -1043,7 +1286,7 @@ def import_procurement_data():
 def initialize_gdrive():
     gauth = GoogleAuth()
     scope = ['https://www.googleapis.com/auth/drive']
-    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scope)
+    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(get_json_keyfile(), scope)
     return GoogleDrive(gauth)
 
 
@@ -1053,7 +1296,7 @@ def initialize_gdrive():
 def import_procurement_image(index, limit):
     sheetid = '16A6yb_W-GcWRLbpqV-9cAnpqgh7nQsZogsNlzz_73ds'
     print('Authorizing with Google sheet..')
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     wks = gc.open_by_key(sheetid)
     sheet = wks.worksheet("Asset")
     drive = initialize_gdrive()
@@ -1085,7 +1328,7 @@ def import_procurement_image(index, limit):
 def add_update_staff_gsheet():
     sheetid = '17lUlFNYk5znYqXL1vVCmZFtgTcjGvlNRZIlaDaEhy5E'
     print('Authorizing with Google..')
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     wks = gc.open_by_key(sheetid)
     sheet = wks.worksheet("index")
     df = pandas.DataFrame(sheet.get_all_records())
@@ -1135,7 +1378,7 @@ def update_leave_used_leave_quota():
 def update_remaining_leave_quota():
     sheetid = '17lUlFNYk5znYqXL1vVCmZFtgTcjGvlNRZIlaDaEhy5E'
     print('Authorizing with Google..')
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     wks = gc.open_by_key(sheetid)
     sheet = wks.worksheet("remain2021")
     df = pandas.DataFrame(sheet.get_all_records())
@@ -1162,7 +1405,7 @@ def update_remaining_leave_quota():
 def update_approver_gsheet():
     sheetid = '17lUlFNYk5znYqXL1vVCmZFtgTcjGvlNRZIlaDaEhy5E'
     print('Authorizing with Google..')
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     wks = gc.open_by_key(sheetid)
     sheet = wks.worksheet("approver")
     df = pandas.DataFrame(sheet.get_all_records())
@@ -1191,7 +1434,7 @@ def update_approver_gsheet():
 def import_province():
     sheetid = '1FnUHT8eoEJBz35HXz4gdq9DruyNU1lfsO74O1d0YRQE'
     print('Authorizing with Google..')
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     wks = gc.open_by_key(sheetid)
     sheet = wks.worksheet("Province")
     df = pandas.DataFrame(sheet.get_all_records())
@@ -1216,7 +1459,7 @@ def import_province():
 def import_district():
     sheetid = '1FnUHT8eoEJBz35HXz4gdq9DruyNU1lfsO74O1d0YRQE'
     print('Authorizing with Google..')
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     wks = gc.open_by_key(sheetid)
     sheet = wks.worksheet("District")
     df = pandas.DataFrame(sheet.get_all_records())
@@ -1244,7 +1487,7 @@ def import_district():
 def import_subdistrict():
     sheetid = '1FnUHT8eoEJBz35HXz4gdq9DruyNU1lfsO74O1d0YRQE'
     print('Authorizing with Google..')
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     wks = gc.open_by_key(sheetid)
     sheet = wks.worksheet("Subdistrict")
     df = pandas.DataFrame(sheet.get_all_records())
@@ -1301,6 +1544,120 @@ def populate_districts():
 @app.cli.command()
 def populate_subdistricts():
     load_subdistricts()
+
+
+@app.cli.command('test-scb-auth')
+@click.option('--timeout', default=30, show_default=True, type=int)
+def test_scb_auth(timeout):
+    def get_fixie_proxies():
+        fixie_host = os.environ.get("FIXIE_SOCKS_HOST")
+        if not fixie_host:
+            return None
+        proxy_url = f"socks5h://{fixie_host}"
+        return {"http": proxy_url, "https": proxy_url}
+
+    auth_url = os.environ.get('SCB_AUTH_URL')
+    app_key = os.environ.get('SCB_APP_KEY')
+    app_secret = os.environ.get('SCB_APP_SECRET')
+
+    missing = [name for name, value in (
+        ('SCB_AUTH_URL', auth_url),
+        ('SCB_APP_KEY', app_key),
+        ('SCB_APP_SECRET', app_secret),
+    ) if not value]
+    if missing:
+        raise click.ClickException(
+            'Missing required environment variables: {}'.format(', '.join(missing))
+        )
+
+    headers = {
+        'Content-Type': 'application/json',
+        'requestUId': str(uuid.uuid4()),
+        'resourceOwnerId': app_key,
+    }
+    payload = {
+        'applicationKey': app_key,
+        'applicationSecret': app_secret,
+    }
+
+    click.echo('Testing SCB auth')
+    click.echo('URL: {}'.format(auth_url))
+    click.echo('APP_KEY: {}'.format(app_key))
+    click.echo('Request headers:')
+    for key, value in headers.items():
+        click.echo('  {}: {}'.format(key, value))
+    click.echo('Request payload:')
+    click.echo('  applicationKey: {}'.format(app_key))
+    click.echo('  applicationSecret: {}'.format('[redacted]' if app_secret else None))
+    click.echo('Fixie proxy: {}'.format('enabled' if get_fixie_proxies() else 'disabled'))
+
+    try:
+        response = requests.post(
+            auth_url,
+            headers=headers,
+            json=payload,
+            proxies=get_fixie_proxies(),
+            timeout=30
+        )
+    except requests.RequestException as exc:
+        raise click.ClickException('SCB auth request failed: {}'.format(exc))
+
+    content_type = (response.headers.get('Content-Type') or '').lower()
+    if response.status_code == 403 and 'html' in content_type:
+        click.echo('SCB request blocked by CloudFront/WAF. Check Fixie proxy and SCB allowlist.')
+
+    click.echo('Status: {}'.format(response.status_code))
+    click.echo('Response headers:')
+    for key, value in response.headers.items():
+        click.echo('  {}: {}'.format(key, value))
+    click.echo('Response body:')
+    click.echo(response.text)
+
+    try:
+        response.raise_for_status()
+        response_data = response.json()
+        access_token = response_data['data']['accessToken']
+    except requests.RequestException as exc:
+        raise click.ClickException('SCB auth returned HTTP error: {}'.format(exc))
+    except (ValueError, TypeError, KeyError) as exc:
+        raise click.ClickException('SCB auth returned unexpected payload: {}'.format(exc))
+
+    click.echo('Access token received: yes')
+    click.echo('Access token prefix: {}...'.format(access_token[:12]))
+
+
+@app.cli.command('test-complaint-summary-email')
+@click.option('--email', 'admin_email', required=True, help='Supervisor admin email to target.')
+@click.option('--send', is_flag=True, help='Actually send the email instead of printing a preview.')
+def test_complaint_summary_email(admin_email, send):
+    normalized_email = _normalize_internal_email(admin_email)
+    recipients = _get_high_level_admin_recipients()
+    recipient = next((item for item in recipients if item['email'] == normalized_email), None)
+
+    if not recipient:
+        raise click.ClickException(
+            'No supervisor complaint admin found for email: {}'.format(normalized_email)
+        )
+
+    package = _build_recipient_summary_package(recipient)
+
+    click.echo('Target admin: {}'.format(recipient['staff_name']))
+    click.echo('Email: {}'.format(recipient['email']))
+    click.echo('Scope: {}'.format(package['scope_label']))
+    click.echo('Subject: {}'.format(package['subject']))
+
+    if not send:
+        click.echo('\nPreview mode only. Use --send to deliver the email.\n')
+        click.echo(package['message'])
+        return
+
+    send_complaint_summary_mail(
+        [recipient['email']],
+        package['subject'],
+        package['message'],
+        html=_render_summary_email_html(package),
+    )
+    click.echo('Email sent to {}'.format(recipient['email']))
 
 
 @dbutils.command('load_staff_list')
@@ -1408,7 +1765,10 @@ def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
     datetime_format = '%d/%m/%Y'
     try:
-        dt = dt.astimezone(bangkok).strftime(datetime_format)
+        if isinstance(dt, datetime):
+            dt = dt.astimezone(bangkok).strftime(datetime_format)
+        elif isinstance(dt, date):
+            dt = dt.strftime(datetime_format)
     except AttributeError:
         return None
     return dt
@@ -1708,7 +2068,7 @@ def import_seminar_data():
     tz = timezone('Asia/Bangkok')
     sheetid = '1GzNUS14c6dkUNh1Xz5cis1IXlPGtZTlGHgeU_3HS7HQ'
     print('Authorizing with Google..')
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     wks = gc.open_by_key(sheetid)
     sheet = wks.worksheet("seminar")
     df = pandas.DataFrame(sheet.get_all_records())
@@ -1743,7 +2103,7 @@ def import_seminar_attend_data():
     tz = timezone('Asia/Bangkok')
     sheetid = '1GzNUS14c6dkUNh1Xz5cis1IXlPGtZTlGHgeU_3HS7HQ'
     print('Authorizing with Google..')
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     wks = gc.open_by_key(sheetid)
     sheet = wks.worksheet("attend")
     df = pandas.DataFrame(sheet.get_all_records())
@@ -2008,12 +2368,3 @@ from app.continuing_edu.admin.views import admin_bp as continuing_edu_admin_bp
 from app.continuing_edu.admin.certifications import cert_bp as continuing_edu_admin_cert_bp
 app.register_blueprint(continuing_edu_admin_bp)
 app.register_blueprint(continuing_edu_admin_cert_bp)
-
-if __name__ == '__main__':
-    import os
-    cert_file = os.path.join(os.path.dirname(__file__), '..', '..', 'cert.pem')
-    key_file = os.path.join(os.path.dirname(__file__), '..', '..', 'key.pem')
-    if os.path.exists(cert_file) and os.path.exists(key_file):
-        app.run(debug=True, port=5005, host="0.0.0.0", ssl_context=(cert_file, key_file))
-    else:
-        app.run(debug=True, port=5005, host="0.0.0.0")

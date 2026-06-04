@@ -96,7 +96,20 @@
                                 <strong>ส่วนลด : </strong>
                                 {{ "{:,.2f}".format(quotation.discount()) }}
                             </p>
-                            <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ "{:,.2f}".format(quotation.grand_total()) }}</p>
+                            <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ "{:,.2f}".format(quotation.grand_total()) }}
+                            </p>
+                        </div>
+                        <div class="field">
+                            <div class="buttons is-centered">
+                                {% if quotation.approved_at %}
+                                    <a class="button is-info is-outlined is-rounded is-small mb-2"
+                                       href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id) }}"
+                                    >
+                                        <span class="icon"><i class="fas fa-download"></i></span>
+                                        <span>ดาวน์โหลดใบเสนอราคา</span>
+                                    </a>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -157,8 +170,8 @@
                                     <span class="tag has-text-danger is-rounded">ยังไม่ดำเนินการอนุัมติ</span>
                                 {% endif %}
                             </ul>
-                            <hr>
                             {% if quotation.note %}
+                                <hr>
                                 <p class="menu-label">
                                     เหตุผลที่ไม่อนุมัติ
                                 </p>
@@ -167,52 +180,52 @@
                                         {{ quotation.note }}
                                     </li>
                                 </ul>
-                                <hr>
+                                {#                                <hr>#}
                             {% endif %}
-                            <p class="menu-label">
-                                สถานะ
-                            </p>
-                            <ul class="menu-list">
-                                <li>
-                                    <span class="tag {{ quotation.admin_status_color }}">
-                                        {{ quotation.admin_status }}
-                                    </span>
-                                </li>
-                            </ul>
-                            <hr>
-                            <p class="menu-label">
-                                การดำเนินการ
-                            </p>
-                            <ul class="menu-list">
-                                {% if quotation.approved_at %}
-                                    <li>
-                                        <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
-                                           href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id) }}"
-                                        >
-                                            <span class="icon"><i class="fas fa-download"></i></span>
-                                            <span>ดาวน์โหลดใบเสนอราคา</span>
-                                        </a>
-                                    </li>
-                                {% endif %}
-                            </ul>
+                            {#                            <p class="menu-label">#}
+                            {#                                สถานะ#}
+                            {#                            </p>#}
+                            {#                            <ul class="menu-list">#}
+                            {#                                <li>#}
+                            {#                                    <span class="tag {{ quotation.admin_status_color }}">#}
+                            {#                                        {{ quotation.admin_status }}#}
+                            {#                                    </span>#}
+                            {#                                </li>#}
+                            {#                            </ul>#}
+                            {#                            <hr>#}
+                            {#                            <p class="menu-label">#}
+                            {#                                การดำเนินการ#}
+                            {#                            </p>#}
+                            {#                            <ul class="menu-list">#}
+                            {#                                {% if quotation.approved_at %}#}
+                            {#                                    <li>#}
+                            {#                                        <a class="button is-info is-outlined is-rounded is-small is-fullwidth"#}
+                            {#                                           href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id) }}"#}
+                            {#                                        >#}
+                            {#                                            <span class="icon"><i class="fas fa-download"></i></span>#}
+                            {#                                            <span>ดาวน์โหลดใบเสนอราคา</span>#}
+                            {#                                        </a>#}
+                            {#                                    </li>#}
+                            {#                                {% endif %}#}
+                            {#                            </ul>#}
                         </aside>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <div class="columns">
-        <div class="column is-two-thirds is-offset-2 has-text-centered">
-            <div class="buttons is-centered">
-                <a class="button is-light" href="{{ url_for('service_admin.quotation_index', tab=tab, menu=menu) }}">
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2 has-text-centered">
+                <div class="buttons is-centered">
+                    <a class="button is-light"
+                       href="{{ url_for('service_admin.quotation_index', tab=tab, menu=menu) }}">
                     <span class="icon">
                         <i class="fas fa-chevron-left"></i>
                     </span>
-                    <span>ย้อนกลับ</span>
-                </a>
+                        <span>ย้อนกลับ</span>
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
     </div>
     </section>
 {% endblock %}

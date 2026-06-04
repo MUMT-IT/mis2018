@@ -2268,39 +2268,14 @@ def payment_status_api(payment_id):
                 db.session.add(rec)
                 db.session.commit()
 
-            # Call SCB inquiry API
-            auth_url = os.environ.get('SCB_AUTH_URL')
-            inquiry_url = os.environ.get('QR30_INQUIRY')
-            app_key = os.environ.get('SCB_APP_KEY')
-            app_secret = os.environ.get('SCB_APP_SECRET')
-            biller_id = os.environ.get('BILLERID')
-            if not (auth_url and inquiry_url and app_key and app_secret and biller_id):
-                return
-
-            import uuid
-            import requests
-
-            headers = {
-                'Content-Type': 'application/json',
-                'requestUId': str(uuid.uuid4()),
-                'resourceOwnerId': app_key,
-            }
-            token_resp = requests.post(auth_url, headers=headers, json={'applicationKey': app_key, 'applicationSecret': app_secret}, timeout=15)
-            token_resp.raise_for_status()
-            access_token = token_resp.json().get('data', {}).get('accessToken')
-            if not access_token:
-                return
-            headers['authorization'] = f'Bearer {access_token}'
-
             tx_date = (getattr(rec, 'created_datetime', None) or payment_dt).strftime('%Y-%m-%d')
-            resp = requests.get(
-                inquiry_url,
-                params={'billerId': biller_id, 'reference1': ref1, 'transactionDate': tx_date, 'eventCode': '00300100'},
-                headers=headers,
-                timeout=15,
+            from app.scb_payment_service.views import scb_qr30_inquiry
+            resp_data = scb_qr30_inquiry(
+                reference1=ref1,
+                transaction_date=tx_date,
+                event_code='00300100'
             )
-            data = resp.json() if resp is not None else {}
-            payload = data.get('data') if isinstance(data, dict) else None
+            payload = resp_data.get('data') if isinstance(resp_data, dict) else None
             if payload:
                 # Best-effort: set a transaction_id if inquiry returns one
                 txn_id = None

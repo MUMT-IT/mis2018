@@ -37,6 +37,15 @@ class SoftwareRequestNumberID(db.Model):
         return u'{}'.format(self.count + 1)
 
 
+class SoftwareRequestPhase(db.Model):
+    __tablename__ = 'software_request_phases'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    phase = db.Column('phase', db.String(), nullable=False)
+
+    def __str__(self):
+        return f'{self.phase}'
+
+
 class SoftwareRequestSystem(db.Model):
     __tablename__ = 'software_request_systems'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -52,10 +61,13 @@ class SoftwareRequestDetail(db.Model):
     title = db.Column('title', db.String(), info={'label': 'หัวข้อคำขอ'})
     description = db.Column('description', db.Text(), info={'label': 'รายละเอียดคำขอ'})
     status = db.Column('status', db.String())
+    note = db.Column('note', db.Text())
     type = db.Column('type', db.String(), info={'label': 'ประเภทคำขอ',
                                                 'choices': [('', 'กรุณาเลือกประเภทคำขอ'),
                                                             ('พัฒนาโปรแกรมใหม่', 'พัฒนาโปรแกรมใหม่'),
                                                             ('ปรับปรุงระบบที่มีอยู่', 'ปรับปรุงระบบที่มีอยู่')]})
+    system_id = db.Column('system_id', db.ForeignKey('software_request_systems.id'))
+    system = db.relationship(SoftwareRequestSystem, backref=db.backref('software_requests'))
     work_process_id = db.Column('work_process_id', db.ForeignKey('db_processes.id'))
     work_process = db.relationship(Process, backref=db.backref('software_requests'))
     activity_id = db.Column('activity_id', db.ForeignKey('strategy_activities.id'))
@@ -105,21 +117,103 @@ class SoftwareRequestDetail(db.Model):
 
     @property
     def num_timelines(self):
-        return len([timeline for timeline in self.timelines if timeline.status != 'ยกเลิกการพัฒนา' or timeline.status != 'เสร็จสิ้น'])
+        return len([timeline for timeline in self.timelines if timeline.status != 'ยกเลิกการพัฒนา' and timeline.status != 'เสร็จสิ้น'])
 
-    def to_dict(self):
+    @property
+    def status_color(self):
+        if self.status == 'ส่งคำขอแล้ว':
+            return 'is-link'
+        elif self.status == 'อยู่ระหว่างพิจารณา':
+            return 'is-warning'
+        elif self.status == 'อนุมัติ':
+            return 'is-success'
+        elif self.status == 'เสร็จสิ้น':
+            return 'is-info'
+        elif self.status == 'ไม่อนุมัติ':
+            return 'is-danger'
+        else:
+            return 'is-dark'
+
+    @property
+    def workflow_status(self):
+        closed = all(issue.cloesd_at for issue in self.issues)
+        tested = any(issue.tested_at for issue in self.issues)
+        worked = any(issue.accepted_at for issue in self.issues)
+        draft = any(not issue.tested_at
+                    and not issue.closed_at
+                    and not issue.accepted_at
+                    for issue in self.issues)
+        if self.status == 'เสร็จสิ้น' or closed:
+            return 'ดำเนินการเสร็จสิ้น'
+        elif self.status == 'ยกเลิก':
+            return 'ยกเลิกการพัฒนา'
+        elif tested:
+            return 'รอทดสอบ'
+        elif worked or draft:
+            return 'กำลังพัฒนา'
+        else:
+            return 'ยังไม่ดำเนินการ'
+
+    @property
+    def workflow_status_color(self):
+        closed = all(issue.cloesd_at for issue in self.issues)
+        tested = any(issue.tested_at for issue in self.issues)
+        worked = any(issue.accepted_at for issue in self.issues)
+        draft = any(not issue.tested_at
+                    and not issue.closed_at
+                    and not issue.accepted_at
+                    for issue in self.issues)
+        if self.status == 'เสร็จสิ้น' or closed:
+            return 'is-success'
+        elif self.status == 'ยกเลิก':
+            return 'is-dark'
+        elif tested:
+            return 'is-warning'
+        elif worked or draft:
+            return 'is-info'
+        else:
+            return 'is-danger'
+
+    @property
+    def workflow_status_icon(self):
+        closed = all(issue.cloesd_at for issue in self.issues)
+        tested = any(issue.tested_at for issue in self.issues)
+        worked = any(issue.accepted_at for issue in self.issues)
+        draft = any(not issue.tested_at
+                    and not issue.closed_at
+                    and not issue.accepted_at
+                    for issue in self.issues)
+        if self.status == 'เสร็จสิ้น' or closed:
+            return '<i class="fas fa-check"></i>'
+        elif self.status == 'ยกเลิก':
+            return '<i class="fas fa-ban"></i>'
+        elif tested:
+            return '<i class="fas fa-hourglass-start"></i>'
+        elif worked or draft:
+            return '<i class="fas fa-spinner"></i>'
+        else:
+            return '<i class="fas fa-times"></i>'
+
+    def to_dict(self, open_issues=None, num_timelines=None, has_timeline=None):
+        # Allow precomputed counts from the admin listing query to avoid per-row lazy loads.
+        open_issues = self.num_open_issues if open_issues is None else open_issues
+        num_timelines = self.num_timelines if num_timelines is None else num_timelines
+        has_timeline = bool(self.timelines) if has_timeline is None else has_timeline
         return {
             'id': self.id,
             'title': self.title,
             'type': self.type,
             'description': self.description,
-            'has_timeline': True if self.timelines else False,
+            'has_timeline': has_timeline,
             'created_by': self.created_by.fullname if self.created_by else None,
             'org': self.created_by.personal_info.org.name if self.created_by else None,
             'created_date': self.created_date,
             'status': self.status,
-            'open_issues': self.num_open_issues,
-            'num_timelines': self.num_timelines
+            'workflow_status': self.workflow_status,
+            'workflow_status_color': self.workflow_status_color,
+            'workflow_status_icon': self.workflow_status_icon,
+            'open_issues': open_issues,
+            'num_timelines': num_timelines
         }
 
 
@@ -130,12 +224,6 @@ class SoftwareRequestTimeline(db.Model):
     task = db.Column('task', db.Text(), nullable=False, info={'label': 'Task'})
     start = db.Column('start', db.Date(), nullable=False, info={'label': 'วันที่เริ่มต้น'})
     estimate = db.Column('estimate', db.Date(), nullable=False, info={'label': 'วันที่คาดว่าจะแล้วเสร็จ'})
-    phase = db.Column('phase', db.String(), nullable=False, info={'label': 'Phase',
-                                                                  'choices': [('1', '1'),
-                                                                              ('2', '2'),
-                                                                              ('3', '3'),
-                                                                              ('4', '4')
-                                                                              ]})
     status = db.Column('status', db.String(), nullable=False,  info={'label': 'สถานะ',
                                                                      'choices': [('รอดำเนินการ', 'รอดำเนินการ'),
                                                                                  ('เสร็จสิ้น', 'เสร็จสิ้น'),
@@ -172,7 +260,10 @@ class SoftwareIssues(db.Model):
         'label': 'ประเภท',
         'choices': [(c,c) for c in ('Bug', 'Request', 'Enhancement')],
     })
-    issue = db.Column('issue', db.Text(), nullable=False, info={'label': 'Issue'})
+    issue = db.Column('issue', db.Text(), nullable=False, info={'label': 'Issue/Request'})
+    deadline = db.Column('deadline', db.Date(), info={'label': 'Deadline'})
+    phase_id = db.Column('phase_id', db.ForeignKey('software_request_phases.id'))
+    phase = db.relationship(SoftwareRequestPhase, backref=db.backref('software_request_issues'))
     created_by = db.Column('created_by', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, foreign_keys=[created_by])
     created_at = db.Column('created_at', db.DateTime(timezone=True))
@@ -180,6 +271,7 @@ class SoftwareIssues(db.Model):
     updater = db.relationship(StaffAccount, foreign_keys=[updated_by])
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    tested_at = db.Column('tested_at', db.DateTime(timezone=True))
     closed_at = db.Column('closed_at', db.DateTime(timezone=True))
     accepted_at = db.Column('accepted_at', db.DateTime(timezone=True))
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
@@ -193,6 +285,8 @@ class SoftwareIssues(db.Model):
             return 'Closed'
         elif self.accepted_at:
             return 'Working'
+        elif self.tested_at:
+            return 'Testing'
         else:
             return 'Draft'
 
@@ -204,5 +298,37 @@ class SoftwareIssues(db.Model):
             return 'is-dark'
         elif self.accepted_at:
             return 'is-success'
+        elif self.tested_at:
+            return 'is-warning'
         else:
             return 'is-info'
+
+#
+class SoftwareRequestTestResult(db.Model):
+    __tablename__ = 'software_request_test_results'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    status = db.Column('status', db.String())
+    note = db.Column('note', db.Text())
+    issue_id = db.Column('issue_id', db.ForeignKey('software_issues.id'))
+    issue = db.relationship(SoftwareIssues, backref=db.backref('test_results'))
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    recorded_at = db.Column('recorded_at', db.DateTime(timezone=True))
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+    creator = db.relationship(StaffAccount, backref=db.backref('created_test_results'), foreign_keys=[creator_id])
+    updater_id = db.Column('updater_id', db.ForeignKey('staff_account.id'))
+    updater = db.relationship(StaffAccount, backref=db.backref('updated_test_results'), foreign_keys=[updater_id])
+    recorder_id = db.Column('recorder_id', db.ForeignKey('staff_account.id'))
+    recorder = db.relationship(StaffAccount, backref=db.backref('recorded_test_results'), foreign_keys=[recorder_id])
+    request_id = db.Column('request_id', db.ForeignKey('software_request_details.id'))
+    request = db.relationship(SoftwareRequestDetail, backref=db.backref('test_results'))
+
+    def __str__(self):
+        return self.detail
+
+    @property
+    def status_color(self):
+        if self.status == 'ผ่าน':
+            return 'is-success'
+        else:
+            return 'is-danger'

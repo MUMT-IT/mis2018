@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Room Page{% endblock %}
+{% include "service_admin/admin_nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">Update Service Guide</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <div class="box">
+                        <form method="post" enctype="multipart/form-data">
+                            {{ form.hidden_tag() }}
+                            <div class="field">
+                                <label class="label">คู่มือการใช่้บริการ</label>
+                                <div class="file">
+                                    <label class="file-label">
+                                        {{ form.service_manual_file(class="file-input") }}
+                                        <span class="file-cta">
+                                            <span class="file-icon">
+                                                <i class="fas fa-upload"></i>
+                                            </span>
+                                            <span class="file-label">
+                                                เลือกไฟล์…
+                                            </span>
+                                        </span>
+                                        <span class="file-name" id="service_manual_filename">
+                                            {% if lab.service_manual %}
+                                                {{ lab.service_manual }}
+                                            {% else %}
+                                                กรุณาอัปโหลดไฟล์ PDF
+                                            {% endif %}
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">อัตราค่าบริการ</label>
+                                <div class="file">
+                                    <label class="file-label">
+                                        {{ form.service_rate_file(class="file-input") }}
+                                        <span class="file-cta">
+                                            <span class="file-icon">
+                                                <i class="fas fa-upload"></i>
+                                            </span>
+                                            <span class="file-label">
+                                                เลือกไฟล์…
+                                            </span>
+                                        </span>
+                                        <span class="file-name" id="service_rate_filename">
+                                            {% if lab.service_rate %}
+                                                {{ lab.service_rate }}
+                                            {% else %}
+                                                กรุณาอัปโหลดไฟล์ PDF
+                                            {% endif %}
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="field ">
+                                <div class="buttons is-centered">
+                                    <a class="button" href="{{ url_for('service_admin.service_guide_index') }}">ยกเลิก</a>
+                                    <input type="submit" id="submit-form" class="button is-success" value="บันทึก">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    <script>
+        document.querySelectorAll('input[type="file"]').forEach(input => {
+            input.addEventListener('change', function () {
+                const fileNameSpan = this.closest('.file-label').querySelector('.file-name');
+
+                if (this.files.length > 0) {
+                    fileNameSpan.textContent = this.files[0].name;
+                } else {
+                    fileNameSpan.textContent = 'กรุณาอัปโหลดไฟล์ PDF';
+                }
+            });
+        });
+    </script>
+{% endblock %}

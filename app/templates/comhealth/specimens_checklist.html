@@ -79,7 +79,13 @@
                 "scrollX": true,
                 "serverSide": true,
                 "ordering": false,
-                "ajax": {{ url_for('comhealth.get_specimens_summary_data', service_id=service.id)|tojson|safe }},
+                "ajax": {
+                    "url": {{ url_for('comhealth.get_specimens_summary_data', service_id=service.id)|tojson|safe }},
+                    "type": "POST",
+                    "data": {
+                        "csrf_token": {{ csrf_token()|tojson|safe }}
+                    }
+                },
                 "columns": {{ columns|tojson|safe }},
             });
         });

@@ -34,6 +34,7 @@
                 ajax: {
                     url: {{ url_for('service_admin.get_receipts')|tojson|safe }},
                 },
+                scrollX: true,
                 columns: [
                     {data: 'receipt_no'},
                     {

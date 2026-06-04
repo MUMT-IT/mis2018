@@ -27,7 +27,7 @@
                                     </label>
                                 </div>
                             </div>
-                            <div class="field" id="principle-approval-type-field", style="display:none; margin-top: 0.8em; margin-bottom: 0.6em">
+                            <div class="field" id="principle-approval-type-field" style="display:none; margin-top: 0.8em; margin-bottom: 0.6em">
                                 <label class="label">
                                     {{ form.principle_approval_type.label }}
                                     <span class="has-text-danger">*</span>
@@ -44,7 +44,7 @@
                                     <span class="has-text-danger">*</span>
                                 </label>
                                 <div class="control">
-                                    {{ form.item(class='input', id="item", oninput="syncPurposeInput()") }}
+                                    {{ form.item(class='input', id="item", oninput="syncPurposeInput()", required=true) }}
                                 </div>
                             </div>
                             <div class="field" id="creator-field" style="display: none;">
@@ -96,7 +96,7 @@
                                     <span class="has-text-danger">*</span>
                                 </label>
                                 <div class="control">
-                                    {{ form.reason(class='textarea') }}
+                                    {{ form.reason(class='textarea', required=true) }}
                                 </div>
                             </div>
                             <div class="field">
@@ -105,7 +105,7 @@
                                     <span class="has-text-danger">*</span>
                                 </label>
                                 <div class="control">
-                                    {{ form.detail(class='textarea') }}
+                                    {{ form.detail(class='textarea', required=true) }}
                                 </div>
                             </div>
                             <div class="field">
@@ -114,7 +114,7 @@
                                     <span class="has-text-danger">*</span>
                                 </label>
                                 <div class="control">
-                                    {{ form.price(class='input') }}
+                                    {{ form.price(class='input', required=true) }}
                                 </div>
                             </div>
                             <div class="field" id="supplier-field" style="display:none;">
@@ -130,8 +130,7 @@
                                 <div class="field-body" >
                                     <div class="field">
                                         <label class="label">
-                                            เล่มที่ใบส่งของ/ใบเสร็จรับเงิน
-                                            <span class="has-text-danger">*</span>
+                                            เล่มที่ใบส่งของ/ใบเสร็จรับเงิน (ถ้ามี)
                                         </label>
                                         <div class="control">
                                             {{ form.book_number(class='input') }}
@@ -164,7 +163,7 @@
                                         <span class="has-text-danger">*</span>
                                     </label>
                                     <div class="select">
-                                        {{ form.purchase_type() }}
+                                        {{ form.purchase_type(required=true) }}
                                     </div>
                                 </div>
                                 <div class="field" style='width:100%'>
@@ -173,7 +172,7 @@
                                         <span class="has-text-danger">*</span>
                                     </label>
                                     <div class="control">
-                                        {{ form.budget_year(class='input') }}
+                                        {{ form.budget_year(class='input', required=true ) }}
                                     </div>
                                 </div>
                             </div>
@@ -215,8 +214,11 @@
                                     {{ form.remark(class='textarea') }}
                                 </div>
                             </div>
-                            <div class="field" id="borrower-field", style="display:none;">
-                                <label class="label">อนุมัติเบิกจ่ายเงิน ให้แก่ เงินทดลองจ่ายคณะเทคนิคการแพทย์ เลขที่ใบยืม</label>
+                            <div class="field" id="borrower-field" style="display:none;">
+                                <label class="label">
+                                    อนุมัติเบิกจ่ายเงิน ให้แก่ เงินทดลองจ่ายคณะเทคนิคการแพทย์ เลขที่ใบยืม
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="control">
                                     {{ form.loan_no(class='input') }}
                                 </div>
@@ -247,6 +249,7 @@
             moment.locale('th');
             $('input[name="receipt_date"]').daterangepicker({
                 singleDatePicker: true,
+                showDropdowns: true,
                 autoUpdateInput: false,
                 {% if form.receipt_date.data %}
                     startDate: {{ form.receipt_date.data.isoformat()|tojson|safe }},
@@ -270,27 +273,42 @@
             function showField() {
                 var repairType = document.querySelector('input[name="repair_type"]:checked')?.value;
                 var creatorField = document.getElementById("creator-field");
+                var receiptNumber = document.querySelector('input[name="receipt_number"]');
+                var receiptDate = document.querySelector('input[name="receipt_date"]');
                 var receiptField = document.getElementById('receipt-field');
                 var supplierField = document.getElementById('supplier-field');
+                var supplier = document.querySelector('input[name="supplier"]');
                 var borrowerField = document.getElementById('borrower-field');
+                var loanNo = document.querySelector('input[name="loan_no"]');
                 var principleApprovalTypeField = document.getElementById('principle-approval-type-field');
+                var purpose = document.querySelector('input[name="purpose"]');
                 var purposeField = document.getElementById('purpose-field');
                 var submitButton = document.querySelector('input[type="submit"]');
                 if (repairType === "เร่งด่วน") {
                     creatorField.style.display = "block";
                     receiptField.style.display = "block";
+                    receiptNumber.required = true;
+                    receiptDate.required = true;
                     supplierField.style.display = "block";
+                    supplier.required = true;
                     borrowerField.style.display = "block";
+                    loanNo.required = true;
                     principleApprovalTypeField.style.display = 'none';
                     purposeField.style.display = 'none';
+                    purpose.required = false;
                     submitButton.value = 'บันทึก';
                 } else {
                     creatorField.style.display = "none";
                     receiptField.style.display = "none";
+                    receiptNumber.required = false;
+                    receiptDate.required = false;
                     supplierField.style.display = "none";
+                    supplier.required = false;
                     borrowerField.style.display = "none";
+                    loanNo.required = false;
                     principleApprovalTypeField.style.display = 'block';
                     purposeField.style.display = 'block';
+                    purpose.required = true;
                     submitButton.value = 'บันทึกและดำเนินการต่อ';
                 }
             }
@@ -318,21 +336,21 @@
             const remarkLabel = document.getElementById("remark-label");
             const noteLabel = document.getElementById("note-label");
             if (repairType === "เร่งด่วน") {
-                purposeLabel.textContent = "มีความประสงค์จะจัดซื้อหรือจ้าง"
-                reasonLabel.textContent = "เหตุผลและความจำเป็นเร่งด่วนที่ต้องซื้อหรือจ้าง";
-                detailLabel.textContent = "รายละเอียดของพัสดุที่ซื้อหรือจ้าง";
+                purposeLabel.innerHTML = 'มีความประสงค์จะจัดซื้อหรือจ้าง <span class="has-text-danger">*</span>';
+                reasonLabel.innerHTML = 'เหตุผลและความจำเป็นเร่งด่วนที่ต้องซื้อหรือจ้าง <span class="has-text-danger">*</span>';
+                detailLabel.innerHTML = 'รายละเอียดของพัสดุที่ซื้อหรือจ้าง <span class="has-text-danger">*</span>';
                 remarkLabel.textContent = "ขออนุมัติขยายระยะเวลาเบิกจ่ายเงินเกิน 30 วัน (ถ้ามี)";
                 noteLabel.textContent = "ไม่เป็นไปตามข้อบังคับมหาวิทยาลัยมหิดล ว่าด้วยการบริหารงบประมาณและการเงิน (ฉบับที่ 2) พ.ศ.2556 ข้อ 32";
             } else if (repairType === "ไม่เร่งด่วน (ซื้อ/จ้าง)" && principleApprovalType === 'จ้างซ่อม') {
-                purposeLabel.textContent = "มีความประสงค์จะจ้างซ่อมครุภัณฑ์"
-                reasonLabel.textContent = "เหตุผลและความจำเป็นต้องจ้างซ่อม";
-                detailLabel.textContent = "รายละเอียดการซ่อม";
+                purposeLabel.innerHTML = 'มีความประสงค์จะจ้างซ่อมครุภัณฑ์ <span class="has-text-danger">*</span>'
+                reasonLabel.innerHTML = 'เหตุผลและความจำเป็นต้องจ้างซ่อม <span class="has-text-danger">*</span>';
+                detailLabel.innerHTML = 'รายละเอียดการซ่อม <span class="has-text-danger">*</span>';
                 remarkLabel.textContent = "ความจำเป็นจะต้องมีการใช้พัสดุที่ผลิตจากต่างประเทศหรือนำเข้าพัสดุจาดต่างประเทศ (ถ้ามี)";
                 noteLabel.textContent = "ตามแนวทางปฏิบัติตามกฎกระทรวงกำหนดพัสดุและวิธีการจัดซื้อจัดจ้างพัสดุที่รัฐต้องการส่งเสริมหรือสนับสนุน (ฉบับที่ 2) พ.ศ. 2563 ";
             } else {
-                purposeLabel.textContent = "มีความประสงค์จะจัดซื้อหรือจ้าง"
-                reasonLabel.textContent = "เหตุผลและความจำเป็นต้องซื้อหรือจ้าง";
-                detailLabel.textContent = "รายละเอียดของพัสดุที่ซื้อหรือจ้าง";
+                purposeLabel.innerHTML = 'มีความประสงค์จะจัดซื้อหรือจ้าง <span class="has-text-danger">*</span>';
+                reasonLabel.innerHTML = 'เหตุผลและความจำเป็นต้องซื้อหรือจ้าง <span class="has-text-danger">*</span>';
+                detailLabel.innerHTML = 'รายละเอียดของพัสดุที่ซื้อหรือจ้าง <span class="has-text-danger">*</span>';
                 remarkLabel.textContent = "ความจำเป็นจะต้องมีการใช้พัสดุที่ผลิตจากต่างประเทศหรือนำเข้าพัสดุจาดต่างประเทศ (ถ้ามี)";
                 noteLabel.textContent = "ตามแนวทางปฏิบัติตามกฎกระทรวงกำหนดพัสดุและวิธีการจัดซื้อจัดจ้างพัสดุที่รัฐต้องการส่งเสริมหรือสนับสนุน (ฉบับที่ 2) พ.ศ. 2563 ";
             }

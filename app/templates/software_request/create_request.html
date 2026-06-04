@@ -29,7 +29,7 @@
                                 <span class="has-text-danger">*</span>
                             </label>
                             <div class="control">
-                                {{ form.title(class="input", required=True) }}
+                                {{ form.title(class="input") }}
                             </div>
                         </div>
                         <div class="field" id="process_field" style="display: none;">
@@ -119,18 +119,21 @@
         });
         function ShowField() {
             var type = document.querySelector('[name="type"]').value;
+            var title = document.getElementById("title");
             var titleField = document.getElementById("title_field");
             var systemField = document.getElementById("system_field");
             var processField = document.getElementById("process_field");
             var activityField = document.getElementById('activity_field')
             var fileField = document.getElementById("file_field")
             if (type === "พัฒนาโปรแกรมใหม่") {
+                title.required = true;
                 titleField.style.display = "block";
                 processField.style.display = "block";
                 activityField.style.display = "block";
                 fileField.style.display = "block";
                 systemField.style.display = "none";
             } else if (type === "ปรับปรุงระบบที่มีอยู่") {
+                title.required = false;
                 titleField.style.display = "none";
                 processField.style.display = "none";
                 activityField.style.display = "none";

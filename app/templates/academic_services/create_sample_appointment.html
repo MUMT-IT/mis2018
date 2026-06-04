@@ -365,6 +365,7 @@
     <script>
         $(document).ready(function () {
             moment.locale('th');
+            const DATE_FORMAT = 'YYYY-MM-DD'
             const holidays = [
                 {% for h in holidays %}
                     "{{ h.holiday_date.strftime('%Y-%m-%d') }}"{% if not loop.last %},{% endif %}
@@ -380,15 +381,24 @@
                     startDate: moment().startOf('day'),
                 {% endif %}
                 locale: {
-                    format: 'YYYY-MM-DD'
+                    format: DATE_FORMAT
                 },
                 isInvalidDate: function (date) {
-                    const formatted = date.format('YYYY-MM-DD');
+                    const formatted = date.format(DATE_FORMAT);
                     const isWeekend = date.day() === 0 || date.day() === 6;
                     const isHoliday = holidays.includes(formatted);
                     return isWeekend || isHoliday;
                 }
             });
+
+            $('input[name="appointment_date"]').change(function () {
+                let appointmentDate = moment($('input[name="appointment_date"]').val(), DATE_FORMAT);
+                let dateNow = moment('{{ date_now }}', DATE_FORMAT);
+                if (appointmentDate.format() < dateNow.format()) {
+                    alert('กรุณาตรวจสอบวันนัดหมายอีกครั้ง')
+                    $('input[name="appointment_date"]').val(dateNow.format(DATE_FORMAT))
+                }
+            })
 
             function showInput() {
                 const shipTypeCheck = document.querySelector('input[name="ship_type"]:checked');

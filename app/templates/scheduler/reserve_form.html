@@ -263,10 +263,8 @@
                                     {{ form.start(class='input') }}
                                 </div>
                                 <div class="reserve-field-card">
-                                    <label class="label">{{ form.hour.label.text }}</label>
-                                    <div class="select is-fullwidth">
-                                        {{ form.hour(required=true) }}
-                                    </div>
+                                    <label class="label">วันที่สิ้นสุด</label>
+                                    {{ form.end(class='input') }}
                                 </div>
                                 <div class="reserve-field-card is-full">
                                     <label class="checkbox">
@@ -420,9 +418,9 @@
         const DATE_FORMAT = 'YYYY-MM-DD'
         let triggerAvailabilityCheck = function () {
             let startValue = $('input[name="start"]').val()
-            let hour = $('select[name="hour"]').val()
+            let endValue = $('input[name="end"]').val()
 
-            if (!startValue || !hour) {
+            if (!startValue || !endValue) {
                 return
             }
 
@@ -441,7 +439,7 @@
 
         let checkAvailability = function (e) {
             let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
-            let hour = $('select[name="hour"]').val()
+            let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
 
             htmx.ajax('GET',
                 '{{ url_for("room.check_room_availability") }}',
@@ -451,18 +449,20 @@
                     values: {
                         'room': {{ room.id|tojson|safe }},
                         'start': startDateTime.format(),
-                        'hour': hour,
+                        'end': endDateTime.format(),
                         'session_id': null,
                         {% if event %}
                             'event_id': {{ event.id|tojson|safe }}
                         {% endif %}
                     }
-                })
+                }
+            )
         }
         $(document).ready(() => {
             $('.js-example-basic-multiple').select2({
                 width: '100%',
             });
+
             $('[name="groups"]').select2({
                 width: '100%',
                 ajax: {
@@ -470,6 +470,7 @@
                     dataType: "json"
                 }
             });
+
             $('input[name="start"]').daterangepicker({
                 singleDatePicker: true,
                 timePicker: true,
@@ -488,6 +489,26 @@
                     format: DATETIME_FORMAT
                 }
             });
+
+            $('input[name="end"]').daterangepicker({
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 15,
+                timePicker24Hour: true,
+                buttonClasses: 'button is-small',
+                applyButtonClasses: 'is-info',
+                cancelButtonClasses: 'is-text',
+                showDropdowns: true,
+                {% if not end %}
+                    startDate: moment().startOf('hour').add(1, 'hours'),
+                {% else %}
+                    startDate: moment({{ end.isoformat()|tojson|safe }}).format(DATETIME_FORMAT),
+                {% endif %}
+                locale: {
+                    format: DATETIME_FORMAT
+                }
+            });
+
             $('input[name="repeat_end"]').daterangepicker({
                 singleDatePicker: true,
                 showDropdowns: true,
@@ -513,34 +534,43 @@
             });
 
             $('input[name="start"]').change(function () {
-                let repeatEndValue = $('input[name="repeat_end"]').val()
-                if (repeatEndValue) {
-                    let endDate = moment(repeatEndValue, DATE_FORMAT)
-                    let startDate = moment($('input[name="start"]').val(), DATETIME_FORMAT)
-                    if (startDate.format(DATE_FORMAT) >= endDate.format(DATE_FORMAT)) {
-                        alert('กรุณาตรวจสอบวันเริ่มและสิ้นสุดอีกครั้ง')
-                        $('input[name="repeat_end"]').val('')
-                        return
-                    }
+                let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
+                let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
+                if (startDateTime.format() == endDateTime.format()) {
+                    alert('กรุณาตรวจสอบวันเริ่มและสิ้นสุดอีกครั้ง')
+                    $(this).val('')
+                    return
+                } else if (startDateTime.format(DATE_FORMAT) != endDateTime.format(DATE_FORMAT)) {
+                    $('input[name="end"]').data('daterangepicker').setStartDate(startDateTime.add(3, 'hours'))
+                }
+
+                clearAvailabilityStatus('#' + $(this).attr('id'))
+                triggerAvailabilityCheck()
+            })
+
+            $('input[name="end"]').change(function () {
+                let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
+                let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
+                if (startDateTime.format() == endDateTime.format()) {
+                    alert('กรุณาตรวจสอบวันเริ่มและสิ้นสุดอีกครั้ง')
+                    $(this).val('')
+                    return
                 }
                 clearAvailabilityStatus('#' + $(this).attr('id'))
                 triggerAvailabilityCheck()
             })
 
             $('input[name="repeat_end"]').on('apply.daterangepicker', function (ev, picker) {
-                let endDate = picker.startDate
-                let startDate = moment($('input[name="start"]').val(), DATETIME_FORMAT)
-                if (startDate.isValid() && startDate.format(DATE_FORMAT) >= endDate.format(DATE_FORMAT)) {
+                let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
+                let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
+                let repeatEndDate = picker.startDate
+                if ((startDateTime.format(DATE_FORMAT) > repeatEndDate.format(DATE_FORMAT)) ||
+                    (endDateTime.format(DATE_FORMAT) > repeatEndDate.format(DATE_FORMAT)))  {
                     $(this).val('')
-                    alert('กรุณาตรวจสอบวันเริ่มและสิ้นสุดอีกครั้ง')
+                    alert('กรุณาตรวจสอบวันที่ต้องการจองซ้ำอีกครั้ง')
                     return
                 }
                 clearAvailabilityStatus('#' + $(this).attr('id'))
-            })
-
-            $('select[name="hour"]').change(function () {
-                clearAvailabilityStatus('#' + $('input[name="start"]').attr('id'))
-                triggerAvailabilityCheck()
             })
         });
     </script>

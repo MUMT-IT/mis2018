@@ -21,6 +21,14 @@ class PasswordOfSignDigitalForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
 
 
+class ServiceLabForm(ModelForm):
+    class Meta:
+        model = ServiceLab
+
+    service_manual_file = FileField('File Upload')
+    service_rate_file = FileField('File Upload')
+
+
 class ServiceCustomerContactForm(ModelForm):
     class Meta:
         model = ServiceCustomerContact
@@ -59,6 +67,20 @@ class ServiceResultForm(ModelForm):
         model = ServiceResult
 
 
+class QuerySelectFieldRequired(QuerySelectField):
+    def iter_choices(self):
+        for value, label, selected in super().iter_choices():
+            if value == '__None':
+                yield '', label, selected
+            else:
+                yield value, label, selected
+
+    def process_formdata(self, valuelist):
+        if valuelist and valuelist[0] == '':
+            valuelist = ['__None']
+        return super().process_formdata(valuelist)
+
+
 def crate_address_form(use_type=False):
     class ServiceCustomerAddressForm(ModelForm):
         class Meta:
@@ -70,19 +92,33 @@ def crate_address_form(use_type=False):
                                       validators=[DataRequired()])
         name = StringField(validators=[DataRequired()])
         address = StringField('ที่อยู่', validators=[DataRequired()])
-        province = QuerySelectField('จังหวัด', query_factory=lambda: Province.query.order_by(Province.order_id.asc()),
-                                    allow_blank=True,
-                                    blank_text='กรุณาเลือกจังหวัด', get_label='name',
-                                    validators=[DataRequired(message='กรุณาเลือกจังหวัด')])
-        district = QuerySelectField('เขต/อำเภอ', query_factory=lambda: District.query.order_by(District.order_id.asc()),
-                                    allow_blank=True,
-                                    blank_text='กรุณาเลือกเขต/อำเภอ', get_label='name',
-                                    validators=[DataRequired(message='กรุณาเลือกเขต/อำเภอ')])
-        subdistrict = QuerySelectField('แขวง/ตำบล',
-                                       query_factory=lambda: Subdistrict.query.order_by(Subdistrict.order_id.asc()),
-                                       allow_blank=True,
-                                       blank_text='กรุณาเลือกแขวง/ตำบล', get_label='name',
-                                       validators=[DataRequired(message='กรุณาเลือกแขวง/ตำบล')])
+        province = QuerySelectFieldRequired(
+            'จังหวัด',
+            query_factory=lambda: Province.query.order_by(Province.order_id.asc()),
+            allow_blank=True,
+            blank_text='กรุณาเลือกจังหวัด',
+            get_label='name',
+            validators=[DataRequired(message='กรุณาเลือกจังหวัด')],
+            render_kw={'required': True},
+        )
+        district = QuerySelectFieldRequired(
+            'เขต/อำเภอ',
+            query_factory=lambda: District.query.order_by(District.order_id.asc()),
+            allow_blank=True,
+            blank_text='กรุณาเลือกเขต/อำเภอ',
+            get_label='name',
+            validators=[DataRequired(message='กรุณาเลือกเขต/อำเภอ')],
+            render_kw={'required': True},
+        )
+        subdistrict = QuerySelectFieldRequired(
+            'แขวง/ตำบล',
+            query_factory=lambda: Subdistrict.query.order_by(Subdistrict.order_id.asc()),
+            allow_blank=True,
+            blank_text='กรุณาเลือกแขวง/ตำบล',
+            get_label='name',
+            validators=[DataRequired(message='กรุณาเลือกแขวง/ตำบล')],
+            render_kw={'required': True},
+        )
         zipcode = StringField('รหัสไปรษณีย์', validators=[DataRequired()])
         phone_number = StringField('เบอร์โทรศัพท์', validators=[DataRequired()])
 

@@ -146,9 +146,11 @@ class ServiceCustomerAccount(db.Model):
     def get_id(self):
         return str(self.id)
 
+    @property
     def is_active(self):
         return True
 
+    @property
     def is_authenticated(self):
         return True
 
@@ -299,6 +301,9 @@ class ServiceLab(db.Model):
     service_rate = db.Column('service_rate', db.String())
     phone_number = db.Column('phone_number', db.String())
     email = db.Column('email', db.String())
+    updated_at = db.Column('updated_at', db.DateTime())
+    updater_id = db.Column('updater_id', db.ForeignKey('staff_account.id'))
+    updater = db.relationship(StaffAccount, backref=db.backref('service_labs'))
 
     def __str__(self):
         return self.code
@@ -566,6 +571,7 @@ class ServiceQuotation(db.Model):
             'approved_at': self.approved_at if self.approved_at else None,
             'total_price': '{:,.2f}'.format(self.grand_total()),
             'status_id': self.request.status.status_id if self.request.status else None,
+            'disapproved_at': self.disapproved_at if self.disapproved_at else None,
             'customer_status': self.customer_status if self.customer_status else None,
             'customer_status_color': self.customer_status_color if self.customer_status_color else None,
             'admin_status': self.admin_status if self.admin_status else None,

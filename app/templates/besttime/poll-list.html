@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+ะ{% extends "base.html" %}
 {% include "besttime/nav.html" %}
 
 {% block page_content %}
@@ -75,32 +75,14 @@
                                     <td>
                                         <div class="field has-addons">
                                             <div class="control">
-                                                {% if invitation.role == 'chairman' or invitation.poll.has_admin_role(current_user) %}
-                                                    {% if not invitation.poll.closed_at %}
-                                                        <a href="{{url_for('besttime.vote_poll', poll_id=invitation.poll.id, tab=tab)}}"
-                                                           class="button is-success is-small is-rounded mt-1">
-                                                                <span class="icon">
-                                                                    <i class="fa-solid fa-check-to-slot"></i>
-                                                                </span>
-                                                                <span>vote</span>
-                                                        </a>
-                                                        <a class="button is-small is-rounded is-info mt-1"
-                                                           href="{{url_for('besttime.edit_poll',poll_id=invitation.poll.id,
-                                                                   tab=tab)}}">
-                                                            <span class="icon">
-                                                                <i class="fa-solid fa-gear"></i>
-                                                            </span>
-                                                            <span>manage</span>
-                                                        </a>
-                                                        <a class="button is-small is-rounded is-danger mt-1"
-                                                           href="{{url_for('besttime.close_poll',poll_id=invitation.poll.id,
-                                                                   tab=tab)}}">
-                                                            <span class="icon">
-                                                                <i class="fa-solid fa-power-off"></i>
-                                                            </span>
-                                                            <span>close</span>
-                                                        </a>
-                                                    {% endif %}
+                                                {% if not invitation.poll.closed_at %}
+                                                    <a href="{{url_for('besttime.vote_poll', poll_id=invitation.poll.id, tab=tab)}}"
+                                                       class="button is-success is-small is-rounded mt-1">
+                                                        <span class="icon">
+                                                            <i class="fa-solid fa-check-to-slot"></i>
+                                                        </span>
+                                                        <span>vote</span>
+                                                    </a>
                                                 {% endif %}
                                                 <a class="button is-small is-rounded is-warning mt-1"
                                                    href="{{url_for('besttime.view_results', poll_id=invitation.poll.id,

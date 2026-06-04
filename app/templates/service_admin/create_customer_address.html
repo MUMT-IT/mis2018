@@ -64,51 +64,53 @@
                                 </span>
                             </div>
                         </div>
-                        <div class="field-body" style="margin-bottom: .8em">
-                            <div class="field">
-                                <label class="label">
-                                    {{ form.province.label }}
-                                    <span class="has-text-danger">*</span>
-                                </label>
-                                <div class="select">
-                                    {{ form.province(
-                                        **{'hx-include': 'closest form',
-                                            'hx-trigger': 'change',
-                                            'hx-target': '#province',
-                                            'hx-swap': 'outerHTML',
-                                            'hx-post': url_for('service_admin.get_items', use_type=true)
-                                        })
-                                    }}
+                        <div class="field">
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">
+                                        {{ form.province.label }}
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="select is-fullwidth">
+                                        {{ form.province(
+                                            **{'hx-include': 'closest form',
+                                                'hx-trigger': 'change',
+                                                'hx-target': '#province',
+                                                'hx-swap': 'outerHTML',
+                                                'hx-post': url_for('service_admin.get_items', use_type=true)
+                                            })
+                                        }}
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">
-                                    {{ form.district.label }}
-                                    <span class="has-text-danger">*</span>
-                                </label>
-                                <div class="select">
-                                    {{ form.district(
-                                        **{'hx-trigger': 'change',
-                                            'hx-target': '#province',
-                                            'hx-swap': 'outerHTML',
-                                            'hx-post': url_for('service_admin.get_items', use_type=true)
-                                        })
-                                    }}
+                                <div class="field">
+                                    <label class="label">
+                                        {{ form.district.label }}
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="select is-fullwidth">
+                                        {{ form.district(
+                                            **{'hx-trigger': 'change',
+                                                'hx-target': '#province',
+                                                'hx-swap': 'outerHTML',
+                                                'hx-post': url_for('service_admin.get_items', use_type=true)
+                                            })
+                                        }}
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">
-                                    {{ form.subdistrict.label }}
-                                    <span class="has-text-danger">*</span>
-                                </label>
-                                <div class="select">
-                                    {{ form.subdistrict(
-                                        **{'hx-trigger': 'change',
-                                            'hx-target': '#province',
-                                            'hx-swap': 'outerHTML',
-                                            'hx-post': url_for('service_admin.get_items', use_type=true)
-                                        })
-                                    }}
+                                <div class="field">
+                                    <label class="label">
+                                        {{ form.subdistrict.label }}
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="select is-fullwidth">
+                                        {{ form.subdistrict(
+                                            **{'hx-trigger': 'change',
+                                                'hx-target': '#province',
+                                                'hx-swap': 'outerHTML',
+                                                'hx-post': url_for('service_admin.get_items', use_type=true)
+                                            })
+                                        }}
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 import os
 import boto3
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from ..main import db, ma
 from werkzeug.security import generate_password_hash, check_password_hash
 from dateutil.relativedelta import relativedelta
@@ -120,11 +120,6 @@ class StaffAccount(db.Model):
     def get_active_accounts(cls):
         return [account for account in cls.query.all() if account.is_active]
 
-    @classmethod
-    def get_it_unit(cls):
-        return [account for account in cls.query.all() if (not account.personal_info.retired and account.personal_info.org.name == 'หน่วยข้อมูลและสารสนเทศ')
-                or account.email == 'likit.pre']
-
     @property
     def fullname(self):
         return self.personal_info.fullname
@@ -154,12 +149,15 @@ class StaffAccount(db.Model):
             return False
         return check_password_hash(self.__password_hash, password)
 
+    @property
     def is_authenticated(self):
         return True
 
+    @property
     def is_active(self):
-        return True
+        return not self.is_retired and self.personal_info.resignation_date is None
 
+    @property
     def is_anonymous(self):
         return False
 
@@ -180,6 +178,13 @@ class StaffAccount(db.Model):
     @property
     def pending_invitations(self):
         return self.invitations.filter_by(response='ไม่แน่ใจ').all()
+
+    @classmethod
+    def get_role(cls, role):
+        return cls.query.join(cls.roles).join(cls.personal_info).filter(or_(StaffPersonalInfo.retired == False,
+                                                                            StaffPersonalInfo.retired == None),
+                                                                        Role.role_need == role)
+
 
 
 class StaffPersonalInfo(db.Model):

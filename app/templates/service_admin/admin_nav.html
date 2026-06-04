@@ -1,5 +1,5 @@
 <nav class="navbar is-warning">
-    <div class="container">
+    <div class="container is-fluid">
         <div class="navbar-brand">
             <p class="navbar-item">{{ position }}</p>
             <span class="navbar-burger burger" data-target="navbarMenuHeroA">
@@ -28,42 +28,6 @@
                     <a class="navbar-item" href="{{ url_for('auth.login') }}">
                         ลงชื่อเข้าใช้
                     </a>
-                    <div class="navbar-item has-dropdown is-hoverable">
-                        <a class="navbar-link">
-                            <span class="icon">
-                                <i class="fas fa-users"></i>
-                            </span>
-                            <span>
-                                ส่วนของลูกค้า
-                            </span>
-                        </a>
-                        <div class="navbar-dropdown">
-                            <a class="navbar-item" href="{{ url_for('academic_services.customer_index') }}">
-                                <span class="icon">
-                                    <i class="fas fa-home"></i>
-                                </span>
-                                <span>
-                                    หน้าหลัก
-                                </span>
-                            </a>
-                            <a class="navbar-item" href="{{ url_for('service_admin.create_customer') }}">
-                                <span class="icon">
-                                    <i class="fas fa-plus"></i>
-                                </span>
-                                <span>
-                                    เพิ่มลูกค้า
-                                </span>
-                            </a>
-                            <a class="navbar-item" href="{{ url_for('service_admin.view_customer') }}">
-                                <span class="icon">
-                                    <i class="fas fa-user-tie"></i>
-                                </span>
-                                <span>
-                                    รายชื่อลูกค้า
-                                </span>
-                            </a>
-                        </div>
-                    </div>
                 {% else %}
                     <a class="navbar-item" href="{{ url_for('auth.account') }}">
                         <span class="icon">
@@ -73,42 +37,40 @@
                            {{ current_user.personal_info.fullname }}
                        </span>
                     </a>
-                    <div class="navbar-item has-dropdown is-hoverable">
-                        <a class="navbar-link">
+                {% endif %}
+                <div class="navbar-item has-dropdown is-hoverable">
+                    <a class="navbar-link">
+                        <span class="icon"><i class="fas fa-users"></i></span>
+                        <span>ส่วนของลูกค้า</span>
+                    </a>
+                    <div class="navbar-dropdown">
+                        <a class="navbar-item" href="{{ url_for('academic_services.customer_index') }}">
                             <span class="icon">
-                                <i class="fas fa-users"></i>
+                                <i class="fas fa-home"></i>
                             </span>
-                            <span>
-                                ส่วนของลูกค้า
-                            </span>
+                            <span>หน้าหลัก</span>
                         </a>
-                        <div class="navbar-dropdown">
-                            <a class="navbar-item" href="{{ url_for('academic_services.customer_index') }}">
-                                <span class="icon">
-                                    <i class="fas fa-home"></i>
-                                </span>
-                                <span>
-                                    หน้าหลัก
-                                </span>
-                            </a>
-                            <a class="navbar-item" href="{{ url_for('service_admin.create_customer') }}">
-                                <span class="icon">
-                                    <i class="fas fa-plus"></i>
-                                </span>
-                                <span>
-                                    เพิ่มลูกค้า
-                                </span>
-                            </a>
-                            <a class="navbar-item" href="{{ url_for('service_admin.view_customer') }}">
-                                <span class="icon">
-                                    <i class="fas fa-user-tie"></i>
-                                </span>
-                                <span>
-                                    รายชื่อลูกค้า
-                                </span>
-                            </a>
-                        </div>
+                        <a class="navbar-item" href="{{ url_for('service_admin.create_customer') }}">
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                            <span>เพิ่มลูกค้า</span>
+                        </a>
+                        <a class="navbar-item" href="{{ url_for('service_admin.view_customer') }}">
+                            <span class="icon">
+                                <i class="fas fa-user-tie"></i>
+                            </span>
+                            <span>รายชื่อลูกค้า</span>
+                        </a>
                     </div>
+                </div>
+                <a class="navbar-item" href="{{ url_for('service_admin.service_guide_index') }}">
+                    <span class="icon">
+                        <i class="fas fa-file-alt"></i>
+                    </span>
+                    <span>คู่มือการใช้และอัตราค่าบริการ</span>
+                </a>
+                {% if current_user.is_authenticated %}
                     <a class="navbar-item" href="{{ url_for('auth.logout') }}">
                         <span class="icon">
                             <i class="fas fa-sign-out-alt"></i>
@@ -124,12 +86,12 @@
                     </span>
                     <span>ปิด</span>
                 </a>
-                <a class="navbar-item" href="{{ url_for('user_support_index') }}">
-                    <span class="icon">
-                        <i class="fa-solid fa-circle-info"></i>
-                    </span>
-                    <span>แจ้งปัญหา/ขอความช่วยเหลือ</span>
-                </a>
+                {#                <a class="navbar-item" href="{{ url_for('user_support_index') }}">#}
+                {#                    <span class="icon">#}
+                {#                        <i class="fa-solid fa-circle-info"></i>#}
+                {#                    </span>#}
+                {#                    <span>แจ้งปัญหา/ขอความช่วยเหลือ</span>#}
+                {#                </a>#}
             </div>
         </div>
     </div>

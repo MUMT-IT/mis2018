@@ -20,7 +20,11 @@
                     </h1>
                 {% endif %}
                 <div class="box">
-                    <form id="myForm" method="post" enctype="multipart/form-data">
+                    <form id="myForm"
+                          hx-indicator="#spinner"
+                          hx-post="{{ url_for('comp_tracker.new_record', topic_id=topic.id) }}"
+                          hx-encoding="multipart/form-data"
+                    >
                         {{ form.hidden_tag() }}
                         {% if topic.code == 'runied' %}
                             <div class="field">
@@ -215,9 +219,17 @@
                             </a>
                         </div>
                         <div class="field">
+                            <p class="subtitle has-text-info is-hidden" id="progressMessage">กำลังดำเนินการ โปรดรอสักครู่</p>
+                        </div>
+                        <div class="field">
                             <div class="buttons is-centered">
-                                <a class="button is-light" href="{{ url_for('comp_tracker.index') }}">Back</a>
-                                <input class="button is-success" type="submit" value="Submit">
+                                <a id="cancelButton" class="button is-light" href="{{ url_for('comp_tracker.index') }}">Back</a>
+                                <button id="submitButton" class="button is-success">
+                                    <span>Submit</span>
+                                    <span id="spinnerIcon" class="icon is-hidden" id="spinner">
+                                        <i class="fas fa-spinner fa-pulse"></i>
+                                    </span>
+                                </button>
                             </div>
                         </div>
                     </form>
@@ -242,7 +254,16 @@
             width: '100%'
         });
         window.document.addEventListener("closeModal", function() {
-        htmx.removeClass(htmx.find('#add-pro-number-modal'), "is-active")
-    })
+            htmx.removeClass(htmx.find('#add-pro-number-modal'), "is-active")
+        })
+    </script>
+    <script>
+        window.addEventListener('htmx:beforeRequest', ()=>{
+            document.getElementById("submitButton").setAttribute('disabled', '')
+            document.getElementById("cancelButton").setAttribute('disabled', '')
+            document.getElementById("spinnerIcon").classList.remove('is-hidden')
+            document.getElementById("progressMessage").classList.remove('is-hidden')
+            document.getElementById("spinnerIcon").classList.add('fa-pulse')
+        })
     </script>
 {% endblock %}

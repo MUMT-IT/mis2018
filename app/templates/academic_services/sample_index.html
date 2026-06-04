@@ -13,10 +13,6 @@
         #toast-container.toast-top-full-width > .toast {
             width: 100% !important;
         }
-
-        .table-container {
-            overflow-x: auto;
-        }
     </style>
 {% endblock %}
 {% block page_content %}
@@ -62,8 +58,8 @@
                         </li>
                     </ul>
                 </div>
-                <div class="table-container">
-                    <table id='samples' class="table is-fullwidth is-striped">
+                <div>
+                    <table id='samples' class="table is-fullwidth is-narrow">
                         <thead>
                         <th>เลขใบคำร้องขอ</th>
                         <th>หมายเลขติดตามพัสดุ</th>
@@ -220,7 +216,9 @@
     <script src="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
         $(document).ready(function () {
-            $('#samples').DataTable({});
+            $('#samples').DataTable({
+                scrollX: true
+            });
         });
     </script>
     <script type="text/javascript">

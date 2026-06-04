@@ -1,24 +1,13 @@
 # -*- coding: utf-8 -*-
-import os
-import dateutil
-import requests
+import dateutil.parser
 from flask_login import login_required
 from . import vehiclebp as vehicle
 from datetime import datetime
 from flask import jsonify, render_template, redirect, flash, url_for, request, abort
 from app.vehicle_scheduler.models import *
 from .forms import VehicleBookingForm
-from google.oauth2.service_account import Credentials
 
 tz = pytz.timezone('Asia/Bangkok')
-
-if os.environ.get('FLASK_ENV') == 'development':
-    CALENDAR_ID = 'cl05me2rhh57a5n3i76nqao7ng@group.calendar.google.com'
-else:
-    CALENDAR_ID = 'anatjgngk7bcv9kte15p38l7mg@group.calendar.google.com'
-
-service_account_info = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
-credentials = Credentials.from_service_account_info(service_account_info)
 
 
 @vehicle.route('/api/vehicles')

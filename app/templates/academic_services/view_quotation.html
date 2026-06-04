@@ -8,6 +8,7 @@
             opacity: 1 !important;
             transition: none !important;
         }
+
         #toast-container.toast-top-full-width > .toast {
             width: 100% !important;
         }
@@ -100,6 +101,54 @@
                             <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ "{:,.2f}".format(quotation.grand_total()) }}
                             </p>
                         </div>
+                        <div class="field">
+                            <div class="buttons is-centered">
+                                {% if current_user.verify_datetime %}
+                                    {% if not quotation.confirmed_at and not quotation.cancelled_at %}
+                                        <a class="button is-success is-rounded is-small mb-2"
+                                           style="margin-right: .3em"
+                                           href="{{ url_for('academic_services.confirm_quotation',
+                                               quotation_id=quotation_id, menu='sample') }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-check"></i></span>
+                                            <span>ยืนยัน</span>
+                                        </a>
+                                        <div id="reject-quotation"></div>
+                                        <a class="button is-rounded is-outlined is-small mb-2 has-text-danger"
+                                           hx-swap="innerHTML"
+                                           hx-target="#reject-quotation"
+                                           hx-get="{{ url_for('academic_services.reject_quotation', quotation_id=quotation_id,
+                                                   menu=menu, tab=tab) }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-times"></i></span>
+                                            <span>ปฏิเสธ</span>
+                                        </a>
+                                    {% endif %}
+                                    <a class="button is-info is-outlined is-rounded is-small mb-2"
+                                       href="{{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation_id) }}"
+                                    >
+                                        <span class="icon"><i class="fas fa-download"></i></span>
+                                        <span>ดาวน์โหลดใบเสนอราคา</span>
+                                    </a>
+                                {% else %}
+                                    <a class="Warn button is-success is-rounded is-small mb-2"
+                                       style="margin-right: .3em"
+                                    >
+                                        <span class="icon"><i class="fas fa-check"></i></span>
+                                        <span>ยืนยัน</span>
+                                    </a>
+                                    <a class="Warn button is-rounded is-outlined is-small mb-2 has-text-danger"
+                                    >
+                                        <span class="icon"><i class="fas fa-times"></i>
+                                        </span><span>ปฏิเสธ</span>
+                                    </a>
+                                    <a class="Warn button is-info is-outlined is-rounded is-small mb-2">
+                                        <span class="icon"><i class="fas fa-download"></i></span>
+                                        <span>ดาวน์โหลดใบเสนอราคา</span>
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="column is-one-quarter ">
@@ -113,83 +162,83 @@
                                     {{ quotation.request.sub_lab.sub_lab }}
                                 </li>
                             </ul>
-                            <hr>
-                            <p class="menu-label">
-                                สถานะ
-                            </p>
-                            <ul class="menu-list">
-                                <li>
-                                    <span class="tag {{ quotation.customer_status_color }}">
-                                        {{ quotation.customer_status }}
-                                    </span>
-                                </li>
-                            </ul>
-                            <hr>
-                            <p class="menu-label">
-                                การดำเนินการ
-                            </p>
-                            <ul class="menu-list">
-                                {% if current_user.verify_datetime %}
-                                    {% if not quotation.confirmed_at %}
-                                        <li>
-                                            <a class="button is-success is-rounded is-fullwidth mb-2"
-                                               style="margin-right: .3em"
-                                               href="{{ url_for('academic_services.confirm_quotation',
-                                               quotation_id=quotation_id, menu='sample') }}"
-                                            >
-                                                    <span class="icon">
-                                                        <i class="fas fa-check"></i>
-                                                    </span>
-                                                <span>ยืนยัน</span>
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <div id="reject-quotation"></div>
-                                            <a class="button is-rounded is-outlined is-small is-fullwidth mb-2 has-text-danger"
-                                               hx-swap="innerHTML"
-                                               hx-target="#reject-quotation"
-                                               hx-get="{{ url_for('academic_services.reject_quotation', quotation_id=quotation_id,
-                                                   menu=menu, tab=tab) }}"
-                                            >
-                                                    <span class="icon">
-                                                        <i class="fas fa-times"></i>
-                                                    </span>
-                                                <span>ปฏิเสธ</span>
-                                            </a>
-                                        </li>
-                                    {% endif %}
-                                    <li>
-                                        <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
-                                           href="{{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation_id) }}"
-                                        >
-                                            <span class="icon"><i class="fas fa-download"></i></span>
-                                            <span>ดาวน์โหลดใบเสนอราคา</span>
-                                        </a>
-                                    </li>
-                                {% else %}
-                                    <li>
-                                        <a class="Warn button is-success is-rounded is-fullwidth mb-2"
-                                           style="margin-right: .3em"
-                                        >
-                                            <span class="icon"><i class="fas fa-check"></i></span>
-                                            <span>ยืนยัน</span>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="Warn button is-rounded is-outlined is-small is-fullwidth mb-2 has-text-danger"
-                                        >
-                                            <span class="icon"><i class="fas fa-times"></i>
-                                            </span><span>ปฏิเสธ</span>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="Warn button is-info is-outlined is-rounded is-small is-fullwidth">
-                                            <span class="icon"><i class="fas fa-download"></i></span>
-                                            <span>ดาวน์โหลดใบเสนอราคา</span>
-                                        </a>
-                                    </li>
-                                {% endif %}
-                            </ul>
+                            {#                            <hr>#}
+                            {#                            <p class="menu-label">#}
+                            {#                                สถานะ#}
+                            {#                            </p>#}
+                            {#                            <ul class="menu-list">#}
+                            {#                                <li>#}
+                            {#                                    <span class="tag {{ quotation.customer_status_color }}">#}
+                            {#                                        {{ quotation.customer_status }}#}
+                            {#                                    </span>#}
+                            {#                                </li>#}
+                            {#                            </ul>#}
+                            {#                            <hr>#}
+                            {#                            <p class="menu-label">#}
+                            {#                                การดำเนินการ#}
+                            {#                            </p>#}
+                            {#                            <ul class="menu-list">#}
+                            {#                                {% if current_user.verify_datetime %}#}
+                            {#                                    {% if not quotation.confirmed_at %}#}
+                            {#                                        <li>#}
+                            {#                                            <a class="button is-success is-rounded is-fullwidth mb-2"#}
+                            {#                                               style="margin-right: .3em"#}
+                            {#                                               href="{{ url_for('academic_services.confirm_quotation',#}
+                            {#                                               quotation_id=quotation_id, menu='sample') }}"#}
+                            {#                                            >#}
+                            {#                                                    <span class="icon">#}
+                            {#                                                        <i class="fas fa-check"></i>#}
+                            {#                                                    </span>#}
+                            {#                                                <span>ยืนยัน</span>#}
+                            {#                                            </a>#}
+                            {#                                        </li>#}
+                            {#                                        <li>#}
+                            {#                                            <div id="reject-quotation"></div>#}
+                            {#                                            <a class="button is-rounded is-outlined is-small is-fullwidth mb-2 has-text-danger"#}
+                            {#                                               hx-swap="innerHTML"#}
+                            {#                                               hx-target="#reject-quotation"#}
+                            {#                                               hx-get="{{ url_for('academic_services.reject_quotation', quotation_id=quotation_id,#}
+                            {#                                                   menu=menu, tab=tab) }}"#}
+                            {#                                            >#}
+                            {#                                                    <span class="icon">#}
+                            {#                                                        <i class="fas fa-times"></i>#}
+                            {#                                                    </span>#}
+                            {#                                                <span>ปฏิเสธ</span>#}
+                            {#                                            </a>#}
+                            {#                                        </li>#}
+                            {#                                    {% endif %}#}
+                            {#                                    <li>#}
+                            {#                                        <a class="button is-info is-outlined is-rounded is-small is-fullwidth"#}
+                            {#                                           href="{{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation_id) }}"#}
+                            {#                                        >#}
+                            {#                                            <span class="icon"><i class="fas fa-download"></i></span>#}
+                            {#                                            <span>ดาวน์โหลดใบเสนอราคา</span>#}
+                            {#                                        </a>#}
+                            {#                                    </li>#}
+                            {#                                {% else %}#}
+                            {#                                    <li>#}
+                            {#                                        <a class="Warn button is-success is-rounded is-fullwidth mb-2"#}
+                            {#                                           style="margin-right: .3em"#}
+                            {#                                        >#}
+                            {#                                            <span class="icon"><i class="fas fa-check"></i></span>#}
+                            {#                                            <span>ยืนยัน</span>#}
+                            {#                                        </a>#}
+                            {#                                    </li>#}
+                            {#                                    <li>#}
+                            {#                                        <a class="Warn button is-rounded is-outlined is-small is-fullwidth mb-2 has-text-danger"#}
+                            {#                                        >#}
+                            {#                                            <span class="icon"><i class="fas fa-times"></i>#}
+                            {#                                            </span><span>ปฏิเสธ</span>#}
+                            {#                                        </a>#}
+                            {#                                    </li>#}
+                            {#                                    <li>#}
+                            {#                                        <a class="Warn button is-info is-outlined is-rounded is-small is-fullwidth">#}
+                            {#                                            <span class="icon"><i class="fas fa-download"></i></span>#}
+                            {#                                            <span>ดาวน์โหลดใบเสนอราคา</span>#}
+                            {#                                        </a>#}
+                            {#                                    </li>#}
+                            {#                                {% endif %}#}
+                            {#                            </ul>#}
                         </aside>
                     </div>
                 </div>

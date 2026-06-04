@@ -36,7 +36,19 @@
             </div>
             <div class="columns">
                 <div class="column">
-                    <b-table :data="tests" :paginated="true" :per-page="10" default-sort="name">
+                    <div class="columns">
+                        <div class="column">
+                            <b-field label="Search Name">
+                                <b-input v-model="queryName" placeholder="Type name..."></b-input>
+                            </b-field>
+                        </div>
+                        <div class="column">
+                            <b-field label="Search Description">
+                                <b-input v-model="queryDesc" placeholder="Type description..."></b-input>
+                            </b-field>
+                        </div>
+                    </div>
+                    <b-table :data="filteredTests" :paginated="true" :per-page="10" default-sort="name">
                         <template slot-scope="props">
                             <b-table-column field="name" label="Name" sortable>
                                 <% props.row.name %>
@@ -72,10 +84,22 @@
             data() {
                 return {
                     tests: {{ tests|tojson|safe }},
-                    query: '',
+                    queryName: '',
+                    queryDesc: '',
                 }
             },
             computed: {
+                filteredTests() {
+                    var nameQuery = this.queryName.trim().toLowerCase();
+                    var descQuery = this.queryDesc.trim().toLowerCase();
+                    return this.tests.filter(function (test) {
+                        var nameValue = (test.name || '').toString().toLowerCase();
+                        var descValue = (test.desc || '').toString().toLowerCase();
+                        var nameMatch = nameQuery === '' || nameValue.indexOf(nameQuery) !== -1;
+                        var descMatch = descQuery === '' || descValue.indexOf(descQuery) !== -1;
+                        return nameMatch && descMatch;
+                    });
+                }
             }
         });
     </script>

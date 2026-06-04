@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column is-one-third is-offset-4">
+                <form method="post" class="box">
+                    {{ form.hidden_tag() }}
+                    <h1 class="title has-text-centered">อัปเดตข้อมูล</h1>
+                    <div class="field">
+                        <label class="label">รหัสศูนย์ต้นทุน (Cost Center)</label>
+                        <div class="control">
+                            {{ form.cost_center(class='js-example-basic-single') }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">
+                            รหัสใบสั่งงานภายใน (IO Code)
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ form.io_code(class='js-example-basic-single') }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">
+                            ผลผลิต (Product Code)
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ form.product_code(class='js-example-basic-single') }}
+                        </div>
+                    </div>
+                    <div class="buttons is-centered">
+                        <input type="submit" class="button is-success" value="Submit">
+                        {% if temp == 'index' %}
+                            <a href="{{ url_for('comp_tracker.repair_approval_index', tab=tab, menu=menu) }}"
+                               class="button is-danger">
+                                ยกเลิก
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('comp_tracker.edit_record_admin', tab=tab, record_id=record_id) }}"
+                               class="button is-danger">
+                                ยกเลิก
+                            </a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(()=> {
+            $('.js-example-basic-single').select2({
+                width: '100%'
+            });
+        });
+    </script>
+{% endblock %}

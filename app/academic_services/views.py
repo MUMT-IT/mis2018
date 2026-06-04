@@ -22,7 +22,8 @@ from sqlalchemy.orm import make_transient
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from app.auth.views import line_bot_api
-from app.main import app, get_credential, json_keyfile
+from app.main import app, get_credential
+from app.url_utils import external_url
 from app.academic_services import academic_services
 from app.academic_services.forms import *
 from app.academic_services.models import *
@@ -244,40 +245,41 @@ def virus_disinfection_request_data(service_request, type):
     product_header = False
     test_header = False
     for field in form:
-        if field.type == 'FormField':
+        if field.type == 'FieldList':
             if not test_header:
                 values.append({'type': 'header', 'data': 'รายการทดสอบ'})
                 test_header = True
-            if not any([f.data for f in field._fields.values() if f.type != 'HiddenField' and f.type != 'FieldList']):
+            if not any([fd.data for fd in field if fd.type != 'HiddenField' and fd.type != 'FieldList']):
                 continue
-            for fname, fn in field._fields.items():
-                if fn.type == 'FieldList':
-                    rows = []
-                    for entry in fn.entries:
-                        row = {}
-                        for f_name, f in entry._fields.items():
-                            if f.data:
-                                label = f.label.text
-                                if label.startswith("เชื้อ"):
-                                    data = ', '.join(f.data) if isinstance(f.data, list) else str(f.data or '')
-                                    if type == 'form':
-                                        row[label] = f"<i>{data}</i>"
+            for fd in field:
+                for fname, fn in fd._fields.items():
+                    if fn.type == 'FieldList':
+                        rows = []
+                        for entry in fn.entries:
+                            row = {}
+                            for f_name, f in entry._fields.items():
+                                if f.data:
+                                    label = f.label.text
+                                    if label.startswith("เชื้อ"):
+                                        data = ', '.join(f.data) if isinstance(f.data, list) else str(f.data or '')
+                                        if type == 'form':
+                                            row[label] = f"<i>{data}</i>"
+                                        else:
+                                            row[label] = f"<font name='SarabunItalic'>{data}</font>"
                                     else:
-                                        row[label] = f"<font name='SarabunItalic'>{data}</font>"
-                                else:
-                                    row[label] = f.data
-                        if row:
-                            rows.append(row)
-                    if rows:
-                        values.append({'type': 'table', 'data': rows})
-                else:
-                    if fn.data:
-                        label = fn.label.text
-                        value = ', '.join(fn.data) if fn.type == 'CheckboxField' else fn.data
-                        if fn.type == 'HiddenField':
-                            values.append({'type': 'content_header', 'data': f"{value}"})
-                        else:
-                            values.append({'type': 'text', 'data': f"{label} : {value}"})
+                                        row[label] = f.data
+                            if row:
+                                rows.append(row)
+                        if rows:
+                            values.append({'type': 'table', 'data': rows})
+                    else:
+                        if fn.data:
+                            label = fn.label.text
+                            value = ', '.join(fn.data) if fn.type == 'CheckboxField' else fn.data
+                            if fn.type == 'HiddenField':
+                                values.append({'type': 'content_header', 'data': f"{value}"})
+                            else:
+                                values.append({'type': 'text', 'data': f"{label} : {value}"})
         else:
             if not product_header:
                 values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
@@ -304,40 +306,41 @@ def virus_air_disinfection_request_data(service_request, type):
     product_header = False
     test_header = False
     for field in form:
-        if field.type == 'FormField':
+        if field.type == 'FieldList':
             if not test_header:
                 values.append({'type': 'header', 'data': 'รายการทดสอบ'})
                 test_header = True
-            if not any([f.data for f in field._fields.values() if f.type != 'HiddenField' and f.type != 'FieldList']):
+            if not any([fd.data for fd in field if fd.type != 'HiddenField' and fd.type != 'FieldList']):
                 continue
-            for fname, fn in field._fields.items():
-                if fn.type == 'FieldList':
-                    rows = []
-                    for entry in fn.entries:
-                        row = {}
-                        for f_name, f in entry._fields.items():
-                            if f.data:
-                                label = f.label.text
-                                if label.startswith("เชื้อ"):
-                                    data = ', '.join(f.data) if isinstance(f.data, list) else str(f.data or '')
-                                    if type == 'form':
-                                        row[label] = f"<i>{data}</i>"
+            for fd in field:
+                for fname, fn in fd._fields.items():
+                    if fn.type == 'FieldList':
+                        rows = []
+                        for entry in fn.entries:
+                            row = {}
+                            for f_name, f in entry._fields.items():
+                                if f.data:
+                                    label = f.label.text
+                                    if label.startswith("เชื้อ"):
+                                        data = ', '.join(f.data) if isinstance(f.data, list) else str(f.data or '')
+                                        if type == 'form':
+                                            row[label] = f"<i>{data}</i>"
+                                        else:
+                                            row[label] = f"<font name='SarabunItalic'>{data}</font>"
                                     else:
-                                        row[label] = f"<font name='SarabunItalic'>{data}</font>"
-                                else:
-                                    row[label] = f.data
-                        if row:
-                            rows.append(row)
-                    if rows:
-                        values.append({'type': 'table', 'data': rows})
-                else:
-                    if fn.data:
-                        label = fn.label.text
-                        value = ', '.join(fn.data) if fn.type == 'CheckboxField' else fn.data
-                        if fn.type == 'HiddenField':
-                            values.append({'type': 'content_header', 'data': f"{value}"})
-                        else:
-                            values.append({'type': 'text', 'data': f"{label} : {value}"})
+                                        row[label] = f.data
+                            if row:
+                                rows.append(row)
+                        if rows:
+                            values.append({'type': 'table', 'data': rows})
+                    else:
+                        if fn.data:
+                            label = fn.label.text
+                            value = ', '.join(fn.data) if fn.type == 'CheckboxField' else fn.data
+                            if fn.type == 'HiddenField':
+                                values.append({'type': 'content_header', 'data': f"{value}"})
+                            else:
+                                values.append({'type': 'text', 'data': f"{label} : {value}"})
         else:
             if not product_header:
                 values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
@@ -737,6 +740,7 @@ def login():
             pwd = form.password.data
             if user.verify_password(pwd):
                 login_user(user)
+                session['user_type'] = 'service_customer'
                 identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
                 next_url = request.args.get('next', url_for('academic_services.lab_index', menu='new'))
                 if not is_safe_url(next_url):
@@ -767,6 +771,7 @@ def login():
 @login_required
 def logout():
     logout_user()
+    session.pop('user_type', None)
 
     for key in ('identity.name', 'identity.auth_type'):
         session.pop(key, None)
@@ -789,7 +794,7 @@ def forget_password():
                 return render_template('academic_services/forget_password.html', form=form, errors=form.errors)
             serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
             token = serializer.dumps({'email': form.email.data})
-            url = url_for('academic_services.reset_password', token=token, _external=True)
+            url = external_url('academic_services.reset_password', token=token)
             message = 'Click the link below to reset the password.' \
                       ' กรุณาคลิกที่ลิงค์เพื่อทำการตั้งรหัสผ่านใหม่\n\n{}'.format(url)
             try:
@@ -851,6 +856,7 @@ def customer_index():
             pwd = form.password.data
             if user.verify_password(pwd):
                 login_user(user)
+                session['user_type'] = 'service_customer'
                 identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
                 next_url = request.args.get('next', url_for('academic_services.lab_index', menu='new'))
                 if not is_safe_url(next_url):
@@ -893,7 +899,13 @@ def detail_lab_index():
     cat = request.args.get('cat')
     code = request.args.get('code')
     labs = ServiceLab.query.filter_by(code=code)
-    return render_template('academic_services/detail_lab_index.html', cat=cat, labs=labs, code=code)
+    service_manual_url = None
+    service_rate_url = None
+    for lab in labs:
+        service_manual_url = generate_url(lab.service_manual) if lab.service_manual else None
+        service_rate_url = generate_url(lab.service_rate) if lab.service_rate else None
+    return render_template('academic_services/detail_lab_index.html', cat=cat, labs=labs, code=code,
+                           service_manual_url=service_manual_url, service_rate_url=service_rate_url)
 
 
 @academic_services.route('/page/pdpa')
@@ -919,8 +931,7 @@ def create_customer_account(customer_id=None):
             db.session.commit()
             serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
             token = serializer.dumps({'email': form.email.data})
-            scheme = 'http' if current_app.debug else 'https'
-            url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme)
+            url = external_url('academic_services.verify_email', token=token)
             message = f"""
             <!DOCTYPE html>
             <html lang="en">
@@ -1058,9 +1069,8 @@ def send_email(quotation_id):
     menu = request.args.get('menu')
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
     token = serializer.dumps({'email': current_user.email})
-    scheme = 'http' if current_app.debug else 'https'
-    url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme, tab=tab,
-                  menu=menu, quotation_id=quotation_id)
+    url = external_url('academic_services.verify_email', token=token, tab=tab,
+                       menu=menu, quotation_id=quotation_id)
     title_prefix = 'คุณ' if current_user.customer_info.type == 'บุคคล' else ''
     customer_name = current_user.customer_name.replace(' ', '_')
     title = f'''แจ้งยืนยันอีเมลงานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
@@ -1209,7 +1219,7 @@ def get_request_form():
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     print('Authorizing with Google..')
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     wks = gc.open_by_key(sheetid)
     sheet = wks.worksheet(sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
@@ -1240,7 +1250,7 @@ def submit_request(request_id=None):
         request_no = ServiceNumberID.get_number('RQ', db,
                                                 lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' else code)
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     wks = gc.open_by_key(sheetid)
     sheet = wks.worksheet(sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
@@ -1449,6 +1459,39 @@ def create_virus_disinfection_request(request_id=None):
                            form=form, menu=menu, request_id=request_id)
 
 
+@academic_services.route("/request/product_appearance_other")
+def get_product_appearance_other():
+    request_id = request.args.get("request_id")
+    product_appearance = request.args.get("product_appearance")
+    label = 'ระบุ'
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        if service_request and service_request.data:
+            data = service_request.data
+            product_appearance_other = data.get('product_appearance_other', '')
+        else:
+            product_appearance_other = ''
+    else:
+        product_appearance_other = ''
+    if product_appearance == 'อื่นๆ โปรดระบุ':
+        html = f'''
+            <div class="field">
+                <label class="label">
+                    {label}
+                    <span class="has-text-danger">*</span>
+                </label>
+                <div class="control">
+                    <input name="product_appearance_other" class="input" value="{product_appearance_other}" required 
+                    oninvalid="this.setCustomValidity('กรุณากรอกรายละเอียด')" oninput="this.setCustomValidity('')">
+                </div>
+            </div>
+        '''
+    else:
+        html = '<input type="hidden" name="product_appearance_other" class="input" value="">'
+    resp = make_response(html)
+    return resp
+
+
 @academic_services.route("/request/product_storage")
 def get_product_storage():
     request_id = request.args.get("request_id")
@@ -1472,7 +1515,7 @@ def get_product_storage():
                 </label>
                 <div class="control">
                     <input name="product_storage_other" class="input" value="{product_storage_other}" required 
-                    oninvalid="this.setCustomValidity('กรุณาเลือกการเก็บรักษาผลิตภัณฑ์')" oninput="this.setCustomValidity('')">
+                    oninvalid="this.setCustomValidity('กรุณาเลือกกรอกรายละเอียด')" oninput="this.setCustomValidity('')">
                 </div>
             </div>
         '''
@@ -1482,48 +1525,100 @@ def get_product_storage():
     return resp
 
 
-@academic_services.route('/request/virus_disinfection/condition')
+@academic_services.route('/request/virus_disinfection/condition', methods=['GET', 'POST'])
 def get_virus_disinfection_condition_form():
-    product_type = request.args.get("product_type")
+    product_type = request.values.get("product_type")
     if not product_type:
         return ''
-    form = VirusDisinfectionRequestForm()
+    form = VirusDisinfectionRequestForm(formdata=request.form if request.method == 'POST' else None)
     field_name = f"{product_type}_condition_field"
-    fields = getattr(form, field_name)
+    entry_fields = getattr(form, field_name)
+    entry_fields.append_entry()
+    fields = entry_fields[-1]
     return render_template('academic_services/partials/virus_disinfection_request_condition_form.html',
                            fields=fields, product_type=product_type)
 
 
+@academic_services.route('/request/virus_liquid_condition_form/remove', methods=['DELETE'])
+def remove_virus_liquid_condition_form():
+    field_name = request.args.get('name')
+    form = VirusDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.liquid_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.liquid_condition_field) > 0:
+        form.liquid_condition_field.pop_entry()
+    for entry in temp_entries:
+        form.liquid_condition_field.append_entry(entry)
+    return ""
+
+
+@academic_services.route('/request/virus_spray_condition_form/remove', methods=['DELETE'])
+def remove_virus_spray_condition_form():
+    field_name = request.args.get('name')
+    form = VirusDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.spray_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.spray_condition_field) > 0:
+        form.spray_condition_field.pop_entry()
+    for entry in temp_entries:
+        form.spray_condition_field.append_entry(entry)
+    return ""
+
+
+@academic_services.route('/request/virus_coat_condition_form/remove', methods=['DELETE'])
+def remove_virus_coat_condition_form():
+    field_name = request.args.get('name')
+    form = VirusDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.coat_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.coat_condition_field) > 0:
+        form.coat_condition_field.pop_entry()
+    for entry in temp_entries:
+        form.coat_condition_field.append_entry(entry)
+    return ""
+
+
 @academic_services.route('/request/virus_liquid_organism_form_entry/add', methods=['POST'])
 def add_virus_liquid_organism_form_entry():
+    resp = ""
+    field_name = request.args.get('name')
     form = VirusDisinfectionRequestForm()
-    form.liquid_condition_field.liquid_organism_fields.append_entry()
-    item_form = form.liquid_condition_field.liquid_organism_fields[-1]
-    template = """
-        <tr>
-            <td style="border: none">
-                <div class="select">{}</div>
-            </td>
-            <td style="border: none">{}</td>
-            <td style="border: none">{}</td>
-            <td style="border: none">
-                <a class="button is-danger is-outlined"
-                    hx-delete="{}" 
-                    hx-target="closest tr"
-                    hx-swap="outerHTML"
-                >
-                    <span class="icon"><i class="fas fa-trash-alt"></i></span>
-                </a>
-            </td>
-        </tr>
-    """
-    resp = template.format(item_form.liquid_organism(),
-                           item_form.liquid_ratio(class_='input'),
-                           item_form.liquid_time_duration(class_='input', required=True,
-                                                          oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
-                                                          oninput="this.setCustomValidity('')"),
-                           url_for('academic_services.remove_virus_liquid_organism_form_entry', name=item_form.name)
-                           )
+    for entry in form.liquid_condition_field:
+        if entry.name == field_name:
+            entry.liquid_organism_fields.append_entry()
+            item_form = entry.liquid_organism_fields[-1]
+            template = """
+                <tr>
+                    <td style="border: none">
+                        <div class="select">{}</div>
+                    </td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">
+                        <a class="button is-danger is-outlined"
+                            hx-delete="{}" 
+                            hx-target="closest tr"
+                            hx-swap="outerHTML"
+                        >
+                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                        </a>
+                    </td>
+                </tr>
+            """
+            resp = template.format(item_form.liquid_organism(),
+                                   item_form.liquid_ratio(class_='input'),
+                                   item_form.liquid_time_duration(class_='input', required=True,
+                                                                  oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
+                                                                  oninput="this.setCustomValidity('')"),
+                                   url_for('academic_services.remove_virus_liquid_organism_form_entry',
+                                           name=item_form.name)
+                                   )
     resp = make_response(resp)
     return resp
 
@@ -1533,54 +1628,59 @@ def remove_virus_liquid_organism_form_entry():
     field_name = request.args.get('name')
     form = VirusDisinfectionRequestForm()
     temp_entries = []
-    for entry in form.liquid_condition_field.liquid_organism_fields:
+    for entry in form.liquid_condition_field:
         if entry.name != field_name:
             temp_entries.append(entry)
-    while len(form.liquid_condition_field.liquid_organism_fields) > 0:
-        form.liquid_condition_field.liquid_organism_fields.pop_entry()
-    for entry in temp_entries:
-        form.liquid_condition_field.liquid_organism_fields.append_entry(entry)
+        while len(entry.liquid_organism_fields) > 0:
+            entry.liquid_organism_fields.pop_entry()
+        for new_entry in temp_entries:
+            entry.liquid_organism_fields.append_entry(new_entry)
     return ""
 
 
 @academic_services.route('/request/virus_spray_organism_form_entry/add', methods=['POST'])
 def add_virus_spray_organism_form_entry():
+    resp = ""
+    field_name = request.args.get('name')
     form = VirusDisinfectionRequestForm()
-    form.spray_condition_field.spray_organism_fields.append_entry()
-    item_form = form.spray_condition_field.spray_organism_fields[-1]
-    template = """
-        <tr>
-            <td style="border: none">
-                <div class="select">{}</div>
-            </td>
-            <td style="border: none">{}</td>
-            <td style="border: none">{}</td>
-            <td style="border: none">{}</td>
-            <td style="border: none">{}</td>
-            <td style="border: none">
-                <a class="button is-danger is-outlined"
-                    hx-delete="{}" 
-                    hx-target="closest tr"
-                    hx-swap="outerHTML"
-                >
-                    <span class="icon"><i class="fas fa-trash-alt"></i></span>
-                </a>
-            </td>
-        </tr>
-    """
-    resp = template.format(item_form.spray_organism(),
-                           item_form.spray_ratio(class_='input'),
-                           item_form.spray_distance(class_='input', required=True,
-                                                    oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
-                                                    oninput="this.setCustomValidity('')"),
-                           item_form.spray_of_time(class_='input', required=True,
-                                                   oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
-                                                   oninput="this.setCustomValidity('')"),
-                           item_form.spray_time_duration(class_='input', required=True,
-                                                         oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
-                                                         oninput="this.setCustomValidity('')"),
-                           url_for('academic_services.remove_virus_spray_organism_form_entry', name=item_form.name)
-                           )
+    for entry in form.spray_condition_field:
+        if entry.name == field_name:
+            entry.spray_organism_fields.append_entry()
+            item_form = entry.spray_organism_fields[-1]
+            template = """
+                <tr>
+                    <td style="border: none">
+                        <div class="select">{}</div>
+                    </td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">
+                        <a class="button is-danger is-outlined"
+                            hx-delete="{}" 
+                            hx-target="closest tr"
+                            hx-swap="outerHTML"
+                        >
+                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                        </a>
+                    </td>
+                </tr>
+            """
+            resp = template.format(item_form.spray_organism(),
+                                   item_form.spray_ratio(class_='input'),
+                                   item_form.spray_distance(class_='input', required=True,
+                                                            oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
+                                                            oninput="this.setCustomValidity('')"),
+                                   item_form.spray_of_time(class_='input', required=True,
+                                                           oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
+                                                           oninput="this.setCustomValidity('')"),
+                                   item_form.spray_time_duration(class_='input', required=True,
+                                                                 oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
+                                                                 oninput="this.setCustomValidity('')"),
+                                   url_for('academic_services.remove_virus_spray_organism_form_entry',
+                                           name=item_form.name)
+                                   )
     resp = make_response(resp)
     return resp
 
@@ -1590,42 +1690,47 @@ def remove_virus_spray_organism_form_entry():
     field_name = request.args.get('name')
     form = VirusDisinfectionRequestForm()
     temp_entries = []
-    for entry in form.spray_condition_field.spray_organism_fields:
+    for entry in form.spray_condition_field:
         if entry.name != field_name:
             temp_entries.append(entry)
-    while len(form.spray_condition_field.spray_organism_fields) > 0:
-        form.spray_condition_field.spray_organism_fields.pop_entry()
-    for entry in temp_entries:
-        form.spray_condition_field.spray_organism_fields.append_entry(entry)
+        while len(entry.spray_organism_fields) > 0:
+            entry.spray_organism_fields.pop_entry()
+        for new_entry in temp_entries:
+            entry.spray_organism_fields.append_entry(new_entry)
     return ""
 
 
 @academic_services.route('/request/virus_coat_organism_form_entry/add', methods=['POST'])
 def add_virus_coat_organism_form_entry():
+    resp = ""
+    field_name = request.args.get('name')
     form = VirusDisinfectionRequestForm()
-    form.coat_condition_field.coat_organism_fields.append_entry()
-    item_form = form.coat_condition_field.coat_organism_fields[-1]
-    template = """
-        <tr>
-            <td style="border: none">
-                <div class="select">{}</div>
-            </td>
-            <td style="border: none">{}</td>
-            <td style="border: none">
-                <a class="button is-danger is-outlined"
-                    hx-delete="{}" 
-                    hx-target="closest tr"
-                    hx-swap="outerHTML"
-                >
-                    <span class="icon"><i class="fas fa-trash-alt"></i></span>
-                </a>
-            </td>
-        </tr>
-    """
-    resp = template.format(item_form.coat_organism(),
-                           item_form.coat_time_duration(class_='input'),
-                           url_for('academic_services.remove_virus_coat_organism_form_entry', name=item_form.name)
-                           )
+    for entry in form.coat_condition_field:
+        if entry.name == field_name:
+            entry.coat_organism_fields.append_entry()
+            item_form = entry.coat_organism_fields[-1]
+            template = """
+                <tr>
+                    <td style="border: none">
+                        <div class="select">{}</div>
+                    </td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">
+                        <a class="button is-danger is-outlined"
+                            hx-delete="{}" 
+                            hx-target="closest tr"
+                            hx-swap="outerHTML"
+                        >
+                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                        </a>
+                    </td>
+                </tr>
+            """
+            resp = template.format(item_form.coat_organism(),
+                                   item_form.coat_time_duration(class_='input'),
+                                   url_for('academic_services.remove_virus_coat_organism_form_entry',
+                                           name=item_form.name)
+                                   )
     resp = make_response(resp)
     return resp
 
@@ -1635,13 +1740,13 @@ def remove_virus_coat_organism_form_entry():
     field_name = request.args.get('name')
     form = VirusDisinfectionRequestForm()
     temp_entries = []
-    for entry in form.coat_condition_field.coat_organism_fields:
+    for entry in form.coat_condition_field:
         if entry.name != field_name:
             temp_entries.append(entry)
-    while len(form.coat_condition_field.coat_organism_fields) > 0:
-        form.coat_condition_field.coat_organism_fields.pop_entry()
-    for entry in temp_entries:
-        form.coat_condition_field.coat_organism_fields.append_entry(entry)
+        while len(entry.coat_organism_fields) > 0:
+            entry.coat_organism_fields.pop_entry()
+        for new_entry in temp_entries:
+            entry.coat_organism_fields.append_entry(new_entry)
     return ""
 
 
@@ -1682,35 +1787,69 @@ def create_virus_air_disinfection_request(request_id=None):
                            form=form, menu=menu, request_id=request_id)
 
 
+@academic_services.route('/request/virus_air_disinfection/condition', methods=['GET', 'POST'])
+def get_virus_air_disinfection_condition_form():
+    product_type = request.values.get("product_type")
+    if not product_type:
+        return ''
+    form = VirusAirDisinfectionRequestForm(formdata=request.form if request.method == 'POST' else None)
+    field_name = f"{product_type}_condition_field"
+    entry_fields = getattr(form, field_name)
+    entry_fields.append_entry()
+    fields = entry_fields[-1]
+    index = fields.id.replace(f"{field_name}-", "")
+    return render_template('academic_services/partials/virus_air_disinfection_request_condition_form.html',
+                           index=index, fields=fields, product_type=product_type)
+
+
+@academic_services.route('/request/virus_surface_disinfection_condition_form/remove', methods=['DELETE'])
+def remove_virus_surface_disinfection_condition_form():
+    field_name = request.args.get('name')
+    form = VirusAirDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.surface_disinfection_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.surface_disinfection_condition_field) > 0:
+        form.surface_disinfection_condition_field.pop_entry()
+    for entry in temp_entries:
+        form.surface_disinfection_condition_field.append_entry(entry)
+    return ""
+
+
 @academic_services.route('/request/virus_surface_disinfection_organism_form_entry/add', methods=['POST'])
 def add_virus_surface_disinfection_organism_form_entry():
+    resp = ""
+    field_name = request.args.get('name')
     form = VirusAirDisinfectionRequestForm()
-    form.surface_disinfection_condition_field.surface_disinfection_organism_fields.append_entry()
-    item_form = form.surface_disinfection_condition_field.surface_disinfection_organism_fields[-1]
-    template = """
-        <tr>
-            <td style="border: none">
-                <div class="select">{}</div>
-            </td>
-            <td style="border: none">{}</td>
-            <td style="border: none">
-                <a class="button is-danger is-outlined"
-                    hx-delete="{}" 
-                    hx-target="closest tr"
-                    hx-swap="outerHTML"
-                >
-                    <span class="icon"><i class="fas fa-trash-alt"></i></span>
-                </a>
-            </td>
-        </tr>
-    """
-    resp = template.format(item_form.surface_disinfection_organism(),
-                           item_form.surface_disinfection_period_test(class_='input', required=True,
-                                                                      oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
-                                                                      oninput="this.setCustomValidity('')"),
-                           url_for('service_admin.remove_virus_surface_disinfection_organism_form_entry',
-                                   name=item_form.name)
-                           )
+    for entry in form.surface_disinfection_condition_field:
+        if entry.name == field_name:
+            entry.surface_disinfection_organism_fields.append_entry()
+            item_form = entry.surface_disinfection_organism_fields[-1]
+            template = """
+                <tr>
+                    <td style="border: none">
+                        <div class="select">{}</div>
+                    </td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">
+                        <a class="button is-danger is-outlined"
+                            hx-delete="{}" 
+                            hx-target="closest tr"
+                            hx-swap="outerHTML"
+                        >
+                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                        </a>
+                    </td>
+                </tr>
+            """
+            resp = template.format(item_form.surface_disinfection_organism(),
+                                   item_form.surface_disinfection_period_test(class_='input', required=True,
+                                                                              oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
+                                                                              oninput="this.setCustomValidity('')"),
+                                   url_for('academic_services.remove_virus_surface_disinfection_organism_form_entry',
+                                           name=item_form.name)
+                                   )
     resp = make_response(resp)
     return resp
 
@@ -1720,13 +1859,13 @@ def remove_virus_surface_disinfection_organism_form_entry():
     field_name = request.args.get('name')
     form = VirusAirDisinfectionRequestForm()
     temp_entries = []
-    for entry in form.surface_disinfection_condition_field.surface_disinfection_organism_fields:
+    for entry in form.surface_disinfection_condition_field:
         if entry.name != field_name:
             temp_entries.append(entry)
-    while len(form.surface_disinfection_condition_field.surface_disinfection_organism_fields) > 0:
-        form.surface_disinfection_condition_field.surface_disinfection_organism_fields.pop_entry()
-    for entry in temp_entries:
-        form.surface_disinfection_condition_field.surface_disinfection_organism_fields.append_entry(entry)
+        while len(entry.surface_disinfection_organism_fields) > 0:
+           entry.surface_disinfection_organism_fields.pop_entry()
+        for new_entry in temp_entries:
+            entry.surface_disinfection_organism_fields.append_entry(new_entry)
     return ""
 
 
@@ -3856,7 +3995,7 @@ def generate_bacteria_request_pdf(service_request):
 def export_bacteria_request_pdf(request_id):
     service_request = ServiceRequest.query.get(request_id)
     buffer = generate_bacteria_request_pdf(service_request)
-    return send_file(buffer, download_name='Request.pdf', as_attachment=True)
+    return send_file(buffer, download_name=f'Request {service_request.request_no}.pdf', as_attachment=True)
 
 
 def generate_virus_request_pdf(service_request):
@@ -4524,7 +4663,7 @@ def generate_virus_request_pdf(service_request):
 def export_virus_request_pdf(request_id):
     service_request = ServiceRequest.query.get(request_id)
     buffer = generate_virus_request_pdf(service_request)
-    return send_file(buffer, download_name='Request.pdf', as_attachment=True)
+    return send_file(buffer, download_name=f'Request {service_request.request_no}.pdf', as_attachment=True)
 
 
 @academic_services.route('/api/quotation/address', methods=['GET'])
@@ -4901,7 +5040,7 @@ def generate_quotation_pdf(quotation, sign=False):
 def export_quotation_pdf(quotation_id):
     quotation = ServiceQuotation.query.get(quotation_id)
     buffer = generate_quotation_pdf(quotation)
-    return send_file(BytesIO(quotation.digital_signature), download_name='Quotation.pdf', as_attachment=True)
+    return send_file(BytesIO(quotation.digital_signature), download_name=f'Quotation {quotation.quotation_no}.pdf', as_attachment=True)
 
 
 @academic_services.route('/customer/quotation/confirm/<int:quotation_id>', methods=['GET', 'POST'])
@@ -5110,9 +5249,8 @@ def create_address(address_id=None):
     if form.district.data:
         form.subdistrict.query = form.district.data.subdistricts
     else:
-        province = Province.query.first()
-        form.district.query = province.districts
-        form.subdistrict.query = province.districts[0].subdistricts if province.districts else ''
+        form.district.query = ''
+        form.subdistrict.query = ''
 
     if not form.taxpayer_identification_no.data:
         form.taxpayer_identification_no.data = current_user.customer_info.taxpayer_identification_no
@@ -5142,22 +5280,23 @@ def create_address(address_id=None):
 def get_items():
     trigger = request.headers.get('hx-trigger')
     form = ServiceCustomerAddressForm()
-
-    if trigger == 'province':
+    if trigger == 'province' or trigger == 'zipcode':
         form.district.query = form.province.data.districts
-        district = form.province.data.districts[0] if form.province.data.districts else ''
-        form.subdistrict.query = district.subdistricts if district else ''
+        # district = form.province.data.districts[0] if form.province.data.districts else ''
+        form.subdistrict.query = ''
     elif trigger == 'district' or trigger == 'subdistrict':
-        form.district.query = form.province.data.districts
-        form.subdistrict.query = form.district.data.subdistricts
+        form.district.query = form.province.data.districts if form.province.data else ''
+        form.subdistrict.query = form.district.data.subdistricts if form.district.data else ''
         if trigger == 'subdistrict':
             form.zipcode.data = form.subdistrict.data.zip_code
-
+    else:
+        form.district.query = ''
+        form.subdistrict.query = ''
     template = f'''
-        {form.province(**{'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items')})}
-        {form.district(**{'hx-swap-oob': 'true', 'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items')})}
-        {form.subdistrict(**{'hx-swap-oob': 'true', 'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items')})}
-        {form.zipcode(class_='input', **{'hx-swap-oob': 'true', 'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('service_admin.get_items')})}
+        {form.province(**{'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('academic_services.get_items')})}
+        {form.district(**{'hx-swap-oob': 'true', 'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('academic_services.get_items')})}
+        {form.subdistrict(**{'hx-swap-oob': 'true', 'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('academic_services.get_items')})}
+        {form.zipcode(class_='input', **{'hx-swap-oob': 'true', 'hx-trigger': 'change', 'hx-target': '#province', 'hx-swap': 'outerHTML', 'hx-post': url_for('academic_services.get_items')})}
         '''
     return template
 
@@ -5235,6 +5374,7 @@ def create_sample_appointment(sample_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
+    date_now =arrow.now('Asia/Bangkok').date()
     request_data = request_data_paths[sample.request.sub_lab.code]
     datas = request_data(sample.request, type='form')
     form = ServiceSampleForm(obj=sample)
@@ -5346,8 +5486,8 @@ def create_sample_appointment(sample_id):
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-        return render_template('academic_services/create_sample_appointment.html', form=form, menu=menu,
-                               tab=tab, sample=sample, sample_id=sample_id, datas=datas, holidays=holidays)
+    return render_template('academic_services/create_sample_appointment.html', form=form, menu=menu,
+                           tab=tab, sample=sample, sample_id=sample_id, datas=datas, holidays=holidays, date_now=date_now)
 
 
 @academic_services.route('/customer/sample-appointment/confirm/page/<int:request_id>', methods=['GET', 'POST'])
@@ -5449,7 +5589,7 @@ def invoice_index():
         for item in query:
             item_data = item.to_dict()
             download_file = url_for('academic_services.download_file', key=item.file,
-                                    download_filename=f"{item.invoice_no}.pdf")
+                                    download_filename=f"Invoice {item.invoice_no}.pdf")
             item_data['file'] = f'''<div class="field has-addons">
                              <div class="control">
                                  <a class="button is-small is-light is-link is-rounded" href="{download_file}">
@@ -5598,7 +5738,7 @@ def edit_request_form():
     service_request = ServiceRequest.query.get(request_id)
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     print('Authorizing with Google..')
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     wks = gc.open_by_key(sheetid)
     sheet = wks.worksheet(service_request.sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())

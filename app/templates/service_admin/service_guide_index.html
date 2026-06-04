@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "service_admin/admin_nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <h1 class="title">ระบบสำรวจวันประชุม</h1>
+            {% include 'messages.html' %}
+            <div class="columns">
+                <div class="column">
+                    <table id="labs" class="table is-fullwidth">
+                        <thead>
+                            <th>งานบริการ</th>
+                            <th>คู่มือการใช้บริการ</th>
+                            <th>อัตราค่าบริการ</th>
+                            <th>วันที่อัปเดต</th>
+                            <th></th>
+                        </thead>
+                        <tbody>
+                            {% for lab in labs %}
+                                <tr>
+                                    <td>{{ lab.lab }}</td>
+                                    <td>
+                                        {% if lab.service_manual %}
+                                            <a href="{{ url_for('service_admin.download_file', key=lab.service_manual,
+                                                    download_filename='คู่มือการใช้บริการ' + lab.lab + '.pdf') }}"
+                                            >
+                                                <span>{{ 'คู่มือการใช้บริการ' + lab.lab }}</span>
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if lab.service_rate %}
+                                            <a href="{{ url_for('service_admin.download_file', key=lab.service_rate,
+                                                    download_filename='อัตราค่าบริการบริการ' + lab.lab + '.pdf') }}"
+                                            >
+                                                <span>{{ 'อัตราค่าบริการบริการ' + lab.lab }}</span>
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ lab.updated_at|localdatetime or '' }}</td>
+                                    <td>
+                                        <div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-info is-rounded"
+                                                   href="{{ url_for('service_admin.update_service_guide', lab_id=lab.id) }}">
+                                                        <span class="icon"><i class="fas fa-download"></i></span>
+                                                    <span>อัปเดต</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#labs').DataTable({})
+        });
+    </script>
+{% endblock %}

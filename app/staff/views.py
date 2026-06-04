@@ -4372,7 +4372,7 @@ def staff_create_info():
                 return render_template('staff/staff_create_info.html', departments=departments, employments=employments)
 
         start_d = form.get('employed_date')
-        start_date = datetime.strptime(start_d, '%d/%m/%Y')
+        start_date = datetime.strptime(start_d, '%d/%m/%Y').date()
         createstaff = StaffPersonalInfo(
             en_firstname=form.get('en_firstname'),
             en_lastname=form.get('en_lastname'),
@@ -4380,8 +4380,7 @@ def staff_create_info():
             th_title=form.get('th_title'),
             th_lastname=form.get('th_lastname'),
             position=form.get('position'),
-            # TODO: try removing localize
-            employed_date=tz.localize(start_date),
+            employed_date=start_date,
             finger_scan_id=form.get('finger_scan_id'),
             sap_id=form.get('sap_id'),
             employment_id=form.get('employment_id'),
@@ -4469,10 +4468,10 @@ def staff_edit_info(staff_id):
             db.session.add(createstaff)
 
         start_d = form.get('employed_date')
-        start_date = datetime.strptime(start_d, '%d/%m/%Y') if start_d else None
-        resign_date = datetime.strptime(form.get('resignation_date'), '%d/%m/%Y') \
+        start_date = datetime.strptime(start_d, '%d/%m/%Y').date() if start_d else None
+        resign_date = datetime.strptime(form.get('resignation_date'), '%d/%m/%Y').date() \
             if form.get('resignation_date') else None
-        retired_date = datetime.strptime(form.get('retirement_date'), '%d/%m/%Y') \
+        retired_date = datetime.strptime(form.get('retirement_date'), '%d/%m/%Y').date() \
             if form.get('retirement_date') else None
         staff.th_title = form.get('th_title') if form.get('th_title') != 'None' else ''
         staff.en_title = form.get('en_title') if form.get('th_title') != 'None' else ''
@@ -4482,9 +4481,9 @@ def staff_edit_info(staff_id):
         staff.th_lastname = form.get('th_lastname')
         staff.sap_id = form.get('sap_id')
         staff.position = form.get('position')
-        staff.employed_date = tz.localize(start_date) if start_date else None
-        staff.resignation_date = tz.localize(resign_date) if resign_date else None
-        staff.retirement_date = tz.localize(retired_date) if retired_date else None
+        staff.employed_date = start_date
+        staff.resignation_date = resign_date
+        staff.retirement_date = retired_date
         if form.get('finger_scan_id'):
             staff.finger_scan_id = form.get('finger_scan_id')
         staff.employment_id = form.get('employment_id')
@@ -5001,7 +5000,7 @@ def send_holidays_data():
         text_color = '#ffffff'
         bg_color = '#ff9f1a'
         border_color = '#ffffff'
-        holiday_date = rec.holiday_date.date().isoformat() if rec.holiday_date else None
+        holiday_date = rec.holiday_date.astimezone(tz).date().isoformat() if rec.holiday_date else None
         records.append({
             'id': rec.id,
             'start': holiday_date,

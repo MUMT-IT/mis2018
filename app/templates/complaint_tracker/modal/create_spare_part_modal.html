@@ -1,0 +1,114 @@
+<div class="modal is-active animate__animated" id="spare-part-modal">
+    <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title" align="center">
+                    {% if repair_company_id %}
+                        Add Spare Part
+                    {% else %}
+                        Edit Spare Part
+                    {% endif %}
+                </p>
+                <button type="button" id="cancelSparePartButton" class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+                <form
+                    {% if repair_company_id %}
+                        hx-post="{{ url_for('comp_tracker.create_spare_part', repair_company_id=repair_company_id) }}"
+                    {% else %}
+                        hx-post="{{ url_for('comp_tracker.create_spare_part', spare_part_id=spare_part_id) }}"
+                    {% endif %}
+                    hx-indicator="#submit-form"
+                    hx-target="#spare_parts"
+                    hx-swap="beforeend"
+                >
+                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                    <div class="field">
+                        <label class="label">{{ form.item.label }}</label>
+                        <div class="control">
+                            {{ form.item(class='input') }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="field-body">
+                            <div class="field">
+                                <label class="label">{{ form.quantity.label }}</label>
+                                <div class="control">
+                                    {{ form.quantity(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.unit.label }}</label>
+                                <div class="control">
+                                    {{ form.unit(class='input') }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="field-body">
+                            <div class="field">
+                                <label class="label">{{ form.unit_price.label }}</label>
+                                <div class="control">
+                                    {{ form.unit_price(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.total_price.label }} (ราคาxจำนวน)</label>
+                                <div class="control">
+                                    {{ form.total_price(class='input') }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.store_name.label }}</label>
+                        <div class="control">
+                            {{ form.store_name(class='input') }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="field-body">
+                            <div class="field">
+                                <label class="label">{{ form.vendor_name.label }}</label>
+                                <div class="control">
+                                    {{ form.vendor_name(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.vendor_phone_number.label }}</label>
+                                <div class="control">
+                                    {{ form.vendor_phone_number(class='input',
+                                        oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="control">
+                            <input type="submit" id="submit-form" class="button is-success" value="บันทึก">
+                        </div>
+                    </div>
+                </form>
+            </section>
+        </div>
+</div>
+<script>
+      window.document.getElementById("cancelSparePartButton").addEventListener("click", function() {
+        htmx.addClass(htmx.find('#spare-part-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#spare-part-modal'), "is-active", 500)
+      })
+      function totalPrice() {
+          const quantity = document.getElementById("quantity");
+          const unitPrice = document.getElementById("unit_price");
+          const totalPrice = document.getElementById("total_price");
+          const quantityValue = Number(quantity.value);
+          const unitPriceValue = Number(unitPrice.value);
+
+          if (quantityValue && unitPriceValue) {
+              totalPrice.value = Number(unitPriceValue * quantityValue);
+          }
+      }
+      document.getElementById("quantity").addEventListener("input", totalPrice)
+      document.getElementById("unit_price").addEventListener("input", totalPrice);
+</script>

@@ -14,10 +14,10 @@
                         <h1 class="title is-4">{{ service.location }}</h1>
                     </div>
                     <div class="has-text-right">
-                      {% if service.records.count() > 0 %}
+                      {% if walkin_org_id %}
                         <a class="button is-link"
                             href="{{ url_for('comhealth.add_customer_to_service_org',
-                                    service_id=service.id, org_id=service.records[0].customer.org_id) }}">
+                                    service_id=service.id, org_id=walkin_org_id) }}">
                             <span class="icon">
                                 <i class="fas fa-user-plus"></i>
                             </span>
@@ -61,7 +61,9 @@
             $('#data').DataTable({
                 searchDelay: 350,
                 ajax: '{{ url_for("comhealth.get_services_customers", service_id=service_id) }}',
+                processing: true,
                 serverSide: true,
+                order: [[2, 'asc']],
                 columns: [
                     {data: 'firstname'},
                     {data: 'lastname'},

@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% block page_content %}
+{% include "complaint_tracker/index_nav.html" %}
+<section class="section">
+    <div class="container">
+        {% include 'messages.html' %}
+        <div class="columns is-centered">
+            <div class="column">
+                <h1 class="title has-text-centered">รายการคำขออนุมัติหลักการซ่อม</h1>
+                <div class="tabs is-boxed">
+                    <ul>
+                        <li {% if tab == 'waiting_process' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('comp_tracker.repair_approval_index', tab='waiting_process', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-hourglass"></i></span>
+                                <span>รอดำเนินการ</span>
+                                {% if new_record_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ new_record_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'waiting_approval' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('comp_tracker.repair_approval_index', tab='waiting_approval', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-pen-fancy"></i></span>
+                                <span>รออนุมัติ</span>
+                                {% if waiting_record_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ waiting_record_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'completed' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('comp_tracker.repair_approval_index', tab='completed', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                <span>ดำเนินการเสร็จสิ้น</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'cancelled' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('comp_tracker.repair_approval_index', tab='cancelled', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-times"></i></span>
+                                <span>ยกเลิก</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('comp_tracker.repair_approval_index', tab='all', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ทั้งหมด</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <table id="repair_approvals" class="table is-fullwidth">
+                    <thead>
+                        <th>วันที่ออก</th>
+                        <th>รายการ/ครุภัณฑ์</th>
+                        <th>ประเภท</th>
+                        <th>ประเภทการเบิกจ่าย</th>
+                        <th>วงเงิน</th>
+                        <th>ปีงบประมาณ</th>
+                        <th>เหตุผล</th>
+                        <th>สถานะใบอนุมัติ</th>
+                        <th>สถานะการซ่อม</th>
+                        <th>ใบอนุมัติ</th>
+                    </thead>
+                    <tbody>
+                        {% for repair_approval in repair_approvals %}
+                            <tr>
+                                <td>
+                                    {{ repair_approval.created_at|localdatetime }}
+                                </td>
+                                <td>{{ repair_approval.item }}</td>
+                                <td>
+                                    {% if repair_approval.principle_approval_type %}
+                                        <span class="tag is-success is-rounded">
+                                            {{  repair_approval.repair_type }} - {{ repair_approval.principle_approval_type }}
+                                        </span>
+                                    {% else %}
+                                        <span class="tag is-danger is-rounded">
+                                            {{  repair_approval.repair_type }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ repair_approval.purchase_type }}</td>
+                                <td>
+                                    {{ "{:,.2f}".format(repair_approval.price) }}
+                                </td>
+                                <td>{{ repair_approval.budget_year }}</td>
+                                <td>{{ repair_approval.reason }}</td>
+                                <td>
+                                    <span class="tag {{ repair_approval.status_color }}">
+                                        <span class="icon">{{ repair_approval.status_icon|safe }}</span>
+                                        <span>{{ repair_approval.status }}</span>
+                                    </span>
+                                    {% if repair_approval.cancelled_at %}
+                                        <br>ยกเลิกเมื่อ {{ repair_approval.cancelled_at|localdatetime }}
+                                    {% elif repair_approval.reviewed_at %}
+                                        <br>ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if repair_approval.record.status %}
+                                        <span class="tag {{ repair_approval.record.status.color }}">
+                                            <span class="icon">{{ repair_approval.record.status.icon|safe }}</span>
+                                            <span>{{ repair_approval.record.status.status }}</span>
+                                        </span>
+                                    {% else %}
+                                        <span class="tag is-danger">
+                                            <span class="icon"><i class="fas fa-times"></i></span>
+                                            <span>ยังไม่ดำเนินการ</span>
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div id="repair-approval-form"></div>
+                                    <div id="note-form"></div>
+                                    <div class="field">
+                                        <div class="control mb-2">
+                                            <a class="button is-small is-info is-outlined is-rounded"
+                                               {% if repair_approval.cost_center and repair_approval.io_code and
+                                                    repair_approval.product_code %}
+                                                    @click="printRepairApproval({{ repair_approval.id }})"
+                                               {% else %}
+                                                    @click="warnAlert({{ repair_approval.id }})"
+                                               {% endif %}
+                                            >
+                                                <span class="icon"><i class="fas fa-file-pdf"></i></span>
+                                                <span>Print</span>
+                                            </a>
+                                        </div>
+                                        {% if not repair_approval.cancelled_at and ((not repair_approval.record.status)
+                                                or (repair_approval.record.status and
+                                                repair_approval.record.status.code != 'completed') and (repair_approval.record.status and
+                                                repair_approval.record.status.code != 'cancelled')) %}
+                                            <div class="control mb-2">
+                                                <a class="button is-warning is-outlined is-rounded is-small"
+                                                   href="{{ url_for('comp_tracker.edit_repair_approval',
+                                                   repair_approval_id=repair_approval.id, temp='index', menu=menu)}}"
+                                                >
+                                                    <span class="icon"><i class="fas fa-pen"></i></span>
+                                                    <span>Edit</span>
+                                                </a>
+                                            </div>
+                                            <div class="control">
+                                                <a class="button is-danger is-outlined is-rounded is-small"
+                                                   hx-swap="innerHTML"
+                                                   hx-target="#note-form"
+                                                   hx-get="{{ url_for('comp_tracker.create_note',
+                                                   repair_approval_id=repair_approval.id)}}"
+                                                >
+                                                    <span class="icon"><i class="fas fa-times"></i></span>
+                                                    <span>Cancel</span>
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript">
+        var vm = new Vue({
+            el: "#repair_approvals",
+            delimiters: ['<%', '%>'],
+            methods: {
+                warnAlert: function (repair_approval_id) {
+                    Swal.fire({
+                        title: 'กรุณากรอกข้อมูลเพิ่มเติม',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: "#3085d6",
+                        cancelButtonColor: "#d33",
+                        cancelButtonText: "ยกเลิก",
+                        confirmButtonText: "กรอกข้อมูล",
+                        text: 'กรุณาดำเนินการกรอกข้อมูล Cost Center (รหัสศูนย์ต้นทุน), IO Code (รหัสใบสั่งงานภายใน) และ Product Code (ผลผลิต) ให้ครบถ้วนก่อนดำเนินการพิมพ์ใบอนุมัติหลักการซ่อม'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            var tab = '{{ tab }}';
+                            var menu = '{{ menu }}';
+                            window.location.href = '/complaint-tracker/repair-approval/edit/' + repair_approval_id +
+                                '?tab=' + tab + '&menu=' + menu + '&temp=index';
+                        }
+                    })
+                },
+                printRepairApproval: function (repair_approval_id) {
+                    var url = "/complaint-tracker/admin/repair-approval/pdf/" + repair_approval_id ;
+                    printJS({
+                        printable: url,
+                        type: 'pdf',
+                        onPrintDialogClose: () => {
+                            window.location.reload();
+                        }
+                    });
+                }
+            },
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            $.fn.dataTable.moment('%d/%m/%Y %X');
+            $('#repair_approvals').DataTable({
+                order: [[0, 'desc']]
+            });
+        });
+    </script>
+{% endblock %}
