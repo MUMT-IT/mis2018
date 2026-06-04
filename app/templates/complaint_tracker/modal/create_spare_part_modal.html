@@ -98,4 +98,16 @@
         htmx.addClass(htmx.find('#spare-part-modal'), 'animate__fadeOut')
         htmx.removeClass(htmx.find('#spare-part-modal'), "is-active", 500)
       })
+      function totalPrice() {
+          const quantity = document.getElementById("quantity");
+          const unitPrice = document.getElementById("unit_price");
+          const totalPrice = document.getElementById("total_price");
+          const quantityValue = Number(quantity.value);
+          const unitPriceValue = Number(unitPrice.value);
+
+          if (quantityValue && unitPriceValue) {
+              totalPrice.value = Number(unitPriceValue * quantityValue);
+          }
+      }
+      document.getElementById("unit_price").addEventListener("input", totalPrice);
 </script>
