@@ -136,13 +136,14 @@ class SoftwareRequestDetail(db.Model):
 
     @property
     def workflow_status(self):
+        closed = all(issue.cloesd_at for issue in self.issues)
         tested = any(issue.tested_at for issue in self.issues)
         worked = any(issue.accepted_at for issue in self.issues)
         draft = any(not issue.tested_at
                     and not issue.closed_at
                     and not issue.accepted_at
                     for issue in self.issues)
-        if self.status == 'เสร็จสิ้น':
+        if self.status == 'เสร็จสิ้น' or closed:
             return 'ดำเนินการเสร็จสิ้น'
         elif self.status == 'ยกเลิก':
             return 'ยกเลิกการพัฒนา'
@@ -155,13 +156,14 @@ class SoftwareRequestDetail(db.Model):
 
     @property
     def workflow_status_color(self):
+        closed = all(issue.cloesd_at for issue in self.issues)
         tested = any(issue.tested_at for issue in self.issues)
         worked = any(issue.accepted_at for issue in self.issues)
         draft = any(not issue.tested_at
                     and not issue.closed_at
                     and not issue.accepted_at
                     for issue in self.issues)
-        if self.status == 'เสร็จสิ้น':
+        if self.status == 'เสร็จสิ้น' or closed:
             return 'is-success'
         elif self.status == 'ยกเลิก':
             return 'is-dark'
@@ -174,13 +176,14 @@ class SoftwareRequestDetail(db.Model):
 
     @property
     def workflow_status_icon(self):
+        closed = all(issue.cloesd_at for issue in self.issues)
         tested = any(issue.tested_at for issue in self.issues)
         worked = any(issue.accepted_at for issue in self.issues)
         draft = any(not issue.tested_at
                     and not issue.closed_at
                     and not issue.accepted_at
                     for issue in self.issues)
-        if self.status == 'เสร็จสิ้น':
+        if self.status == 'เสร็จสิ้น' or closed:
             return '<i class="fas fa-check"></i>'
         elif self.status == 'ยกเลิก':
             return '<i class="fas fa-ban"></i>'
