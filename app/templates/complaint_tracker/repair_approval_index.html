@@ -108,7 +108,7 @@
                                         </span>
                                     {% else %}
                                         <span class="tag is-danger">
-                                            <span class="icon"><i class="fas fa-ban"></i></span>
+                                            <span class="icon"><i class="fas fa-times"></i></span>
                                             <span>ยังไม่ดำเนินการ</span>
                                         </span>
                                     {% endif %}
@@ -132,7 +132,7 @@
                                         </div>
                                         {% if not repair_approval.cancelled_at and ((not repair_approval.record.status)
                                                 or (repair_approval.record.status and
-                                                repair_approval.record.status.code != 'completed') or (repair_approval.record.status and
+                                                repair_approval.record.status.code != 'completed') and (repair_approval.record.status and
                                                 repair_approval.record.status.code != 'cancelled')) %}
                                             <div class="control mb-2">
                                                 <a class="button is-warning is-outlined is-rounded is-small"
