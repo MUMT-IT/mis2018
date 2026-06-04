@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import timedelta
 
 import arrow
 from flask import render_template, request, make_response, jsonify
@@ -15,15 +15,20 @@ from app.user_eval.models import EvaluationRecord
 def check_evaluate():
     blueprint = request.args.get('blueprint')
     if current_user.is_authenticated:
-        _eval_record = EvaluationRecord.query.filter_by(staff_id=current_user.id, blueprint=blueprint).first()
-        if _eval_record:
-            timedelta = arrow.now('Asia/Bangkok').datetime - _eval_record.created_at
-        else:
-            timedelta = None
-
+        latest_record = (
+            EvaluationRecord.query
+            .filter_by(staff_id=current_user.id, blueprint=blueprint)
+            .order_by(EvaluationRecord.created_at.desc(), EvaluationRecord.id.desc())
+            .first()
+        )
         form = EvaluationRecordForm()
         if request.method == 'GET':
-            if timedelta is None or timedelta.days > 365:
+            if not latest_record:
+                return render_template('user_eval/modals/evaluation_form.html',
+                                       form=form, blueprint=blueprint)
+
+            elapsed = arrow.now('Asia/Bangkok').datetime - latest_record.created_at
+            if elapsed >= timedelta(days=365):
                 return render_template('user_eval/modals/evaluation_form.html',
                                        form=form, blueprint=blueprint)
             else:

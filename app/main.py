@@ -698,7 +698,11 @@ app.register_blueprint(user_eval)
 
 from app.user_eval.models import *
 
-admin.add_views(ModelView(EvaluationRecord, db.session, category='UserEvaluation'))
+class EvaluationRecordModelView(ModelView):
+    form_excluded_columns = ('created_at',)
+
+
+admin.add_views(EvaluationRecordModelView(EvaluationRecord, db.session, category='UserEvaluation'))
 
 
 class RoomModelView(ModelView):
