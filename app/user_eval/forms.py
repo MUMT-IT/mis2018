@@ -17,7 +17,7 @@ class ModelForm(BaseModelForm):
 class EvaluationRecordForm(ModelForm):
     class Meta:
         model = EvaluationRecord
-        exclude = ['created_at', 'blueprint']
+        exclude = ['blueprint']
 
     score = RadioField('Score', choices=[('5', 'พอใจมาก'),
                                          ('4', 'พอใจ'),
@@ -26,4 +26,3 @@ class EvaluationRecordForm(ModelForm):
                                          ('1', 'พอใจน้อยมาก')],
                        default='5',
                        coerce=int)
-
