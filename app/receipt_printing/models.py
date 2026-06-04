@@ -42,6 +42,10 @@ class ElectronicReceiptDetail(db.Model):
     invoice = db.relationship(ServiceInvoice, backref=db.backref('receipts'))
 
     @property
+    def has_pdf(self):
+        return bool(self.pdf_file or self.pdf_url)
+
+    @property
     def item_list(self):
         return '\n '.join([i.item for i in self.items])
 
