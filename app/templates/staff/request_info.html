@@ -81,6 +81,9 @@
                                 <span class="title is-size-6">
                                     {{ request.start_datetime|localdatetime }} - {{ request.end_datetime|localdatetime }}
                                     ({{ request.total_leave_days }} วัน)
+                                    {% if request.country %}
+                                        Download เอกสาร
+                                    {% endif %}
                                 </span>
                             </a>
                             <p>

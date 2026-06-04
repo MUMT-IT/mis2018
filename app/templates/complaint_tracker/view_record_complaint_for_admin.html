@@ -306,15 +306,21 @@
                                 <div class="control">
                                     {% if record.status %}
                                         <span class="tag {{ record.status.color }}">
-                                        <span class="icon">{{ record.status.icon|safe }}</span>
-                                        <span>{{ record.status }}</span>
-                                    </span>
+                                            <span class="icon">{{ record.status.icon|safe }}</span>
+                                            <span>{{ record.status }}</span>
+                                        </span>
                                     {% else %}
                                         <span class="tag is-danger">
-                                        <span class="icon"><i class="fas fa-ban"></i></span>
-                                        <span>ยังไม่ดำเนินการ</span>
-                                    </span>
+                                            <span class="icon"><i class="fas fa-times"></i></span>
+                                            <span>ยังไม่ดำเนินการ</span>
+                                        </span>
                                     {% endif %}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">สถานะการแทงจำหน่าย</label>
+                                <div class="control">
+                                    {{ record.has_disposed }}
                                 </div>
                             </div>
                             <div class="field">

@@ -162,18 +162,26 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
     else:
         pa_item = None
         form = PAItemForm()
+    selected_kpi_item_ids = {item.id for item in pa_item.kpi_items} if pa_item else set()
     for kpi in pa.kpis:
         items = []
-        default = None
+        default = ''
+        default_kpi_item = None
+        if len(kpi.pa_kpi_items) > 1:
+            default_kpi_item = kpi.pa_kpi_items[1]
+        elif kpi.pa_kpi_items:
+            default_kpi_item = kpi.pa_kpi_items[0]
         for item in kpi.pa_kpi_items:
             items.append((item.id, textwrap.shorten(item.goal, width=100, placeholder='...')))
-            if pa_item:
-                if item in pa_item.kpi_items:
-                    default = item.id
+            if item.id in selected_kpi_item_ids:
+                default = item.id
         field_ = form.kpi_items_.append_entry(default)
-        field_.choices = [('', 'ไม่ระบุเป้าหมาย')] + items
+        field_.choices = items
         field_.label = kpi.detail
         field_.obj_id = kpi.id
+        field_.default_kpi_item_id = default_kpi_item.id if default_kpi_item else ''
+        field_.default_kpi_item_goal = textwrap.shorten(default_kpi_item.goal, width=100, placeholder='...') \
+            if default_kpi_item else ''
 
     is_send_request = True if PARequest.query.filter_by(pa=pa, for_='ขอรับรอง', status='อนุมัติ').first() else False
     is_self_scoresheet = True if PAScoreSheet.query.filter_by(pa=pa, staff=current_user).first() else False
@@ -293,18 +301,26 @@ def add_pa_item_kpi_form(round_id, item_id, pa_id):
     pa = PAAgreement.query.get(pa_id)
     pa_item = PAItem.query.get(item_id)
     form = PAItemForm(obj=pa_item)
+    selected_kpi_item_ids = {item.id for item in pa_item.kpi_items} if pa_item else set()
     for kpi in pa.kpis:
         items = []
-        default = None
+        default = ''
+        default_kpi_item = None
+        if len(kpi.pa_kpi_items) > 1:
+            default_kpi_item = kpi.pa_kpi_items[1]
+        elif kpi.pa_kpi_items:
+            default_kpi_item = kpi.pa_kpi_items[0]
         for item in kpi.pa_kpi_items:
             items.append((item.id, textwrap.shorten(item.goal, width=100, placeholder='...')))
-            if pa_item:
-                if item in pa_item.kpi_items:
-                    default = item.id
+            if item.id in selected_kpi_item_ids:
+                default = item.id
         field_ = form.kpi_items_.append_entry(default)
-        field_.choices = [('', 'ไม่ระบุเป้าหมาย')] + items
+        field_.choices = items
         field_.label = kpi.detail
         field_.obj_id = kpi.id
+        field_.default_kpi_item_id = default_kpi_item.id if default_kpi_item else ''
+        field_.default_kpi_item_goal = textwrap.shorten(default_kpi_item.goal, width=100, placeholder='...') \
+            if default_kpi_item else ''
     return render_template('PA/modals/pa_item_kpis_form_modal.html',
                            form=form, round_id=round_id, item_id=item_id, pa_id=pa_id, pa=pa, pa_item=pa_item)
 
@@ -454,6 +470,7 @@ def add_kpi(pa_id):
         for head_item in PAKPIJobPosition.query.filter(PAKPIJobPosition.job_position is None).all():
             all_current_job_kpi.append(head_item)
     form = PAKPIForm()
+    pa_levels = PALevel.query.order_by(PALevel.id.asc()).all()
     if form.validate_on_submit():
         new_kpi = PAKPI()
         form.populate_obj(new_kpi)
@@ -466,7 +483,7 @@ def add_kpi(pa_id):
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
     return render_template('PA/add_kpi.html', form=form, round_id=round_id, pa_id=pa_id,
-                           all_current_job_kpi=all_current_job_kpi)
+                           all_current_job_kpi=all_current_job_kpi, pa_levels=pa_levels)
 
 
 @pa.route('/api/job-kpi-details/<int:pa_id>', methods=['POST'])
@@ -542,6 +559,7 @@ def edit_kpi(pa_id, kpi_id, job_kpi_id=None):
     kpi = PAKPI.query.get(kpi_id)
     pa = PAAgreement.query.get(pa_id)
     form = PAKPIForm(obj=kpi)
+    pa_levels = PALevel.query.order_by(PALevel.id.asc()).all()
     if form.validate_on_submit():
         form.populate_obj(kpi)
         db.session.add(kpi)
@@ -551,7 +569,8 @@ def edit_kpi(pa_id, kpi_id, job_kpi_id=None):
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-    return render_template('PA/add_kpi.html', form=form, round_id=pa.round_id, kpi_id=kpi_id, job_kpi_id=job_kpi_id)
+    return render_template('PA/add_kpi.html', form=form, round_id=pa.round_id, kpi_id=kpi_id,
+                           job_kpi_id=job_kpi_id, pa_levels=pa_levels)
 
 
 @pa.route('/kpis/<int:kpi_id>/delete', methods=['DELETE'])

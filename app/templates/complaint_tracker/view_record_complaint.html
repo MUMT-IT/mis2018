@@ -218,10 +218,16 @@
                                     </span>
                                     {% else %}
                                         <span class="tag is-danger">
-                                        <span class="icon"><i class="fas fa-ban"></i></span>
+                                        <span class="icon"><i class="fas fa-times"></i></span>
                                         <span>ยังไม่ดำเนินการ</span>
                                     </span>
                                     {% endif %}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">สถานะการแทงจำหน่าย</label>
+                                <div class="control">
+                                    {{ record.has_disposed }}
                                 </div>
                             </div>
                             {% if record.deadline %}
