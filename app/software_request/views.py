@@ -6,7 +6,7 @@ import requests
 from dateutil import parser
 from app.main import mail
 from flask_mail import Message
-from sqlalchemy import or_, func, case
+from sqlalchemy import or_, func, case, and_
 from sqlalchemy.orm import joinedload
 from flask import render_template, redirect, flash, url_for, jsonify, request, make_response, current_app
 from flask_login import login_required, current_user
@@ -84,9 +84,9 @@ def _build_admin_request_query(tab):
     elif tab == 'cancel':
         return query.filter_by(status='ยกเลิก')
     elif tab == 'private':
-        return query.join(SoftwareRequestTimeline).filter(
-            SoftwareRequestTimeline.request_id == SoftwareRequestDetail.id,
-            SoftwareRequestTimeline.admin_id == current_user.id
+        return query.outerjoin(SoftwareRequestDetail.timelines).outerjoin(SoftwareRequestDetail.staffs).filter(
+            or_(SoftwareRequestTimeline.admin_id == current_user.id,
+                StaffAccount.id == current_user.id)
         ).distinct()
     return query
 
