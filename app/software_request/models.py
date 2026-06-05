@@ -135,64 +135,85 @@ class SoftwareRequestDetail(db.Model):
             return 'is-dark'
 
     @property
+    def status_icon(self):
+        if self.status == 'ส่งคำขอแล้ว':
+            return '<i class="fas fa-hourglass-half"></i>'
+        elif self.status == 'อยู่ระหว่างพิจารณา':
+            return '<i class="fas fa-history"></i>'
+        elif self.status == 'อนุมัติ':
+            return '<i class="fas fa-pen-fancy"></i>'
+        elif self.status == 'เสร็จสิ้น':
+            return '<i class="fas fa-check"></i>'
+        elif self.status == 'ไม่อนุมัติ':
+            return '<i class="fas fa-times"></i><'
+        else:
+            return '<i class="fas fa-ban"></i>'
+
+    @property
     def workflow_status(self):
-        closed = all(issue.cloesd_at for issue in self.issues)
-        tested = any(issue.tested_at for issue in self.issues)
-        worked = any(issue.accepted_at for issue in self.issues)
-        draft = any(not issue.tested_at
+        draft = all(not issue.tested_at
                     and not issue.closed_at
                     and not issue.accepted_at
-                    for issue in self.issues)
-        if self.status == 'เสร็จสิ้น' or closed:
-            return 'ดำเนินการเสร็จสิ้น'
-        elif self.status == 'ยกเลิก':
-            return 'ยกเลิกการพัฒนา'
-        elif tested:
-            return 'รอทดสอบ'
-        elif worked or draft:
-            return 'กำลังพัฒนา'
+                    for issue in self.issues) if self.issues else False
+        working = any(issue.accepted_at for issue in self.issues) if self.issues else False
+        testing = any(issue.tested_at for issue in self.issues) if self.issues else False
+
+        if self.status == 'อนุมัติ':
+            if not self.issues or draft:
+                return 'ยังไม่ดำเนินการ'
+            elif working:
+                return 'กำลังพัฒนา'
+            elif testing:
+                return 'รอทดสอบ'
+            else:
+                return 'รอปิดโครงการ'
         else:
-            return 'ยังไม่ดำเนินการ'
+            if self.status == 'ส่งคำขอแล้ว':
+                return 'รอดำเนินการ'
+            else:
+                return self.status
 
     @property
     def workflow_status_color(self):
-        closed = all(issue.cloesd_at for issue in self.issues)
-        tested = any(issue.tested_at for issue in self.issues)
-        worked = any(issue.accepted_at for issue in self.issues)
-        draft = any(not issue.tested_at
+        draft = all(not issue.tested_at
                     and not issue.closed_at
                     and not issue.accepted_at
-                    for issue in self.issues)
-        if self.status == 'เสร็จสิ้น' or closed:
-            return 'is-success'
-        elif self.status == 'ยกเลิก':
-            return 'is-dark'
-        elif tested:
-            return 'is-warning'
-        elif worked or draft:
-            return 'is-info'
+                    for issue in self.issues) if self.issues else False
+        working = any(issue.accepted_at for issue in self.issues) if self.issues else False
+        testing = any(issue.tested_at for issue in self.issues) if self.issues else False
+
+        if self.status == 'อนุมัติ':
+            if not self.issues or draft:
+                return 'is-danger'
+            elif working:
+                return 'is-warning'
+            elif testing:
+                return 'is-primary'
+            else:
+                return 'is-info'
         else:
-            return 'is-danger'
+            return self.status_color
 
     @property
     def workflow_status_icon(self):
-        closed = all(issue.cloesd_at for issue in self.issues)
-        tested = any(issue.tested_at for issue in self.issues)
-        worked = any(issue.accepted_at for issue in self.issues)
-        draft = any(not issue.tested_at
+        draft = all(not issue.tested_at
                     and not issue.closed_at
                     and not issue.accepted_at
-                    for issue in self.issues)
-        if self.status == 'เสร็จสิ้น' or closed:
-            return '<i class="fas fa-check"></i>'
-        elif self.status == 'ยกเลิก':
-            return '<i class="fas fa-ban"></i>'
-        elif tested:
-            return '<i class="fas fa-hourglass-start"></i>'
-        elif worked or draft:
-            return '<i class="fas fa-spinner"></i>'
+                    for issue in self.issues) if self.issues else False
+        working = any(issue.accepted_at for issue in self.issues) if self.issues else False
+        testing = any(issue.tested_at for issue in self.issues) if self.issues else False
+
+        if self.status == 'อนุมัติ':
+            if not self.issues or draft:
+                return '<i class="fas fa-ban"></i>'
+            elif working:
+                return '<i class="fas fa-hourglass-start"></i>'
+            elif testing:
+                return '<i class="fas fa-history"></i>'
+            else:
+                return '<i class="far fa-clock"></i>'
         else:
-            return '<i class="fas fa-times"></i>'
+            return self.status_icon
 
     def to_dict(self, open_issues=None, num_timelines=None, has_timeline=None):
         # Allow precomputed counts from the admin listing query to avoid per-row lazy loads.
