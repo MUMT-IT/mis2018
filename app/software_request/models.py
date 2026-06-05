@@ -145,7 +145,7 @@ class SoftwareRequestDetail(db.Model):
         elif self.status == 'เสร็จสิ้น':
             return '<i class="fas fa-check"></i>'
         elif self.status == 'ไม่อนุมัติ':
-            return '<i class="fas fa-times"></i><'
+            return '<i class="fas fa-times"></i>'
         else:
             return '<i class="fas fa-ban"></i>'
 
