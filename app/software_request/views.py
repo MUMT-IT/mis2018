@@ -739,30 +739,32 @@ def create_test_result(detail_id=None, test_result_id=None):
         link = url_for("software_request.view_request", detail_id=test_result.request_id, _external=True,
                        _scheme=scheme)
         if detail_id:
+            if not test_result.request.created_by.is_retired:
+                title = f'''แจ้งดำเนินการทดสอบของ{test_result.request.title}'''
+                message = f'''ขณะนี้ได้มีการจัดเตรียมรายการทดสอบสำหรับ "{test_result.request.title}" เรียบร้อยแล้ว\n'''
+                message += f'''โดยมีรายละเอียดรายการทดสอบ ดังนี้ {test_result.issue.issue}\n'''
+                message += f'''ท่านสามารถบันทึกผลการทดสอบได้ที่ลิงก์ด้านล่าง\n'''
+                message += f'''{link}\n\n'''
+                message += f'''ขอบคุณค่ะ\n'''
+                message += f'''ระบบขอรับบริการพัฒนา Software\n'''
+                message += f'''คณะเทคนิคการแพทย์'''
+                send_mail([test_result.request.created_by.email + '@mahidol.ac.th'], title, message)
             flash('บันทึกข้อมูลผลการทดสอบสำเร็จ', 'success')
-            title = f'''แจ้งดำเนินการทดสอบของ{test_result.request.title}'''
-            message = f'''ขณะนี้ได้มีการจัดเตรียมรายการทดสอบสำหรับ "{test_result.request.title}" เรียบร้อยแล้ว\n'''
-            message += f'''โดยมีรายละเอียดรายการทดสอบ ดังนี้ {test_result.issue.issue}\n'''
-            message += f'''ท่านสามารถบันทึกผลการทดสอบได้ที่ลิงก์ด้านล่าง\n'''
-            message += f'''{link}\n\n'''
-            message += f'''ขอบคุณค่ะ\n'''
-            message += f'''ระบบขอรับบริการพัฒนา Software\n'''
-            message += f'''คณะเทคนิคการแพทย์'''
-            send_mail([test_result.request.created_by.email + '@mahidol.ac.th'], title, message)
             resp = make_response(render_template('software_request/test_result_template.html',
                                                  test_result=test_result))
             resp.headers['HX-Trigger'] = 'closeTestResultModal'
         else:
+            if not test_result.request.created_by.is_retired:
+                title = f'''แจ้งแก้ไขรายการทดสอบของ{test_result.request.title}'''
+                message = f'''รายการทดสอบสำหรับ "{test_result.request.title}" ได้รับการแก้ไขแล้ว\n'''
+                message += f'''โดยมีรายละเอียดรายการทดสอบ ดังนี้ {test_result.issue.issue}\n'''
+                message += f'''ท่านสามารถบันทึกผลการทดสอบได้ที่ลิงก์ด้านล่าง\n'''
+                message += f'''{link}\n\n'''
+                message += f'''ขอบคุณค่ะ\n'''
+                message += f'''ระบบขอรับบริการพัฒนา Software\n'''
+                message += f'''คณะเทคนิคการแพทย์'''
+                send_mail([test_result.request.created_by.email + '@mahidol.ac.th'], title, message)
             flash('อัพเดตข้อมูลผลการทดสอบสำเร็จ', 'success')
-            title = f'''แจ้งแก้ไขรายการทดสอบของ{test_result.request.title}'''
-            message = f'''รายการทดสอบสำหรับ "{test_result.request.title}" ได้รับการแก้ไขแล้ว\n'''
-            message += f'''โดยมีรายละเอียดรายการทดสอบ ดังนี้ {test_result.issue.issue}\n'''
-            message += f'''ท่านสามารถบันทึกผลการทดสอบได้ที่ลิงก์ด้านล่าง\n'''
-            message += f'''{link}\n\n'''
-            message += f'''ขอบคุณค่ะ\n'''
-            message += f'''ระบบขอรับบริการพัฒนา Software\n'''
-            message += f'''คณะเทคนิคการแพทย์'''
-            send_mail([test_result.request.created_by.email + '@mahidol.ac.th'], title, message)
             resp = make_response()
             resp.headers['HX-Refresh'] = 'true'
         return resp
@@ -773,13 +775,14 @@ def create_test_result(detail_id=None, test_result_id=None):
 @software_request.route('/request/test_result/delete/<int:test_result_id>', methods=['GET', 'DELETE'])
 def delete_test_result(test_result_id):
     test_result = SoftwareRequestTestResult.query.get(test_result_id)
-    title = f'''แจ้งยกเลิกรายการทดสอบของ{test_result.request.title}'''
-    message = f'''รายการทดสอบสำหรับ "{test_result.request.title}" ได้ถูกยกเลิกแล้ว\n'''
-    message += f'''โดยมีรายละเอียดรายการทดสอบ ดังนี้ {test_result.issue.issue}\n'''
-    message += f'''ขอบอภับในความไม่สะดวก\n'''
-    message += f'''ระบบขอรับบริการพัฒนา Software\n'''
-    message += f'''คณะเทคนิคการแพทย์'''
-    send_mail([test_result.request.created_by.email + '@mahidol.ac.th'], title, message)
+    if not test_result.request.created_by.is_retired:
+        title = f'''แจ้งยกเลิกรายการทดสอบของ{test_result.request.title}'''
+        message = f'''รายการทดสอบสำหรับ "{test_result.request.title}" ได้ถูกยกเลิกแล้ว\n'''
+        message += f'''โดยมีรายละเอียดรายการทดสอบ ดังนี้ {test_result.issue.issue}\n'''
+        message += f'''ขอบอภับในความไม่สะดวก\n'''
+        message += f'''ระบบขอรับบริการพัฒนา Software\n'''
+        message += f'''คณะเทคนิคการแพทย์'''
+        send_mail([test_result.request.created_by.email + '@mahidol.ac.th'], title, message)
     db.session.delete(test_result)
     db.session.commit()
     flash('ลบผลการทดสอบสำเร็จ', 'success')
