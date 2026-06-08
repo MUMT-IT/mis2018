@@ -452,7 +452,7 @@ def update_request(detail_id):
                 f'''{detail.approver.fullname} ได้ทำการอัปเดตสถานะคำร้องขอรับบริการพัฒนา Software ของ {detail.title} เป็น "{detail.status}"'''
             )
 
-        if message_sections:
+        if message_sections and not detail.created_by.is_retired:
             title = f'''แจ้งอัปเดตคำร้องขอรับบริการพัฒนา Software'''
             message = f'''เรียน {detail.created_by.fullname}\n\n'''
             message += f'''ตามที่ท่านได้ดำเนินการขอรับบริการพัฒนา Software สำหรับ {detail.title} นั้น มีการอัปเดตดังต่อไปนี้\n\n'''
