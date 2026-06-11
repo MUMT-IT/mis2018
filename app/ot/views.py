@@ -126,6 +126,46 @@ def index():
     return render_template('ot/index.html', announcements=announcements)
 
 
+@ot.route('/admin')
+@login_required
+def admin_index():
+    announcements = OtPaymentAnnounce.query.filter_by(cancelled_at=None)
+    return render_template('ot/admin_index.html', announcements=announcements)
+
+
+@ot.route('/admin/timeslots', methods=['GET', 'POST'])
+@manager_permission.union(secretary_permission).require()
+@login_required
+def admin_timeslots():
+    form = OtTimeSlotForm()
+    timeslots = OtTimeSlot.query.order_by(OtTimeSlot.announcement_id, OtTimeSlot.start).all()
+
+    if request.method == 'POST' and form.validate_on_submit():
+        timeslot = OtTimeSlot()
+        timeslot.announcement = form.announcement.data
+        timeslot.work_for_org = form.work_for_org.data
+        timeslot.start = time.fromisoformat(form.start.data)
+        timeslot.end = time.fromisoformat(form.end.data)
+        timeslot.color = form.color.data or None
+        timeslot.note = form.note.data or None
+        db.session.add(timeslot)
+        db.session.commit()
+        flash(u'เพิ่มช่วงเวลาเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('ot.admin_timeslots'))
+
+    return render_template('ot/admin_timeslots.html', form=form, timeslots=timeslots)
+
+
+@ot.route('/api/announcements/<int:announcement_id>/timeslots')
+@login_required
+def get_announcement_timeslots(announcement_id):
+    timeslots = OtTimeSlot.query.filter_by(announcement_id=announcement_id).order_by(OtTimeSlot.start).all()
+    return jsonify([{
+        'id': slot.id,
+        'label': str(slot),
+    } for slot in timeslots])
+
+
 @ot.route('/orgs/<int:org_id>/announcement-list-modal')
 @login_required
 def list_announcement_modal(org_id):
@@ -140,16 +180,9 @@ def announcement():
     if not current_user:
         flash(u'ไม่พบสิทธิในการเข้าถึงหน้าดังกล่าว', 'danger')
         return render_template('ot/index.html')
-    compensations = OtCompensationRate.query.all()
-    upload_file_url = None
-    for compensation in compensations:
-        if compensation.announcement.upload_file_url:
-            upload_file = drive.CreateFile({'id': compensation.announcement.upload_file_url})
-            upload_file.FetchMetadata()
-            upload_file_url = upload_file.get('embedLink')
+    announcements = OtPaymentAnnounce.query.filter_by(cancelled_at=None).order_by(OtPaymentAnnounce.created_at.desc()).all()
     return render_template('ot/announce.html',
-                           compensations=compensations,
-                           upload_file_url=upload_file_url)
+                           announcements=announcements)
 
 
 @ot.route('/announce/create', methods=['GET', 'POST'])
@@ -190,10 +223,72 @@ def announcement_create_document():
     return render_template('ot/announce_create_document.html', form=form)
 
 
+@ot.route('/announce/edit/<int:announcement_id>', methods=['GET', 'POST'])
+@login_required
+def announcement_edit_document(announcement_id):
+    payment = OtPaymentAnnounce.query.get_or_404(announcement_id)
+    form = OtPaymentAnnounceForm(obj=payment)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            original_staff = payment.staff
+            form.populate_obj(payment)
+            payment.staff = original_staff
+            if form.upload.data:
+                drive = initialize_gdrive()
+                upload_file = form.upload.data
+                file_name = secure_filename(upload_file.filename)
+                upload_file.save(file_name)
+                file_drive = drive.CreateFile({'title': file_name,
+                                               'parents': [{'id': FOLDER_ANNOUNCE_ID, 'kind': 'drive#fileLink'}]})
+                file_drive.SetContentFile(file_name)
+                try:
+                    file_drive.Upload()
+                    file_drive.InsertPermission({'type': 'anyone',
+                                                 'value': 'anyone',
+                                                 'role': 'reader'})
+                except:
+                    flash('ไม่สามารถอัพโหลดไฟล์ขึ้น Google drive ได้', 'danger')
+                else:
+                    flash('ไฟล์ที่แนบมา ถูกบันทึกบน Google drive เรียบร้อยแล้ว', 'success')
+                    payment.upload_file_url = file_drive['id']
+                    payment.file_name = file_name
+            db.session.add(payment)
+            db.session.commit()
+            flash(u'แก้ไขประกาศเรียบร้อยแล้ว', 'success')
+            return redirect(url_for('ot.announcement'))
+        else:
+            for field, err in form.errors.items():
+                flash('{} {}'.format(field, err), 'danger')
+    return render_template('ot/announce_edit_document.html', form=form, payment=payment)
+
+
+@ot.route('/announce/<int:announcement_id>/compensations')
+@login_required
+def announcement_compensations(announcement_id):
+    announcement = OtPaymentAnnounce.query.get_or_404(announcement_id)
+    compensations = OtCompensationRate.query.filter_by(announce_id=announcement_id).all()
+    return render_template('ot/announce_compensations.html',
+                           announcement=announcement,
+                           compensations=compensations)
+
+
 @ot.route('/announce/add-compensation', methods=['GET', 'POST'])
 @login_required
 def announcement_add_compensation():
     form = OtCompensationRateForm()
+    announcement_id = request.args.get('announcement_id', type=int)
+    selected_announcement = None
+    if request.method == 'GET' and announcement_id:
+        selected_announcement = OtPaymentAnnounce.query.get(announcement_id)
+        if selected_announcement:
+            form.announcement.data = selected_announcement
+    elif request.method == 'POST':
+        selected_announcement = form.announcement.data
+
+    if selected_announcement:
+        form.time_slot.query_factory = lambda announcement_id=selected_announcement.id: OtTimeSlot.query.filter_by(announcement_id=announcement_id).all()
+    else:
+        form.time_slot.query_factory = lambda: []
     if request.method == 'POST':
         if form.validate_on_submit():
             compensation = OtCompensationRate()
@@ -201,6 +296,8 @@ def announcement_add_compensation():
             db.session.add(compensation)
             db.session.commit()
             flash(u'เพิ่มรายละเอียดของประกาศเรียบร้อยแล้ว', 'success')
+            if compensation.announcement:
+                return redirect(url_for('ot.announcement_compensations', announcement_id=compensation.announcement.id))
             return redirect(url_for('ot.announcement'))
         else:
             flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
@@ -212,6 +309,13 @@ def announcement_add_compensation():
 def announcement_edit_compensation(com_id):
     compensation = OtCompensationRate.query.get(com_id)
     form = OtCompensationRateForm(obj=compensation)
+    selected_announcement = form.announcement.data or compensation.announcement
+    if request.method == 'POST':
+        selected_announcement = form.announcement.data
+    if selected_announcement:
+        form.time_slot.query_factory = lambda announcement_id=selected_announcement.id: OtTimeSlot.query.filter_by(announcement_id=announcement_id).all()
+    else:
+        form.time_slot.query_factory = lambda: []
     if request.method == 'POST':
         if form.validate_on_submit():
             form.populate_obj(compensation)

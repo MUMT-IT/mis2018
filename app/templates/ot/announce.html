@@ -3,7 +3,6 @@
 
 {% block head %}
 {{ super() }}
-<link ref="//cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css" rel="stylesheet">
 {% endblock %}
 
 {% block page_content %}
@@ -17,72 +16,49 @@
                 </div>
                 <table id="myTable" class="table is-striped is-fullwidth">
                     <thead>
-                    <th>
-                        ตำแหน่ง
-                    </th>
-                    <th>
-                        ปฏิบัติงาน ณ
-                    </th>
-                    <th>
-                        ปฏิบัติงานให้แก่
-                    </th>
-                    <th>
-                        เริ่มเวลา
-                    </th>
-                    <th>
-                        สิ้นสุดเวลา
-                    </th>
-                    <th>
-                        ประเภท
-                    </th>
-                    <th>
-                        <span class="icon">
-                           <i class="far fa-eye"></i>
-                        </span>
-                        <span>ประกาศ</span>
-                    </th>
+                    <tr>
+                        <th>เรื่อง</th>
+                        <th>หน่วยงาน</th>
+                        <th>ผู้สร้าง</th>
+                        <th>ประกาศเมื่อ</th>
+                        <th>เริ่มใช้ตั้งแต่</th>
+                        <th>จำนวนตำแหน่ง</th>
+                        <th>ไฟล์</th>
+                    </tr>
                     </thead>
                     <tbody>
-                    {% for compensation in compensations %}
-                    {% if not compensation.announcement.cancelled_at %}
+                    {% for announcement in announcements %}
                     <tr>
                         <td>
-                            <a href="{{ url_for('ot.announcement_edit_compensation', com_id=compensation.id) }}">
-                                {{ compensation.role }}
+                            <a href="{{ url_for('ot.announcement_edit_document', announcement_id=announcement.id) }}">
+                                {{ announcement.topic or '-' }}
                             </a>
                         </td>
                         <td>
-                            {{ compensation.work_at_org.name }}
+                            {{ announcement.org.name if announcement.org else '-' }}
                         </td>
                         <td>
-                            {{ compensation.work_for_org.name }}
+                            {{ announcement.staff.personal_info.fullname if announcement.staff and announcement.staff.personal_info else '-' }}
                         </td>
                         <td>
-                            {{ compensation.start_time }}
+                            {{ announcement.announce_at|localdatetime if announcement.announce_at else '-' }}
                         </td>
                         <td>
-                            {{ compensation.end_time }}
+                            {{ announcement.start_datetime|localdatetime if announcement.start_datetime else '-' }}
                         </td>
                         <td>
-                            {% if compensation.per_day %}
-                                {{ compensation.per_day }} บาท(ต่อวัน)
-                            {% endif %}
-                            {% if compensation.per_period %}
-                                {{ compensation.per_period }} บาท(ต่อคาบ)
-                            {% endif %}
-                            {% if compensation.per_hour %}
-                                {{ compensation.per_hour }} บาท(ต่อชั่วโมง)
-                            {% endif %}
+                            <a href="{{ url_for('ot.announcement_compensations', announcement_id=announcement.id) }}">
+                                {{ announcement.ot_rate|length }} รายการ
+                            </a>
                         </td>
                         <td>
-                            {% if compensation.announcement.upload_file_url %}
-                            <a href="{{ upload_file_url }}">{{ compensation.announcement.topic }}</a>
+                            {% if announcement.upload_file_url %}
+                            <a href="https://drive.google.com/file/d/{{ announcement.upload_file_url }}/view">{{ announcement.file_name or 'ดูไฟล์' }}</a>
                             {% else %}
-                            {{ compensation.announcement.topic }}
+                            -
                             {% endif %}
                         </td>
                     </tr>
-                    {% endif %}
                     {% endfor %}
                     </tbody>
                 </table>
@@ -91,7 +67,7 @@
         <div class="columns">
             <div class="column">
                 <div class="notification is-info is-light">
-                    <span>ประกาศจะยังไม่แสดงในหน้านี้ หากยังไม่ได้เพิ่มตำแหน่งในประกาศ</span>
+                    <span>ประกาศทั้งหมดจะแสดงในหน้านี้ แม้ยังไม่ได้เพิ่มตำแหน่ง</span>
                 </div>
             </div>
         </div>
@@ -113,7 +89,7 @@
                     <div class="box">
                         <a href="{{ url_for('ot.announcement_add_compensation') }}">
                         <span class="icon is-large">
-                            <i class="far fa-user-plus fa-2x"></i>
+                            <i class="fas fa-plus fa-2x"></i>
                         </span>
                             <span class="is-size-4">เพิ่มตำแหน่ง</span>
                         </a>
@@ -123,7 +99,7 @@
         </div>
         <div class="columns">
             <div class="column">
-                <a class="button is-info is-light" href="{{ url_for('ot.index') }}">
+                <a class="button is-info is-light" href="{{ url_for('ot.admin_index') }}">
                      <span class="icon">
                         <i class="fas fa-arrow-left"></i>
                     </span>
@@ -136,7 +112,6 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
-<script src="//cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
 <script>
     $(document).ready( function () {
         $('#myTable').DataTable(

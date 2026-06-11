@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">จัดการช่วงเวลา OT</h1>
+                <a class="button is-light" href="{{ url_for('ot.announcement') }}">ไปหน้า ประกาศ</a>
+            </div>
+        </div>
+
+        <div class="columns">
+            <div class="column is-5">
+                <div class="box">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">{{ form.announcement.label.text }}</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    {{ form.announcement() }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.work_for_org.label.text }}</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    {{ form.work_for_org() }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.start.label.text }}</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    {{ form.start() }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.end.label.text }}</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    {{ form.end() }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.color.label.text }}</label>
+                            <div class="control">
+                                {{ form.color(class="input", placeholder="#1f77b4") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.note.label.text }}</label>
+                            <div class="control">
+                                {{ form.note(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-right">
+                            <div class="control">
+                                <button class="button is-primary" type="submit">บันทึก</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="column is-7">
+                <div class="box">
+                    <table id="timeslotTable" class="table is-striped is-fullwidth">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>ประกาศ</th>
+                                <th>หน่วยงาน</th>
+                                <th>เริ่มเวลา</th>
+                                <th>สิ้นสุดเวลา</th>
+                                <th>สี</th>
+                                <th>หมายเหตุ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for timeslot in timeslots %}
+                                <tr>
+                                    <td>{{ timeslot.id }}</td>
+                                    <td>{{ timeslot.announcement.topic if timeslot.announcement else '-' }}</td>
+                                    <td>{{ timeslot.work_for_org.name if timeslot.work_for_org else '-' }}</td>
+                                    <td>{{ timeslot.start }}</td>
+                                    <td>{{ timeslot.end }}</td>
+                                    <td>{{ timeslot.color or '-' }}</td>
+                                    <td>{{ timeslot.note or '-' }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function () {
+        $('#timeslotTable').DataTable({
+            pageLength: 10
+        });
+    });
+</script>
+{% endblock %}
