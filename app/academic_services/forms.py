@@ -377,11 +377,18 @@ class BacteriaRequestForm(FlaskForm):
                                          "oninvalid": "this.setCustomValidity('กรุณากรอกสารสำคัญที่ออกฤทธ์ และปริมาณสารสำคัญ')",
                                          "oninput": "this.setCustomValidity('')"
                                      })
-    product_appearance = StringField('ลักษณะทางกายภาพของผลิตภัณฑ์', validators=[DataRequired()],
+    product_appearance = SelectField('ลักษณะทางกายภาพของผลิตภัณฑ์',
+                                     choices=[('', 'กรุณาเลือกลักษณะทางกายภาพของผลิตภัณฑ์'),
+                                              ('ของเหลว', 'ของเหลว'),
+                                              ('ผง/เม็ดละลายน้ำ', 'ผง/เม็ดละลายน้ำ'),
+                                              ('สเปรย์', 'สเปรย์'),
+                                              ('พื้นผิวสำเร็จรูป', 'พื้นผิวสำเร็จรูป'),
+                                              ('อื่นๆ โปรดระบุ', 'อื่นๆ โปรดระบุ')], validators=[DataRequired()],
                                      render_kw={
-                                         "oninvalid": "this.setCustomValidity('กรุณากรอกลักษณะทางกายภาพของผลิตภัณฑ์')",
+                                         "oninvalid": "this.setCustomValidity('กรุณาเลือกลักษณะทางกายภาพของผลิตภัณฑ์')",
                                          "oninput": "this.setCustomValidity('')"
-                                     })
+                                         })
+    product_appearance_other = StringField('ระบุ')
     kind = StringField('ลักษณะบรรจุภัณฑ์', validators=[DataRequired()],
                        render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกลักษณะบรรจุภัณฑ์')",
                                   "oninput": "this.setCustomValidity('')"
