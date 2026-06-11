@@ -57,12 +57,22 @@
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">
-                                    {{ form.product_appearance.label }}
-                                    <span class="has-text-danger">*</span>
-                                </label>
-                                <div class="control">
-                                    {{ form.product_appearance(class='input', placeholder='เช่น ของเหลว') }}
+                                <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.product_appearance.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="select is-fullwidth">
+                                            {{ form.product_appearance(
+                                                        **{'hx-get': url_for("academic_services.get_product_appearance_other",
+                                                          request_id=request_id),
+                                                         'hx-target': '#product-appearance-other-container',
+                                                         'hx-swap': 'innerHTML',
+                                                         'hx-trigger': 'change, load'}) }}
+                                        </div>
+                                    </div>
+                                    <div id="product-appearance-other-container" style='width:67%'></div>
                                 </div>
                             </div>
                             <div class="field">
