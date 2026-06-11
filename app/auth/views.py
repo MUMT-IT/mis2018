@@ -75,7 +75,7 @@ def on_identity_loaded(sender, identity):
 
 
 @auth.route('/login', methods=['GET', 'POST'])
-def login():
+def login(is_admin=False):
     if current_user.is_authenticated:
         next_url = request.args.get('next', url_for('auth.account'))
         if is_safe_url(next_url):
@@ -119,7 +119,12 @@ def login():
                            form=form,
                            errors=form.errors,
                            linking_line=linking_line,
-                           google_login_enabled=_is_google_login_enabled())
+                           google_login_enabled=_is_google_login_enabled(), is_admin=is_admin)
+
+
+@auth.route('/login-admin', methods=['GET', 'POST'])
+def login_for_admin():
+    return login(is_admin=True)
 
 
 @auth.route('/account', methods=['GET', 'POST'])
