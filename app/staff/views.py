@@ -4432,9 +4432,13 @@ def staff_create_info():
         db.session.commit()
 
         START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+        missing_quota_types = []
         for type in StaffLeaveType.query.all():
             quota = StaffLeaveQuota.query.filter_by(employment_id=createstaff.employment_id,
                                                     leave_type_id=type.id).first()
+            if not quota:
+                missing_quota_types.append(type.type_)
+                continue
             new_used_quota = StaffLeaveUsedQuota(
                 leave_type_id=type.id,
                 staff_account_id=create_email.id,
@@ -4446,7 +4450,13 @@ def staff_create_info():
             db.session.add(new_used_quota)
             db.session.commit()
 
-        flash('เพิ่มบุคลากรเรียบร้อย และเพิ่มข้อมูล quota การลาให้กับพนักงานใหม่เรียบร้อย', 'success')
+        if missing_quota_types:
+            flash(
+                'เพิ่มบุคลากรเรียบร้อย แต่ไม่พบ quota การลาสำหรับประเภท: {}'.format(', '.join(missing_quota_types)),
+                'warning'
+            )
+        else:
+            flash('เพิ่มบุคลากรเรียบร้อย และเพิ่มข้อมูล quota การลาให้กับพนักงานใหม่เรียบร้อย', 'success')
         staff = StaffPersonalInfo.query.get(createstaff.id)
         return render_template('staff/staff_show_info.html', staff=staff)
     departments = Org.query.order_by(Org.id.asc()).all()
