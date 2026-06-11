@@ -58,6 +58,15 @@ def send_mail(recp, title, message):
     mail.send(message)
 
 
+def _is_external_account(user=None):
+    user = user or current_user
+    if not getattr(user, 'is_authenticated', False):
+        return False
+    personal_info = getattr(user, 'personal_info', None)
+    org = getattr(personal_info, 'org', None)
+    return bool(org and org.is_external)
+
+
 @identity_loaded.connect_via(app)
 def on_identity_loaded(sender, identity):
     # Set the identity user object
@@ -77,6 +86,8 @@ def on_identity_loaded(sender, identity):
 @auth.route('/login', methods=['GET', 'POST'])
 def login(is_admin=False):
     if current_user.is_authenticated:
+        if _is_external_account():
+            return redirect(url_for('external_landing'))
         next_url = request.args.get('next', url_for('auth.account'))
         if is_safe_url(next_url):
             return redirect(next_url)
@@ -102,12 +113,13 @@ def login(is_admin=False):
                 session['user_type'] = 'staff'
                 identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
                 # session.pop('_flashes', None)  # this line clears all unconsumed flash messages.
+                flash(u'You have just logged in. ลงทะเบียนเข้าใช้งานเรียบร้อย', 'success')
+                if _is_external_account(user):
+                    return redirect(url_for('external_landing'))
                 next_url = request.args.get('next', url_for('index'))
                 if not is_safe_url(next_url):
                     return abort(400)
-                else:
-                    flash(u'You have just logged in. ลงทะเบียนเข้าใช้งานเรียบร้อย', 'success')
-                    return redirect(next_url)
+                return redirect(next_url)
             else:
                 flash(u'Wrong password, try again. รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
                 return redirect(url_for('auth.login'))
@@ -304,7 +316,8 @@ def google_callback():
     session['user_type'] = 'staff'
     identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
     flash(u'You have just logged in with Google. ลงทะเบียนเข้าใช้งานเรียบร้อย', 'success')
-
+    if _is_external_account(user):
+        return redirect(url_for('external_landing'))
     if next_url and not is_safe_url(next_url):
         return abort(400)
     return redirect(next_url or url_for('index'))
@@ -379,6 +392,8 @@ def line_profile():
                 flash(u'Your account is inactive. บัญชีผู้ใช้นี้ไม่สามารถเข้าใช้งานได้', 'danger')
                 return redirect(url_for('auth.login'))
             session['user_type'] = 'staff'
+        if _is_external_account(line_user):
+            return redirect(url_for('external_landing'))
         return redirect(next_url or url_for('index'))
     else:
         return render_template('auth/line_account.html',

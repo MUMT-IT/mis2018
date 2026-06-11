@@ -29,7 +29,7 @@ from . import otbp as ot
 from app.main import (db, func, StaffPersonalInfo, StaffSpecialGroup,
                       StaffShiftSchedule, StaffWorkLogin, StaffLeaveRequest)
 from app.models import Org
-from flask import jsonify, render_template, request, redirect, url_for, flash, make_response, send_file
+from flask import abort, jsonify, render_template, request, redirect, url_for, flash, make_response, send_file
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 from datetime import date, datetime, time
@@ -49,6 +49,32 @@ localtz = pytz.timezone('Asia/Bangkok')
 login_tuple = namedtuple('LoginPair', ['staff_id', 'start', 'end', 'start_id', 'end_id'])
 
 MAX_LATE_MINUTES = 45
+
+EXTERNAL_OT_ALLOWED_ENDPOINTS = {
+    'ot.view_monthly_records',
+    'ot.summary_each_person',
+    'ot.get_ot_records',
+    'ot.get_all_ot_records_table',
+    'ot.get_ot_records_table',
+}
+
+
+def _is_external_account():
+    if not current_user.is_authenticated:
+        return False
+    personal_info = getattr(current_user, 'personal_info', None)
+    org = getattr(personal_info, 'org', None)
+    return bool(org and org.is_external)
+
+
+@ot.before_request
+def block_external_ot_routes():
+    if not _is_external_account():
+        return
+    endpoint = request.endpoint or ''
+    if endpoint in EXTERNAL_OT_ALLOWED_ENDPOINTS:
+        return
+    abort(403)
 
 pdfmetrics.registerFont(TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf'))
 pdfmetrics.registerFont(TTFont('SarabunBold', 'app/static/fonts/THSarabunNewBold.ttf'))
@@ -1045,7 +1071,7 @@ def get_records(org_id):
             'id': ot.id,
             'location': ot.location,
             'title': ot.compensation.role,
-            'stafforg': ot.staff.personal_info.org.name,
+            'stafforg': ot.staff.personal_info.org.display_name if ot.staff.personal_info.org else 'ไม่มีสังกัด',
             'businessHours': {
                 'start': ot.start_datetime.strftime('%H:%M'),
                 'end': ot.end_datetime.strftime('%H:%M'),
@@ -1055,6 +1081,7 @@ def get_records(org_id):
 
 
 @ot.route('/api/otrecords')
+@login_required
 def get_events():
     all_events = []
     text_color = '#ffffff'
@@ -1080,6 +1107,7 @@ def get_events():
 
 
 @ot.route('/records/<int:event_id>', methods=['POST', 'GET'])
+@login_required
 def show_event_detail(event_id=None):
     tz = pytz.timezone('Asia/Bangkok')
     if event_id:
@@ -1227,7 +1255,9 @@ def get_ot_records():
                 start = localtz.localize(record.shift.datetime.lower)
                 end = localtz.localize(record.shift.datetime.upper)
                 rec = {
-                    'title': record.compensation.work_at_org.name[:30] if len(record.compensation.work_at_org.name) > 30 else record.compensation.work_at_org.name,
+                    'title': record.compensation.work_at_org.display_name[:30]
+                    if len(record.compensation.work_at_org.display_name) > 30
+                    else record.compensation.work_at_org.display_name,
                     'start': start.isoformat(),
                     'end': end.isoformat(),
                     'borderColor': '#000000',
@@ -1777,7 +1807,7 @@ def get_all_ot_schedule(announcement_id=None, staff_id=None):
                 'rate': record.compensation.rate if record.compensation else '-',
                 'startDate': shift_start.strftime('%Y/%m/%d'),
                 'endDate': shift_end.strftime('%Y/%m/%d'),
-                'workAt': record.compensation.work_at_org.name,
+                'workAt': record.compensation.work_at_org.display_name,
             }
             all_records.append(rec)
         output = io.BytesIO()
@@ -1810,6 +1840,10 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
     cal_end = request.args.get('end')
     download = request.args.get('download')
     format = request.args.get('format', 'timesheet')
+    if _is_external_account():
+        if staff_id is not None and staff_id != current_user.id:
+            abort(403)
+        staff_id = current_user.id
     if cal_start:
         cal_start = parser.isoparse(cal_start)
         cal_start = cal_start.astimezone(localtz)
@@ -1967,7 +2001,7 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                                 'rate': record.compensation.rate if record.compensation else '-',
                                 'startDate': shift_start.strftime('%Y/%m/%d'),
                                 'endDate': shift_end.strftime('%Y/%m/%d'),
-                                'workAt': record.compensation.work_at_org.name,
+                                'workAt': record.compensation.work_at_org.display_name,
                             }
                             all_records.append(rec)
                             checkin_count += 1
@@ -1999,7 +2033,7 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                     'rate': record.compensation.rate if record.compensation else '-',
                     'startDate': shift_start.strftime('%Y/%m/%d'),
                     'endDate': shift_end.strftime('%Y/%m/%d'),
-                    'workAt': record.compensation.work_at_org.name,
+                    'workAt': record.compensation.work_at_org.display_name,
                 }
                 all_records.append(rec)
 

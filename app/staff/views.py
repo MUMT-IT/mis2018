@@ -12,7 +12,7 @@ from app.eduqa.models import EduQAInstructor
 from . import staffbp as staff
 from app.main import get_weekdays, mail, app, csrf
 from app.models import Holidays
-from flask import (jsonify, render_template, render_template_string, request,
+from flask import (abort, jsonify, render_template, render_template_string, request,
                    redirect, url_for, flash, session, send_from_directory,
                    make_response, current_app, send_file)
 from datetime import date, timedelta, datetime
@@ -39,6 +39,15 @@ from app.comhealth.views import allowed_file
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'docx', 'doc'}
 
+EXTERNAL_STAFF_ALLOWED_ENDPOINTS = {
+    'staff.geo_checkin',
+    'staff.show_qrcode',
+    'staff.create_qrcode',
+    'staff.show_time_report',
+    'staff.send_time_report_data',
+    'staff.send_holidays_data',
+}
+
 gauth = GoogleAuth()
 keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 scopes = ['https://www.googleapis.com/auth/drive']
@@ -51,6 +60,24 @@ tz = pytz.timezone('Asia/Bangkok')
 LEAVE_ANNUAL_QUOTA = 10
 
 manager_or_secretary_permission = manager_permission.union(secretary_permission)
+
+
+def _is_external_account():
+    if not current_user.is_authenticated:
+        return False
+    personal_info = getattr(current_user, 'personal_info', None)
+    org = getattr(personal_info, 'org', None)
+    return bool(org and org.is_external)
+
+
+@staff.before_request
+def block_external_staff_routes():
+    if not _is_external_account():
+        return
+    endpoint = request.endpoint or ''
+    if endpoint in EXTERNAL_STAFF_ALLOWED_ENDPOINTS:
+        return
+    abort(403)
 
 
 def allowed_file(filename):
@@ -5035,10 +5062,18 @@ def add_holiday():
     return render_template('staff/add_Holiday.html', holiday=holiday)
 
 
-@staff.route('/for-hr/organizations')
+@staff.route('/for-hr/organizations', methods=['GET', 'POST'])
 @hr_permission.require()
 @login_required
 def edit_organizations():
+    if request.method == 'POST':
+        org = Org.query.get(request.form.get('org_id', type=int))
+        if org:
+            org.is_external = bool(request.form.get('is_external'))
+            db.session.add(org)
+            db.session.commit()
+            flash('บันทึกสถานะหน่วยงานเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('staff.edit_organizations'))
     orgs = Org.query.all()
     return render_template('staff/organizations.html', orgs=orgs)
 
@@ -5124,6 +5159,13 @@ def create_qrcode(account_id):
     latitude = request.args.get('lat', '')
     longitude = request.args.get('long', '')
     account = StaffAccount.query.get(account_id)
+    if not account or not account.personal_info:
+        abort(404)
+    if account_id != current_user.id:
+        abort(403)
+    org = account.personal_info.org if account and account.personal_info else None
+    org_th_name = org.display_name if org else u'ไม่มีสังกัด'
+    org_en_name = org.en_name or org.name if org else 'NO ORG'
     qr = qrcode.QRCode(version=1, box_size=20)
     current_time = datetime.now(pytz.utc)
     expired_time = current_time + timedelta(minutes=10)
@@ -5139,8 +5181,8 @@ def create_qrcode(account_id):
         "",
         account.personal_info.en_title or '',
         account.personal_info.en_firstname + ' ' + account.personal_info.en_lastname,
-        u"คณะเทคนิคการแพทย์",
-        "FACULTY OF MEDICAL TECHNOLOGY",
+        org_th_name,
+        org_en_name,
     ])
     qr.add_data(qr_data)
     qr.make(fit=True)
