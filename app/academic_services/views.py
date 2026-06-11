@@ -3562,11 +3562,11 @@ def generate_bacteria_request_pdf(service_request):
     ]))
 
     staff_only = '''<para><font size=13>
-                        สำหรับเจ้าหน้าที่ / Staff only<br/>
-                        เลขที่ใบคำขอ &nbsp;  <u>&nbsp;&nbsp;&nbsp;{request_no}&nbsp;&nbsp;&nbsp;</u><br/>
-                        วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
-                        วันที่รายงานผล <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
-                        </font></para>'''.format(request_no=service_request.request_no)
+                            สำหรับเจ้าหน้าที่ / Staff only<br/>
+                            เลขที่ใบคำขอ &nbsp;  <u>&nbsp;&nbsp;&nbsp;{request_no}&nbsp;&nbsp;&nbsp;</u><br/>
+                            วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
+                            วันที่รายงานผล <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
+                            </font></para>'''.format(request_no=service_request.request_no)
 
     staff_table = Table([[Paragraph(staff_only, style=style_sheet['ThaiStyle'])]], colWidths=[150])
 
@@ -4050,11 +4050,11 @@ def generate_virus_request_pdf(service_request):
     ]))
 
     staff_only = '''<para><font size=13>
-                        สำหรับเจ้าหน้าที่ / Staff only<br/>
-                        เลขที่ใบคำขอ &nbsp;  <u>&nbsp;&nbsp;&nbsp;{request_no}&nbsp;&nbsp;&nbsp;</u><br/>
-                        วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
-                        วันที่รายงานผล <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
-                        </font></para>'''.format(request_no=service_request.request_no)
+                            สำหรับเจ้าหน้าที่ / Staff only<br/>
+                            เลขที่ใบคำขอ &nbsp;  <u>&nbsp;&nbsp;&nbsp;{request_no}&nbsp;&nbsp;&nbsp;</u><br/>
+                            วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
+                            วันที่รายงานผล <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
+                            </font></para>'''.format(request_no=service_request.request_no)
 
     staff_table = Table([[Paragraph(staff_only, style=style_sheet['ThaiStyle'])]], colWidths=[150])
 
