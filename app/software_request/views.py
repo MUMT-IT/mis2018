@@ -6,7 +6,7 @@ import requests
 from dateutil import parser
 from app.main import mail
 from flask_mail import Message
-from sqlalchemy import or_, func, case
+from sqlalchemy import or_, func, case, and_
 from sqlalchemy.orm import joinedload
 from flask import render_template, redirect, flash, url_for, jsonify, request, make_response, current_app
 from flask_login import login_required, current_user
@@ -84,9 +84,9 @@ def _build_admin_request_query(tab):
     elif tab == 'cancel':
         return query.filter_by(status='ยกเลิก')
     elif tab == 'private':
-        return query.join(SoftwareRequestTimeline).filter(
-            SoftwareRequestTimeline.request_id == SoftwareRequestDetail.id,
-            SoftwareRequestTimeline.admin_id == current_user.id
+        return query.outerjoin(SoftwareRequestDetail.timelines).outerjoin(SoftwareRequestDetail.staffs).filter(
+            or_(SoftwareRequestTimeline.admin_id == current_user.id,
+                StaffAccount.id == current_user.id)
         ).distinct()
     return query
 
@@ -452,7 +452,7 @@ def update_request(detail_id):
                 f'''{detail.approver.fullname} ได้ทำการอัปเดตสถานะคำร้องขอรับบริการพัฒนา Software ของ {detail.title} เป็น "{detail.status}"'''
             )
 
-        if message_sections:
+        if message_sections and not detail.created_by.is_retired:
             title = f'''แจ้งอัปเดตคำร้องขอรับบริการพัฒนา Software'''
             message = f'''เรียน {detail.created_by.fullname}\n\n'''
             message += f'''ตามที่ท่านได้ดำเนินการขอรับบริการพัฒนา Software สำหรับ {detail.title} นั้น มีการอัปเดตดังต่อไปนี้\n\n'''
@@ -509,35 +509,33 @@ def create_timeline(detail_id=None, timeline_id=None):
         timeline.request.approver_id = current_user.id
         db.session.add(timeline)
         db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
+        link = url_for("software_request.view_request", detail_id=timeline.request_id, _external=True,
+                       _scheme=scheme)
         if detail_id:
-            scheme = 'http' if current_app.debug else 'https'
-            link = url_for("software_request.view_request", detail_id=timeline.request_id, _external=True,
-                           _scheme=scheme)
-            title = f'''แจ้งเพิ่มความคืบหน้า (Timeline) คำร้องขอรับบริการพัฒนา Software'''
-            message = f'''เรียน {timeline.request.created_by.fullname}\n\n'''
-            message += f'''{timeline.request.approver.fullname} ได้ทำการเพิ่มความคืบหน้า (Timeline) ของคำร้องขอรับบริการพัฒนา \n\n'''
-            message += f'''โดยมีรายละเอียดข้อมูลดังต่อไปนี้\n'''
-            message += f'''  – งานที่ต้องดำเนินการ (Task): {timeline.task}\n'''
-            message += f'''  – สถานะการดำเนินงาน: {timeline.status}\n'''
-            message += f'''  – วันที่เริ่มต้น: {timeline.start.strftime('%d/%m/%Y')}\n'''
-            message += f'''  – วันที่คาดว่าจะแล้วเสร็จ: {timeline.estimate.strftime('%d/%m/%Y')}\n'''
-            message += f'''  – สถานะ: {timeline.status}\n'''
-            message += f'''ท่านสามารถตรวจสอบรายละเอียดและความคืบหน้าเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n\n'''
-            message += f'''{link}\n\n'''
-            message += f'''หากมีข้อสงสัยหรือต้องการสอบถามข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่รับผิดชอบ\n\n'''
-            message += f'''ขอบคุณค่ะ\n'''
-            message += f'''ระบบขอรับบริการพัฒนา Software\n'''
-            message += f'''คณะเทคนิคการแพทย์'''
-            send_mail([timeline.request.created_by.email + '@mahidol.ac.th'], title, message)
+            if not timeline.request.created_by.is_retired:
+                title = f'''แจ้งเพิ่มความคืบหน้า (Timeline) คำร้องขอรับบริการพัฒนา Software'''
+                message = f'''เรียน {timeline.request.created_by.fullname}\n\n'''
+                message += f'''{timeline.request.approver.fullname} ได้ทำการเพิ่มความคืบหน้า (Timeline) ของคำร้องขอรับบริการพัฒนา \n\n'''
+                message += f'''โดยมีรายละเอียดข้อมูลดังต่อไปนี้\n'''
+                message += f'''  – งานที่ต้องดำเนินการ (Task): {timeline.task}\n'''
+                message += f'''  – สถานะการดำเนินงาน: {timeline.status}\n'''
+                message += f'''  – วันที่เริ่มต้น: {timeline.start.strftime('%d/%m/%Y')}\n'''
+                message += f'''  – วันที่คาดว่าจะแล้วเสร็จ: {timeline.estimate.strftime('%d/%m/%Y')}\n'''
+                message += f'''  – สถานะ: {timeline.status}\n'''
+                message += f'''ท่านสามารถตรวจสอบรายละเอียดและความคืบหน้าเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n\n'''
+                message += f'''{link}\n\n'''
+                message += f'''หากมีข้อสงสัยหรือต้องการสอบถามข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่รับผิดชอบ\n\n'''
+                message += f'''ขอบคุณค่ะ\n'''
+                message += f'''ระบบขอรับบริการพัฒนา Software\n'''
+                message += f'''คณะเทคนิคการแพทย์'''
+                send_mail([timeline.request.created_by.email + '@mahidol.ac.th'], title, message)
             flash('เพิ่มข้อมูลสำเร็จ', 'success')
             resp = make_response(render_template('software_request/timeline_template.html',tab=tab,
                                                  timeline=timeline, template=template))
             resp.headers['HX-Trigger'] = 'closeTimelineModal '
         else:
-            if status != timeline.status:
-                scheme = 'http' if current_app.debug else 'https'
-                link = url_for("software_request.view_request", detail_id=timeline.request_id, _external=True,
-                               _scheme=scheme)
+            if status != timeline.status and not timeline.request.created_by.is_retired:
                 title = f'''แจ้งอัปเดตสถานะความคืบหน้า (Timeline) คำร้องขอรับบริการพัฒนา Software'''
                 message = f'''เรียน {timeline.request.created_by.fullname}\n\n'''
                 message += f'''{timeline.request.approver.fullname} ได้ทำการอัปเดตความคืบหน้า (Timeline) ของคำร้องขอรับบริการพัฒนา Software ของ{timeline.request.title}เป็น "{timeline.status}"\n\n'''
@@ -570,16 +568,17 @@ def update_timeline_status(timeline_id):
     db.session.commit()
     scheme = 'http' if current_app.debug else 'https'
     link = url_for("software_request.view_request", detail_id=timeline.request_id, _external=True, _scheme=scheme)
-    title = f'''แจ้งอัปเดตสถานะความคืบหน้า (Timeline) คำร้องขอรับบริการพัฒนา Software'''
-    message = f'''เรียน {timeline.request.created_by.fullname}\n\n'''
-    message += f'''{timeline.request.approver.fullname} ได้ทำการอัปเดตความคืบหน้า (Timeline) ของคำร้องขอรับบริการพัฒนา Software ของท่านเป็น "{timeline.status}"\n\n'''
-    message += f'''ท่านสามารถตรวจสอบรายละเอียดและความคืบหน้าเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
-    message += f'''{link}\n\n'''
-    message += f'''หากมีข้อสงสัยหรือต้องการสอบถามข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่รับผิดชอบ\n\n'''
-    message += f'''ขอบคุณค่ะ\n'''
-    message += f'''ระบบขอรับบริการพัฒนา Software\n'''
-    message += f'''คณะเทคนิคการแพทย์'''
-    send_mail([timeline.request.created_by.email + '@mahidol.ac.th'], title, message)
+    if not timeline.request.created_by.is_retired:
+        title = f'''แจ้งอัปเดตสถานะความคืบหน้า (Timeline) คำร้องขอรับบริการพัฒนา Software'''
+        message = f'''เรียน {timeline.request.created_by.fullname}\n\n'''
+        message += f'''{timeline.request.approver.fullname} ได้ทำการอัปเดตความคืบหน้า (Timeline) ของคำร้องขอรับบริการพัฒนา Software ของท่านเป็น "{timeline.status}"\n\n'''
+        message += f'''ท่านสามารถตรวจสอบรายละเอียดและความคืบหน้าเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
+        message += f'''{link}\n\n'''
+        message += f'''หากมีข้อสงสัยหรือต้องการสอบถามข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่รับผิดชอบ\n\n'''
+        message += f'''ขอบคุณค่ะ\n'''
+        message += f'''ระบบขอรับบริการพัฒนา Software\n'''
+        message += f'''คณะเทคนิคการแพทย์'''
+        send_mail([timeline.request.created_by.email + '@mahidol.ac.th'], title, message)
     flash('อัพเดตสถานะสำเร็จ', 'success')
     resp = make_response()
     resp.headers['HX-Redirect'] = 'true'
@@ -598,25 +597,25 @@ def delete_timeline(timeline_id):
     db.session.commit()
     scheme = 'http' if current_app.debug else 'https'
     link = url_for("software_request.view_request", detail_id=timeline.request_id, _external=True, _scheme=scheme)
-    title = f'''แจ้งการยกเลิกพัฒนาความคืบหน้า (Timeline) คำร้องขอรับบริการพัฒนา Software'''
-    message = f'''เรียน {timeline.request.created_by.fullname}\n\n'''
-    message += f'''{timeline.request.approver.fullname} ได้ทำการยกเลิกพัฒนาความคืบหน้า (Timeline) ของคำร้องขอรับบริการพัฒนา \n\n'''
-    message += f'''โดยมีรายละเอียดข้อมูลดังต่อไปนี้\n'''
-    message += f'''  – งานที่ต้องดำเนินการ (Task): {timeline.task}\n'''
-    message += f'''  – สถานะการดำเนินงาน: {timeline.status}\n'''
-    message += f'''  – วันที่เริ่มต้น: {timeline.start.strftime('%d/%m/%Y')}\n'''
-    message += f'''  – วันที่คาดว่าจะแล้วเสร็จ: {timeline.estimate.strftime('%d/%m/%Y')}\n'''
-    message += f'''  – สถานะ: {timeline.status}\n'''
-    message += f'''ท่านสามารถตรวจสอบรายละเอียดเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
-    message += f'''{link}\n\n'''
-    message += f'''หากมีข้อสงสัยหรือต้องการสอบถามข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่รับผิดชอบ\n\n'''
-    message += f'''ขอบคุณค่ะ\n'''
-    message += f'''ระบบขอรับบริการพัฒนา Software\n'''
-    message += f'''คณะเทคนิคการแพทย์'''
-    send_mail([timeline.request.created_by.email + '@mahidol.ac.th'], title, message)
+    if not timeline.request.created_by.is_retired:
+        title = f'''แจ้งการยกเลิกพัฒนาความคืบหน้า (Timeline) คำร้องขอรับบริการพัฒนา Software'''
+        message = f'''เรียน {timeline.request.created_by.fullname}\n\n'''
+        message += f'''{timeline.request.approver.fullname} ได้ทำการยกเลิกพัฒนาความคืบหน้า (Timeline) ของคำร้องขอรับบริการพัฒนา \n\n'''
+        message += f'''โดยมีรายละเอียดข้อมูลดังต่อไปนี้\n'''
+        message += f'''  – งานที่ต้องดำเนินการ (Task): {timeline.task}\n'''
+        message += f'''  – สถานะการดำเนินงาน: {timeline.status}\n'''
+        message += f'''  – วันที่เริ่มต้น: {timeline.start.strftime('%d/%m/%Y')}\n'''
+        message += f'''  – วันที่คาดว่าจะแล้วเสร็จ: {timeline.estimate.strftime('%d/%m/%Y')}\n'''
+        message += f'''  – สถานะ: {timeline.status}\n'''
+        message += f'''ท่านสามารถตรวจสอบรายละเอียดเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
+        message += f'''{link}\n\n'''
+        message += f'''หากมีข้อสงสัยหรือต้องการสอบถามข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่รับผิดชอบ\n\n'''
+        message += f'''ขอบคุณค่ะ\n'''
+        message += f'''ระบบขอรับบริการพัฒนา Software\n'''
+        message += f'''คณะเทคนิคการแพทย์'''
+        send_mail([timeline.request.created_by.email + '@mahidol.ac.th'], title, message)
     db.session.delete(timeline)
     db.session.commit()
-
     resp = make_response()
     if cancel == 'true':
         flash('ยกเลิกรายการสำเร็จ', 'success')
@@ -736,12 +735,35 @@ def create_test_result(detail_id=None, test_result_id=None):
             test_result.updater_id = current_user.id
         db.session.add(test_result)
         db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
+        link = url_for("software_request.view_request", detail_id=test_result.request_id, _external=True,
+                       _scheme=scheme)
         if detail_id:
+            if not test_result.request.created_by.is_retired:
+                title = f'''แจ้งดำเนินการทดสอบของ{test_result.request.title}'''
+                message = f'''ขณะนี้ได้มีการจัดเตรียมรายการทดสอบสำหรับ "{test_result.request.title}" เรียบร้อยแล้ว\n'''
+                message += f'''โดยมีรายละเอียดรายการทดสอบ ดังนี้ {test_result.issue.issue}\n'''
+                message += f'''ท่านสามารถบันทึกผลการทดสอบได้ที่ลิงก์ด้านล่าง\n'''
+                message += f'''{link}\n\n'''
+                message += f'''ขอบคุณค่ะ\n'''
+                message += f'''ระบบขอรับบริการพัฒนา Software\n'''
+                message += f'''คณะเทคนิคการแพทย์'''
+                send_mail([test_result.request.created_by.email + '@mahidol.ac.th'], title, message)
             flash('บันทึกข้อมูลผลการทดสอบสำเร็จ', 'success')
             resp = make_response(render_template('software_request/test_result_template.html',
                                                  test_result=test_result))
             resp.headers['HX-Trigger'] = 'closeTestResultModal'
         else:
+            if not test_result.request.created_by.is_retired:
+                title = f'''แจ้งแก้ไขรายการทดสอบของ{test_result.request.title}'''
+                message = f'''รายการทดสอบสำหรับ "{test_result.request.title}" ได้รับการแก้ไขแล้ว\n'''
+                message += f'''โดยมีรายละเอียดรายการทดสอบ ดังนี้ {test_result.issue.issue}\n'''
+                message += f'''ท่านสามารถบันทึกผลการทดสอบได้ที่ลิงก์ด้านล่าง\n'''
+                message += f'''{link}\n\n'''
+                message += f'''ขอบคุณค่ะ\n'''
+                message += f'''ระบบขอรับบริการพัฒนา Software\n'''
+                message += f'''คณะเทคนิคการแพทย์'''
+                send_mail([test_result.request.created_by.email + '@mahidol.ac.th'], title, message)
             flash('อัพเดตข้อมูลผลการทดสอบสำเร็จ', 'success')
             resp = make_response()
             resp.headers['HX-Refresh'] = 'true'
@@ -753,6 +775,14 @@ def create_test_result(detail_id=None, test_result_id=None):
 @software_request.route('/request/test_result/delete/<int:test_result_id>', methods=['GET', 'DELETE'])
 def delete_test_result(test_result_id):
     test_result = SoftwareRequestTestResult.query.get(test_result_id)
+    if not test_result.request.created_by.is_retired:
+        title = f'''แจ้งยกเลิกรายการทดสอบของ{test_result.request.title}'''
+        message = f'''รายการทดสอบสำหรับ "{test_result.request.title}" ได้ถูกยกเลิกแล้ว\n'''
+        message += f'''โดยมีรายละเอียดรายการทดสอบ ดังนี้ {test_result.issue.issue}\n'''
+        message += f'''ขอบอภับในความไม่สะดวก\n'''
+        message += f'''ระบบขอรับบริการพัฒนา Software\n'''
+        message += f'''คณะเทคนิคการแพทย์'''
+        send_mail([test_result.request.created_by.email + '@mahidol.ac.th'], title, message)
     db.session.delete(test_result)
     db.session.commit()
     flash('ลบผลการทดสอบสำเร็จ', 'success')

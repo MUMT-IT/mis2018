@@ -259,7 +259,7 @@ class SoftwareRequestTimeline(db.Model):
     issue = db.relationship('SoftwareIssues', backref=db.backref('timelines', lazy='dynamic'))
 
     def __str__(self):
-        return f'{self.phase}: {self.task}'
+        return self.task
 
     @property
     def status_color(self):
@@ -297,6 +297,9 @@ class SoftwareIssues(db.Model):
     accepted_at = db.Column('accepted_at', db.DateTime(timezone=True))
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
     staff = db.relationship(StaffAccount, backref=db.backref('software_request_issues'), foreign_keys=[staff_id])
+
+    def __str__(self):
+        return self.issue
 
     @property
     def status(self):
@@ -345,7 +348,7 @@ class SoftwareRequestTestResult(db.Model):
     request = db.relationship(SoftwareRequestDetail, backref=db.backref('test_results'))
 
     def __str__(self):
-        return self.detail
+        return self.issue.issue if self.issue else ''
 
     @property
     def status_color(self):
