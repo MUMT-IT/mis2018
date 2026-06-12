@@ -5496,8 +5496,9 @@ def confirm_sample_appointment_page(request_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     code = request.args.get('code')
+    service_request = ServiceRequest.query.get(request_id)
     return render_template('academic_services/confirm_sample_appointment_page.html', request_id=request_id,
-                           menu=menu, tab=tab, code=code)
+                           menu=menu, tab=tab, code=code, service_request=service_request)
 
 
 @academic_services.route('/customer/sample/tracking_number/add/<int:sample_id>', methods=['GET', 'POST'])
