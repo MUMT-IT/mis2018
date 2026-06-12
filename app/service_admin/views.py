@@ -1344,8 +1344,8 @@ def get_product_appearance_other():
     return resp
 
 
-@service_admin.route("/request/product_storage")
-def get_product_storage():
+@service_admin.route("/request/product_storage_other")
+def get_product_storage_other():
     request_id = request.args.get("request_id")
     product_storage = request.args.get("product_storage")
     label = 'ระบุ'
