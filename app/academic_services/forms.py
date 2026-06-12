@@ -409,38 +409,53 @@ class BacteriaRequestForm(FlaskForm):
                          render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกเลขที่ผลิต / Lot no.')",
                                     "oninput": "this.setCustomValidity('')"
                                     })
+    amount = StringField('จำนวนที่ส่ง', validators=[DataRequired()],
+                         render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกจำนวนที่ส่ง')",
+                                    "oninput": "this.setCustomValidity('')"
+                                    })
+    service_life = StringField('อายุการใช้งานหลังการเปิดใช้', validators=[DataRequired()],
+                               render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกอายุการใช้งานหลังดารเปิดใช้')",
+                                          "oninput": "this.setCustomValidity('')"
+                                          })
+    product_storage = SelectField('การเก็บรักษาผลิตภัณฑ์',
+                                  choices=[('', 'กรุณาเลือกการเก็บรักษาผลิตภัณฑ์'),
+                                           ('เก็บรักษาที่อุณหภูมิห้อง', 'เก็บรักษาที่อุณหภูมิห้อง'),
+                                           ('อื่นๆ โปรดระบุ', 'อื่นๆ โปรดระบุ')], validators=[DataRequired()],
+                                  render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือกการเก็บรักษาผลิตภัณฑ์')",
+                                             "oninput": "this.setCustomValidity('')"
+                                             })
+    product_storage_other = StringField('ระบุ')
+    post_test_product_action = SelectField('ต้องการให้ดำเนินการกับผลิตภัณฑ์ที่เหลือหลังการทดสอบเสร็จสิ้น',
+                                           choices=[('',
+                                                     'กรุณาเลือกความต้องการให้ดำเนินการกับผลิตภัณฑ์ที่เหลือหลังการทดสอบเสร็จสิ้น'),
+                                                    ('รับผลิตภัณฑ์คืน (ต้องติดต่อรับผลิตภัณฑ์คืนภายใน 30 วันหลังจากได้รับผลการทดสอบ)',
+                                                     'รับผลิตภัณฑ์คืน (ต้องติดต่อรับผลิตภัณฑ์คืนภายใน 30 วันหลังจากได้รับผลการทดสอบ)'),
+                                                    ('ทำลายผลิตภัณฑ์ตามกระบวนการของห้องปฏิบัติการ',
+                                                     'ทำลายผลิตภัณฑ์ตามกระบวนการของห้องปฏิบัติการ')],
+                                           validators=[DataRequired()],
+                                           render_kw={
+                                               "oninvalid": "this.setCustomValidity('กรุณาเลือกความต้องการให้ดำเนินการกับผลิตภัณฑ์ที่เหลือหลังการทดสอบเสร็จสิ้น')",
+                                               "oninput": "this.setCustomValidity('')"
+                                           })
     manufacturer = StringField('ผู้ผลิต', validators=[DataRequired()],
-                               render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกผู้ผลิต')",
+                               render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อผู้ผลิต')",
                                           "oninput": "this.setCustomValidity('')"
                                           })
     manufacturer_address = TextAreaField('ที่อยู่ผู้ผลิต', validators=[DataRequired()],
                                          render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้ผลิต')",
                                                     "oninput": "this.setCustomValidity('')"
                                                     })
-    importanddistributor = StringField('ผู้นำเข้า/จัดจำหน่าย', validators=[DataRequired()],
-                                       render_kw={
-                                           "oninvalid": "this.setCustomValidity('กรุณากรอกผู้นำเข้า/จัดจำหน่าย')",
-                                           "oninput": "this.setCustomValidity('')"
-                                       })
-    importanddistributor_address = TextAreaField('ที่อยู่ผู้นำเข้า/จัดจำหน่าย', validators=[DataRequired()],
-                                                 render_kw={
-                                                     "oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้นำเข้า/จัดจำหน่าย')",
-                                                     "oninput": "this.setCustomValidity('')"
-                                                 })
-    amount = StringField('จำนวนที่ส่ง', validators=[DataRequired()],
-                         render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกจำนวนที่ส่ง')",
-                                    "oninput": "this.setCustomValidity('')"
-                                    })
-    collect_sample_during_testing = SelectField('การเก็บตัวอย่างระหว่างรอทดสอบ',
-                                                choices=[('', 'กรุณาเลือกการเก็บตัวอย่างระหว่างรอทดสอบ'),
-                                                         ('อุณหภูมิห้อง', 'อุณหภูมิห้อง'),
-                                                         ('อื่นๆ โปรดระบุ', 'อื่นๆ โปรดระบุ')],
-                                                validators=[DataRequired()],
-                                                render_kw={
-                                                    "oninvalid": "this.setCustomValidity('กรุณาเลือกการเก็บตัวอย่างระหว่างรอทดสอบ')",
-                                                    "oninput": "this.setCustomValidity('')"
-                                                })
-    collect_sample_during_testing_other = StringField('ระบุ')
+    importer = StringField('ผู้นำเข้า')
+    importer_address = TextAreaField('ที่อยู่ผู้นำเข้า')
+    distributor = StringField('ผู้จัดจำหน่าย', validators=[DataRequired()],
+                              render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อผู้จัดจำหน่าย')",
+                                         "oninput": "this.setCustomValidity('')"
+                                         })
+    distributor_address = TextAreaField('ที่อยู่ผู้จัดจำหน่าย', validators=[DataRequired()],
+                                        render_kw={
+                                            "oninvalid": "this.setCustomValidity('กรุณากรอกที่อยู่ผู้จัดจำหน่าย')",
+                                            "oninput": "this.setCustomValidity('')"
+                                        })
     read_document = BooleanField(
         'ข้าพเจ้าได้อ่านและรับทราบคู่มือการใช้บริการห้องปฏิบัติการ (MN-BS-025-07-01) แล้ว',
         validators=[DataRequired(message='กรุณายอมรับ')],
