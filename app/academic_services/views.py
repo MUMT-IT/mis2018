@@ -3794,10 +3794,14 @@ def generate_bacteria_request_pdf(service_request):
                 raw_widths = []
                 for h in headers:
                     w = stringWidth(str(h), detail_style.fontName, detail_style.fontSize)
-                    if h == "เชื้อ":
-                        w += 100
+                    if h == headers[0]:
+                        w = 80
+                    elif h == headers[-2]:
+                        w = 108
+                    elif h == headers[-1]:
+                        w = 57
                     else:
-                        w += 10
+                        w = 68
                     raw_widths.append(w)
                 total_width = sum(raw_widths)
                 max_total = 506
