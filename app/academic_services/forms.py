@@ -368,7 +368,7 @@ class BacteriaInWashConditionForm(FlaskForm):
                                         min_entries=len(bacteria_wash_organisms))
 
 
-class BacteriaRequestForm(FlaskForm):
+class BacteriaDisinfectionRequestForm(FlaskForm):
     sample_name = StringField('ชื่อผลิตภัณฑ์', validators=[DataRequired()],
                               render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อผลิตภัณฑ์')",
                                          "oninput": "this.setCustomValidity('')"})
@@ -474,15 +474,18 @@ class BacteriaRequestForm(FlaskForm):
                                                             'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ตกค้างหลังซัก (After Wash Claim)'),
                                                            ('in_wash',
                                                             'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (In Wash Claim)')])
-    liquid_condition_field = FormField(BacteriaLiquidConditionForm,
-                                       'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดของเหลว หรือชนิดผง ที่ละลายน้้าได้')
-    spray_condition_field = FormField(BacteriaSprayConditionForm,
-                                      'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดฉีดพ่นธรรมดา หรือ ฉีดพ่นอัดก๊าซ')
-    sheet_condition_field = FormField(BacteriaSheetConditionForm, 'ผลิตภัณฑ์ฆ่าเชื้อชนิดแผ่น')
-    after_wash_condition_field = FormField(BacteriaAfterWashConditionForm,
-                                           'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ตกค้างหลังซัก (After Wash Claim)')
-    in_wash_condition_field = FormField(BacteriaInWashConditionForm,
-                                        'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (In Wash Claim)')
+    liquid_condition_field = FieldList(FormField(BacteriaLiquidConditionForm,
+                                                 'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดของเหลว หรือชนิดผง ที่ละลายน้้าได้'),
+                                       min_entries=0)
+    spray_condition_field = FieldList(FormField(BacteriaSprayConditionForm,
+                                      'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดฉีดพ่นธรรมดา หรือ ฉีดพ่นอัดก๊าซ'), min_entries=0)
+    sheet_condition_field = FieldList(FormField(BacteriaSheetConditionForm, 'ผลิตภัณฑ์ฆ่าเชื้อชนิดแผ่น'), min_entries=0)
+    after_wash_condition_field = FieldList(FormField(BacteriaAfterWashConditionForm,
+                                           'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ตกค้างหลังซัก (After Wash Claim)'),
+                                           min_entries=0)
+    in_wash_condition_field = FieldList(FormField(BacteriaInWashConditionForm,
+                                        'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (In Wash Claim)'),
+                                        min_entries=0)
 
 
 virus_liquid_organisms = [
