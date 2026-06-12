@@ -1364,40 +1364,6 @@ def create_bacteria_request(request_id=None):
                            form=form, menu=menu, request_id=request_id)
 
 
-@academic_services.route("/request/collect_sample_during_testing")
-def get_collect_sample_during_testing():
-    request_id = request.args.get("request_id")
-    collect_sample_during_testing = request.args.get("collect_sample_during_testing")
-    label = 'ระบุ'
-
-    if request_id:
-        service_request = ServiceRequest.query.get(request_id)
-        if service_request and service_request.data:
-            data = service_request.data
-            collect_sample_during_testing_other = data.get('collect_sample_during_testing_other', '')
-        else:
-            collect_sample_during_testing_other = ''
-    else:
-        collect_sample_during_testing_other = ''
-    if collect_sample_during_testing == 'อื่นๆ โปรดระบุ':
-        html = f'''
-            <div class="field">
-                <label class="label">
-                    {label}
-                    <span class="has-text-danger">*</span>
-                </label>
-                <div class="control">
-                    <input name="collect_sample_during_testing_other" class="input" value="{collect_sample_during_testing_other}" required
-                    oninvalid="this.setCustomValidity('กรุณาเลือกการเก็บตัวอย่างระหว่างรอทดสอบ')" oninput="this.setCustomValidity('')">
-                </div>
-            </div>
-        '''
-    else:
-        html = '<input type="hidden" name="collect_sample_during_testing_other" class="input" value="">'
-    resp = make_response(html)
-    return resp
-
-
 @academic_services.route('/request/bacteria/condition')
 def get_bacteria_condition_form():
     product_type = request.args.get("product_type")
