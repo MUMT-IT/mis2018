@@ -7804,7 +7804,7 @@ def get_invoice_payments():
     data = []
     for item in query:
         item_data = item.to_dict()
-        download_file = url_for('academic_services.download_file', key=item.file,
+        download_file = url_for('service_admin.download_file', key=item.file,
                                 download_filename=f"Invoice {item.invoice_no}.pdf")
         item_data['file'] = f'''<div class="field has-addons">
                         <div class="control">
