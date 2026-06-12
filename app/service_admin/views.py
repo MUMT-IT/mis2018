@@ -1165,9 +1165,9 @@ def create_request():
     return redirect(url_for(request_paths[code], code=code, menu=menu, request_id=request_id, customer_id=customer_id))
 
 
-@service_admin.route('/request/bacteria/add', methods=['GET', 'POST'])
-@service_admin.route('/request/bacteria/edit/<int:request_id>', methods=['GET', 'POST'])
-def create_bacteria_request(request_id=None):
+@service_admin.route('/request/bacteria_disinfection/add', methods=['GET', 'POST'])
+@service_admin.route('/request/bacteria_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
+def create_bacteria_disinfection_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
     customer_id = request.args.get('customer_id')
@@ -1175,24 +1175,9 @@ def create_bacteria_request(request_id=None):
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
         data = service_request.data
-        form = BacteriaRequestForm(data=data)
+        form = BacteriaDisinfectionRequestForm(data=data)
     else:
-        form = BacteriaRequestForm()
-    for n, org in enumerate(bacteria_liquid_organisms):
-        liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
-        liquid_entry.liquid_organism.choices = [(org, org)]
-    for n, org in enumerate(bacteria_liquid_organisms):
-        spray_entry = form.spray_condition_field.spray_organism_fields[n]
-        spray_entry.spray_organism.choices = [(org, org)]
-    for n, org in enumerate(bacteria_liquid_organisms):
-        sheet_entry = form.sheet_condition_field.sheet_organism_fields[n]
-        sheet_entry.sheet_organism.choices = [(org, org)]
-    for n, org in enumerate(bacteria_wash_organisms):
-        after_wash_entry = form.after_wash_condition_field.after_wash_organism_fields[n]
-        after_wash_entry.after_wash_organism.choices = [(org, org)]
-    for n, org in enumerate(bacteria_wash_organisms):
-        in_wash_entry = form.in_wash_condition_field.in_wash_organism_fields[n]
-        in_wash_entry.in_wash_organism.choices = [(org, org)]
+        form = BacteriaDisinfectionRequestForm()
     if form.validate_on_submit():
         if request_id:
             service_request.data = format_data(form.data)
@@ -1216,29 +1201,16 @@ def create_bacteria_request(request_id=None):
                            menu=menu, form=form, request_id=request_id)
 
 
-@service_admin.route('/request/bacteria/condition')
-def get_bacteria_condition_form():
-    product_type = request.args.get("product_type")
+@service_admin.route('/request/bacteria_disinfection/condition')
+def get_bacteria_disinfection_condition_form():
+    product_type = request.values.get("product_type")
     if not product_type:
         return ''
-    form = BacteriaRequestForm()
-    for n, org in enumerate(bacteria_liquid_organisms):
-        liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
-        liquid_entry.liquid_organism.choices = [(org, org)]
-    for n, org in enumerate(bacteria_liquid_organisms):
-        spray_entry = form.spray_condition_field.spray_organism_fields[n]
-        spray_entry.spray_organism.choices = [(org, org)]
-    for n, org in enumerate(bacteria_liquid_organisms):
-        sheet_entry = form.sheet_condition_field.sheet_organism_fields[n]
-        sheet_entry.sheet_organism.choices = [(org, org)]
-    for n, org in enumerate(bacteria_wash_organisms):
-        after_wash_entry = form.after_wash_condition_field.after_wash_organism_fields[n]
-        after_wash_entry.after_wash_organism.choices = [(org, org)]
-    for n, org in enumerate(bacteria_wash_organisms):
-        in_wash_entry = form.in_wash_condition_field.in_wash_organism_fields[n]
-        in_wash_entry.in_wash_organism.choices = [(org, org)]
+    form = BacteriaDisinfectionRequestForm(formdata=request.form if request.method == 'POST' else None)
     field_name = f"{product_type}_condition_field"
-    fields = getattr(form, field_name)
+    entry_fields = getattr(form, field_name)
+    entry_fields.append_entry()
+    fields = entry_fields[-1]
     return render_template('service_admin/partials/bacteria_request_condition_form.html', fields=fields)
 
 
