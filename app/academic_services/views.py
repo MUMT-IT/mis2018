@@ -1344,7 +1344,7 @@ def create_bacteria_disinfection_request(request_id=None):
                            form=form, menu=menu, request_id=request_id)
 
 
-@academic_services.route('/request/bacteria_disinfection/condition')
+@academic_services.route('/request/bacteria_disinfection/condition', methods=['GET', 'POST'])
 def get_bacteria_disinfection_condition_form():
     product_type = request.values.get("product_type")
     if not product_type:
@@ -1354,7 +1354,62 @@ def get_bacteria_disinfection_condition_form():
     entry_fields = getattr(form, field_name)
     entry_fields.append_entry()
     fields = entry_fields[-1]
-    return render_template('academic_services/partials/bacteria_disinfection_request_condition_form.html', fields=fields)
+    return render_template('academic_services/partials/bacteria_disinfection_request_condition_form.html',
+                           fields=fields, product_type=product_type)
+
+
+@academic_services.route('/request/bacteria_liquid_organism_form_entry/add', methods=['POST'])
+def add_bacteria_liquid_organism_form_entry():
+    resp = ""
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    for entry in form.liquid_condition_field:
+        if entry.name == field_name:
+            entry.liquid_organism_fields.append_entry()
+            item_form = entry.liquid_organism_fields[-1]
+            template = """
+                <tr>
+                    <td style="border: none">
+                        <div class="select">{}</div>
+                    </td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">
+                        <a class="button is-danger is-outlined"
+                            hx-delete="{}" 
+                            hx-target="closest tr"
+                            hx-swap="outerHTML"
+                        >
+                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                        </a>
+                    </td>
+                </tr>
+            """
+            resp = template.format(item_form.liquid_organism(),
+                                   item_form.liquid_ratio(class_='input'),
+                                   item_form.liquid_time_duration(class_='input', required=True,
+                                                                  oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
+                                                                  oninput="this.setCustomValidity('')"),
+                                   url_for('academic_services.remove_bacteria_liquid_organism_form_entry',
+                                           name=item_form.name)
+                                   )
+    resp = make_response(resp)
+    return resp
+
+
+@academic_services.route('/request/bacteria_liquid_organism_form_entry/remove', methods=['DELETE'])
+def remove_bacteria_liquid_organism_form_entry():
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.liquid_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+        while len(entry.liquid_organism_fields) > 0:
+            entry.liquid_organism_fields.pop_entry()
+        for new_entry in temp_entries:
+            entry.liquid_organism_fields.append_entry(new_entry)
+    return ""
 
 
 @academic_services.route('/request/virus_disinfection/add', methods=['GET', 'POST'])
