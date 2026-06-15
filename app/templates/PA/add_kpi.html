@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% block title %}MUMT MIS: Performance Agreement {% endblock %}
 {% include "PA/nav.html" %}
@@ -24,11 +25,12 @@
                                 <div class="card-content">
                                     <div class="columns">
                                         <div class="column">
-                                            <div class="select">
+                                            <div>
                                                 <select hx-post="{{ url_for('pa.get_job_kpi_detail', pa_id=pa_id) }}"
                                                         hx-target="#job-kpi-detail-table"
                                                         hx-swap="innerHTML"
-                                                        name="job_kpi" id="job_kpi">
+                                                        name="job_kpi" id="job_kpi"
+                                                        style="width:100%">
                                                     {% for job_kpi in all_current_job_kpi %}
                                                         <option value="{{ job_kpi.id }}">{{ job_kpi.detail }}</option>
                                                     {% endfor %}
@@ -144,4 +146,20 @@
             </div>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        const jobKpiSelect = $('#job_kpi')
+        if (jobKpiSelect.length) {
+            jobKpiSelect.select2({
+                width: '100%',
+                placeholder: 'ค้นหาตัวชี้วัดตามตำแหน่งงาน'
+            })
+            jobKpiSelect.on('select2:select', function () {
+                htmx.trigger('#job_kpi', 'change')
+            })
+        }
+    </script>
 {% endblock %}
