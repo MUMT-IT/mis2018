@@ -340,6 +340,15 @@
                                                                                         >
                                                                                             <span class="icon"><i class="fas fa-trash-alt"></i></span>
                                                                                         </a>
+                                                                                    {% elif entry_name == 'alcohol_based' %}
+                                                                                        <a class="button is-danger is-outlined"
+                                                                                           hx-delete="{{ url_for('service_admin.remove_bacteria_alcohol_based_organism_form_entry',
+                                                                                           name=entry.name) }}"
+                                                                                           hx-target="closest tr"
+                                                                                           hx-swap="outerHTML"
+                                                                                        >
+                                                                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                                                        </a>
                                                                                     {% endif %}
                                                                                 </td>
                                                                             </tr>
@@ -375,8 +384,7 @@
                                                                                        hx-target="previous tr"
                                                                                        hx-swap="afterend"
                                                                                     >
-                                                                                        <span class="icon"><i
-                                                                                                class="fas fa-plus"></i></span>
+                                                                                        <span class="icon"><i class="fas fa-plus"></i></span>
                                                                                         <span>เพิ่ม</span>
                                                                                     </a>
                                                                                 {% elif entry_name == 'after_wash' %}
@@ -386,8 +394,7 @@
                                                                                        hx-target="previous tr"
                                                                                        hx-swap="afterend"
                                                                                     >
-                                                                                        <span class="icon"><i
-                                                                                                class="fas fa-plus"></i></span>
+                                                                                        <span class="icon"><i class="fas fa-plus"></i></span>
                                                                                         <span>เพิ่ม</span>
                                                                                     </a>
                                                                                 {% elif entry_name == 'in_wash' %}
@@ -397,8 +404,17 @@
                                                                                        hx-target="previous tr"
                                                                                        hx-swap="afterend"
                                                                                     >
-                                                                                        <span class="icon"><i
-                                                                                                class="fas fa-plus"></i></span>
+                                                                                        <span class="icon"><i class="fas fa-plus"></i></span>
+                                                                                        <span>เพิ่ม</span>
+                                                                                    </a>
+                                                                                {% elif entry_name == 'alcohol_based' %}
+                                                                                    <a class="button is-info is-outlined is-rounded"
+                                                                                       hx-post="{{ url_for('service_admin.add_bacteria_alcohol_based_organism_form_entry',
+                                                                                           name=entry.name) }}"
+                                                                                       hx-target="previous tr"
+                                                                                       hx-swap="afterend"
+                                                                                    >
+                                                                                        <span class="icon"><i class="fas fa-plus"></i></span>
                                                                                         <span>เพิ่ม</span>
                                                                                     </a>
                                                                                 {% endif %}
