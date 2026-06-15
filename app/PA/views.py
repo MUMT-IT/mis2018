@@ -673,35 +673,35 @@ def edit_active_round(round_id):
 def add_committee():
     form = PACommitteeForm()
     if form.validate_on_submit():
+        subordinates = form.subordinate.data
+        added_count = 0
+        skipped_count = 0
         for round in form.round.data:
             for staff in form.staff.data:
-                if form.subordinate.data:
-                    is_subordinate = PACommittee.query.filter_by(staff=staff, org=form.org.data,
-                                                                 round=round,
-                                                                 subordinate=form.subordinate.data).first()
-                    if is_subordinate:
-                        flash('มีรายชื่อ{}ประเมิน {}แล้ว หากเพิ่มกรรมการหลายท่านกรุณาลบ{} ก่อนบันทึกอีกครั้ง'.format(staff.personal_info,
-                                                                    form.subordinate.data, staff.personal_info), 'warning')
-                        return render_template('staff/HR/PA/hr_add_committee.html', form=form)
-                    else:
-                        committee = PACommittee(
-                            subordinate=form.subordinate.data,
-                            staff_account_id=staff.id,
-                            org=form.org.data,
-                            round=round,
-                            role=form.role.data
-                        )
-                        db.session.add(committee)
-                        db.session.commit()
-                        flash('เพิ่ม{}สำหรับทีมบริหารและหัวหน้า {} ใหม่เรียบร้อยแล้ว'.format(
-                                                                staff.personal_info, form.subordinate.data), 'success')
+                if subordinates:
+                    for subordinate in subordinates:
+                        is_subordinate = PACommittee.query.filter_by(staff=staff, org=form.org.data,
+                                                                     round=round,
+                                                                     subordinate=subordinate).first()
+                        if is_subordinate:
+                            skipped_count += 1
+                            continue
+                        else:
+                            committee = PACommittee(
+                                subordinate=subordinate,
+                                staff_account_id=staff.id,
+                                org=form.org.data,
+                                round=round,
+                                role=form.role.data
+                            )
+                            db.session.add(committee)
+                            added_count += 1
                 else:
                     is_committee = PACommittee.query.filter_by(staff=staff, org=form.org.data,
                                                                round=round).first()
                     if is_committee:
-                        flash('มีรายชื่อ{}ประเมิน ร่วมกับหน่วยงานนี้แล้ว หากเพิ่มกรรมการหลายท่านกรุณาลบ{}ก่อนบันทึกอีกครั้ง'.format(
-                                                                staff.personal_info, staff.personal_info), 'warning')
-                        return render_template('staff/HR/PA/hr_add_committee.html', form=form)
+                        skipped_count += 1
+                        continue
                     else:
                         committee = PACommittee(
                             staff=staff,
@@ -710,8 +710,12 @@ def add_committee():
                             role=form.role.data
                         )
                         db.session.add(committee)
-                        db.session.commit()
-                        flash('เพิ่ม{}เป็นผู้ประเมินใหม่ {} เรียบร้อยแล้ว'.format(staff.personal_info, round.desc), 'success')
+                        added_count += 1
+        if added_count:
+            db.session.commit()
+            flash('เพิ่มผู้ประเมินใหม่เรียบร้อยแล้ว {} รายการ'.format(added_count), 'success')
+        if skipped_count:
+            flash('ข้ามรายการที่มีอยู่แล้ว {} รายการ'.format(skipped_count), 'warning')
     else:
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
