@@ -1929,6 +1929,15 @@ def _compute_work_minutes(record, shift_start, shift_end, pair):
     else:
         checkout = None
     if record.compensation.per_period:
+        if pair.end is None:
+            return {
+                'checkin': checkin,
+                'checkout': checkout,
+                'checkin_late_minutes': 0,
+                'checkout_early_minutes': 0,
+                'total_work_minutes': None,
+                'total_pay': None,
+            }
         checkin_late_minutes = 0
         checkout_early_minutes = 0
         total_work_minutes = record.total_shift_minutes
@@ -1971,8 +1980,8 @@ def _compute_work_minutes(record, shift_start, shift_end, pair):
     }
 
 
-def _build_ot_record_row(record, shift_start, shift_end, pair, announcement_id, staff_id, download, checkin, checkout, checkin_late_minutes, checkout_early_minutes, total_pay, total_work_minutes):
-    """Build the JSON row returned for one OT record."""
+def _build_ot_record_row(record, shift_start, shift_end, announcement_id, staff_id, download):
+    """Build the base JSON row returned for one OT record."""
     return {
         'fullname': f'{record.staff.fullname}',
         'sap': f'{record.staff.personal_info.sap_id}',
@@ -1981,18 +1990,18 @@ def _build_ot_record_row(record, shift_start, shift_end, pair, announcement_id, 
         'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
         'end': shift_end.isoformat() if not download else shift_end.strftime('%Y-%m-%d %H:%M:%S'),
         'id': record.id,
-        'checkin_staff_id': pair.staff_id,
-        'checkin_id': pair.start_id,
-        'checkout_id': pair.end_id,
-        'checkins': checkin,
-        'checkouts': checkout,
-        'late_checkin_display': f'{humanized_work_time(checkin_late_minutes)}' if checkin_late_minutes else None,
-        'late_minutes': checkin_late_minutes,
-        'early_minutes': checkout_early_minutes,
-        'early_checkout_display': f'{humanized_work_time(checkout_early_minutes)}' if checkout_early_minutes else None,
-        'payment': total_pay,
-        'work_minutes': total_work_minutes,
-        'work_minutes_display': f'{humanized_work_time(total_work_minutes)}' if total_work_minutes else None,
+        'checkin_staff_id': record.staff_account_id,
+        'checkin_id': None,
+        'checkout_id': None,
+        'checkins': None,
+        'checkouts': None,
+        'late_checkin_display': None,
+        'late_minutes': None,
+        'early_minutes': None,
+        'early_checkout_display': None,
+        'payment': None,
+        'work_minutes': None,
+        'work_minutes_display': None,
         'position': record.compensation.ot_job_role.role if record.compensation else '-',
         'rate': record.compensation.rate if record.compensation else '-',
         'startDate': shift_start.strftime('%Y/%m/%d'),
@@ -2105,14 +2114,16 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
     if announcement_id:
         shift_query = shift_query.filter(OtShift.timeslot.has(announcement_id=announcement_id))
 
+    ot_record_checkins = {}
     for shift in shift_query.order_by(OtShift.datetime):
         for record in shift.records:
             if staff_id and record.staff_account_id != staff_id:
                 continue
             shift_start = localtz.localize(record.shift.datetime.lower)
             shift_end = localtz.localize(record.shift.datetime.upper)
+            rec = _build_ot_record_row(record, shift_start, shift_end, announcement_id, staff_id, download)
+            ot_record_checkins[record] = 0
 
-            checkin_count = 0
             if checkin_pairs[record.staff_account_id]:
                 for _pair in checkin_pairs[record.staff_account_id]:
                     '''Ignore all check-in/-out time that do not matched with the corresponding shift start and end 
@@ -2145,55 +2156,37 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                     total_work_minutes = attendance['total_work_minutes']
                     total_pay = attendance['total_pay']
 
+                    if total_work_minutes is None:
+                        rec.update({
+                            'checkins': checkin,
+                            'checkouts': checkout,
+                            'late_checkin_display': f'{humanized_work_time(checkin_late_minutes)}' if checkin_late_minutes else None,
+                            'late_minutes': checkin_late_minutes,
+                            'early_minutes': checkout_early_minutes,
+                            'early_checkout_display': f'{humanized_work_time(checkout_early_minutes)}' if checkout_early_minutes else None,
+                        })
+                        continue
+
                     if total_work_minutes > 0 and checkin_late_minutes <= MAX_LATE_MINUTES:
-                        if checkin_count == 0:
-                            rec = _build_ot_record_row(
-                                record,
-                                shift_start,
-                                shift_end,
-                                _pair,
-                                announcement_id,
-                                staff_id,
-                                download,
-                                checkin,
-                                checkout,
-                                checkin_late_minutes,
-                                checkout_early_minutes,
-                                total_pay,
-                                total_work_minutes,
-                            )
-                            all_records.append(rec)
-                            checkin_count += 1
-                            if _pair.end and _pair.start_id is None:
-                                used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
-            else:
-                rec = {
-                    'fullname': f'{record.staff.fullname}',
-                    'timeslot': f'{record.compensation.time_slot}' if record.compensation else '-',
-                    'sap': f'{record.staff.personal_info.sap_id}',
-                    'staff': f'{record.staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id)}">{record.staff.fullname}</a>''',
-                    'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
-                    'end': shift_end.isoformat() if not download else shift_end.strftime('%Y-%m-%d %H:%M:%S'),
-                    'id': record.id,
-                    'checkin_staff_id': record.staff_account_id,
-                    'checkin_id': None,
-                    'checkout_id': None,
-                    'checkins': None,
-                    'checkouts': None,
-                    'late_checkin_display': None,
-                    'early_checkout_display': None,
-                    'late_minutes': None,
-                    'early_minutes': None,
-                    'payment': None,
-                    'work_minutes': None,
-                    'work_minutes_display': None,
-                    'position': record.compensation.ot_job_role.role if record.compensation else '-',
-                    'rate': record.compensation.rate if record.compensation else '-',
-                    'startDate': shift_start.strftime('%Y/%m/%d'),
-                    'endDate': shift_end.strftime('%Y/%m/%d'),
-                    'workAt': record.compensation.work_at_org.display_name,
-                }
-                all_records.append(rec)
+                        rec.update({
+                            'checkin_staff_id': _pair.staff_id,
+                            'checkin_id': _pair.start_id,
+                            'checkout_id': _pair.end_id,
+                            'checkins': checkin,
+                            'checkouts': checkout,
+                            'late_checkin_display': f'{humanized_work_time(checkin_late_minutes)}' if checkin_late_minutes else None,
+                            'late_minutes': checkin_late_minutes,
+                            'early_minutes': checkout_early_minutes,
+                            'early_checkout_display': f'{humanized_work_time(checkout_early_minutes)}' if checkout_early_minutes else None,
+                            'payment': total_pay,
+                            'work_minutes': total_work_minutes,
+                            'work_minutes_display': f'{humanized_work_time(total_work_minutes)}' if total_work_minutes else None,
+                        })
+                        ot_record_checkins[record] += 1
+                        if _pair.end and _pair.start_id is None:
+                            used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
+                        break
+            all_records.append(rec)
 
     if download == 'yes':
         if request.args.get('download_data') == 'counts':
