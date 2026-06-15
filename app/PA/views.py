@@ -2178,7 +2178,11 @@ def pa_change_head_committee(round_id, pa_id):
             pa.head_committee_staff_account = form.head_committee_staff_account.data
             db.session.add(pa)
             db.session.commit()
-            flash('เปลี่ยนประธานกรรมการเป็น {} เรียบร้อยแล้ว'.format(form.head_committee_staff_account.data), 'success')
+            flash('บันทึกผลเรียบร้อยแล้ว', 'success')
+            if request.headers.get('HX-Request'):
+                resp = make_response()
+                resp.headers['HX-Refresh'] = 'true'
+                return resp
             return redirect(url_for('pa.pa_detail', pa_id=pa_id, round_id=round_id))
     else:
         for er in form.errors:

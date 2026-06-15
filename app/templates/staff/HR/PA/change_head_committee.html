@@ -13,8 +13,9 @@
                 {{ form.hidden_tag() }}
 
                 <div class="field">
-                    <div class="select">
-                        {{ form.head_committee_staff_account }}
+                    <label class="label">{{ form.head_committee_staff_account.label }}</label>
+                    <div>
+                        {{ form.head_committee_staff_account(style="width:100%") }}
                     </div>
                 </div>
                 <div class="field has-text-centered">
@@ -37,4 +38,43 @@
         htmx.removeClass(htmx.find('#pa-change-committee-form-container'), 'is-active')
     })
 
+    ;(function () {
+        const cssUrl = 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css'
+        const jsUrl = 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js'
+        const jsId = 'select2-js'
+
+        if (!document.querySelector(`link[href="${cssUrl}"]`)) {
+            const link = document.createElement('link')
+            link.rel = 'stylesheet'
+            link.href = cssUrl
+            document.head.appendChild(link)
+        }
+
+        function initHeadCommitteeSelect() {
+            const $field = $('#head_committee_staff_account')
+            if (!$field.length || $field.hasClass('select2-hidden-accessible')) {
+                return
+            }
+            $field.select2({
+                width: '100%',
+                dropdownParent: $('#pa-change-committee-form-container'),
+                placeholder: 'ค้นหาชื่อประธานกรรมการ',
+                allowClear: true
+            })
+        }
+
+        if (window.jQuery && $.fn.select2) {
+            initHeadCommitteeSelect()
+            return
+        }
+
+        let script = document.getElementById(jsId)
+        if (!script) {
+            script = document.createElement('script')
+            script.id = jsId
+            script.src = jsUrl
+            document.body.appendChild(script)
+        }
+        script.addEventListener('load', initHeadCommitteeSelect, {once: true})
+    })()
 </script>
