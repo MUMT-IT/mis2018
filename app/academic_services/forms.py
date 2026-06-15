@@ -400,7 +400,7 @@ class BacteriaInWashConditionForm(FlaskForm):
 class BacteriaAlcoholBasedTestConditionForm(FlaskForm):
     alcohol_based_organism = SelectField('เชื้อ', choices=[(c, c) for c in bacteria_alcohol_based_organisms], validators=[Optional()])
     alcohol_based_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที)', validators=[Optional()],
-                                        render_kw={'class': 'input', 'placeholder': 'เช่น 1 วินาที'})
+                                        render_kw={'class': 'input', 'placeholder': 'เช่น 30 วินาที'})
 
 
 class BacteriaAlcoholBasedConditionForm(FlaskForm):
@@ -410,9 +410,37 @@ class BacteriaAlcoholBasedConditionForm(FlaskForm):
     alcohol_based_clean_type = RadioField('รูปแบบการทดสอบ',
                                   choices=[('ทดสอบประสิทธิภาพการลดปริมาณเชื้อ วิธีทดสอบ EN 1276:2019',
                                             'ทดสอบประสิทธิภาพการลดปริมาณเชื้อ วิธีทดสอบ EN 1276:2019 '
-                                            '(ทดสอบในสภาวะสกปรก (dirty condition) ที่อุณหภูมิ 34 องศาเซสเซียส)')],
+                                            '(ทดสอบในสภาวะสกปรก (dirty condition) ที่อุณหภูมิ 34°C)')],
                                   validators=[Optional()])
     alcohol_based_organism_fields = FieldList(FormField(BacteriaAlcoholBasedTestConditionForm), min_entries=1)
+
+
+class BacteriaAntibacterialTreatedTestConditionForm(FlaskForm):
+    antibacterial_treated_organism = SelectField('เชื้อ', choices=[(c, c) for c in bacteria_antibacterial_treated_organisms],
+                                                 validators=[Optional()])
+    antibacterial_treated_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (นาที/ชั่วโมง)', validators=[Optional()],
+                                        render_kw={'class': 'input', 'placeholder': 'เช่น 1 นาที หรือ 1 ชั่วโมง'})
+
+
+class BacteriaAntibacterialTreatedConditionForm(FlaskForm):
+    product_type = HiddenField('ประเภทผลิตภัณฑ์',
+                               default='Antibacterial-treated Surface (plastic and other non-porous surface)',
+                               render_kw={'class': 'input is-danger'})
+    antibacterial_treated_clean_type = RadioField('รูปแบบการทดสอบ',
+                                  choices=[('ทดสอบปริะสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ JIS Z 2801',
+                                            'ทดสอบปริะสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ JIS Z 2801'),
+                                           ('ทดสอบปริะสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ ISO 22196:2011',
+                                            'ทดสอบปริะสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ ISO 22196:2011')],
+                                  validators=[Optional()])
+    antibacterial_treated_sterilization_method = RadioField('วิธีการฆ่าเชื้อ',
+                                                  choices=[
+                                                      ('Dry heat (180°C-30 นาที/60 นาที)', 'Dry heat (180°C-30 นาที/60 นาที)'),
+                                                      ('Autoclave (121°C-15 นาที)', 'Autoclave (121°C-15 นาที)'),
+                                                      ('เช็ดด้วย 70% Alcohol', 'เช็ดด้วย 70% Alcohol'),
+                                                      ('UV (15 นาที)', 'UV (15 นาที)')
+                                                  ],
+                                                  validators=[Optional()])
+    antibacterial_treated_organism_fields = FieldList(FormField(BacteriaAntibacterialTreatedTestConditionForm), min_entries=1)
 
 
 class BacteriaDisinfectionRequestForm(FlaskForm):
@@ -521,7 +549,8 @@ class BacteriaDisinfectionRequestForm(FlaskForm):
                                                             'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ตกค้างหลังซัก (After Wash Claim)'),
                                                            ('in_wash',
                                                             'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (In Wash Claim)'),
-                                                           ('alcohol_based', 'ผลิตภัณฑ์ที่มีแอลกอฮอล์เป็ยส่วนประกอบ เพื่อสุขภาพอนามัยสำหรับมือ (Alcohol-based Hand sanitizer)')])
+                                                           ('alcohol_based', 'ผลิตภัณฑ์ที่มีแอลกอฮอล์เป็ยส่วนประกอบ เพื่อสุขภาพอนามัยสำหรับมือ (Alcohol-based Hand sanitizer)'),
+                                                           ('antibacterial_treated', 'Antibacterial-treated Surface (plastic and other non-porous surface)')])
     liquid_condition_field = FieldList(FormField(BacteriaLiquidConditionForm,
                                                  'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดของเหลว หรือชนิดผง ที่ละลายน้้าได้'),
                                        min_entries=0)
@@ -537,6 +566,9 @@ class BacteriaDisinfectionRequestForm(FlaskForm):
     alcohol_based_condition_field = FieldList(FormField(BacteriaAlcoholBasedConditionForm,
                                                         'ผลิตภัณฑ์ที่มีแอลกอฮอล์เป็ยส่วนประกอบ เพื่อสุขภาพอนามัยสำหรับมือ (Alcohol-based Hand sanitizer)'),
                                               min_entries=0)
+    antibacterial_treated_condition_field = FieldList(FormField(BacteriaAntibacterialTreatedConditionForm,
+                                                                'Antibacterial-treated Surface (plastic and other non-porous surface)'),
+                                                      min_entries=0)
 
 
 virus_liquid_organisms = [
