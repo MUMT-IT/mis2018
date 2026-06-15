@@ -691,8 +691,8 @@ def toxicology_request_data(service_request, type):
     return values
 
 
-request_data_paths = {'bacteria': bacteria_request_data,
-                      'disinfection': virus_disinfection_request_data,
+request_data_paths = {'bacteria_disinfection': bacteria_request_data,
+                      'virus_disinfection': virus_disinfection_request_data,
                       'air_disinfection': virus_air_disinfection_request_data,
                       'heavymetal': heavymetal_request_data,
                       'foodsafety': foodsafety_request_data,
