@@ -285,8 +285,7 @@ class BacteriaLiquidConditionForm(FlaskForm):
                                    validators=[Optional()])
     liquid_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง'), ('ไม่เจือจาง', 'ไม่เจือจาง')],
                                  validators=[Optional()])
-    liquid_organism_fields = FieldList(FormField(BacteriaLiquidTestConditionForm),
-                                       min_entries=len(bacteria_liquid_organisms))
+    liquid_organism_fields = FieldList(FormField(BacteriaLiquidTestConditionForm), min_entries=1)
 
 
 class BacteriaSprayTestConditionForm(FlaskForm):
@@ -323,8 +322,7 @@ class BacteriaSprayConditionForm(FlaskForm):
     spray_surface_type_other = StringField('ระบุ', render_kw={'class': 'input'})
     spray_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง'), ('ไม่เจือจาง', 'ไม่เจือจาง')],
                                 validators=[Optional()])
-    spray_organism_fields = FieldList(FormField(BacteriaSprayTestConditionForm),
-                                      min_entries=len(bacteria_liquid_organisms))
+    spray_organism_fields = FieldList(FormField(BacteriaSprayTestConditionForm), min_entries=1)
 
 
 class BacteriaSheetTestConditionForm(FlaskForm):
@@ -345,8 +343,7 @@ class BacteriaSheetConditionForm(FlaskForm):
                                       'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)',
                                       'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)')],
                                   validators=[Optional()])
-    sheet_organism_fields = FieldList(FormField(BacteriaSheetTestConditionForm),
-                                      min_entries=len(bacteria_liquid_organisms))
+    sheet_organism_fields = FieldList(FormField(BacteriaSheetTestConditionForm), min_entries=1)
 
 
 class BacteriaAfterWashTestConditionForm(FlaskForm):
@@ -375,8 +372,7 @@ class BacteriaAfterWashConditionForm(FlaskForm):
                                               validators=[Optional()])
     after_wash_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง'), ('ไม่เจือจาง', 'ไม่เจือจาง')],
                                      validators=[Optional()])
-    after_wash_organism_fields = FieldList(FormField(BacteriaAfterWashTestConditionForm),
-                                           min_entries=len(bacteria_wash_organisms))
+    after_wash_organism_fields = FieldList(FormField(BacteriaAfterWashTestConditionForm), min_entries=1)
 
 
 class BacteriaInWashTestConditionForm(FlaskForm):
@@ -398,8 +394,7 @@ class BacteriaInWashConditionForm(FlaskForm):
                                      validators=[Optional()])
     in_wash_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง'), ('ไม่เจือจาง', 'ไม่เจือจาง')],
                                   validators=[Optional()])
-    in_wash_organism_fields = FieldList(FormField(BacteriaInWashTestConditionForm),
-                                        min_entries=len(bacteria_wash_organisms))
+    in_wash_organism_fields = FieldList(FormField(BacteriaInWashTestConditionForm), min_entries=1)
 
 
 class BacteriaDisinfectionRequestForm(FlaskForm):
