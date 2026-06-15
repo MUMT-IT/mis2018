@@ -1197,7 +1197,7 @@ def create_bacteria_disinfection_request(request_id=None):
     else:
         for er in form.errors:
             flash(er, 'danger')
-    return render_template('service_admin/forms/bacteria_request_form.html', code=code, sub_lab=sub_lab,
+    return render_template('service_admin/forms/bacteria_disinfection_request_form.html', code=code, sub_lab=sub_lab,
                            menu=menu, form=form, request_id=request_id)
 
 
@@ -1211,7 +1211,7 @@ def get_bacteria_disinfection_condition_form():
     entry_fields = getattr(form, field_name)
     entry_fields.append_entry()
     fields = entry_fields[-1]
-    return render_template('service_admin/partials/bacteria_request_condition_form.html', fields=fields)
+    return render_template('service_admin/partials/bacteria_disinfection_request_condition_form.html', fields=fields)
 
 
 @service_admin.route('/request/virus_disinfection/add', methods=['GET', 'POST'])
