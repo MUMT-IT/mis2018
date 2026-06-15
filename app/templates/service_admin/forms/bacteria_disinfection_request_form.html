@@ -159,8 +159,7 @@
                                                         request_id=request_id),
                                                         'hx-target': '#product-storage-other-container',
                                                         'hx-swap': 'innerHTML',
-                                                        'hx-trigger': 'change, load'})
-                                                    }}
+                                                        'hx-trigger': 'change, load'}) }}
                                         </div>
                                     </div>
                                     <div id="product-storage-other-container" style='width:74%'></div>
@@ -265,16 +264,17 @@
                                                                             {% if _field.type != 'CSRFTokenField' %}
                                                                                 {% if _field.type == 'SelectField' %}
                                                                                     <th style="border: none; width: 16.5em">
-                                                                                {% else %}
+                                                                                        {% else %}
                                                                                     <th style="border: none">
                                                                                 {% endif %}
-                                                                                {{ _field.label.text }}
-                                                                                {% if _field.name.endswith('ratio') or _field.name.endswith('per_water') %}
-                                                                                    <span class="has-text-danger dilution-required-asterisk" style="display:none">*</span>
-                                                                                {% else %}
-                                                                                    <span class="has-text-danger">*</span>
-                                                                                {% endif %}
-                                                                                </th>
+                                                                            {{ _field.label.text }}
+                                                                            {% if _field.name.endswith('ratio') or _field.name.endswith('per_water') %}
+                                                                                <span class="has-text-danger dilution-required-asterisk"
+                                                                                      style="display:none">*</span>
+                                                                            {% else %}
+                                                                                <span class="has-text-danger">*</span>
+                                                                            {% endif %}
+                                                                            </th>
                                                                             {% endif %}
                                                                         {% endfor %}
                                                                         </thead>
@@ -294,8 +294,116 @@
                                                                                         </td>
                                                                                     {% endif %}
                                                                                 {% endfor %}
+                                                                                <td style="border: none">
+                                                                                    {% if entry_name == 'liquid' %}
+                                                                                        <a class="button is-danger is-outlined"
+                                                                                           hx-delete="{{ url_for('service_admin.remove_bacteria_liquid_organism_form_entry',
+                                                                                           name=entry.name) }}"
+                                                                                           hx-target="closest tr"
+                                                                                           hx-swap="outerHTML"
+                                                                                        >
+                                                                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                                                        </a>
+                                                                                    {% elif entry_name == 'spray' %}
+                                                                                        <a class="button is-danger is-outlined"
+                                                                                           hx-delete="{{ url_for('service_admin.remove_bacteria_spray_organism_form_entry',
+                                                                                           name=entry.name) }}"
+                                                                                           hx-target="closest tr"
+                                                                                           hx-swap="outerHTML"
+                                                                                        >
+                                                                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                                                        </a>
+                                                                                    {% elif entry_name == 'sheet' %}
+                                                                                        <a class="button is-danger is-outlined"
+                                                                                           hx-delete="{{ url_for('service_admin.remove_bacteria_sheet_organism_form_entry',
+                                                                                           name=entry.name) }}"
+                                                                                           hx-target="closest tr"
+                                                                                           hx-swap="outerHTML"
+                                                                                        >
+                                                                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                                                        </a>
+                                                                                    {% elif entry_name == 'after_wash' %}
+                                                                                        <a class="button is-danger is-outlined"
+                                                                                           hx-delete="{{ url_for('service_admin.remove_bacteria_after_wash_organism_form_entry',
+                                                                                           name=entry.name) }}"
+                                                                                           hx-target="closest tr"
+                                                                                           hx-swap="outerHTML"
+                                                                                        >
+                                                                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                                                        </a>
+                                                                                    {% elif entry_name == 'in_wash' %}
+                                                                                        <a class="button is-danger is-outlined"
+                                                                                           hx-delete="{{ url_for('service_admin.remove_bacteria_in_wash_organism_form_entry',
+                                                                                           name=entry.name) }}"
+                                                                                           hx-target="closest tr"
+                                                                                           hx-swap="outerHTML"
+                                                                                        >
+                                                                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                                                        </a>
+                                                                                    {% endif %}
+                                                                                </td>
                                                                             </tr>
                                                                         {% endfor %}
+                                                                        <tr>
+                                                                            <td style="border: none">
+                                                                                {% if entry_name == 'liquid' %}
+                                                                                    <a class="button is-info is-outlined is-rounded"
+                                                                                       hx-post="{{ url_for('service_admin.add_bacteria_liquid_organism_form_entry',
+                                                                                           name=entry.name) }}"
+                                                                                       hx-target="previous tr"
+                                                                                       hx-swap="afterend"
+                                                                                    >
+                                                                                        <span class="icon"><i
+                                                                                                class="fas fa-plus"></i></span>
+                                                                                        <span>เพิ่ม</span>
+                                                                                    </a>
+                                                                                {% elif entry_name == 'spray' %}
+                                                                                    <a class="button is-info is-outlined is-rounded"
+                                                                                       hx-post="{{ url_for('service_admin.add_bacteria_spray_organism_form_entry',
+                                                                                           name=entry.name) }}"
+                                                                                       hx-target="previous tr"
+                                                                                       hx-swap="afterend"
+                                                                                    >
+                                                                                        <span class="icon"><i
+                                                                                                class="fas fa-plus"></i></span>
+                                                                                        <span>เพิ่ม</span>
+                                                                                    </a>
+                                                                                {% elif entry_name == 'sheet' %}
+                                                                                    <a class="button is-info is-outlined is-rounded"
+                                                                                       hx-post="{{ url_for('service_admin.add_bacteria_sheet_organism_form_entry',
+                                                                                           name=entry.name) }}"
+                                                                                       hx-target="previous tr"
+                                                                                       hx-swap="afterend"
+                                                                                    >
+                                                                                        <span class="icon"><i
+                                                                                                class="fas fa-plus"></i></span>
+                                                                                        <span>เพิ่ม</span>
+                                                                                    </a>
+                                                                                {% elif entry_name == 'after_wash' %}
+                                                                                    <a class="button is-info is-outlined is-rounded"
+                                                                                       hx-post="{{ url_for('service_admin.add_bacteria_after_wash_organism_form_entry',
+                                                                                           name=entry.name) }}"
+                                                                                       hx-target="previous tr"
+                                                                                       hx-swap="afterend"
+                                                                                    >
+                                                                                        <span class="icon"><i
+                                                                                                class="fas fa-plus"></i></span>
+                                                                                        <span>เพิ่ม</span>
+                                                                                    </a>
+                                                                                {% elif entry_name == 'in_wash' %}
+                                                                                    <a class="button is-info is-outlined is-rounded"
+                                                                                       hx-post="{{ url_for('service_admin.add_bacteria_in_wash_organism_form_entry',
+                                                                                           name=entry.name) }}"
+                                                                                       hx-target="previous tr"
+                                                                                       hx-swap="afterend"
+                                                                                    >
+                                                                                        <span class="icon"><i
+                                                                                                class="fas fa-plus"></i></span>
+                                                                                        <span>เพิ่ม</span>
+                                                                                    </a>
+                                                                                {% endif %}
+                                                                            </td>
+                                                                        </tr>
                                                                         </tbody>
                                                                     </table>
                                                                 {% else %}
@@ -466,9 +574,11 @@
                     })
                 });
             }
+
             validateInput();
             subform.on('change', 'input[type=\"radio\"][name$=\"product_preparation\"]', validateInput);
         }
+
         function addRequiredField(subform) {
             const testMethodInput = subform.find('input[name$="test_method"]');
             const cleanTypeInput = subform.find('input[name$="clean_type"]');
