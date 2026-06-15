@@ -1492,8 +1492,8 @@ def get_product_appearance_other():
     return resp
 
 
-@academic_services.route("/request/product_storage")
-def get_product_storage():
+@academic_services.route("/request/product_storage_other")
+def get_product_storage_other():
     request_id = request.args.get("request_id")
     product_storage = request.args.get("product_storage")
     label = 'ระบุ'
@@ -3561,11 +3561,11 @@ def generate_bacteria_request_pdf(service_request):
     ]))
 
     staff_only = '''<para><font size=13>
-                        สำหรับเจ้าหน้าที่ / Staff only<br/>
-                        เลขที่ใบคำขอ &nbsp;  <u>&nbsp;&nbsp;&nbsp;{request_no}&nbsp;&nbsp;&nbsp;</u><br/>
-                        วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
-                        วันที่รายงานผล <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
-                        </font></para>'''.format(request_no=service_request.request_no)
+                            สำหรับเจ้าหน้าที่ / Staff only<br/>
+                            เลขที่ใบคำขอ &nbsp; <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{request_no}&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
+                            วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
+                            วันที่รายงานผล <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
+                            </font></para>'''.format(request_no=service_request.request_no)
 
     staff_table = Table([[Paragraph(staff_only, style=style_sheet['ThaiStyle'])]], colWidths=[150])
 
@@ -3793,10 +3793,14 @@ def generate_bacteria_request_pdf(service_request):
                 raw_widths = []
                 for h in headers:
                     w = stringWidth(str(h), detail_style.fontName, detail_style.fontSize)
-                    if h == "เชื้อ":
-                        w += 100
+                    if h == headers[0]:
+                        w = 80
+                    elif h == headers[-2]:
+                        w = 108
+                    elif h == headers[-1]:
+                        w = 57
                     else:
-                        w += 10
+                        w = 68
                     raw_widths.append(w)
                 total_width = sum(raw_widths)
                 max_total = 506
@@ -4049,11 +4053,11 @@ def generate_virus_request_pdf(service_request):
     ]))
 
     staff_only = '''<para><font size=13>
-                        สำหรับเจ้าหน้าที่ / Staff only<br/>
-                        เลขที่ใบคำขอ &nbsp;  <u>&nbsp;&nbsp;&nbsp;{request_no}&nbsp;&nbsp;&nbsp;</u><br/>
-                        วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
-                        วันที่รายงานผล <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
-                        </font></para>'''.format(request_no=service_request.request_no)
+                            สำหรับเจ้าหน้าที่ / Staff only<br/>
+                            เลขที่ใบคำขอ &nbsp;  <u>&nbsp;&nbsp;&nbsp;{request_no}&nbsp;&nbsp;&nbsp;</u><br/>
+                            วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
+                            วันที่รายงานผล <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
+                            </font></para>'''.format(request_no=service_request.request_no)
 
     staff_table = Table([[Paragraph(staff_only, style=style_sheet['ThaiStyle'])]], colWidths=[150])
 
@@ -4288,11 +4292,15 @@ def generate_virus_request_pdf(service_request):
                 headers = list(rows[0].keys())
                 raw_widths = []
                 for h in headers:
-                    w = stringWidth(str(h), detail_style.fontName, detail_style.fontSize)
-                    if h == "เชื้อ":
-                        w += 100
+                    # w = stringWidth(str(h), detail_style.fontName, detail_style.fontSize)
+                    if  h == headers[0]:
+                        w = 80
+                    elif h == headers[-2]:
+                        w = 108
+                    elif h == headers[-1]:
+                        w = 57
                     else:
-                        w += 10
+                        w = 68
                     raw_widths.append(w)
                 total_width = sum(raw_widths)
                 max_total = 506
@@ -5495,8 +5503,9 @@ def confirm_sample_appointment_page(request_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     code = request.args.get('code')
+    service_request = ServiceRequest.query.get(request_id)
     return render_template('academic_services/confirm_sample_appointment_page.html', request_id=request_id,
-                           menu=menu, tab=tab, code=code)
+                           menu=menu, tab=tab, code=code, service_request=service_request)
 
 
 @academic_services.route('/customer/sample/tracking_number/add/<int:sample_id>', methods=['GET', 'POST'])

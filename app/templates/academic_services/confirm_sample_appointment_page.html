@@ -42,6 +42,8 @@
             delimiters: ['<%', '%>'],
             methods: {
                 printRequest: function () {
+                    var request_no = '{{ service_request.request_no }}'
+                    document.title = 'Request ' + request_no;
                     printJS({{ url_for('academic_services.export_request_pdf', request_id=request_id, code=code)|tojson|safe }});
                 }
             },
