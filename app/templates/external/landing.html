@@ -111,8 +111,19 @@
 
         .external-cta .button {
             border-radius: 999px;
+            width: 100%;
             padding-left: 1.35rem;
             padding-right: 1.35rem;
+        }
+
+        .external-secondary-ctas {
+            display: grid;
+            gap: 0.75rem;
+            margin-top: 0.85rem;
+        }
+
+        .external-pill-button {
+            border-radius: 999px;
         }
 
         .external-meta {
@@ -179,6 +190,16 @@
                         <a class="button is-info is-medium" href="{{ url_for('staff.geo_checkin') }}">
                             <span class="icon"><i class="fas fa-location-dot"></i></span>
                             <span>Go to GPS Check-in</span>
+                        </a>
+                    </div>
+                    <div class="external-secondary-ctas">
+                        <a class="button is-info is-medium external-pill-button" href="{{ url_for('staff.show_qrcode') }}">
+                            <span class="icon"><i class="fas fa-qrcode"></i></span>
+                            <span>QR Code</span>
+                        </a>
+                        <a class="button is-info is-medium external-pill-button" href="{{ url_for('ot.view_monthly_records') }}">
+                            <span class="icon"><i class="fas fa-clipboard-list"></i></span>
+                            <span>OT Summary</span>
                         </a>
                     </div>
                 </div>

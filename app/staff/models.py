@@ -103,6 +103,7 @@ class StaffAccount(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     personal_id = db.Column('personal_id', db.ForeignKey('staff_personal_info.id'))
     email = db.Column('email', db.String(), unique=True)
+    external_email = db.Column('external_email', db.String(), unique=True, index=True, nullable=True)
     personal_info = db.relationship("StaffPersonalInfo", backref=db.backref("staff_account", uselist=False))
     line_id = db.Column('line_id', db.String(), index=True, unique=True)
     __password_hash = db.Column('password', db.String(255), nullable=True)
@@ -115,6 +116,10 @@ class StaffAccount(db.Model):
     @classmethod
     def get_account_by_email(cls, email):
         return cls.query.filter_by(email=email).first()
+
+    @classmethod
+    def get_account_by_external_email(cls, email):
+        return cls.query.filter_by(external_email=(email or '').strip().lower()).first()
 
     @classmethod
     def get_active_accounts(cls):

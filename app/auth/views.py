@@ -58,6 +58,55 @@ def send_mail(recp, title, message):
     mail.send(message)
 
 
+def _normalize_staff_email(email):
+    email = (email or '').strip()
+    if '@' in email:
+        email = email.split('@', 1)[0]
+    return email
+
+
+def _handle_password_login(form, *, external_only=False, next_url=None):
+    login_endpoint = 'auth.login_external' if external_only else 'auth.login'
+    login_email = (form.email.data or '').strip().lower()
+    if external_only:
+        if '@' in login_email:
+            user = StaffAccount.get_account_by_external_email(login_email)
+        else:
+            user = db.session.query(StaffAccount).filter_by(email=login_email).first()
+    else:
+        user = db.session.query(StaffAccount).filter_by(email=_normalize_staff_email(login_email)).first()
+    if not user:
+        flash(u'User does not exists. ไม่พบบัญชีผู้ใช้ในระบบ', 'danger')
+        return redirect(url_for(login_endpoint))
+
+    if not user.verify_password(form.password.data):
+        flash(u'Wrong password, try again. รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
+        return redirect(url_for(login_endpoint))
+
+    if not user.is_active:
+        flash(u'Your account is inactive. บัญชีผู้ใช้นี้ไม่สามารถเข้าใช้งานได้', 'danger')
+        return redirect(url_for(login_endpoint))
+
+    if external_only and not _is_external_account(user):
+        flash(u'Please use this page for external employees only. หน้านี้สำหรับบุคลากรภายนอกเท่านั้น', 'danger')
+        return redirect(url_for(login_endpoint))
+
+    if not login_user(user, form.remember_me.data):
+        flash(u'Your account is inactive. บัญชีผู้ใช้นี้ไม่สามารถเข้าใช้งานได้', 'danger')
+        return redirect(url_for(login_endpoint))
+
+    session['user_type'] = 'staff'
+    identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
+    flash(u'You have just logged in. ลงทะเบียนเข้าใช้งานเรียบร้อย', 'success')
+
+    if _is_external_account(user) or external_only:
+        return redirect(url_for('external_landing'))
+
+    if next_url and not is_safe_url(next_url):
+        return abort(400)
+    return redirect(next_url or url_for('index'))
+
+
 def _is_external_account(user=None):
     user = user or current_user
     if not getattr(user, 'is_authenticated', False):
@@ -98,40 +147,32 @@ def login(is_admin=False):
 
     form = LoginForm()
     if form.validate_on_submit():
-        # authenticate the user
-        user = db.session.query(StaffAccount).filter_by(email=form.email.data).first()
-        if user:
-            pwd = form.password.data
-            if user.verify_password(pwd):
-                if not user.is_active:
-                    flash(u'Your account is inactive. บัญชีผู้ใช้นี้ไม่สามารถเข้าใช้งานได้', 'danger')
-                    return redirect(url_for('auth.login'))
-                status = login_user(user, form.remember_me.data)
-                if not status:
-                    flash(u'Your account is inactive. บัญชีผู้ใช้นี้ไม่สามารถเข้าใช้งานได้', 'danger')
-                    return redirect(url_for('auth.login'))
-                session['user_type'] = 'staff'
-                identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
-                # session.pop('_flashes', None)  # this line clears all unconsumed flash messages.
-                flash(u'You have just logged in. ลงทะเบียนเข้าใช้งานเรียบร้อย', 'success')
-                if _is_external_account(user):
-                    return redirect(url_for('external_landing'))
-                next_url = request.args.get('next', url_for('index'))
-                if not is_safe_url(next_url):
-                    return abort(400)
-                return redirect(next_url)
-            else:
-                flash(u'Wrong password, try again. รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
-                return redirect(url_for('auth.login'))
-        else:
-            flash(u'User does not exists. ไม่พบบัญชีผู้ใช้ในระบบ', 'danger')
-            return redirect(url_for('auth.login'))
+        next_url = request.args.get('next', url_for('index'))
+        return _handle_password_login(form, external_only=False, next_url=next_url)
 
     return render_template('/auth/login.html',
                            form=form,
                            errors=form.errors,
                            linking_line=linking_line,
                            google_login_enabled=_is_google_login_enabled(), is_admin=is_admin)
+
+
+@auth.route('/login-external', methods=['GET', 'POST'])
+def login_external():
+    if current_user.is_authenticated:
+        if _is_external_account():
+            return redirect(url_for('external_landing'))
+        return redirect(url_for('index'))
+
+    form = LoginForm()
+    if form.validate_on_submit():
+        return _handle_password_login(form, external_only=True)
+
+    return render_template(
+        '/auth/login_external.html',
+        form=form,
+        errors=form.errors,
+    )
 
 
 @auth.route('/login-admin', methods=['GET', 'POST'])
@@ -172,10 +213,11 @@ def reset_password():
         token_data = serializer.loads(token, max_age=72000)
     except:
         return u'Bad JSON Web token. You need a valid token to reset the password. รหัสสำหรับทำการตั้งค่า password หมดอายุหรือไม่ถูกต้อง'
-    if token_data.get('email') != email:
+    normalized_email = _normalize_staff_email(email)
+    if _normalize_staff_email(token_data.get('email')) != normalized_email:
         return u'Invalid JSON Web token.'
 
-    user = StaffAccount.query.filter_by(email=email).first()
+    user = StaffAccount.query.filter_by(email=normalized_email).first()
     if not user:
         flash(u'User does not exists. ไม่พบชื่อบัญชีในฐานข้อมูล')
         return redirect(url_for('auth.login'))
@@ -214,22 +256,23 @@ def forgot_password():
     form = ForgotPasswordForm()
     if request.method == 'POST':
         if form.validate_on_submit():
-            user = StaffAccount.query.filter_by(email=form.email.data).first()
+            normalized_email = _normalize_staff_email(form.email.data)
+            user = StaffAccount.query.filter_by(email=normalized_email).first()
             if not user:
                 flash(u'User not found. ไม่พบบัญชีในฐานข้อมูล', 'warning')
                 return render_template('auth/forgot_password.html', form=form, errors=form.errors)
             serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
-            token = serializer.dumps({'email': form.email.data})
-            url = external_url('auth.reset_password', token=token, email=form.email.data)
+            token = serializer.dumps({'email': normalized_email})
+            url = external_url('auth.reset_password', token=token, email=normalized_email)
             message = u'Click the link below to reset the password.'\
                       u' กรุณาคลิกที่ลิงค์เพื่อทำการตั้งค่ารหัสผ่านใหม่\n\n{}'.format(url)
             try:
-                send_mail(['{}@mahidol.ac.th'.format(form.email.data)],
+                send_mail(['{}@mahidol.ac.th'.format(normalized_email)],
                           title='MUMT-MIS: Password Reset. ตั้งรหัสผ่านใหม่สำหรับระบบ MUMT-MIS',
                           message=message)
             except:
                 flash(u'Failed to send an email to {}. ระบบไม่สามารถส่งอีเมลได้กรุณาตรวจสอบอีกครั้ง'\
-                      .format(form.email.data), 'danger')
+                      .format(normalized_email), 'danger')
             else:
                 flash(u'Please check your mahidol.ac.th email for the link to reset the password within 20 minutes.'
                       u' โปรดตรวจสอบอีเมล mahidol.ac.th ของท่านเพื่อทำการแก้ไขรหัสผ่านภายใน 20 นาที', 'success')

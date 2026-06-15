@@ -34,6 +34,8 @@ import qrcode
 from app.staff.forms import StaffSeminarForm, create_seminar_attend_form, StaffGroupDetailForm
 from app.roles import admin_permission, hr_permission, secretary_permission, manager_permission, event_staff_permission
 from app.staff.models import *
+from app.url_utils import external_url
+from app.auth.views import _normalize_staff_email
 
 from app.comhealth.views import allowed_file
 
@@ -4390,6 +4392,9 @@ def staff_index():
 def staff_create_info():
     if request.method == 'POST':
         form = request.form
+        org_id = form.get('org_id', type=int)
+        selected_org = Org.query.get(org_id) if org_id else None
+        is_external_account = bool(selected_org and selected_org.is_external)
         getemail = form.get('email')
         for staff in StaffAccount.query.all():
             if staff.email == getemail:
@@ -4426,7 +4431,8 @@ def staff_create_info():
         # )
         create_email = StaffAccount(
             personal_id=createstaff.id,
-            email=form.get('email')
+            email=form.get('email'),
+            external_email=((form.get('external_email') or '').strip().lower() or None)
         )
         db.session.add(create_email)
         db.session.commit()
@@ -4457,6 +4463,10 @@ def staff_create_info():
             )
         else:
             flash('เพิ่มบุคลากรเรียบร้อย และเพิ่มข้อมูล quota การลาให้กับพนักงานใหม่เรียบร้อย', 'success')
+
+        if is_external_account:
+            return redirect(url_for('staff.staff_edit_pwd', staff_id=create_email.id))
+
         staff = StaffPersonalInfo.query.get(createstaff.id)
         return render_template('staff/staff_show_info.html', staff=staff)
     departments = Org.query.order_by(Org.id.asc()).all()
@@ -4496,11 +4506,13 @@ def staff_edit_info(staff_id):
         staff_account = StaffAccount.query.filter_by(personal_id=staff_id).first()
         if staff_account:
             staff_account.email = form.get('email')
+            staff_account.external_email = ((form.get('external_email') or '').strip().lower() or None)
             db.session.add(staff_account)
         else:
             createstaff = StaffAccount(
                 personal_id=staff_id,
-                email=form.get('email')
+                email=form.get('email'),
+                external_email=((form.get('external_email') or '').strip().lower() or None)
             )
             db.session.add(createstaff)
 
@@ -4629,7 +4641,13 @@ def staff_add_academic_position():
 def staff_search_to_change_pwd():
     if request.method == 'POST':
         staff_id = request.form.get('staffname')
+        if not staff_id:
+            flash('กรุณาเลือกชื่อบุคลากร')
+            return render_template('staff/staff_search_to_change_pwd.html')
         account = StaffAccount.query.filter_by(personal_id=staff_id).first()
+        if not account:
+            flash('ไม่พบบัญชีของบุคลากรที่เลือก')
+            return render_template('staff/staff_search_to_change_pwd.html')
         return render_template('staff/staff_edit_pwd.html', account=account)
     return render_template('staff/staff_search_to_change_pwd.html')
 
@@ -4639,14 +4657,62 @@ def staff_search_to_change_pwd():
 @login_required
 def staff_edit_pwd(staff_id):
     if request.method == 'POST':
-        form = request.form
         staff_email = StaffAccount.query.filter_by(id=staff_id).first()
-        staff_email.password = form.get('pwd')
+        if not staff_email:
+            abort(404)
+
+        new_password = (request.form.get('pwd') or '').strip()
+        if not new_password:
+            flash('กรุณากรอกรหัสผ่านใหม่')
+            return render_template('staff/staff_edit_pwd.html', account=staff_email)
+
+        staff_email.password = new_password
         db.session.add(staff_email)
         db.session.commit()
         flash('แก้ไขรหัสผ่านเรียบร้อย')
-        return render_template('staff/staff_index.html')
+        return redirect(url_for('staff.staff_search_to_change_pwd'))
     return render_template('staff/staff_search_to_change_pwd.html')
+
+
+@staff.route('/for-hr/staff-info/search-account/send-reset-pwd/<int:staff_id>', methods=['POST'])
+@hr_permission.require()
+@login_required
+def staff_send_reset_pwd_email(staff_id):
+    account = StaffAccount.query.filter_by(id=staff_id).first()
+    if not account:
+        abort(404)
+
+    email = (request.form.get('email') or '').strip()
+    if not email:
+        flash('กรุณากรอกอีเมล')
+        return redirect(url_for('staff.staff_edit_pwd', staff_id=staff_id))
+
+    email = _normalize_staff_email(email)
+    if not email:
+        flash('กรุณากรอกอีเมล')
+        return redirect(url_for('staff.staff_edit_pwd', staff_id=staff_id))
+
+    serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+    token = serializer.dumps({'email': email})
+    url = external_url('auth.reset_password', token=token, email=email)
+    message = (
+        u'Click the link below to reset the password.'
+        u' กรุณาคลิกที่ลิงค์เพื่อทำการตั้งค่ารหัสผ่านใหม่\n\n{}'
+    ).format(url)
+
+    try:
+        mail.send(Message(
+            subject='MUMT-MIS: Password Reset. ตั้งรหัสผ่านใหม่สำหรับระบบ MUMT-MIS',
+            body=message,
+            recipients=[f'{email}@mahidol.ac.th']
+        ))
+    except:
+        flash(u'Failed to send an email to {}. ระบบไม่สามารถส่งอีเมลได้กรุณาตรวจสอบอีกครั้ง'.format(email), 'danger')
+    else:
+        flash(u'Please check your mahidol.ac.th email for the link to reset the password within 20 minutes.'
+              u' โปรดตรวจสอบอีเมล mahidol.ac.th ของท่านเพื่อทำการแก้ไขรหัสผ่านภายใน 20 นาที', 'success')
+
+    return redirect(url_for('staff.staff_edit_pwd', staff_id=staff_id))
 
 
 @staff.route('/for-hr/staff-info/approvers',

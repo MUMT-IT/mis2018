@@ -113,6 +113,14 @@
                     <p class="notification is-light">
                         กรุณาลงชื่อเข้าใช้งานด้วยบัญชี Google ของมหาวิทยาลัยมหิดล (mahidol.ac.th) หรือบัญชี Line ที่ผูกไว้กับบัญชีของท่าน
                     </p>
+                    <div class="has-text-centered mb-4">
+                        <a class="button is-light is-rounded" href="{{ url_for('auth.login_external') }}">
+                            <span class="icon">
+                                <i class="fas fa-user-shield"></i>
+                            </span>
+                            <span>External employee login</span>
+                        </a>
+                    </div>
                     {% if is_admin %}
                     <form action="" method="post">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
