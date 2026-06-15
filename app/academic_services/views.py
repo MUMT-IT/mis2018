@@ -1694,6 +1694,58 @@ def remove_bacteria_alcohol_based_organism_form_entry():
     return ""
 
 
+@academic_services.route('/request/bacteria_antibacterial_treated_organism_form_entry/add', methods=['POST'])
+def add_bacteria_antibacterial_treated_organism_form_entry():
+    resp = ""
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    for entry in form.antibacterial_treated_condition_field:
+        if entry.name == field_name:
+            entry.antibacterial_treated_organism_fields.append_entry()
+            item_form = entry.antibacterial_treated_organism_fields[-1]
+            template = """
+                <tr>
+                    <td style="border: none">
+                        <div class="select">{}</div>
+                    </td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">
+                        <a class="button is-danger is-outlined"
+                            hx-delete="{}" 
+                            hx-target="closest tr"
+                            hx-swap="outerHTML"
+                        >
+                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                        </a>
+                    </td>
+                </tr>
+            """
+            resp = template.format(item_form.antibacterial_treated_organism(),
+                                   item_form.antibacterial_treated_time_duration(class_='input', required=True,
+                                                                  oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
+                                                                  oninput="this.setCustomValidity('')"),
+                                   url_for('academic_services.remove_bacteria_antibacterial_treated_organism_form_entry',
+                                           name=item_form.name)
+                                   )
+    resp = make_response(resp)
+    return resp
+
+
+@academic_services.route('/request/bacteria_antibacterial_treated_organism_form_entry/remove', methods=['DELETE'])
+def remove_bacteria_antibacterial_treated_organism_form_entry():
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.antibacterial_treated_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+        while len(entry.antibacterial_treated_organism_fields) > 0:
+            entry.antibacterial_treated_organism_fields.pop_entry()
+        for new_entry in temp_entries:
+            entry.antibacterial_treated_organism_fields.append_entry(new_entry)
+    return ""
+
+
 @academic_services.route('/request/virus_disinfection/add', methods=['GET', 'POST'])
 @academic_services.route('/request/virus_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
 def create_virus_disinfection_request(request_id=None):
