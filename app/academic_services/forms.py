@@ -397,6 +397,24 @@ class BacteriaInWashConditionForm(FlaskForm):
     in_wash_organism_fields = FieldList(FormField(BacteriaInWashTestConditionForm), min_entries=1)
 
 
+class BacteriaAlcoholBasedTestConditionForm(FlaskForm):
+    alcohol_based_organism = SelectField('เชื้อ', choices=[(c, c) for c in bacteria_alcohol_based_organisms], validators=[Optional()])
+    alcohol_based_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที)', validators=[Optional()],
+                                        render_kw={'class': 'input', 'placeholder': 'เช่น 1 วินาที'})
+
+
+class BacteriaAlcoholBasedConditionForm(FlaskForm):
+    product_type = HiddenField('ประเภทผลิตภัณฑ์',
+                               default='ผลิตภัณฑ์ที่มีแอลกอฮอล์เป็ยส่วนประกอบ เพื่อสุขภาพอนามัยสำหรับมือ (Alcohol-based Hand sanitizer)',
+                               render_kw={'class': 'input is-danger'})
+    alcohol_based_clean_type = RadioField('รูปแบบการทดสอบ',
+                                  choices=[('ทดสอบประสิทธิภาพการลดปริมาณเชื้อ วิธีทดสอบ EN 1276:2019',
+                                            'ทดสอบประสิทธิภาพการลดปริมาณเชื้อ วิธีทดสอบ EN 1276:2019 '
+                                            '(ทดสอบในสภาวะสกปรก (dirty condition) ที่อุณหภูมิ 34 องศาเซสเซียส)')],
+                                  validators=[Optional()])
+    in_wash_organism_fields = FieldList(FormField(BacteriaAlcoholBasedTestConditionForm), min_entries=1)
+
+
 class BacteriaDisinfectionRequestForm(FlaskForm):
     sample_name = StringField('ชื่อผลิตภัณฑ์', validators=[DataRequired()],
                               render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อผลิตภัณฑ์')",
@@ -502,7 +520,8 @@ class BacteriaDisinfectionRequestForm(FlaskForm):
                                                            ('after_wash',
                                                             'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ตกค้างหลังซัก (After Wash Claim)'),
                                                            ('in_wash',
-                                                            'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (In Wash Claim)')])
+                                                            'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (In Wash Claim)'),
+                                                           ('alcohol_based', 'ผลิตภัณฑ์ที่มีแอลกอฮอล์เป็ยส่วนประกอบ เพื่อสุขภาพอนามัยสำหรับมือ (Alcohol-based Hand sanitizer)')])
     liquid_condition_field = FieldList(FormField(BacteriaLiquidConditionForm,
                                                  'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดของเหลว หรือชนิดผง ที่ละลายน้้าได้'),
                                        min_entries=0)
@@ -515,6 +534,9 @@ class BacteriaDisinfectionRequestForm(FlaskForm):
     in_wash_condition_field = FieldList(FormField(BacteriaInWashConditionForm,
                                         'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (In Wash Claim)'),
                                         min_entries=0)
+    alcohol_based_condition_field = FieldList(FormField(BacteriaAlcoholBasedConditionForm,
+                                                        'ผลิตภัณฑ์ที่มีแอลกอฮอล์เป็ยส่วนประกอบ เพื่อสุขภาพอนามัยสำหรับมือ (Alcohol-based Hand sanitizer)'),
+                                              min_entries=0)
 
 
 virus_liquid_organisms = [
