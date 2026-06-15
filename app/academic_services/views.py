@@ -1321,11 +1321,6 @@ def create_bacteria_disinfection_request(request_id=None):
         form = BacteriaDisinfectionRequestForm(data=data)
     else:
         form = BacteriaDisinfectionRequestForm()
-    if request.method == 'POST':
-        for n, org in enumerate(bacteria_liquid_organisms):
-            liquid_entry = form.liquid_condition_field.liquid_organism_fields[n]
-            print('label', liquid_entry.liquid_organism.label, 'choice', liquid_entry.liquid_organism.choices, 'data',
-                  liquid_entry.liquid_organism.data)
     if form.validate_on_submit():
         if request_id:
             service_request.data = format_data(form.data)
@@ -1345,7 +1340,7 @@ def create_bacteria_disinfection_request(request_id=None):
     else:
         for er in form.errors:
             flash(f'{er} {form.errors[er]}', 'danger')
-    return render_template('academic_services/forms/bacteria_request_form.html', code=code, sub_lab=sub_lab,
+    return render_template('academic_services/forms/bacteria_disinfection_request_form.html', code=code, sub_lab=sub_lab,
                            form=form, menu=menu, request_id=request_id)
 
 
@@ -1359,7 +1354,7 @@ def get_bacteria_disinfection_condition_form():
     entry_fields = getattr(form, field_name)
     entry_fields.append_entry()
     fields = entry_fields[-1]
-    return render_template('academic_services/partials/bacteria_request_condition_form.html', fields=fields)
+    return render_template('academic_services/partials/bacteria_disinfection_request_condition_form.html', fields=fields)
 
 
 @academic_services.route('/request/virus_disinfection/add', methods=['GET', 'POST'])
