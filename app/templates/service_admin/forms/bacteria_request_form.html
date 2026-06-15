@@ -57,12 +57,22 @@
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">
-                                    {{ form.product_appearance.label }}
-                                    <span class="has-text-danger">*</span>
-                                </label>
-                                <div class="control">
-                                    {{ form.product_appearance(class='input', placeholder='เช่น ของเหลว') }}
+                                <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.product_appearance.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="select is-fullwidth">
+                                            {{ form.product_appearance(
+                                                        **{'hx-get': url_for("service_admin.get_product_appearance_other",
+                                                          request_id=request_id),
+                                                         'hx-target': '#product-appearance-other-container',
+                                                         'hx-swap': 'innerHTML',
+                                                         'hx-trigger': 'change, load'}) }}
+                                        </div>
+                                    </div>
+                                    <div id="product-appearance-other-container" style='width:67%'></div>
                                 </div>
                             </div>
                             <div class="field">
@@ -115,6 +125,57 @@
                                 </div>
                             </div>
                             <div class="field">
+                                <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.amount.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.amount(class='input', placeholder='เช่น 1 ขวด') }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.service_life.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.service_life(class='input') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.product_storage.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="select is-fullwidth">
+                                            {{ form.product_storage(
+                                                    **{'hx-get': url_for("service_admin.get_product_storage_other",
+                                                        request_id=request_id),
+                                                        'hx-target': '#product-storage-other-container',
+                                                        'hx-swap': 'innerHTML',
+                                                        'hx-trigger': 'change, load'})
+                                                    }}
+                                        </div>
+                                    </div>
+                                    <div id="product-storage-other-container" style='width:74%'></div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.post_test_product_action.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="select">
+                                    {{ form.post_test_product_action() }}
+                                </div>
+                            </div>
+                            <div class="field">
                                 <label class="label">
                                     {{ form.manufacturer.label }}
                                     <span class="has-text-danger">*</span>
@@ -134,50 +195,36 @@
                             </div>
                             <div class="field">
                                 <label class="label">
-                                    {{ form.importanddistributor.label }}
-                                    <span class="has-text-danger">*</span>
+                                    {{ form.importer.label }}
                                 </label>
                                 <div class="control">
-                                    {{ form.importanddistributor(class='input') }}
+                                    {{ form.importer(class='input') }}
                                 </div>
                             </div>
                             <div class="field">
                                 <label class="label">
-                                    {{ form.importanddistributor_address.label }}
-                                    <span class="has-text-danger">*</span>
+                                    {{ form.importer_address.label }}
                                 </label>
                                 <div class="control">
-                                    {{ form.importanddistributor_address(class='textarea') }}
+                                    {{ form.importer_address(class='textarea') }}
                                 </div>
                             </div>
                             <div class="field">
-                                <div class="field-body">
-                                    <div class="field">
-                                        <label class="label">
-                                            {{ form.amount.label }}
-                                            <span class="has-text-danger">*</span>
-                                        </label>
-                                        <div class="control">
-                                            {{ form.amount(class='input', placeholder='เช่น 1 ขวด') }}
-                                        </div>
-                                    </div>
-                                    <div class="field">
-                                        <label class="label">
-                                            {{ form.collect_sample_during_testing.label }}
-                                            <span class="has-text-danger">*</span>
-                                        </label>
-                                        <div class="select is-fullwidth">
-                                            {{ form.collect_sample_during_testing(
-                                                **{'hx-get': url_for("service_admin.get_collect_sample_during_testing",
-                                                    request_id=request_id),
-                                                    'hx-target': '#collect-samples-other-container',
-                                                    'hx-swap': 'innerHTML',
-                                                    'hx-trigger': 'change, load'
-                                                    }) }}
-                                        </div>
-                                    </div>
-                                    <div id="collect-samples-other-container" style='width:55%'>
-                                    </div>
+                                <label class="label">
+                                    {{ form.distributor.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.distributor(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.distributor_address.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.distributor_address(class='textarea') }}
                                 </div>
                             </div>
                         </div>

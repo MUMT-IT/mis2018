@@ -145,7 +145,8 @@
                                     <div class="field has-addons">
                                         <div class="control">
                                             <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
-                                               @click="printRequest({{ sample.request_id }}, '{{ sample.request.sub_lab.code }}')"
+                                               @click="printRequest({{ sample.request_id }}, '{{ sample.request.sub_lab.code }}',
+                                               '{{ sample.request.request_no }}')"
                                             >
                                                 <span class="icon"><i class="fas fa-print"></i></span>
                                                 <span>พิมพ์ใบนำส่งตัวอย่าง</span>
@@ -226,8 +227,9 @@
             el: "#sample",
             delimiters: ['<%', '%>'],
             methods: {
-                printRequest: function (request_id, code) {
+                printRequest: function (request_id,  code, request_no) {
                     var url = "/academic_services/request/pdf/" + request_id + '?code=' + code;
+                    document.title = 'Request ' + request_no;
                     printJS(url);
                 }
             },

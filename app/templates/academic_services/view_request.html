@@ -264,7 +264,7 @@
                                             {% for invoice in quotation.invoices %}
                                                 {% if invoice.file %}
                                                     <a class="button is-link is-outlined is-rounded is-small mb-2"
-                                                       href="{{ url_for('service_admin.download_file', key=invoice.file,
+                                                       href="{{ url_for('academic_services.download_file', key=invoice.file,
                                                        download_filename='Invoice' + ' ' + invoice.invoice_no + '.pdf') }}"
                                                     >
                                                         <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>
