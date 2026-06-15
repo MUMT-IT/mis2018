@@ -1269,14 +1269,14 @@ def remove_bacteria_liquid_organism_form_entry():
     return ""
 
 
-@academic_services.route('/request/bacteria_spray_organism_form_entry/add', methods=['POST'])
+@service_admin.route('/request/bacteria_spray_organism_form_entry/add', methods=['POST'])
 def add_bacteria_spray_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
     for entry in form.spray_condition_field:
         if entry.name == field_name:
-            entry.sray_condition_field.append_entry()
+            entry.spray_organism_fields.append_entry()
             item_form = entry.spray_organism_fields[-1]
             template = """
                 <tr>
@@ -1310,7 +1310,7 @@ def add_bacteria_spray_organism_form_entry():
     return resp
 
 
-@academic_services.route('/request/bacteria_spray_organism_form_entry/remove', methods=['DELETE'])
+@service_admin.route('/request/bacteria_spray_organism_form_entry/remove', methods=['DELETE'])
 def remove_bacteria_spray_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -1322,6 +1322,99 @@ def remove_bacteria_spray_organism_form_entry():
             entry.spray_organism_fields.pop_entry()
         for new_entry in temp_entries:
             entry.spray_rganism_fields.append_entry(new_entry)
+    return ""
+
+
+@service_admin.route('/request/bacteria_sheet_organism_form_entry/add', methods=['POST'])
+def add_bacteria_sheet_organism_form_entry():
+    resp = ""
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    for entry in form.sheet_condition_field:
+        if entry.name == field_name:
+            entry.sheet_organism_fields.append_entry()
+            item_form = entry.sheet_organism_fields[-1]
+            template = """
+                <tr>
+                    <td style="border: none">
+                        <div class="select">{}</div>
+                    </td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">
+                        <a class="button is-danger is-outlined"
+                            hx-delete="{}" 
+                            hx-target="closest tr"
+                            hx-swap="outerHTML"
+                        >
+                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                        </a>
+                    </td>
+                </tr>
+            """
+            resp = template.format(item_form.sheet_organism(),
+                                   item_form.sheet_time_duration(class_='input', required=True,
+                                                                  oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
+                                                                  oninput="this.setCustomValidity('')"),
+                                   url_for('service_admin.remove_bacteria_sheet_organism_form_entry',
+                                           name=item_form.name)
+                                   )
+    resp = make_response(resp)
+    return resp
+
+
+@service_admin.route('/request/bacteria_after_wash_organism_form_entry/add', methods=['POST'])
+def add_bacteria_after_wash_organism_form_entry():
+    resp = ""
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    for entry in form.after_wash_condition_field:
+        if entry.name == field_name:
+            entry.after_wash_organism_fields.append_entry()
+            item_form = entry.after_wash_organism_fields[-1]
+            template = """
+                <tr>
+                    <td style="border: none">
+                        <div class="select">{}</div>
+                    </td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">
+                        <a class="button is-danger is-outlined"
+                            hx-delete="{}" 
+                            hx-target="closest tr"
+                            hx-swap="outerHTML"
+                        >
+                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                        </a>
+                    </td>
+                </tr>
+            """
+            resp = template.format(item_form.after_wash_organism(),
+                                   item_form.after_wash_ratio(class_='input'),
+                                   item_form.after_wash_per_water(class_='input'),
+                                   item_form.after_wash_time_duration(class_='input', required=True,
+                                                                  oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
+                                                                  oninput="this.setCustomValidity('')"),
+                                   url_for('service_admin.remove_bacteria_after_wash_organism_form_entry',
+                                           name=item_form.name)
+                                   )
+    resp = make_response(resp)
+    return resp
+
+
+@service_admin.route('/request/bacteria_after_wash_organism_form_entry/remove', methods=['DELETE'])
+def remove_bacteria_after_wash_organism_form_entry():
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.after_wash_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+        while len(entry.after_wash_organism_fields) > 0:
+            entry.after_wash_organism_fields.pop_entry()
+        for new_entry in temp_entries:
+            entry.after_wash_organism_fields.append_entry(new_entry)
     return ""
 
 
@@ -1549,27 +1642,29 @@ def add_virus_spray_organism_form_entry():
             entry.spray_organism_fields.append_entry()
             item_form = entry.spray_organism_fields[-1]
             template = """
-                <tr>
-                    <td style="border: none">
-                        <div class="select">{}</div>
-                    </td>
-                    <td style="border: none">{}</td>
-                    <td style="border: none">{}</td>
-                    <td style="border: none">{}</td>
-                    <td style="border: none">{}</td>
-                    <td style="border: none">
-                        <a class="button is-danger is-outlined"
-                            hx-delete="{}" 
-                            hx-target="closest tr"
-                            hx-swap="outerHTML"
-                        >
-                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
-                        </a>
-                    </td>
-                </tr>
-            """
+                            <tr>
+                                <td style="border: none">
+                                    <div class="select">{}</div>
+                                </td>
+                                <td style="border: none">{}</td>
+                                <td style="border: none">{}</td>
+                                <td style="border: none">{}</td>
+                                <td style="border: none">{}</td>
+                                <td style="border: none">{}</td>
+                                <td style="border: none">
+                                    <a class="button is-danger is-outlined"
+                                        hx-delete="{}" 
+                                        hx-target="closest tr"
+                                        hx-swap="outerHTML"
+                                    >
+                                        <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                    </a>
+                                </td>
+                            </tr>
+                        """
             resp = template.format(item_form.spray_organism(),
                                    item_form.spray_ratio(class_='input'),
+                                   item_form.spray_per_water(class_='input'),
                                    item_form.spray_distance(class_='input', required=True,
                                                             oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
                                                             oninput="this.setCustomValidity('')"),
@@ -1579,7 +1674,7 @@ def add_virus_spray_organism_form_entry():
                                    item_form.spray_time_duration(class_='input', required=True,
                                                                  oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
                                                                  oninput="this.setCustomValidity('')"),
-                                   url_for('service_admin.remove_virus_spray_organism_form_entry',
+                                   url_for('service_admin.remove_bacteria_spray_organism_form_entry',
                                            name=item_form.name)
                                    )
     resp = make_response(resp)
