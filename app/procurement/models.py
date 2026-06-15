@@ -30,6 +30,8 @@ class ProcurementDetail(db.Model):
     image_url = db.Column('image_url', db.String(), info={'label': u'ที่อยู่รูปภาพ'})
     image_thumbnail_url = db.Column('image_thumbnail_url', db.String(), info={'label': u'ที่อยู่รูปภาพขนาดย่อ'})
     qrcode = db.Column('qrcode', db.Text(), info={'label': 'QR Code'})
+    qr_code_attached = db.Column('qr_code_attached', db.Boolean(), default=False,
+                                 info={'label': u'ติด QR Code แล้ว'})
     procurement_no = db.Column('procurement_no', db.String(12), info={'label': u'เลขครุภัณฑ์'})
     document_no = db.Column('document_no', db.String(), info={'label': u'เอกสารสั่งซื้อเลขที่'})
     erp_code = db.Column('erp_code', db.String(32), unique=True, info={'label': u'Inventory Number/ERP'})
@@ -127,6 +129,7 @@ class ProcurementDetail(db.Model):
             'id': self.id,
             'image_url': presigned_url if presigned_url else self.image_url,
             'image_thumbnail_url': thumbnail_url if thumbnail_url else self.image_thumbnail_url,
+            'qr_code_attached': self.qr_code_attached,
             'name': self.name,
             'procurement_no': self.procurement_no,
             'erp_code': self.erp_code,

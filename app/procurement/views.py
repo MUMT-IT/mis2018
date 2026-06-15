@@ -1253,6 +1253,13 @@ def qrcode_scan():
     return render_template('procurement/qr_scanner.html')
 
 
+@procurement.route('/scan-qrcode/mumt', methods=['GET'])
+@csrf.exempt
+@login_required
+def qrcode_scan_mumt():
+    return render_template('procurement/scan_qrcode_for_mumt.html')
+
+
 @procurement.route('/scan-qrcode/info/view')
 @procurement.route('/scan-qrcode/info/view/procurement_no/<string:procurement_no>')
 def view_procurement_on_scan(procurement_no=None):
@@ -1423,6 +1430,54 @@ def view_location_and_status_on_scan(procurement_no=None):
             item = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
 
     return render_template('procurement/view_location_and_status_on_scan.html', item=item,
+                           procurement_no=item.procurement_no, url_callback=request.referrer)
+
+
+@procurement.route('/scan-qrcode/info/mumt', methods=['GET', 'POST'])
+@procurement.route('/scan-qrcode/info/mumt/view/<string:procurement_no>', methods=['GET', 'POST'])
+@login_required
+def view_procurement_for_mumt(procurement_no=None):
+    procurement_id = request.args.get('procurement_id')
+    if procurement_id:
+        item = ProcurementDetail.query.get(procurement_id)
+    if procurement_no:
+        items = ProcurementDetail.query.filter_by(procurement_no=procurement_no).all()
+        for qr_item in items:
+            qr_item.qr_code_attached = True
+            db.session.add(qr_item)
+        db.session.commit()
+        item_count = len(items)
+        if item_count > 1:
+            return redirect(url_for('procurement.view_sub_items', procurement_no=procurement_no,
+                                    next_view="procurement.view_procurement_for_mumt"))
+        else:
+            item = items[0] if items else None
+
+    current_record = item.current_record
+    location_display = ''
+    if current_record and current_record.location:
+        location_display = '{} {}'.format(
+            current_record.location.number or '',
+            current_record.location.location or ''
+        ).strip()
+    form = ProcurementLocationForm(obj=current_record)
+    if request.method == 'POST':
+        if current_record and form.validate_on_submit():
+            form.populate_obj(current_record)
+            item.qr_code_attached = 'qr_code_attached' in request.form
+            item.comment = request.form.get('comment', '').strip() or None
+            current_record.updater_id = current_user.id
+            current_record.updated_at = arrow.now('Asia/Bangkok').datetime
+            db.session.add(item)
+            db.session.add(current_record)
+            db.session.commit()
+            flash('แก้ไขสถานที่เรียบร้อย', 'success')
+            return redirect(url_for('procurement.view_procurement_for_mumt', procurement_no=item.procurement_no))
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+
+    return render_template('procurement/view_procurement_for_mumt.html', item=item,
+                           current_record=current_record, location_display=location_display, form=form,
                            procurement_no=item.procurement_no, url_callback=request.referrer)
 
 
