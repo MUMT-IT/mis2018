@@ -1362,8 +1362,36 @@ def record_each_request_leave_request(request_id):
     all_hr = StaffSpecialGroup.query.filter_by(group_code='hr').first()
     for hr in all_hr.staffs:
         is_hr = True if hr.id == current_user.id else False
+    if req.staff.personal_info.org.parent:
+        org_name = req.staff.personal_info.org.parent.name
+    else:
+        org_name = req.staff.personal_info.org.name
+    lower_approver = ''
+    lower_approver_position = ''
+    middle_approver = ''
+    middle_approver_position = ''
+
+    lower_approver_obj = StaffLeaveApprover.query.filter_by(staff_account_id=req.staff_account_id,
+                                                            is_active=True, is_lower_level=True).first()
+    if lower_approver_obj:
+        lower_approver = lower_approver_obj.account.personal_info.fullname
+        lower_head_position = StaffHeadPosition.query.filter_by(
+                                                        staff_account_id=lower_approver_obj.approver_account_id).first()
+        lower_approver_position = lower_head_position.position if lower_head_position else ''
+
+    middle_approver_obj = StaffLeaveApprover.query.filter_by(staff_account_id=req.staff_account_id,
+                                                             is_active=True, is_middle_level=True).first()
+    if middle_approver_obj:
+        middle_approver = middle_approver_obj.account.personal_info.fullname
+        middle_head_position = StaffHeadPosition.query.filter_by(
+                                                    staff_account_id=middle_approver_obj.approver_account_id).first()
+        middle_approver_position = middle_head_position.position if middle_head_position else ''
+
     return render_template('staff/leave_record_info.html', req=req, approvers=approvers,
-                           upload_file_url=upload_file_url, is_hr=is_hr)
+                           org_name=org_name,
+                           upload_file_url=upload_file_url, is_hr=is_hr, lower_approver=lower_approver,
+                           lower_approver_position=lower_approver_position, middle_approver=middle_approver,
+                           middle_approver_position=middle_approver_position)
 
 
 @staff.route('/leave/requests/search')
@@ -1414,19 +1442,21 @@ def wfh_request_info():
         else:
             requests = StaffWorkFromHomeRequest.query.all()
     else:
+        query = StaffWorkFromHomeRequest.query
+        selected_org = Org.query.get(org_id)
+        org_ids = get_org_and_children_ids(selected_org) if selected_org else [org_id]
+        all_wfh = query.join(StaffWorkFromHomeRequest.staff).join(StaffAccount.personal_info) \
+            .join(StaffPersonalInfo.org).filter(StaffPersonalInfo.org_id.in_(org_ids))
         if round_year:
             wfh = []
             requests = []
             start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(round_year)
-            all_wfh = StaffWorkFromHomeRequest.query.join(StaffAccount).filter(
-                StaffAccount.personal_info.has(org_id=org_id))
             for req in all_wfh:
                 if req.start_datetime.date() >= start_fiscal_date and req.start_datetime.date() <= end_fiscal_date:
                     wfh.append(req)
                     requests = wfh
         else:
-            requests = StaffWorkFromHomeRequest.query.join(StaffAccount).filter(
-                StaffAccount.personal_info.has(org_id=org_id))
+            requests = all_wfh
     return render_template('staff/wfh_list.html', requests=requests, sel_dep=org_id,
                            departments=[{'id': d.id, 'name': d.name} for d in departments],
                            rounds=[{'value': r} for r in rounds],
@@ -1465,7 +1495,9 @@ def leave_request_result_by_person():
     if org_id is None:
         account_query = StaffAccount.query.all()
     else:
-        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id)) \
+        selected_org = Org.query.get(org_id)
+        org_ids = get_org_and_children_ids(selected_org) if selected_org else [org_id]
+        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(StaffPersonalInfo.org_id.in_(org_ids))) \
             .filter(or_(StaffAccount.personal_info.has(retired=False),
                         StaffAccount.personal_info.has(retired=None)))
     for account in account_query:
@@ -1958,7 +1990,9 @@ def show_wfh_approvers():
     if org_id is None:
         account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(retired=False))
     else:
-        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id)) \
+        selected_org = Org.query.get(org_id)
+        org_ids = get_org_and_children_ids(selected_org) if selected_org else [org_id]
+        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(StaffPersonalInfo.org_id.in_(org_ids))) \
             .filter(or_(StaffAccount.personal_info.has(retired=False),
                         StaffAccount.personal_info.has(retired=None)))
 
@@ -3255,7 +3289,7 @@ def create_seminar():
                 flash('Upload File เรียบร้อยแล้ว', 'success')
             else:
                 upload_file_url = None
-                flash('Upload File ไม่สำเร็จ/ ไม่มีเอกสารแนบ', 'warning')
+                # flash('Upload File ไม่สำเร็จ/ ไม่มีเอกสารแนบ', 'warning')
             seminar.upload_file_url = upload_file_url
             timedelta = form.end_datetime.data - form.start_datetime.data
             if timedelta.days < 0 and timedelta.seconds == 0:
@@ -3879,7 +3913,7 @@ def seminar_upload_proposal(seminar_attend_id, proposal_id):
             flash('Upload File เรียบร้อยแล้ว', 'success')
         else:
             upload_file_url = None
-            flash('Upload File ไม่สำเร็จ', 'warning')
+            # flash('Upload File ไม่สำเร็จ', 'warning')
         this_proposal.upload_file_url = upload_file_url
         db.session.add(this_proposal)
         db.session.commit()
@@ -4148,8 +4182,11 @@ def seminar_attends_each_person():
 def seminar_attends_each_person_details(staff_account_id):
     account = StaffAccount.query.filter_by(id=staff_account_id).first()
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(
-        func.date(StaffSeminarAttend.end_datetime) >= START_FISCAL_DATE.date(),
+    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).join(
+        StaffSeminar, StaffSeminarAttend.seminar_id == StaffSeminar.id
+    ).filter(
+        StaffSeminar.cancelled_at == None,
+        func.date(func.coalesce(StaffSeminarAttend.end_datetime, StaffSeminarAttend.start_datetime)) >= START_FISCAL_DATE.date(),
         func.date(StaffSeminarAttend.start_datetime) <= END_FISCAL_DATE.date()
     ).all()
     current_fee = 0
@@ -4184,8 +4221,11 @@ def seminar_attends_each_person_details(staff_account_id):
 @login_required
 def current_seminar_attends(staff_account_id):
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(
-        func.date(StaffSeminarAttend.end_datetime) >= START_FISCAL_DATE.date(),
+    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).join(
+        StaffSeminar, StaffSeminarAttend.seminar_id == StaffSeminar.id
+    ).filter(
+        StaffSeminar.cancelled_at == None,
+        func.date(func.coalesce(StaffSeminarAttend.end_datetime, StaffSeminarAttend.start_datetime)) >= START_FISCAL_DATE.date(),
         func.date(StaffSeminarAttend.start_datetime) <= END_FISCAL_DATE.date()
     ).all()
     total_fee = 0
@@ -4352,11 +4392,14 @@ def staff_create_info():
 
         db.session.add(createstaff)
         db.session.commit()
-
+        # create_email = StaffAccount(
+        #     personal_id=createstaff.id,
+        #     email=form.get('email'),
+        #     password=form.get('password')
+        # )
         create_email = StaffAccount(
             personal_id=createstaff.id,
-            email=form.get('email'),
-            password=form.get('password')
+            email=form.get('email')
         )
         db.session.add(create_email)
         db.session.commit()
@@ -4621,6 +4664,44 @@ def staff_approver_change_active_status(approver_id, requester_id):
     db.session.add(approver)
     db.session.commit()
     flash('แก้ไขสถานะการอนุมัติเรียบร้อยแล้ว', 'success')
+    return redirect(request.referrer)
+
+
+@staff.route('/for-hr/staff-info/approvers/edit/<int:approver_id>/<int:requester_id>/change-lower-level-status')
+@hr_permission.require()
+@login_required
+def staff_approver_change_lower_level_status(approver_id, requester_id):
+    approver = StaffLeaveApprover.query.filter_by(approver_account_id=approver_id,
+                                                  staff_account_id=requester_id).first()
+    if not approver:
+        flash('ไม่พบข้อมูลผู้อนุมัติ', 'warning')
+        return redirect(request.referrer)
+    if approver.is_lower_level:
+        approver.is_lower_level = False
+    else:
+        approver.is_lower_level = True
+    db.session.add(approver)
+    db.session.commit()
+    flash('แก้ไขสถานะหัวหน้างานเรียบร้อยแล้ว', 'success')
+    return redirect(request.referrer)
+
+
+@staff.route('/for-hr/staff-info/approvers/edit/<int:approver_id>/<int:requester_id>/change-middle-level-status')
+@hr_permission.require()
+@login_required
+def staff_approver_change_middle_level_status(approver_id, requester_id):
+    approver = StaffLeaveApprover.query.filter_by(approver_account_id=approver_id,
+                                                  staff_account_id=requester_id).first()
+    if not approver:
+        flash('ไม่พบข้อมูลผู้อนุมัติ', 'warning')
+        return redirect(request.referrer)
+    if approver.is_middle_level:
+        approver.is_middle_level = False
+    else:
+        approver.is_middle_level = True
+    db.session.add(approver)
+    db.session.commit()
+    flash('แก้ไขสถานะผู้บังคับบัญชาเรียบร้อยแล้ว', 'success')
     return redirect(request.referrer)
 
 

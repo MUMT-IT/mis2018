@@ -24,6 +24,72 @@ REF3 = os.environ.get('SCB_REF3')
 QR30_INQUIRY = os.environ.get('QR30_INQUIRY')
 SLIP_VERIFICATION = os.environ.get('SLIP_VERIFICATION')
 
+
+def get_fixie_proxies():
+    fixie_host = os.environ.get("FIXIE_SOCKS_HOST")
+    if not fixie_host:
+        return None
+    proxy_url = f"socks5h://{fixie_host}"
+    return {
+        "http": proxy_url,
+        "https": proxy_url,
+    }
+
+
+def _log_scb_proxy_status(action):
+    current_app.logger.info(
+        "SCB request %s using Fixie proxy: %s",
+        action,
+        "enabled" if get_fixie_proxies() else "disabled"
+    )
+
+
+def _log_cloudfront_block(resp):
+    if resp is None:
+        return
+    content_type = (resp.headers.get("Content-Type") or "").lower()
+    if resp.status_code == 403 and "html" in content_type:
+        current_app.logger.error(
+            "SCB request blocked by CloudFront/WAF. Check Fixie proxy and SCB allowlist."
+        )
+
+
+def scb_qr30_inquiry(reference1, transaction_date, event_code='00300100'):
+    headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'requestUId': str(uuid.uuid4()),
+        'resourceOwnerId': APP_KEY
+    }
+    proxies = get_fixie_proxies()
+    _log_scb_proxy_status('qr30-inquiry-auth')
+    response = requests.post(AUTH_URL, headers=headers, json={
+        'applicationKey': APP_KEY,
+        'applicationSecret': APP_SECRET
+    }, proxies=proxies, timeout=30)
+    _log_cloudfront_block(response)
+    response.raise_for_status()
+    access_token = response.json().get('data', {}).get('accessToken')
+    if not access_token:
+        return {}
+    headers['authorization'] = 'Bearer {}'.format(access_token)
+    _log_scb_proxy_status('qr30-inquiry')
+    resp = requests.get(
+        QR30_INQUIRY,
+        params={
+            "billerId": BILLERID,
+            "reference1": reference1,
+            "transactionDate": transaction_date,
+            "eventCode": event_code
+        },
+        headers=headers,
+        proxies=proxies,
+        timeout=30
+    )
+    _log_cloudfront_block(resp)
+    return resp.json()
+
+
 def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
     mail.send(message)
@@ -34,15 +100,19 @@ def generate_qrcode(amount, ref1, ref2, ref3, expired_at=None):
         expired_at = arrow.now('Asia/Bangkok').shift(weeks=24).format('YYYY-MM-DD 00:00:00')
     headers = {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         'requestUId': str(uuid.uuid4()),
         'resourceOwnerId': APP_KEY
     }
     response = None
     try:
+        proxies = get_fixie_proxies()
+        _log_scb_proxy_status('auth')
         response = requests.post(AUTH_URL, headers=headers, json={
             'applicationKey': APP_KEY,
             'applicationSecret': APP_SECRET
-        })
+        }, proxies=proxies, timeout=30)
+        _log_cloudfront_block(response)
         response.raise_for_status()
         response_data = response.json()
         access_token = response_data['data']['accessToken']
@@ -76,6 +146,8 @@ def generate_qrcode(amount, ref1, ref2, ref3, expired_at=None):
     headers['authorization'] = 'Bearer {}'.format(access_token)
 
     try:
+        proxies = get_fixie_proxies()
+        _log_scb_proxy_status('qrcode-create')
         qrcode_resp = requests.post(QRCODE_URL, headers=headers, json={
             'qrType': 'PP',
             'amount': '{}'.format(amount),
@@ -86,7 +158,8 @@ def generate_qrcode(amount, ref1, ref2, ref3, expired_at=None):
             'ref3': ref3,
             'expiryDate': expired_at,
             'numberOfTimes': 1
-        })
+        }, proxies=proxies, timeout=30)
+        _log_cloudfront_block(qrcode_resp)
     except requests.RequestException as exc:
         current_app.logger.exception(
             'SCB QR code request failed for ref1=%s ref2=%s amount=%s',
@@ -299,27 +372,12 @@ def transaction_inquiry():
         trnx = ScbPaymentRecord.query.filter_by(bill_payment_ref1=bill_payment_ref1).first()
 
     if trnx:
-        headers = {
-            'Content-Type': 'application/json',
-            'requestUId': str(uuid.uuid4()),
-            'resourceOwnerId': APP_KEY
-        }
-        response = requests.post(AUTH_URL, headers=headers, json={
-            'applicationKey': APP_KEY,
-            'applicationSecret': APP_SECRET
-        })
-        response_data = response.json()
-        access_token = response_data['data']['accessToken']
-
-        headers['authorization'] = 'Bearer {}'.format(access_token)
-        resp = requests.get(
-            QR30_INQUIRY,
-            params={"billerId": BILLERID,
-                    "reference1": trnx.bill_payment_ref1,
-                    "transactionDate": trnx.created_datetime.strftime("%Y-%m-%d"),
-                    "eventCode": "00300100"}
-            , headers=headers)
-        return jsonify(resp.json())
+        data = scb_qr30_inquiry(
+            reference1=trnx.bill_payment_ref1,
+            transaction_date=trnx.created_datetime.strftime("%Y-%m-%d"),
+            event_code="00300100"
+        )
+        return jsonify(data)
     records = ScbPaymentRecord.query.all()
     return render_template('scb_payment_service/transaction_inquiry.html', records=records)
 
@@ -334,27 +392,12 @@ def check_payment():
                                                 bill_payment_ref2=bill_payment_ref2).first()
         if trnx:
             if trnx.payer_name is None and trnx.payer_account_number is None and trnx.sending_bank_code is None:
-                headers = {
-                    'Content-Type': 'application/json',
-                    'requestUId': str(uuid.uuid4()),
-                    'resourceOwnerId': APP_KEY
-                }
-                response = requests.post(AUTH_URL, headers=headers, json={
-                    'applicationKey': APP_KEY,
-                    'applicationSecret': APP_SECRET
-                })
-                response_data = response.json()
-                access_token = response_data['data']['accessToken']
-
-                headers['authorization'] = 'Bearer {}'.format(access_token)
-                resp = requests.get(
-                    QR30_INQUIRY,
-                    params={"billerId": BILLERID,
-                            "reference1": trnx.bill_payment_ref1,
-                            "transactionDate": trnx.created_datetime.strftime("%Y-%m-%d"),
-                            "eventCode": "00300100"}
-                    , headers=headers)
-                data = resp.json().get('data')
+                inquiry_resp = scb_qr30_inquiry(
+                    reference1=trnx.bill_payment_ref1,
+                    transaction_date=trnx.created_datetime.strftime("%Y-%m-%d"),
+                    event_code="00300100"
+                )
+                data = inquiry_resp.get('data') if isinstance(inquiry_resp, dict) else None
                 if data:
                     trnx.payer_name = data.get('sender', {}).get('name')
                     trnx.payer_account_number = data.get('sender', {}).get('account', {}).get('value')

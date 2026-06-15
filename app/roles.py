@@ -1,4 +1,5 @@
 from flask_principal import Permission
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.exc import ProgrammingError
 
 from app.main import app
@@ -32,7 +33,7 @@ with app.app_context():
         continuing_edu_admin_role = Role.query.filter_by(role_need='continuing_edu_admin', 
                                                           action_need=None, resource_id=None).first()
 
-    except ProgrammingError:
+    except (ProgrammingError, OperationalError):
         executive_role = None
         education_role = None
         admin_role = None

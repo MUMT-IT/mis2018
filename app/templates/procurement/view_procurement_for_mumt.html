@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <style>
+            .thumbnail-wrapper {
+                position: relative;
+                display: inline-block;
+                width: 128px;
+                height: 128px;
+            }
+            .thumbnail-loader {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.9);
+            }
+            .thumbnail-loader::after {
+                content: "";
+                width: 28px;
+                height: 28px;
+                border: 3px solid #d9d9d9;
+                border-top-color: #3273dc;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+            }
+            .thumbnail-loader.is-hidden {
+                display: none;
+            }
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h3 class="title is-3">ข้อมูลครุภัณฑ์</h3>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-two-thirds is-offset-2">
+                    {% set full_image_url = item.generate_presigned_url() if item.image_url else ('data:image/png;base64, {}'.format(item.image) if item.image else None) %}
+                    {% set thumbnail_url = item.generate_thumbnail_presigned_url() or full_image_url %}
+                    {% if thumbnail_url %}
+                        <div class="thumbnail-wrapper">
+                            <div class="thumbnail-loader" id="thumbnail-loader"></div>
+                            <img class="zoom-image clickable-thumbnail"
+                                 style="display:block; width:128px; height:128px; object-fit:cover; cursor:zoom-in;"
+                                 id="base64image"
+                                 src="{{ thumbnail_url }}"
+                                 data-full-src="{{ full_image_url }}"
+                                 alt="item thumbnail">
+                        </div>
+                    {% endif %}
+                    <table class="table is-fullwidth is-striped">
+                        <tr>
+                            <td><strong>Cost Center</strong></td>
+                            <td>{{ item.cost_center or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ERP</strong></td>
+                            <td>{{ item.erp_code or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>เลขครุภัณฑ์</strong></td>
+                            <td>{{ item.procurement_no }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Name</strong></td>
+                            <td>{{ item.name }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>รุ่น</strong></td>
+                            <td>{{ item.model or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ยี่ห้อ</strong></td>
+                            <td>{{ item.maker or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Serial Number</strong></td>
+                            <td>{{ item.serial_no or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ปีงบประมาณ</strong></td>
+                            <td>{{ item.budget_year or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ราคา</strong></td>
+                            <td>{{ item.price or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>วันที่ได้รับ</strong></td>
+                            <td>{{ item.received_date or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>บริษัทผู้ขาย/บริจาค</strong></td>
+                            <td>{{ item.guarantee or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>วันที่เริ่มประกัน</strong></td>
+                            <td>{{ item.start_guarantee_date or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>วันที่สิ้นสุดประกัน</strong></td>
+                            <td>{{ item.end_guarantee_date or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>สถานที่ล่าสุด</strong></td>
+                            <td>{{ location_display or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>จัดซื้อด้วยเงิน</strong></td>
+                            <td>{{ item.purchasing_type.purchasing_type if item.purchasing_type else '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>สภาพของสินทรัพย์</strong></td>
+                            <td>{{ item.available or '-' }}</td>
+                        </tr>
+                        <br>
+                    </table>
+                    <div class="box">
+                        <form method="post">
+                            {{ form.hidden_tag() }}
+                            <div class="field">
+                                <label class="label">{{ form.location.label }}</label>
+                                <div class="control">
+                                    {{ form.location(class='js-example-basic-multiple') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">Comment</label>
+                                <div class="control">
+                                    <textarea class="textarea"
+                                              name="comment"
+                                              rows="4"
+                                              placeholder="">{{ item.comment or '' }}</textarea>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="checkbox">
+                                    <input type="checkbox"
+                                           name="qr_code_attached"
+                                           value="1"
+                                           {% if item.qr_code_attached %}checked{% endif %}>
+                                    ติด QR Code แล้ว
+                                </label>
+                            </div>
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="buttons">
+                                    <button class="button is-success" type="submit" value="submit">
+                                        บันทีก
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="has-text-centered mt-4">
+                        <h4 class="title is-5">ประวัติการซ่อม</h4>
+                        <table class="table is-fullwidth is-striped mb-5">
+                            <tr>
+                                <td class="has-text-centered">อยู่ระหว่างพัฒนา</td>
+                            </tr>
+                        </table>
+
+                        <h4 class="title is-5">maintenance</h4>
+                        <table class="table is-fullwidth is-striped mb-5">
+                            <tr>
+                                <td class="has-text-centered">อยู่ระหว่างพัฒนา</td>
+                            </tr>
+                        </table>
+
+                        <a href="{{ url_for('procurement.first_page') }}" class="button is-rounded is-info is-light">
+                            <span class="icon">
+                                <i class="fas fa-arrow-left"></i>
+                            </span>
+                            <span>กลับ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/medium-zoom@1.0.2/dist/medium-zoom.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const thumb = document.querySelector('.clickable-thumbnail');
+            const thumbLoader = document.getElementById('thumbnail-loader');
+            if (thumb && thumbLoader) {
+                const hideLoader = function () {
+                    thumbLoader.classList.add('is-hidden');
+                };
+                if (thumb.complete) {
+                    hideLoader();
+                } else {
+                    thumb.addEventListener('load', hideLoader, {once: true});
+                    thumb.addEventListener('error', hideLoader, {once: true});
+                }
+            }
+
+            if (thumb) {
+                mediumZoom('.zoom-image', {
+                    margin: 24,
+                    background: '#ffffff',
+                    scrollOffset: 40
+                });
+            }
+
+            $('.js-example-basic-multiple').select2({
+                width: '100%',
+            });
+        });
+    </script>
+{% endblock %}

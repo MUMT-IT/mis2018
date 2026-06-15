@@ -1163,7 +1163,7 @@
                                 </tr>
                             </thead>
                             <tbody id="testspecial"
-                                hx-get="{{ url_for('comhealth.testspecial', serviceNo=service_no, gender=employee.sex, age=age) }}"
+                                hx-get="{{ url_for('comhealth.testspecial', serviceNo=service_no, gender=employee.sex, age=age_for_api) }}"
                                 hx-trigger="load"
                                 hx-swap="outerHTML">
                                 <tr><td colspan="4">... special tests ...</td></tr>
@@ -1179,7 +1179,7 @@
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     console.log("Start calling lab......");
-    htmx.ajax("GET", "{{ url_for('comhealth.employee_lab', serviceNo=service_no, age=age, gender=employee.sex) }}", {
+    htmx.ajax("GET", "{{ url_for('comhealth.employee_lab', serviceNo=service_no, age=age_for_api, gender=employee.sex) }}", {
         swap: "none"
     });
     console.log("Start calling physical...");

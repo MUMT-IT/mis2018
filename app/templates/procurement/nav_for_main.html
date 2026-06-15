@@ -1,13 +1,23 @@
-<nav class="navbar is-primary">
+<style>
+    .main-nav-logo {
+        max-height: 44px;
+        width: auto;
+        object-fit: contain;
+    }
+</style>
+<nav class="navbar">
     <div class="container">
         <div class="navbar-brand">
-            <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+            <a href="{{ url_for('procurement.main_procurement_page') }}" class="navbar-item">
+                <img class="main-nav-logo" src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" alt="Logo">
+            </a>
+            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarMenuMain">
                 <span></span>
                 <span></span>
                 <span></span>
-              </span>
+            </a>
         </div>
-        <div id="navbarMenuHeroA" class="navbar-menu">
+        <div id="navbarMenuMain" class="navbar-menu">
             <div class="navbar-end">
                 <a class="navbar-item" href="{{ url_for('procurement.main_procurement_page') }}">
                     หน้าหลัก
@@ -21,6 +31,12 @@
                            {{ current_user.personal_info.fullname }}
                        </span>
                     </a>
+                    <a class="navbar-item" href="{{ url_for('procurement.first_page') }}">
+                        <span>ปิด</span>
+                        <span class="icon">
+                            <i class="far fa-times-circle"></i>
+                        </span>
+                    </a>
                     <a class="navbar-item" href="{{ url_for('auth.logout') }}">
                         <span class="icon">
                             <i class="fas fa-sign-out-alt"></i>
@@ -31,13 +47,13 @@
                     <a class="navbar-item" href="{{ url_for('auth.login') }}">
                         ลงชื่อเข้าใช้
                     </a>
+                    <a class="navbar-item" href="{{ url_for('procurement.first_page') }}">
+                        <span>ปิด</span>
+                        <span class="icon">
+                            <i class="far fa-times-circle"></i>
+                        </span>
+                    </a>
                 {% endif %}
-                <a class="navbar-item" href="/">
-                    <span>ปิด</span>
-                    <span class="icon">
-                        <i class="far fa-times-circle"></i>
-                    </span>
-                </a>
             </div>
         </div>
     </div>

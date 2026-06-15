@@ -23,6 +23,7 @@ from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from app.auth.views import line_bot_api
 from app.main import app, get_credential
+from app.url_utils import external_url
 from app.academic_services import academic_services
 from app.academic_services.forms import *
 from app.academic_services.models import *
@@ -793,7 +794,7 @@ def forget_password():
                 return render_template('academic_services/forget_password.html', form=form, errors=form.errors)
             serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
             token = serializer.dumps({'email': form.email.data})
-            url = url_for('academic_services.reset_password', token=token, _external=True)
+            url = external_url('academic_services.reset_password', token=token)
             message = 'Click the link below to reset the password.' \
                       ' กรุณาคลิกที่ลิงค์เพื่อทำการตั้งรหัสผ่านใหม่\n\n{}'.format(url)
             try:
@@ -930,8 +931,7 @@ def create_customer_account(customer_id=None):
             db.session.commit()
             serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
             token = serializer.dumps({'email': form.email.data})
-            scheme = 'http' if current_app.debug else 'https'
-            url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme)
+            url = external_url('academic_services.verify_email', token=token)
             message = f"""
             <!DOCTYPE html>
             <html lang="en">
@@ -1069,9 +1069,8 @@ def send_email(quotation_id):
     menu = request.args.get('menu')
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
     token = serializer.dumps({'email': current_user.email})
-    scheme = 'http' if current_app.debug else 'https'
-    url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme, tab=tab,
-                  menu=menu, quotation_id=quotation_id)
+    url = external_url('academic_services.verify_email', token=token, tab=tab,
+                       menu=menu, quotation_id=quotation_id)
     title_prefix = 'คุณ' if current_user.customer_info.type == 'บุคคล' else ''
     customer_name = current_user.customer_name.replace(' ', '_')
     title = f'''แจ้งยืนยันอีเมลงานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''

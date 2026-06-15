@@ -2,6 +2,39 @@
 {% include "procurement/nav.html" %}
 {% block page_content %}
     <section class="section">
+        <style>
+            .thumbnail-wrapper {
+                position: relative;
+                display: inline-block;
+                width: 56px;
+                height: 56px;
+            }
+            .thumbnail-loader {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.85);
+            }
+            .thumbnail-loader::after {
+                content: "";
+                width: 16px;
+                height: 16px;
+                border: 2px solid #d9d9d9;
+                border-top-color: #3273dc;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+            }
+            .thumbnail-loader.is-hidden {
+                display: none;
+            }
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
         {% include "messages.html" %}
         <div class="container">
             <div class="columns">
@@ -14,6 +47,7 @@
                     <table id="data" class="table is-fullwidth is-striped">
                         <thead>
                             <tr>
+                                <th>Image</th>
                                 <th>วันที่ได้รับ</th>
                                 <th>รายการ</th>
                                 <th>รหัสครุภัณฑ์</th>
@@ -25,6 +59,7 @@
                                 <th>Updated at</th>
                             </tr>
                             <tr id="search_row">
+                                <td></td>
                                 <td></td>
                                 <td><input type="text" class="input is-small" placeholder="ค้นหาชื่อ..."></td>
                                 <td><input type="text" class="input is-small" placeholder="ค้นหารหัส..."></td>
@@ -66,6 +101,7 @@
                 order: [[0, 'desc']],
                 dom: 'lrtip',
                 columns: [
+                    {data: 'thumbnail', orderable: false, searchable: false},
                     {data: 'received_date'},
                     {data: 'name'},
                     {data: 'procurement_no'},
@@ -77,6 +113,26 @@
                     {data: 'updated_at'}
                 ]
             });
+
+            const bindThumbnailLoaders = function () {
+                document.querySelectorAll('.thumbnail-wrapper').forEach(function (wrapper) {
+                    const img = wrapper.querySelector('.thumbnail-image');
+                    const loader = wrapper.querySelector('.thumbnail-loader');
+                    if (!img || !loader) {
+                        return;
+                    }
+                    const hideLoader = function () {
+                        loader.classList.add('is-hidden');
+                    };
+                    if (img.complete) {
+                        hideLoader();
+                    } else {
+                        img.addEventListener('load', hideLoader, {once: true});
+                        img.addEventListener('error', hideLoader, {once: true});
+                    }
+                });
+            };
+            table.on('draw', bindThumbnailLoaders);
 
             // 2. จัดการการค้นหาแยกคอลัมน์ (Individual Column Search)
             // ปรับให้ดักจับ input ภายใน #search_row แทนการใช้ class

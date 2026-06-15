@@ -8,6 +8,7 @@ from flask_admin.helpers import is_safe_url
 from . import authbp as auth
 from app.main import db, mail
 from app.main import app
+from app.url_utils import external_url
 from flask_mail import Message
 from flask import (render_template, redirect, request,
                    url_for, flash, abort, session, current_app)
@@ -40,7 +41,7 @@ def _is_google_login_enabled():
 
 
 def _google_redirect_uri():
-    return os.getenv('GOOGLE_REDIRECT_URI') or urljoin(request.host_url, '/auth/google/callback')
+    return os.getenv('GOOGLE_REDIRECT_URI') or external_url('auth.google_callback')
 
 
 def _google_oauth_session(state=None):
@@ -74,7 +75,7 @@ def on_identity_loaded(sender, identity):
 
 
 @auth.route('/login', methods=['GET', 'POST'])
-def login():
+def login(is_admin=False):
     if current_user.is_authenticated:
         next_url = request.args.get('next', url_for('auth.account'))
         if is_safe_url(next_url):
@@ -118,7 +119,12 @@ def login():
                            form=form,
                            errors=form.errors,
                            linking_line=linking_line,
-                           google_login_enabled=_is_google_login_enabled())
+                           google_login_enabled=_is_google_login_enabled(), is_admin=is_admin)
+
+
+@auth.route('/login-admin', methods=['GET', 'POST'])
+def login_for_admin():
+    return login(is_admin=True)
 
 
 @auth.route('/account', methods=['GET', 'POST'])
@@ -202,7 +208,7 @@ def forgot_password():
                 return render_template('auth/forgot_password.html', form=form, errors=form.errors)
             serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
             token = serializer.dumps({'email': form.email.data})
-            url = url_for('auth.reset_password', token=token, email=form.email.data, _external=True)
+            url = external_url('auth.reset_password', token=token, email=form.email.data)
             message = u'Click the link below to reset the password.'\
                       u' กรุณาคลิกที่ลิงค์เพื่อทำการตั้งค่ารหัสผ่านใหม่\n\n{}'.format(url)
             try:
@@ -307,8 +313,13 @@ def google_callback():
 @auth.route('/line')
 @auth.route('/line/login')
 def line_login():
+    next_url = request.args.get('next') or request.referrer
+    if next_url and not is_safe_url(next_url):
+        return abort(400)
+    if next_url:
+        session['auth_line_oauth_next'] = next_url
     line_auth_url = 'https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id={}&redirect_uri={}&state=494959&scope=profile'
-    line_auth_url = line_auth_url.format(LINE_CLIENT_ID, url_for('auth.line_callback', _external=True, _scheme='https'))
+    line_auth_url = line_auth_url.format(LINE_CLIENT_ID, external_url('auth.line_callback'))
     return redirect(line_auth_url)
 
 
@@ -322,7 +333,7 @@ def line_callback():
         data = {'Content-Type': 'application/x-www-form-urlencoded',
                 'grant_type': 'authorization_code',
                 'code': code,
-                'redirect_uri': url_for('auth.line_callback', _external=True, _scheme='https'),
+                'redirect_uri': external_url('auth.line_callback'),
                 'client_id': LINE_CLIENT_ID,
                 'client_secret': LINE_CLIENT_SECRET
                 }
@@ -352,6 +363,10 @@ def line_profile():
     if 'line_profile' not in session:
         return redirect('auth.line_login')
 
+    next_url = session.pop('auth_line_oauth_next', None)
+    if next_url and not is_safe_url(next_url):
+        return abort(400)
+
     userId = session['line_profile'].get('userId')
     line_user = StaffAccount.query.filter_by(line_id=userId).first()
     if line_user:
@@ -364,7 +379,7 @@ def line_profile():
                 flash(u'Your account is inactive. บัญชีผู้ใช้นี้ไม่สามารถเข้าใช้งานได้', 'danger')
                 return redirect(url_for('auth.login'))
             session['user_type'] = 'staff'
-        return redirect(url_for('auth.account'))
+        return redirect(next_url or url_for('index'))
     else:
         return render_template('auth/line_account.html',
                                profile=session['line_profile'],

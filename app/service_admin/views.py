@@ -14,7 +14,7 @@ from base64 import b64decode
 
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase.pdfmetrics import stringWidth
-from sqlalchemy.orm import make_transient
+from sqlalchemy.orm import make_transient, joinedload
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from app.auth.views import line_bot_api
@@ -7800,41 +7800,102 @@ def invoice_payment_index():
 
 @service_admin.route('/api/invoice/payment/index')
 def get_invoice_payments():
-    query = ServiceInvoice.query.filter(ServiceInvoice.file_attached_at != None)
-    records_total = query.count()
+    base_query = (ServiceInvoice.query
+                  .options(
+                      joinedload(ServiceInvoice.quotation)
+                      .joinedload(ServiceQuotation.request)
+                      .joinedload(ServiceRequest.customer),
+                      joinedload(ServiceInvoice.receipts)
+                  )
+                  .filter(ServiceInvoice.file_attached_at.isnot(None)))
+
+    records_total = base_query.count()
     search = request.args.get('search[value]')
     if search:
-        query = query.filter(ServiceInvoice.invoice_no.contains(search))
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    total_filtered = query.count()
-    query = query.offset(start).limit(length)
+        base_query = base_query.filter(
+            or_(
+                ServiceInvoice.invoice_no.ilike(f'%{search}%'),
+                ServiceInvoice.name.ilike(f'%{search}%')
+            )
+        )
+
+    records_filtered = base_query.count()
+    start = request.args.get('start', type=int) or 0
+    length = request.args.get('length', type=int) or 10
+
+    order_col_index = request.args.get('order[0][column]', type=int)
+    order_dir = request.args.get('order[0][dir]', default='desc')
+    order_columns = {
+        0: ServiceInvoice.invoice_no,
+        1: ServiceInvoice.file_attached_at,
+        2: ServiceInvoice.name,
+        4: ServiceInvoice.due_date
+    }
+    order_col = order_columns.get(order_col_index, ServiceInvoice.file_attached_at)
+    if order_dir == 'asc':
+        base_query = base_query.order_by(order_col.asc())
+    else:
+        base_query = base_query.order_by(order_col.desc())
+
+    invoices = base_query.offset(start).limit(length).all()
+    invoice_ids = [inv.id for inv in invoices]
+    payments_map = {}
+
+    if invoice_ids:
+        payments = (ServicePayment.query
+                    .filter(ServicePayment.invoice_id.in_(invoice_ids),
+                            ServicePayment.created_at.isnot(None),
+                            ServicePayment.cancelled_at.is_(None))
+                    .order_by(ServicePayment.invoice_id, ServicePayment.created_at.desc())
+                    .all())
+        for payment in payments:
+            if payment.invoice_id not in payments_map:
+                payments_map[payment.invoice_id] = payment
+
+    today = arrow.now('Asia/Bangkok').date()
     data = []
-    for item in query:
-        item_data = item.to_dict()
-        download_file = url_for('service_admin.download_file', key=item.file,
-                                download_filename=f"Invoice {item.invoice_no}.pdf")
-        item_data['file'] = f'''<div class="field has-addons">
-                        <div class="control">
-                            <a class="button is-small is-outlined is-link is-rounded" href="{download_file}">
-                                <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
-                                <span>ใบแจ้งหนี้</span>
-                            </a>
-                        </div>
-                    </div>
-                '''
-        if item.payments:
-            for payment in item.payments:
-                if payment.slip:
-                    item_data['slip'] = generate_url(payment.slip)
-                else:
-                    item_data['slip'] = None
-        data.append(item_data)
-    return jsonify({'data': data,
-                    'recordFiltered': total_filtered,
-                    'recordTotal': records_total,
-                    'draw': request.args.get('draw', type=int)
-                    })
+    for item in invoices:
+        payment = payments_map.get(item.id)
+        paid_at = payment.paid_at if payment else None
+        is_paid = bool(payment and payment.verified_at)
+        amount_paid = '{:,.2f}'.format(payment.amount_paid) if payment and payment.amount_paid is not None else None
+        receipt_id = item.receipts[0].id if item.receipts else None
+        slip = generate_url(payment.slip) if payment and payment.slip else None
+        is_overdue = bool(item.due_date and today > item.due_date.date() and not paid_at)
+        download_file = url_for('academic_services.download_file', key=item.file,
+                                download_filename=f"Invoice_{item.invoice_no}.pdf")
+
+        data.append({
+            'id': item.id,
+            'invoice_no': item.invoice_no,
+            'name': item.name if item.name else None,
+            'customer_name': item.customer_name if item.customer_name else None,
+            'total_price': '{:,.2f}'.format(item.grand_total),
+            'file_attached_at': item.file_attached_at if item.file_attached_at else None,
+            'due_date': item.due_date if item.due_date else None,
+            'payment_type': payment.payment_type if payment else None,
+            'paid_at': paid_at,
+            'amount_paid': amount_paid,
+            'is_paid': is_paid,
+            'receipt_id': receipt_id,
+            'slip': slip,
+            'is_overdue': is_overdue,
+            'file': f'''<div class="field has-addons">
+                            <div class="control">
+                                <a class="button is-small is-outlined is-link is-rounded" href="{download_file}">
+                                    <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
+                                    <span>ใบแจ้งหนี้</span>
+                                </a>
+                            </div>
+                        </div>'''
+        })
+
+    return jsonify({
+        'data': data,
+        'recordsFiltered': records_filtered,
+        'recordsTotal': records_total,
+        'draw': request.args.get('draw', type=int)
+    })
 
 
 @service_admin.route('/finance/invoice/view/<int:invoice_id>', methods=['GET'])

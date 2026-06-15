@@ -1,8 +1,8 @@
 <div class="modal is-active animate__animated" id="pa-kpis-edit-form-modal">
     <div class="modal-background"></div>
-    <div class="modal-card">
+    <div class="modal-card" style="width: 90vw; max-width: 1100px;">
         <header class="modal-card-head">
-            <p class="modal-card-title">+ ตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</p>
+            <p class="modal-card-title">+ เลือกตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</p>
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
@@ -11,15 +11,11 @@
                   hx-indicator="#save-btn">
                 {{ form.hidden_tag() }}
                 <div class="field">
-                    <label class="help">
-                       ภาระงาน {{ pa_item.task }}
-                    </label>
-                    <hr>
                     <label class="label">
-                        เลือก 'ไม่ระบุเป้าหมาย' หากไม่ต้องการใช้ตัวชี้วัดนั้นๆกับภาระงานนี้
+                       ภาระงาน: {{ pa_item.task }}
                     </label>
-                    <p class="help is-info">สามารถระบุได้มากกว่า 1 ตัวชี้วัด
-                        โดยคะแนนจะมาจากค่าเฉลี่ยของทุกตัว</p>
+                    <p class="help is-info">สามารถเลือกได้มากกว่า 1 ตัวชี้วัด
+                        โดยคะแนนจะมาจากค่าเฉลี่ยของทุกตัว (ระบบจะเลือกระดับ 7-8 ซึ่งเป็นคะแนนตามเป้าหมายให้อัตโนมัติ และสามารถเปลี่ยนระดับได้ซึ่งจะเรียงจากระดับ10 ลงไป)</p>
                 </div>
                 {% if pa.kpis %}
                     {% with messages = get_flashed_messages(with_categories=True) %}
@@ -40,23 +36,54 @@
                     <table class="table is-fullwidth is-striped">
                         {% for item_form in form.kpi_items_ %}
                             <tr>
-                                <td style="width: 40%">
-                                    <div class="field">
-                                        <label class="label">
-                                            {{ loop.index }}) {{ item_form.label }}
-                                        </label>
-                                    </div>
-                                </td>
                                 <td style="width: 45%">
-                                    <div class="select">
-                                        {% if not pa.editable %}
-                                            {{ item_form(disabled=True) }}
-                                            <input name="{{ item_form.id }}"
-                                                   value="{{ item_form.data or '' }}" type="hidden">
-                                        {% elif pa.editable %}
-                                            {{ item_form() }}
+                                    {% set selected_value = item_form.data|string if item_form.data else '' %}
+                                    {% set default_value = item_form.default_kpi_item_id|string if item_form.default_kpi_item_id else '' %}
+                                    <div class="field">
+                                        {% if item_form.default_kpi_item_goal %}
+                                            <label class="checkbox">
+                                                <input type="checkbox"
+                                                       class="kpi-selector"
+                                                       data-target="{{ item_form.id }}"
+                                                       data-select="{{ item_form.id }}_select"
+                                                       data-default="{{ default_value }}"
+                                                       {% if not pa.editable %}disabled{% endif %}
+                                                       {% if selected_value %}checked{% endif %}>
+                                                       {{ item_form.label }}
+                                            </label>
+{#                                            <p class="help" style="margin-left: 20px;"> {{ item_form.default_kpi_item_goal }}</p>#}
+                                        {% else %}
+                                            <label>
+                                            {{ item_form.label }}
+                                            </label>
+                                            <p class="help is-danger">ไม่พบค่าเป้าหมายสำหรับตัวชี้วัดนี้ กรุณาดำเนินการกำหนดค่าเป้าหมายในแต่ละระดับ</p>
+                                            <div class="mt-2">
+                                                <a class="button is-small is-outlined"
+                                                   href="{{ url_for('pa.edit_kpi', pa_id=pa.id, kpi_id=item_form.obj_id) }}">
+                                                    <span class="icon"><i class="fa-solid fa-pen-to-square"></i></span>
+                                                    <span>แก้ไข KPI</span>
+                                                </a>
+                                            </div>
                                         {% endif %}
                                     </div>
+                                    <input type="hidden"
+                                           id="{{ item_form.id }}"
+                                           name="{{ item_form.id }}"
+                                           value="{{ selected_value }}">
+                                    {% if item_form.default_kpi_item_goal %}
+                                        <div class="select is-fullwidth mt-2">
+                                            <select id="{{ item_form.id }}_select"
+                                                    class="kpi-target-select"
+                                                    {% if not pa.editable or not selected_value %}disabled{% endif %}>
+                                                {% for val, label in item_form.choices %}
+                                                    <option value="{{ val }}"
+                                                            {% if (selected_value and selected_value == val|string) or (not selected_value and default_value == val|string) %}selected{% endif %}>
+                                                        {{ label }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% endfor %}
@@ -98,5 +125,57 @@
     })
     document.addEventListener('closeModal', () => {
         htmx.removeClass(htmx.find('#pa-kpis-edit-form-modal'), 'is-active')
+    })
+    document.querySelectorAll('.kpi-selector').forEach((checkbox) => {
+        const targetId = checkbox.dataset.target
+        const selectId = checkbox.dataset.select
+        const defaultValue = checkbox.dataset.default || ''
+        const hiddenInput = document.getElementById(targetId)
+        const selectInput = document.getElementById(selectId)
+        if (!hiddenInput) return
+
+        const syncValue = () => {
+            if (checkbox.checked) {
+                hiddenInput.value = (selectInput && selectInput.value) ? selectInput.value : defaultValue
+            }
+        }
+
+        if (checkbox.checked && !hiddenInput.value) {
+            hiddenInput.value = defaultValue
+        }
+        if (!checkbox.checked) {
+            hiddenInput.value = ''
+        }
+        if (selectInput) {
+            if (checkbox.checked) {
+                selectInput.disabled = false
+                if (!selectInput.value && defaultValue) {
+                    selectInput.value = defaultValue
+                }
+                syncValue()
+            } else {
+                selectInput.disabled = true
+            }
+            selectInput.addEventListener('change', syncValue)
+        }
+
+        checkbox.addEventListener('change', function () {
+            if (this.checked) {
+                if (selectInput) {
+                    selectInput.disabled = false
+                    if (!selectInput.value && defaultValue) {
+                        selectInput.value = defaultValue
+                    }
+                    syncValue()
+                } else {
+                    hiddenInput.value = defaultValue
+                }
+            } else {
+                hiddenInput.value = ''
+                if (selectInput) {
+                    selectInput.disabled = true
+                }
+            }
+        })
     })
 </script>

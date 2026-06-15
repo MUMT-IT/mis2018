@@ -41,6 +41,18 @@ scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/au
 _json_keyfile = None
 
 
+def _env_flag(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.lower() in {'1', 'true', 'yes', 'on'}
+
+
+def _default_secure_cookies():
+    public_base_url = os.environ.get('PUBLIC_BASE_URL', '')
+    return public_base_url.startswith('https://')
+
+
 def get_json_keyfile():
     global _json_keyfile
     if _json_keyfile is None:
@@ -128,6 +140,13 @@ def create_app():
     app.config['MAIL_PORT'] = 587
     app.config['MAIL_USE_TLS'] = True
     app.config['PREFERRED_URL_SCHEME'] = 'https'
+    app.config['PUBLIC_BASE_URL'] = os.environ.get('PUBLIC_BASE_URL')
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = os.environ.get('SESSION_COOKIE_SAMESITE', 'Lax')
+    app.config['SESSION_COOKIE_SECURE'] = _env_flag('SESSION_COOKIE_SECURE', _default_secure_cookies())
+    app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+    app.config['REMEMBER_COOKIE_SAMESITE'] = os.environ.get('REMEMBER_COOKIE_SAMESITE', 'Lax')
+    app.config['REMEMBER_COOKIE_SECURE'] = _env_flag('REMEMBER_COOKIE_SECURE', _default_secure_cookies())
     app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
     app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
     app.config['MAIL_DEFAULT_SENDER'] = ('MUMT-MIS',
@@ -317,10 +336,107 @@ def user_support_index():
     return render_template('support.html')
 
 
-from app.food import foodbp as food_blueprint
+@app.route('/teacher-tools')
+@login_required
+def teacher_tools_index():
+    return render_template('edu/teacher_tools.html')
 
-app.register_blueprint(food_blueprint)
-from app.food.models import *
+
+@app.route('/management/s3-storage')
+@login_required
+def s3_storage_management_index():
+    if not admin_permission.can():
+        return abort(403)
+    region = (
+        os.environ.get('BUCKETEER_AWS_REGION')
+        or os.environ.get('AWS_DEFAULT_REGION')
+        or os.environ.get('AWS_REGION')
+        or '-'
+    )
+    endpoint_url = os.environ.get('AWS_S3_ENDPOINT_URL') or 'AWS default endpoint'
+    bucket_name = os.environ.get('BUCKETEER_BUCKET_NAME')
+    connection_status = 'Connected'
+    error_message = None
+    bucket_region = '-'
+    bucket_access = 'Unavailable'
+    objects = []
+    object_count = 0
+    total_size_bytes = 0
+
+    capacity_gb_raw = os.environ.get('S3_STORAGE_CAPACITY_GB', '15')
+    try:
+        storage_capacity_gb = float(capacity_gb_raw)
+    except (TypeError, ValueError):
+        storage_capacity_gb = 15.0
+    if storage_capacity_gb <= 0:
+        storage_capacity_gb = 15.0
+    storage_capacity_bytes = int(storage_capacity_gb * (1024 ** 3))
+
+    try:
+        access_key_id = os.environ.get('BUCKETEER_AWS_ACCESS_KEY_ID')
+        secret_access_key = os.environ.get('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+        session_token = os.environ.get('BUCKETEER_AWS_SESSION_TOKEN')
+
+        s3_client = boto3.client(
+            's3',
+            endpoint_url=os.environ.get('AWS_S3_ENDPOINT_URL') or None,
+            region_name=region if region != '-' else None,
+            aws_access_key_id=access_key_id,
+            aws_secret_access_key=secret_access_key,
+            aws_session_token=session_token,
+        )
+
+        if not bucket_name:
+            connection_status = 'Unavailable'
+            error_message = 'BUCKETEER_BUCKET_NAME is not configured.'
+        else:
+            s3_client.head_bucket(Bucket=bucket_name)
+            bucket_access = 'Available'
+
+            location_resp = s3_client.get_bucket_location(Bucket=bucket_name)
+            # AWS may return None for us-east-1.
+            bucket_region = location_resp.get('LocationConstraint') or 'us-east-1'
+
+            paginator = s3_client.get_paginator('list_objects_v2')
+            for page in paginator.paginate(Bucket=bucket_name):
+                for obj in page.get('Contents', []):
+                    total_size_bytes += obj.get('Size', 0) or 0
+
+            list_resp = s3_client.list_objects_v2(Bucket=bucket_name, MaxKeys=20)
+            object_count = list_resp.get('KeyCount', 0)
+            for obj in list_resp.get('Contents', []):
+                last_modified = obj.get('LastModified')
+                if last_modified:
+                    last_modified = last_modified.strftime('%Y-%m-%d %H:%M:%S')
+                objects.append({
+                    'key': obj.get('Key', '-'),
+                    'size': obj.get('Size', 0),
+                    'last_modified': last_modified or '-',
+                })
+    except (NoCredentialsError, ClientError, Exception) as err:
+        connection_status = 'Unavailable'
+        error_message = str(err)
+
+    used_storage_gb = total_size_bytes / (1024 ** 3)
+    storage_usage_percent = round((total_size_bytes / storage_capacity_bytes) * 100, 2) if storage_capacity_bytes else 0
+
+    return render_template(
+        'management/s3_storage_management.html',
+        region=region,
+        endpoint_url=endpoint_url,
+        connection_status=connection_status,
+        error_message=error_message,
+        bucket_name=bucket_name or '-',
+        bucket_region=bucket_region,
+        bucket_access=bucket_access,
+        objects=objects,
+        object_count=object_count,
+        total_size_bytes=total_size_bytes,
+        used_storage_gb=used_storage_gb,
+        storage_capacity_gb=storage_capacity_gb,
+        storage_usage_percent=storage_usage_percent,
+    )
+
 
 from app.kpi import kpibp as kpi_blueprint
 
@@ -584,7 +700,11 @@ app.register_blueprint(user_eval)
 
 from app.user_eval.models import *
 
-admin.add_views(ModelView(EvaluationRecord, db.session, category='UserEvaluation'))
+class EvaluationRecordModelView(ModelView):
+    form_excluded_columns = ('created_at',)
+
+
+admin.add_views(EvaluationRecordModelView(EvaluationRecord, db.session, category='UserEvaluation'))
 
 
 class RoomModelView(ModelView):
@@ -669,10 +789,6 @@ class ProductCodeAdminModel(ModelView):
 
 
 admin.add_views(ProductCodeAdminModel(models.ProductCode, db.session, category='Finance'))
-
-from app.lisedu import lisedu as lis_blueprint
-
-app.register_blueprint(lis_blueprint, url_prefix='/lis')
 
 from app.eduqa import eduqa_bp as eduqa_blueprint
 from app.eduqa.models import *
@@ -1437,6 +1553,13 @@ def populate_subdistricts():
 @app.cli.command('test-scb-auth')
 @click.option('--timeout', default=30, show_default=True, type=int)
 def test_scb_auth(timeout):
+    def get_fixie_proxies():
+        fixie_host = os.environ.get("FIXIE_SOCKS_HOST")
+        if not fixie_host:
+            return None
+        proxy_url = f"socks5h://{fixie_host}"
+        return {"http": proxy_url, "https": proxy_url}
+
     auth_url = os.environ.get('SCB_AUTH_URL')
     app_key = os.environ.get('SCB_APP_KEY')
     app_secret = os.environ.get('SCB_APP_SECRET')
@@ -1470,11 +1593,22 @@ def test_scb_auth(timeout):
     click.echo('Request payload:')
     click.echo('  applicationKey: {}'.format(app_key))
     click.echo('  applicationSecret: {}'.format('[redacted]' if app_secret else None))
+    click.echo('Fixie proxy: {}'.format('enabled' if get_fixie_proxies() else 'disabled'))
 
     try:
-        response = requests.post(auth_url, headers=headers, json=payload, timeout=timeout)
+        response = requests.post(
+            auth_url,
+            headers=headers,
+            json=payload,
+            proxies=get_fixie_proxies(),
+            timeout=30
+        )
     except requests.RequestException as exc:
         raise click.ClickException('SCB auth request failed: {}'.format(exc))
+
+    content_type = (response.headers.get('Content-Type') or '').lower()
+    if response.status_code == 403 and 'html' in content_type:
+        click.echo('SCB request blocked by CloudFront/WAF. Check Fixie proxy and SCB allowlist.')
 
     click.echo('Status: {}'.format(response.status_code))
     click.echo('Response headers:')
@@ -2238,12 +2372,3 @@ from app.continuing_edu.admin.views import admin_bp as continuing_edu_admin_bp
 from app.continuing_edu.admin.certifications import cert_bp as continuing_edu_admin_cert_bp
 app.register_blueprint(continuing_edu_admin_bp)
 app.register_blueprint(continuing_edu_admin_cert_bp)
-
-if __name__ == '__main__':
-    import os
-    cert_file = os.path.join(os.path.dirname(__file__), '..', '..', 'cert.pem')
-    key_file = os.path.join(os.path.dirname(__file__), '..', '..', 'key.pem')
-    if os.path.exists(cert_file) and os.path.exists(key_file):
-        app.run(debug=True, port=5005, host="0.0.0.0", ssl_context=(cert_file, key_file))
-    else:
-        app.run(debug=True, port=5005, host="0.0.0.0")

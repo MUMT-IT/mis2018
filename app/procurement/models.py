@@ -27,9 +27,11 @@ class ProcurementDetail(db.Model):
     __tablename__ = 'procurement_details'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column('name', db.String(), info={'label': u'ชื่อครุภัณฑ์', 'validators': DataRequired()})
-    image = db.Column('image', db.Text(), info={'label': u'รูปภาพ'})
     image_url = db.Column('image_url', db.String(), info={'label': u'ที่อยู่รูปภาพ'})
+    image_thumbnail_url = db.Column('image_thumbnail_url', db.String(), info={'label': u'ที่อยู่รูปภาพขนาดย่อ'})
     qrcode = db.Column('qrcode', db.Text(), info={'label': 'QR Code'})
+    qr_code_attached = db.Column('qr_code_attached', db.Boolean(), default=False,
+                                 info={'label': u'ติด QR Code แล้ว'})
     procurement_no = db.Column('procurement_no', db.String(12), info={'label': u'เลขครุภัณฑ์'})
     document_no = db.Column('document_no', db.String(), info={'label': u'เอกสารสั่งซื้อเลขที่'})
     erp_code = db.Column('erp_code', db.String(32), unique=True, info={'label': u'Inventory Number/ERP'})
@@ -95,29 +97,39 @@ class ProcurementDetail(db.Model):
 
 
     def generate_presigned_url(self):
+        return self.resolve_storage_url(self.image_url)
 
-        if self.image_url:
-            try:
-                return s3.generate_presigned_url(
-                    'get_object',
-                    Params={'Bucket': S3_BUCKET_NAME, 'Key': self.image_url},
-                    ExpiresIn=3600
-                )
-            except Exception as e:
-                print(f"Error generating presigned URL: {e}")
-                #app.logger.error(f"Error generating presigned URL: {e}")
-                return None
-        return None
+    @staticmethod
+    def resolve_storage_url(value):
+        if not value:
+            return None
+
+        if value.startswith(('http://', 'https://')):
+            return value
+
+        try:
+            return s3.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': S3_BUCKET_NAME, 'Key': value},
+                ExpiresIn=3600
+            )
+        except Exception as e:
+            print(f"Error generating presigned URL: {e}")
+            return None
+
+    def generate_thumbnail_presigned_url(self):
+        return self.resolve_storage_url(self.image_thumbnail_url)
 
 
     def to_dict(self):
-
         presigned_url = self.generate_presigned_url()
+        thumbnail_url = self.generate_thumbnail_presigned_url() or presigned_url
 
         return {
             'id': self.id,
-            'image': self.image,
             'image_url': presigned_url if presigned_url else self.image_url,
+            'image_thumbnail_url': thumbnail_url if thumbnail_url else self.image_thumbnail_url,
+            'qr_code_attached': self.qr_code_attached,
             'name': self.name,
             'procurement_no': self.procurement_no,
             'erp_code': self.erp_code,

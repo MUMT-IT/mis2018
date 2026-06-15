@@ -40,8 +40,14 @@
                 <div class="column">
                     <table id="data" class="table is-striped">
                         <thead>
+                        <th>Image</th>
                         <th>ตรวจสอบ</th>
+                        <th>รายการ</th>
+                        <th>รหัสครุภัณฑ์</th>
                         <th>Inventory Number/ERP</th>
+                        <th>ปีงบประมาณ</th>
+                        <th>วันที่ได้รับ</th>
+                        <th>สถานะ</th>
 
                         </thead>
                         <tbody>
@@ -71,23 +77,16 @@
                 searchDelay: 1000,
                 ajax: '{{ url_for("procurement.get_procurement_search_data") }}',
 
-                language: {
-                    emptyTable: "กรุณาพิมพ์ ERP Code อย่างน้อย 4 ตัว"
-                },
-
                 columns: [
-                    {data: 'check'},
-                    {data: 'erp_code'}
+                    {data: 'thumbnail', orderable: false, searchable: false},
+                    {data: 'check', orderable: false, searchable: false},
+                    {data: 'name'},
+                    {data: 'procurement_no'},
+                    {data: 'erp_code'},
+                    {data: 'budget_year'},
+                    {data: 'received_date'},
+                    {data: 'available'}
                 ]
-            });
-
-            $('#data_filter input').unbind();
-
-            $('#data_filter input').on('keyup', function () {
-                var value = this.value;
-                if (value.length >= 4 || value.length === 0) {
-                    table.search(value).draw();
-                }
             });
         });
     </script>
