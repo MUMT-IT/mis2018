@@ -59,54 +59,40 @@
 <script>
     function toggleTable(subform) {
         const table = subform.find('table');
-        const checkboxes = table.find('tbody tr input[type="checkbox"]');
 
-        function validateInput() {
-            const count = checkboxes.filter(':checked').length;
-            if (count == 0) {
-                checkboxes.prop('required', true)
-                checkboxes.each(function () {
-                    this.setCustomValidity('กรุณาเลือกเชื้ออย่างน้อย 1 รายการ');
-                });
-            } else {
-                checkboxes.prop('required', false);
-                checkboxes.each(function () {
-                    this.setCustomValidity('');
-                });
-            }
-
-            table.find('tbody tr').each(function () {
-                const checkbox = $(this).find('input[type="checkbox"]');
-                const textInputs = $(this).find('input[type="text"]');
-
-                const active = checkbox.is(':checked');
-                textInputs.each(function () {
-                    const name = $(this).attr('name');
-                    const isOptional = name.endsWith('ratio') || name.endsWith('per_water');
-                    $(this).prop('readonly', !active);
-
-                    if (active && !isOptional) {
-                        $(this)
-                            .prop('required', true)
-                            .attr('oninvalid', "this.setCustomValidity('กรุณากรอกข้อมูล')")
-                            .attr('oninput', "this.setCustomValidity('')");
-                    } else {
-                        $(this).prop('required', false);
-                        this.setCustomValidity('');
-                    }
-
-                    if (!active) {
-                        $(this).val('');
-                    }
-                })
-            });
+        function requiresDilutionRatio() {
+            const preparation = subform.find('input[type="radio"][name$="product_preparation"]:checked').val() || '';
+            return preparation.includes('เจือจาง') || preparation.includes('ละลาย');
         }
 
+        function validateInput() {
+            const dilutionRequired = requiresDilutionRatio();
+            subform.find('.dilution-required-asterisk').toggle(dilutionRequired);
+
+            table.find('tbody tr').each(function () {
+                const textInputs = $(this).find('input[type="text"]');
+
+                   textInputs.each(function () {
+                       const name = $(this).attr('name');
+                       const isDilutionField = name.endsWith('ratio') || name.endsWith('per_water');
+                       const required = !isDilutionField || dilutionRequired;
+
+                       if (required) {
+                           const message = isDilutionField ? 'กรุณากรอกอัตราส่วนเจือจางผลิตภัณฑ์' : 'กรุณากรอกข้อมูล';
+                           $(this)
+                               .prop('required', true)
+                               .attr('oninvalid', `this.setCustomValidity('${message}')`)
+                               .attr('oninput', "this.setCustomValidity('')");
+                       } else {
+                           $(this).prop('required', false);
+                           this.setCustomValidity('');
+                       }
+                   })
+            });
+        }
         validateInput();
-
-        checkboxes.on('change', validateInput);
+        subform.on('change', 'input[type=\"radio\"][name$=\"product_preparation\"]', validateInput);
     }
-
     function addRequiredField(subform) {
         const testMethodInput = subform.find('input[name$="test_method"]');
         const cleanTypeInput = subform.find('input[name$="clean_type"]');
