@@ -2231,6 +2231,7 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
 @ot.route('/api/checkin-records/<int:checkin_id>', methods=['DELETE'])
 @login_required
 def add_checkin_record(staff_id=None, checkin_id=None):
+    # TODO: Restrict this endpoint to manager/secretary roles like the admin pages.
     if request.method == 'GET':
         download = request.args.get('download', 'no')
         cal_start = request.args.get('start')
