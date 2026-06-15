@@ -218,6 +218,14 @@ bacteria_liquid_organisms = [
     'S. aureus ATCC 6538',
     'S. choleraesuis ATCC 10708',
     'P. aeruginosa ATCC 15442',
+    'E. coli ATCC 10536',
+    'T. mentagrophytes'
+]
+
+bacteria_spray_organisms = [
+    'S. aureus ATCC 6538',
+    'S. choleraesuis ATCC 10708',
+    'P. aeruginosa ATCC 15442',
     'T. mentagrophytes'
 ]
 
@@ -226,9 +234,35 @@ bacteria_wash_organisms = [
     'K. pneumoniae ATCC 4352'
 ]
 
+bacteria_alcohol_based_organisms = [
+    'S. aureus ATCC 6538',
+    'E. coli NCTC 10538',
+    'E. hirae ATCC 10541',
+    'P. aeruginosa ATCC 15442'
+]
+
+bacteria_antibacterial_treated_organisms = [
+    'S. aureus ATCC 6538',
+    'E. coli ATCC 8739'
+]
+
+bacteria_dish_wash_organisms = [
+    'S. aureus ATCC 6538',
+    'S. enteria ATCC 10708'
+]
+
+bacteria_antimicrobial_organisms = [
+    'S. aureus ATCC 6538',
+    'S. choleraesuis ATCC 10708',
+    'P. aeruginosa ATCC 15442'
+    'E. coli ATCC 10536',
+    'T. mentagrophytes',
+    'T. rubrum',
+    'C. albicans ATCC 90028'
+]
 
 class BacteriaLiquidTestConditionForm(FlaskForm):
-    liquid_organism = CheckboxField('เชื้อ', validators=[Optional()])
+    liquid_organism = SelectField('เชื้อ', choices=[(c, c) for c in bacteria_liquid_organisms], validators=[Optional()])
     liquid_ratio = StringField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input'
         , 'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
     liquid_per_water = StringField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input',
@@ -256,7 +290,7 @@ class BacteriaLiquidConditionForm(FlaskForm):
 
 
 class BacteriaSprayTestConditionForm(FlaskForm):
-    spray_organism = CheckboxField('เชื้อ', validators=[Optional()])
+    spray_organism = SelectField('เชื้อ', choices=[(c, c) for c in bacteria_liquid_organisms], validators=[Optional()])
     spray_ratio = StringField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()],
                               render_kw={'class': 'input', 'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
     spray_per_water = StringField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input',
@@ -294,7 +328,7 @@ class BacteriaSprayConditionForm(FlaskForm):
 
 
 class BacteriaSheetTestConditionForm(FlaskForm):
-    sheet_organism = CheckboxField('เชื้อ', validators=[Optional()])
+    sheet_organism = SelectField('เชื้อ', choices=[(c, c) for c in bacteria_liquid_organisms], validators=[Optional()])
     sheet_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (นาที)', validators=[Optional()],
                                       render_kw={'class': 'input', 'placeholder': 'เช่น 1 นาที'})
 
@@ -316,7 +350,7 @@ class BacteriaSheetConditionForm(FlaskForm):
 
 
 class BacteriaAfterWashTestConditionForm(FlaskForm):
-    after_wash_organism = CheckboxField('เชื้อ', validators=[Optional()])
+    after_wash_organism = SelectField('เชื้อ', choices=[(c, c) for c in bacteria_wash_organisms], validators=[Optional()])
     after_wash_ratio = StringField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input',
                                                                                                     'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
     after_wash_per_water = StringField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input',
@@ -346,7 +380,7 @@ class BacteriaAfterWashConditionForm(FlaskForm):
 
 
 class BacteriaInWashTestConditionForm(FlaskForm):
-    in_wash_organism = CheckboxField('เชื้อ', validators=[Optional()])
+    in_wash_organism = SelectField('เชื้อ', choices=[(c, c) for c in bacteria_liquid_organisms], validators=[Optional()])
     in_wash_ratio = StringField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input',
                                                                                                  'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
     in_wash_per_water = StringField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input',

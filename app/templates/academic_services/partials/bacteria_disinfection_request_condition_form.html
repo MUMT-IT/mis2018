@@ -17,13 +17,14 @@
                                                 {% else %}
                                             <th style="border: none">
                                         {% endif %}
-                                            {{ _field.label.text }}
-                                            {% if _field.name.endswith('ratio') or _field.name.endswith('per_water') %}
-                                                <span class="has-text-danger dilution-required-asterisk" style="display:none">*</span>
-                                            {% else %}
-                                                <span class="has-text-danger">*</span>
-                                            {% endif %}
-                                        </th>
+                                    {{ _field.label.text }}
+                                    {% if _field.name.endswith('ratio') or _field.name.endswith('per_water') %}
+                                        <span class="has-text-danger dilution-required-asterisk"
+                                              style="display:none">*</span>
+                                    {% else %}
+                                        <span class="has-text-danger">*</span>
+                                    {% endif %}
+                                    </th>
                                     {% endif %}
                                 {% endfor %}
                             {% endif %}
@@ -64,3 +65,135 @@
         {% endfor %}
     </div>
 </div>
+<script>
+    function toggleTable(subform) {
+        const table = subform.find('table');
+
+        function requiresDilutionRatio() {
+            const preparation = subform.find('input[type="radio"][name$="product_preparation"]:checked').val() || '';
+            return preparation.includes('เจือจาง') || preparation.includes('ละลาย');
+        }
+
+        function validateInput() {
+            const dilutionRequired = requiresDilutionRatio();
+            subform.find('.dilution-required-asterisk').toggle(dilutionRequired);
+
+            table.find('tbody tr').each(function () {
+                const textInputs = $(this).find('input[type="text"]');
+
+                textInputs.each(function () {
+                    const name = $(this).attr('name');
+                    const isDilutionField = name.endsWith('ratio') || name.endsWith('per_water');
+                    const required = !isDilutionField || dilutionRequired;
+
+                    if (required) {
+                        const message = isDilutionField ? 'กรุณากรอกอัตราส่วนเจือจางผลิตภัณฑ์' : 'กรุณากรอกข้อมูล';
+                        $(this)
+                            .prop('required', true)
+                            .attr('oninvalid', `this.setCustomValidity('${message}')`)
+                            .attr('oninput', "this.setCustomValidity('')");
+                    } else {
+                        $(this).prop('required', false);
+                        this.setCustomValidity('');
+                    }
+                })
+            });
+        }
+
+        validateInput();
+        subform.on('change', 'input[type=\"radio\"][name$=\"product_preparation\"]', validateInput);
+    }
+
+    function addRequiredField(subform) {
+        const testMethodInput = subform.find('input[name$="test_method"]');
+        const cleanTypeInput = subform.find('input[name$="clean_type"]');
+        const dilutionInput = subform.find('input[name$="dilution"]');
+        const surfaceTypeInput = subform.find('input[name$="surface_type"]');
+        const qualitativeTestInput = subform.find('input[name$="qualitative_test"]');
+        const quantitativeTestInput = subform.find('input[name$="quantitative_test"]');
+
+        cleanTypeInput.prop('required', true)
+            .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกรูปแบบการทดสอบ')");
+
+        cleanTypeInput.on('change', function () {
+            cleanTypeInput.each(function () {
+                this.setCustomValidity('');
+            });
+        });
+
+        dilutionInput.prop('required', true)
+            .attr('oninvalid', "this.setCustomValidity('กรุณาเลือการเจือจาง')");
+
+        dilutionInput.on('change', function () {
+            dilutionInput.each(function () {
+                this.setCustomValidity('');
+            });
+        });
+
+        surfaceTypeInput.prop('required', true)
+            .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกขนิดพื้นผิว')");
+
+        surfaceTypeInput.on('change', function () {
+            surfaceTypeInput.each(function () {
+                this.setCustomValidity('');
+            });
+        });
+
+        function validateTestMethod() {
+            const count = testMethodInput.filter(':checked').length;
+            if (count == 0) {
+                testMethodInput.prop('required', true);
+                testMethodInput.each(function () {
+                    this.setCustomValidity('กรุณาเลือกวิธีทดสอบอย่างน้อย 1 รายการ');
+                });
+            } else {
+                testMethodInput.prop('required', false);
+                testMethodInput.each(function () {
+                    this.setCustomValidity('');
+                });
+            }
+        }
+
+        validateTestMethod();
+
+        testMethodInput.on('change', validateTestMethod);
+
+        function validateQualitativeAndQuantitativeTest() {
+            const qualitativeChecked = qualitativeTestInput.is(':checked');
+            const quantitativeChecked = quantitativeTestInput.is(':checked');
+
+            if (qualitativeChecked) quantitativeTestInput.closest('.field').find('label .has-text-danger').remove();
+            if (quantitativeChecked) qualitativeTestInput.closest('.field').find('label .has-text-danger').remove();
+        }
+
+        validateQualitativeAndQuantitativeTest();
+
+        qualitativeTestInput.on('change', validateQualitativeAndQuantitativeTest);
+        quantitativeTestInput.on('change', validateQualitativeAndQuantitativeTest);
+    }
+
+    function showSurfaceTypeOtherInput(subform) {
+        const surfaceTypeField = subform.find('input[type="radio"][name$="surface_type"]:checked').val();
+        const surfaceTypeOtherInput = subform.find('input[name$="surface_type_other"]');
+        const surfaceTypeOtherField = surfaceTypeOtherInput.closest('.field');
+
+        if (surfaceTypeField && surfaceTypeField.includes('อื่น ๆ')) {
+            surfaceTypeOtherField.show();
+            surfaceTypeOtherInput.prop('required', true);
+        } else {
+            surfaceTypeOtherField.hide();
+            surfaceTypeOtherInput.prop('required', false)
+            surfaceTypeOtherInput.val('');
+        }
+    }
+
+    $('.subform-card').each(function () {
+        const subform = $(this);
+        toggleTable(subform);
+        addRequiredField(subform);
+        showSurfaceTypeOtherInput(subform);
+        subform.find('input[type="radio"][name$="surface_type"]').change(function () {
+            showSurfaceTypeOtherInput(subform);
+        });
+    });
+</script>
