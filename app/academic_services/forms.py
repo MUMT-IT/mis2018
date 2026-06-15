@@ -412,7 +412,7 @@ class BacteriaAlcoholBasedConditionForm(FlaskForm):
                                             'ทดสอบประสิทธิภาพการลดปริมาณเชื้อ วิธีทดสอบ EN 1276:2019 '
                                             '(ทดสอบในสภาวะสกปรก (dirty condition) ที่อุณหภูมิ 34 องศาเซสเซียส)')],
                                   validators=[Optional()])
-    in_wash_organism_fields = FieldList(FormField(BacteriaAlcoholBasedTestConditionForm), min_entries=1)
+    alcohol_based_organism_fields = FieldList(FormField(BacteriaAlcoholBasedTestConditionForm), min_entries=1)
 
 
 class BacteriaDisinfectionRequestForm(FlaskForm):
