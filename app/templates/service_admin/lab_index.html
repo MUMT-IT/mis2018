@@ -9,7 +9,7 @@
             <div class="column is-two-thirds">
                 <div class="panel is-info">
                     <p class="panel-heading">งานบริการวิชาการ</p>
-                    {% for a in admin %}
+                    {% for a in admin|sort(attribute='sub_lab.no') %}
                         <a class="panel-block" href="{{ url_for('service_admin.create_request', code=a.sub_lab.code,
                             customer_id=customer_id, menu='request') }}"
                         >
