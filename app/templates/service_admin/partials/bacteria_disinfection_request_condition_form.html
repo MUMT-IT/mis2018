@@ -110,6 +110,15 @@
                                         >
                                             <span class="icon"><i class="fas fa-trash-alt"></i></span>
                                         </a>
+                                    {% elif product_type == 'dish_wash' %}
+                                        <a class="button is-danger is-outlined"
+                                           hx-delete="{{ url_for('service_admin.remove_bacteria_dish_wash_organism_form_entry',
+                                               name=fields.name) }}"
+                                           hx-target="closest tr"
+                                           hx-swap="outerHTML"
+                                        >
+                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                        </a>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -179,6 +188,16 @@
                                 {% elif product_type == 'antibacterial_treated' %}
                                     <a class="button is-info is-outlined is-rounded"
                                        hx-post="{{ url_for('service_admin.add_bacteria_antibacterial_treated_organism_form_entry',
+                                           name=fields.name) }}"
+                                       hx-target="previous tr"
+                                       hx-swap="afterend"
+                                    >
+                                        <span class="icon"><i class="fas fa-plus"></i></span>
+                                        <span>เพิ่ม</span>
+                                    </a>
+                                {% elif product_type == 'dish_wash' %}
+                                    <a class="button is-info is-outlined is-rounded"
+                                       hx-post="{{ url_for('service_admin.add_bacteria_dish_wash_organism_form_entry',
                                            name=fields.name) }}"
                                        hx-target="previous tr"
                                        hx-swap="afterend"
