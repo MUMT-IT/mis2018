@@ -1578,6 +1578,62 @@ def remove_bacteria_antibacterial_treated_organism_form_entry():
     return ""
 
 
+@service_admin.route('/request/bacteria_dish_wash_organism_form_entry/add', methods=['POST'])
+def add_bacteria_dish_wash_organism_form_entry():
+    resp = ""
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    for entry in form.dish_wash_condition_field:
+        if entry.name == field_name:
+            entry.dish_wash_organism_fields.append_entry()
+            item_form = entry.dish_wash_organism_fields[-1]
+            template = """
+                <tr>
+                    <td style="border: none">
+                        <div class="select">{}</div>
+                    </td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">
+                        <a class="button is-danger is-outlined"
+                            hx-delete="{}" 
+                            hx-target="closest tr"
+                            hx-swap="outerHTML"
+                        >
+                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                        </a>
+                    </td>
+                </tr>
+            """
+            resp = template.format(item_form.dish_wash_organism(),
+                                   item_form.dish_wash_ratio(class_='input'),
+                                   item_form.dish_wash_per_water(class_='input'),
+                                   item_form.dish_wash_time_duration(class_='input', required=True,
+                                                                  oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
+                                                                  oninput="this.setCustomValidity('')"),
+                                   url_for('service_admin.remove_bacteria_dish_wash_organism_form_entry',
+                                           name=item_form.name)
+                                   )
+    resp = make_response(resp)
+    return resp
+
+
+@service_admin.route('/request/bacteria_dish_wash_organism_form_entry/remove', methods=['DELETE'])
+def remove_bacteria_dish_wash_organism_form_entry():
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.dish_wash_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+        while len(entry.dish_wash_organism_fields) > 0:
+            entry.dish_wash_organism_fields.pop_entry()
+        for new_entry in temp_entries:
+            entry.dish_wash_organism_fields.append_entry(new_entry)
+    return ""
+
+
 @service_admin.route('/request/virus_disinfection/add', methods=['GET', 'POST'])
 @service_admin.route('/request/virus_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
 def create_virus_disinfection_request(request_id=None):
