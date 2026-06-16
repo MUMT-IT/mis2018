@@ -216,7 +216,7 @@ def create_request_form(table):
 
 bacteria_liquid_organisms = [
     'S. aureus ATCC 6538',
-    'S. choleraesuis ATCC 10708',
+    'S. enteria ATCC 10708',
     'P. aeruginosa ATCC 15442',
     'E. coli ATCC 10536',
     'T. mentagrophytes'
@@ -224,14 +224,15 @@ bacteria_liquid_organisms = [
 
 bacteria_spray_organisms = [
     'S. aureus ATCC 6538',
-    'S. choleraesuis ATCC 10708',
+    'S. enteria ATCC 10708',
     'P. aeruginosa ATCC 15442',
     'T. mentagrophytes'
 ]
 
 bacteria_wash_organisms = [
     'S. aureus ATCC 6538',
-    'K. pneumoniae ATCC 4352'
+    'K. pneumoniae ATCC 4352',
+    'P. aeruginosa ATCC 15442'
 ]
 
 bacteria_alcohol_based_organisms = [
@@ -248,12 +249,14 @@ bacteria_antibacterial_treated_organisms = [
 
 bacteria_dish_wash_organisms = [
     'S. aureus ATCC 6538',
-    'S. enteria ATCC 10708'
+    'S. enteria ATCC 10708',
+    'E. coli ATCC 10536',
+    'P. aeruginosa ATCC 15442'
 ]
 
 bacteria_antimicrobial_organisms = [
     'S. aureus ATCC 6538',
-    'S. choleraesuis ATCC 10708',
+    'S. enteria ATCC 10708',
     'P. aeruginosa ATCC 15442'
     'E. coli ATCC 10536',
     'T. mentagrophytes',
@@ -407,7 +410,7 @@ class BacteriaAlcoholBasedConditionForm(FlaskForm):
     product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ที่มีแอลกอฮอล์เป็ยส่วนประกอบ เพื่อสุขภาพอนามัยสำหรับมือ (Alcohol-based Hand sanitizer)',
                                render_kw={'class': 'input is-danger'})
-    alcohol_based_clean_type = RadioField('รูปแบบการทดสอบ',
+    alcohol_based_test_method = RadioField('วิธีทดสอบ',
                                   choices=[('ทดสอบประสิทธิภาพการลดปริมาณเชื้อ วิธีทดสอบ EN 1276:2019',
                                             'ทดสอบประสิทธิภาพการลดปริมาณเชื้อ วิธีทดสอบ EN 1276:2019 '
                                             '(ทดสอบในสภาวะสกปรก (dirty condition) ที่อุณหภูมิ 34°C)')],
@@ -426,7 +429,7 @@ class BacteriaAntibacterialTreatedConditionForm(FlaskForm):
     product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='Antibacterial-treated Surface (plastic and other non-porous surface)',
                                render_kw={'class': 'input is-danger'})
-    antibacterial_treated_clean_type = RadioField('รูปแบบการทดสอบ',
+    antibacterial_treated_test_method = RadioField('วิธีทดสอบ',
                                   choices=[('ทดสอบปริะสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ JIS Z 2801',
                                             'ทดสอบปริะสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ JIS Z 2801'),
                                            ('ทดสอบปริะสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ ISO 22196:2011',
@@ -441,6 +444,29 @@ class BacteriaAntibacterialTreatedConditionForm(FlaskForm):
                                                   ],
                                                   validators=[Optional()])
     antibacterial_treated_organism_fields = FieldList(FormField(BacteriaAntibacterialTreatedTestConditionForm), min_entries=1)
+
+
+class BacteriaDishWashTestConditionForm(FlaskForm):
+    dish_wash_organism = SelectField('เชื้อ', choices=[(c, c) for c in bacteria_dish_wash_organisms],
+                                                 validators=[Optional()])
+    dish_wash_ratio = StringField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input',
+                                                                                                    'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
+    dish_wash_per_water = StringField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input',
+                                                                                     'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
+    dish_wash_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (นาที/ชั่วโมง)', validators=[Optional()],
+                                        render_kw={'class': 'input', 'placeholder': 'เช่น 1 นาที หรือ 1 ชั่วโมง'})
+
+
+class BacteriaDishWashConditionForm(FlaskForm):
+    product_type = HiddenField('ประเภทผลิตภัณฑ์',
+                               default='ผลิตภัณฑ์ล้างจาน (Dish Wash Detergent)',
+                               render_kw={'class': 'input is-danger'})
+    dish_wash_test_method = RadioField('วิธีทดสอบ',
+                                  choices=[('ทดสอบปริะสิทธิภาพการฆ่าเชื้อโรคในฟองน้ำ วิธีทดสอบ Quantitative test, log (%) reduction',
+                                            'ทดสอบปริะสิทธิภาพการฆ่าเชื้อโรคในฟองน้ำ วิธีทดสอบ Quantitative test, log (%) reduction')
+                                           ],
+                                  validators=[Optional()])
+    antibacterial_treated_organism_fields = FieldList(FormField(BacteriaDishWashTestConditionForm), min_entries=1)
 
 
 class BacteriaDisinfectionRequestForm(FlaskForm):
@@ -550,7 +576,8 @@ class BacteriaDisinfectionRequestForm(FlaskForm):
                                                            ('in_wash',
                                                             'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (In Wash Claim)'),
                                                            ('alcohol_based', 'ผลิตภัณฑ์ที่มีแอลกอฮอล์เป็ยส่วนประกอบ เพื่อสุขภาพอนามัยสำหรับมือ (Alcohol-based Hand sanitizer)'),
-                                                           ('antibacterial_treated', 'Antibacterial-treated Surface (plastic and other non-porous surface)')])
+                                                           ('antibacterial_treated', 'Antibacterial-treated Surface (plastic and other non-porous surface)'),
+                                                           ('dish_wash', 'ผลิตภัณฑ์ล้างจาน (Dish Wash Detergent)')])
     liquid_condition_field = FieldList(FormField(BacteriaLiquidConditionForm,
                                                  'ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดของเหลว หรือชนิดผง ที่ละลายน้้าได้'),
                                        min_entries=0)
@@ -569,6 +596,8 @@ class BacteriaDisinfectionRequestForm(FlaskForm):
     antibacterial_treated_condition_field = FieldList(FormField(BacteriaAntibacterialTreatedConditionForm,
                                                                 'Antibacterial-treated Surface (plastic and other non-porous surface)'),
                                                       min_entries=0)
+    dish_wash_condition_field = FieldList(FormField(BacteriaDishWashConditionForm, 'ผลิตภัณฑ์ล้างจาน (Dish Wash Detergent)'),
+                                          min_entries=0)
 
 
 virus_liquid_organisms = [
