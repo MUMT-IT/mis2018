@@ -223,6 +223,79 @@
                 {% endif %}
             {% endif %}
         {% endfor %}
+        {% if product_type == 'liquid'  %}
+            <button type="button" class="button is-danger is-rounded is-small"
+                    hx-delete="{{ url_for('academic_services.remove_bacteria_liquid_condition_form',
+                    name=fields.name) }}"
+                    hx-target="closest .subform-card"
+                    hx-swap="outerHTML"
+            >
+                ลบ
+            </button>
+        {% elif product_type == 'spray'  %}
+            <button type="button" class="button is-danger is-rounded is-small"
+                    hx-delete="{{ url_for('academic_services.remove_bacteria_spray_condition_form',
+                    name=fields.name) }}"
+                    hx-target="closest .subform-card"
+                    hx-swap="outerHTML"
+            >
+                ลบ
+            </button>
+        {% elif product_type == 'sheet'  %}
+            <button type="button" class="button is-danger is-rounded is-small"
+                    hx-delete="{{ url_for('academic_services.remove_bacteria_sheet_condition_form',
+                    name=fields.name) }}"
+                    hx-target="closest .subform-card"
+                    hx-swap="outerHTML"
+            >
+                ลบ
+            </button>
+        {% elif product_type == 'after_wash'  %}
+            <button type="button" class="button is-danger is-rounded is-small"
+                    hx-delete="{{ url_for('academic_services.remove_bacteria_after_wash_condition_form',
+                    name=fields.name) }}"
+                    hx-target="closest .subform-card"
+                    hx-swap="outerHTML"
+            >
+                ลบ
+            </button>
+        {% elif product_type == 'in_wash'  %}
+            <button type="button" class="button is-danger is-rounded is-small"
+                    hx-delete="{{ url_for('academic_services.remove_bacteria_in_wash_condition_form',
+                    name=fields.name) }}"
+                    hx-target="closest .subform-card"
+                    hx-swap="outerHTML"
+            >
+                ลบ
+            </button>
+        {% elif product_type == 'alcohol_based'  %}
+            <button type="button" class="button is-danger is-rounded is-small"
+                    hx-delete="{{ url_for('academic_services.remove_bacteria_alcohol_based_condition_form',
+                    name=fields.name) }}"
+                    hx-target="closest .subform-card"
+                    hx-swap="outerHTML"
+            >
+                ลบ
+            </button>
+        {% elif product_type == 'antibacterial_treated'  %}
+            <button type="button" class="button is-danger is-rounded is-small"
+                    hx-delete="{{ url_for('academic_services.remove_bacteria_antibacterial_treated_condition_form',
+                    name=fields.name) }}"
+                    hx-target="closest .subform-card"
+                    hx-swap="outerHTML"
+            >
+                ลบ
+            </button>
+        {% elif product_type == 'dish_wash'  %}
+            <button type="button" class="button is-danger is-rounded is-small"
+                    hx-delete="{{ url_for('academic_services.remove_bacteria_dish_wash_condition_form',
+                    name=fields.name) }}"
+                    hx-target="closest .subform-card"
+                    hx-swap="outerHTML"
+            >
+                ลบ
+            </button>
+        {% endif %}
     </div>
 </div>
 <script>
