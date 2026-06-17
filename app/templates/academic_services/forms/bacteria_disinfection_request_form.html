@@ -703,8 +703,10 @@
         function addRequiredField(subform) {
             const testMethodInput = subform.find('input[name$="test_method"]');
             const cleanTypeInput = subform.find('input[name$="clean_type"]');
+            const testInput = subform.find('input[name$="test"]');
             const dilutionInput = subform.find('input[name$="dilution"]');
             const surfaceTypeInput = subform.find('input[name$="surface_type"]');
+            const sterilizationMethodInput = subform.find('input[name$="sterilization_method"]');
             const qualitativeTestInput = subform.find('input[name$="qualitative_test"]');
             const quantitativeTestInput = subform.find('input[name$="quantitative_test"]');
 
@@ -713,6 +715,15 @@
 
             cleanTypeInput.on('change', function () {
                 cleanTypeInput.each(function () {
+                    this.setCustomValidity('');
+                });
+            });
+
+            testInput.prop('required', true)
+                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกวิธีทดสอบ')");
+
+            testInput.on('change', function () {
+                testInput.each(function () {
                     this.setCustomValidity('');
                 });
             });
@@ -727,10 +738,19 @@
             });
 
             surfaceTypeInput.prop('required', true)
-                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกชนิดพื้นผิว')");
+                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกขนิดพื้นผิว')");
 
             surfaceTypeInput.on('change', function () {
                 surfaceTypeInput.each(function () {
+                    this.setCustomValidity('');
+                });
+            });
+
+            sterilizationMethodInput.prop('required', true)
+                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกวิธีการฆ่าเชื้อ')");
+
+            sterilizationMethodInput.on('change', function () {
+                sterilizationMethodInput.each(function () {
                     this.setCustomValidity('');
                 });
             });
