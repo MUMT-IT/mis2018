@@ -1931,9 +1931,9 @@ def create_bacteria_sterility_test_request(request_id=None):
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
         data = service_request.data
-        form = BacteriaDisinfectionRequestForm(data=data)
+        form = BacteriaSterilityTestRequestForm(data=data)
     else:
-        form = BacteriaDisinfectionRequestForm()
+        form = BacteriaSterilityTestRequestForm()
     if form.validate_on_submit():
         if request_id:
             service_request.data = format_data(form.data)
