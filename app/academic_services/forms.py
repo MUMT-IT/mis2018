@@ -705,7 +705,7 @@ class BacteriaSterilityTestRequestForm(FlaskForm):
     )
 
 
-class BacteriaAntimicrobialTestConditionForm(FlaskForm):
+class BacteriaAntimicrobialActivityTestConditionForm(FlaskForm):
     antimicrobial_organism = SelectField('เชื้อ', choices=[(c, c) for c in bacteria_antimicrobial_organisms],
                                                  validators=[Optional()])
     antimicrobial_sample_quantity = StringField('ปริมาณตัวอย่าง', validators=[Optional()], render_kw={'class': 'input',
@@ -713,23 +713,23 @@ class BacteriaAntimicrobialTestConditionForm(FlaskForm):
     antimicrobial_solvent_used = RadioField('ตัวทำละลายที่ใช้',
                                   choices=[('DMSO', 'DMSO'), ('DI water', 'DI water'), ('อื่น ๆ', 'อื่น ๆ')],
                                             validators=[Optional()])
-    antimicrobial_solvent_used_other = RadioField('ระบุ', validators=[Optional()],
+    antimicrobial_solvent_used_other = StringField('ระบุ', validators=[Optional()],
                                                      render_kw={'class': 'input'})
 
 
-class BacteriaAntimicrobialConditionForm(FlaskForm):
-    product_type = HiddenField('ประเภทผลิตภัณฑ์',
-                               default='ผลิตภัณฑ์ล้างจาน (Dish Wash Detergent)',
+class BacteriaAntimicrobialActivityConditionForm(FlaskForm):
+    product_type = HiddenField('ประเภทการทดสอบ',
+                               default='การทดสอบประสิทธิภาพการยับยังเชื้อแบคทีเรีย (Antimicrobial Activity)',
                                render_kw={'class': 'input is-danger'})
     antimicrobial_test_method = RadioField('วิธีทดสอบ',
                                   choices=[('ทดสอบปริะสิทธิภาพการยับยั่งเชื้อแบคทีเรีย วิธีทดสอบ Disc Diffusion method (Clear zone)',
                                             'ทดสอบปริะสิทธิภาพการยับยั่งเชื้อแบคทีเรีย วิธีทดสอบ Disc Diffusion method (Clear zone)')
                                            ],
                                   validators=[Optional()])
-    antibacterial_treated_organism_fields = FieldList(FormField(BacteriaAntimicrobialTestConditionForm), min_entries=1)
+    antibacterial_treated_organism_fields = FieldList(FormField(BacteriaAntimicrobialActivityTestConditionForm), min_entries=1)
 
 
-class BacteriaAntimicrobialRequestForm(FlaskForm):
+class BacteriaAntimicrobialActivityRequestForm(FlaskForm):
     sample_name = StringField('ชื่อผลิตภัณฑ์', validators=[DataRequired()],
                               render_kw={"oninvalid": "this.setCustomValidity('กรุณากรอกชื่อผลิตภัณฑ์')",
                                          "oninput": "this.setCustomValidity('')"})
@@ -825,12 +825,12 @@ class BacteriaAntimicrobialRequestForm(FlaskForm):
             "oninput": "this.setCustomValidity('')"
         }
     )
-    product_type = SelectField('ประเภทผลิตภัณฑ์', choices=[('', '+ เพิ่มประเภทผลิตภัณฑ์'),
+    product_type = SelectField('ประเภทผลิตภัณฑ์', choices=[('', '+ เพิ่มประเภทการทดสอบ'),
                                                            ('antimicrobial',
-                                                            'การทดสอบผระสิทธิภาพการยับยังเชื้อแบคทีเรีย (Antimicrobial Activity)'),
+                                                            'การทดสอบประสิทธิภาพการยับยังเชื้อแบคทีเรีย (Antimicrobial Activity)'),
                                                            ])
-    antimicrobial_condition_field = FieldList(FormField(BacteriaAntimicrobialConditionForm,
-                                                 'การทดสอบผระสิทธิภาพการยับยังเชื้อแบคทีเรีย (Antimicrobial Activity)'),
+    antimicrobial_condition_field = FieldList(FormField(BacteriaAntimicrobialActivityConditionForm,
+                                                 'การทดสอบประสิทธิภาพการยับยังเชื้อแบคทีเรีย (Antimicrobial Activity)'),
                                        min_entries=0)
 
 
