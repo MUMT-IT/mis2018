@@ -300,11 +300,12 @@
 </div>
 <script>
     function toggleTable(subform) {
+        const subformID = subform.attr('id');
         const table = subform.find('table');
 
         function requiresDilutionRatio() {
             const dilution = subform.find('input[type="radio"][name$="dilution"]:checked').val() || '';
-            return dilution === 'เจือจาง';
+            return dilution === 'เจือจาง' || subformID.includes("dish_wash");
         }
 
         function validateInput() {
@@ -319,7 +320,7 @@
                     const isDilutionField = name.endsWith('ratio') || name.endsWith('per_water');
                     const required = !isDilutionField || dilutionRequired;
 
-                    if (required) {
+                    if (required || subformID.includes("dish_wash")) {
                         const message = 'กรุณากรอกข้อมูล';
                         $(this)
                             .prop('required', true)
