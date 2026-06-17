@@ -1790,6 +1790,124 @@ def create_bacteria_sterility_test_request(request_id=None):
                            form=form, menu=menu, request_id=request_id)
 
 
+@service_admin.route('/request/bacteria_antimicrobial_activity/add', methods=['GET', 'POST'])
+@service_admin.route('/request/bacteria_antimicrobial_activity/edit/<int:request_id>', methods=['GET', 'POST'])
+def create_bacteria_antimicrobial_activity_request(request_id=None):
+    menu = request.args.get('menu')
+    code = request.args.get('code')
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        data = service_request.data
+        form = BacteriaAntimicrobialActivityRequestForm(data=data)
+    else:
+        form = BacteriaAntimicrobialActivityRequestForm()
+    if form.validate_on_submit():
+        if request_id:
+            service_request.data = format_data(form.data)
+            service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+        else:
+            status_id = get_status(1)
+            request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
+            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
+                                             status_id=status_id)
+            request_no.count += 1
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(
+            url_for('service_admin.create_report_language', request_id=service_request.id, menu=menu,
+                    code=code))
+    else:
+        for er in form.errors:
+            flash(f'{er} {form.errors[er]}', 'danger')
+    return render_template('service_admin/forms/bacteria_antimicrobial_activity_request_form.html', code=code, sub_lab=sub_lab,
+                           form=form, menu=menu, request_id=request_id)
+
+
+@service_admin.route('/request/bacteria_antimicrobial_activity/condition', methods=['GET', 'POST'])
+def get_bacteria_antimicrobial_activity_condition_form():
+    product_type = request.values.get("product_type")
+    if not product_type:
+        return ''
+    form = BacteriaAntimicrobialActivityRequestForm(formdata=request.form if request.method == 'POST' else None)
+    field_name = f"{product_type}_condition_field"
+    entry_fields = getattr(form, field_name)
+    entry_fields.append_entry()
+    fields = entry_fields[-1]
+    return render_template('service_admin/partials/bacteria_antimicrobial_activity_request_condition_form.html',
+                           fields=fields, product_type=product_type)
+
+
+@service_admin.route('/request/bacteria_antimicrobial_activity_condition_form/remove', methods=['DELETE'])
+def remove_bacteria_antimicrobial_activity_condition_form():
+    field_name = request.args.get('name')
+    form = BacteriaAntimicrobialActivityRequestForm()
+    temp_entries = []
+    for entry in form.antimicrobial_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.antimicrobial_condition_field) > 0:
+        form.antimicrobial_condition_field.pop_entry()
+    for entry in temp_entries:
+        form.antimicrobial_condition_field.append_entry(entry)
+    return ""
+
+
+@service_admin.route('/request/bacteria_antimicrobial_activity_organism_form_entry/add', methods=['POST'])
+def add_bacteria_antimicrobial_activity_organism_form_entry():
+    resp = ""
+    field_name = request.args.get('name')
+    form = BacteriaAntimicrobialActivityRequestForm()
+    for entry in form.antimicrobial_condition_field:
+        if entry.name == field_name:
+            entry.antimicrobial_organism_fields.append_entry()
+            item_form = entry.antimicrobial_organism_fields[-1]
+            template = """
+                <tr>
+                    <td style="border: none">
+                        <div class="select">{}</div>
+                    </td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">
+                        <a class="button is-danger is-outlined"
+                            hx-delete="{}" 
+                            hx-target="closest tr"
+                            hx-swap="outerHTML"
+                        >
+                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                        </a>
+                    </td>
+                </tr>
+            """
+            resp = template.format(item_form.antimicrobial_organism(),
+                                   item_form.antimicrobial_ratio(class_='input'),
+                                   item_form.antimicrobial_solvent_used(),
+                                   item_form.antimicrobial_solvent_used_other(class_='input'),
+                                   url_for('service_admin.remove_bacteria_antimicrobial_activity_organism_form_entry',
+                                           name=item_form.name)
+                                   )
+    resp = make_response(resp)
+    return resp
+
+
+@service_admin.route('/request/bacteria_antimicrobial_activity_organism_form_entry/remove', methods=['DELETE'])
+def remove_bacteria_antimicrobial_activity_organism_form_entry():
+    field_name = request.args.get('name')
+    form = BacteriaAntimicrobialActivityRequestForm()
+    temp_entries = []
+    for entry in form.antimicrobial_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+        while len(entry.antimicrobial_organism_fields) > 0:
+            entry.antimicrobial_organism_fields.pop_entry()
+        for new_entry in temp_entries:
+            entry.antimicrobial_organism_fields.append_entry(new_entry)
+    return ""
+
+
 @service_admin.route('/request/virus_disinfection/add', methods=['GET', 'POST'])
 @service_admin.route('/request/virus_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
 def create_virus_disinfection_request(request_id=None):
