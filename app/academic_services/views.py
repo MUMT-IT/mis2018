@@ -1296,6 +1296,7 @@ def create_request():
     request_id = request.args.get('request_id')
     request_paths = {'bacteria_disinfection': 'academic_services.create_bacteria_disinfection_request',
                      'sterility_test': 'academic_services.create_bacteria_sterility_test_request',
+                     'antimicrobial_activity': 'academic_services.create_bacteria_antimicrobial_activity_request',
                      'virus_disinfection': 'academic_services.create_virus_disinfection_request',
                      'air_disinfection': 'academic_services.create_virus_air_disinfection_request',
                      'heavymetal': 'academic_services.create_heavy_metal_request',
