@@ -1215,6 +1215,125 @@ def get_bacteria_disinfection_condition_form():
                            fields=fields, product_type=product_type)
 
 
+@service_admin.route('/request/bacteria_liquid_condition_form/remove', methods=['DELETE'])
+def remove_bacteria_liquid_condition_form():
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.liquid_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.liquid_condition_field) > 0:
+        form.liquid_condition_field.pop_entry()
+    for entry in temp_entries:
+        form.liquid_condition_field.append_entry(entry)
+    return ""
+
+
+@service_admin.route('/request/bacteria_spray_condition_form/remove', methods=['DELETE'])
+def remove_bacteria_spray_condition_form():
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.spray_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.spray_condition_field) > 0:
+        form.spray_condition_field.pop_entry()
+    for entry in temp_entries:
+        form.spray_condition_field.append_entry(entry)
+    return ""
+
+@service_admin.route('/request/bacteria_sheet_condition_form/remove', methods=['DELETE'])
+def remove_bacteria_sheet_condition_form():
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.sheet_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.sheet_condition_field) > 0:
+        form.sheet_condition_field.pop_entry()
+    for entry in temp_entries:
+        form.sheet_condition_field.append_entry(entry)
+    return ""
+
+
+@service_admin.route('/request/bacteria_after_wash_condition_form/remove', methods=['DELETE'])
+def remove_bacteria_after_wash_condition_form():
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.after_wash_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.after_wash_condition_field) > 0:
+        form.after_wash_condition_field.pop_entry()
+    for entry in temp_entries:
+        form.after_wash_condition_field.append_entry(entry)
+    return ""
+
+
+@service_admin.route('/request/bacteria_in_wash_condition_form/remove', methods=['DELETE'])
+def remove_bacteria_in_wash_condition_form():
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.in_wash_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.in_wash_condition_field) > 0:
+        form.in_wash_condition_field.pop_entry()
+    for entry in temp_entries:
+        form.in_wash_condition_field.append_entry(entry)
+    return ""
+
+
+@service_admin.route('/request/bacteria_alcohol_based_condition_form/remove', methods=['DELETE'])
+def remove_bacteria_alcohol_based_condition_form():
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.alcohol_based_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.alcohol_based_condition_field) > 0:
+        form.alcohol_based_condition_field.pop_entry()
+    for entry in temp_entries:
+        form.alcohol_based_condition_field.append_entry(entry)
+    return ""
+
+
+@service_admin.route('/request/bacteria_antibacterial_treated_condition_form/remove', methods=['DELETE'])
+def remove_bacteria_antibacterial_treated_condition_form():
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.antibacterial_treated_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.antibacterial_treated_condition_field) > 0:
+        form.antibacterial_treated_condition_field.pop_entry()
+    for entry in temp_entries:
+        form.antibacterial_treated_condition_field.append_entry(entry)
+    return ""
+
+
+@service_admin.route('/request/bacteria_dish_wash_condition_form/remove', methods=['DELETE'])
+def remove_bacteria_dish_wash_condition_form():
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.dish_wash_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.dish_wash_condition_field) > 0:
+        form.dish_wash_condition_field.pop_entry()
+    for entry in temp_entries:
+        form.dish_wash_condition_field.append_entry(entry)
+    return ""
+
+
 @service_admin.route('/request/bacteria_liquid_organism_form_entry/add', methods=['POST'])
 def add_bacteria_liquid_organism_form_entry():
     resp = ""
