@@ -1922,6 +1922,41 @@ def remove_bacteria_dish_wash_organism_form_entry():
     return ""
 
 
+@academic_services.route('/request/bacteria_sterility_test/add', methods=['GET', 'POST'])
+@academic_services.route('/request/bacteria_sterility_test/edit/<int:request_id>', methods=['GET', 'POST'])
+def create_bacteria_sterility_test_request(request_id=None):
+    menu = request.args.get('menu')
+    code = request.args.get('code')
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        data = service_request.data
+        form = BacteriaDisinfectionRequestForm(data=data)
+    else:
+        form = BacteriaDisinfectionRequestForm()
+    if form.validate_on_submit():
+        if request_id:
+            service_request.data = format_data(form.data)
+            service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+        else:
+            status_id = get_status(1)
+            request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
+            service_request = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                             sub_lab=sub_lab, request_no=request_no.number, data=format_data(form.data),
+                                             status_id=status_id)
+            request_no.count += 1
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(
+            url_for('academic_services.create_report_language', request_id=service_request.id, menu=menu,
+                    code=code))
+    else:
+        for er in form.errors:
+            flash(f'{er} {form.errors[er]}', 'danger')
+    return render_template('academic_services/forms/bacteria_sterility_test_request_form.html', code=code, sub_lab=sub_lab,
+                           form=form, menu=menu, request_id=request_id)
+
+
 @academic_services.route('/request/virus_disinfection/add', methods=['GET', 'POST'])
 @academic_services.route('/request/virus_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
 def create_virus_disinfection_request(request_id=None):
