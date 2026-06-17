@@ -1,0 +1,318 @@
+{% extends "academic_services/service_base.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <style>
+        table {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        th, td {
+            padding: 5px;
+        }
+
+        .daterangepicker td,
+        .daterangepicker th {
+            display: table-cell !important;
+        }
+
+        input[readonly] {
+            background-color: #e9ecef !important;
+            cursor: not-allowed;
+        }
+    </style>
+{% endblock %}
+{% block page_content %}
+    {% include "academic_services/customer_nav.html" %}
+    {% include 'messages.html' %}
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-12">
+                    <h1 class="title is-3 has-text-centered has-text-grey-dark">ฟอร์ม{{ sub_lab.sub_lab }}</h1>
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="box">
+                            <h5 class="title is-size-5">ข้อมูลผลิตภัณฑ์</h5>
+                            <hr style="background-color: gainsboro">
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.sample_name.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.sample_name(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.active_substance.label }}
+                                    เช่น Formaldyhyde 37% w/w, Ethyl Alcohol 50% w/w
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.active_substance(class='textarea',
+                                        placeholder='เช่น Formaldyhyde 37% w/w, Ethyl Alcohol 50% w/w') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.product_appearance.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="select is-fullwidth">
+                                            {{ form.product_appearance(
+                                                        **{'hx-get': url_for("academic_services.get_product_appearance_other",
+                                                          request_id=request_id),
+                                                         'hx-target': '#product-appearance-other-container',
+                                                         'hx-swap': 'innerHTML',
+                                                         'hx-trigger': 'change, load'}) }}
+                                        </div>
+                                    </div>
+                                    <div id="product-appearance-other-container" style='width:67%'></div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.kind.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="contol">
+                                    {{ form.kind(class='input', placeholder='เช่น ขวดพลาสติกมีฝาปิดสนิท') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.size.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.size(class='input', placeholder='เช่น 1 ลิตร') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.mfg.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.mfg(class='input') }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.exp.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.exp(class='input') }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.lot_no.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.lot_no(class='input') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.amount.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.amount(class='input', placeholder='เช่น 1 ขวด') }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.service_life.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="control">
+                                            {{ form.service_life(class='input') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ form.product_storage.label }}
+                                            <span class="has-text-danger">*</span>
+                                        </label>
+                                        <div class="select is-fullwidth">
+                                            {{ form.product_storage(
+                                                    **{'hx-get': url_for("academic_services.get_product_storage_other",
+                                                        request_id=request_id),
+                                                        'hx-target': '#product-storage-other-container',
+                                                        'hx-swap': 'innerHTML',
+                                                        'hx-trigger': 'change, load'})
+                                                    }}
+                                        </div>
+                                    </div>
+                                    <div id="product-storage-other-container" style='width:74%'></div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.post_test_product_action.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="select">
+                                    {{ form.post_test_product_action() }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.manufacturer.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.manufacturer(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.manufacturer_address.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.manufacturer_address(class='textarea') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.importer.label }}
+                                </label>
+                                <div class="control">
+                                    {{ form.importer(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.importer_address.label }}
+                                </label>
+                                <div class="control">
+                                    {{ form.importer_address(class='textarea') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.distributor.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.distributor(class='input') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.distributor_address.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.distributor_address(class='textarea') }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="box">
+                            <h5 class="title is-size-5">รายการทดสอบ</h5>
+                            <hr style="background-color: gainsboro">
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.test_method.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
+                                    {{ form.test_method() }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="box">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.read_document() }}
+                                    {{ form.read_document.label }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-justify-content-center">
+                            <div class="control">
+                                <input type="submit" value="บันทึกและดำเนินการต่อ" class="button is-success">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript"
+            src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            moment.locale('th');
+            $('input[name="mfg"]').daterangepicker({
+                singleDatePicker: true,
+                showDropdowns: true,
+                autoUpdateInput: true,
+                locale:
+                    {
+                        format: 'YYYY-MM-DD',
+                        cancelLabel: 'Clear'
+                    }
+            });
+            $('input[name="mfg"]').on('apply.daterangepicker', function (ev, picker) {
+                $(this).val(picker.startDate.format('YYYY-MM-DD'));
+            });
+            $('input[name="mfg"]').on('cancel.daterangepicker', function () {
+                $(this).val('');
+            });
+            $('input[name="exp"]').daterangepicker({
+                singleDatePicker: true,
+                showDropdowns: true,
+                autoUpdateInput: true,
+                locale:
+                    {
+                        format: 'YYYY-MM-DD',
+                        cancelLabel: 'Clear'
+                    }
+            });
+            $('input[name="exp"]').on('apply.daterangepicker', function (ev, picker) {
+                $(this).val(picker.startDate.format('YYYY-MM-DD'));
+            });
+            $('input[name="exp"]').on('cancel.daterangepicker', function () {
+                $(this).val('');
+            });
+        })
+    </script>
+    <script>
+        $(document).ready(function () {
+            const testMethodInput = $('input[id^="test_method"]');
+
+            testMethodInput.prop('required', true)
+                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกวิธีการทดสอบ')");
+
+            testMethodInput.on('change', function () {
+                testMethodInput.each(function () {
+                    this.setCustomValidity('');
+                });
+            });
+        });
+    </script>
+{% endblock %}
