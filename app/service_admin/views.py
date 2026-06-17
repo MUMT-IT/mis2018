@@ -1150,8 +1150,9 @@ def create_request():
     code = request.args.get('code')
     request_id = request.args.get('request_id')
     customer_id = request.args.get('customer_id')
-    request_paths = {'bacteria': 'service_admin.create_bacteria_request',
-                     'disinfection': 'service_admin.create_virus_disinfection_request',
+    request_paths = {'bacteria_disinfection': 'service_admin.create_bacteria_disinfection_request',
+                     'sterility_test': 'academic_services.create_bacteria_sterility_test_request',
+                     'virus_disinfection': 'service_admin.create_virus_disinfection_request',
                      'air_disinfection': 'service_admin.create_virus_air_disinfection_request',
                      'heavymetal': 'service_admin.create_heavy_metal_request',
                      'foodsafety': 'service_admin.create_food_safety_request',
