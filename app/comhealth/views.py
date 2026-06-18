@@ -7,6 +7,7 @@ import json
 import os
 import re
 import secrets
+import time
 from collections import OrderedDict, defaultdict
 from io import BytesIO
 from urllib.parse import urljoin
@@ -95,6 +96,140 @@ def _require_online_results_access():
         'warning'
     )
     return redirect(url_for('comhealth.landing'))
+
+
+ONLINE_RESULTS_API_TOKEN_CACHE = {
+    'access_token': None,
+    'expires_at': 0,
+}
+
+
+def _online_results_api_base_url():
+    return os.getenv('COMHEALTH_ONLINE_RESULTS_API_BASE_URL', 'https://webmt.mahidol.ac.th/api').rstrip('/')
+
+
+def _online_results_api_key():
+    for env_name in (
+        'COMHEALTH_ONLINE_RESULTS_API_KEY',
+        'COMHEALTH_RESULTS_API_KEY',
+        'WEBMT_API_KEY',
+    ):
+        api_key = os.getenv(env_name)
+        if api_key:
+            return api_key
+    return None
+
+
+def _online_results_api_url(path):
+    return f'{_online_results_api_base_url()}/{path.lstrip("/")}'
+
+
+def _extract_online_results_token(payload):
+    if isinstance(payload, str):
+        return payload
+
+    if not isinstance(payload, dict):
+        return None
+
+    for key in ('access_token', 'accessToken', 'token', 'bearerToken', 'bearer_token'):
+        token = payload.get(key)
+        if token:
+            return token
+
+    for nested_key in ('data', 'result'):
+        token = _extract_online_results_token(payload.get(nested_key))
+        if token:
+            return token
+
+    return None
+
+
+def _extract_online_results_token_ttl(payload):
+    if not isinstance(payload, dict):
+        return 3300
+
+    for key in ('expires_in', 'expiresIn', 'expires_seconds', 'expiresSeconds'):
+        ttl = payload.get(key)
+        if ttl:
+            try:
+                return int(ttl)
+            except (TypeError, ValueError):
+                return 3300
+
+    for nested_key in ('data', 'result'):
+        ttl = _extract_online_results_token_ttl(payload.get(nested_key))
+        if ttl:
+            return ttl
+
+    return 3300
+
+
+def _get_online_results_bearer_token():
+    if (
+        ONLINE_RESULTS_API_TOKEN_CACHE['access_token'] and
+        ONLINE_RESULTS_API_TOKEN_CACHE['expires_at'] > time.time() + 30
+    ):
+        return ONLINE_RESULTS_API_TOKEN_CACHE['access_token']
+
+    api_key = _online_results_api_key()
+    if not api_key:
+        current_app.logger.warning('COMHEALTH_ONLINE_RESULTS_API_KEY is not configured.')
+        return None
+
+    response = requests.post(
+        _online_results_api_url('/apiclients/token'),
+        json={'apiKey': api_key},
+        timeout=10,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    token = _extract_online_results_token(payload)
+    if not token:
+        raise RuntimeError('Online results API token response did not include a bearer token.')
+
+    ONLINE_RESULTS_API_TOKEN_CACHE['access_token'] = token
+    ONLINE_RESULTS_API_TOKEN_CACHE['expires_at'] = time.time() + _extract_online_results_token_ttl(payload)
+    return token
+
+
+def _online_results_api_request(method, path, **kwargs):
+    headers = kwargs.pop('headers', {})
+    timeout = kwargs.pop('timeout', 10)
+    token = _get_online_results_bearer_token()
+
+    if token:
+        headers = {
+            **headers,
+            'Authorization': f'Bearer {token}',
+        }
+
+    response = requests.request(
+        method,
+        _online_results_api_url(path),
+        headers=headers,
+        timeout=timeout,
+        **kwargs,
+    )
+
+    if response.status_code == 401 and token:
+        ONLINE_RESULTS_API_TOKEN_CACHE['access_token'] = None
+        ONLINE_RESULTS_API_TOKEN_CACHE['expires_at'] = 0
+        retry_token = _get_online_results_bearer_token()
+        if not retry_token:
+            return response
+        retry_headers = {
+            **headers,
+            'Authorization': f'Bearer {retry_token}',
+        }
+        response = requests.request(
+            method,
+            _online_results_api_url(path),
+            headers=retry_headers,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    return response
 
 
 @comhealth.route('/api/v1/lineids/<lineid>')
@@ -3720,8 +3855,7 @@ def cmslis_email(email):
         if email.strip().lower() != session_email:
             return '<tr><td colspan="2" class="has-text-centered">Unauthorized</td></tr>', 403
 
-    api_employee_url = f"https://webmt.mahidol.ac.th/api/Employees/email/{email}"
-    response_employee = requests.get(api_employee_url)
+    response_employee = _online_results_api_request('GET', f'/Employees/email/{email}')
 
     if response_employee.status_code != 200:
         return '<tr><td colspan="2" class="has-text-centered">ไม่พบข้อมูล</td></tr>'
@@ -3736,8 +3870,7 @@ def cmslis_email(email):
 
 
     # service วันที่ตรวจ
-    api_services_url = f"http://webmt.mahidol.ac.th/api/Employees/{cmscode}/services"
-    response_services = requests.get(api_services_url)
+    response_services = _online_results_api_request('GET', f'/Employees/{cmscode}/services')
     services = response_services.json()
 
     html = ""
@@ -3755,22 +3888,24 @@ def cmslis_email(email):
         serviceno = row.get("serviceNo")
 
         #อายุตามวันที่ตรวจ
-        if not employee_dob:
-            age = "No birth date"
-        else:
-            birth_date = datetime.strptime(employee_dob, "%Y-%m-%dT%H:%M:%S").date()
+        birth_date = parse_cmslis_birth_date(employee_dob)
+        if birth_date:
             service_date = datetime.strptime(servicedate, "%Y-%m-%dT%H:%M:%S").date()
             age = service_date.year - birth_date.year - (
                     (service_date.month, service_date.day) < (birth_date.month, birth_date.day)
             )
+        else:
+            age = None
 
-        result_url = url_for(
-            'comhealth.customer_result',
-            serviceNo=serviceno,
-            email=email,
-            servicedate=servicedate,
-            age=age
-        )
+        result_params = {
+            'serviceNo': serviceno,
+            'email': email,
+            'servicedate': servicedate,
+        }
+        if age is not None:
+            result_params['age'] = age
+
+        result_url = url_for('comhealth.customer_result', **result_params)
 
         html += f"""
         <tr>
@@ -3796,8 +3931,7 @@ def load_all_interpret():
     if INTERPRET_CACHE:
         return INTERPRET_CACHE  # ถ้าโหลดแล้ว ไม่ต้องโหลดซ้ำ
 
-    url = "https://webmt.mahidol.ac.th/api/ConditionInterprets"
-    response = requests.get(url, timeout=10)
+    response = _online_results_api_request('GET', '/ConditionInterprets')
     data = response.json()["data"]
 
     INTERPRET_CACHE = {
@@ -3814,8 +3948,7 @@ def load_all_conditions():
     if CONDITION_CACHE:
         return CONDITION_CACHE  # โหลดแล้วไม่ต้องโหลดซ้ำ
 
-    url = "https://webmt.mahidol.ac.th/api/Conditions"
-    response = requests.get(url, timeout=10)
+    response = _online_results_api_request('GET', '/Conditions')
     data = response.json()
 
     grouped = defaultdict(list)
@@ -3832,6 +3965,17 @@ mapping_color_inp = {
         "AbH": ("has-text-danger")
     }
 
+
+def parse_cmslis_birth_date(birth_date):
+    if not birth_date or birth_date == "No birth date":
+        return None
+
+    try:
+        return datetime.strptime(birth_date, "%Y-%m-%dT%H:%M:%S").date()
+    except (TypeError, ValueError):
+        return None
+
+
 @comhealth.route('/result/<int:serviceNo>/<string:email>/<string:servicedate>')
 @comhealth.route('/result/<int:serviceNo>/<string:email>/<string:servicedate>/<string:age>')
 def customer_result(serviceNo, email, servicedate, age=None):
@@ -3847,21 +3991,23 @@ def customer_result(serviceNo, email, servicedate, age=None):
                 'danger'
             )
             return redirect(url_for('comhealth.customers_result_list'))
-    api_employee_url = f"https://webmt.mahidol.ac.th/api/Employees/email/{email}"
-    response_employee = requests.get(api_employee_url)
+    response_employee = _online_results_api_request('GET', f'/Employees/email/{email}')
     employee = response_employee.json()
 
     dt = datetime.fromisoformat(servicedate)
     servicedate_thai = dt.strftime("%d/%m/") + str(dt.year + 543)
 
     load_all_interpret()
+    age_for_api = age if age and str(age).isdigit() else 0
+    age_display = age if age and str(age).isdigit() else '-'
 
     return render_template(
         'comhealth/result.html',
         employee=employee,
         servicedate_thai=servicedate_thai,
         service_no=serviceNo,
-        age=age
+        age=age_display,
+        age_for_api=age_for_api
     )
 
 @comhealth.route('/api/physical/<int:serviceNo>')
@@ -3870,16 +4016,14 @@ def employee_physical(serviceNo):
     if access_response:
         return access_response
     'phyical น้ำหนัก ส่วนสูง'
-    api_physical_url = f"http://webmt.mahidol.ac.th/api/PhysicalExams/{serviceNo}"
     try:
-        reponse_physical = requests.get(api_physical_url)
+        reponse_physical = _online_results_api_request('GET', f'/PhysicalExams/{serviceNo}')
         physical = reponse_physical.json()
     except:
         return '<tr><td colspan="4">Error loading data</td></tr>'
 
-    api_waist_url = f"https://webmt.mahidol.ac.th/api/Questionares/waistline/{serviceNo}"
     try:
-        reponse_waist = requests.get(api_waist_url)
+        reponse_waist = _online_results_api_request('GET', f'/Questionares/waistline/{serviceNo}')
         question = reponse_waist.json()
     except:
         return '<tr><td colspan="4">Error loading data</td></tr>'
@@ -3955,9 +4099,8 @@ def employee_lab(serviceNo, age, gender):
     if access_response:
         return access_response
 
-    api_lab_url = f"https://webmt.mahidol.ac.th/api/Labs/service/testsummary/{serviceNo}"
     try:
-        response = requests.get(api_lab_url)
+        response = _online_results_api_request('GET', f'/Labs/service/testsummary/{serviceNo}')
         lab = response.json()
     except:
         return '<tr><td colspan="4">Error loading data</td></tr>'
@@ -4342,9 +4485,8 @@ def testspecial(serviceNo, gender, age):
     access_response = _require_online_results_access()
     if access_response:
         return access_response
-    api_lab_url = f"https://webmt.mahidol.ac.th/api/Labs/service/testsummary/{serviceNo}"
     try:
-        response = requests.get(api_lab_url)
+        response = _online_results_api_request('GET', f'/Labs/service/testsummary/{serviceNo}')
         lab = response.json()
     except:
         return '<tr><td colspan="4">Error loading data</td></tr>'
@@ -4387,8 +4529,7 @@ def xray_result(serviceNo):
     access_response = _require_online_results_access()
     if access_response:
         return access_response
-    api_url = f"https://webmt.mahidol.ac.th/api/XRays/{serviceNo}"
-    reponse_xray = requests.get(api_url)
+    reponse_xray = _online_results_api_request('GET', f'/XRays/{serviceNo}')
     xray =  reponse_xray.json()
     status = xray.get("status")
     chest = xray.get("chest")
@@ -4422,8 +4563,7 @@ def api_interpert(condiinterpret_id):
 
 
 def api_condition(tcode):
-    condi_url = f"https://webmt.mahidol.ac.th/api/Conditions/subject/{tcode}"
-    return requests.get(condi_url).json()["data"]
+    return _online_results_api_request('GET', f'/Conditions/subject/{tcode}').json()["data"]
 
 
 def match_condition(test_result, age, sex, conditions):

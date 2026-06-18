@@ -605,6 +605,8 @@ class StaffLeaveApprover(db.Model):
                               backref=db.backref('leave_approvers'),
                               foreign_keys=[approver_account_id])
     notified_by_line = db.Column('notified_by_line', db.Boolean(), default=True)
+    is_lower_level = db.Column('is_lower_level', db.Boolean(), default=False)
+    is_middle_level = db.Column('is_middle_level', db.Boolean(), default=False)
 
     @property
     def approver_name(self):

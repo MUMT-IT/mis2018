@@ -50,6 +50,10 @@
             color: inherit;
         }
 
+        .title + .subtitle {
+            margin-top: 0.55rem;
+        }
+
         .button.is-info,
         .tag.is-info,
         .message.is-info > .message-header {
@@ -620,6 +624,11 @@
             <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
             <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
         {% endblock %}
+        <style>
+            .title:not(.is-spaced) + .subtitle {
+                margin-top: 0.7rem !important;
+            }
+        </style>
     {% endblock %}
 </head>
 <body>

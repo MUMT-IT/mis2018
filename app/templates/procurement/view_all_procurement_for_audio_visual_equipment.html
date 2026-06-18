@@ -1,6 +1,39 @@
 {% extends "base.html" %}
 {% block page_content %}
     <section class="section">
+        <style>
+            .thumbnail-wrapper {
+                position: relative;
+                display: inline-block;
+                width: 56px;
+                height: 56px;
+            }
+            .thumbnail-loader {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.85);
+            }
+            .thumbnail-loader::after {
+                content: "";
+                width: 16px;
+                height: 16px;
+                border: 2px solid #d9d9d9;
+                border-top-color: #3273dc;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+            }
+            .thumbnail-loader.is-hidden {
+                display: none;
+            }
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
         {% include "messages.html" %}
         <nav class="breadcrumb" aria-label="breadcrumbs">
             <ul>
@@ -30,9 +63,21 @@
             </div>
         <div class="container">
             <div class="columns">
+                <div class="column is-one-third">
+                    <label class="label">แสดงรายการ</label>
+                    <div class="select is-fullwidth">
+                        <select id="audioVisualFilter">
+                            <option value="1" selected>เฉพาะโสตทัศนูปกรณ์ (is_audio_visual_equipment=true)</option>
+                            <option value="0">ทั้งหมด</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
                 <div class="column">
                     <table id="data" class="table is-striped" style="width:100%">
                         <thead>
+                        <th>Image</th>
                         <th>Name</th>
                         <th>Inventory Number/ERP</th>
                         <th>Status</th>
@@ -60,17 +105,46 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#data').DataTable({
+            const bindThumbnailLoaders = function () {
+                document.querySelectorAll('.thumbnail-wrapper').forEach(function (wrapper) {
+                    const img = wrapper.querySelector('.thumbnail-image');
+                    const loader = wrapper.querySelector('.thumbnail-loader');
+                    if (!img || !loader) {
+                        return;
+                    }
+                    const hideLoader = function () {
+                        loader.classList.add('is-hidden');
+                    };
+                    if (img.complete) {
+                        hideLoader();
+                    } else {
+                        img.addEventListener('load', hideLoader, {once: true});
+                        img.addEventListener('error', hideLoader, {once: true});
+                    }
+                });
+            };
+
+            const table = $('#data').DataTable({
                 searchDelay: 350,
-                ajax: '{{ url_for("procurement.get_procurement_for_audio_visual_equipment") }}',
+                ajax: {
+                    url: '{{ url_for("procurement.get_procurement_for_audio_visual_equipment") }}',
+                    data: function (d) {
+                        d.only_audio_visual = $('#audioVisualFilter').val();
+                    }
+                },
                 serverSide: true,
                 columns: [
+                    {data: 'thumbnail', orderable: false, searchable: false},
                     {data: 'name'},
                     {data: 'erp_code'},
                     {data: 'is_audio_visual_equipment'},
                     {data: 'add'}
 
                 ],
+            });
+            table.on('draw', bindThumbnailLoaders);
+            $('#audioVisualFilter').on('change', function () {
+                table.ajax.reload();
             });
         });
     </script>

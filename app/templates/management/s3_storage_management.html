@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}S3 Storage Management{% endblock %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+                <li class="is-active"><a aria-current="page">S3 Storage Management</a></li>
+            </ul>
+        </nav>
+
+        <div class="box">
+            <h1 class="title is-4">S3 Storage Management</h1>
+            <p class="subtitle is-6">Admin area for S3 storage operations and monitoring.</p>
+
+            {% if connection_status == 'Connected' %}
+                <div class="notification is-success is-light">
+                    S3 connection is available.
+                </div>
+            {% else %}
+                <div class="notification is-danger is-light">
+                    S3 connection is unavailable.
+                    {% if error_message %}
+                        <br>
+                        <small>{{ error_message }}</small>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <div class="columns is-multiline">
+                <div class="column is-4">
+                    <div class="box has-background-light">
+                        <p class="heading">Connection</p>
+                        <p class="title is-5">{{ connection_status }}</p>
+                    </div>
+                </div>
+                <div class="column is-4">
+                    <div class="box has-background-light">
+                        <p class="heading">Region</p>
+                        <p class="title is-5">{{ region }}</p>
+                    </div>
+                </div>
+                <div class="column is-4">
+                    <div class="box has-background-light">
+                        <p class="heading">Bucket Access</p>
+                        <p class="title is-5">{{ bucket_access }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="box">
+                <p class="heading">Endpoint</p>
+                <p>{{ endpoint_url }}</p>
+            </div>
+
+            <div class="columns is-multiline">
+                <div class="column is-6">
+                    <div class="box has-background-light">
+                        <p class="heading">Configured Bucket</p>
+                        <p class="title is-6">{{ bucket_name }}</p>
+                    </div>
+                </div>
+                <div class="column is-3">
+                    <div class="box has-background-light">
+                        <p class="heading">Bucket Region</p>
+                        <p class="title is-6">{{ bucket_region }}</p>
+                    </div>
+                </div>
+                <div class="column is-3">
+                    <div class="box has-background-light">
+                        <p class="heading">Sample Objects</p>
+                        <p class="title is-6">{{ object_count }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="box">
+                <p class="heading mb-3">Storage Capacity Gauge</p>
+                <div id="storage-gauge" style="width: 100%; min-height: 200px;"></div>
+                <p class="is-size-7 has-text-grey mt-2">
+                    Used {{ '%.2f'|format(used_storage_gb) }} GB of {{ '%.2f'|format(storage_capacity_gb) }} GB
+                    ({{ storage_usage_percent }}%)
+                </p>
+            </div>
+
+            <div class="table-container">
+                <table class="table is-fullwidth is-striped is-hoverable">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Object Key</th>
+                        <th>Size (bytes)</th>
+                        <th>Last Modified</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for obj in objects %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ obj.key }}</td>
+                            <td>{{ obj.size }}</td>
+                            <td>{{ obj.last_modified }}</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="4" class="has-text-centered has-text-grey">
+                                No objects found or unable to read object list.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script>
+        google.charts.load('current', {'packages': ['gauge']});
+        google.charts.setOnLoadCallback(drawStorageGauge);
+
+        function drawStorageGauge() {
+            var usagePercent = Number({{ storage_usage_percent|tojson }});
+            var data = google.visualization.arrayToDataTable([
+                ['Label', 'Value'],
+                ['Storage %', usagePercent]
+            ]);
+
+            var options = {
+                width: '100%',
+                height: 220,
+                min: 0,
+                max: 100,
+                greenFrom: 0,
+                greenTo: 70,
+                yellowFrom: 70,
+                yellowTo: 90,
+                redFrom: 90,
+                redTo: 100,
+                minorTicks: 5
+            };
+
+            var chart = new google.visualization.Gauge(document.getElementById('storage-gauge'));
+            chart.draw(data, options);
+        }
+    </script>
+{% endblock %}

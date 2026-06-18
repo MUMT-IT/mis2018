@@ -3,6 +3,45 @@
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+    <style>
+        .account-panel {
+            background: var(--theme-surface);
+            border: 1px solid var(--theme-border);
+            border-radius: 18px;
+            box-shadow: 0 10px 24px rgba(18, 39, 84, 0.06);
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .account-panel-header {
+            border-bottom: 1px solid var(--theme-border);
+            padding: 0.9rem 1.15rem;
+        }
+
+        .account-panel-title {
+            color: var(--theme-navy-deep);
+            font-size: 1rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .account-panel-body {
+            padding: 1rem 1.15rem 1.15rem;
+        }
+
+        .danger-panel {
+            border-color: rgba(184, 67, 63, 0.35);
+        }
+
+        .danger-panel .account-panel-header {
+            background: rgba(184, 67, 63, 0.1);
+            border-bottom-color: rgba(184, 67, 63, 0.28);
+        }
+
+        .danger-panel .account-panel-title {
+            color: var(--theme-red);
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
 <section class="section">
@@ -33,14 +72,7 @@
                 </p>
                 {% endif %}
                 {% if current_user.line_id %}
-                <a class="button is-success" href="{{ url_for('auth.unlink_line_account') }}">
-                    <span class="icon">
-                        <i class="fab fa-line fa-2x"></i>
-                    </span>
-                    <span>
-                        ยกเลิกการเชื่อมต่อบัญชี Line App
-                    </span>
-                </a>
+                <span class="tag is-success is-medium">เชื่อมต่อบัญชี Line แล้ว</span>
                 {% else %}
                 <div class="buttons is-centered">
                     <a class="button is-success" href="{{ url_for('auth.link_line_account') }}">
@@ -56,76 +88,84 @@
                 {% endif %}
             </div>
             <hr>
-            <p class="has-text-centered title is-size-4">ข้อมูลพื้นฐาน</p>
-            <table class="table is-fullwidth">
-                {% if current_user.personal_info.th_firstname or current_user.personal_info.th_lastname %}
-                <tr>
-                    <td>ชื่อ นามสกุล</td>
-                    <td>
-                        {{ current_user.fullname }}
-                    </td>
-                </tr>
-                {% endif %}
-                <tr>
-                    <td>Name</td>
-                    <td>
-                        {{ current_user.personal_info.en_fullname }}
-                    </td>
-                </tr>
-                <tr>
-                    <td>อีเมล</td>
-                    <td>{{ current_user.email }}@mahidol.ac.th</td>
-                </tr>
-                <tr>
-                    <td>สังกัด</td>
-                    <td>{{ current_user.personal_info.org.name }}</td>
-                </tr>
-                <tr>
-                    <td>หัวหน้างาน/ผู้บังคับบัญชา</td>
-                    <td>
-                        {% for approver in approvers %}
-                        {% if approver.is_active %}
-                        {{ approver.account.personal_info.fullname }},
+            <div class="account-panel">
+                <div class="account-panel-header">
+                    <p class="account-panel-title">Basic information</p>
+                </div>
+                <div class="account-panel-body">
+                    <table class="table is-fullwidth">
+                        {% if current_user.personal_info.th_firstname or current_user.personal_info.th_lastname %}
+                        <tr>
+                            <td>ชื่อ นามสกุล</td>
+                            <td>
+                                {{ current_user.fullname }}
+                            </td>
+                        </tr>
                         {% endif %}
-                        {% endfor %}
-                    </td>
-                </tr>
-            </table>
-        </div>
-    </div>
-    <div class="columns">
-        <div class="column is-half is-offset-one-quarter">
-            <hr>
-            <p class="has-text-centered title is-size-4">แก้ไขรหัสผ่าน</p>
-            <form method="post">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="field is-horizontal">
-                <div class="field-body">
-                    <div class="field">
-                        <div class="control is-expanded has-icons-left">
-                            <input type="password" class="input" name="new_password" placeholder="New password">
-                            <span class="icon is-small is-left">
-                                <i class="fas fa-key"></i>
-                            </span>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <div class="control is-expanded has-icons-left">
-                            <input type="password" class="input" name="new_password2" placeholder="Confirm password">
-                            <span class="icon is-small is-left">
-                                <i class="fas fa-key"></i>
-                            </span>
-                            <p class="help has-text-danger">รหัสต้องตรงกัน</p>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <div class="control">
-                            <input type="submit" class="button is-info"/>
-                        </div>
-                    </div>
+                        <tr>
+                            <td>Name</td>
+                            <td>
+                                {{ current_user.personal_info.en_fullname }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>อีเมล</td>
+                            <td>{{ current_user.email }}@mahidol.ac.th</td>
+                        </tr>
+                        <tr>
+                            <td>สังกัด</td>
+                            <td>{{ current_user.personal_info.org.name }}</td>
+                        </tr>
+                        <tr>
+                            <td>วันที่เริ่มงาน</td>
+                            <td>
+                                {% if current_user.personal_info.employed_date %}
+                                    {{ current_user.personal_info.employed_date.strftime('%d/%m/%Y') }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Job position</td>
+                            <td>{{ current_user.personal_info.job_position or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Position</td>
+                            <td>{{ current_user.personal_info.position or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td>หัวหน้างาน/ผู้บังคับบัญชา</td>
+                            <td>
+                                {% for approver in approvers %}
+                                {% if approver.is_active %}
+                                {{ approver.account.personal_info.fullname }},
+                                {% endif %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    </table>
                 </div>
+            </div>
+
+            <div class="account-panel danger-panel">
+                <div class="account-panel-header">
+                    <p class="account-panel-title">Danger zone</p>
                 </div>
-            </form>
+                <div class="account-panel-body">
+                    {% if current_user.line_id %}
+                    <p class="mb-3">ยกเลิกการเชื่อมต่อบัญชี Line App ของท่าน</p>
+                    <a class="button is-danger" href="{{ url_for('auth.unlink_line_account') }}">
+                        <span class="icon">
+                            <i class="fab fa-line"></i>
+                        </span>
+                        <span>ยกเลิกการเชื่อมต่อบัญชี Line App</span>
+                    </a>
+                    {% else %}
+                    <p class="has-text-grey">ยังไม่มีรายการที่ต้องดำเนินการในส่วนนี้</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
     </div>
