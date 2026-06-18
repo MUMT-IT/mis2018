@@ -185,11 +185,33 @@
                                         <input class="input" disabled value="{% if record.room %}{{ record.room }}{% else %}{% for room in record.rooms %}{{ room }}{% endfor %}{% endif %}">
                                     </div>
                                 </div>
-                            {% elif record.procurement_location %}
+                            {% endif %}
+                            {% if record.topic.code == 'runied' %}
                                 <div class="field">
-                                    <label class="label">สถานที่ตั้งครุภัณฑ์ปัจจุบัน</label>
+                                    <label class="label">{{ form.procurement_location.label }}</label>
                                     <div class="control">
-                                        <input class="input" disabled value="{{ record.procurement_location }}">
+                                        {{ form.procurement_location(class='js-example-basic-single') }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">ครุภัณฑ์</label>
+                                    <div class="field has-addons">
+                                        <div class="control">
+                                            <a class="button is-success is-small is-rounded is-outlined"
+                                               href="{{ url_for('comp_tracker.scan_qr_code_complaint',
+                                                code=record.topic.code, cat='admin') }}">
+                                                <span class="icon"><i class="fas fa-qrcode"></i></span>
+                                                <span>Scan QR Code ครุภัณฑ์</span>
+                                             </a>
+                                        </div>
+                                        <div class="control">
+                                            <a class="button is-info is-small is-rounded is-outlined"
+                                               href="{{ url_for('comp_tracker.add_procurement_number',
+                                                    code=record.topic.code, cat='admin') }}">
+                                                <span class="icon"><i class="fas fa-pencil-alt"></i></span>
+                                                <span>กรอกเลขครุภัณฑ์</span>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             {% endif %}
@@ -259,6 +281,8 @@
                                         </tbody>
                                     </table>
                                 </div>
+{#                            {% else %}#}
+
                             {% endif %}
                             <div class="field">
                                 <label class="label">รายละเอียด</label>
@@ -1255,7 +1279,8 @@
     <script>
         $(document).ready(function () {
             let initializeSelect = function () {
-                $('.js-example-basic-single, [id$="priority"]').not($('[id$="type"]')).not($('[id$="status"]')).not($('[id$="topic"]')).each(
+                $('.js-example-basic-single, [id$="priority"]').not($('[id$="type"]')).not($('[id$="status"]'))
+                    .not($('[id$="topic"]')).not($('[id$="procurement_location"]')).each(
                     function () {
                         $(this).select2(
                             {
@@ -1286,6 +1311,9 @@
                 width: '65%'
             })
             $('[id$="topic"]').select2({
+                width: '100%'
+            })
+            $('[id$="procurement_location"]').select2({
                 width: '100%'
             })
             $('.js-example-basic-multiple').select2({

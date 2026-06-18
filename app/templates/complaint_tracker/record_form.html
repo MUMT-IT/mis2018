@@ -30,11 +30,11 @@
                             <div class="field">
                                 <div class="buttons is-centered">
                                     <a class="button is-success is-outlined" href="{{ url_for('comp_tracker.scan_qr_code_complaint',
-                                        code=topic.code) }}">
+                                        code=topic.code, cat='user') }}">
                                         Scan QR Code ครุภัณฑ์
                                      </a>
                                     <a class="button is-info is-outlined" href="{{ url_for('comp_tracker.add_procurement_number',
-                                            code=topic.code) }}">
+                                            code=topic.code, cat='user') }}">
                                         กรอกเลขครุภัณฑ์
                                     </a>
                                 </div>
