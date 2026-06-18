@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% include 'nav.html' %}
+{% block head %}
+    {{ super() }}
+    <style>
+        .external-login-shell {
+            min-height: calc(100vh - 5rem);
+            background:
+                radial-gradient(circle at top left, rgba(6, 199, 85, 0.14), transparent 30%),
+                radial-gradient(circle at bottom right, rgba(30, 144, 255, 0.12), transparent 34%),
+                linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+        }
+
+        .external-login-card {
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            box-shadow: 0 18px 48px rgba(15, 23, 42, 0.10);
+            border-radius: 1rem;
+        }
+
+        .external-login-kicker {
+            color: #047857;
+            font-size: 0.8rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .external-login-title {
+            color: #0f172a;
+            margin-bottom: 0.4rem;
+        }
+
+        .external-login-copy {
+            color: #475569;
+            line-height: 1.6;
+            margin-bottom: 1.25rem;
+        }
+
+        .external-login-note {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 0.75rem;
+            color: #1d4ed8;
+            margin-bottom: 1rem;
+            padding: 0.9rem 1rem;
+            text-align: left;
+        }
+    </style>
+{% endblock %}
+{% block page_content %}
+<section class="section external-login-shell">
+    <div class="container">
+        <div class="columns is-centered">
+            <div class="column is-half">
+                <div class="box external-login-card">
+                    {% include 'messages.html' %}
+                    <div class="external-login-kicker">External Employee Login</div>
+                    <h1 class="title external-login-title">ลงชื่อเข้าใช้สำหรับบุคลากรภายนอก</h1>
+                    <p class="external-login-copy">
+                        ใช้อีเมลภายนอกและรหัสผ่านของคุณเพื่อเข้าสู่ระบบ จากนั้นระบบจะพาไปยังหน้า External Employee Portal
+                    </p>
+                    <div class="external-login-note">
+                        กรอกอีเมลที่ลงทะเบียนไว้สำหรับบุคลากรภายนอก ระบบจะตรวจสอบจากช่อง `external_email`
+                    </div>
+                    <form method="post" action="{{ url_for('auth.login_external') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="field">
+                            <label class="label">External email</label>
+                            <div class="control has-icons-left">
+                                {{ form.email(placeholder='name@example.com', class='input') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-user"></i>
+                                </span>
+                            </div>
+                            {% if errors.email %}
+                            <p class="help is-danger">{{ errors.email[0] }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="field">
+                            <label class="label">Password</label>
+                            <div class="control has-icons-left">
+                                {{ form.password(placeholder='Password', class='input') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                            </div>
+                            {% if errors.password %}
+                            <p class="help is-danger">{{ errors.password[0] }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <label class="checkbox">
+                                    {{ form.remember_me() }}
+                                    Remember me
+                                </label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="control">
+                                {{ form.submit(class='button is-link is-fullwidth', value='Log in to External Portal') }}
+                            </div>
+                        </div>
+                        <div class="has-text-centered">
+                            <a href="{{ url_for('auth.login') }}">กลับไปหน้าเข้าสู่ระบบหลัก</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

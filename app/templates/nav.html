@@ -1,17 +1,21 @@
 {% from "components/module_nav.html" import render_module_nav %}
 
-{{ render_module_nav(
-    title='MUMT MIS',
-    subtitle='Internal Information System',
-    brand_href='/',
-    start_links=[
-        {'href': '/', 'label': 'หน้าหลัก', 'icon': 'fas fa-house', 'primary': True}
-    ],
-    user_display=current_user.personal_info.fullname if current_user.is_authenticated else None,
-    account_href=url_for('auth.account') if current_user.is_authenticated else None,
-    logout_href=url_for('auth.logout') if current_user.is_authenticated else None,
-    support_href=url_for('user_support_index'),
-    login_href=url_for('auth.login') if not current_user.is_authenticated else None,
-    close_href=None,
-    menu_id='rootNavbarMenu'
-) }}
+{% if current_user.is_authenticated and current_user.personal_info and current_user.personal_info.org and current_user.personal_info.org.is_external %}
+    {% include "external_employee_nav.html" %}
+{% else %}
+    {{ render_module_nav(
+        title='MUMT MIS',
+        subtitle='Internal Information System',
+        brand_href='/',
+        start_links=[
+            {'href': '/', 'label': 'หน้าหลัก', 'icon': 'fas fa-house', 'primary': True}
+        ],
+        user_display=current_user.personal_info.fullname if current_user.is_authenticated else None,
+        account_href=url_for('auth.account') if current_user.is_authenticated else None,
+        logout_href=url_for('auth.logout') if current_user.is_authenticated else None,
+        support_href=url_for('user_support_index'),
+        login_href=url_for('auth.login') if not current_user.is_authenticated else None,
+        close_href=None,
+        menu_id='rootNavbarMenu'
+    ) }}
+{% endif %}

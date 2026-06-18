@@ -30,6 +30,22 @@
                             </div>
                         </div>
                     </div>
+                    {% if staff.org and staff.org.is_external %}
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">external_email</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                        name="external_email" type="email" placeholder="name@example.com"
+                                        value="{{ staff.staff_account.external_email }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
                             <label class="label">คำนำหน้า</label>
@@ -397,6 +413,5 @@
     });
 </script>
 {% endblock %}
-
 
 
