@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}External Employee Portal{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .external-shell {
+            padding: 1.75rem 0 3rem;
+        }
+
+        .external-hero {
+            background:
+                radial-gradient(circle at top right, rgba(240, 196, 25, 0.22), transparent 24%),
+                radial-gradient(circle at left center, rgba(26, 61, 124, 0.14), transparent 28%),
+                linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(239, 244, 255, 0.92));
+            border: 1px solid var(--theme-border);
+            border-radius: 30px;
+            box-shadow: var(--theme-shadow);
+            overflow: hidden;
+            padding: 2.25rem;
+            position: relative;
+        }
+
+        .external-hero::after {
+            background: linear-gradient(135deg, rgba(26, 61, 124, 0.08), rgba(202, 168, 74, 0.14));
+            border-radius: 999px;
+            content: "";
+            height: 220px;
+            position: absolute;
+            right: -70px;
+            top: -80px;
+            width: 220px;
+        }
+
+        .external-kicker {
+            color: var(--theme-gold);
+            font-size: 0.8rem;
+            font-weight: 800;
+            letter-spacing: 0.16em;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .external-title {
+            color: var(--theme-navy-deep);
+            font-size: clamp(2rem, 4vw, 3.4rem);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1.05;
+            margin-bottom: 0.9rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .external-subtitle {
+            color: var(--theme-text);
+            font-size: 1.08rem;
+            line-height: 1.7;
+            max-width: 760px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .external-grid {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.9fr);
+            margin-top: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .external-card {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            border-radius: 24px;
+            box-shadow: 0 16px 36px rgba(18, 39, 84, 0.08);
+            padding: 1.4rem;
+        }
+
+        .external-card .icon-wrap {
+            align-items: center;
+            background: linear-gradient(135deg, rgba(26, 61, 124, 0.14), rgba(240, 196, 25, 0.18));
+            border-radius: 18px;
+            color: var(--theme-navy-deep);
+            display: inline-flex;
+            height: 3rem;
+            justify-content: center;
+            width: 3rem;
+        }
+
+        .external-card-title {
+            color: var(--theme-navy-deep);
+            font-size: 1.15rem;
+            font-weight: 800;
+            margin-top: 0.85rem;
+        }
+
+        .external-card-text {
+            color: var(--theme-muted);
+            line-height: 1.7;
+            margin-top: 0.55rem;
+        }
+
+        .external-cta {
+            display: flex;
+            justify-content: center;
+            margin-top: 1.2rem;
+        }
+
+        .external-cta .button {
+            border-radius: 999px;
+            width: 100%;
+            padding-left: 1.35rem;
+            padding-right: 1.35rem;
+        }
+
+        .external-secondary-ctas {
+            display: grid;
+            gap: 0.75rem;
+            margin-top: 0.85rem;
+        }
+
+        .external-pill-button {
+            border-radius: 999px;
+        }
+
+        .external-meta {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .external-meta-item {
+            align-items: center;
+            background: rgba(255, 255, 255, 0.84);
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 18px;
+            display: flex;
+            gap: 0.8rem;
+            padding: 0.9rem 1rem;
+        }
+
+        .external-meta-item .icon {
+            color: var(--theme-navy);
+        }
+
+        .external-meta-label {
+            color: var(--theme-muted);
+            display: block;
+            font-size: 0.8rem;
+            margin-bottom: 0.1rem;
+        }
+
+        .external-meta-value {
+            color: var(--theme-navy-deep);
+            font-weight: 700;
+        }
+
+        @media screen and (max-width: 900px) {
+            .external-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+{% include "nav.html" %}
+<section class="section external-shell">
+    <div class="container">
+        <div class="external-hero">
+            <div class="external-kicker">External Employee Portal</div>
+            <h1 class="external-title">Welcome to the external check-in portal</h1>
+            <p class="external-subtitle">
+                Use this page to start GPS check-in or check-out. Your records will still feed the existing OT
+                calculation flow without changing the payment mechanism.
+            </p>
+
+            <div class="external-grid">
+                <div class="external-card">
+                    <span class="icon-wrap">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </span>
+                    <div class="external-card-title">GPS Check-in</div>
+                    <div class="external-card-text">
+                        Open the GPS check-in page to record your attendance from the location where you are working.
+                    </div>
+                    <div class="external-cta">
+                        <a class="button is-info is-medium" href="{{ url_for('staff.geo_checkin') }}">
+                            <span class="icon"><i class="fas fa-location-dot"></i></span>
+                            <span>Go to GPS Check-in</span>
+                        </a>
+                    </div>
+                    <div class="external-secondary-ctas">
+                        <a class="button is-info is-medium external-pill-button" href="{{ url_for('staff.show_qrcode') }}">
+                            <span class="icon"><i class="fas fa-qrcode"></i></span>
+                            <span>QR Code</span>
+                        </a>
+                        <a class="button is-info is-medium external-pill-button" href="{{ url_for('ot.view_monthly_records') }}">
+                            <span class="icon"><i class="fas fa-clipboard-list"></i></span>
+                            <span>OT Summary</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="external-card external-meta">
+                    <div class="external-meta-item">
+                        <span class="icon"><i class="fas fa-building"></i></span>
+                        <div>
+                            <span class="external-meta-label">Organization</span>
+                            <span class="external-meta-value">{{ org.display_name if org else 'ไม่มีสังกัด' }}</span>
+                        </div>
+                    </div>
+                    <div class="external-meta-item">
+                        <span class="icon"><i class="fas fa-user"></i></span>
+                        <div>
+                            <span class="external-meta-label">Logged in as</span>
+                            <span class="external-meta-value">{{ personal_info.fullname if personal_info else current_user.fullname }}</span>
+                        </div>
+                    </div>
+                    <div class="external-meta-item">
+                        <span class="icon"><i class="fas fa-circle-info"></i></span>
+                        <div>
+                            <span class="external-meta-label">Access scope</span>
+                            <span class="external-meta-value">External employee access only</span>
+                        </div>
+                    </div>
+                    <div class="external-meta-item">
+                        <a class="button is-light is-fullwidth" href="{{ url_for('auth.logout') }}">
+                            <span class="icon"><i class="fas fa-right-from-bracket"></i></span>
+                            <span>Log out</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

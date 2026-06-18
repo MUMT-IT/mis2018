@@ -1,0 +1,19 @@
+{% from "components/module_nav.html" import render_module_nav %}
+
+{{ render_module_nav(
+    title='External Portal',
+    subtitle='External Employee Access',
+    brand_href=url_for('external_landing'),
+    start_links=[
+        {'href': url_for('external_landing'), 'label': 'หน้าหลัก', 'icon': 'fas fa-house', 'primary': True},
+        {'href': url_for('staff.geo_checkin'), 'label': 'GPS Check-in', 'icon': 'fas fa-location-dot'},
+        {'href': url_for('staff.show_qrcode'), 'label': 'QR Code', 'icon': 'fas fa-qrcode'},
+        {'href': url_for('ot.view_monthly_records'), 'label': 'OT Summary', 'icon': 'fas fa-clipboard-list'}
+    ],
+    user_display=current_user.personal_info.fullname if current_user.is_authenticated and current_user.personal_info else None,
+    account_href=url_for('auth.account') if current_user.is_authenticated else None,
+    logout_href=url_for('auth.logout') if current_user.is_authenticated else None,
+    support_href=url_for('user_support_index'),
+    close_href='/',
+    menu_id='externalEmployeeNavbarMenu'
+) }}

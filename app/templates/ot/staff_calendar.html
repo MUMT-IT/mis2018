@@ -26,7 +26,7 @@
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">
-                    <a class="button is-light" href="{{ url_for('ot.index') }}">
+                    <a class="button is-light" href="{% if current_user.is_authenticated and current_user.personal_info and current_user.personal_info.org and current_user.personal_info.org.is_external %}{{ url_for('external_landing') }}{% else %}{{ url_for('staff.show_time_report') }}{% endif %}">
                      <span class="icon">
                          <i class="fa-solid fa-chevron-left"></i>
                      </span>

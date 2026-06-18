@@ -170,6 +170,59 @@ def create_app():
 app = create_app()
 api = Api(app)
 
+EXTERNAL_ALLOWED_ENDPOINTS = {
+    'static',
+    'external_landing',
+    'staff.geo_checkin',
+    'staff.show_qrcode',
+    'staff.create_qrcode',
+    'staff.show_time_report',
+    'staff.send_time_report_data',
+    'staff.send_holidays_data',
+    'ot.view_monthly_records',
+    'ot.summary_each_person',
+    'ot.get_ot_records',
+    'ot.get_all_ot_records_table',
+    'ot.get_ot_records_table',
+}
+
+EXTERNAL_ALLOWED_ENDPOINT_PREFIXES = (
+    'auth.',
+)
+
+
+def _is_external_account(user=None):
+    user = user or current_user
+    if not getattr(user, 'is_authenticated', False):
+        return False
+    personal_info = getattr(user, 'personal_info', None)
+    org = getattr(personal_info, 'org', None)
+    return bool(org and org.is_external)
+
+
+@app.before_request
+def block_external_routes_globally():
+    if not _is_external_account():
+        return
+    endpoint = request.endpoint or ''
+    if endpoint in EXTERNAL_ALLOWED_ENDPOINTS:
+        return
+    if any(endpoint.startswith(prefix) for prefix in EXTERNAL_ALLOWED_ENDPOINT_PREFIXES):
+        return
+    abort(403)
+
+
+@app.route('/external')
+@login_required
+def external_landing():
+    if not _is_external_account():
+        return redirect(url_for('index'))
+    return render_template(
+        'external/landing.html',
+        personal_info=getattr(current_user, 'personal_info', None),
+        org=getattr(getattr(current_user, 'personal_info', None), 'org', None),
+    )
+
 
 # user_loader_callback_loader has renamed to user_lookup_loader in >=4.0
 @jwt.user_lookup_loader
@@ -187,6 +240,11 @@ def page_not_found(e):
 @app.errorhandler(500)
 def internal_server_error(e):
     return render_template('errors/500.html', blueprint=request.blueprint, error=e), 500
+
+
+@app.errorhandler(403)
+def forbidden(e):
+    return render_template('errors/403.html', blueprint=request.blueprint, error=e), 403
 
 
 @app.errorhandler(PermissionDenied)

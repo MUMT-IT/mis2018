@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/timepicker/1.3.5/jquery.timepicker.min.css">
+{% endblock %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">แก้ไขประกาศ</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <div class="box">
+                    <form method="post" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">เรื่อง</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ form.topic(class="input") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">หน่วยงาน</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="select is-fullwidth">
+                                        {{ form.org() }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">ประกาศเมื่อ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ form.announce_at(class="input", type="text") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">เริ่มใช้ตั้งแต่</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ form.start_datetime(class="input", type="text") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">File Upload</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ form.upload(class="input", type="file") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <input type="submit" value="บันทึก" class="button is-primary"/>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('ot.announcement') }}" class="button is-danger">Cancel</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

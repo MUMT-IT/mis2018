@@ -1,7 +1,8 @@
 {% extends "base.html" %}
-{% include "nav.html" %}
 
 {% block page_content %}
+{% include "nav.html" %}
+
 <section class="section">
     {% include "messages.html" %}
     <div class="columns">
@@ -9,9 +10,18 @@
             <h1 class="title has-text-centered">ระบบบริหารจัดการค่าตอบแทนการปฏิบัติงานล่วงเวลา</h1>
         </div>
     </div>
-    <div id="popup"></div>
-    <div class="columns">
-        <div class="column is-one-third is-offset-4">
+    <div class="columns is-variable is-6">
+        <div class="column is-3">
+            <aside class="menu">
+                <p class="menu-label">OT Admin</p>
+                <ul class="menu-list">
+                    <li><a class="is-active" href="{{ url_for('ot.admin_index') }}">หน้าหลัก</a></li>
+                    <li><a href="{{ url_for('ot.announcement') }}">ประกาศ</a></li>
+                </ul>
+            </aside>
+        </div>
+        <div class="column is-9">
+            <div id="popup"></div>
             <nav class="panel is-info">
                 <p class="panel-heading">หน่วยงาน</p>
                 {% for an in announcements %}

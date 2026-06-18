@@ -9,13 +9,14 @@
                     <form method="post" enctype="multipart/form-data">
                         <h1 class="title has-text-centered">ค้นหาชื่อเพื่อเปลี่ยนรหัสผ่าน</h1>
                         <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                        <input type="hidden" name="staffname" :value="staffid">
                         <div class="control">
                             <b-field message="สามารถค้นหาด้วยชื่อ นามสกุล">
                                 ชื่อ <% staffNameSelected %>
-                                <b-autocomplete v-model="staffquery" :data="data" name="staffname"
+                                <b-autocomplete v-model="staffquery" :data="data"
                                                 field="id" :loading="isFetching" icon="magnify"
                                                 @keyup.native="getAsyncData"
-                                                @select="option => staffname = option.fullname" required>
+                                                @select="option => { staffname = option.fullname; staffid = option.id; }" required>
                                     <template slot-scope="props">
                                         <div class="media">
                                             <div class="media-content">
@@ -66,6 +67,7 @@
             return {
                 staffquery: '',
                 staffname: '',
+                staffid: '',
                 isFetching: false,
                 data: []
             }

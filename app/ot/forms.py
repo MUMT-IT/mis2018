@@ -3,7 +3,7 @@ from wtforms.validators import DataRequired
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
-from wtforms import SelectMultipleField, SelectField, DateField, FieldList, FormField
+from wtforms import SelectMultipleField, SelectField, DateField, FieldList, FormField, StringField
 from wtforms.widgets import ListWidget, CheckboxInput
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.ot.models import *
@@ -26,13 +26,23 @@ class OtPaymentAnnounceForm(ModelForm):
                       'announce_at': {'validators': [DataRequired()]},
                       'start_datetime': {'validators': [DataRequired()]}}
 
+    org = QuerySelectField(u'หน่วยงาน',
+                           get_label='name',
+                           query_factory=lambda: Org.query.all())
     upload = FileField('File Upload')
 
 
 class OtCompensationRateForm(ModelForm):
     class Meta:
         model = OtCompensationRate
+        exclude = ['role']
 
+    ot_job_role = QuerySelectField(u'ตำแหน่ง',
+                                   get_label='role',
+                                   query_factory=lambda: OtJobRole.query.all())
+    time_slot = QuerySelectField(u'ช่วงเวลา',
+                                 get_label=lambda slot: f'{slot.start} - {slot.end}',
+                                 query_factory=lambda: OtTimeSlot.query.all())
     announcement = QuerySelectField(u'ประกาศ',
                                     get_label='topic',
                                     query_factory=lambda: OtPaymentAnnounce.query.all())
@@ -41,6 +51,24 @@ class OtCompensationRateForm(ModelForm):
     work_for_org = QuerySelectField(u'หน่วยงาน',
                                     get_label='name',
                                     query_factory=lambda: Org.query.all())
+
+
+class OtTimeSlotForm(FlaskForm):
+    announcement = QuerySelectField(u'ประกาศ',
+                                    get_label='topic',
+                                    query_factory=lambda: OtPaymentAnnounce.query.all())
+    work_for_org = QuerySelectField(u'หน่วยงาน',
+                                    get_label='name',
+                                    query_factory=lambda: Org.query.all())
+    start = SelectField(u'เริ่มเวลา', validators=[DataRequired()])
+    end = SelectField(u'สิ้นสุดเวลา', validators=[DataRequired()])
+    color = StringField(u'สี')
+    note = StringField(u'หมายเหตุ')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.start.choices = [(t, t) for t in time_slots]
+        self.end.choices = [(t, t) for t in time_slots]
 
 
 class OtDocumentApprovalForm(ModelForm):

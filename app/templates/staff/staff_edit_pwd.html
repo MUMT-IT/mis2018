@@ -34,7 +34,7 @@
                                 <div class="field">
                                     <div class="control">
                                         <input class="input"
-                                               name="pwd" type="text" placeholder="ตั้งรหัสผ่านใหม่">
+                                               name="pwd" type="password" placeholder="ตั้งรหัสผ่านใหม่">
                                     </div>
                                 </div>
                             </div>
@@ -47,6 +47,37 @@
                             <input type="submit" value="บันทึก" class="button is-primary"/>
                         </div>
                     </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <h2 class="title is-4">ส่งอีเมลเพื่อให้บุคลากรตั้งรหัสผ่านด้วยตนเอง</h2>
+                    <form method="post" action="{{ url_for('staff.staff_send_reset_pwd_email', staff_id=account.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="field has-addons">
+                            <div class="control has-icons-left is-expanded">
+                                <input
+                                    class="input"
+                                    type="text"
+                                    name="email"
+                                    value="{{ account.email }}@mahidol.ac.th"
+                                    placeholder="email@mahidol.ac.th">
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                            </div>
+                            <div class="control">
+                                <button type="submit" class="button is-info">
+                                    <span class="icon">
+                                        <i class="fas fa-envelope"></i>
+                                    </span>
+                                    <span>ส่งลิงก์ตั้งรหัสผ่าน</span>
+                                </button>
+                            </div>
+                        </div>
                     </form>
                 </div>
             </div>

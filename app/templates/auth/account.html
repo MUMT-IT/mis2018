@@ -51,40 +51,42 @@
             <div class="has-text-centered">
                 {% include "messages.html" %}
                 <h2 class="title">ข้อมูลบัญชีของคุณ</h2>
-                {% if line_profile %}
-                <figure class="image is-128x128 is-inline-block">
-                    <img class="is-rounded" src="{{ line_profile['pictureUrl'] }}">
-                </figure>
-                <h1 class="title">
-                    <span class="icon has-text-success">
-                        <i class="fab fa-line"></i>
-                    </span>
-                    <span>{{ line_profile['displayName'] }}</span>
-                </h1>
-                <p>
-                    <span class="icon">
-                        <i class="fas fa-quote-left"></i>
-                    </span>
-                    <span>{{ line_profile['statusMessage'] }}</span>
-                    <span class="icon">
-                        <i class="fas fa-quote-right"></i>
-                    </span>
-                </p>
-                {% endif %}
-                {% if current_user.line_id %}
-                <span class="tag is-success is-medium">เชื่อมต่อบัญชี Line แล้ว</span>
-                {% else %}
-                <div class="buttons is-centered">
-                    <a class="button is-success" href="{{ url_for('auth.link_line_account') }}">
+                {% if not current_user.personal_info.org.is_external %}
+                    {% if line_profile %}
+                    <figure class="image is-128x128 is-inline-block">
+                        <img class="is-rounded" src="{{ line_profile['pictureUrl'] }}">
+                    </figure>
+                    <h1 class="title">
+                        <span class="icon has-text-success">
+                            <i class="fab fa-line"></i>
+                        </span>
+                        <span>{{ line_profile['displayName'] }}</span>
+                    </h1>
+                    <p>
                         <span class="icon">
-                            <i class="fab fa-line fa-2x"></i>
+                            <i class="fas fa-quote-left"></i>
                         </span>
-                        <span>
-                            เชื่อมต่อบัญชี Line App
+                        <span>{{ line_profile['statusMessage'] }}</span>
+                        <span class="icon">
+                            <i class="fas fa-quote-right"></i>
                         </span>
-                    </a>
-                    <a id="LineHelp" class="button is-white">อ่านรายละเอียด</a>
-                </div>
+                    </p>
+                    {% endif %}
+                    {% if current_user.line_id %}
+                    <span class="tag is-success is-medium">เชื่อมต่อบัญชี Line แล้ว</span>
+                    {% else %}
+                    <div class="buttons is-centered">
+                        <a class="button is-success" href="{{ url_for('auth.link_line_account') }}">
+                            <span class="icon">
+                                <i class="fab fa-line fa-2x"></i>
+                            </span>
+                            <span>
+                                เชื่อมต่อบัญชี Line App
+                            </span>
+                        </a>
+                        <a id="LineHelp" class="button is-white">อ่านรายละเอียด</a>
+                    </div>
+                    {% endif %}
                 {% endif %}
             </div>
             <hr>

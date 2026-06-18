@@ -353,6 +353,14 @@
             transform: translateY(-1px);
         }
 
+        .home-link-item.is-disabled,
+        .home-link-item.is-disabled:hover {
+            box-shadow: none;
+            cursor: default;
+            opacity: 0.72;
+            transform: none;
+        }
+
         .home-link-copy {
             align-items: center;
             display: inline-flex;
@@ -368,6 +376,10 @@
 
         .home-link-item .icon {
             color: var(--theme-navy);
+        }
+
+        .home-link-item.is-disabled .icon {
+            color: rgba(18, 39, 84, 0.68);
         }
 
         .home-panel:nth-child(1) .home-badge {
