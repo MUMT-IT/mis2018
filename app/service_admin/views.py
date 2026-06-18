@@ -693,6 +693,7 @@ def toxicology_request_data(service_request, type):
 
 
 request_data_paths = {'bacteria_disinfection': bacteria_disinfection_request_data,
+                      # 'sterility_test': bacteria_sterility_test_request_data,
                       'virus_disinfection': virus_disinfection_request_data,
                       'air_disinfection': virus_air_disinfection_request_data,
                       'heavymetal': heavymetal_request_data,

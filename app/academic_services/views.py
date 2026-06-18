@@ -238,6 +238,34 @@ def bacteria_disinfection_request_data(service_request, type):
     return values
 
 
+def bacteria_sterility_test_request_data(service_request, type):
+    data = service_request.data
+    form = BacteriaSterilityTestRequestForm(data=data)
+    values = []
+    product_header = False
+    test_header = False
+    for field in form:
+        if field.data:
+            label = field.label.text
+            if field.label == 'test_method':
+                if not test_header:
+                    values.append({'type': 'header', 'data': 'รายการทดสอบ'})
+                    test_header = True
+            else:
+                if not product_header:
+                    values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
+                    product_header = True
+            if field.type == 'CheckboxField':
+                value = ', '.join(field.data)
+                values.append({'type': 'text', 'data': f"{label} : {value}"})
+            elif field.type == 'BooleanField':
+                values.append({'type': 'bool', 'data': f"{label}"})
+            else:
+                value = field.data
+                values.append({'type': 'text', 'data': f"{label} : {value}"})
+    return values
+
+
 def virus_disinfection_request_data(service_request, type):
     data = service_request.data
     form = VirusDisinfectionRequestForm(data=data)
@@ -628,6 +656,7 @@ def toxicology_request_data(service_request, type):
 
 
 request_data_paths = {'bacteria_disinfection': bacteria_disinfection_request_data,
+                      'sterility_test': bacteria_sterility_test_request_data,
                       'virus_disinfection': virus_disinfection_request_data,
                       'air_disinfection': virus_air_disinfection_request_data,
                       'heavymetal': heavymetal_request_data,
