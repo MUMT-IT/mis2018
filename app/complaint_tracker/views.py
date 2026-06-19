@@ -1194,9 +1194,10 @@ def edit_record_admin(record_id):
                     if (first_status.no != new_status.no):
                         form.status.data = None
                         flash('ไม่สามารถย้อนหรือข้ามลำดับสถานะได้ กรุณาเลือกสถานะถัดไปเท่านั้น', 'danger')
-                        return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
-                                               file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
-                                               repair_approval_id=repair_approval_id, statuses=statuses)
+                        return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
+                                               tab=tab, file_url=file_url, admins=admins, investigators=investigators,
+                                               coordinators=coordinators, repair_approval_id=repair_approval_id,
+                                               statuses=statuses)
             form.populate_obj(record)
             record.deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
             db.session.add(record)
@@ -1365,8 +1366,12 @@ def scan_qr_code_room(code):
 @complaint_tracker.route('/scan-qrcode/complaint/<code>', methods=['GET', 'POST'])
 @csrf.exempt
 def scan_qr_code_complaint(code):
+    cat = request.args.get('cat')
+    tab = request.args.get('tab')
+    record_id = request.args.get('record_id', type=int)
     topic = ComplaintTopic.query.filter_by(code=code).first()
-    return render_template('complaint_tracker/qr_code_scan_to_complaint.html', topic=topic.id)
+    return render_template('complaint_tracker/qr_code_scan_to_complaint.html', topic_id=topic.id, cat=cat,
+                           tab=tab, record_id=record_id)
 
 
 @complaint_tracker.route('/issue/comment/add/<int:record_id>', methods=['GET', 'POST'])
