@@ -4243,8 +4243,8 @@ def view_request(request_id=None):
 @login_required
 def export_request_pdf(request_id):
     code = request.args.get('code')
-    request_paths = {'bacteria': 'service_admin.export_bacteria_request_pdf',
-                     'disinfection': 'service_admin.export_virus_request_pdf',
+    request_paths = {'bacteria_disinfection ': 'service_admin.export_bacteria_request_pdf',
+                     'virus_disinfection': 'service_admin.export_virus_request_pdf',
                      'air_disinfection': 'service_admin.export_virus_request_pdf',
                      }
     return redirect(url_for(request_paths[code], code=code, request_id=request_id))

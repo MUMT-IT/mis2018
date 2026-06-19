@@ -4185,8 +4185,8 @@ def view_request(request_id=None):
 @login_required
 def export_request_pdf(request_id):
     code = request.args.get('code')
-    request_paths = {'bacteria': 'academic_services.export_bacteria_request_pdf',
-                     'disinfection': 'academic_services.export_virus_request_pdf',
+    request_paths = {'bacteria_disinfection': 'academic_services.export_bacteria_request_pdf',
+                     'virus_disinfection': 'academic_services.export_virus_request_pdf',
                      'air_disinfection': 'academic_services.export_virus_request_pdf',
                      }
     return redirect(url_for(request_paths[code], code=code, request_id=request_id))
