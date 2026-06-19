@@ -1125,12 +1125,19 @@ def closing_page():
 @login_required
 def edit_record_admin(record_id):
     tab = request.args.get('tab')
+    procurement_no = request.args.get('procurement_no')
+    pro_number = request.args.get('pro_number')
     statuses = ComplaintStatus.query.all()
     record = ComplaintRecord.query.get(record_id)
     if record:
         old_status = record.status
         admins = True if ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first() else False
         investigators = []
+        if procurement_no or pro_number:
+            procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no if procurement_no
+                            else pro_number).first()
+            record.procurements.clear()
+            record.procurements.append(procurement)
         coordinators = ComplaintCoordinator.query.filter_by(coordinator=current_user, record_id=record_id).first() \
             if ComplaintCoordinator.query.filter_by(coordinator=current_user, record_id=record_id).first() else None
         for i in record.investigators:
