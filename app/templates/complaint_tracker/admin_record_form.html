@@ -193,27 +193,27 @@
                                         {{ form.procurement_location(class='js-example-basic-single') }}
                                     </div>
                                 </div>
-{#                                <div class="field">#}
-{#                                    <label class="label">ครุภัณฑ์</label>#}
-{#                                    <div class="field has-addons">#}
-{#                                        <div class="control">#}
-{#                                            <a class="button is-success is-small is-rounded is-outlined"#}
-{#                                               href="{{ url_for('comp_tracker.scan_qr_code_complaint',#}
-{#                                                code=record.topic.code, cat='admin', record_id=record.id, tab=tab) }}">#}
-{#                                                <span class="icon"><i class="fas fa-qrcode"></i></span>#}
-{#                                                <span>Scan QR Code ครุภัณฑ์</span>#}
-{#                                             </a>#}
-{#                                        </div>#}
-{#                                        <div class="control">#}
-{#                                            <a class="button is-info is-small is-rounded is-outlined"#}
-{#                                               href="{{ url_for('comp_tracker.add_procurement_number',#}
-{#                                                    code=record.topic.code, cat='admin') }}">#}
-{#                                                <span class="icon"><i class="fas fa-pencil-alt"></i></span>#}
-{#                                                <span>กรอกเลขครุภัณฑ์</span>#}
-{#                                            </a>#}
-{#                                        </div>#}
-{#                                    </div>#}
-{#                                </div>#}
+                                <div class="field">
+                                    <label class="label">ครุภัณฑ์</label>
+                                    <div class="field has-addons">
+                                        <div class="control">
+                                            <a class="button is-success is-small is-rounded is-outlined"
+                                               href="{{ url_for('comp_tracker.scan_qr_code_complaint',
+                                                code=record.topic.code, cat='admin', record_id=record.id, tab=tab) }}">
+                                                <span class="icon"><i class="fas fa-qrcode"></i></span>
+                                                <span>Scan QR Code ครุภัณฑ์</span>
+                                             </a>
+                                        </div>
+                                        <div class="control">
+                                            <a class="button is-info is-small is-rounded is-outlined"
+                                               href="{{ url_for('comp_tracker.add_procurement_number',
+                                                    code=record.topic.code, cat='admin', record_id=record.id, tab=tab) }}">
+                                                <span class="icon"><i class="fas fa-pencil-alt"></i></span>
+                                                <span>กรอกเลขครุภัณฑ์</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
                             {% endif %}
                             {% if record.procurements %}
                                 <div class="field">
